@@ -17,11 +17,8 @@ const { bestEffort } = require('../../utils/bestEffort');
 /**
  * What the heartbeat uses of a response: an Express or node:http response fits, and so does a
  * test double that has no event emitter.
- * @typedef {object} SseSink
- * @property {boolean} [writableEnded]
- * @property {boolean} [destroyed]
- * @property {(chunk: string) => unknown} write
- * @property {(event: string, listener: () => void) => unknown} [on]
+ * @typedef {{ writableEnded?: boolean, destroyed?: boolean, write: (chunk: string) => unknown,
+ *   on?: (event: string, listener: () => void) => unknown }} SseSink
  */
 
 /**
@@ -242,16 +239,14 @@ function sendSSEError(res, error) {
  * Persist conversation messages and generate/update title.
  * Shared across terminal, security, and browser agent handlers.
  * 
- * @param {object} options
- * @param {{ id: string, title?: string | null }} options.conversation   - Conversation object
- * @param {ChatMessage[]} options.messages       - Messages array to persist
- * @param {string}  options.encryptionKey  - Encryption key
- * @param {string}  options.userId         - User ID
- * @param {string}  options.userMessage    - Original user message
- * @param {string}  options.orgId          - Organization ID
- * @param {(event: string, data: unknown) => void} options.sendEvent     - SSE event sender
- * @param {((transcript: string, history: null, orgId: string, userId: string) => Promise<string | null | undefined>) | null | undefined} options.generateTitle - Title generation function (agentRuntime.generateChatTitle)
- * @param {boolean} [options.skipTitle]   - Keep the existing title
+ * @param {{ conversation: { id: string, title?: string | null }, messages: ChatMessage[],
+ *   encryptionKey: string, userId: string, userMessage: string, orgId: string,
+ *   sendEvent: (event: string, data: unknown) => void,
+ *   generateTitle: ((transcript: string, history: null, orgId: string, userId: string) => Promise<string | null | undefined>) | null | undefined,
+ *   skipTitle?: boolean }} options `conversation`: Conversation object; `messages`: Messages array to
+ *   persist; `encryptionKey`: Encryption key; `userId`: User ID; `userMessage`: Original user message;
+ *   `orgId`: Organization ID; `sendEvent`: SSE event sender; `generateTitle`: Title generation function
+ *   (agentRuntime.generateChatTitle); `skipTitle`: Keep the existing title
  */
 async function persistAndTitle({ conversation, messages, encryptionKey, userId, userMessage, orgId, sendEvent, generateTitle, skipTitle }) {
     const agentStore = require('../../stores/agentStore');

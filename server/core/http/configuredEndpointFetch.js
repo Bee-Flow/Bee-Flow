@@ -55,7 +55,7 @@ function createDispatcher() {
         lookup: /** @type {any} */ ((/** @type {any} */ hostname, /** @type {any} */ options, /** @type {any} */ callback) => {
             if (typeof options === 'function') { callback = options; options = {}; }
             if (isBlocked(hostname)) return process.nextTick(/** @type {any} */ (callback), refusal());
-            /** @type {any} */ (dns.lookup)(hostname, { ...(options || {}), all: true }, (/** @type {any} */ err, /** @type {any} */ list) => {
+            /** @type {any} */ (dns.lookup)(hostname, { ...(options || {}), all: true }, (/** @type {NodeJS.ErrnoException | null} */ err, /** @type {import('dns').LookupAddress[]} */ list) => {
                 if (err) return callback(err);
                 if (list.some((/** @type {{ address: string }} */ e) => isMetadataOrLinkLocal(e.address))) return callback(refusal());
                 if (options && options.all) return callback(null, list);

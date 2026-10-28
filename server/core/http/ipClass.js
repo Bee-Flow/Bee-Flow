@@ -24,11 +24,9 @@ const net = require('node:net');
 /** @typedef {'public'|'private'|'loopback'|'link_local'|'cgnat'|'unspecified'|'ula'|'invalid'} IpKind */
 
 /**
- * @typedef {object} IpClass
- * @property {string|null} ip      the address to geolocate: lower-case, no zone id, embedded IPv4 unwrapped
- * @property {4|6|null} family     family of `ip`
- * @property {IpKind} kind
- * @property {boolean} isPrivate   true for every kind except 'public' and 'invalid'
+ * `ip`: the address to geolocate: lower-case, no zone id, embedded IPv4 unwrapped. `family`: family of
+ * `ip`. `isPrivate`: true for every kind except 'public' and 'invalid'.
+ * @typedef {{ ip: string|null, family: 4|6|null, kind: IpKind, isPrivate: boolean }} IpClass
  */
 
 /** @param {string} ip */

@@ -71,7 +71,7 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
         if (res.headersSent) return next(err);
 
         const isParseFailure = err?.type === 'entity.parse.failed'
-            || (err instanceof SyntaxError && /** @type {any} */ (err).status === 400 && 'body' in err);
+            || (err instanceof SyntaxError && /** @type {SyntaxError & { status?: number }} */ (err).status === 400 && 'body' in err);
         if (isParseFailure) {
             noteRejectedBody('parse', req);
             return res.status(400).json({ error: 'Invalid JSON body' });
