@@ -37,7 +37,7 @@ function validateFormula(expr, path, ctx, allowedRoots) {
         refs = compile(expr).refs;
     } catch (e) {
         const idx = e && typeof e.index === 'number' ? e.index : null;
-        pushE({ code: 'formula.parse_error', severity: 'error', path, message: `Formula failed to parse${idx != null ? ` at position ${idx}` : ''}: ${e && e.message ? e.message : String(e)}.`, hint: 'Fix the expression syntax; only the whitelisted functions/operators are allowed.' });
+        pushE({ code: 'formula.parse_error', severity: 'error', path, message: `Formula failed to parse${idx != null ? ` at position ${idx}` : ''}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e)}.`, hint: 'Fix the expression syntax; only the whitelisted functions/operators are allowed.' });
         return;
     }
     const roots = allowedRoots || FORMULA_SCOPE_ROOTS;
