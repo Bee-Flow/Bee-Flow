@@ -41,10 +41,6 @@ const MERMAID_THEME = {
 export const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } } = {
     startOnLoad: false,
     theme: 'dark',
-    // Mermaid 12 made ELK the default layout and `neo` the default look; these
-    // two keep diagrams laid out and drawn as they were under mermaid 11.
-    layout: 'dagre',
-    look: 'classic',
     themeVariables: MERMAID_THEME,
     fontFamily: 'Inter, system-ui, sans-serif',
     fontSize: 14,
