@@ -29,6 +29,7 @@
  */
 
 import type { AccessSnapshot } from '@/core/access';
+import { translate } from '@/core/i18n';
 
 /**
  * The seven surfaces, in the order the screen renders them.
@@ -64,16 +65,31 @@ export type SearchGroupKey = (typeof SEARCH_GROUPS)[number];
  */
 export type SearchStrategy = 'server' | 'corpus';
 
-export const GROUP_LABELS: Record<SearchGroupKey, string> = {
+/** Getters, so a label is read in the language the app has NOW. */
+export const GROUP_LABELS: Readonly<Record<SearchGroupKey, string>> = {
     // Not "Destinations" or "Navigation" — the word has to be what a person
     // would call the thing they are trying to reach.
-    places: 'Screens',
-    chats: 'Chats',
-    notebooks: 'Notebooks',
-    documents: 'Documents',
-    knowledge: 'Knowledge bases',
-    automations: 'Automations',
-    transcripts: 'Meeting notes',
+    get places() {
+        return translate('mobile.search.group_places', 'Screens');
+    },
+    get chats() {
+        return translate('sidebar.chats', 'Chats');
+    },
+    get notebooks() {
+        return translate('sidebar.notebooks', 'Notebooks');
+    },
+    get documents() {
+        return translate('documents.title', 'Documents');
+    },
+    get knowledge() {
+        return translate('knowledge.title', 'Knowledge bases');
+    },
+    get automations() {
+        return translate('automations.title', 'Automations');
+    },
+    get transcripts() {
+        return translate('mobile.search.group_transcripts', 'Meeting notes');
+    },
 };
 
 export const GROUP_STRATEGY: Record<SearchGroupKey, SearchStrategy> = {

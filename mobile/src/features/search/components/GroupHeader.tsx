@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text, type IconName } from '@/shared/ui';
 
@@ -36,6 +37,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function GroupHeader({ section }: { section: ResultSection }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const problem = section.error ? describeError(section.error) : null;
@@ -52,7 +54,7 @@ export function GroupHeader({ section }: { section: ResultSection }) {
                     has no answer. */}
                 {section.local && section.data.length > 0 ? (
                     <Text variant="label" tone="tertiary">
-                        · searched on this device
+                        {t('mobile.search.searched_on_device', '· searched on this device')}
                     </Text>
                 ) : null}
             </View>
