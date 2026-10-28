@@ -61,17 +61,13 @@ async function turnTierRefusal({ tier, userId, deps = {} }) {
 /**
  * The tier a turn runs on, or the refusal to answer instead.
  *
- * @param {object} args
- * @param {string|null} [args.modelTier]   what the request named (req.body.modelTier)
- * @param {unknown} args.message           the turn's message, for the `auto` classifier
- * @param {Record<string, any>} args.tiers the surface's tier map
- * @param {string} args.userId
- * @param {string|null} [args.userOrgId]
- * @param {string} args.surface            log tag, e.g. 'NotebookChat'
- * @param {boolean} [args.standardIsFast]  the surface reads `standard` as `fast`
- * @param {boolean} [args.classifyAuto]    the surface resolves `auto` with the classifier
- * @param {(key: string) => boolean} [args.autoEligible] keys `auto` may land on at all
- * @param {{ groupTierGateFor?: Function, classifyWithLLM?: Function }} [args.deps]
+ * @param {{ modelTier?: string|null, message: unknown, tiers: Record<string, any>, userId: string,
+ *   userOrgId?: string|null, surface: string, standardIsFast?: boolean, classifyAuto?: boolean,
+ *   autoEligible?: (key: string) => boolean, deps?: { groupTierGateFor?: Function, classifyWithLLM?: Function } }} args
+ *   `modelTier`: what the request named (req.body.modelTier); `message`: the turn's message, for the
+ *   `auto` classifier; `tiers`: the surface's tier map; `surface`: log tag, e.g. 'NotebookChat';
+ *   `standardIsFast`: the surface reads `standard` as `fast`; `classifyAuto`: the surface resolves
+ *   `auto` with the classifier; `autoEligible`: keys `auto` may land on at all
  * @returns {Promise<{ tier: string, refusal?: undefined } | { refusal: { status: number, code: string, error: string }, tier?: undefined }>}
  */
 async function resolveTurnTier({

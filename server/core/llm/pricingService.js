@@ -265,7 +265,7 @@ function getPricingByKey(key) {
 /**
  * Get all pricing data converted to our format (per 1M tokens).
  * Used by the config UI to show full pricing list.
- * @returns {any} Map of modelId → { input, output, provider }
+ * @returns {Record<string, { input: number, output: number, cacheRead: number, provider: string | null }>} modelId → prices
  */
 function getAllModelPricing() {
     if (!_cachedPricing) return {};

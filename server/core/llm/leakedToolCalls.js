@@ -156,7 +156,7 @@ function extractLeakedToolCalls(text, { toolNames } = {}) {
  * carry `_recovered: true` so the loop can tell the model what happened in the
  * tool result.
  *
- * @param {any} response
+ * @param {{ content?: string | null, thinkingParts?: unknown, [key: string]: unknown } | null | undefined} response
  * @param {{ toolNames?: Set<string>, iter?: number }} [opts]
  * @returns {{ toolCalls: Array, rejected: Array, content: string|null, sources: string[] }}
  *   `content` is the round's content with recovered spans removed (null when

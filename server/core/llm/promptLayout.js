@@ -53,7 +53,7 @@ function supportsLateSystemBlock(providerType, { isLocal = false } = {}) {
  * user turn.
  *
  * @param {Array<any>} messages
- * @param {any} volatileMessage the exact object placed at index 1 during
+ * @param {unknown} volatileMessage the exact object placed at index 1 during
  *   assembly; absent from the list is fine (it is inserted, not duplicated)
  * @returns {Array<any>} the same array
  */

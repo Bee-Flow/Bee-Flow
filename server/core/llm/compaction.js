@@ -223,11 +223,11 @@ function _foldReason(convMessages, watermark, settings) {
  * Compact a message array for efficient LLM consumption.
  *
  * @param {Array} messages - Full message array (system + user/assistant/tool messages)
- * @param {object} [options]
- * @param {string|null} [options.existingSummary] - Previous compaction summary (from meta_json)
- * @param {number|null} [options.summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
- * @param {string} [options.summaryModelId] - Model to use for summary generation (tier:fast)
- * @param {string|null} [options.userOrgId] - Org ID for EU-mode tier overrides
+ * @param {{ existingSummary?: string|null, summaryUpTo?: number|null, summaryModelId?: string,
+ *   userOrgId?: string|null }} [options] `existingSummary`: Previous compaction summary (from
+ *   meta_json); `summaryUpTo`: Watermark: how many non-system messages are already folded into
+ *   existingSummary; `summaryModelId`: Model to use for summary generation (tier:fast); `userOrgId`:
+ *   Org ID for EU-mode tier overrides
  * @returns {Promise<{ messages: Array, newSummary: string|null, summaryUpTo: number, didSummarize: boolean }>}
  *   newSummary is the summary the caller should persist (unchanged on the
  *   skip path, null when the watermark invalidated a stale summary).
@@ -573,15 +573,11 @@ module.exports = {
 /** @typedef {{ name?: string, type?: string, url?: string, storageKey?: string, extractedText?: string, [key: string]: unknown }} Attachment */
 
 /**
- * @typedef {object} CompactionOptions
- * @property {boolean} [enabled]
- * @property {number} [threshold]
- * @property {number} [recentWindow]
- * @property {number} [overflowTokens]
- * @property {string} [existingSummary] - Previous compaction summary (from meta_json)
- * @property {number} [summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
- * @property {string} [summaryModelId] - Model to use for summary generation (tier:fast)
- * @property {string | null} [userOrgId] - Org ID for EU-mode tier overrides
+ * `existingSummary`: Previous compaction summary (from meta_json). `summaryUpTo`: Watermark: how many
+ * non-system messages are already folded into existingSummary. `summaryModelId`: Model to use for
+ * summary generation (tier:fast). `userOrgId`: Org ID for EU-mode tier overrides.
+ * @typedef {{ enabled?: boolean, threshold?: number, recentWindow?: number, overflowTokens?: number,
+ *   existingSummary?: string, summaryUpTo?: number, summaryModelId?: string, userOrgId?: string | null }} CompactionOptions
  */
 
 /** @typedef {ReturnType<typeof _resolveSettings>} CompactionSettings */
