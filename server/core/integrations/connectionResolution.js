@@ -22,6 +22,7 @@ const log = require('../../telemetry/log');
 // Tool-family integration names that map onto a single OAuth automation provider.
 // (resolveIntegration returns 'gmail'/'google_calendar'/… but the connection
 // provider for those is 'google'.)
+/** @type {Record<string, string>} */
 const INTEGRATION_TO_PROVIDER = {
     gmail: 'google', google_calendar: 'google', google_drive: 'google',
     google_docs: 'google', google_contacts: 'google', google_keep: 'google',
@@ -42,6 +43,7 @@ function isLendingEnabled() {
 /**
  * Map a tool name to the connection provider it draws credentials from, or null
  * for internal/non-integration tools.
+ * @param {string} toolName
  */
 function providerForTool(toolName) {
     const meta = resolveIntegration(toolName);
@@ -90,7 +92,7 @@ async function resolveEffectiveIdentity({
             };
         }
     } catch (err) {
-        log.warn('[connectionResolution] resolve failed, falling back to BYO:', err.message);
+        log.warn('[connectionResolution] resolve failed, falling back to BYO:', /** @type {Error} */ (err).message);
     }
     return null;
 }

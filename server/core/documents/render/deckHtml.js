@@ -25,6 +25,10 @@ function slideSectionHtml({ bandTitle, body, style = null }, theme) {
 </section>`;
 }
 
+/** @typedef {{ titleHtml: string, subtitle?: string, date?: string }} CoverSectionHtmlArgs */
+/**
+ * @param {CoverSectionHtmlArgs} param0
+ */
 function coverSectionHtml({ titleHtml, subtitle = '', date = '' }, theme) {
     const t = deckThemeCss(theme);
     const logo = t.logoDataUrl && t.logoPlacement !== 'none' ? `<img class="cover-logo" src="${t.logoDataUrl}" alt="">` : '';
@@ -43,12 +47,17 @@ function coverSectionHtml({ titleHtml, subtitle = '', date = '' }, theme) {
 /** The per-page chrome: footer text, and the logo when it sits on every slide. */
 function deckFooterHtml(theme) {
     const t = deckThemeCss(theme);
+    /** @type {string[]} */
     const parts = [];
     if (t.logoDataUrl && (t.logoPlacement === 'footer' || t.logoPlacement === 'corner')) parts.push(`<img class="deck-logo" src="${t.logoDataUrl}" alt="">`);
     if (t.footerText) parts.push(`<div class="deck-footer">${escapeHtml(t.footerText)}</div>`);
     return parts.join('');
 }
 
+/** @typedef {{ title?: string, css: string, body: string }} SlidesDocumentArgs */
+/**
+ * @param {SlidesDocumentArgs} param0
+ */
 function slidesDocument({ title, css, body }) {
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${escapeHtml(title || 'Document')}</title>
@@ -56,6 +65,9 @@ function slidesDocument({ title, css, body }) {
 <body>${body}</body></html>`;
 }
 
+/**
+ * @param {string} bodyHtml
+ */
 function buildSlidesHtml(bodyHtml, { title = '', author = '', date = '', marking = null, theme = null } = {}) {
     const stamp = date || new Date().toISOString().slice(0, 10);
     const html = String(bodyHtml);
@@ -70,6 +82,7 @@ function buildSlidesHtml(bodyHtml, { title = '', author = '', date = '', marking
     head = head.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/i, (m, t) => { coverTitle = t; return ''; });
     const intro = head.trim();
 
+    /** @type {{ bandTitle: string; body: string; }[]} */
     const slides = [];
     for (const part of parts) {
         let bandTitle = '';
@@ -98,6 +111,7 @@ function deckSlideBodyHtml(s, theme = null) {
         ? `<ul>${list.map((b) => `<li${b.level ? ' style="margin-left:6mm"' : ''}>${escapeHtml(b.text)}</li>`).join('')}</ul>`
         : '');
     const body = s.body ? sanitizeContentForExport(toHtml(s.body, 'markdown')) : '';
+    /** @type {string[]} */
     const parts = [];
     // Visuals: the chart is an inline SVG drawn from the same theme the .pptx
     // chart is coloured with; text sits beside it when the slide has any.
@@ -217,6 +231,7 @@ const SCREEN_DECK_SCRIPT = `<script>(function(){
 /** The per-slide chrome of the viewer: logo, footer line, marking, the number. */
 function screenChromeHtml(theme, marking, index, _total) {
     const t = deckThemeCss(theme);
+    /** @type {string[]} */
     const parts = [];
     const logo = t.logoDataUrl && (t.logoPlacement === 'footer' || t.logoPlacement === 'corner');
     if (logo) parts.push(`<img class="deck-logo" src="${t.logoDataUrl}" alt="">`);
@@ -284,6 +299,7 @@ function deckToSlidesHtml(deck, { theme = null, marking = null, date = '', title
 
 /** Plain lines for the pdfkit fallback of a deck. */
 function deckToPlainText(deck) {
+    /** @type {string[]} */
     const lines = [];
     for (const s of deck.slides) {
         lines.push(`## ${s.title || ''}`);
@@ -303,7 +319,11 @@ function deckToPlainText(deck) {
     return lines.join('\n');
 }
 
-/** markdown → HTML. Already-HTML content passes through untouched. */
+/**
+ * markdown → HTML. Already-HTML content passes through untouched.
+ * @param {string} content
+ * @param {string} contentFormat
+ */
 function toHtml(content, contentFormat) {
     const text = String(content ?? '');
     if (contentFormat === 'html') return text;

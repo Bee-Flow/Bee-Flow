@@ -96,7 +96,7 @@ function makeSuggestionApplier(deps) {
                 source: 'ai', summary: AI_SUMMARY, contributors: [{ userId: actor.userId, kind: 'ai' }],
             });
         } catch (e) {
-            if (e?.errorClass === 'document_conflict' || e?.errorClass === 'document_live') throw new HttpError(409, 'document_changed', e.message);
+            if (e?.errorClass === 'document_conflict' || e?.errorClass === 'document_live') throw new HttpError(409, 'document_changed', /** @type {Error} */ (e).message);
             throw e;
         }
         if (!updated) throw new HttpError(403, 'document_read_only', 'You cannot change this document.');
