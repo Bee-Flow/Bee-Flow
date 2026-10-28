@@ -132,8 +132,10 @@ describe('the places group in Dutch', () => {
         expect(hit?.subtitle).toBe('Opgeslagen feiten over jou en je projecten');
     });
 
-    it('keeps the English hint where the destination has no key for it', () => {
-        const plain = DESTINATIONS.find((d) => d.i18nKey && !d.hintKey && !d.external && !d.gate);
+    it('keeps the English hint where the catalogue has no entry for its key', () => {
+        // Every destination carries a hint key since the sitemap conversion; a
+        // catalogue that translates only the label leaves the hint in English.
+        const plain = DESTINATIONS.find((d) => d.i18nKey && d.hintKey && !d.external && !d.gate);
         expect(plain).toBeDefined();
         setCatalogue('nl', { [plain!.i18nKey as string]: 'Vertaald' });
         const hit = places('vertaald').find((h) => h.href === plain!.href);
