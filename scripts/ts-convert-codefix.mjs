@@ -70,7 +70,7 @@ function loadTs() {
     return createRequire(path.join(HUB, 'package.json'))('typescript');
 }
 
-export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = false } = {}) {
+export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = /** @type {boolean | ((f: string) => boolean)} */ (false) } = {}) {
     const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
     const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, baseDir);
     Object.assign(parsed.options, extra);
@@ -78,7 +78,10 @@ export function createService(ts, overrides, { configPath = path.join(HUB, 'tsco
     // Tests are never a source of types here (their values are mocks), and they
     // are a third of the program: leaving them out makes the first build and
     // every reference search cheaper. A converted file is never a test.
-    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => includeTests || !/\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f)));
+    // includeTests: true keeps every test file, a function keeps the test files it says yes to
+    // (the server driver wants the tests next to its batch, not the thousands of others).
+    const keepTest = (f) => includeTests === true || (typeof includeTests === 'function' && includeTests(f));
+    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => keepTest(f) || !/\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f)));
     for (const f of overrides.keys()) files.add(f);
     const host = {
         getScriptFileNames: () => [...files],

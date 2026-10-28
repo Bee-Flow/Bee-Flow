@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { addMark, addsRequire, completeOptionsEdits, forbiddenJsDoc, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
+import { addMark, addsRequire, completeOptionsEdits, forbiddenJsDoc, quickFixRefuser, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
 import { applyEdits, inferFile, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
 
@@ -117,4 +117,13 @@ test('end to end on CommonJS: an options object with an untyped member gets no t
     const { edits: kept } = completeOptionsEdits(inf.edits);
     const out = applyEdits(files.get(f), lowerToJsDoc(files.get(f), kept).edits);
     assert.doesNotMatch(out, /BuildArgs/);
+});
+
+test('a quick fix that types a parameter whose slot a caller contradicted is refused; other tags pass', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const sf = ts.createSourceFile('a.js', 'function add(col, val) { return [col, val]; }\nconst two = (a, b) => a + b;\n', ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required']));
+    assert.equal(refuse('/**\n * @param {string} col\n * @param {string | number} val\n */\n'), true);
+    assert.equal(refuse('/**\n * @param {string} col\n */\n'), false);
+    assert.equal(refuse('/** @param {number} [a] */\n'), false); // required is not a quick-fix ban
+    assert.equal(quickFixRefuser(ts, sf, new Set())('/** @param {string} val */'), false);
 });

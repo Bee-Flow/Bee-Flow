@@ -32,7 +32,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
-import { applyEdits, inferFile, MISFIT, resetCaches, setSiteFilter, slotOfDiagnostic } from './ts-callsite-types.mjs';
+import { applyEdits, calleeSlotOfDiagnostic, functionKeys, inferFile, MISFIT, resetCaches, setSiteFilter, slotOfDiagnostic } from './ts-callsite-types.mjs';
 import { createService, forbiddenInsert, fixRound } from './ts-convert-codefix.mjs';
 import { compile } from './ts-equivalence.mjs';
 
@@ -101,6 +101,37 @@ export function addsRequire(before, after) {
     const count = (t) => (t.match(/\brequire\s*\(/g) || []).length;
     return count(after) > count(before);
 }
+/**
+ * The tests that exercise a source file, by place rather than by name: every test file in
+ * its directory and in the one above (`stores/cmsStore.export.test.js` tests `stores/cms/*`),
+ * inside server/.
+ */
+export function colocatedTests(abs) {
+    const dirs = [path.dirname(abs)];
+    const up = path.dirname(dirs[0]); if (up.startsWith(SERVER) && up !== SERVER) dirs.push(up);
+    const out = [];
+    for (const dir of dirs) { let names = []; try { names = fs.readdirSync(dir); } catch { continue; } for (const n of names) if (/\.test\.[cm]?js$/.test(n)) out.push(path.join(dir, n)); }
+    return out;
+}
+
+/**
+ * The names of the parameters whose slot is banned for the quick fix (`<fn>#<n>|#<i>|quickfix`
+ * in `bans`), and a refuser that drops a quick fix writing a `@param` tag for one of them.
+ * A caller contradicted the type TypeScript inferred from the body; the slot stays open.
+ */
+export function quickFixRefuser(ts, sf, bans) {
+    const names = new Set();
+    if (sf && bans) {
+        const byKey = new Map([...functionKeys(ts, sf)].map(([fn, key]) => [key, fn]));
+        for (const b of bans) {
+            const m = /^(.+)\|#(\d+)\|quickfix$/.exec(b); if (!m) continue;
+            const fn = byKey.get(m[1]); const p = fn && fn.parameters[Number(m[2])];
+            if (p && ts.isIdentifier(p.name)) names.add(p.name.text);
+        }
+    }
+    return (text) => [...names].some((n) => new RegExp('@param\\s*\\{[^]*?\\}\\s*\\[?' + n + '\\b').test(text));
+}
+
 /** Puts `// @typecheck` on the first line that may hold it (after a shebang). */
 export function addMark(text) {
     if (/^\s*\/\/\s*@typecheck\b/m.test(text)) return text;
@@ -142,7 +173,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const overrides = new Map(files.map((f) => [f, fs.readFileSync(f, 'utf8')]));
     const originals = new Map(overrides);
     const serverCfg = { configPath: path.join(SERVER, 'jsconfig.json'), baseDir: SERVER };
-    const svc = createService(ts, overrides, { ...serverCfg, options: { checkJs: true, noImplicitAny: true, strictNullChecks: !process.argv.includes('--no-strict-null') } });
+    // The tests next to the batch are in the program (not as a source of types, see
+    // setSiteFilter below): a test that calls a store with fewer arguments or a wider value
+    // than production does is where a type the run wrote first shows as wrong.
+    const nearbyTests = new Set(files.flatMap((f) => colocatedTests(f)));
+    const svc = createService(ts, overrides, { ...serverCfg, includeTests: (f) => nearbyTests.has(f), options: { checkJs: true, noImplicitAny: true, strictNullChecks: !process.argv.includes('--no-strict-null') } });
     const measure = createService(ts, new Map(originals), { ...serverCfg, options: { checkJs: true, noImplicitAny: true } });
     const bans = new Map(files.map((f) => [f, new Set()]));
     const t0 = Date.now(); const report = new Map(files.map((f) => [f, []]));
@@ -178,20 +213,43 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
             let any = false;
             for (const f of files) {
                 const prev = svc.service.getProgram().getSourceFile(f).text;
-                const t = fixRound(ts, svc, f, { applied: [], refused: new Set() }, { fixIds: ['inferFromUsage'], refuse: uselessQuickFix });
+                const refuse = quickFixRefuser(ts, svc.service.getProgram().getSourceFile(f), bans.get(f));
+                const t = fixRound(ts, svc, f, { applied: [], refused: new Set() }, { fixIds: ['inferFromUsage'], refuse: (text) => uselessQuickFix(text) || refuse(text) });
                 if (t && !forbiddenInsert(t) && !forbiddenJsDoc(t) && !addsRequire(prev, t)) { svc.update(f, t); any = true; }
                 else if (t && addsRequire(prev, t)) report.get(f).push('dropped quick fix (adds a require for a type)');
             }
             if (!any) break;
         }
         let banned = 0; const program = svc.service.getProgram();
-        for (const f of files) for (const d of svc.service.getSemanticDiagnostics(f)) {
-            if (!MISFIT.has(d.code)) continue;
-            const slot = slotOfDiagnostic(ts, program, f, d); const source = slot && chosen.get(f).get(slot);
-            if (!source || source === 'call') continue;
-            const key = `${slot}|${source}`; if (!bans.get(f).has(key)) { bans.get(f).add(key); banned++; }
+        // Where a type the run wrote is contradicted: the batch files themselves, and the
+        // tests next to them. Tests are no source of types (setSiteFilter above), but
+        // `npm run typecheck` checks them, and a test calling a store with fewer arguments
+        // or a wider value than the production callers was the first round's main reason
+        // to lose a whole file (typecheck-settle reverts per file).
+        const checked = new Set(files);
+        for (const f of files) for (const t of colocatedTests(f)) if (program.getSourceFile(t)) checked.add(t);
+        for (const f of checked) for (const d of svc.service.getSemanticDiagnostics(f)) {
+            // A caller that disagrees with the parameter type it was given: reject that
+            // slot's source, the call-site one included (a call site the inference did
+            // not see, or saw as any, is not the truth it was taken for).
+            const ban = (file, key) => { if (!bans.get(file).has(key)) { bans.get(file).add(key); banned++; } };
+            const callee = calleeSlotOfDiagnostic(ts, program, f, d);
+            if (callee && bans.has(callee.file)) {
+                // Too few arguments: the parameter is optional, whatever the type says.
+                if (d.code === 2554) { ban(callee.file, `${callee.slot}|required`); continue; }
+                // A slot the inference did not type got its type from TypeScript's quick fix.
+                const source = chosen.get(callee.file).get(callee.slot) || 'quickfix';
+                ban(callee.file, `${callee.slot}|${source}`);
+                continue;
+            }
+            if (!MISFIT.has(d.code) || !bans.has(f)) continue;
+            const slot = slotOfDiagnostic(ts, program, f, d); if (!slot) continue;
+            const source = chosen.get(f).get(slot) || 'quickfix';
+            if (source === 'call') continue;
+            ban(f, `${slot}|${source}`);
         }
-        console.error(`attempt ${attempt + 1}: ${banned} slot source(s) rejected`);
+        console.error(`attempt ${attempt + 1}: ${banned} slot source(s) rejected (${checked.size - files.length} nearby test file(s) in the program)`);
+        for (const [f, set] of bans) for (const k of set) console.error(`  ban ${path.relative(ROOT, f)} ${k}`);
         if (!banned) break;
     }
     // --mark: clean under the server's own options (scripts/typecheck.mjs decides in CI).

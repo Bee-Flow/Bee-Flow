@@ -747,6 +747,47 @@ export function slotOfDiagnostic(ts, program, abs, d) {
     return null;
 }
 
+/**
+ * A diagnostic a CALLER raises against a function the inference typed: an argument that
+ * does not fit the parameter (TS2345) or a call with fewer arguments than the parameters
+ * made required (TS2554). `slotOfDiagnostic` sees the argument and lands on the caller's
+ * own variable; the slot to reject is the callee's parameter, which may sit in another
+ * file (a colocated test calls the store it tests). Returns { file, slot } for a callee
+ * declared as a function, or null.
+ */
+export function calleeSlotOfDiagnostic(ts, program, abs, d) {
+    if (d.code !== 2345 && d.code !== 2554) return null;
+    const sf = program.getSourceFile(abs); if (!sf || d.start === undefined) return null;
+    const checker = program.getTypeChecker();
+    let n = ts.getTokenAtPosition(sf, d.start);
+    let call = null; let index = -1;
+    for (let up = 0; n && up < 8; up++, n = n.parent) {
+        if (ts.isCallExpression(n) || ts.isNewExpression(n)) {
+            call = n;
+            break;
+        }
+        if (n.parent && (ts.isCallExpression(n.parent) || ts.isNewExpression(n.parent)) && n.parent.arguments && n.parent.arguments.includes(n)) {
+            call = n.parent; index = n.parent.arguments.indexOf(n);
+            break;
+        }
+        if (ts.isStatement(n)) return null;
+    }
+    if (!call) return null;
+    if (index < 0) {
+        // TS2554 spans the call: the first parameter the call leaves out.
+        if (d.code !== 2554) return null;
+        index = call.arguments ? call.arguments.length : 0;
+    }
+    const sig = checker.getResolvedSignature(call);
+    let decl = sig && sig.declaration;
+    if (!decl) { const sym = checker.getSymbolAtLocation(call.expression); decl = sym && sym.valueDeclaration; }
+    if (!decl || !(ts.isFunctionDeclaration(decl) || ts.isArrowFunction(decl) || ts.isFunctionExpression(decl) || ts.isMethodDeclaration(decl) || ts.isConstructorDeclaration(decl))) return null;
+    const dsf = decl.getSourceFile();
+    const key = functionKeys(ts, dsf).get(decl);
+    if (!key || index >= decl.parameters.length) return null;
+    return { file: dsf.fileName, slot: `${key}|#${index}` };
+}
+
 // ------------------------------------------------------------ observed types
 
 let namedIndex = null;
@@ -1157,8 +1198,10 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
         const posEdits = [];
         fn.parameters.forEach((p, i) => {
             if (hasDeclaredType(ts, p) || p.dotDotDotToken || !ts.isIdentifier(p.name)) return;
-            const types = []; let missing = !!p.initializer || !!p.questionToken;
             const slot = `${fkeys.get(fn)}|#${i}`; let source = 'call';
+            // `<slot>|required` in the bans: a caller (a test, say) leaves this argument out, so
+            // whatever the sites say, the parameter is optional.
+            const types = []; let missing = !!p.initializer || !!p.questionToken || banned.has(`${slot}|required`);
             // A site that only hands the function on (onRowClick={fn}) gives the receiver's
             // expectation, a lower bound like any demand: it is checked as one.
             if (usable && sites.every((s) => s.kind === 'args') && sites.every((s) => s.contextual)) source = 'demand';

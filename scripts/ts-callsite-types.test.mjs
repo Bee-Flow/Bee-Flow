@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyEdits, guardedInBody, hasDeclaredType, inferFile, jsdocTypedefNames, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
+import { applyEdits, calleeSlotOfDiagnostic, guardedInBody, hasDeclaredType, inferFile, jsdocTypedefNames, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -153,4 +153,22 @@ test('JavaScript: a slot typed in pass 1 is not typed again in pass 2 (no stacke
     } finally {
         setSiteFilter((f) => !(/\.(test|spec)\.[jt]sx?$/.test(f) || /\.[cm]?jsx?$/.test(f) || /\/__tests__\/|\/test-utils?\/|\/testUtils\//.test(f)));
     }
+});
+
+test('calleeSlotOfDiagnostic: an argument that does not fit, or a call with too few arguments, names the CALLEE parameter, across files', { skip }, () => {
+    const svc = serviceOver({
+        'store.js': "'use strict';\n/**\n * @param {string} col\n * @param {string | number} val\n */\nfunction add(col, val) { return [col, val]; }\n/**\n * @param {string} a\n * @param {number} b\n */\nfunction two(a, b) { return a + b; }\nadd('x', true);\nmodule.exports = { add, two };\n",
+        'store.test.js': "'use strict';\nconst { two } = require('./store');\ntwo('only');\n",
+    }, { allowJs: true, checkJs: true, noImplicitAny: true, module: ts.ModuleKind.Node16, moduleResolution: ts.ModuleResolutionKind.Node16 });
+    const program = svc.service.getProgram();
+    const inStore = svc.service.getSemanticDiagnostics(svc.at('store.js'));
+    const arg = inStore.find((d) => d.code === 2345);
+    assert.ok(arg, 'TS2345 on add(\'x\', true)');
+    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.js'), arg), { file: svc.at('store.js'), slot: 'add#0|#1' });
+    const inTest = svc.service.getSemanticDiagnostics(svc.at('store.test.js'));
+    const arity = inTest.find((d) => d.code === 2554);
+    assert.ok(arity, 'TS2554 on two(\'only\')');
+    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.test.js'), arity), { file: svc.at('store.js'), slot: 'two#0|#1' });
+    // another code is not this function's business
+    assert.equal(calleeSlotOfDiagnostic(ts, program, svc.at('store.js'), { ...arg, code: 2339 }), null);
 });
