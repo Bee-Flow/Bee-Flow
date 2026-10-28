@@ -57,6 +57,7 @@ const { errMessage, errCode, errText } = require('./errors');
  * @property {string | null} [organizationName]
  * @property {boolean} [emailSent]
  * @property {string} [ncInstanceId]
+ * @property {string} [apiBaseUrl]  the Bee Flow server that issued it: verify, resend and retarget go there
  * @typedef {PendingBinding & { status: string }} PendingState  what heartbeat and /setup/diagnostics show
  *
  * What /auth/connector/bootstrap and its pending/verify/resend/retarget routes answer. The SaaS
@@ -613,10 +614,17 @@ function scheduleBootstrapRetry(err) {
 /**
  * @param {SaasBootstrapResponse} json
  * @param {string | undefined} ncInstanceId
+ * @param {string} [apiBaseUrl]  the server that issued the key, when it is not (any longer) config.apiBaseUrl
  */
-async function applyTenantKeyResponse(json, ncInstanceId) {
+async function applyTenantKeyResponse(json, ncInstanceId, apiBaseUrl) {
     const tenantKey = json.tenantKey;
     if (!tenantKey) throw new Error('Bootstrap response missing tenantKey');
+    // A key is only valid on the server that issued it: a verification
+    // finished after a server switch binds the connector to that server.
+    if (apiBaseUrl && apiBaseUrl !== config.apiBaseUrl && !config.apiBaseUrlLocked) {
+        log.info(`[Bootstrap] Switching to ${apiBaseUrl}, the server that issued this key`);
+        config.apiBaseUrl = apiBaseUrl;
+    }
     config.tenantKey = tenantKey;
     config.organizationId = json.organizationId ?? null;
     config.organizationName = json.organizationName ?? null;
@@ -659,7 +667,7 @@ async function pollPendingBinding(pending) {
         await new Promise(r => setTimeout(r, Math.max(5_000, wait)));
         let res;
         try {
-            res = await fetch(`${config.apiBaseUrl}${pending.pollUrl}`, {
+            res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.pollUrl}`, {
                 signal: AbortSignal.timeout(10_000),
             });
         } catch (e) {
@@ -680,7 +688,7 @@ async function pollPendingBinding(pending) {
                 log.warn('[Bootstrap] Pending poll returned 200 without tenantKey — retrying');
                 continue;
             }
-            await applyTenantKeyResponse(json, pending.ncInstanceId);
+            await applyTenantKeyResponse(json, pending.ncInstanceId, pending.apiBaseUrl);
             log.info(`[Bootstrap] Bound to existing org ${json.organizationId} (${json.organizationName})`);
             return;
         }
@@ -720,7 +728,7 @@ async function submitVerificationCode(code) {
     }
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${pending.verifyUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.verifyUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: String(code || '').trim() }),
@@ -733,7 +741,7 @@ async function submitVerificationCode(code) {
     }
     const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
     if (res.ok && json.tenantKey) {
-        await applyTenantKeyResponse(json, pending.ncInstanceId);
+        await applyTenantKeyResponse(json, pending.ncInstanceId, pending.apiBaseUrl);
         await clearErrorFile();
         log.info(`[Bootstrap] Email verification succeeded — bound to org ${json.organizationId} (${json.organizationName})`);
         return { ok: true, organizationId: json.organizationId, organizationName: json.organizationName };
@@ -759,7 +767,7 @@ async function resendVerificationCode() {
     }
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${pending.resendUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.resendUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             signal: AbortSignal.timeout(15_000),
@@ -963,6 +971,7 @@ async function _provisionFlow() {
                 maskedEmail: json.maskedEmail || null,
                 organizationName: json.organizationName || null,
                 ncInstanceId: caps.instanceId,
+                apiBaseUrl: config.apiBaseUrl,
             };
             await writePendingFile(pending);
             pendingState = { status: 'awaiting_email_verification', ...pending };
@@ -983,6 +992,7 @@ async function _provisionFlow() {
             pollUrl: json.pollUrl,
             expiresAt: json.expiresAt,
             ncInstanceId: caps.instanceId,
+            apiBaseUrl: config.apiBaseUrl,
         };
         await writePendingFile(pending);
         log.info(`[Bootstrap] Awaiting org-admin approval (pending ${json.pendingId}, expires ${json.expiresAt})`);
@@ -1027,20 +1037,29 @@ async function _provisionFlow() {
 
 /**
  * Drop the cached tenant key + any in-flight pending binding, clear the
- * in-memory tenant key on `config`, and run a fresh bootstrap. Used by the
- * setup picker when the user flips between Bee Flow Cloud and a
- * self-hosted server — the existing key is for a different SaaS and would
- * be rejected.
+ * in-memory tenant key on `config`, and run a fresh bootstrap, against
+ * `apiBaseUrl` when given (a server switch from /setup or the admin settings
+ * form) or the current server (clear-cache, a new public URL, a pairing code).
  *
- * Best-effort: errors are caught + logged, never thrown to the caller.
+ * Resolves `{ status: 'bound' }` with a key, or `{ status:
+ * 'verification_pending' }` when the server wants the emailed code first: the
+ * connector then stays on that server, keyless, and the embedded app shows the
+ * code screen, exactly as on a fresh install. Verify, resend and retarget go
+ * to the server that issued the pending binding.
+ *
+ * On failure everything rolls back (key, server URL, cache, pending state)
+ * and the error is thrown.
+ * @param {{ pairingCode?: string, apiBaseUrl?: string }} [opts]
+ * @returns {Promise<{ status: 'bound' | 'verification_pending' }>}
  */
-async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCode?: string }} */ ({})) {
+async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
     // Snapshot the previous working state so we can roll back if the new
     // target's bootstrap fails. Without this, a typo in the settings panel
     // (or a Cloud-mode pick from a localhost-only NC sandbox) wipes the
     // working tenant key and strands the connector with 502 "Tenant key not
     // configured" until something else fixes it.
     const prev = {
+        apiBaseUrl: config.apiBaseUrl,
         tenantKey: config.tenantKey,
         organizationId: config.organizationId,
         organizationName: config.organizationName,
@@ -1049,6 +1068,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         cacheFile: null,
         pairingCode: config.pairingCode,
     };
+    if (apiBaseUrl) config.apiBaseUrl = apiBaseUrl.replace(/\/+$/, '');
     const cachePath = path.join(config.persistentStorage, CACHE_FILE);
     try {
         prev.cacheFile = await fs.readFile(cachePath, 'utf8').catch(() => null);
@@ -1057,6 +1077,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
     try {
         await fs.unlink(cachePath).catch(() => {});
         await deletePendingFile();
+        pendingState = null;
         config.tenantKey = null;
         config.organizationId = null;
         config.organizationName = null;
@@ -1067,23 +1088,33 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         log.info('[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping');
         // Explicit admin reset must force a fresh provision, not piggy-back on an
         // in-flight one (which may be mid-bind to the old target / without the
-        // pairing code). Clearing the single-flight guard is safe here: the SaaS
-        // mint is atomic, so even if this races a boot-time provision both
-        // converge on the same key.
+        // pairing code).
         _bootstrapInFlight = null;
         await bootstrapIfNeeded();
         if (!config.tenantKey) {
+            // Read through the getter: TS narrowed pendingState to null above.
+            if (getPendingState()?.status === 'awaiting_email_verification') {
+                log.info(`[Bootstrap] ${config.apiBaseUrl} wants the emailed code before it binds — switch pending`);
+                return { status: 'verification_pending' };
+            }
             // bootstrapIfNeeded swallows network errors and just logs; if we
             // got back here without a key, the new target is unreachable.
             throw new Error('bootstrap completed without producing a tenant key');
         }
+        return { status: 'bound' };
     } catch (err) {
         log.warn(`[Bootstrap] re-bootstrap failed (${errMessage(err)}); rolling back to previous tenant key`);
+        config.apiBaseUrl = prev.apiBaseUrl;
         config.tenantKey = prev.tenantKey;
         config.organizationId = prev.organizationId;
         config.organizationName = prev.organizationName;
         config.ncInstanceId = prev.ncInstanceId;
         config.pairingCode = prev.pairingCode;
+        // A pending binding created during this attempt belongs to the target
+        // we just abandoned: verify/resend would talk to it, and heartbeat
+        // would report a verification the working key does not need.
+        pendingState = null;
+        await deletePendingFile();
         if (prev.cacheFile) {
             await fs.writeFile(cachePath, prev.cacheFile, { mode: 0o600 }).catch(() => {});
         }
@@ -1123,7 +1154,7 @@ async function requestVerificationCode({ uid, email, displayName }) {
     const retargetUrl = pending.retargetUrl || `/auth/connector/bootstrap/pending/${pending.pendingId}/retarget`;
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${retargetUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${retargetUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, uid, displayName }),

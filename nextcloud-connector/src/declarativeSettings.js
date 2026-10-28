@@ -184,25 +184,20 @@ async function applyStoredValuesIfChanged() {
     }
 
     log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl} → ${target}`);
-    const previousUrl = config.apiBaseUrl;
-    config.apiBaseUrl = target;
 
     // Try the new target. If bootstrap fails (e.g. Cloud picked from a
     // localhost-only sandbox NC, or a typo in the self-hosted URL), the
-    // bootstrap layer rolls back its tenant key — we mirror that here by
-    // restoring the previous apiBaseUrl so the next API request keeps
-    // working against the old, healthy target instead of stranding the
-    // user with a blank app.
+    // bootstrap layer rolls back the key AND the server URL, so the next API
+    // request keeps working against the old, healthy target. A server that
+    // wants the emailed code first counts as applied: the switch is pending
+    // on that server, and polling again would only open another pending
+    // binding there every minute (until it answers 429).
     let rebootstrapOk = true;
     try {
-        const bootstrap = require('./bootstrap');
-        if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
-            await bootstrap.invalidateAndRebootstrap();
-        }
+        await require('./bootstrap').invalidateAndRebootstrap({ apiBaseUrl: target });
     } catch (err) {
         rebootstrapOk = false;
-        config.apiBaseUrl = previousUrl;
-        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${errMessage(err)}`);
+        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${config.apiBaseUrl}. Detail: ${errMessage(err)}`);
     }
 
     if (rebootstrapOk) {
