@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "description": "OAuth relay for the Bee Flow docs CMS. Cloudflare Worker.",
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "test": "node --test src/worker.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^3.95.0"
