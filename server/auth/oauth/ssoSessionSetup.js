@@ -30,13 +30,13 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     //
     // Membership is the union documented in auth/orgMembership.js:
     // users.organizationId ∪ { g.organizationId | g ∈ user.groups }. Use
-    // that shared helper rather than re-deriving it — the hand-rolled copy
-    // that used to sit here read `g.organization_id`, but the groups table
+    // that shared helper rather than re-deriving it — a hand-rolled copy
+    // reading `g.organization_id` is wrong: the groups table
     // column is quoted camelCase "organizationId" (userStore.js:106) and
-    // getAllGroups spreads the row verbatim, so the group path never
-    // matched. Group-only members (blank users.organizationId — the shape
-    // azureGroupSync produces) therefore looked org-less and got
-    // domain-matched into whichever org owns their email domain, or were
+    // getAllGroups spreads the row verbatim, so the group path would never
+    // match. Group-only members (blank users.organizationId — the shape
+    // azureGroupSync produces) would therefore look org-less and get
+    // domain-matched into whichever org owns their email domain, or be
     // shown the "No Organisation Found" gate on every SSO login.
     const freshUser = await userStore.getUser(user.id);
     const userGroups = parseGroupIds(freshUser);
@@ -51,8 +51,7 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     if (freshUser?.organizationId) userHasOrg = true;
 
     // A personal account has no organisation by definition: never domain-match
-    // it into one, and never show it the "No Organisation Found" gate. This
-    // used to be achieved by returning early from the consumer signup branch.
+    // it into one, and never show it the "No Organisation Found" gate.
     const isPersonalAccount = signupIntent?.accountType === 'consumer';
 
     // If user has no org, try domain-matching

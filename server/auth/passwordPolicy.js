@@ -2,9 +2,9 @@
 /**
  * Password policy — one source of truth for what counts as an acceptable password.
  *
- * Signup used to accept 4 characters while password reset (loginRoutes.js) and
- * the 'reset.min_length' i18n string already required 8, so the weakest possible
- * password could only be set at signup. 8 is the value the rest of the product
+ * Signup must not accept fewer characters than password reset (loginRoutes.js)
+ * and the 'reset.min_length' i18n string require, or the weakest possible
+ * password could be set at signup. 8 is the value the rest of the product
  * already states to users.
  *
  * LENGTH WAS THE ONLY RULE, AND LENGTH IS NOT A RULE
@@ -31,8 +31,8 @@
  * Composition rules ("one uppercase, one digit, one symbol"). NIST SP 800-63B
  * dropped them because they push users towards exactly the P@ssw0rd1 shapes the
  * deny-list above already catches, while blocking genuinely strong passphrases.
- * The one exception is the first-run super-admin setup route, which had a
- * complexity check before this module existed; weakening an existing control to
+ * The one exception is the first-run super-admin setup route, which has its
+ * own complexity check; weakening an existing control to
  * satisfy a style preference would be a strange way to close a security finding,
  * so it stays.
  *

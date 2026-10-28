@@ -138,7 +138,7 @@ const SYSTEM_PERMISSIONS = [
     //
     // `use_webpages` is REVIVED rather than replaced. It was deprecated when
     // webpages moved to a per-org beta flag, but that flag answers "is this
-    // organisation in the programme", which was never the same question as
+    // organisation in the programme", which is not the same question as
     // "which of its people may publish a public page" — and the id has been in
     // the registry (and in existing role configs) the whole time.
     { id: 'use_webpages', name: 'Use Webpages', description: 'Design and publish public webpages in Studio', group: 'studio' },

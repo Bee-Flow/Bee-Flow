@@ -45,8 +45,8 @@ function isExpired(row) {
  * "whoever holds it gets to bind this NC instance to that specific org… the
  * code already IS the approval", which mints the org's tenantKey and can
  * promote the redeemer to org_admin. Every operation on one therefore carries
- * the same gate the generator does; the listing endpoint used to be `requireAuth`
- * alone, which handed a live code to any rank-and-file member of the org.
+ * the same gate the generator does; the listing endpoint must not be `requireAuth`
+ * alone, which would hand a live code to any rank-and-file member of the org.
  *
  * The role test goes through permissions.isOrgAdminRole, not `=== 'org_admin'`:
  * accounts predating the 'admin' → 'org_admin' rename still carry orgRole

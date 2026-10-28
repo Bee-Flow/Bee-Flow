@@ -116,8 +116,7 @@ router.post('/setup', validate({ body: SetupBody }), async (/** @type {import('e
     const { password } = req.body;
     // The very first credential on the installation, and it belongs to the
     // super-admin — so the administrative minimum applies and the deny-list is
-    // checked. `password` and `12345678` used to sail through the old
-    // length-only gate here exactly as they did everywhere else.
+    // checked. A length-only gate would let `password` and `12345678` sail through.
     const policy = await validatePasswordAsync(password, { username: config.admin.username, isAdmin: true });
     if (!policy.ok) {
         return res.status(400).json({ error: policy.error, code: policy.code });

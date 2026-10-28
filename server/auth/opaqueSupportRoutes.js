@@ -20,8 +20,8 @@ function getServerSetup() {
         global._opaqueServerSetup = opaque.server.createSetup();
         log.warn('[OPAQUE] ⚠️  No OPAQUE_SERVER_SETUP env var found — generated ephemeral setup.');
         log.warn('[OPAQUE] ⚠️  Set OPAQUE_SERVER_SETUP in .env for production. Changing it invalidates all registrations.');
-        // The setup IS the server's long-term OPAQUE secret. It used to be
-        // printed here, which ships it to the log pipeline (OpenObserve) in
+        // The setup IS the server's long-term OPAQUE secret. Printing it
+        // here would ship it to the log pipeline (OpenObserve) in
         // cleartext. Write it to stdout only when explicitly asked for during
         // local bootstrap, never by default.
         if (process.env.OPAQUE_PRINT_GENERATED_SETUP === '1') {

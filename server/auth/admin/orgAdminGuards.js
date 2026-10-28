@@ -29,10 +29,8 @@ const { fallback } = require('../../utils/bestEffort');
 // other value that can sign in. Anything else cannot administer anything, so it
 // must never be counted as an organisation's remaining admin.
 //
-// This comment used to assert that suspended accounts were refused at login.
-// They were not — on any path. The claim read like a check that existed, which
-// is why nobody went looking for it. The gate is real now and lives in one
-// place (auth/accountStatusGate.js), used by all four login-completion paths;
+// Suspended accounts are refused at login by one gate (auth/accountStatusGate.js),
+// used by all four login-completion paths;
 // auth/accountStatusGate.paths.test.js fails if a fifth one appears without it.
 /** @param {unknown} status */
 function isActiveUserStatus(status) {

@@ -22,16 +22,15 @@ const { padFailureResponse } = require('../loginThrottle');
 // Strict opt-in, unchanged in spirit: no admin bypass, and an org with no
 // entitlement never gets a forced PIN-setup screen.
 //
-// What DID change: this used to read `allowed_features` directly, which is only
-// the plan-grant half of entitlement. An org entitled through its licence TIER
-// — the normal case for an enterprise licence, and the ONLY case on self-hosted
-// where subscriptions are never consulted — passed the admin-side gate in
-// adminRoutes and failed here. The org could then be switched to `zk`, whose
-// only key source is the session DEK derived below, and every message would be
-// written in plaintext with nothing but a console.error to show for it.
+// Reading `allowed_features` directly would cover only the plan-grant half of
+// entitlement. An org entitled through its licence TIER — the normal case for
+// an enterprise licence, and the ONLY case on self-hosted where subscriptions
+// are never consulted — would pass the admin-side gate in adminRoutes and fail
+// here. The org could then be switched to `zk`, whose only key source is the
+// session DEK derived below, and every message would be written in plaintext
+// with nothing but a console.error to show for it.
 //
-// One definition now, shared with the admin gate and with oauthRoutes (which
-// carried a verbatim copy of the old logic).
+// One definition, shared with the admin gate and with oauthRoutes.
 const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
 const log = require('../../telemetry/log');
 const { isPlatformOperator } = require('../platformOperator');

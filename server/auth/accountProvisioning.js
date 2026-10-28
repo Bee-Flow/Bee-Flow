@@ -2,12 +2,12 @@
 /**
  * accountProvisioning.js — the one path every web signup takes.
  *
- * Organisation and consumer accounts used to be created by two near-verbatim
+ * Organisation and consumer accounts share this one path. Two near-verbatim
  * copies of the same code (the password route in loginRoutes.js and the OAuth
- * callback in oauthRoutes.js), which had silently drifted apart: the OAuth copy
- * skipped the signup_org_enabled check, logged a warning instead of failing when
- * the org name or domain was taken (leaving the founder without an organisation),
- * and assigned the default plan a second time without filtering on plan_type.
+ * callback in oauthRoutes.js) drift apart: one skips the signup_org_enabled
+ * check, one logs a warning instead of failing when the org name or domain is
+ * taken (leaving the founder without an organisation), one assigns the default
+ * plan a second time without filtering on plan_type.
  *
  * This module owns everything around identity creation — the guards, where the
  * account lands, and the post-creation side effects — but deliberately NOT the

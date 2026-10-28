@@ -84,7 +84,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     const { email, role } = req.body;
     // The role travels to the invitee — it is shown on the invite screen and
     // named in the e-mail — so a value this installation does not define is a
-    // promise nobody can keep. It used to be stored verbatim.
+    // promise nobody can keep.
     if (role !== undefined && role !== 'user' && !Object.prototype.hasOwnProperty.call(getOrgRolePermissions(), role)) {
         throw new HttpError(400, 'unknown_role', `Unknown role: ${role.slice(0, 64)}`);
     }

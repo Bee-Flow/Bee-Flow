@@ -65,15 +65,13 @@ const { bestEffort } = require('../utils/bestEffort');
  * on dev and still pending on prod. In that state every visitor arrives as the
  * SAME private address.
  *
- * The first version of this module reacted by switching the per-IP half OFF
- * whenever the address looked untrustworthy. That was safe and it was also a
- * hole: a retest sprayed one password across forty different usernames and hit
- * nothing at all, because per-ACCOUNT limits are structurally blind to breadth
- * and the per-IP half had disabled itself. On localhost and on production —
- * the two environments that actually matter right now — there was no breadth
- * control.
+ * Switching the per-IP half OFF whenever the address looks untrustworthy is
+ * safe and also a hole: one password sprayed across forty different usernames
+ * would hit nothing at all, because per-ACCOUNT limits are structurally blind
+ * to breadth and the per-IP half would have disabled itself. On localhost and
+ * on production there would be no breadth control.
  *
- * So the distinction is no longer on/off, it is on RESPONSE:
+ * So the distinction is not on/off, it is on RESPONSE:
  *   • trusted address  → hard 429 block at the threshold, as before;
  *   • untrusted address → count anyway, and answer with a growing DELAY.
  * A delay is safe under misattribution in a way a block never is. Failed logins

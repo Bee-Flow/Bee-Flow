@@ -23,7 +23,7 @@ const { worded } = require('../../core/http/schemaParts');
 const EMAIL_TEXT = 'Enter the e-mail address you signed up with.';
 // Same reasoning as /forgot-password: the constant-200 contract survives, and
 // only a request naming no address at all is refused. Mis-spelling the key
-// used to answer "success" without a mail ever being attempted.
+// must not answer "success" without a mail ever being attempted.
 const ResendBody = z.object({
     email: worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT).max(254, EMAIL_TEXT),
 }).strict();

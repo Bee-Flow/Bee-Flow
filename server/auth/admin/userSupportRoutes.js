@@ -9,7 +9,7 @@ const ORG_ROLE_DEFS = require('../../config/orgRoles.json');
 /**
  * Envelope-encryption material that must never leave the server in a user list.
  *
- * Defence in depth: userStore.getAllUsers() no longer SELECTs these, so this is
+ * Defence in depth: userStore.getAllUsers() does not SELECT these, so this is
  * belt to that braces. It matters because the user-list routes below serialise
  * whatever the store hands back — a widened SELECT, a new column, or a different
  * store function would silently put wrapped DEKs and KDF salts back on the wire,
@@ -27,14 +27,13 @@ function stripKeyMaterial(user) {
 /**
  * How much an orgRole can do, derived from its effective-permission count in
  * config/orgRoles.json so this ladder can never drift from the role model the
- * rest of the product enforces (the hard-coded ladder that used to live in the
- * PUT handler had already lost `isms_auditor`).
+ * rest of the product enforces (a hard-coded ladder drifts as roles are added).
  *
  * Anything the role model does not define ranks 0, and that is the point: a
  * pentester set orgRole to 'owner' — a value that exists nowhere in this product
- * — and the old ladder scored unknown roles as 1 ("member"), so stripping the
- * tenant's only administrator down to a role that grants NOTHING looked like a
- * sideways move and produced no warning at all. An unrecognised role resolves to
+ * — and a ladder that scored unknown roles as 1 ("member") would treat stripping the
+ * tenant's only administrator down to a role that grants NOTHING as a
+ * sideways move and give no warning at all. An unrecognised role resolves to
  * zero permissions at runtime, so moving to one is always a downgrade.
  */
 function orgRoleRank(orgRole) {

@@ -19,9 +19,9 @@ const { worded } = require('../../core/http/schemaParts');
 
 const CREDENTIALS_TEXT = 'Username and password are required';
 // `url` is optional — blank leaves resolution to the org-wide config — but the
-// KEY is now closed. A mis-spelled `url` used to answer 200 while the app
+// KEY is closed. A mis-spelled `url` would answer 200 while the app
 // password was filed against the organisation's Nextcloud instead of the host
-// the person named, and nothing on screen said so.
+// the person named, and nothing on screen would say so.
 const SaveAppPasswordBody = z.object({
     username: worded(CREDENTIALS_TEXT).min(1, CREDENTIALS_TEXT).max(200, 'That username is too long.'),
     password: worded(CREDENTIALS_TEXT).min(1, CREDENTIALS_TEXT).max(512, 'That app password is too long.'),

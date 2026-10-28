@@ -89,7 +89,7 @@ const codeField = worded(CODE_TEXT).trim().min(1, CODE_TEXT).max(64, CODE_TEXT);
  * Proof of a factor the account already has (auth/securityKeys/proof.js): a
  * code (authenticator or recovery), or a security key's answer. An account
  * with only security keys has no authenticator code to give, which is why a
- * code alone is no longer the only way to confirm.
+ * code alone is not the only way to confirm.
  */
 const proofShape = {
     code: codeField.optional(),
@@ -213,8 +213,8 @@ router.post('/enable', requireAuth, mfaCodeLimiter, validate({ body: EnableBody 
 // An enrolled user whose stored secret no longer decrypts (MASTER_ENCRYPTION_KEY
 // rotated without re-encrypting users.mfa_secret, or a corrupted row) must be
 // told to use a recovery code / contact their admin — a generic "Invalid code"
-// sends them into a hopeless retry loop that burns their recovery codes
-// (BFSF-274). Specifics go to the server log only.
+// sends them into a hopeless retry loop that burns their recovery codes.
+// Specifics go to the server log only.
 /**
  * @param {import('express').Response} res
  * @param {string} userId

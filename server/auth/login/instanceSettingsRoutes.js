@@ -29,8 +29,8 @@ const SettingsBody = z.object({
 
 // Get settings (admin only)
 // Instance-wide OAuth credentials — clientId/clientSecret of the whole
-// installation, not of one tenant. Previously requireAdmin, which any org
-// admin satisfies via `manage_users`: that let a self-registered org admin
+// installation, not of one tenant. Not requireAdmin, which any org
+// admin satisfies via `manage_users`: that would let a self-registered org admin
 // repoint the installation's SSO at their own IdP.
 router.get('/settings', requireSuperAdmin, async (req, res) => {
     const config = await loadConfig();

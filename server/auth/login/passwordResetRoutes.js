@@ -23,8 +23,8 @@ const { worded } = require('../../core/http/schemaParts');
 
 const EMAIL_TEXT = 'Enter the e-mail address of the account you want to reset.';
 // The constant-200 contract below is unchanged: this only refuses a request
-// that names NO address, which used to be answered "success" while no mail was
-// ever attempted — a typo of the key `email` left the user waiting on an
+// that names NO address, which would otherwise be answered "success" while no mail
+// was ever attempted — a typo of the key `email` left the user waiting on an
 // e-mail nothing had been asked to send. The address FORMAT is deliberately
 // not checked: whether a given string could be an account here is exactly the
 // question this endpoint refuses to answer.

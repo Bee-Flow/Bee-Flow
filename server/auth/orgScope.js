@@ -13,8 +13,7 @@
  *
  *   const { orgId, orgIds, isSuperAdmin } = await orgScope(req);
  *
- * One read, and the distinctions that used to be spread over four files are
- * written down here as named fields:
+ * One read, and the distinctions are written down here as named fields:
  *
  *   orgIds       every org the caller may READ, or `null` for a super-admin —
  *                which every list query already reads as "no filter".

@@ -18,21 +18,19 @@
  * show. The same popup rule applies as there, and is written down there:
  * `?popup=true` is not popup mode, only `?popup=1` is.
  *
- * GET /login HAD TWO BUGS ITS MODERN SIBLING NO LONGER HAS, and they are fixed
- * here the same way:
+ * GET /login handles two things the way its modern sibling does:
  *
- *   - It set the popup and pickup flags when asked and never cleared them,
- *     while the callback clears them only after a SUCCESSFUL popup sign-in.
- *     An attempt abandoned in the embedded popup left both on the session,
- *     and the next ordinary sign-in in that browser inherited them: the
+ *   - The popup and pickup flags: setting them when asked and never clearing
+ *     them is wrong, because the callback clears them only after a SUCCESSFUL
+ *     popup sign-in. An attempt abandoned in the embedded popup would leave
+ *     both on the session, and the next ordinary sign-in in that browser would inherit them: the
  *     intermediate popup page, the "you can close this window" page with no
  *     opener, and a live session token parked under the old pickup id. Each
- *     attempt now starts from none of them (see providerLoginRoutes.js).
- *   - It took the return address from the Referer alone. The modern route
- *     asks shared.getReturnUrl, which puts the configured CLIENT_PUBLIC_HOST
- *     first; here a link from any site to /auth/login sent the person back
- *     to THAT site after signing in (and on `oauth_not_configured`). It now
- *     asks the same resolver, so an install that names its client host
+ *     attempt starts from none of them (see providerLoginRoutes.js).
+ *   - The return address: taking it from the Referer alone would send the
+ *     person back to THAT site after a link from any site to /auth/login
+ *     (and on `oauth_not_configured`). It asks shared.getReturnUrl, which puts
+ *     the configured CLIENT_PUBLIC_HOST first, so an install that names its client host
  *     returns there, and one that does not behaves as before.
  */
 

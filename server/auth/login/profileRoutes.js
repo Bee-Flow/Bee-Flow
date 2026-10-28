@@ -30,7 +30,7 @@ const NAME_TEXT = 'A display name must be text.';
 // `avatar` carries either an emoji or a data: URL, so it is bounded but not
 // shaped; `null` is how the picker clears it. The TYPE is closed, because the
 // renderer branches on it and an unrecognised value silently draws the default
-// icon — which is what a mis-typed 'emojii' used to do, with a 200 over it.
+// icon — which is what a mis-typed 'emojii' would do, with a 200 over it.
 // '' is kept: it is what the mobile client sends for "no type".
 const ProfileBody = z.object({
     avatar: worded('An avatar must be text.').max(2_000_000, 'That avatar image is too large.').nullable().optional(),
