@@ -20,7 +20,7 @@ anyio==4.15.1
 # ignores the +cpu local label (PEP 440), so pip finds it satisfied and never
 # fetches the CUDA build; listing it lets pip and the dependency scanners see
 # the version that ships. Move it together with the Dockerfile pin.
-torch==2.15.0
+torch==2.14.1
 # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
 # PINNED: every eval baseline records the library version in its provenance;
 # a floating floor let a rebuild silently drift the engine underneath the
