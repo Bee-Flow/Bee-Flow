@@ -145,19 +145,18 @@ function sizeGuard(req, res, next) {
 }
 
 /**
- * @typedef {object} FormDeps
- * @property {() => Promise<string | null>} getLiveSiteId
- * @property {(siteId: string) => Promise<Record<string, any> | null>} getPublishedSnapshot
- * @property {(id: string) => Promise<Record<string, any> | null>} getAutomation
- * @property {(automation: Record<string, any>) => Promise<string | null>} organisationOf the automation's own organisation, else its owner's
- * @property {(id: string) => Promise<{ organizationId: string | null, blockIds: string[] } | null>} getFormAutomation
- * @property {(nonce: string) => Promise<boolean>} checkAndStoreNonce true when the nonce is new
- * @property {(blockId: string, kind: 'honeypot' | 'tooFast') => Promise<void>} countDrop
- * @property {(automation: Record<string, any>, opts: Record<string, any>) => Promise<unknown>} runAutomation
- * @property {() => number} [now]
- * @property {number} [rpmTokenPerIp]
- * @property {number} [rpmPerIp]
- * @property {number} [rpmPerForm]
+ * @typedef {{ getLiveSiteId: () => Promise<string | null>,
+ *   getPublishedSnapshot: (siteId: string) => Promise<Record<string, any> | null>,
+ *   getAutomation: (id: string) => Promise<Record<string, any> | null>,
+ *   organisationOf: (automation: Record<string, any>) => Promise<string | null>, // the automation's own organisation, else its owner's
+ *   getFormAutomation: (id: string) => Promise<{ organizationId: string | null, blockIds: string[] } | null>,
+ *   checkAndStoreNonce: (nonce: string) => Promise<boolean>, // true when the nonce is new
+ *   countDrop: (blockId: string, kind: 'honeypot' | 'tooFast') => Promise<void>,
+ *   runAutomation: (automation: Record<string, any>, opts: Record<string, any>) => Promise<unknown>,
+ *   now?: () => number,
+ *   rpmTokenPerIp?: number,
+ *   rpmPerIp?: number,
+ *   rpmPerForm?: number }} FormDeps
  */
 
 /**

@@ -97,7 +97,7 @@ function audienceOf(agent) {
  * disagreement people meet is a tab saying "used by nothing" beside a delete
  * that will not go through.
  *
- * @param {object} agent   the concept row (getAgent)
+ * @param {import('./crud').AgentRow} agent   the concept row (getAgent)
  * @param {string} askerId whose conversations are "their own", and whose rows
  *                         keep their names
  */

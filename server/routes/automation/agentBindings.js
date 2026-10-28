@@ -39,14 +39,13 @@ const BindingsBody = closedObject({
 }, 'Linking agents');
 
 /**
- * @param {object} [overrides]
- * @param {typeof import('../../stores/automationStore')} [overrides.store]        automationStore surface
- * @param {typeof import('../../automation/agentBinding')} [overrides.binding]      the automation/agentBinding.js surface
- * @param {typeof import('../../stores/agentStore')} [overrides.agentStore]   agent store surface (getForRuntime, getAgents, ...)
- * @param {typeof import('../../stores/userStore')} [overrides.userStore]    { getUser }
- * @param {ReturnType<typeof import('../../agents/agentAccess').defaultAgentAccess>} [overrides.agentAccess]  { buildCanModifyContext, canModifyAgent }
- * @param {(id: string) => Promise<any>} [overrides.getUser]    (id) => user row
- * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission] (userId, perm, session) => bool
+ * @param {{ store?: typeof import('../../stores/automationStore'), // automationStore surface
+ *   binding?: typeof import('../../automation/agentBinding'), // the automation/agentBinding.js surface
+ *   agentStore?: typeof import('../../stores/agentStore'), // agent store surface (getForRuntime, getAgents, ...)
+ *   userStore?: typeof import('../../stores/userStore'), // { getUser }
+ *   agentAccess?: ReturnType<typeof import('../../agents/agentAccess').defaultAgentAccess>, // { buildCanModifyContext, canModifyAgent }
+ *   getUser?: (id: string) => Promise<any>, // (id) => user row
+ *   hasPermission?: (userId: string, permission: string, session?: any) => Promise<boolean> }} [overrides]  hasPermission: (userId, perm, session) => bool
  */
 function makeAgentBindingsRouter(overrides = {}) {
     const router = express.Router();

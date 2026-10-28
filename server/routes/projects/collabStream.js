@@ -38,6 +38,8 @@ const STREAM_POLL_DISTRIBUTED_MS = 15_000;
 /** How often a joined notebook's gates are asked again (the same beat as the access re-check, core/http/cursorStream). */
 const DEFAULT_RECHECK_MS = 60_000;
 
+/** @typedef {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof import('./collabSchemas').StreamQuery>>} StreamRequest  GET /:id/stream, its query validated by StreamQuery */
+
 /**
  * @param {{
  *   projectStore?: { getProjectEventSeq: (id: string) => Promise<number>, listProjectEvents: (id: string, since: number) => Promise<any> },
@@ -62,7 +64,7 @@ function makeProjectStreamHandler(deps = {}) {
     /**
      * May this request join a document of `kind`? A notebook needs the
      * notebooks gates; a refusal, or not being able to tell, is a no.
-     * @param {any} req @param {string} kind
+     * @param {StreamRequest} req @param {string} kind
      */
     async function mayJoin(req, kind) {
         if (kind !== 'notebook') return true;
@@ -78,14 +80,14 @@ function makeProjectStreamHandler(deps = {}) {
      * The notebooks gates are asked again while a notebook is joined, as the role is: one that
      * now refuses ends the document (the project feed goes on). A check that cannot be answered
      * keeps the stream; the next tick asks again.
-     * @param {any} req @param {any} stream @param {{ leave: () => void }} joined @param {string} docId
+     * @param {StreamRequest} req @param {Awaited<ReturnType<typeof import('../../core/http/cursorStream').openCursorStream>>} stream @param {{ leave: () => void }} joined @param {string} docId
      */
     function watchNotebookAccess(req, stream, joined, docId) {
         const timer = setInterval(async () => {
             try {
                 await notebookGate.passNotebookGate(requireNotebooks, req);
             } catch (err) {
-                if (!err || /** @type {any} */ (err).status !== 403) return;
+                if (!err || /** @type {{ status?: number }} */ (err).status !== 403) return;
                 clearInterval(timer);
                 joined.leave();
                 stream.send('doc.closed', closedPayload(docId, 'not_found'));
@@ -95,7 +97,7 @@ function makeProjectStreamHandler(deps = {}) {
         stream.onClose(() => clearInterval(timer));
     }
 
-    /** @param {any} req @param {any} res */
+    /** @param {any} req @param {import('express').Response} res */
     return async function projectStream(req, res) {
         const { openCursorStream } = require('../../core/http/cursorStream');
         const projectId = req.params.id;

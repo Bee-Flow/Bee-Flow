@@ -343,8 +343,33 @@ async function processAttachment(att, ctx) {
 
 module.exports = { processAttachment };
 
-/** @typedef {{ name: string, type?: string, content?: string, source?: string }} ChatAttachment */
+/**
+ * @typedef {{ name: string,
+ *   type?: string,
+ *   content?: string,
+ *   source?: string }} ChatAttachment
+ */
 
-/** @typedef {{ req: import('express').Request, send: (event: string, data: unknown) => void, documentScope: { markCreated(id: unknown): void } | undefined, userId: string, adapter: { supportsVision(modelId: string): boolean, supportsDocuments?: (modelId: string) => boolean }, modelId: string, config: { providerType?: string } | null | undefined, shield: { enabled?: boolean } | null | undefined, contentParts: Array<Record<string, unknown>>, persistedAttachments: Array<Record<string, unknown>>, pushAttachment: (base: Record<string, unknown> & { name: string }, fullText?: string) => Promise<void>, scan: (text: string, pages: unknown, name: string) => Promise<string>, summaries: unknown[] }} AttachmentCtx */
+/**
+ * @typedef {{ req: import('express').Request,
+ *   send: (event: string, data: unknown) => void,
+ *   documentScope: { markCreated(id: unknown): void } | undefined,
+ *   userId: string,
+ *   adapter: { supportsVision(modelId: string): boolean, supportsDocuments?: (modelId: string) => boolean },
+ *   modelId: string,
+ *   config: { providerType?: string } | null | undefined,
+ *   shield: { enabled?: boolean } | null | undefined,
+ *   contentParts: Array<Record<string, unknown>>,
+ *   persistedAttachments: Array<Record<string, unknown>>,
+ *   pushAttachment: (base: Record<string, unknown> & { name: string }, fullText?: string) => Promise<void>,
+ *   scan: (text: string, pages: unknown, name: string) => Promise<string>,
+ *   summaries: unknown[] }} AttachmentCtx
+ */
 
-/** @typedef {{ userId: string, filename: () => string, buffer: () => Buffer<ArrayBuffer>, contentType: string, label: string }} UploadOriginalArgs */
+/**
+ * @typedef {{ userId: string,
+ *   filename: () => string,
+ *   buffer: () => Buffer<ArrayBuffer>,
+ *   contentType: string,
+ *   label: string }} UploadOriginalArgs
+ */

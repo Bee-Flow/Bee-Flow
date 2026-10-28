@@ -47,11 +47,10 @@ const MyPreferenceBody = bodyOf({
 }, 'Your AI participation preference');
 
 /**
- * @param {object} [deps]
- * @param {import('express').RequestHandler} [deps.requireAuth]        Express middleware: 401 without a session
- * @param {Function} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
- * @param {Function} [deps.isOrgAdmin]         (req, orgId) => boolean
- * @param {any}   [deps.policy]             policy.makePolicy() surface
+ * @param {{ requireAuth?: import('express').RequestHandler, // Express middleware: 401 without a session
+ *   resolveUserOrgIds?: (req: import('express').Request) => Set<string> | null | Promise<Set<string> | null>, // null = every org, a super admin
+ *   isOrgAdmin?: (req: import('express').Request, orgId: string) => boolean | Promise<boolean>,
+ *   policy?: ReturnType<typeof import('../projects/participation/policy').defaultPolicy> }} [deps]  policy: policy.makePolicy() surface
  */
 function makeAiParticipationRouter(deps = {}) {
     const router = express.Router();
@@ -65,7 +64,7 @@ function makeAiParticipationRouter(deps = {}) {
     /**
      * The organisation's members may read its policy; a stranger may not learn it exists.
      * @param {import('express').Request} req
-     * @param {string | string[]} orgId
+     * @param {string} orgId
      */
     async function assertMember(req, orgId) {
         const orgIds = await resolveUserOrgIds(req);
@@ -73,7 +72,7 @@ function makeAiParticipationRouter(deps = {}) {
         if (!member) throw forbidden('not_org_member', 'You are not a member of this organisation.');
     }
 
-    router.get('/org/:orgId', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    router.get('/org/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         await assertMember(req, orgId);
         const current = await policy().resolveOrgPolicy(orgId);
@@ -82,7 +81,7 @@ function makeAiParticipationRouter(deps = {}) {
         res.json({ ...current, configured: await policy().isOrgPolicyConfigured(orgId), ranges: RANGES, sensitivities: SENSITIVITIES });
     });
 
-    router.put('/org/:orgId', requireAuth, validate({ body: OrgPolicyBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    router.put('/org/:orgId', requireAuth, validate({ body: OrgPolicyBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         if (!(await isOrgAdmin(req, orgId))) {
             throw forbidden('not_org_admin', 'Only an admin of this organisation can change how the AI takes part.');

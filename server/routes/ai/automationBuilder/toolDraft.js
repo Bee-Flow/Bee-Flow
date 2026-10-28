@@ -143,7 +143,10 @@ function scanToolDraft(name, partialJson) {
     }
 }
 
-/** @typedef {{ steps?: { type: string | null; tool: string | null; label: string | null; partial: boolean; }[], inspect?: string[] }} DeriveDraftKeyArgs */
+/**
+ * @typedef {{ steps?: { type: string | null; tool: string | null; label: string | null; partial: boolean; }[],
+ *   inspect?: string[] }} DeriveDraftKeyArgs
+ */
 /**
  * A short string that changes exactly when a DERIVED field changes: a step
  * appears, a type or tool becomes known, a label finishes, an inspected tool

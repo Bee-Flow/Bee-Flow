@@ -25,7 +25,11 @@ function scriptString(value) {
         .replace(SCRIPT_UNSAFE, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
-/** @typedef {{ type: string, title: string, okText: string }} ClosePageArgs */
+/**
+ * @typedef {{ type: string,
+ *   title: string,
+ *   okText: string }} ClosePageArgs
+ */
 /**
  * @param {ClosePageArgs} param0
  * @param {boolean} ok

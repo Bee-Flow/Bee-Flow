@@ -35,18 +35,18 @@ const MAX_FILE_MB = 20;
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {Function} [deps.getProject]          (id) => project | null
- * @param {typeof import('../../projects/projectFiles')}   [deps.projectFiles]        projects/projectFiles surface
- * @param {typeof import('../../projects/myProjectChats')}   [deps.myChats]             projects/myProjectChats surface ({ list })
- * @param {Function} [deps.logActivity]         projectStore.logActivity
- * @param {Function} [deps.emitProjectEvent]    core/projectFeed.emitProjectEvent
- * @param {Function} [deps.publishTransient]    core/projectEventBus.publishTransient
- * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {import('express').RequestHandler} [deps.uploadLimiter]       rate-limit middleware for uploads
- * @param {import('express').RequestHandler} [deps.presenceLimiter]     rate-limit middleware for presence pings
- * @param {number}   [deps.maxFileBytes]
- * @param {typeof import('../../telemetry/log')}   [deps.log]
+ * @param {import('./roleGate').ProjectRoleGate} [deps.requireProjectRole]  middleware named requireProjectRoleMw
+ * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]
+ * @param {typeof import('../../projects/projectFiles')} [deps.projectFiles]
+ * @param {typeof import('../../projects/myProjectChats')} [deps.myChats]  ({ list })
+ * @param {typeof import('../../stores/projectStore').logActivity} [deps.logActivity]
+ * @param {Function} [deps.emitProjectEvent]  core/projectFeed.emitProjectEvent; typed, the (...a) spread below does not compile
+ * @param {Function} [deps.publishTransient]  core/projectEventBus.publishTransient; same
+ * @param {typeof import('./complianceSignal').signalProjectChanged} [deps.signalProjectChanged]
+ * @param {import('express').RequestHandler} [deps.uploadLimiter]  rate limit for uploads
+ * @param {import('express').RequestHandler} [deps.presenceLimiter]  rate limit for presence pings
+ * @param {number} [deps.maxFileBytes]
+ * @param {typeof import('../../telemetry/log')} [deps.log]
  */
 function makeWorkspaceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

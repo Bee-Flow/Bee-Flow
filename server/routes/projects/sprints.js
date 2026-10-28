@@ -42,15 +42,15 @@ const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware
- * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null
- * @param {Function} [deps.getProject]          (id) => project row
- * @param {any}   [deps.store]               stores/projectSprintStore surface
- * @param {any}   [deps.taskStore]           stores/projectTaskStore surface, for the tasks a sprint holds
- * @param {any}   [deps.chatCrypto]          { forProject(project, { what }) }
- * @param {Function} [deps.emit]                (projectId, event) => durable event
- * @param {Function} [deps.logActivity]         (projectId, actorId, action, details)
- * @param {Function} [deps.newId]
+ * @param {import('./roleGate').ProjectRoleGate} [deps.requireProjectRole]
+ * @param {typeof import('../../auth/projectAccess').getProjectRole} [deps.getProjectRole]
+ * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]
+ * @param {any} [deps.store]  stores/projectSprintStore; typed, its nullable rows do not fit the handlers
+ * @param {typeof import('../../stores/projectTaskStore')} [deps.taskStore]  for the tasks a sprint holds
+ * @param {Pick<typeof import('../../projects/chatCrypto'), 'forProject'>} [deps.chatCrypto]
+ * @param {(projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<void>} [deps.emit]  durable event
+ * @param {typeof import('../../stores/projectStore').logActivity} [deps.logActivity]
+ * @param {() => string} [deps.newId]
  */
 function makeProjectSprintsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

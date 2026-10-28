@@ -101,7 +101,10 @@ function compactWebpageToolResult(toolResult) {
     return toolResult;
 }
 
-/** @typedef {{ planToolAvailable?: boolean, kbIds: string[] }} CreateToolDispatcherArgs */
+/**
+ * @typedef {{ planToolAvailable?: boolean,
+ *   kbIds: string[] }} CreateToolDispatcherArgs
+ */
 /**
  * The executor of one turn. `turn` is the turn's shared state (./toolLoop.js):
  * the live slot files and what was written, read and touched, the framework as

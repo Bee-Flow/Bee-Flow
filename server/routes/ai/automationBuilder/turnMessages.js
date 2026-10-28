@@ -61,22 +61,21 @@ function attachmentSummaryText(attachments) {
 }
 
 /**
- * @param {object} p
- * @param {object} p.profile          builderModelProfiles profile
- * @param {string} p.modelId
- * @param {object} p.promptCatalog    the catalogue, already in its session order
- * @param {boolean} p.codeStepEnabled
- * @param {boolean} [p.batchTools]    defaults from the profile
- * @param {Array}  p.history          client-sent prior turns
- * @param {string} p.message          this turn's user message
- * @param {Array}  [p.attachments]
- * @param {string} p.agentDraftState  renderAgentDraftState(def)
- * @param {boolean} p.draftIsEmpty
- * @param {string} [p.canvasScope]
- * @param {string|null} [p.schemaPart] pre-inspected schemas (§WS8) or null
- * @param {object} [p.turnPrefs]      { userTimezone, webSearchEnabled, webResearchLine, disabledMedia, allowedModelTiers }
- * @param {string} [p.title]          the draft's title (draftWrap.title) for the draft-state message
- * @param {string|null} [p.workMode]  the turn's work mode; plan and discuss get no few-shots
+ * @param {{ profile: import('../../../core/automationModel/builderModelProfiles').Profile,
+ *   modelId: string,
+ *   promptCatalog: import('../../../automation/builderPrompt').BuilderPromptCatalog, // the catalogue, already in its session order
+ *   codeStepEnabled: boolean,
+ *   batchTools?: boolean, // defaults from the profile
+ *   history: Array, // client-sent prior turns
+ *   message: string, // this turn's user message
+ *   attachments?: Array,
+ *   agentDraftState: string, // renderAgentDraftState(def)
+ *   draftIsEmpty: boolean,
+ *   canvasScope?: string,
+ *   schemaPart?: string|null, // pre-inspected schemas (§WS8) or null
+ *   turnPrefs?: { userTimezone?: string, webSearchEnabled?: boolean, webResearchLine?: string|null, disabledMedia?: Record<string, unknown>, allowedModelTiers?: string[] },
+ *   title?: string, // the draft's title (draftWrap.title) for the draft-state message
+ *   workMode?: string|null }} p  workMode: the turn's work mode; plan and discuss get no few-shots
  * @returns {{ sys: string, fewShotMessages: Array, windowedHistory: Array, dynamicContext: string, messages: Array }}
  */
 function composeTurnMessages({

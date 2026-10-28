@@ -27,13 +27,12 @@ const {
 const { fallback } = require('../../utils/bestEffort');
 
 /**
- * @param {object} [overrides]
- * @param {typeof import('../../stores/automationStore')} [overrides.store]         automationStore surface (getAutomation)
- * @param {typeof import('../../stores/automationStore/notificationEvents')} [overrides.events]        notificationEvents store (listRecentNotificationEvents)
- * @param {(id: string) => Promise<any>} [overrides.getUser]       (id) => user row
- * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission] (userId, perm, session) => bool
- * @param {Function} [overrides.emailConfigured] async () => bool
- * @param {Function} [overrides.talkStatus]    async ({ orgId, settings }) => { room, bot }
+ * @param {{ store?: typeof import('../../stores/automationStore'), // automationStore surface (getAutomation)
+ *   events?: typeof import('../../stores/automationStore/notificationEvents'), // notificationEvents store (listRecentNotificationEvents)
+ *   getUser?: (id: string) => Promise<any>, // (id) => user row
+ *   hasPermission?: (userId: string, permission: string, session?: any) => Promise<boolean>, // (userId, perm, session) => bool
+ *   emailConfigured?: () => Promise<boolean>,
+ *   talkStatus?: (opts: { orgId: string | null, settings: ReturnType<typeof normalizeNotificationSettings> }) => Promise<{ room: string | null, bot: boolean }> }} [overrides]
  */
 function makeNotificationsRouter(overrides = {}) {
     const router = express.Router();

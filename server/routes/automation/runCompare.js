@@ -52,10 +52,10 @@ const CompareQuery = queryOf({
 /**
  * @param {object} [overrides]
  * @param {any} [overrides.store]          automationStore surface
- * @param {any} [overrides.storage]        storageStore surface (streamFile), for file summaries
- * @param {any} [overrides.access]         the automation access guard
- * @param {any} [overrides.runDataAccess]  { readableRun }
- * @param {Function} [overrides.compareRuns]
+ * @param {Pick<typeof import('../../stores/storageStore'), 'streamFile'>} [overrides.storage]  for file summaries
+ * @param {ReturnType<typeof import('../../automation/access').makeAutomationAccess>} [overrides.access]
+ * @param {Pick<ReturnType<typeof import('../../automation/testing/runDataAccess').makeRunDataAccess>, 'readableRun'>} [overrides.runDataAccess]
+ * @param {typeof import('../../automation/testing/runCompare').compareRuns} [overrides.compareRuns]
  * @param {import('express').RequestHandler} [overrides.limiter]       middleware for the compare route
  */
 function makeRunCompareRouter(overrides = {}) {

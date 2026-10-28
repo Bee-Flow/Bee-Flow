@@ -156,8 +156,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
 
         // ── Open the SSE stream ──────────────────────────────────────────
         const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
-        const send = (/** @type {object} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
-        const bridge = (/** @type {string} */ event, /** @type {object} */ data) => {
+        const send = (/** @type {Record<string, unknown>} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
+        const bridge = (/** @type {string} */ event, /** @type {Record<string, unknown>} */ data) => {
             const type = EVENT_MAP[event];
             if (type) send({ type, ...data });
         };

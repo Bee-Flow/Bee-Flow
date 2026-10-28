@@ -43,12 +43,11 @@ const S = require('./changesSchemas');
 const CHANGE_ROWS_READ = 500;
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {any}   [deps.store]              projectStore change-feed surface
- * @param {any}   [deps.titles]             projects/changeTitles surface ({ resolveTitles })
- * @param {any}   [deps.feed]               projects/changeFeed surface ({ summarizeChangesPage, changeWindow, VISIT_GAP_MS })
- * @param {Function} [deps.markLimiter]        rate limit for the visit and seen writes
+ * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate, // middleware named requireProjectRoleMw
+ *   store?: Pick<typeof import('../../stores/projectStore'), 'getMemberState'|'listChangeLog'|'listChangeRows'|'listItemReads'|'markAllSeen'|'markItemSeen'|'recordVisit'>, // the change-feed surface
+ *   titles?: Pick<typeof import('../../projects/changeTitles'), 'resolveTitles'>,
+ *   feed?: Pick<typeof import('../../projects/changeFeed'), 'summarizeChangesPage'|'changeWindow'|'VISIT_GAP_MS'>,
+ *   markLimiter?: import('express').RequestHandler }} [deps]  markLimiter: the rate limit for the visit and seen writes
  */
 function makeChangesRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

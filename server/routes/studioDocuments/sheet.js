@@ -73,7 +73,7 @@ const TabRenameBody = bodyOf({
  * passes a code on for an HttpError. Said again as one, so the editor can tell
  * "read only" from "busy" from "too large" by code.
  *
- * @param {any} e
+ * @param {{ status?: unknown, code?: unknown, errorClass?: string, message?: string } | null | undefined} e  what was thrown
  */
 function asHttp(e) {
     if (!e || e instanceof HttpError || !(Number(e.status) >= 400 && Number(e.status) < 500)) return e;
@@ -83,7 +83,7 @@ function asHttp(e) {
 }
 
 /** Wrap a handler so whatever it throws reaches the terminal handler in that shape. */
-const handle = (/** @type {Function} */ fn) => async (/** @type {any} */ req, /** @type {any} */ res) => {
+const handle = (/** @type {(req: SheetReq, res: import('express').Response) => Promise<unknown>} */ fn) => async (/** @type {SheetReq} */ req, /** @type {import('express').Response} */ res) => {
     try { await fn(req, res); } catch (e) { throw asHttp(e); }
 };
 
@@ -94,8 +94,8 @@ function fileNameOf(name) {
 
 /**
  * Every tab of `doc` copied into a new table of `userId`'s own.
- * @param {any} cellsApi  core/documents/sheetCells
- * @param {any} doc
+ * @param {typeof import('../../core/documents/sheetCells')} cellsApi
+ * @param {import('../../stores/documentStore').DocumentView} doc
  * @param {string} userId
  * @param {string[]} [made]  collects every table made, also when a later tab fails, so the caller can give them back
  * @returns {Promise<{ newTabs: { id: string, name: string, datatableId: string }[], tabIds: Map<string, string> }>}  tabIds: old tab id → the copy's
@@ -118,9 +118,9 @@ async function copyTabs(cellsApi, doc, userId, made = []) {
  * Name a new tab's table in the document's tab list. A document that refuses
  * it (a conflict, gone meanwhile) takes the new, empty table with it: no
  * document points at it, so nothing else would give it back.
- * @param {any} cellsApi  core/documents/sheetCells
- * @param {any} documentsApi  stores/documentStore
- * @param {any} doc
+ * @param {typeof import('../../core/documents/sheetCells')} cellsApi
+ * @param {typeof import('../../stores/documentStore')} documentsApi
+ * @param {import('../../stores/documentStore').DocumentView} doc
  * @param {{ userId: string }} ctx
  * @param {{ id: string, name: string, datatableId: string }[]} nextTabs
  * @param {string} tableId
@@ -145,9 +145,9 @@ async function attachTab(cellsApi, documentsApi, doc, ctx, nextTabs, tableId) {
  * cells and charts carried over. A copy that cannot finish (the tab cap
  * half-way, a read error, a refused save) gives back the tables no document
  * points at, so the failure does not count against the owner.
- * @param {any} cellsApi  core/documents/sheetCells
- * @param {any} documentsApi  stores/documentStore
- * @param {any} doc
+ * @param {typeof import('../../core/documents/sheetCells')} cellsApi
+ * @param {typeof import('../../stores/documentStore')} documentsApi
+ * @param {import('../../stores/documentStore').DocumentView} doc
  * @param {string} userId
  * @param {string} name
  * @param {{ userId: string }} ctx
@@ -198,15 +198,14 @@ function copiedCharts(charts, tabIds) {
 }
 
 /**
- * @param {object} [deps]
- * @param {any} [deps.documents]   stores/documentStore surface
- * @param {any} [deps.cells]       core/documents/sheetCells surface
- * @param {Function} [deps.gate]   the datatables gates as one middleware
- * @param {(cells: Record<string, string>) => any} [deps.evaluate]  shared/expr/sheet.mjs evaluateSheet
- * @param {Function} [deps.requireAuth]
- * @param {any} [deps.assistant]     core/documents/sheetAssist/sheetAssistant surface ({ ask })
- * @param {(orgId: string|null, userId: string) => Promise<string|null>} [deps.checkLimits]
- * @param {Function} [deps.assistantLimiter]
+ * @param {{ documents?: typeof import('../../stores/documentStore'),
+ *   cells?: typeof import('../../core/documents/sheetCells'),
+ *   gate?: import('./sheetGate').Middleware, // the datatables gates as one middleware
+ *   evaluate?: (cells: Record<string, string>) => any, // shared/expr/sheet.mjs evaluateSheet
+ *   requireAuth?: import('express').RequestHandler,
+ *   assistant?: Pick<typeof import('../../core/documents/sheetAssist/sheetAssistant'), 'ask'>,
+ *   checkLimits?: (orgId: string|null, userId: string) => Promise<string|null>,
+ *   assistantLimiter?: import('express').RequestHandler }} [deps]
  */
 function makeSheetRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -220,7 +219,7 @@ function makeSheetRouter(deps = {}) {
         if (!boundGate) boundGate = deps.gate || require('./sheetGate').makeSheetGate();
         return boundGate;
     };
-    const requireSheets = (/** @type {any} */ req, /** @type {any} */ res, /** @type {Function} */ next) => gate()(req, res, next);
+    const requireSheets = (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {(err?: unknown) => void} */ next) => gate()(req, res, next);
     const assistant = () => deps.assistant || require('../../core/documents/sheetAssist/sheetAssistant');
     const checkLimits = deps.checkLimits || ((orgId, userId) => require('../../core/entitlements/limits').checkSubscriptionLimits(orgId, 'chat', userId));
     // An answer is several model calls; this is well above a person working
@@ -229,7 +228,7 @@ function makeSheetRouter(deps = {}) {
         .perUserRateLimit({ windowMs: 60_000, max: 20, name: 'sheet-assistant' });
 
     /** The spreadsheet this reader may see, or a 404 (another type is not a sheet). */
-    async function sheetFor(/** @type {any} */ req) {
+    async function sheetFor(/** @type {SheetReq} */ req) {
         const doc = await documents().getDocument(req.params.id, req.session.user.id);
         if (!doc || doc.docType !== 'spreadsheet') throw notFound('sheet_not_found', 'Spreadsheet not found');
         const tabs = sheetTabsOf(doc);
@@ -243,7 +242,7 @@ function makeSheetRouter(deps = {}) {
         if (!tab) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         return tab;
     }
-    function actorContext(/** @type {any} */ req) {
+    function actorContext(/** @type {import('express').Request} */ req) {
         return { userId: req.session.user.id };
     }
 
@@ -251,7 +250,7 @@ function makeSheetRouter(deps = {}) {
      * Make the table, then the document; a document that cannot be made takes
      * its new, empty table with it.
      */
-    async function startSheet(/** @type {any} */ req, { name, folderId = null, copyFrom = null }) {
+    async function startSheet(/** @type {import('express').Request} */ req, { name, folderId = null, copyFrom = null }) {
         const userId = req.session.user.id;
         const table = await cells().createSheetTable({ ownerUserId: userId, name });
         try {
@@ -368,7 +367,7 @@ function makeSheetRouter(deps = {}) {
      * in a new table of theirs, with the cells copied — never a second
      * document on the same table.
      */
-    async function duplicateSheet(/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ doc) {
+    async function duplicateSheet(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('../../stores/documentStore').DocumentView} */ doc) {
         await new Promise((resolve, reject) => {
             Promise.resolve().then(() => requireSheets(req, res, (/** @type {unknown} */ err) => (err ? reject(err) : resolve(undefined)))).catch(reject);
         });
@@ -379,8 +378,8 @@ function makeSheetRouter(deps = {}) {
     }
 
     /** Whether this reader may start spreadsheets (the library offers the type). Never throws. */
-    function sheetsVisible(/** @type {any} */ req) {
-        return require('./sheetGate').sheetsVisible(/** @type {any} */ (gate()), req);
+    function sheetsVisible(/** @type {import('express').Request} */ req) {
+        return require('./sheetGate').sheetsVisible(/** @type {import('./sheetGate').Middleware} */ (gate()), req);
     }
 
     return Object.assign(router, { sheetsVisible, duplicateSheet });

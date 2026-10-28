@@ -111,10 +111,10 @@ function describeGolden(golden, runInfo, now = Date.now()) {
 /**
  * @param {object} [overrides]
  * @param {any} [overrides.store]          automationStore surface (getAutomation, getRun, getLatestRunInChain)
- * @param {any} [overrides.testingStore]   automationTestingStore surface (golden functions)
- * @param {any} [overrides.access]         the automation access guard
- * @param {any} [overrides.runDataAccess]  { readableRun, assertCapturable, assertTestDataAllowed }
- * @param {Function} [overrides.replayGoldens]
+ * @param {typeof import('../../stores/automationTestingStore')} [overrides.testingStore]
+ * @param {ReturnType<typeof import('../../automation/access').makeAutomationAccess>} [overrides.access]
+ * @param {ReturnType<typeof import('../../automation/testing/runDataAccess').makeRunDataAccess>} [overrides.runDataAccess]
+ * @param {typeof import('../../automation/testing/goldenReplay').replayGoldens} [overrides.replayGoldens]
  * @param {import('express').RequestHandler} [overrides.limiter]   middleware for the replay route
  * @param {(fn: () => void) => void} [overrides.defer]  how the background work is scheduled (default setImmediate)
  */

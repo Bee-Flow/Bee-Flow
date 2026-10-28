@@ -172,7 +172,16 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
     _emit('thread_updated', { threadId: thread.id });
 }
 
-/** @typedef {{ thread: SupportThread, requesterUrl: string, effectiveSource: string, firstMsg: unknown, requesterEmail: unknown, requesterName: unknown, subject: unknown, skipOutboundEmail: unknown }} AnnounceCreatedArgs */
+/**
+ * @typedef {{ thread: SupportThread,
+ *   requesterUrl: string,
+ *   effectiveSource: string,
+ *   firstMsg: unknown,
+ *   requesterEmail: unknown,
+ *   requesterName: unknown,
+ *   subject: unknown,
+ *   skipOutboundEmail: unknown }} AnnounceCreatedArgs
+ */
 /**
  * The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket.
  * @param {AnnounceCreatedArgs} param0

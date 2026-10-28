@@ -28,13 +28,13 @@
 const { sharedThreadView } = require('../../agents/sharedThreadRead');
 
 /**
- * @param {object} conversation  a getDirectConversation() result read by a member
+ * @param {Parameters<typeof sharedThreadView>[0] & { model_tier?: string | null }} conversation  a getDirectConversation() result read by a member
  * @param {{ projectId?: string|null, projectRole?: string|null, canPost?: boolean }} access
  *        a stores/agent/conversationAccess.resolveConversationAccess() answer
  */
 function directMemberView(conversation, access) {
     return sharedThreadView(conversation, access, {
-        model_tier: /** @type {any} */ (conversation).model_tier ?? null,
+        model_tier: /** @type {{ model_tier?: string | null }} */ (conversation).model_tier ?? null,
     });
 }
 

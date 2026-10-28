@@ -35,9 +35,9 @@ function makeDocumentStreamRouter(deps = {}) {
     const router = require('express').Router({ mergeParams: true });
     const documents = () => deps.documents || require('../../stores/documentStore');
     const bus = () => deps.bus || require('../../core/projectEventBus');
-    const requireAuth = deps.requireAuth || ((/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => require('../../auth/permissions').requireAuth(req, res, next));
+    const requireAuth = deps.requireAuth || ((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => require('../../auth/permissions').requireAuth(req, res, next));
 
-    router.get('/:id/stream', requireAuth, async (/** @type {any} */ req, /** @type {any} */ res) => {
+    router.get('/:id/stream', requireAuth, async (/** @type {any} */ req, /** @type {import('express').Response} */ res) => {
         const { openCursorStream } = require('../../core/http/cursorStream');
         const userId = req.session.user.id;
         const id = req.params.id;

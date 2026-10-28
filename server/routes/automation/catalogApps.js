@@ -200,4 +200,6 @@ function buildFormPickSources(userToolNames) {
 
 module.exports = { actionLabel, loadUserTools, isWebpagesAvailable, buildApps, buildSteps, buildFormPickSources };
 
-/** @typedef {{ userToolNames: Set<string>, webpagesAvailable?: boolean }} BuildAppsArgs */
+/**
+ * @typedef {{ userToolNames: Set<string>, webpagesAvailable?: boolean }} BuildAppsArgs
+ */

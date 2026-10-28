@@ -205,7 +205,10 @@ function viewTokenOf(req) {
     return typeof v === 'string' ? v : '';
 }
 
-/** @typedef {{ addr: string | number | boolean, viewToken?: string }} ComposeViewerChromeArgs */
+/**
+ * @typedef {{ addr: string | number | boolean,
+ *   viewToken?: string }} ComposeViewerChromeArgs
+ */
 /**
  * @param {ComposeViewerChromeArgs} param0
  */
@@ -288,7 +291,13 @@ function appendViewTokenToRelativeUrls(markup, viewToken) {
     return out;
 }
 
-/** @typedef {{ html?: string, css?: string, base?: string, addr: string | number | boolean, viewToken?: string }} ComposeIframeContentArgs */
+/**
+ * @typedef {{ html?: string,
+ *   css?: string,
+ *   base?: string,
+ *   addr: string | number | boolean,
+ *   viewToken?: string }} ComposeIframeContentArgs
+ */
 /**
  * @param {ComposeIframeContentArgs} param0
  */
@@ -320,7 +329,13 @@ ${bodyHtml}
 </body></html>`;
 }
 
-/** @typedef {{ csrf: string, error?: string, mode: string, nonce: string, addr: string | number | boolean }} ComposeGateArgs */
+/**
+ * @typedef {{ csrf: string,
+ *   error?: string,
+ *   mode: string,
+ *   nonce: string,
+ *   addr: string | number | boolean }} ComposeGateArgs
+ */
 /**
  * @param {ComposeGateArgs} param0
  */
@@ -376,7 +391,9 @@ function composeGate({ share: _share, csrf, error, mode, nonce, base, addr }) {
 </body></html>`;
 }
 
-/** @typedef {{ nonce: string }} ComposeMagicSentArgs */
+/**
+ * @typedef {{ nonce: string }} ComposeMagicSentArgs
+ */
 /**
  * @param {ComposeMagicSentArgs} param0
  */
@@ -386,7 +403,9 @@ function composeMagicSent({ nonce }) {
 </head><body><div class="card"><h2>Check your email</h2><p>If the address is on the allow-list, a one-time link is on its way. The link expires in 24 hours.</p></div></body></html>`;
 }
 
-/** @typedef {{ nonce: string }} ComposeNotFoundArgs */
+/**
+ * @typedef {{ nonce: string }} ComposeNotFoundArgs
+ */
 /**
  * @param {ComposeNotFoundArgs} param0
  */

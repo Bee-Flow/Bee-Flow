@@ -559,31 +559,30 @@ module.exports = Object.assign(router, {
 });
 
 /**
- * @typedef {object} AgentRow  the agents concept row (`agentStore.getAgent` / `getAgentViews().draft`)
- * @property {string} id
- * @property {string} [owner_id]
- * @property {string} [organization_id]
- * @property {string} [name]
- * @property {string} [description]
- * @property {unknown} [persona]
- * @property {string} [system_prompt]
- * @property {object} [config]
- * @property {number} [published_version]
- * @property {number} [rev]
- * @property {number} [published_rev]
- * @property {boolean} [is_published]
- * @property {string|null} [project_id]
- * @property {string|null} [category_id]
- * @property {string} [model]
- * @property {string|null} [avatar]
- * @property {unknown} [starter_prompts]
- * @property {string[]|string|null} [shared_groups]  an array off getAgent, a JSON string in the raw column
- * @property {boolean|number|null} [threads_enabled]
- * @property {boolean|number|null} [copy_enabled]
- * @property {boolean|number|null} [workspace_enabled]
- * @property {boolean|number|null} [embed_enabled]
- * @property {unknown[]} [tools]
- * @property {Record<string, unknown>} [tool_params]
+ * @typedef {{ id: string,
+ *   owner_id?: string,
+ *   organization_id?: string,
+ *   name?: string,
+ *   description?: string,
+ *   persona?: unknown,
+ *   system_prompt?: string,
+ *   config?: Record<string, unknown>,
+ *   published_version?: number,
+ *   rev?: number,
+ *   published_rev?: number,
+ *   is_published?: boolean,
+ *   project_id?: string|null,
+ *   category_id?: string|null,
+ *   model?: string,
+ *   avatar?: string|null,
+ *   starter_prompts?: unknown,
+ *   shared_groups?: string[]|string|null, // an array off getAgent, a JSON string in the raw column
+ *   threads_enabled?: boolean|number|null,
+ *   copy_enabled?: boolean|number|null,
+ *   workspace_enabled?: boolean|number|null,
+ *   embed_enabled?: boolean|number|null,
+ *   tools?: unknown[],
+ *   tool_params?: Record<string, unknown> }} AgentRow the agents concept row (`agentStore.getAgent` / `getAgentViews().draft`)
  */
 
 /**

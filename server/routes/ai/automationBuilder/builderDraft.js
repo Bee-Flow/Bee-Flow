@@ -27,7 +27,12 @@ function seedFor(seedMetadata) {
     return { title: title || UNTITLED_AUTOMATION, description };
 }
 
-/** @typedef {{ userId: string, builderSessionId?: string | null, automationId?: string | null, seedMetadata?: { title?: string; description?: string; } | null }} LoadOrCreateDraftArgs */
+/**
+ * @typedef {{ userId: string,
+ *   builderSessionId?: string | null,
+ *   automationId?: string | null,
+ *   seedMetadata?: { title?: string; description?: string; } | null }} LoadOrCreateDraftArgs
+ */
 /**
  * @param {LoadOrCreateDraftArgs} param0
  */

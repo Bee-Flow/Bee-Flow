@@ -118,10 +118,10 @@ async function readCapped(stream, maxBytes) {
 /**
  * @param {object} [overrides]
  * @param {any}   [overrides.store]         automationStore surface (getRun, getRunsInChain, getAutomation, list/getGeneratedFile...)
- * @param {any}   [overrides.storage]       storageStore surface (streamFile)
+ * @param {{ streamFile: (key: string) => Promise<{ stream: import('stream').Readable, contentLength?: number }> }} [overrides.storage]  storageStore surface
  * @param {(id: string) => Promise<any>} [overrides.getUser]  user row
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]
- * @param {Function} [overrides.renderPdfPages] (buffer, opts) => { images, totalPages, truncated } | null
+ * @param {typeof import('../../core/documents/pdfToImages').renderPdfPagesToImages} [overrides.renderPdfPages]
  */
 function makeRunFilesRouter(overrides = {}) {
     const router = express.Router();

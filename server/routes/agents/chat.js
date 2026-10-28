@@ -164,9 +164,9 @@ const DescribeBody = bodyOf({ code: worded(CODE_TEXT).min(1, CODE_TEXT) });
  * revoking group membership or changing org scope takes effect immediately,
  * even for users who already have the agent open in their browser.
  *
- * @param {Object} agent   - Parsed agent record (shared_groups already an array)
+ * @param {import('./crud').AgentRow & { shared_groups?: string[] }} agent   - Parsed agent record (shared_groups already an array)
  * @param {string} userId  - Authenticated user ID
- * @param {Object} req     - Express request (for resolveUserOrgIds)
+ * @param {import('express').Request} req     - Express request (for resolveUserOrgIds)
  * @returns {Promise<boolean>}
  */
 async function userCanAccessPublishedAgent(agent, userId, req) {

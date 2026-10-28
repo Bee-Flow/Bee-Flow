@@ -54,14 +54,14 @@ const REF = /^(current|[\w-]{1,200})$/;
 
 /**
  * @param {object} [deps]
- * @param {any} [deps.documents]       stores/documentStore surface
+ * @param {any} [deps.documents]       stores/documentStore surface (its inferred row unions do not fit the handlers)
  * @param {import('express').RequestHandler} [deps.requireAuth]
- * @param {Function} [deps.hasPermission]
- * @param {Function} [deps.liveCollabFor]  (doc) => collab facade | null
- * @param {any} [deps.feed]             { recordContentChange }
- * @param {Function} [deps.describePeople]
- * @param {Function} [deps.sanitize]       body HTML → safe HTML
- * @param {Function} [deps.pinnedVersionIds] () => the document revisions an automation or an app pins
+ * @param {typeof import('../../auth/permissions').hasPermission} [deps.hasPermission]
+ * @param {typeof import('../../core/documents/documentFeed').liveCollabFor} [deps.liveCollabFor]  (doc) => collab facade | null
+ * @param {Pick<typeof import('../../core/documents/documentFeed'), 'recordContentChange'>} [deps.feed]
+ * @param {typeof import('../../core/documents/documentPeople').describePeople} [deps.describePeople]
+ * @param {typeof import('../../services/documentCompose').sanitizeDocumentBody} [deps.sanitize]  body HTML → safe HTML
+ * @param {() => ReturnType<typeof import('../../jobs/documentVersionRetention').listPinnedVersionIds>} [deps.pinnedVersionIds] the document revisions an automation or an app pins
  */
 function makeDocumentVersionsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

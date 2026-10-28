@@ -14,7 +14,14 @@ const log = require('../../../telemetry/log');
 const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
-/** @typedef {{ modelId?: string, titleAgent: unknown, tiers: unknown, adapter: unknown, apiKey: unknown, apiUrl: unknown }} ResolveTitleModelArgs */
+/**
+ * @typedef {{ modelId?: string,
+ *   titleAgent: unknown,
+ *   tiers: unknown,
+ *   adapter: unknown,
+ *   apiKey: unknown,
+ *   apiUrl: unknown }} ResolveTitleModelArgs
+ */
 /**
  * The title model is the dedicated admin model if set, else the system title
  * agent's concrete model, else the EU-aware Fast tier the chat resolves from,

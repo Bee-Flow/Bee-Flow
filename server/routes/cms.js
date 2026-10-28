@@ -224,7 +224,9 @@ const aiTranslateLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 // null when empty so public callers don't accidentally provision a
 // project on cache-busting traffic.
 
-/** @typedef {{ create?: boolean }} GetDefaultSiteIdArgs */
+/**
+ * @typedef {{ create?: boolean }} GetDefaultSiteIdArgs
+ */
 /**
  * @param {GetDefaultSiteIdArgs} [param0]
  */
