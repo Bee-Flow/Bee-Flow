@@ -19,7 +19,7 @@ export function ProfileConversations({
     onOpen: (conversationId: string) => void;
     onSeeAll: () => void;
 }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const conversations = useAgentConversations(agent.id);
     const recent = (conversations.data ?? []).slice(0, 3);
@@ -27,16 +27,16 @@ export function ProfileConversations({
 
     return (
         <Section
-            title="Your conversations"
+            title={t('mobile.agents.your_conversations', 'Your conversations')}
             action={
                 <Pressable
                     onPress={onSeeAll}
                     accessibilityRole="button"
-                    accessibilityLabel="See all conversations with this agent"
+                    accessibilityLabel={t('mobile.agents.see_all_conversations', 'See all conversations with this agent')}
                     hitSlop={theme.hitSlop}
                 >
                     <Text variant="caption" tone="accent">
-                        See all
+                        {t('mobile.agents.see_all', 'See all')}
                     </Text>
                 </Pressable>
             }
@@ -46,7 +46,7 @@ export function ProfileConversations({
                     <React.Fragment key={conversation.id}>
                         {index > 0 ? <Divider inset={theme.spacing.lg} /> : null}
                         <ListRow
-                            title={conversation.title || 'Untitled chat'}
+                            title={conversation.title || t('sidebar.untitled_chat', 'Untitled chat')}
                             meta={timeAgo(conversation.updated_at)}
                             onPress={() => onOpen(conversation.id)}
                         />

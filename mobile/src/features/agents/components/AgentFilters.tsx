@@ -3,6 +3,7 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip, SearchField } from '@/shared/ui';
 
@@ -25,14 +26,15 @@ export function AgentFilters({
     category: string;
     onCategory: (next: string) => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const categories = useAgentCategories();
     return (
         <View style={styles.bar}>
-            <SearchField value={search} onChangeText={onSearch} placeholder="Search agents" />
+            <SearchField value={search} onChangeText={onSearch} placeholder={t('store.search_placeholder', 'Search agents')} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-                <Chip label="All" selected={category === ALL} onPress={() => onCategory(ALL)} />
-                <Chip label="Favourites" selected={category === FAVORITES} onPress={() => onCategory(FAVORITES)} />
+                <Chip label={t('common.all', 'All')} selected={category === ALL} onPress={() => onCategory(ALL)} />
+                <Chip label={t('store.tab_favorites', 'Favourites')} selected={category === FAVORITES} onPress={() => onCategory(FAVORITES)} />
                 {(categories.data ?? []).map((c) => (
                     <Chip
                         key={c.id}

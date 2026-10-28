@@ -11,6 +11,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Badge, Icon, IconButton, ListRow } from '@/shared/ui';
 
@@ -29,19 +30,20 @@ export function AgentRow({
     onPress: () => void;
     onToggleFavorite?: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
 
     return (
         <ListRow
             title={agent.name}
-            subtitle={agent.description || 'No description yet.'}
+            subtitle={agent.description || t('mobile.agents.no_description', 'No description yet.')}
             wrapTitle
             leading={<AgentAvatar name={agent.name} avatar={pickAgentAvatar(agent)} />}
             trailing={
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
                     {/* An unpublished agent is visible only to its owner. Saying
                         so is what stops "why can nobody else see this?". */}
-                    {agent.is_published ? null : <Badge label="Private" />}
+                    {agent.is_published ? null : <Badge label={t('mobile.agents.badge_private', 'Private')} />}
                     {onToggleFavorite ? (
                         <IconButton
                             icon={
@@ -54,8 +56,8 @@ export function AgentRow({
                             tone={favorite ? 'accent' : 'default'}
                             accessibilityLabel={
                                 favorite
-                                    ? `Remove ${agent.name} from favourites`
-                                    : `Add ${agent.name} to favourites`
+                                    ? t('mobile.agents.remove_favorite_named', 'Remove {name} from favourites', { name: agent.name })
+                                    : t('mobile.agents.add_favorite_named', 'Add {name} to favourites', { name: agent.name })
                             }
                             onPress={onToggleFavorite}
                         />

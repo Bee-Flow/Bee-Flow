@@ -21,7 +21,7 @@ const makeStyles = (theme: Theme) => ({
 });
 
 export function RecentAgentChats({ onOpen }: { onOpen: (conversation: AgentConversationAcrossAgents) => void }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const query = useAllAgentConversations();
@@ -33,8 +33,8 @@ export function RecentAgentChats({ onOpen }: { onOpen: (conversation: AgentConve
         return (
             <EmptyState
                 icon="MessageCircle"
-                title="No agent chats yet"
-                message="Open an agent and ask it something — the conversation shows up here afterwards."
+                title={t('mobile.agents.recent_empty_title', 'No agent chats yet')}
+                message={t('mobile.agents.recent_empty_message', 'Open an agent and ask it something — the conversation shows up here afterwards.')}
             />
         );
     }
@@ -43,11 +43,11 @@ export function RecentAgentChats({ onOpen }: { onOpen: (conversation: AgentConve
         <ListRow
             // A conversation whose title generation has not run yet has none
             // at all; the row still has to be tappable.
-            title={item.title || 'Untitled chat'}
-            subtitle={item.agent_name ?? 'Deleted agent'}
+            title={item.title || t('sidebar.untitled_chat', 'Untitled chat')}
+            subtitle={item.agent_name ?? t('mobile.agents.deleted_agent', 'Deleted agent')}
             meta={timeAgo(item.updated_at)}
             wrapTitle
-            leading={<AgentAvatar name={item.agent_name ?? 'Agent'} avatar={item.agent_avatar} size={36} />}
+            leading={<AgentAvatar name={item.agent_name ?? t('chat.composer.agent_fallback', 'Agent')} avatar={item.agent_avatar} size={36} />}
             trailing={item.pinned ? <Icon name="Bookmark" size={16} color={theme.colors.textMuted} /> : undefined}
             onPress={() => onOpen(item)}
         />

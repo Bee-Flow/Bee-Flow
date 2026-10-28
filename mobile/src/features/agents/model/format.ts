@@ -3,6 +3,8 @@
  * Unit-tested in format.test.ts.
  */
 
+import { translate } from '@/core/i18n';
+
 import type { Agent, AgentComponent, AgentConversationSummary } from './types';
 
 /**
@@ -42,10 +44,10 @@ export function toolLabel(componentId: string, catalogue: AgentComponent[]): str
 
 /** `tier:<key>` is a tier, not a model name; showing the raw string would mean nothing. */
 export function describeModel(model: string | null): string {
-    if (!model) return 'Your organisation’s default';
+    if (!model) return translate('mobile.agents.editor.model_default', 'Your organisation’s default');
     if (model.startsWith('tier:')) {
         const tier = model.slice('tier:'.length).replace(/^custom:/, '').replace(/[-_]+/g, ' ');
-        return `Chosen per message — ${tier} tier`;
+        return translate('mobile.agents.model_tier', 'Chosen per message — {tier} tier', { tier });
     }
     return model;
 }
