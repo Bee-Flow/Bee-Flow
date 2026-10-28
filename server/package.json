@@ -14,6 +14,7 @@
     "build:editor-collab": "node ../scripts/build-editor-bundles.mjs collab",
     "test": "node scripts/run-tests.mjs",
     "lint": "eslint .",
+    "lint:suppress:prune": "node ../scripts/eslint-budget.mjs server --update",
     "typecheck": "node scripts/typecheck.mjs",
     "geo:fetch": "node scripts/fetch-geo-db.mjs"
   },
