@@ -16,6 +16,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { humanise } from '@/shared/lib/display';
 import { Icon, Text, type IconName } from '@/shared/ui';
@@ -61,6 +62,7 @@ function Turn({
     tools?: VoiceToolActivity[];
     pending?: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const mine = role === 'user';
 
@@ -74,7 +76,11 @@ function Turn({
         >
             <View
                 accessibilityRole="text"
-                accessibilityLabel={`${mine ? 'You said' : 'Bee Flow said'}: ${text}`}
+                accessibilityLabel={
+                    mine
+                        ? t('mobile.voice.you_said', 'You said: {text}', { text })
+                        : t('mobile.voice.bee_said', 'Bee Flow said: {text}', { text })
+                }
                 style={{
                     paddingHorizontal: theme.spacing.lg,
                     paddingVertical: theme.spacing.md,
