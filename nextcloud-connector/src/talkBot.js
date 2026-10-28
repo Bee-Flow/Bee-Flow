@@ -307,21 +307,20 @@ function mapActivity(body) {
 
 const AGENT_TASK_TYPE = 'core:contextagent:interaction';
 
-// Does this message @mention the bot? Prefer Talk's structured mention
-// parameters (the accurate "@" signal); fall back to the bot name appearing in
-// the raw text so it still works if a delivery omits parameters.
+// Does this message @mention the bot? Talk's structured mention parameters are
+// the accurate "@" signal. Only a message that carries NO mention at all falls
+// back to the text, and then only to a literal "@Bee Flow": "the Bee Flow
+// report is late" used to start an agent run as that user and post the answer
+// to the room.
 /** @param {{ parameters?: Record<string, unknown> | null, message?: string } | null | undefined} payload */
 function mentionsBot(payload) {
     const params = payload?.parameters;
-    if (params && typeof params === 'object') {
-        for (const v of Object.values(params)) {
-            if (v && typeof v === 'object' && 'name' in v
-                && String(v.name || '').toLowerCase() === BOT_NAME.toLowerCase()) {
-                return true;
-            }
-        }
+    const mentions = params && typeof params === 'object' ? Object.values(params) : [];
+    if (mentions.length) {
+        return mentions.some(v => v && typeof v === 'object' && 'name' in v
+            && String(v.name || '').toLowerCase() === BOT_NAME.toLowerCase());
     }
-    return /(^|\s)@?bee\s*flow\b/i.test(String(payload?.message || ''));
+    return /(^|\s)@bee\s*flow\b/i.test(String(payload?.message || ''));
 }
 
 // Recover the question from a mention message: drop Talk's {mention-…}
