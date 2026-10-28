@@ -13,11 +13,11 @@ from __future__ import annotations
 import re
 from bisect import bisect_right
 from itertools import accumulate
-from typing import Any
 
 from app.services.pii_regex.anchors import _LINE_SPACE
 
 from .chunking import _is_word_char, _snap_start_to_word
+from .types import JsonDict
 
 # ── Cell and line boundaries ────────────────────────────────────────────
 # Characters that end a line or a table cell: every line boundary
@@ -165,7 +165,7 @@ _DISPLAY_NAME_CELL_RE = re.compile(
 )
 
 
-def _apply_validators(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _apply_validators(entities: list[JsonDict]) -> list[JsonDict]:
     """Confirm or refute MODEL spans arithmetically. Never adds, never removes.
 
     The rule this implements: no pattern may propose or suppress a span; only
@@ -299,7 +299,7 @@ def _is_opaque_identifier(word: str) -> bool:
     return bool(_OPAQUE_ID_RE.match(stripped))
 
 
-def _precision_filter(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _precision_filter(entities: list[JsonDict]) -> list[JsonDict]:
     """Drop model spans whose SHAPE contradicts their category.
 
     Applies to ``source == "model"`` only. Regex-tier spans are anchored and
@@ -311,7 +311,7 @@ def _precision_filter(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
     invariant, exactly like ``_apply_validators``). Dropping inside ``_finalise``
     would silently un-redact characters while its property test still passed.
     """
-    out: list[dict[str, Any]] = []
+    out: list[JsonDict] = []
     for ent in entities:
         if ent.get("source") != "model":
             out.append(ent)
@@ -489,16 +489,14 @@ def _name_words(value: str) -> set[str]:
     }
 
 
-def _display_name_spans(
-    text: str, entities: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _display_name_spans(text: str, entities: list[JsonDict]) -> list[JsonDict]:
     """Person spans for "Surname, First name" cells of a person found elsewhere.
 
     Each new span copies the Person span its surname part shares a word with
     (so category, label, source and confidence are that span's), over the
     whole cell. A cell a Person span already covers is left to it.
     """
-    by_word: dict[str, dict[str, Any]] = {}
+    by_word: dict[str, JsonDict] = {}
     persons = sorted(
         (e for e in entities if e.get("category") == "Person"),
         key=lambda e: e["offset"],
@@ -513,7 +511,7 @@ def _display_name_spans(
     # among the spans that start at or before `start`.
     starts = [e["offset"] for e in persons]
     reach = list(accumulate((e["offset"] + e["length"] for e in persons), max))
-    found: list[dict[str, Any]] = []
+    found: list[JsonDict] = []
     for m in _DISPLAY_NAME_CELL_RE.finditer(text):
         start, end = m.span("name")
         i = bisect_right(starts, start)
@@ -549,9 +547,7 @@ def _repair_span(
     return start, end
 
 
-def _postprocess_entities(
-    text: str, entities: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _postprocess_entities(text: str, entities: list[JsonDict]) -> list[JsonDict]:
     """Clean GLiNER span boundaries.
 
     0. A span is cut at every cell or line break (``_CELL_BREAKS``) into one
@@ -579,7 +575,7 @@ def _postprocess_entities(
        elsewhere in the text becomes a Person span too
        (``_display_name_spans``).
     """
-    out: list[dict[str, Any]] = []
+    out: list[JsonDict] = []
     for ent in entities:
         category = ent.get("category")
         start = int(ent["offset"])

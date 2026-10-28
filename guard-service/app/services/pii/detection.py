@@ -17,10 +17,8 @@ no custom labels every step below is the path it always was.
 from __future__ import annotations
 
 import logging
-from collections import Counter
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any
 
 from .categories import CATEGORY_LABELS, GLINER_LABELS_TO_CATEGORY
 from .chunking import (
@@ -44,6 +42,8 @@ from .thresholds import (
     _PER_CATEGORY_THRESHOLD,
     _UI_DEFAULT_THRESHOLD,
 )
+from .tier_diff import _log_tier_diff
+from .types import JsonDict
 
 logger = logging.getLogger("guard.pii")
 
@@ -55,7 +55,7 @@ _ScanUnit = tuple[int, _Labels, float, list[str], list[int], int]
 # (chunks, processed_chars, total_chars) for one chunk list.
 _ChunkPlan = tuple[list[tuple[int, str]], int | None, int | None]
 # What a worker answers: the per-chunk raw spans, or the exception instead.
-_Outcome = tuple[list[list[dict[str, Any]]] | None, Exception | None]
+_Outcome = tuple[list[list[JsonDict]] | None, Exception | None]
 
 
 @dataclass(frozen=True)
@@ -89,12 +89,12 @@ class _Deterministic:
     """The regex tier's spans, the BSN carve-out's spans, and the near-miss
     counters. Both lists stay apart: the shadow-mode diff reads regex only."""
 
-    regex: list[dict[str, Any]]
-    bsn: list[dict[str, Any]]
-    stats: dict[str, Any]
+    regex: list[JsonDict]
+    bsn: list[JsonDict]
+    stats: JsonDict
 
     @property
-    def entities(self) -> list[dict[str, Any]]:
+    def entities(self) -> list[JsonDict]:
         return self.regex + self.bsn
 
 
@@ -139,7 +139,7 @@ def _deterministic_tier(text: str, scope: _ScanScope) -> _Deterministic:
     from app.services.pii_bsn import detect_bsn
     from app.services.pii_regex import detect_regex_pii
 
-    stats: dict[str, Any] = {}
+    stats: JsonDict = {}
     regex_entities = (
         []
         if scope.tier_mode == "off"
@@ -260,17 +260,17 @@ class _SpanCollector:
         self._threshold = confidence_threshold
         self._custom = custom
         self._seen: set[tuple[int, int, str]] = set()
-        self.entities: list[dict[str, Any]] = []
-        self.custom_entities: list[dict[str, Any]] = []
+        self.entities: list[JsonDict] = []
+        self.custom_entities: list[JsonDict] = []
 
-    def _placed(self, ent: dict[str, Any], chunk_offset: int) -> tuple[int, int, str]:
+    def _placed(self, ent: JsonDict, chunk_offset: int) -> tuple[int, int, str]:
         local_start = int(ent.get("start", 0))
         local_end = int(ent.get("end", local_start))
         start = chunk_offset + local_start
         end = chunk_offset + local_end
         return start, end, ent.get("text") or self._text[start:end]
 
-    def accept(self, ent: dict[str, Any], chunk_offset: int) -> None:
+    def accept(self, ent: JsonDict, chunk_offset: int) -> None:
         score = float(ent.get("score", 0))
         raw_label = (ent.get("label") or "").lower()
         category = GLINER_LABELS_TO_CATEGORY.get(raw_label)
@@ -306,7 +306,7 @@ class _SpanCollector:
         )
 
     def _accept_custom(
-        self, label_id: str, score: float, ent: dict[str, Any], chunk_offset: int
+        self, label_id: str, score: float, ent: JsonDict, chunk_offset: int
     ) -> None:
         if self._custom is None or score < self._custom.floor_for(label_id):
             return
@@ -412,8 +412,8 @@ def _not_ready_envelope(
     load_error: str | None,
     categories: set[str],
     custom: _CustomSpec | None,
-    envelope: dict[str, Any],
-) -> dict[str, Any]:
+    envelope: JsonDict,
+) -> JsonDict:
     """Regex-only is DEGRADED so the Node side fails closed instead of
     sending bare names to the LLM in plaintext (BFSF-269).
 
@@ -474,30 +474,6 @@ def _degraded_signal(
     return degraded, degraded_reason
 
 
-def _log_tier_diff(
-    regex_entities: list[dict[str, Any]], model_entities: list[dict[str, Any]]
-) -> None:
-    """Shadow mode's one honest answer: would `off` have detected FEWER?
-    Category names and integer counts only — never offsets, spans or input."""
-
-    def _cats(ents: list[dict[str, Any]]) -> Counter[str]:
-        return Counter(e["category"] for e in ents)
-
-    regex_cats = _cats(regex_entities)
-    model_cats = _cats(model_entities)
-    logger.info(
-        "pii.tier_diff regex_total=%d model_total=%d "
-        "regex_only_categories=%s model_only_categories=%s "
-        "regex_by_category=%s model_by_category=%s",
-        sum(regex_cats.values()),
-        sum(model_cats.values()),
-        sorted(set(regex_cats) - set(model_cats)),
-        sorted(set(model_cats) - set(regex_cats)),
-        dict(sorted(regex_cats.items())),
-        dict(sorted(model_cats.items())),
-    )
-
-
 def _scan_stats(
     chunks: int, groups: int, timings: _Timings, workers: int
 ) -> dict[str, float | int]:
@@ -527,7 +503,7 @@ class _Detection(_PiiState):
         enabled_categories: list[str] | None = None,
         scan_char_limit: int | None = None,
         enabled_regions: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> JsonDict:
         """Run PII detection on *text* and resolve overlaps. See _detect_raw."""
         return self.detect_request(
             ScanRequest(
@@ -539,7 +515,7 @@ class _Detection(_PiiState):
             )
         )
 
-    def detect_request(self, req: ScanRequest) -> dict[str, Any]:
+    def detect_request(self, req: ScanRequest) -> JsonDict:
         """detect() for a ScanRequest, which may carry custom labels.
 
         The built-in candidates are resolved by _finalise exactly as without
@@ -548,7 +524,7 @@ class _Detection(_PiiState):
         had custom labels.
         """
         entities, kwargs, custom = self._detect_scan(req)
-        result: dict[str, Any] = self._finalise(entities, text=req.text, **kwargs)
+        result: JsonDict = self._finalise(entities, text=req.text, **kwargs)
         if req.custom is not None:
             result["custom_entities"] = _finalise_custom(
                 custom or [], req.text, req.custom
@@ -562,7 +538,7 @@ class _Detection(_PiiState):
         enabled_categories: list[str] | None = None,
         scan_char_limit: int | None = None,
         enabled_regions: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[JsonDict]:
         """Every candidate span, BEFORE overlap resolution.
 
         ``detect()`` emits at most one entity per overlap cluster and *deletes*
@@ -596,7 +572,7 @@ class _Detection(_PiiState):
         enabled_categories: list[str] | None = None,
         scan_char_limit: int | None = None,
         enabled_regions: list[str] | None = None,
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    ) -> tuple[list[JsonDict], JsonDict]:
         """Run PII detection on *text*, returning ``(entities, finalise_kwargs)``.
 
         Everything except overlap resolution. ``detect()`` applies _finalise to
@@ -627,11 +603,11 @@ class _Detection(_PiiState):
 
     def _detect_scan(
         self, req: ScanRequest
-    ) -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]] | None]:
+    ) -> tuple[list[JsonDict], JsonDict, list[JsonDict] | None]:
         """_detect_raw for a ScanRequest: ``(entities, finalise_kwargs,
         custom_candidates)``, the last None exactly when ``req.custom`` is."""
         custom = req.custom
-        no_custom: list[dict[str, Any]] | None = [] if custom is not None else None
+        no_custom: list[JsonDict] | None = [] if custom is not None else None
         # _finalise([]) wraps to exactly the old literal envelope.
         if _is_skippable(req.text):
             return [], {}, no_custom
@@ -640,7 +616,7 @@ class _Detection(_PiiState):
             req.enabled_categories, req.enabled_regions, custom=custom is not None
         )
         found = _deterministic_tier(req.text, scope)
-        envelope: dict[str, Any] = {
+        envelope: JsonDict = {
             "tier_mode": scope.tier_mode,
             "near_miss_counts": found.stats.get("near_miss", {}),
         }
@@ -674,7 +650,7 @@ class _Detection(_PiiState):
         req: ScanRequest,
         categories: set[str],
         active_groups: list[list[str]],
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None, dict[str, Any]]:
+    ) -> tuple[list[JsonDict], list[JsonDict] | None, JsonDict]:
         """Tier 2: every GLiNER pass of one request, and their verdicts.
 
         The shipped groups over the shipped chunk list, then (with custom
