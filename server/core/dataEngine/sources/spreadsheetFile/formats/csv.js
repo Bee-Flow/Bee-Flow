@@ -93,8 +93,18 @@ function decode(buffer) {
     try {
         return { text: new TextDecoder('utf-8', { fatal: true }).decode(buf), encoding: 'utf-8', bom: false };
     } catch {
-        return { text: new TextDecoder('windows-1252').decode(buf), encoding: 'windows-1252', bom: false };
+        return { text: decodeCp1252(buf), encoding: 'windows-1252', bom: false };
     }
+}
+
+/**
+ * Latin-1 with the 0x80–0x9F block mapped through CP1252_HIGH. Done by hand rather
+ * than via TextDecoder('windows-1252'): a Node built with small ICU data decodes that
+ * label as plain Latin-1, and the round trip with encodeCp1252 would then break.
+ * @param {Buffer} buf
+ */
+function decodeCp1252(buf) {
+    return buf.toString('latin1').replace(/[\u0080-\u009f]/g, (c) => String.fromCharCode(CP1252_HIGH[c.charCodeAt(0) - 0x80]));
 }
 
 /** @param {string} text */
