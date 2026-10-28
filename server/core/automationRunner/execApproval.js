@@ -296,7 +296,7 @@ function isRunPause(e) {
  *
  * `listAsMarkdown` because a form page's text is the one place interpolation
  * output is READ BY A PERSON, and is rendered as markdown. A step that produced
- * a list of findings used to drop `["Productaanbod van RVS platen…","Algemene
+ * a list of findings would drop `["Productaanbod van RVS platen…","Algemene
  * bedrijfspresentatie…"]` — brackets, quotes and all — into the middle of a
  * sentence the customer was asked to act on. As bullets it is the same data,
  * legible. Nowhere else gets this: JSON is the right rendering for a prompt,

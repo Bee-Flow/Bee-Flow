@@ -81,7 +81,7 @@ function createSkillActivationHandler({
             // released is by definition a name nobody has seen. Without this
             // line a test-set run could pick up a SENDING tool halfway through
             // the turn — the one thing a test run must never do — because the
-            // sandbox had been applied once, before this tool existed.
+            // sandbox is applied once, before this tool exists.
             const { narrowToolsForTurn } = require('../toolStackAssembly');
             const kept = narrowToolsForTurn({ tools: delta, agent, agentId, messageMetadata });
             if (Array.isArray(kept.sandboxWithheld) && kept.sandboxWithheld.length > 0) {

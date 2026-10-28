@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * How deep automations are starting each other right now (handoff 5, round 3).
+ * How deep automations are starting each other right now.
  *
  * An agent can start an automation as a tool (`agent_call` automations, reusable
  * Steps, a skill linked to an automation). That automation can have an AI step whose

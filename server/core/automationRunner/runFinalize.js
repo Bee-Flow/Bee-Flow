@@ -88,9 +88,9 @@ function runSummary({ automation, ctx, firstRunNeedsConfirm, runStatus, runError
     // and "Waiting for approval." is the sentence the run list reads.
     const reuseNotes = reuseNotesOf(ctx);
     const withReuse = (text) => (reuseNotes.length ? `${text} — ${reuseNotes.join(', ')}` : text);
-    // The reuse notes ride on the FAILURE line too. They used to live only
-    // in the success path, so a run that fetched from an earlier run and
-    // then blew up at step 9 reported neither counter — deleting the
+    // The reuse notes ride on the FAILURE line too. Kept only
+    // in the success path, a run that fetched from an earlier run and
+    // then blew up at step 9 would report neither counter — deleting the
     // evidence from exactly the runs someone opens asking "why did this
     // act on yesterday's data and then fail?".
     // Mappings that found nothing ride on both lines too: on a failure

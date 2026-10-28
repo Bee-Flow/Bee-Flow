@@ -273,7 +273,7 @@ function switchCaseRule(cc, scope, onError, host) {
 
 /**
  * Parse every RULE case once per step, not once per row: a list-mode switch
- * used to re-tokenise each case for every row it offered it. A case whose
+ * would re-tokenise each case for every row it offered it. A case whose
  * rule does not parse keeps its message, and every row it is asked about
  * reports it and does not match, exactly as the per-row parse did.
  */

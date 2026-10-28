@@ -53,8 +53,8 @@ function egressMode(policy, destination) {
     const covered = policy.privacyScope === 'all' || isExternal;
     if (!covered) return 'real';
     if (policy.action === 'tokenize') return 'tokens';
-    // 'redact' used to tokenize and then restore everything, so it protected
-    // nothing at all — it only left a guardrail row behind. It masks for real now.
+    // 'redact' masks for real: tokenizing and then restoring everything would
+    // protect nothing at all — it would only leave a guardrail row behind.
     if (policy.action === 'redact') return 'masked';
     return 'real';
 }
@@ -113,7 +113,7 @@ function restoreFromVault(value, vaultMap) {
  * Restoration uses the WHOLE run vault, not just the map of the value that was
  * scanned a moment ago: a placeholder minted by an earlier node is not personal
  * data, so the current step's scan never sees it — that is exactly how
- * `[person_1]` used to be sent to third parties as literal text.
+ * `[person_1]` would be sent to third parties as literal text.
  *
  * @param {object} opts.destination 'external' (default) | 'internal'
  */
@@ -178,11 +178,10 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             ids: {
                 organization_id: auditBase.organization_id,
                 user_id: auditBase.user_id,
-                // Automations are NOT agents. The automation id used to be
-                // stuffed into agent_id here, which polluted every 'agent'
+                // Automations are NOT agents. The automation id is not
+                // stuffed into agent_id here: that would pollute every 'agent'
                 // breakdown with automations; automation_id below is the real
-                // attribution, and historical rows remain classifiable via
-                // automation_id IS NOT NULL.
+                // attribution (automation_id IS NOT NULL classifies the rows).
                 agent_id: null,
                 agent_name: auditBase.agent_name,
                 conversation_id: auditBase.conversation_id,

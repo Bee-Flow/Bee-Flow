@@ -27,8 +27,8 @@ function dlpProviderConfig(config) {
  *
  * Resolved HERE (rather than at the DLP preflight) so the guard scan of the
  * user message can start BEFORE memory retrieval. The scrub and the DLP scan
- * cover different texts, so they cannot share a result — but they used to run
- * strictly sequentially, costing two full guard round trips before the first
+ * cover different texts, so they cannot share a result — but they run in parallel,
+ * since strictly sequential runs would cost two full guard round trips before the first
  * token. preWarmPiiScan is fire-and-forget: the real scan in runDlpPreflight
  * joins it via the piiDetection single-flight table, and if guardrails rewrite
  * the message in between, the key mismatch discards the pre-warm instead of

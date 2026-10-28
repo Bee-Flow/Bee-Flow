@@ -268,7 +268,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
     // Cap and format. Everything a citation is built from rides along: the
     // ids that make a chip open its passage, the page or row range that makes
     // it checkable, and what a table row pulled in along its relations. These
-    // used to be dropped here, so the ask route's citations arrived with no
+    // must not be dropped here, or the ask route's citations arrive with no
     // document behind them.
     return deduped.slice(0, topK).map(c => ({
         title: c.title || c.source_uri || 'KB',

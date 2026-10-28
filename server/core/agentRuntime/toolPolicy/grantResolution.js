@@ -28,8 +28,8 @@ const {
  *
  * And a value NOBODY CAN READ yields an empty set too, for the same reason
  * `normaliseToolsConfig` turns one into `[]`: "a value nobody can read is not
- * a request for everything". This reader used to answer `null` there — the
- * whole app — so the two readers of one field disagreed about what unreadable
+ * a request for everything". Answering `null` there — the
+ * whole app — would make the two readers of one field disagree about what unreadable
  * means, and only one of them runs at dispatch. On normalised data nothing
  * changes (normalisation only ever emits `'*'` or an array); what it closes is
  * the path where a config reaches this function WITHOUT having been clamped,
@@ -50,7 +50,7 @@ function allowedToolsFor(appId, toolsConfig) {
 /**
  * May this tool be offered at all? `tool` is a definition or a bare name.
  *
- * Three different answers used to arrive here as one, and keeping them apart
+ * Three different answers arrive here, and keeping them apart
  * is what A2-1 fixed:
  *
  *   NO APP CLAIMS THIS NAME ⇒ pass. A grant keyed on an app has nothing to say

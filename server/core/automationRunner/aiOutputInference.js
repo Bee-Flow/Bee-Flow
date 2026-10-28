@@ -3,12 +3,12 @@
  *
  * An ai_step without an outputSchema answers free text, and every
  * `steps.<id>.output.<field>` read of it resolves to nothing. The runner
- * therefore asks the model for the fields later steps read. It used to keep
- * only the first name after `.output.` and type every field "string": a step
+ * therefore asks the model for the fields later steps read. Keeping
+ * only the first name after `.output.` and typing every field "string" is not enough: a step
  * read as `customer.contacts[0].email`, looped over as `line_items` and picked
- * as `["Story Points"]` asked for `{"line_items":"string","customer":"string"}`,
- * and a model that obeyed broke both the loop and the nested read, while the
- * bracket read was not seen at all.
+ * as `["Story Points"]` would ask for `{"line_items":"string","customer":"string"}`,
+ * and a model that obeyed would break both the loop and the nested read, while the
+ * bracket read would not be seen at all.
  *
  * Here every consumer path is read with the shared grammar (shared/expr
  * path.mjs for paths and templates, the expression parser for formulas) and

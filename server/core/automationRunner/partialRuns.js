@@ -447,8 +447,8 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
  * Which trigger node reaches `stepId` through the root edges — the primary
  * (returned as null, the runner's "enter at the primary") when it does, else
  * the first ADDITIONAL trigger that does. A step only wired from a secondary
- * trigger used to be seeded from the primary, whose walk never reached it, so
- * "Run up to here" on it executed nothing.
+ * trigger would be seeded from the primary, whose walk never reaches it, so
+ * "Run up to here" on it would execute nothing.
  * @param {string} stepId
  */
 function rootReaching(def, stepId) {

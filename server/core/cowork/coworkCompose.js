@@ -310,8 +310,8 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
         return { ...normaliseSpec(parsed.value, { brief: text, agents }), composed: true };
     } catch (err) {
         // Never block the user's work on the composer: fall back to their own
-        // words as a one-off, which is exactly what they got before this
-        // existed.
+        // words as a one-off, which is exactly what they get without the
+        // composer.
         log.warn(`[CoworkCompose] falling back to the raw brief: ${err.message}`);
         return { ...fallbackSpec(text), composed: false };
     }

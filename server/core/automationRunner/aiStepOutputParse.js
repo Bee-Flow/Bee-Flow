@@ -52,9 +52,9 @@ function parseAiStepOutput(content, { step, effectiveSchema, inferred, inferredF
             // The author (or the leading skill) DECLARED a schema and the
             // model did not honour it.
             //
-            // What used to happen here was nothing: `output` stayed the raw
-            // string, the step reported SUCCESS, and every downstream
-            // `steps.<id>.output.<field>` silently resolved to undefined. A
+            // Doing nothing here is not an option: `output` would stay the raw
+            // string, the step would report SUCCESS, and every downstream
+            // `steps.<id>.output.<field>` would silently resolve to undefined. An
             // automation could render an empty document, mail an empty summary or
             // write empty rows, with a green run behind it and no line anywhere
             // saying why. That is the worst failure this file can produce, so it

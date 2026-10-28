@@ -67,7 +67,7 @@ function prepareWriteValues(t) {
         }
     }
     if (op === 'save_row' && !declared.has(step.matchColumn)) {
-        // A renamed match column used to reach compileRecordList and throw a
+        // A renamed match column would reach compileRecordList and throw a
         // raw CompileError naming the compiler rather than the table. Same
         // amber skip the value columns already take.
         return {
@@ -178,9 +178,9 @@ async function addRow(t, values, s) {
     const ins = s.queryCompiler.compileInsert(t.tableMeta, values, { createdBy: t.ctx.userId, orgId: t.orgId, dialect: 'pg' });
     await s.datatableDbStore.exec(t.scopeKey, t.scopeKey, ins.sql, ins.params);
     await s.datatableStore.bumpAfterWrite(t.table.id, t.scope, 1);
-    // compileInsert mints the id and this used to throw it away, while the
-    // variable picker (Builder/mapping/upstream.js) has always advertised
-    // steps.<id>.output.row.id. Both save_row branches and add_row now
+    // compileInsert mints the id and it must not be thrown away: the
+    // variable picker (Builder/mapping/upstream.js) advertises
+    // steps.<id>.output.row.id. Both save_row branches and add_row
     // return ONE shape.
     // The system columns compileInsert stamped, so the row has the same keys
     // the updating branch returns (it spreads the stored row).
@@ -222,9 +222,9 @@ async function mirrorUpdateOrDelete(t, values, ids, truncated) {
 }
 
 /**
- * ONE transaction per chunk instead of one per row. 800 rows used to be 801
- * round trips with no atomicity anywhere: a crash half way left half the rows
- * written and bumpAfterWrite never reached, so row_count kept counting
+ * ONE transaction per chunk instead of one per row. One per row means 801
+ * round trips for 800 rows with no atomicity anywhere: a crash half way leaves half the rows
+ * written and bumpAfterWrite never reached, so row_count keeps counting
  * deletions that had happened.
  * @param {boolean} truncated
  */

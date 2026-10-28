@@ -8,11 +8,11 @@
  * one string cannot, so the known SQLite idioms are translated on the way to
  * Postgres and anything else is passed through untouched.
  *
- * WHY THIS MODULE EXISTS AT ALL: the translation used to live only inside
- * scripts/migrateStudioAppsToPg.js. Migrated apps were therefore correct while
+ * WHY THIS MODULE EXISTS AT ALL: the translation must not live only inside
+ * scripts/migrateStudioAppsToPg.js. Migrated apps would be correct while
  * a FRESH INSTALL of the same template on the Postgres engine emitted
  * `char(59)` into PG DDL and failed at CREATE TABLE. One function, two callers
- * (dataModel's DDL emission and the migrator), so the paths cannot drift again.
+ * (dataModel's DDL emission and the migrator), so the paths cannot drift.
  *
  * Templates keep authoring the SQLite/portable form: it is the dialect the
  * expression guard, the docs and every existing definition already speak, and

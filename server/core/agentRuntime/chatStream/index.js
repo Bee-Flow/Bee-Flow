@@ -19,8 +19,7 @@
 const { recordAgentRun } = require('../../../telemetry/metrics');
 const { chatWithAgentStreamImpl, _pendingTurnReleases } = require('./turnLoop');
 
-// Carried over from before this file became a folder: requires the turn no
-// longer reads, but that were part of its load graph (module init side
+// Requires the turn does not read, but that are part of its load graph (module init side
 // effects, and the ids the runtime tests stub). Dropping one is a behaviour
 // change, so it is a separate, reviewable edit — not part of a move.
 require('../../cms/componentManager');

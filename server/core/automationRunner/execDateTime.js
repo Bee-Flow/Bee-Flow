@@ -19,8 +19,8 @@ const { resolveTimezone, partsInZone, toDateStrict, addWallDays } = require('./d
  *   single  — no `arrayRef` key: one date in, one result out.
  *   list    — `arrayRef` present: work through a table and ADD A COLUMN to
  *             every row (BFSF-375). Dropping a whole column of dates into
- *             "Input date" used to hand `toDate` an array of 17 strings,
- *             which parses as nothing, so the step failed with "did not
+ *             "Input date" would hand `toDate` an array of 17 strings,
+ *             which parses as nothing, so the step would fail with "did not
  *             resolve to a parseable date" — a dead end for anything that
  *             processes a query result.
  */
@@ -130,10 +130,10 @@ function datetimeResult(step, runState) {
     }
     const d = toDate(inputAt);
     if (!d) {
-        // Fail LOUD (A17): the error-stub output used to be recorded as a
-        // green SUCCESS while every downstream binding read null — routes
+        // Fail LOUD (A17): an error-stub output would be recorded as a
+        // green SUCCESS while every downstream binding read null — so this routes
         // through on_error edges / run-error recording like any other step
-        // failure now.
+        // failure.
         /** @type {import('./runnerError.types').RunnerError} */
         const err = new Error(`datetime: input "${step.input ?? ''}" did not resolve to a parseable date`);
         err.errorClass = 'datetime_unresolved_input';

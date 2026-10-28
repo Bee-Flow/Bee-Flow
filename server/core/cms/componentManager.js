@@ -17,10 +17,10 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
  *
  * THIS LIST IS A TRUST BOUNDARY, not a convenience. `npm install` runs
  * lifecycle scripts (preinstall/install/postinstall) by default, as the server
- * process, out of a component's directory. When components could still be
- * written from a request body (the removed Component Designer), "create a
- * component" meant "run arbitrary code on the host" before this list. Only the
- * shipped, repo-tracked components install now; the list still pins what they
+ * process, out of a component's directory. Were components writable from a
+ * request body (as in the removed Component Designer), "create a component"
+ * would mean "run arbitrary code on the host" without this list. Only the
+ * shipped, repo-tracked components install; the list pins what they
  * may pull in.
  *
  * An allowlist rather than `--ignore-scripts` because two of the shipped

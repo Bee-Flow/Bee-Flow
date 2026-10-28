@@ -212,7 +212,7 @@ function buildAdjacency(def) {
  * The label an edge routes on, normalising the two persisted shapes: writers
  * historically stamped `label: 'case:vip'` + `caseName: 'vip'`, label-only,
  * or caseName-ONLY. validate.js and the canvas accept all three, but routing
- * used to read `e.label` alone — a caseName-only edge validated green, drew
+ * must not read `e.label` alone — a caseName-only edge validated green, drew
  * from the right port, and then never fired (node-audit A3). When both are
  * present, `label` wins (every current writer keeps them in sync).
  */
@@ -237,8 +237,8 @@ function nextEdgesFor(stepId, adj, label = null) {
  *
  * One set, shared by everything that has to know: runDag's live + replay label
  * resolution, buildLinearEdges' synthesized body chains, and the disabled-step
- * pass-through. It exists because the knowledge used to be duplicated as
- * type-name literals in three places and `guard` was only ever added to two of
+ * pass-through. It exists because the knowledge, duplicated as
+ * type-name literals in three places, drifts: `guard` was added to only two of
  * them — so every body step after a guard inside a loop body or a parallel
  * branch got an unlabelled edge that `then` could never match, and the rest of
  * the iteration silently died (node-audit C3, second occurrence). A fourth

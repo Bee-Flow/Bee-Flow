@@ -68,8 +68,8 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
     }
     if (guardedIn.wouldBlock) {
         // Read-only tool in a dry-run: a `block` action returns the payload
-        // UNTRANSFORMED, and this used to fall straight through to a live
-        // dispatch — so the one mode that must never leak sent the raw value to
+        // UNTRANSFORMED, and this must not fall straight through to a live
+        // dispatch — the one mode that must never leak would send the raw value to
         // a third party. Synthesize instead, and keep the preview annotation.
         const out = synthesizeDryRunOutput(step.tool, inputs);
         out._guardrailWouldBlock = guardedIn.categories;
@@ -89,7 +89,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
 /**
  * The live dispatch, wrapped in runWithProbe so the global fetch shim captures
  * the destination IP for the egress row. markLocal keeps on-host integrations
- * honest. The inner fn never THROWS through runWithProbe — a throw used to
+ * honest. The inner fn never THROWS through runWithProbe — a throw would
  * discard the probe, and with it the audit row for a failed call whose bytes
  * had already left the box.
  */
@@ -146,8 +146,8 @@ function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveI
  * real answer: an error about the ENVIRONMENT (not connected, unreachable,
  * auth lapsed: 'not_connected') and a not-found on a path only a simulated
  * step wrote ('simulated_upstream'). A timeout, a rejected id or a bad column
- * used to be swapped for the sample too, so a read that cannot work showed a
- * green step and the forEach behind it iterated over nothing.
+ * must not be swapped for the sample too, or a read that cannot work shows a
+ * green step and the forEach behind it iterates over nothing.
  */
 async function dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, probe, policy, auditBase, t0, deps }) {
     await deps.safety.logEgress({
@@ -162,7 +162,7 @@ async function dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, pr
         else if (isNotFoundError(step.tool, message) && isUnderSimulatedPath(ctx, resolvedInputs && resolvedInputs.path)) fallback = 'simulated_upstream';
     }
     if (!fallback) throw deps.enrichNextcloudError(step.tool, err);
-    // Dedupe the warning per (tool, message) — a fan-out used to spam
+    // Dedupe the warning per (tool, message) — a fan-out would spam
     // dozens of identical lines per dry-run.
     const logKey = `${step.tool}:${message}`;
     ctx._dryRunFallbackLogged = ctx._dryRunFallbackLogged || new Set();
@@ -297,8 +297,8 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // bound by downstream steps. block → throws; redact/tokenize → transforms.
     const guardedOut = await safety.guardToolOutput(result, policy, auditBase, mode, ctx);
     // The tokens it just minted live in the run vault (guardToolOutput hands the
-    // map back now — it used to drop it, which is how an unrestorable
-    // `[person_1]` ended up in runState and, from there, in outgoing email).
+    // map back, so an unrestorable
+    // `[person_1]` cannot end up in runState and, from there, in outgoing email).
     // runState holds real values; re-tokenization happens at the next egress.
     const outputForState = safety.restoreForRunState(guardedOut.result, ctx);
     // Categories the guards already detected (free — no extra scan) feed the

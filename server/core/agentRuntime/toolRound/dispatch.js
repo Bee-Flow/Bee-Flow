@@ -194,9 +194,9 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
             onEvent('image', data);
         },
         // Org context — activate_skill (and other org-scoped
-        // tools) need it; was previously only set when a lent
-        // connection overrode it below, which silently broke
-        // dynamic-skill activation on the agent streaming path.
+        // tools) need it; it must be set even when no lent
+        // connection overrides it below, or dynamic-skill activation
+        // silently breaks on the agent streaming path.
         orgId: messageMetadata.orgId || agent.organization_id || null,
         // Per-chat memory controls, for memory_search / memory_remember.
         memoryReadEnabled: messageMetadata.memoryReadEnabled,

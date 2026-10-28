@@ -26,7 +26,7 @@ const { fallback } = require('../../utils/bestEffort');
 const sandbox = () => runnerPort('codeSandbox');
 
 /**
- * A dry run that cannot run the code at all, said the way it used to be said.
+ * A dry run that cannot run the code at all.
  *
  * Reached only when the sandbox is missing or the platform/org gates are shut
  * — i.e. when a LIVE run of this step would refuse too. A rehearsal must not
@@ -42,10 +42,10 @@ function codeStepSkipped(why) {
  * Secrets — step.inputs.secretKeys[] is an authoring-time declaration that
  * NOTHING in this build can honour. `runState.secrets` is initialised to `{}`
  * in execution.js and no bridge, resume path or store ever assigns to it, so
- * the loop that used to stand here resolved every declared key to `null` and
- * handed that map to the sandbox. A step declaring `secretKeys: ['stripe_key']`
- * therefore ran with a credential of null and POSTed `Authorization: Bearer
- * null` to a third party, and the author got no signal at all — the run went
+ * the sandbox cannot be handed a map of declared keys resolved to `null`. A step
+ * declaring `secretKeys: ['stripe_key']`
+ * would run with a credential of null and POST `Authorization: Bearer
+ * null` to a third party, and the author would get no signal at all — the run would go
  * green. A declared-but-unfillable credential is a broken step, not a step
  * with an empty credential, so refuse it HERE, before any code runs and long
  * before an outbound call, rather than letting the failure happen at the far
@@ -239,8 +239,8 @@ async function execCode(step, ctx, runState, mode) {
     }
 
     // There is no switch: code steps run wherever the sandbox is installed.
-    // The platform flag and the per-org `ai_code_execution` beta that used to
-    // sit here are gone; the sandbox is the safety boundary.
+    // No platform flag or per-org `ai_code_execution` beta gates them; the
+    // sandbox is the safety boundary.
 
     // The code's own rules: BLOCK findings stop it, declared parameters get
     // their defaults and types, ctx.http keeps to the host list (codeStepGuard.js).
@@ -277,8 +277,8 @@ async function execCode(step, ctx, runState, mode) {
         },
     });
     // The sandbox's return value + logs go straight into runState and from
-    // there into every downstream node — they used to do so with no output
-    // guard at all, which made the code step a way around the toolOutput scope
+    // there into every downstream node — without an output
+    // guard the code step would be a way around the toolOutput scope
     // that execIntegrationAction and execHttpRequest both enforce. Guard, then
     // restore from the run vault so downstream steps still see real values.
     const codePolicy = await safety.resolveAutomationPolicy(ctx);
