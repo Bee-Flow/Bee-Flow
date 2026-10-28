@@ -97,11 +97,11 @@ describe('fetchServerNextcloudUrl', () => {
     it('reads nextcloudUrl from the status endpoint over the session', async () => {
         const seen: string[] = [];
         const url = await fetchServerNextcloudUrl('https://bee.example', async (u, init) => {
-            seen.push(`${init.method} ${u}`);
+            seen.push(`${init.method} ${u} ${init.credentials}`);
             return { ok: true, status: 200, json: async () => ({ hasAppPassword: true, nextcloudUrl: 'https://cloud.example.com' }) };
         }, log);
         assert.equal(url, 'https://cloud.example.com');
-        assert.deepEqual(seen, ['GET https://bee.example/auth/app-password-status']);
+        assert.deepEqual(seen, ['GET https://bee.example/auth/app-password-status include']);
     });
     it('is null on an empty url, a refusal or a network error', async () => {
         assert.equal(await fetchServerNextcloudUrl('https://bee.example', async () => ({ ok: true, status: 200, json: async () => ({ nextcloudUrl: '' }) }), log), null);
@@ -162,6 +162,7 @@ describe('sendAppPasswordToServer', () => {
         assert.equal(requests[0]?.init.method, 'POST');
         assert.deepEqual(requests[0]?.init.headers, { 'Content-Type': 'application/json', 'X-Beeflow-Client': 'desktop' });
         assert.deepEqual(JSON.parse(requests[0]?.init.body ?? ''), { username: 'ada', password: 'app-pw-123', url: 'https://cloud.example.com' });
+        assert.equal(requests[0]?.init.credentials, 'include', 'without it the session cookie stays home and the server answers 401');
     });
 
     it('reports a refusal and an unreachable server as false, with a log line', async () => {
