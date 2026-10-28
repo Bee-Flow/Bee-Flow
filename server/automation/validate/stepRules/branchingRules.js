@@ -25,7 +25,7 @@ function checkCondition(ctx, step, at) {
         if (!step.expr || typeof step.expr !== 'string') pushE({ code: 'condition.expr_missing', severity: 'error', path: at + '.expr', message: `Step ${step.id}: condition requires \`expr\`.`, hint: 'Provide a restricted-grammar expression like `steps.x.output.count > 0`.' });
         else {
             try { parseExpr(step.expr, TOPICS); }
-            catch (e) { pushE({ code: 'condition.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: condition expr parse error — ${e.message}`, hint: 'Restricted grammar: comparisons, && / ||, and the listed helpers (contains, equals, anyOf, fileType, …).' }); }
+            catch (e) { pushE({ code: 'condition.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: condition expr parse error — ${/** @type {Error} */ (e).message}`, hint: 'Restricted grammar: comparisons, && / ||, and the listed helpers (contains, equals, anyOf, fileType, …).' }); }
         }
     }
 }
@@ -143,7 +143,7 @@ function checkSwitch(ctx, step, at) {
             pushE({ code: 'switch.arrayRef_missing', severity: 'error', path: at + '.arrayRef', message: `Step ${step.id}: this step works through a list but no source list is set.`, hint: 'Bind to an upstream array, e.g. `steps.<id>.output.items`.' });
         }
         if (needsStepExpr && (!step.expr || typeof step.expr !== 'string')) pushE({ code: 'switch.expr_missing', severity: 'error', path: at + '.expr', message: `Step ${step.id}: switch requires \`expr\`.`, hint: 'Restricted-grammar expression whose value is matched against each case — or give every case its own `expr` rule.' });
-        else if (step.expr && typeof step.expr === 'string') { try { parseExpr(step.expr); } catch (e) { pushE({ code: 'switch.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: switch expr parse error — ${e.message}`, hint: 'Restricted grammar only.' }); } }
+        else if (step.expr && typeof step.expr === 'string') { try { parseExpr(step.expr); } catch (e) { pushE({ code: 'switch.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: switch expr parse error — ${/** @type {Error} */ (e).message}`, hint: 'Restricted grammar only.' }); } }
         if (!Array.isArray(step.cases) || step.cases.length === 0) pushE({ code: 'switch.cases_missing', severity: 'error', path: at + '.cases', message: `Step ${step.id}: switch requires at least one case.`, hint: 'cases: [{ name: "...", value: ... }] or [{ name: "...", expr: "..." }].' });
         else {
             const seenNames = new Set();
@@ -152,7 +152,7 @@ function checkSwitch(ctx, step, at) {
                 if (!isObject(c) || !c.name || typeof c.name !== 'string') { pushE({ code: 'switch.case_shape', severity: 'error', path: at + `.cases[${i}]`, message: `Step ${step.id}: switch case ${i} missing name.`, hint: 'Each case needs { name, value } or { name, expr }.' }); continue; }
                 if (isRuleCase(c)) {
                     try { parseExpr(c.expr, TOPICS); }
-                    catch (e) { pushE({ code: 'switch.case_expr_parse', severity: 'error', path: at + `.cases[${i}].expr`, message: `Step ${step.id}: case "${c.name}" rule parse error — ${e.message}`, hint: 'Restricted grammar only. Inside a list the current row is `item`.' }); }
+                    catch (e) { pushE({ code: 'switch.case_expr_parse', severity: 'error', path: at + `.cases[${i}].expr`, message: `Step ${step.id}: case "${c.name}" rule parse error — ${/** @type {Error} */ (e).message}`, hint: 'Restricted grammar only. Inside a list the current row is `item`.' }); }
                 }
                 if (c.name === 'default') { pushE({ code: 'switch.case_name_reserved', severity: 'error', path: at + `.cases[${i}].name`, message: `Step ${step.id}: case name "default" is reserved; use \`defaultBranch\` instead.`, hint: 'Set defaultBranch on the switch step to route unmatched values.' }); continue; }
                 // Same reserved-name hole the set/layer_output/parse_json

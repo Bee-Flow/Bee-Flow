@@ -69,15 +69,27 @@ function collectTableOpRefs(step, refs) {
 
 function collectStepRefs(step) {
     const refs = [];
+    /**
+     * @param {string} value
+     * @param {string} where
+     */
     const template = (value, where) => {
         if (typeof value === 'string' && value) collectRefPaths({ kind: 'template', value }, refs, where);
     };
     // A string is a template; a binding object is a binding. Several fields
     // accept both (an import or an MCP patch can carry either shape).
+    /**
+     * @param {string} value
+     * @param {string} where
+     */
     const templateOrBinding = (value, where) => {
         if (typeof value === 'string') template(value, where);
         else if (value && typeof value === 'object') collectRefPaths(value, refs, where);
     };
+    /**
+     * @param {string} value
+     * @param {string} where
+     */
     const ref = (value, where) => {
         if (typeof value === 'string' && value) refs.push({ kind: 'ref', path: value, where });
     };
@@ -133,6 +145,9 @@ function collectStepRefs(step) {
             // warnings for every fixed date (C10). `today` etc. still goes
             // through ref validation: the runtime genuinely can't parse it, so
             // its warning is CORRECT.
+            /**
+             * @param {string} v
+             */
             const isDateLiteral = (v) => /^\d{4}-\d{2}-\d{2}([T ].+)?$/.test(v)
                 || (!REF_ROOTS.has(rootOf(v)) && !Number.isNaN(Date.parse(v)));
             for (const f of ['input', 'input2']) {
