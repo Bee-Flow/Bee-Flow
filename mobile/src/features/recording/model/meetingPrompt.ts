@@ -7,6 +7,8 @@
  * meeting is a quote to analyse, not a command to obey.
  */
 
+import { translate } from '@/core/i18n';
+
 import { formatDuration } from './format';
 import type { Transcription } from './types';
 
@@ -41,8 +43,10 @@ export function meetingSuggestions(meeting: Pick<Transcription, 'attendees' | 's
         .filter(Boolean)
         .join(', ');
     return [
-        'Summarise the key decisions',
-        'What is still open?',
-        names ? `Draft a follow-up email to ${names}` : 'Draft a follow-up email',
+        translate('mobile.recording.suggest_decisions', 'Summarise the key decisions'),
+        translate('mobile.recording.suggest_open', 'What is still open?'),
+        names
+            ? translate('mobile.recording.suggest_email_to', 'Draft a follow-up email to {names}', { names })
+            : translate('meeting_notes.assistant_prompt_email', 'Draft a follow-up email'),
     ];
 }

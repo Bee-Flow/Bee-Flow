@@ -266,13 +266,6 @@ const UNCONVERTED = new Map<string, number>([
     // note that now names the connector.
     ['src/features/notifications', 33],
     ['src/features/org', 73],
-    // 98 -> 68: the capture form's labels, hints and the transcription
-    // languages, and the details sheet's actions, went through t().
-    // 68 -> 48: the live recorder, its level meter, the microphone card, the
-    // start bar and the outbox rows (with their delete dialog) went through t().
-    // 48 -> 13: the meeting screen's cards and sheets (failed, processing, ask,
-    // chapters, action items, rewrite, rename, speakers) went through t().
-    ['src/features/recording', 13],
     ['src/features/search', 9],
     ['src/features/security', 30],
     ['src/features/settings', 21],

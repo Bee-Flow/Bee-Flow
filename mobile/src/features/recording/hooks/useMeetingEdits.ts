@@ -7,6 +7,7 @@
 import { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import {
@@ -18,6 +19,7 @@ import {
 import { describeRegenerateOutcome } from '../model/regenerate';
 
 export function useMeetingEdits(id: string, closeSheet: () => void) {
+    const t = useTranslation();
     const { toast } = useToast();
     const [speakerError, setSpeakerError] = useState<string | null>(null);
     const showError = (err: Error) => toast(describeError(err).message, 'error');
@@ -28,7 +30,7 @@ export function useMeetingEdits(id: string, closeSheet: () => void) {
     const rename = useRenameTranscription(id, {
         onSuccess: () => {
             closeSheet();
-            toast('Renamed', 'success');
+            toast(t('mobile.recording.renamed', 'Renamed'), 'success');
         },
         onError: showError,
     });
@@ -50,7 +52,7 @@ export function useMeetingEdits(id: string, closeSheet: () => void) {
         onSuccess: () => {
             setSpeakerError(null);
             closeSheet();
-            toast('Speakers updated', 'success');
+            toast(t('mobile.recording.speakers_updated', 'Speakers updated'), 'success');
         },
         onError: showSpeakerError,
     });
@@ -58,7 +60,7 @@ export function useMeetingEdits(id: string, closeSheet: () => void) {
     const reidentify = useReidentifySpeakers(id, {
         onSuccess: () => {
             setSpeakerError(null);
-            toast('Speakers re-identified', 'success');
+            toast(t('mobile.recording.speakers_reidentified', 'Speakers re-identified'), 'success');
         },
         onError: showSpeakerError,
     });

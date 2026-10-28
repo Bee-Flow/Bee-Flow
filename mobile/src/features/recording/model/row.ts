@@ -4,17 +4,19 @@
  * it" rather than as an error: it is a normal state that lasts minutes.
  */
 
+import { translate } from '@/core/i18n';
+
 import { formatDuration } from './format';
 import type { TranscriptionStatus, TranscriptionSummary } from './types';
 
 export function statusLabel(status: TranscriptionStatus): string {
     switch (status) {
         case 'processing':
-            return 'Transcribing';
+            return translate('mobile.recording.status_transcribing', 'Transcribing');
         case 'failed':
-            return 'Failed';
+            return translate('automations.ndv.quick_failed', 'Failed');
         default:
-            return 'Ready';
+            return translate('mobile.recording.status_ready', 'Ready');
     }
 }
 
@@ -24,8 +26,8 @@ export function statusLabel(status: TranscriptionStatus): string {
  * was actually about.
  */
 export function rowSubtitle(item: TranscriptionSummary): string | undefined {
-    if (item.status === 'failed') return 'Transcription did not finish. Open it to retry.';
-    if (item.status === 'processing') return 'Transcribing and summarising — this can take a few minutes.';
+    if (item.status === 'failed') return translate('mobile.recording.row_failed', 'Transcription did not finish. Open it to retry.');
+    if (item.status === 'processing') return translate('mobile.recording.row_processing', 'Transcribing and summarising — this can take a few minutes.');
     return (item.summarySnippet || item.transcriptSnippet || '').replace(/\s+/g, ' ').trim() || undefined;
 }
 
@@ -34,6 +36,10 @@ export function rowFacts(item: TranscriptionSummary): string[] {
     const count = item.speakerCount;
     return [
         item.durationSeconds ? formatDuration(item.durationSeconds) : null,
-        count ? `${count} ${count === 1 ? 'speaker' : 'speakers'}` : null,
+        count
+            ? count === 1
+                ? translate('meetings.one_speaker', '1 speaker')
+                : translate('meetings.n_speakers', '{count} speakers', { count })
+            : null,
     ].filter((value): value is string => Boolean(value));
 }

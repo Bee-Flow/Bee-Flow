@@ -3,6 +3,8 @@
  * edit a set of names and a merge selection amount to.
  */
 
+import { translate } from '@/core/i18n';
+
 import type { Speaker, SpeakerEdit } from './types';
 
 /**
@@ -20,10 +22,14 @@ export function speakerCollision(
     for (const speaker of speakers) {
         if (selected.includes(speaker.id) && selected.length > 1) continue;
         const next = (names[speaker.id] ?? speaker.id).trim();
-        if (!next) return `${speaker.id} needs a name.`;
+        if (!next) return translate('mobile.recording.speaker_needs_name', '{name} needs a name.', { name: speaker.id });
         const clash = seen.get(next.toLowerCase());
         if (clash && clash !== speaker.id) {
-            return `"${clash}" and "${speaker.id}" would both become "${next}". Merge them instead, or use different names.`;
+            return translate(
+                'mobile.recording.speaker_clash',
+                '"{first}" and "{second}" would both become "{next}". Merge them instead, or use different names.',
+                { first: clash, second: speaker.id, next },
+            );
         }
         seen.set(next.toLowerCase(), speaker.id);
     }
