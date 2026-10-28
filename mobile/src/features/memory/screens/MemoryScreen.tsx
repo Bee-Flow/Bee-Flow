@@ -16,6 +16,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Screen, SearchField } from '@/shared/ui';
 
@@ -59,6 +60,7 @@ function useSelection() {
 
 export function MemoryScreen() {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const [search, setSearch] = useState('');
     const debounced = useSettled(search);
     const [type, setType] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export function MemoryScreen() {
                 onForgetEverything={() => setConfirmClear(true)}
             />
             <View style={styles.search}>
-                <SearchField value={search} onChangeText={setSearch} placeholder="Search what it remembers" />
+                <SearchField value={search} onChangeText={setSearch} placeholder={t('mobile.memory.search_screen', 'Search what it remembers')} />
             </View>
             <MemoryTypeChips chips={chips} type={type} onChange={setType} />
             <MemoryList
