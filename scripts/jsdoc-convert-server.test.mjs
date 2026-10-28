@@ -106,7 +106,7 @@ test('end to end on CommonJS: an options object with an untyped member gets no t
     assert.deepEqual(typedef.members.map((m) => m.key), ['id']);
     // Unfiltered, the typedef lands and the destructure reads a member it lacks (TS2339).
     const raw = applyEdits(files.get(f), lowerToJsDoc(files.get(f), inf.edits).edits);
-    assert.match(raw, /@typedef \{Object\} BuildArgs/);
+    assert.match(raw, /@typedef \{\{ id: string \}\} BuildArgs/);
     // Filtered, the slot stays open and the file is left as it was.
     const { edits: kept } = completeOptionsEdits(inf.edits);
     const out = applyEdits(files.get(f), lowerToJsDoc(files.get(f), kept).edits);

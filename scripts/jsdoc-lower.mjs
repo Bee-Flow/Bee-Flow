@@ -5,7 +5,7 @@
 //
 //   param `x: T`            -> `@param {T} x` (optional: `[x]`) in the function's JSDoc
 //   destructured `{a}: P`   -> `@param {P} param0`
-//   `interface P { a?: T }` -> `@typedef {Object} P` + `@property {T} [a]`
+//   `interface P { a?: T }` -> `@typedef {{ a?: T }} P` (the inline shape, never `{Object}`)
 //   `const x: T = ...`      -> `/** @type {T} */` above the statement
 //   `(e as Error)`          -> `/** @type {Error} */ (e)` (a JSDoc cast)
 //   `import type { X } from 's'` -> `/** @typedef {import('s').X} X */` at the top;
@@ -74,8 +74,11 @@ export function lowerToJsDoc(text, edits) {
         }
         case 'interface': {
             if (haveTypedefs.has(e.name)) break;
-            const props = e.members.map((m) => ` * @property {${sub(m.type)}} ${m.optional ? `[${m.key}]` : m.key}`);
-            typedefs.push({ at: e.start, lines: [`/**`, ` * @typedef {Object} ${e.name}`, ...props, ` */`] });
+            // The inline shape the server writes everywhere (`@typedef {{ a?: T, b: U }} Name`), not
+            // `@typedef {Object}` plus `@property` lines: `{Object}` says nothing on its own and is
+            // what the jsdoc-loose-type ratchet counts.
+            const props = e.members.map((m) => `${m.key}${m.optional ? '?' : ''}: ${sub(m.type)}`);
+            typedefs.push({ at: e.start, lines: [`/** @typedef {{ ${props.join(', ')} }} ${e.name} */`] });
             break;
         }
         case 'var': {

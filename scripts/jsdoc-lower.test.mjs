@@ -30,7 +30,7 @@ test('an interface becomes a typedef above the function and its own JSDoc', () =
         { kind: 'interface', start: host, name: 'StartArgs', members: [{ key: 'port', optional: true, type: 'number' }] },
         { kind: 'param', name: null, index: 0, optional: true, type: 'StartArgs', host },
     ]);
-    assert.equal(applyEdits(text, edits), '/**\n * @typedef {Object} StartArgs\n * @property {number} [port]\n */\n/**\n * Starts.\n * @param {StartArgs} [param0]\n */\nfunction start({ port }) {}\n');
+    assert.equal(applyEdits(text, edits), '/** @typedef {{ port?: number }} StartArgs */\n/**\n * Starts.\n * @param {StartArgs} [param0]\n */\nfunction start({ port }) {}\n');
 });
 
 test('a destructured parameter the block already documents by position gets no second tag; names parse past nested braces', () => {
