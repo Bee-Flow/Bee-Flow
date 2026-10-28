@@ -268,7 +268,9 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/org', 73],
     // 98 -> 68: the capture form's labels, hints and the transcription
     // languages, and the details sheet's actions, went through t().
-    ['src/features/recording', 68],
+    // 68 -> 48: the live recorder, its level meter, the microphone card, the
+    // start bar and the outbox rows (with their delete dialog) went through t().
+    ['src/features/recording', 48],
     ['src/features/search', 9],
     ['src/features/security', 30],
     ['src/features/settings', 21],

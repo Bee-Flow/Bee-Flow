@@ -13,6 +13,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Icon, Text } from '@/shared/ui';
 
@@ -33,6 +34,7 @@ export function RecordStartBar({
     requesting: boolean;
     onRequestPermission: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const askFirst = !recorder.permission.unknown && !recorder.permission.granted;
@@ -43,16 +45,18 @@ export function RecordStartBar({
             ) : (
                 <>
                     <Button
-                        label="Start recording"
+                        label={t('meetings.record_start', 'Start recording')}
                         size="lg"
                         fullWidth
                         onPress={() => void recorder.start()}
                         icon={<Icon name="Mic" size={20} color={theme.colors.accentPrimaryFg} />}
-                        accessibilityHint="Records the room and transcribes it when you stop"
+                        accessibilityHint={t('mobile.recording.start_hint', 'Records the room and transcribes it when you stop')}
                     />
                     <Text variant="caption" tone="tertiary" center>
-                        Records this room, keeps going when the screen locks, and transcribes with
-                        speakers once you stop.
+                        {t(
+                            'mobile.recording.start_caption',
+                            'Records this room, keeps going when the screen locks, and transcribes with speakers once you stop.',
+                        )}
                     </Text>
                 </>
             )}

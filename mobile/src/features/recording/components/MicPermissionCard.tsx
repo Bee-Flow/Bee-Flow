@@ -15,6 +15,7 @@
 import React from 'react';
 import { Linking, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { MicPermissionHead } from '@/shared/device/MicPermissionHead';
 import { micBlocked, type MicPermission } from '@/shared/device/useMicPermission';
@@ -29,6 +30,7 @@ export function MicPermissionCard({
     onRequest: () => void;
     busy?: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const blocked = micBlocked(permission);
 
@@ -37,18 +39,22 @@ export function MicPermissionCard({
             <View style={{ gap: theme.spacing.md }}>
                 <MicPermissionHead
                     blocked={blocked}
-                    title={blocked ? 'Microphone access is off' : 'Record meetings on this phone'}
-                    body={blocked ? 'Bee Flow cannot record until you turn it back on.' : 'Bee Flow needs the microphone to capture the room.'}
+                    title={blocked ? t('mobile.recording.mic_off_title', 'Microphone access is off') : t('mobile.recording.mic_ask_title', 'Record meetings on this phone')}
+                    body={blocked
+                        ? t('mobile.recording.mic_off_body', 'Bee Flow cannot record until you turn it back on.')
+                        : t('mobile.recording.mic_ask_body', 'Bee Flow needs the microphone to capture the room.')}
                 />
 
                 {blocked ? (
                     <>
                         <Text variant="body" tone="secondary">
-                            Open this app&apos;s settings, allow the Microphone permission, and come
-                            back to this screen. You can still import an audio file in the meantime.
+                            {t(
+                                'mobile.recording.mic_off_steps',
+                                "Open this app's settings, allow the Microphone permission, and come back to this screen. You can still import an audio file in the meantime.",
+                            )}
                         </Text>
                         <Button
-                            label="Open app settings"
+                            label={t('mobile.recording.battery_settings', 'Open app settings')}
                             variant="secondary"
                             fullWidth
                             icon={
@@ -67,24 +73,27 @@ export function MicPermissionCard({
                     <>
                         <View style={{ gap: theme.spacing.sm }}>
                             <Bullet icon="Mic">
-                                The recording is made on this device and stays here until you upload
-                                it.
+                                {t('mobile.recording.mic_bullet_local', 'The recording is made on this device and stays here until you upload it.')}
                             </Bullet>
                             <Bullet icon="Lock">
-                                Nothing is recorded in the background. Capture only runs while this
-                                screen says it is recording.
+                                {t(
+                                    'mobile.recording.mic_bullet_foreground',
+                                    'Nothing is recorded in the background. Capture only runs while this screen says it is recording.',
+                                )}
                             </Bullet>
                             <Bullet icon="Server">
-                                Transcription happens on your Bee Flow server, using the engine your
-                                administrator configured.
+                                {t(
+                                    'mobile.recording.mic_bullet_server',
+                                    'Transcription happens on your Bee Flow server, using the engine your administrator configured.',
+                                )}
                             </Bullet>
                         </View>
                         <Button
-                            label="Allow microphone access"
+                            label={t('mobile.recording.mic_allow', 'Allow microphone access')}
                             fullWidth
                             loading={busy}
                             onPress={onRequest}
-                            accessibilityHint="Opens the Android permission dialog"
+                            accessibilityHint={t('mobile.recording.mic_allow_hint', 'Opens the Android permission dialog')}
                         />
                     </>
                 )}
