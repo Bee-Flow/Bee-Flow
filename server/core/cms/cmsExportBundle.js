@@ -69,7 +69,7 @@ function assetEntryToKey(entryName) {
 /**
  * Build the .zip.
  *
- * @param {object}  bundle  the v2 export object (goes to site.json verbatim)
+ * @param {Record<string, unknown>}  bundle  the v2 export object (goes to site.json verbatim)
  * @param {Array<{ key: string, buffer: Buffer }>}   assets  [{ key, buffer }]
  * @returns {Promise<Buffer>}
  */
