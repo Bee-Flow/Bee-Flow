@@ -29,7 +29,7 @@ const URL_LOCALES = new Set(['nl']);
 /** @typedef {{ stat: string, label: string }} StoryMetric */
 /** @typedef {{ src: string, srcDark: string, alt: string }} StoryLogo */
 /**
- * @typedef {object} StoryCard
+ * @typedef StoryCard
  * @property {string} id         page id
  * @property {string} slug
  * @property {string} href       path of the story page, with the locale prefix when it is translated
