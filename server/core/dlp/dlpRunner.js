@@ -100,7 +100,7 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  * @param {any} params.orgShieldConfig     Resolved config from `resolveOrgShield`
  * @param {string} [params.orgId]             Org ID (unused since custom terms moved into detectPii; callers still pass it)
  * @param {string} params.conversationId      Scope for the per-conversation remembered choice + tokenMap
- * @param {any} params.providerConfig      { providerType, url, displayName } for classification
+ * @param {Parameters<typeof classifyProvider>[0]} params.providerConfig      { providerType, url, displayName } for classification
  * @param {function} [params.onProgress]      Called per scanned window of a big paste
  *                                            ({ done, total, ... }); the caller renders it.
  * @param {boolean} [params.hasAttachments]  the turn also carries attachments
@@ -114,16 +114,6 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  *                                            Release it with
  *                                            clearConversationState(id, { ephemeral: true }).
  * @returns {Promise<DlpResult>}
- *
- * @typedef {object} DlpResult
- * @property {'allow'|'redact'|'block'|'ask'} action
- * @property {Array}    findings
- * @property {any}   provider             { isExternal, reason, displayName }
- * @property {string|null} redactedText      Present when action is 'redact'
- * @property {any|null} tokenMap          Map<token, original> when action is 'redact'
- * @property {string}   scanStatus           'ok' | 'failed' | 'skipped'
- * @property {any}   summary              { label → count }
- * @property {string}   [reason]             why a block was chosen, when it was
  */
 async function scan({ messages, orgShieldConfig, conversationId, providerConfig, onProgress, hasAttachments = false, ephemeral = false }) {
     const dlpEnabled = !!orgShieldConfig?.dlpEnabled;
@@ -347,4 +337,13 @@ module.exports = {
  * @typedef {{ category: string, label: string, offset: number, length: number, text: string, source: string,
  *            severity: string, confidence?: number }} DlpFinding
  * @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: string }> }} DlpChatMessage
+ */
+
+/**
+ * `redactedText` and `tokenMap` (Map<token, original>) are present when action is 'redact';
+ * `scanStatus` is 'ok' | 'failed' | 'skipped'; `summary` counts per label; `reason` says why a
+ * block was chosen, when it was.
+ * @typedef {{ action: 'allow'|'redact'|'block'|'ask', findings: Array,
+ *   provider: { isExternal: boolean, reason: string, displayName?: string }, redactedText: string|null,
+ *   tokenMap: any|null, scanStatus: string, summary: Record<string, number>, reason?: string }} DlpResult
  */

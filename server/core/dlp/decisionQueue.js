@@ -39,19 +39,10 @@ function _generateId() {
  * chat stream should await. If the timeout elapses with no resolve call, the
  * promise rejects — the caller should treat that as `block` (fail-closed).
  *
- * @param {object} opts
- * @param {string} opts.conversationId
- * @param {string} opts.userId
- * @param {number} [opts.timeoutMs]
+ * @param {RegisterOpts} opts
  * @returns {{ decisionId: string, promise: Promise<Decision> }}
- *
- * @typedef {object} Decision
- * @property {'redact'|'block'|'allow'} choice
- * @property {boolean} [rememberForConversation]
- * @property {Array<{offset:number,length:number}>} [manualAdditions] Spans the
- *   user marked in the review UI as personal data the detector missed.
  */
-function register({ conversationId, userId, timeoutMs = DEFAULT_TIMEOUT_MS } = /** @type {any} */ ({})) {
+function register({ conversationId, userId, timeoutMs = DEFAULT_TIMEOUT_MS } = /** @type {RegisterOpts} */ ({})) {
     const decisionId = _generateId();
     /** @type {Promise<Decision>} */
     const promise = new Promise((resolve, reject) => {
@@ -108,10 +99,7 @@ function touch(decisionId, callerUserId) {
  * not-owner.
  *
  * @param {string} decisionId
- * @param {object} decision
- * @param {'redact'|'block'|'allow'} decision.choice  'redact' | 'block' | 'allow'
- * @param {boolean} [decision.rememberForConversation]
- * @param {Array<{offset:number,length:number}>} [decision.manualAdditions]
+ * @param {Decision} decision
  * @param {string} callerUserId
  * @returns {boolean}
  */
@@ -153,3 +141,11 @@ module.exports = {
     size,
     DEFAULT_TIMEOUT_MS,
 };
+
+/** @typedef {{ conversationId: string, userId: string, timeoutMs?: number }} RegisterOpts */
+
+/**
+ * `manualAdditions` are the spans the user marked in the review UI as personal data the detector missed.
+ * @typedef {{ choice: 'redact'|'block'|'allow', rememberForConversation?: boolean,
+ *   manualAdditions?: Array<{offset:number,length:number}> }} Decision
+ */

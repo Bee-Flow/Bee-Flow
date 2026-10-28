@@ -40,10 +40,8 @@ const BOUNDARY_MASK = (1 << 12) - 1;
 
 /**
  * @param {string} text
- * @param {object} [opts]
- * @param {number} [opts.maxChars]      hard ceiling for segment + overlap
- * @param {number} [opts.overlapChars]  left overlap included in the scanned string
- * @param {number} [opts.minChars]
+ * @param {{ maxChars?: number, overlapChars?: number, minChars?: number }} [opts] `maxChars`: hard
+ *   ceiling for segment + overlap; `overlapChars`: left overlap included in the scanned string
  * @returns {Array<{start:number,end:number,scanStart:number,scanText:string}>}
  *   `start`/`end` bound the segment in `text`; `scanText` is what is hashed and
  *   sent to the detector. Entity offsets from a scan are relative to `scanText`
