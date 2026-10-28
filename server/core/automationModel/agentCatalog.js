@@ -93,8 +93,8 @@ function collectAgentIds(definition) {
  * `organization_id` equality alone too broad (a colleague's unshared agent does not belong in someone
  * else's automation).
  *
- * @param {object} agent   a row as `agentStore.getForRuntime` gives it
- * @param {object} p       { userId, orgId, groups } of the AUTOMATION OWNER
+ * @param {AgentRuntimeRow | null | undefined} agent   a row as `agentStore.getForRuntime` gives it
+ * @param {{ userId?: string|null, orgId?: string|null, groups?: string[] }} [p]  of the AUTOMATION OWNER
  */
 
 function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = [] } = {}) {
@@ -191,18 +191,13 @@ async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
 module.exports = { collectAgentIds, mayAutomationUseAgent, agentCatalogFor, agentCatalogForOwner, servesPublishedConfig };
 
 /**
- * @typedef {object} CatalogDeps  injectable collaborators (tests pass fakes)
- * @property {typeof import('../../stores/agentStore')} [agentStore]
- * @property {typeof import('../../stores/userStore')} [userStore]
- * @property {typeof import('../../auth/audience')} [audience]
+ * injectable collaborators (tests pass fakes).
+ * @typedef {{ agentStore?: typeof import('../../stores/agentStore'),
+ *   userStore?: typeof import('../../stores/userStore'), audience?: typeof import('../../auth/audience') }} CatalogDeps
  */
 
 /**
- * @typedef {object} AgentRuntimeRow
- * @property {string} [owner_id]
- * @property {boolean} [is_published]
- * @property {string|null} [organization_id]
- * @property {string} [runtimeSource]
- * @property {unknown} [published_version]
- * @property {string[]|string|null} [shared_groups]  a parsed list, or the raw JSON text of one that was not parsed
+ * `shared_groups`: a parsed list, or the raw JSON text of one that was not parsed.
+ * @typedef {{ owner_id?: string, is_published?: boolean, organization_id?: string|null,
+ *   runtimeSource?: string, published_version?: unknown, shared_groups?: string[]|string|null }} AgentRuntimeRow
  */

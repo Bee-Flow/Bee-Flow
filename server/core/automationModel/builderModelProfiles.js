@@ -461,19 +461,10 @@ module.exports = {
 };
 
 /**
- * @typedef {object} Profile  how the builder treats one capability band
- * @property {string} promptVariant
- * @property {string} toolset
- * @property {number} temperature
- * @property {number} maxIterations
- * @property {boolean} forceFirstToolCall
- * @property {string} catalogMode
- * @property {boolean} [batchTools]
- * @property {number} fewShots
- * @property {string} fewShotPolicy
- * @property {number} historyBudgetTokens
- * @property {{ first: string, rest: string, repair: string }} effortSchedule
- * @property {boolean} schemaInjection
- * @property {string} schemaVariant
- * @property {string} catalogPlacement
+ * How the builder treats one capability band.
+ * @typedef {{ promptVariant: string, toolset: string, temperature: number, maxIterations: number,
+ *   forceFirstToolCall: boolean, catalogMode: string, batchTools?: boolean, fewShots: number,
+ *   fewShotPolicy: string, historyBudgetTokens: number,
+ *   effortSchedule: { first: string, rest: string, repair: string }, schemaInjection: boolean,
+ *   schemaVariant: string, catalogPlacement: string }} Profile
  */
