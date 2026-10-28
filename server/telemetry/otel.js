@@ -128,9 +128,7 @@ if (!ENABLED) {
                 base ? { url: `${base}/v1/traces` } : {},
                 headers ? { headers } : {},
             )),
-            // SDK 3 (sdk-node 0.300) dropped the singular `metricReader`; an
-            // unknown key is ignored silently, so metrics would just stop.
-            metricReaders: [new PeriodicExportingMetricReader({
+            metricReader: new PeriodicExportingMetricReader({
                 exporter: new OTLPMetricExporter(Object.assign(
                     { timeoutMillis: METRIC_TIMEOUT_MS },
                     base ? { url: `${base}/v1/metrics` } : {},
@@ -138,7 +136,7 @@ if (!ENABLED) {
                 )),
                 exportIntervalMillis: METRIC_INTERVAL_MS,
                 exportTimeoutMillis: METRIC_TIMEOUT_MS,
-            })],
+            }),
             textMapPropagator: new CompositePropagator({
                 propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
             }),
