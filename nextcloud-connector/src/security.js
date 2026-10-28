@@ -170,10 +170,14 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 /**
  * Reject state-changing requests a browser made from another site.
  *
- * `Sec-Fetch-Site: cross-site` is the browser's own statement that the
- * initiator was a different site — it cannot be set by fetch(), XHR or a form.
- * Everything else (same-origin, same-site, none, or a request with no such
- * header at all) passes and is authenticated by whatever that route requires.
+ * `Sec-Fetch-Site` is the browser's own statement about the initiator; fetch(),
+ * XHR and forms cannot set it. Only `same-origin` and `none` (typed into the
+ * address bar) pass, plus a request without the header (server to server:
+ * Nextcloud itself, AppAPI). The embedded app is always same-origin: it is
+ * served through Nextcloud's own host (AppAPI proxy or HaRP). `same-site` is
+ * refused too: a sibling subdomain (user content, an XSS on x.example.com)
+ * would otherwise drive credentialed POSTs here with the Nextcloud cookies,
+ * which are same-site, the strict one included.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
@@ -181,8 +185,8 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 function rejectCrossSiteWrites(req, res, next) {
     if (SAFE_METHODS.has(req.method)) return next();
     const site = req.headers['sec-fetch-site'];
-    if (site !== 'cross-site') return next();
-    log.warn(`[Security] blocked cross-site ${req.method} ${req.path} `
+    if (site === undefined || site === 'same-origin' || site === 'none') return next();
+    log.warn(`[Security] blocked ${site} ${req.method} ${req.path} `
         + `(origin: ${req.headers.origin || 'unknown'})`);
     return res.status(403).json({
         ok: false,
