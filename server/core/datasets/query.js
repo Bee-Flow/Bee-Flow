@@ -131,9 +131,12 @@ function scanWindow(bytes, contigName, start, end, opts) {
 }
 
 /**
- * @param {object} dataset — see module header
- * @param {object} params — { gene | region | rsid | (chrom,start,end), filterPass,
- *   minQual, limit, includeGenotypes, charBudget }
+ * @param {{ build?: string | null, samples?: string[], loadIndex: () => Promise<import('./blockIndex').BlockIndex>,
+ *   readRange: (startOffset: number, endOffsetExclusive: number) => Promise<Buffer>,
+ *   readRsidShard: (shard: number) => Promise<Buffer | null> }} dataset — see module header
+ * @param {{ gene?: string, region?: string, rsid?: string | number, chrom?: string, start?: number, end?: number,
+ *   filterPass?: boolean, minQual?: number, limit?: number, includeGenotypes?: boolean, charBudget?: number }} [params]
+ *   exactly one of gene | region | rsid | (chrom,start,end)
  * @returns {Promise<{rows, rowCount, truncated, notes, region, gene, rsid, build, scannedBlocks}>}
  */
 async function queryRegion(dataset, params = {}) {
