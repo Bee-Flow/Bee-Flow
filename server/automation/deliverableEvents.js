@@ -44,14 +44,11 @@
  *                     until upstream makes the event classes
  *                     webhook-compatible, or we add a poller.
  *
- * Historical note: this file used to list every file/calendar/deck/talk
- * mutation as PUSH_PENDING because the connector subscribed through AppAPI's
- * `events_listener` API — which Nextcloud has since removed, so none of them
- * could fire. File and calendar moved to WEBHOOK_BACKED when the connector was
- * rewritten onto `webhook_listeners`. Deck followed once we noticed our own
- * "Deck exposes nothing" comment had gone stale: `ACardEvent` has implemented
- * `IWebhookCompatibleEvent` since Deck v1.18.0 (2026-05-03). Talk is served by
- * the bot instead — its events are genuinely not webhook-compatible.
+ * Why file and calendar are WEBHOOK_BACKED: the connector listens through
+ * `webhook_listeners`, not AppAPI's `events_listener` API (which Nextcloud has
+ * removed, so nothing could fire through it). Deck is webhook-backed too:
+ * `ACardEvent` implements `IWebhookCompatibleEvent` since Deck v1.18.0. Talk is
+ * served by the bot instead — its events are genuinely not webhook-compatible.
  */
 
 /** @type {Record<string, Set<string>>} */

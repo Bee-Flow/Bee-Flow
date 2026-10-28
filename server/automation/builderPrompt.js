@@ -35,12 +35,12 @@ const UNTITLED_AUTOMATION = 'Untitled automation';
 // Both prompt builders take ONLY inputs that are constant for a builder
 // session: the catalogue (ordered once, replayed — see builderPrompt/rankApps.js)
 // and two feature flags. Timezone, web-search preference, disabled media and
-// the user's model tiers used to be parameters too, and each of them is read
+// the user's model tiers are deliberately not parameters, since each of them is read
 // fresh per request (the client re-reads scopedStorage on every send; the tier
-// set is rebuilt per turn). Rendered here they made the system prompt — the
+// set is rebuilt per turn). Rendered here they would make the system prompt — the
 // front of the prompt cache — differ between two turns of the SAME session,
-// which on the single-slot local box meant re-reading ~25k tokens per reply.
-// They now travel in the late per-turn message: renderTurnPreferences().
+// which on the single-slot local box means re-reading ~25k tokens per reply.
+// They travel in the late per-turn message instead: renderTurnPreferences().
 function buildFullSystemPrompt({ catalog, codeStepEnabled }) {
     const apps = renderCatalogSlim(catalog);
     // '' when the caller could not build the list (nothing is said), the
@@ -118,7 +118,7 @@ ${agentDraftState}`;
  * The per-turn preferences as a "## This turn" block for the late dynamic
  * system message (placed after the history, right before the user message —
  * outside the cached prefix). These are exactly the lines the two system
- * prompts used to render inline; they moved here because each of them can
+ * prompts must not render inline, because each of them can
  * legitimately differ between two turns of one session (see the note above
  * buildFullSystemPrompt). Absent inputs render nothing: an undefined
  * `webSearchEnabled` is "no preference", not "disabled".

@@ -224,7 +224,7 @@ function checkSet(ctx, step, at) {
             pushE({ code: 'set.fields_shape', severity: 'error', path: at + '.fields', message: `Step ${step.id}: set.fields must be an object map of {key: binding}.`, hint: 'Use { name: { kind: "literal", value: "..." }, ... }.' });
         } else if (isObject(step.fields)) {
             checkReservedFieldNames(step, 'set', at, pushE, pushW);
-            // A half-typed expr used to resolve to a silent undefined at
+            // A half-typed expr would resolve to a silent undefined at
             // run time (resolveValue swallows the parse error). Surface it
             // like filter.expr_parse — in BOTH modes. Completeness code:
             // an expression is half-typed for as long as it takes to type
@@ -340,9 +340,9 @@ function checkDatetime(ctx, step, at) {
         if (op === 'diff' && (!step.unit || !DATETIME_DIFF_UNITS.has(step.unit))) pushE({ code: 'datetime.unit_invalid', severity: 'error', path: at + '.unit', message: `Step ${step.id}: datetime op "diff" requires \`unit\` in ${Array.from(DATETIME_DIFF_UNITS).join('/')}.`, hint: 'Pick the unit you want the difference reported in.' });
         checkDatetimeOptions(ctx, step, at);
         // Every op except `now` reads an input date; `diff` reads two. An
-        // empty input used to produce {iso:null, error:…} recorded as a
-        // SUCCESS — the run went green while every downstream binding got
-        // null (A17). The executor now throws; this catches it at
+        // empty input yields {iso:null, error:…} recorded as a
+        // SUCCESS — the run goes green while every downstream binding gets
+        // null (A17). The executor throws; this catches it at
         // authoring time. Completeness-listed: warns at draft, blocks
         // activation. No resolvability check — literal dates are legal.
         if (op && op !== 'now' && DATETIME_OPS.has(op) && (typeof step.input !== 'string' || !step.input.trim())) {

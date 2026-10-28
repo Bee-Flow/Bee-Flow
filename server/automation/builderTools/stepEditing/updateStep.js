@@ -134,10 +134,10 @@ function applyUpdateStep(graph, args, draftWrap) {
     if (!allowed) return { error: `Step type "${step.type}" cannot be patched.` };
     const bad = Object.keys(patch).filter(k => !allowed.includes(k));
     if (bad.length) {
-        // A loop's body is the one refusal that used to be a dead end: no tool
-        // appends into an existing body, `scope` only resolves flowlet keys, and
-        // this message named neither escape. A model that reads it literally
-        // concludes it must remove and re-add the loop — which mints a new id
+        // A loop's body is the one refusal that could be a dead end: no tool
+        // appends into an existing body, `scope` only resolves flowlet keys, so
+        // a message naming neither escape, read literally, makes the model
+        // conclude it must remove and re-add the loop — which mints a new id
         // and breaks every downstream ref. Name the way out instead.
         if (step.type === 'loop' && (bad.includes('body') || bad.includes('steps'))) {
             return { error: `A loop's body is not patched field-by-field. Re-send the whole body with builder_replace_step({stepId:"${stepId}", newType:"loop", spec:{overRef, itemVar, maxIterations, body:[…]}}) — that KEEPS the loop's id and all its wiring, so downstream refs survive. Body steps are FLAT step objects; to change ONE of them, patch it by its own id. Patchable on the loop itself: ${allowed.join(', ')}.` };

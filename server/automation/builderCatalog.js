@@ -16,7 +16,7 @@
  *               personal-toggle gates, regardless of credentials.
  *
  * ── `available` MEANS RUNNABLE, NOT BROWSABLE ───────────────────────────
- * It used to be `permitted || connected`, which is the right answer for a
+ * It must not be `permitted || connected`, which is the right answer for a
  * PALETTE: a person browsing wants to see what exists, and a greyed-out app
  * with a Connect button teaches them something. But the only consumers of this
  * catalog are the AI builder's prompt renderers, which put it in front of a

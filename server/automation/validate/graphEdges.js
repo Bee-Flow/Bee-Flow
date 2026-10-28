@@ -16,7 +16,7 @@ const { isObject } = require('./helpers');
  * How an edge AFTER a terminal step is reported: per type, because the
  * SEVERITY differs per type while the rule does not.
  *
- * `stop_error` existed before this rule did, so there it stays a WARNING:
+ * `stop_error` predates this rule, so there it stays a WARNING:
  * existing definitions must keep saving and activating, the author is just
  * finally told (B9). `return_to_app` is new (there is no yesterday to
  * preserve), so there it is an ERROR. Completeness-listed though
@@ -77,9 +77,9 @@ function checkEdge({ trigger, pushE, pushW }, e, at, ids, stepById) {
     // refuses to create these; JSON/AI authoring could still. Completeness-
     // listed: existing drafts keep saving, activation blocks.
     // guard is in the set for the same reason condition is — runDag routes
-    // a guard by the SAME then/else labels — but it used to be omitted
-    // here, so an unlabelled guard edge saved, activated and silently
-    // never fired.
+    // a guard by the SAME then/else labels — omitting it would let
+    // an unlabelled guard edge save, activate and silently
+    // never fire.
     if (!e.label && e.caseName == null && ids.has(e.from)) {
         const srcType = e.from === trigger.id ? 'trigger' : stepById.get(e.from)?.type;
         if (BRANCHER_TYPES.has(srcType)) {

@@ -7,8 +7,8 @@
  * in the first reply, and still a build can reach finalize — the model's own
  * or the route's auto-finalize — with `draftWrap.title` at its default. That
  * default, "Untitled automation", is then the name the person sees in every
- * list, on the playbook rail and in the activation e-mail. Before this the
- * only remedy was the person renaming it by hand.
+ * list, on the playbook rail and in the activation e-mail. Without it the
+ * only remedy is the person renaming it by hand.
  *
  * This is the deterministic fallback: a title read off the brief, else off
  * the definition, never a model call — on the single-slot local box a second

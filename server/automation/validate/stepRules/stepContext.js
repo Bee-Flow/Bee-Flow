@@ -2,8 +2,8 @@
 /**
  * The graph-level state every per-step rule reads, derived ONCE per graph.
  *
- * `createStepChecker` used to close over all of this; the rules now take it as
- * an explicit `ctx`, so each rule module can be read (and required) on its own.
+ * The rules take it as an explicit `ctx` rather than closing over it in `createStepChecker`,
+ * so each rule module can be read (and required) on its own.
  * What lives here is everything that depends on the WHOLE graph rather than on
  * the step in hand: the step index, the loop nesting above each step, which
  * output fields later steps read, and the branch labels wired out of a node.

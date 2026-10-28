@@ -184,8 +184,8 @@ function checkSwitch(ctx, step, at) {
                 const declared = new Set(step.cases.map(c => c.name));
                 // A defaultBranch only counts as an escape hatch when the case
                 // it names actually has an outgoing edge — a merely-NAMED
-                // default used to suppress no_branches/partial_branches while
-                // unmatched runs silently dead-ended at run time (A4).
+                // default would suppress no_branches/partial_branches while
+                // unmatched runs silently dead-end at run time (A4).
                 const hasDefaultEdge = caseLabels.has('default')
                     || (!!step.defaultBranch && caseLabels.has(step.defaultBranch));
                 if (step.defaultBranch && declared.has(step.defaultBranch) && !caseLabels.has(step.defaultBranch)) {

@@ -100,7 +100,7 @@ async function inspectOne(tool, draftWrap, { includeSample = true } = {}) {
     // gets it BEFORE the mark below. Two reasons, both load-bearing.
     //
     // One: the shape data underneath comes from a static global table keyed on
-    // tool name alone, so this function used to answer for `gmail_search` on an
+    // tool name alone, so this function would answer for `gmail_search` on an
     // org with no Gmail with a complete, confident schema — indistinguishable
     // from a connected tool, and read by the model as confirmation to proceed.
     //

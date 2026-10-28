@@ -281,7 +281,7 @@ async function applyToolCall(name, args, draftWrap) {
     // pitfalls" section catches the model's attention. Without this the
     // model sometimes ignores the error entirely and re-tries the same
     // call.
-    // ONLY when the rejection really is about a binding. This used to be
+    // ONLY when the rejection really is about a binding. It is not
     // stamped on EVERY error without its own hint — including "Unknown flowlet
     // scope", "Unknown toStepId" and "not patchable on a loop step", none of
     // which is a binding problem. Telling a model to go fix a ref path when the
@@ -337,7 +337,7 @@ function followAdded(result, callArgs, draftWrap) {
 // ── The repeat ladder ────────────────────────────────────────────────
 //
 // A rejected mutator rolls back, so identical arguments against an unchanged
-// draft are rejected identically, and nothing in the result used to say so.
+// draft are rejected identically, and nothing in the result says so.
 // Measured with the fast local model: one byte-identical builder_add_steps
 // sent three rounds running, a builder_update_steps fifteen times before
 // that — and "stop retrying" in the hint was not obeyed either. So the same
@@ -402,9 +402,9 @@ function failingLabel(name, args, result) {
  * A mutating call that changed NOTHING — every target already held exactly
  * these values (stepEditing: `updated: []` with a non-empty `unchanged`).
  *
- * It carries no `error`, so the ladder below used to read it as a success:
- * it did not count, and worse, it CLEARED the memory of the rejection before
- * it. Measured 2026-09-16 on a live automation build: three builder_update_steps
+ * It carries no `error`, so the ladder below would read it as a success:
+ * it would not count, and worse, it would CLEAR the memory of the rejection before
+ * it. Measured on a live automation build: three builder_update_steps
  * in a row, each answered "Nothing changed … re-sending the same patch will
  * not help", each resetting the ladder — the exact loop the ladder exists to
  * stop. A no-op is not progress, so it must not clear the memory, and an

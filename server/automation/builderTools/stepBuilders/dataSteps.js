@@ -174,11 +174,10 @@ function applyAddDateTime(draft, args) {
  * The `limits` block of a code step — the four numbers codeSandbox.clampLimits
  * honours, finally reachable by the author.
  *
- * They used to be hardcoded here (`{cpuMs: 1000, memoryMb: 64, wallMs: 5000}`,
- * no httpBudget at all) and everything the caller passed was dropped on the
- * floor, so the sandbox's careful clamp table was reachable by nobody: a step
- * that needed eight seconds of wall clock for a slow API could not ask for it,
- * and a step that only shuffles ten rows could not hand the rest back. A
+ * They are not hardcoded (`{cpuMs: 1000, memoryMb: 64, wallMs: 5000}`, no
+ * httpBudget at all) and everything the caller passes is honoured, so the sandbox's careful clamp table is reachable: a step
+ * that needs eight seconds of wall clock for a slow API can ask for it,
+ * and a step that only shuffles ten rows can hand the rest back. A
  * ceiling nobody can move is not a permission model, it is a constant.
  *
  * THE CLAMP STAYS THE AUTHORITY. The bounds come from CODE_LIMIT_BOUNDS in

@@ -14,9 +14,9 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Failure escalation ──────────────────────────────────
 //
-// Polling and renewal both used to silently skip on error. That hid token
-// expiry and provider outages — users only noticed when they checked the
-// run log and saw no activity. The escalation flow:
+// Polling and renewal must not silently skip on error: that hides token
+// expiry and provider outages — users only notice when they check the
+// run log and see no activity. The escalation flow:
 //
 //   - Each fault increments consecutive_failures.
 //   - On crossing the threshold we send ONE notification, recording

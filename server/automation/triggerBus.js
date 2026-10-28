@@ -108,7 +108,7 @@ async function runPollingPass() {
             }
             const session = await loadSession(sub.userId);
             if (!session) {
-                // Silent skip used to be the failure mode that hid every
+                // Silent skip hides every
                 // missing-credential bug. Log it loudly and escalate after
                 // the threshold so the user sees a notification instead of
                 // an automation that quietly stops firing.
@@ -221,8 +221,7 @@ async function runDeclaredSource(sub, passCtx) {
  * ("vault" / "session") so they understand whether the Integrations page
  * needs a re-connect.
  *
- * Note: the user_sessions fallback used to be gated by AUTOMATION_AUTH_LEGACY.
- * That gate is removed — when a user has working chat-side Gmail tokens
+ * Note: the user_sessions fallback is not gated by a flag — when a user has working chat-side Gmail tokens
  * but an empty vault, we should ALWAYS use them rather than silently
  * failing the trigger. The trade-off: when their browser session expires,
  * the poller goes dark until they sign in again. Opportunistic vault
