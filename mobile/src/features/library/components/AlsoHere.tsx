@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Divider, Icon, ListRow, Text } from '@/shared/ui';
 
@@ -23,24 +24,25 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function AlsoHere({ onMemory, onHouseStyles }: { onMemory: () => void; onHouseStyles: () => void }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.block}>
             <Text variant="label" tone="tertiary" style={styles.label}>
-                ALSO HERE
+                {t('mobile.library.also_here', 'ALSO HERE')}
             </Text>
             <View style={styles.card}>
                 <ListRow
-                    title="Memory"
-                    subtitle="What Bee Flow carries between conversations"
+                    title={t('settings.memory', 'Memory')}
+                    subtitle={t('mobile.library.memory_hint', 'What Bee Flow carries between conversations')}
                     leading={<Icon name="Cpu" size={18} color={theme.colors.textMuted} />}
                     onPress={onMemory}
                 />
                 <Divider inset={theme.spacing.lg} />
                 <ListRow
-                    title="House styles"
-                    subtitle="The Word styling applied to notebook exports"
+                    title={t('mobile.library.house_styles', 'House styles')}
+                    subtitle={t('mobile.library.house_styles_hint', 'The Word styling applied to notebook exports')}
                     leading={<Icon name="Type" size={18} color={theme.colors.textMuted} />}
                     onPress={onHouseStyles}
                 />

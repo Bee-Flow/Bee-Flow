@@ -243,14 +243,6 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/cowork', 17],
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
-    // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when
-    // it learned to add https:// itself.
-    // 49 -> 45: the scanner's camera-off screen went through t() when it
-    // learned to open Android's settings.
-    // 45 -> 44: the preview's "Open with…", now "Share or save…", which is
-    // what the share sheet it opens does.
-    ['src/features/knowledge', 44],
-    ['src/features/library', 27],
     ['src/features/mcp', 33],
     ['src/features/memory', 24],
     // 34 -> 33: the row body's "Tap to read the full result", with the reauth

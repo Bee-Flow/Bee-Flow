@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, EmptyState, ErrorState, LoadingState, SearchField, Sheet, Text } from '@/shared/ui';
 
@@ -27,12 +28,15 @@ const makeStyles = (theme: Theme) =>
 
 /** The top-k passages (8), best first. Bounded by the request, so a ScrollView. */
 function KbHits({ hits }: { hits: KbSearchHit[] }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const best = hits.reduce((max, h) => Math.max(max, h.score ?? 0), 0);
     return (
         <ScrollView contentContainerStyle={styles.hits}>
             <Text variant="label" tone="tertiary" accessibilityLiveRegion="polite">
-                {hits.length} PASSAGE{hits.length === 1 ? '' : 'S'}
+                {hits.length === 1
+                    ? t('mobile.knowledge.passages_one', '1 PASSAGE')
+                    : t('mobile.knowledge.passages_n', '{count} PASSAGES', { count: hits.length })}
             </Text>
             {hits.map((hit, i) => (
                 <KbHitCard key={`${hit.id}-${i}`} hit={hit} rank={i + 1} best={best} />
@@ -53,6 +57,7 @@ export function KbQuerySheet({
     kbId?: string;
     kbName: string;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const [query, setQuery] = useState('');
     const run = useKbSearch(kbId);
@@ -66,15 +71,17 @@ export function KbQuerySheet({
 
     let body: React.ReactNode;
     if (run.isPending) {
-        body = <LoadingState label="Searching…" />;
+        body = <LoadingState label={t('forms.searching', 'Searching…')} />;
     } else if (run.isError) {
         body = <ErrorState error={run.error} onRetry={submit} />;
     } else if (!run.isSuccess) {
         body = (
             <View style={styles.intro}>
                 <Text variant="caption" tone="tertiary">
-                    Retrieval runs on your server. You will see the exact passages an agent
-                    would be given, in the order it would get them.
+                    {t(
+                        'mobile.knowledge.query_intro',
+                        'Retrieval runs on your server. You will see the exact passages an agent would be given, in the order it would get them.',
+                    )}
                 </Text>
             </View>
         );
@@ -82,8 +89,8 @@ export function KbQuerySheet({
         body = (
             <EmptyState
                 icon="Search"
-                title="Nothing matched"
-                message="Try different words, or check that the documents you expect have finished indexing."
+                title={t('mobile.knowledge.query_none', 'Nothing matched')}
+                message={t('mobile.knowledge.query_none_hint', 'Try different words, or check that the documents you expect have finished indexing.')}
             />
         );
     } else {
@@ -94,13 +101,13 @@ export function KbQuerySheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="Query this knowledge base"
+            title={t('mobile.knowledge.query_title', 'Query this knowledge base')}
             subtitle={kbName}
             scroll={false}
             tall
             footer={
                 <Button
-                    label="Search"
+                    label={t('common.search', 'Search')}
                     fullWidth
                     onPress={submit}
                     loading={run.isPending}
@@ -112,7 +119,7 @@ export function KbQuerySheet({
                 <SearchField
                     value={query}
                     onChangeText={setQuery}
-                    placeholder="What are you looking for?"
+                    placeholder={t('mobile.knowledge.query_placeholder', 'What are you looking for?')}
                     onSubmit={submit}
                     autoFocus
                 />

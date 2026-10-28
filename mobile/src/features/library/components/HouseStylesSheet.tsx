@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, EmptyState, ErrorState, ListSkeleton, Sheet, useToast } from '@/shared/ui';
 
@@ -29,12 +30,13 @@ const makeStyles = (theme: Theme) =>
 
 /** An org's handful of house styles, or why there are none to show. */
 function HouseStylesBody({ orgId, visible, onDenied }: { orgId: string | null; visible: boolean; onDenied: (message: string | null) => void }) {
+    const t = useTranslation();
     const { toast } = useToast();
     const query = useHouseStyles(orgId, visible);
     const makeDefault = useMakeDefaultHouseStyle(orgId, {
         onSuccess: () => {
             onDenied(null);
-            toast('Default house style changed', 'success');
+            toast(t('mobile.library.default_changed', 'Default house style changed'), 'success');
         },
         // 403 here means "org admin required" and is the expected answer for
         // most people, so it explains itself in place.
@@ -46,8 +48,8 @@ function HouseStylesBody({ orgId, visible, onDenied }: { orgId: string | null; v
         return (
             <EmptyState
                 icon="Briefcase"
-                title="No organisation"
-                message="House styles belong to an organisation, and this account is not in one."
+                title={t('mobile.library.no_org', 'No organisation')}
+                message={t('mobile.library.no_org_hint', 'House styles belong to an organisation, and this account is not in one.')}
             />
         );
     }
@@ -57,8 +59,8 @@ function HouseStylesBody({ orgId, visible, onDenied }: { orgId: string | null; v
         return (
             <EmptyState
                 icon="Type"
-                title="No house styles yet"
-                message="An administrator uploads a .docx in the web app and every export from then on follows it."
+                title={t('mobile.library.no_styles', 'No house styles yet')}
+                message={t('mobile.library.no_styles_hint', 'An administrator uploads a .docx in the web app and every export from then on follows it.')}
             />
         );
     }
@@ -86,6 +88,7 @@ export function HouseStylesSheet({
     /** Null when the account is not in an organisation — there is nothing to show. */
     orgId: string | null;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const [denied, setDenied] = useState<string | null>(null);
 
@@ -93,8 +96,8 @@ export function HouseStylesSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="House styles"
-            subtitle="Applied when a notebook is exported to Word"
+            title={t('mobile.library.house_styles', 'House styles')}
+            subtitle={t('mobile.library.house_styles_sheet_hint', 'Applied when a notebook is exported to Word')}
             scroll={false}
             tall
         >

@@ -10,6 +10,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import { useRefreshKnowledge } from './mutations';
@@ -40,6 +41,7 @@ export interface IngestFlow {
 }
 
 export function useIngestFlow(options: IngestFlowOptions): IngestFlow {
+    const t = useTranslation();
     const { toast } = useToast();
     const [addOpen, setAddOpen] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
@@ -58,7 +60,7 @@ export function useIngestFlow(options: IngestFlowOptions): IngestFlow {
         mutationFn: (input: { text: string; name: string }) => options.addText(input.text, input.name),
         onSuccess: () => {
             setAddOpen(false);
-            toast('Added', 'success');
+            toast(t('mobile.knowledge.text_added', 'Added'), 'success');
             options.onChanged();
         },
     });
@@ -80,13 +82,14 @@ export function useIngestFlow(options: IngestFlowOptions): IngestFlow {
  * screen that picks the destination later (Documents) can pass it as it is.
  */
 export function useKbIngestFlow(kbId: string): IngestFlow {
+    const t = useTranslation();
     const { toast } = useToast();
     const refresh = useRefreshKnowledge();
     return useIngestFlow({
         target: kbIngestTarget(kbId),
         addUrl: (url) => ingestKbUrl(kbId, url),
         addText: (text, name) => ingestKbText(kbId, text, name),
-        onUrlAdded: () => toast('Page added', 'success'),
+        onUrlAdded: () => toast(t('mobile.knowledge.page_added', 'Page added'), 'success'),
         onChanged: refresh,
     });
 }

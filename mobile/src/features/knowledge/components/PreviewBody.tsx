@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Markdown } from '@/shared/markdown/Markdown';
 import { ErrorState, Icon, LoadingState, Text } from '@/shared/ui';
@@ -51,10 +52,11 @@ export function PreviewBody({
     error?: unknown;
     onRetry?: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
 
-    if (loading) return <LoadingState label="Loading the text…" />;
+    if (loading) return <LoadingState label={t('mobile.knowledge.preview_loading', 'Loading the text…')} />;
     if (error) return <ErrorState error={error} onRetry={onRetry} />;
     if (kind === 'image' && imageUri) {
         return (
@@ -74,8 +76,10 @@ export function PreviewBody({
             <View style={styles.binary}>
                 <Icon name="File" size={28} color={theme.colors.textMuted} />
                 <Text variant="body" tone="tertiary" center>
-                    Bee Flow does not render this format on the phone. Open it with an app that
-                    can — the file is fetched from your server and handed over directly.
+                    {t(
+                        'mobile.knowledge.preview_binary',
+                        'Bee Flow does not render this format on the phone. Open it with an app that can — the file is fetched from your server and handed over directly.',
+                    )}
                 </Text>
             </View>
         );
@@ -84,8 +88,10 @@ export function PreviewBody({
         return (
             <View style={styles.empty}>
                 <Text variant="body" tone="tertiary" center>
-                    There is no extracted text for this yet. If it was added recently, the
-                    server may still be processing it.
+                    {t(
+                        'mobile.knowledge.preview_empty',
+                        'There is no extracted text for this yet. If it was added recently, the server may still be processing it.',
+                    )}
                 </Text>
             </View>
         );

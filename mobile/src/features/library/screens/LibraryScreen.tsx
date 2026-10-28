@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/core/auth/AuthProvider';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { MemorySheet } from '@/features/memory';
 import { Screen, ScreenHeader, SearchField } from '@/shared/ui';
@@ -35,6 +36,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function LibraryScreen() {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const { user } = useAuth();
@@ -48,10 +50,10 @@ export function LibraryScreen() {
     return (
         <Screen edges={['top']}>
             {/* Pushed now (it was a tab): Back, not the drawer toggle. */}
-            <ScreenHeader size="large" title="Library" showBack />
+            <ScreenHeader size="large" title={t('mobile.library.title', 'Library')} showBack />
 
             <View style={styles.search}>
-                <SearchField value={search} onChangeText={setSearch} placeholder="Search your library" />
+                <SearchField value={search} onChangeText={setSearch} placeholder={t('mobile.library.search_placeholder', 'Search your library')} />
             </View>
 
             {term ? (
