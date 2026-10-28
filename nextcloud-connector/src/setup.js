@@ -241,7 +241,7 @@ router.get('/', (req, res) => {
 router.get('/status', requireNcAdmin, (req, res) => {
     const stored = setupConfig.get();
     res.json({
-        envOverridden: !!process.env.BEEFLOW_API_BASE_URL,
+        envOverridden: config.apiBaseUrlLocked,
         envApiBaseUrl: process.env.BEEFLOW_API_BASE_URL || null,
         active: config.apiBaseUrl,
         chosen: stored,

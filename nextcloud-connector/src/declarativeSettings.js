@@ -146,8 +146,9 @@ let _lastApplied = null;
 let _envPinLogged = false;
 
 async function applyStoredValuesIfChanged() {
-    // Precedence: an explicit BEEFLOW_API_BASE_URL env var is a deliberate
-    // admin lock and wins over the picker — the same rule bootstrap and
+    // Precedence: a BEEFLOW_API_BASE_URL naming a server other than Cloud is
+    // a deliberate admin lock (config.apiBaseUrlLocked; AppAPI always injects
+    // the Cloud default, which is not a lock) and wins over the picker — the same rule bootstrap and
     // server.js already enforce (server.js only applies a stored apiBaseUrl
     // when the env is unset). Without this guard the poll fought the env pin:
     // it kept trying to switch to the stored value every interval, and each
@@ -155,7 +156,7 @@ async function applyStoredValuesIfChanged() {
     // e.g. a `http://localhost:3001` typed into the form on a box whose
     // container reaches the host at a LAN IP, which strands the app keyless
     // for the width of every retry.
-    if (process.env.BEEFLOW_API_BASE_URL) {
+    if (config.apiBaseUrlLocked) {
         if (!_envPinLogged) {
             log.info(`[Settings] BEEFLOW_API_BASE_URL is set (${process.env.BEEFLOW_API_BASE_URL}) — the admin picker is informational and will not repoint the connector.`);
             _envPinLogged = true;

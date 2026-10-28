@@ -750,10 +750,10 @@ async function _provisionFlow() {
         // Pin to the server this org was provisioned on. A changed default (or
         // picker) URL must not silently move a bound connector to a different
         // Bee Flow server — that would mint a second org there. An explicit
-        // BEEFLOW_API_BASE_URL env override still wins (deliberate admin lock);
+        // BEEFLOW_API_BASE_URL env override (config.apiBaseUrlLocked) still wins;
         // only an explicit reset (setup picker → invalidateAndRebootstrap, which
         // deletes the cache) drops the pin.
-        if (cached.boundApiBaseUrl && !process.env.BEEFLOW_API_BASE_URL) {
+        if (cached.boundApiBaseUrl && !config.apiBaseUrlLocked) {
             if (config.apiBaseUrl !== cached.boundApiBaseUrl) {
                 log.warn(`[Bootstrap] Pinning to bound server ${cached.boundApiBaseUrl} (ignoring configured ${config.apiBaseUrl})`);
             }

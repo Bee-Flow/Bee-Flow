@@ -98,7 +98,7 @@ app.use('/', require('./eventsWebhook'));
 // Routes auth-checked by appApiAuthMiddleware above (admin only via NC).
 const setupConfig = require('./setupConfig');
 const stored = setupConfig.init(config.persistentStorage);
-if (stored && !process.env.BEEFLOW_API_BASE_URL && stored.apiBaseUrl) {
+if (stored && !config.apiBaseUrlLocked && stored.apiBaseUrl) {
     config.apiBaseUrl = stored.apiBaseUrl;
     log.info(`[Setup] applying user-chosen apiBaseUrl: ${config.apiBaseUrl} (${stored.mode})`);
 }

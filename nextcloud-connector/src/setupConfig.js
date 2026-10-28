@@ -5,7 +5,9 @@
  * restarts. Read at boot to override the env-var default for `apiBaseUrl`.
  *
  * Priority for the connector's effective `apiBaseUrl`:
- *   1. Explicit BEEFLOW_API_BASE_URL env (set via `occ app_api:app:setenv`)
+ *   1. BEEFLOW_API_BASE_URL env naming a server other than Cloud (set via
+ *      `occ app_api:app:setenv`; AppAPI injects the Cloud default otherwise,
+ *      which is not a lock, see config.apiBaseUrlLocked)
  *   2. setup-config.json `apiBaseUrl` written by the in-app picker
  *   3. https://server.beeflow.nl (Bee Flow Cloud)
  *
