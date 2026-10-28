@@ -62,7 +62,7 @@ async function setupSharedThreadTurnLock({ conversation, isEphemeral, userId, _p
             }
         } catch (lockErr) {
             if (lockErr.code === 'CONVERSATION_READ_ONLY' || lockErr.code === 'TURN_BUSY') throw lockErr;
-            log.warn('[AgentRuntime] shared-thread setup failed:', lockErr.message);
+            log.warn('[AgentRuntime] shared-thread setup failed:', /** @type {Error} */ (lockErr).message);
         }
     }
     // Park the release with the wrapper, which owns the one `finally` every

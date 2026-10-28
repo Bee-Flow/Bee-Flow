@@ -1,3 +1,4 @@
+/** @typedef {import('../../stores/agent/agentRows').AgentWithTools} AgentWithTools */
 // @typecheck
 /**
  * Non-streaming agent chat — synchronous tool-calling loop.

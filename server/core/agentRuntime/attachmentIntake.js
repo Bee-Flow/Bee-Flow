@@ -1,3 +1,10 @@
+/** @typedef {import('./chatStream/turnState').MessageMetadata} MessageMetadata */
+/** @typedef {import('./chatStream/turnState').ChatMessage} ChatMessage */
+/** @typedef {import('./attachmentKinds').PersistedByLive} PersistedByLive */
+/** @typedef {import('./chatStream/turnState').ConversationRow} ConversationRow */
+/** @typedef {import('../providers/base').OnEvent} OnEvent */
+/** @typedef {import('./chatStream/turnState').AgentRow} AgentRow */
+/** @typedef {import('./chatStream/roundRequest').ProviderConfig} ProviderConfig */
 // @typecheck
 /**
  * Streaming agent chat — attachment intake.
@@ -32,7 +39,9 @@ async function appendUserTurn({ messageMetadata, userMessage, userId, messages, 
             for (const att of messageMetadata.attachments) {
                 if (att.type && att.type.startsWith('image/') && att.content) {
                     // Upload image to RustFS for persistence
+                    /** @type {string | null} */
                     let imageProxyUrl = null;
+                    /** @type {string | null} */
                     let storageKey = null;
                     try {
                         if (storageStore.isAvailable()) {
@@ -46,13 +55,14 @@ async function appendUserTurn({ messageMetadata, userMessage, userId, messages, 
                             log.info(`[AgentRuntime] Uploaded attachment image to RustFS: ${key}`);
                         }
                     } catch (e) {
-                        log.warn(`[AgentRuntime] Failed to upload attachment image to RustFS: ${e.message}`);
+                        log.warn(`[AgentRuntime] Failed to upload attachment image to RustFS: ${/** @type {Error} */ (e).message}`);
                     }
                     const record = { name: att.name, type: att.type, storageKey, url: imageProxyUrl };
                     persistedAttachments.push(record);
                     persistedByLive.set(att, record);
                 } else if (att.type && att.type.includes('pdf')) {
                     // PDF — persist metadata without base64 content
+                    /** @type {string | null} */
                     let pdfProxyUrl = null;
                     try {
                         if (storageStore.isAvailable()) {
@@ -64,13 +74,14 @@ async function appendUserTurn({ messageMetadata, userMessage, userId, messages, 
                             log.info(`[AgentRuntime] Uploaded attachment PDF to RustFS: ${key}`);
                         }
                     } catch (e) {
-                        log.warn(`[AgentRuntime] Failed to upload attachment PDF to RustFS: ${e.message}`);
+                        log.warn(`[AgentRuntime] Failed to upload attachment PDF to RustFS: ${/** @type {Error} */ (e).message}`);
                     }
                     const record = { name: att.name, type: att.type, url: pdfProxyUrl };
                     persistedAttachments.push(record);
                     persistedByLive.set(att, record);
                 } else if (att.name) {
                     // Other file types — persist metadata only
+                    /** @type {string | null} */
                     let fileProxyUrl = null;
                     try {
                         if (att.content && storageStore.isAvailable()) {
@@ -82,7 +93,7 @@ async function appendUserTurn({ messageMetadata, userMessage, userId, messages, 
                             log.info(`[AgentRuntime] Uploaded attachment file to RustFS: ${key}`);
                         }
                     } catch (e) {
-                        log.warn(`[AgentRuntime] Failed to upload attachment file to RustFS: ${e.message}`);
+                        log.warn(`[AgentRuntime] Failed to upload attachment file to RustFS: ${/** @type {Error} */ (e).message}`);
                     }
                     const record = { name: att.name, type: att.type, url: fileProxyUrl };
                     persistedAttachments.push(record);
@@ -175,7 +186,7 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                             attachment_filename: attErr.filename,
                             attachment_page: null,
                         }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments', e));
-                        const e = new Error(attErr.message);
+                        const e = new Error(/** @type {Error} */ (attErr).message);
                         e.code = 'ATTACHMENT_PII_BLOCKED';
                         throw e;
                     }

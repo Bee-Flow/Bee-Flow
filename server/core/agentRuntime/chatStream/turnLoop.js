@@ -126,6 +126,7 @@ function terminationRowFor(t, st) {
  *     budget on thinking tokens, and finalizing that is the "conversation just
  *     stops" defect. Agent chat gets the builders' (llm/toolLoop.js)
  *     one-retry-then-visible-placeholder treatment.
+ * @param {LoopTurn} t
  */
 async function runTurnLoop(t) {
     const { agent, agentId, userId, userMessage, messageMetadata, maxIterations, messages, onEvent, _isTestChat } = t;
@@ -138,6 +139,7 @@ async function runTurnLoop(t) {
     let _abortLogged = false;
     let _forceFinalAnswer = false;
     let _forcedFinalRoundUsed = false;
+    /** @type {string | null | undefined} */
     let _bailReason = null;
     let _truncationRetried = false;
     let _emptyReplyRetried = false;
