@@ -69,6 +69,7 @@ function inspectGateError(tool, rawInputs, draftWrap) {
     }
     if (inspected) inspected.add(tool);                    // schema is in the rejection below
     const { inputs, requiredInputs } = renderInputsFromSchema(schema);
+    /** @type {string | null} */
     let shape = null;
     let iterableFields = [];
     try {
@@ -125,6 +126,7 @@ async function inspectOne(tool, draftWrap, { includeSample = true } = {}) {
     const { inputs, requiredInputs } = renderInputsFromSchema(inSchema);
 
     // Prefer runtime-cached output shape (the source of truth from real runs).
+    /** @type {string | null} */
     let shapeHint = null;
     let source = 'curated';
     try {

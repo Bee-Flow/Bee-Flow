@@ -118,6 +118,8 @@ function usedDatatables(baseDef, def, catalog, pending = []) {
  * The validator always flags a pending id (datatable.table_pending); a table
  * this proposal STAGED is legitimately pending, so its flags are dropped here.
  * Any other pending ref stays an error.
+ * @param {{ ok: boolean; errors: object[]; warnings: object[]; }} validation
+ * @param {Set<string>} refs
  */
 function withoutStagedTableIssues(validation, refs) {
     if (!validation || typeof validation !== 'object') return validation;
