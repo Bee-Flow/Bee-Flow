@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-71 routes, 35 with a request schema. Back to the [endpoint reference](../reference.md).
+75 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -396,6 +396,77 @@ No request schema.
 |-------|------|:--------:|-------|
 | `definition` | object | yes |  |
 | `baseVersion` | integer | yes | min 0; max 9007199254740991 |
+
+### `GET /api/studio-apps/:id/documents`
+
+**Access:** Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `node` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+| `q` | string |  | max length 100 |
+
+### `GET /api/studio-apps/:id/documents/:docId`
+
+**Access:** Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes |  |
+| `docId` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `node` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+| `version` | string |  | pattern `^[A-Za-z0-9_-]{1,100}$` |
+
+### `GET /api/studio-apps/:id/documents/:docId/versions`
+
+**Access:** Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes |  |
+| `docId` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `node` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+### `POST /api/studio-apps/:id/documents/compare`
+
+**Access:** Capability `app_studio` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `draft` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `node` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `left` | object | yes | no other keys |
+| `left.documentId` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `left.versionId` | string or null |  |  |
+| `right` | object | yes | no other keys |
+| `right.documentId` | string | yes | pattern `^[A-Za-z0-9_-]{1,100}$` |
+| `right.versionId` | string or null |  |  |
 
 ### `GET /api/studio-apps/:id/large-datasets`
 
