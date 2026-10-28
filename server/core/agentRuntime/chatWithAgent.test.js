@@ -29,6 +29,10 @@ const fx = {
     dispatchResult: null,
     guardrailRows: [],
     modelTurns: [],
+    /** @type {Record<string, unknown>[]} the stored history getOrCreateConversation hands out */
+    history: [],
+    /** @type {[string, ...unknown[]][]} every conversation write, by store function */
+    writes: [],
 };
 
 // Round 1 asks for fx.toolCall; round 2 answers. Records what the model read.
@@ -54,8 +58,9 @@ const restore = installResolveStub({
     '../../stores/agentStore': {
         getForRuntime: async (id) => ({ id, name: 'Test agent', organization_id: 'org-1', owner_id: 'owner-1', config: {} }),
         getAgentToolsWithParams: async () => [],
-        getOrCreateConversation: async () => ({ id: 'conv-1', messages: [] }),
-        updateConversation: async () => {},
+        getOrCreateConversation: async () => ({ id: 'conv-1', messages: fx.history.map(m => ({ ...m })) }),
+        updateConversation: async (...args) => { fx.writes.push(['updateConversation', ...args]); },
+        saveConversationTurn: async (...args) => { fx.writes.push(['saveConversationTurn', ...args]); },
     },
     '../../stores/usageStore': { logUsage: async () => {} },
     '../../stores/guardrailEventStore': { logGuardrailEvent: async (row) => { fx.guardrailRows.push(row); } },
@@ -99,7 +104,9 @@ const OWN_SERVER_EMAIL = {
     toolPiiPolicy: { external: { blockCategories: [] }, internal: { blockCategories: ['Email'] } },
 };
 
-function reset({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: true } }) {
+function reset({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: true }, history = [] }) {
+    fx.history = history;
+    fx.writes = [];
     fx.shield = shield;
     fx.toolCall = toolCall;
     fx.dispatchResult = dispatchResult;
@@ -159,4 +166,25 @@ test('a fail-closed org refuses the tool when the scan cannot run', async () => 
     } finally {
         toolPiiGate._deps.detectPii = real;
     }
+});
+
+// ── Saving the turn (issue #419) ────────────────────────────────────────────
+
+test('the turn saves only its own rows, after the last stored message it was asked on', async () => {
+    // A full replace of the history this turn read deleted any turn that
+    // finished on the conversation in the meantime (a second tab or device).
+    reset({
+        shield: null,
+        toolCall: { name: 'notebook_read', args: { note: 'x' } },
+        history: [{ id: 'h1', role: 'user', content: 'earlier' }, { id: 'h2', role: 'assistant', content: 'reply' }],
+    });
+    await chatWithAgent('agent-1', 'user-1', 'read it');
+
+    assert.deepStrictEqual(fx.writes.map(([fn]) => fn), ['saveConversationTurn']);
+    const [, convId, { rows, anchorId }] = /** @type {[string, string, { rows: Record<string, unknown>[], anchorId: string }]} */ (fx.writes[0]);
+    assert.strictEqual(convId, 'conv-1');
+    assert.strictEqual(anchorId, 'h2');
+    assert.deepStrictEqual(rows.map(m => m.role), ['user', 'assistant', 'tool', 'assistant']);
+    assert.strictEqual(rows[0].content, 'read it');
+    assert.ok(rows.every(m => typeof m.id === 'string' && m.id), 'every row carries an id');
 });

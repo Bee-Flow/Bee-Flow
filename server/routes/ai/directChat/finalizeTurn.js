@@ -82,16 +82,20 @@ async function persistTurn(t, conv) {
     const { req, send, userId, convId, modelTier, history, _sharedThread, clearInterruptedTurnHook } = t;
     const userSave = buildUserRow(t);
     const tokenisationInfo = resolveTokenisationInfo(t);
+    const turnRows = [userSave, buildAssistantRow({ ...t, tokenisationInfo })];
+    const anchorId = turnAnchorId(t);
     // Right after the message this turn was asked on: another turn on this
     // conversation may have finished while this one ran (see placeTurnRows).
-    const savedMessages = placeTurnRows(
-        persistenceBase(history, conv.messages || []),
-        [userSave, buildAssistantRow({ ...t, tokenisationInfo })],
-        turnAnchorId(t),
-    );
+    const savedMessages = placeTurnRows(persistenceBase(history, conv.messages || []), turnRows, anchorId);
 
-    // Save with metadata for OpenAI response chaining + compaction
-    await agentStore.updateDirectConversation(convId, savedMessages, userId, buildUpdateMeta(t), encryptionOpts(req));
+    // Save with metadata for OpenAI response chaining + compaction. A turn
+    // that extends the stored history saves only its own rows, under the
+    // conversation's row lock; client history (edit/retry, a new chat), a
+    // shared thread and a legacy-blob conversation write the whole array.
+    const meta = buildUpdateMeta(t);
+    const placed = anchorId !== null
+        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId }, userId, meta, encryptionOpts(req));
+    if (!placed) await agentStore.updateDirectConversation(convId, savedMessages, userId, meta, encryptionOpts(req));
     // Turn is durably recorded: a later throw (title generation etc.) must
     // not append a duplicate user/assistant pair via the hook.
     clearInterruptedTurnHook();

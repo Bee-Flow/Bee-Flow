@@ -657,18 +657,18 @@ async function isMigrated(conversationId) {
 module.exports = {
     initMessagesTable,
     migrateConversationIfNeeded,
-    getMessages,
-    replaceMessages,
+    getMessages, replaceMessages,
     // Shared threads append; replaceMessages stays for edit/retry/compaction,
     // where rewriting the whole array IS the intent.
     appendMessages,
     rekeyConversation,
-    isMigrated,
-    blankMessageBlobs,
+    isMigrated, blankMessageBlobs,
     // The two encryption chokepoints. Exported so the round-trip — especially
     // the attachment sidecar surviving intact — is unit-testable without a DB.
     messagesToRows,
     rowToMessage,
+    // A finished turn's write (./conversationTurns.js) inserts and guards as replaceMessages does.
+    _bulkInsert, _refuseSilentDowngrade,
     // Awaitbare init-ingang voor migrateDb.
     initDB: initMessagesTable,
 };

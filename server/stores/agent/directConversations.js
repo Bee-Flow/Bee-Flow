@@ -70,7 +70,7 @@ class ConversationWriteDenied extends Error {
  *
  * @returns {Promise<{ownerId, ctx, isShared, projectId}|null>} null = no access
  */
-async function _resolveWriteContext(id, callerUserId, { encryptionKey = null } = {}) {
+async function _resolveWriteContext(id, callerUserId, { encryptionKey = /** @type {string | null | undefined} */ (null) } = {}) {
     let row;
     try {
         row = await getOne(

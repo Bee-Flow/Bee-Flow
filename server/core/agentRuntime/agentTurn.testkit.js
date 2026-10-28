@@ -163,6 +163,7 @@ function defaultStubs(S, toolRegistry) {
             getAgentToolsWithParams: async () => [],
             getConversationMeta: async () => ({}),
             updateConversation: async () => {},
+            saveConversationTurn: async () => {},
             getConversationById: async () => null,
             getOrCreateConversation: async () => ({ id: 'c1', messages: [] }),
             createNewConversation: async () => ({ id: 'c1', messages: [] }),

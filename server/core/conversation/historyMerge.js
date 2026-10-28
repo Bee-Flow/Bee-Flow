@@ -21,6 +21,7 @@
  * in between — safe because the client history is a strict prefix of the DB
  * message sequence in edit/retry flows.
  */
+const { randomUUID } = require('crypto');
 const log = require('../../telemetry/log');
 
 /** @typedef {{ role?: string, content?: unknown, attachments?: Array<{ name?: string }>, [k: string]: unknown }} HistoryMessage */
@@ -148,34 +149,44 @@ function historyAnchorId(history) {
     return null;
 }
 
+// placeTurnRows (where a finished turn's rows go) lives with the store that
+// writes them, stores/agent/conversationOrder.mts; re-exported for the routes.
+const { placeTurnRows } = require('../../stores/agent/conversationOrder.mts');
+
 /**
- * Put a finished turn's rows into the stored conversation right after the
- * message the turn was asked on (`anchorId`), not after whatever is stored by
- * the time it finishes.
+ * How a turn saves its own rows: everything `messages` gained after the stored
+ * history it was built from (`storedHistory`, the conversation as read at the
+ * start of the turn), placed after that history's last stored message
+ * (historyAnchorId). Each row keeps one id across the saves of the turn (an
+ * agent turn saves after every tool round, then at its end), so a later save
+ * replaces the earlier one instead of adding a copy.
  *
- * A turn is saved at its END, on top of the conversation as it stands then.
- * If another turn on the same conversation finished in the meantime (a second
- * tab or device, or the question asked again after a dropped stream while the
- * server was still answering), appending puts the question asked FIRST below
- * the later question and its answer. Placing by anchor keeps the stored order
- * the order the questions were asked in; every reader (chat view, mobile,
- * export, the model's next history) reads that one order.
+ * Null when the turn has no stored history it extends: an edit or retry sends
+ * its own history and rewrites the conversation on purpose.
  *
- * No anchor, or an anchor that is not stored any more (an edit cut the chat):
- * append, as before. Inputs are not mutated.
+ * The ids are kept beside the message objects, not written onto them: the
+ * objects are shared with the prompt array the model sees.
  *
- * @template T
- * @param {T[]} base  the stored conversation now
- * @param {T[]} rows  this turn's rows, in order
- * @param {string | null | undefined} anchorId
- * @returns {T[]}
+ * @template {{ [key: string]: unknown }} M
+ * @param {M[]} messages  the stored history, then the turn's rows (appended as the turn goes)
+ * @param {M[] | null | undefined} storedHistory
+ * @returns {(<R>(write: (turn: { rows: M[], anchorId: string | null }) => Promise<R>) => Promise<R>) | null}
  */
-function placeTurnRows(base, rows, anchorId) {
-    const at = anchorId
-        ? base.findIndex((m) => !!m && typeof m === 'object' && /** @type {{ id?: unknown }} */ (m).id === anchorId)
-        : -1;
-    if (at < 0 || at === base.length - 1) return [...base, ...rows];
-    return [...base.slice(0, at + 1), ...rows, ...base.slice(at + 1)];
+function turnSaver(messages, storedHistory) {
+    if (!Array.isArray(storedHistory)) return null;
+    const anchorId = historyAnchorId(/** @type {HistoryMessage[]} */ (storedHistory));
+    const from = storedHistory.length;
+    /** @type {WeakMap<object, string>} */
+    const ids = new WeakMap();
+    return (write) => write({
+        rows: messages.slice(from).map((m) => {
+            if (typeof m.id === 'string' && m.id) return m;
+            let id = ids.get(m);
+            if (!id) { id = randomUUID(); ids.set(m, id); }
+            return { ...m, id };
+        }),
+        anchorId,
+    });
 }
 
-module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows };
+module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows, turnSaver };

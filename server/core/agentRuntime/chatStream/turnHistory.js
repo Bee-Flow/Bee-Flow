@@ -130,11 +130,22 @@ async function assembleTurnHistory({
     // Single point of truth for "what gets persisted". Three call sites that
     // spell this out independently could quietly diverge —
     // and it gives a test one seam to spy on instead of three.
+    //
+    // An edit/retry rewrites the history on purpose: the whole durable array
+    // replaces what is stored. Any other turn saves only its OWN rows, right
+    // after the last stored message it read as history (saveConversationTurn):
+    // a full replace of the history it started with deleted every turn that
+    // finished in the meantime (a second tab or device, the Nextcloud embed, a
+    // question asked again after a dropped stream).
+    const { turnSaver } = require('../../conversation/historyMerge');
+    const saveTurn = turnSaver(durableMessages, historyOverride ? null : conversation.messages);
     const persistDurable = async () => {
         if (isEphemeral) return;
-        await _serializeConversationWrite(conversation.id, () =>
-            agentStore.updateConversation(conversation.id, durableMessages,
-                userAuth.encryptionKey, userAuth.userId));
+        await _serializeConversationWrite(conversation.id, () => (saveTurn
+            ? saveTurn((turn) => agentStore.saveConversationTurn(conversation.id, turn,
+                userAuth.encryptionKey, userAuth.userId))
+            : agentStore.updateConversation(conversation.id, durableMessages,
+                userAuth.encryptionKey, userAuth.userId)));
         // Announce only AFTER the write commits. Waking other members earlier
         // would send them to read a thread that does not yet hold the turn they
         // were told about.

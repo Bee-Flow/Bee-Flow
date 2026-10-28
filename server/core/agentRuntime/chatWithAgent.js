@@ -21,6 +21,7 @@ const { recordAgentRun } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
 const { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum } = require('./chatWithAgentPrep');
 const { executeChatToolCall } = require('./chatWithAgentTools');
+const { turnSaver } = require('../conversation/historyMerge');
 const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
 const { validateInputForPii } = require('../privacy/piiDetection');
 const { resolveShieldFor } = require('../privacy/orgShield');
@@ -96,8 +97,10 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
                 content: assistantMessage.content,
             });
 
-            // Save conversation
-            await agentStore.updateConversation(conversation.id, messages, userAuth.encryptionKey, userAuth.userId);
+            // Save this turn's rows right after the history it was asked
+            // on; a full replace of `messages` deleted any turn that
+            // finished on this conversation in the meantime.
+            await run.saveTurn((turn) => agentStore.saveConversationTurn(conversation.id, turn, userAuth.encryptionKey, userAuth.userId));
 
             recordAgentRun({ agentType: 'chat', status: 'ok', durationMs: Date.now() - _agentT0 });
             return {
@@ -161,6 +164,8 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
 
     const conversation = await agentStore.getOrCreateConversation(agentId, userId);
     const messages = [...conversation.messages];
+    // What this turn adds after the stored history, and where it goes.
+    const saveTurn = turnSaver(messages, conversation.messages);
 
     // Add user message
     messages.push({ role: 'user', content: userMessage });
@@ -190,6 +195,7 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
     return {
         modelToUse, apiKey, apiUrl, adapter, generationSettings, tools, toolParamsMap,
         conversation, messages, systemPrompt, orgShield, logShieldEvent,
+        saveTurn: /** @type {NonNullable<typeof saveTurn>} */ (saveTurn),
     };
 }
 

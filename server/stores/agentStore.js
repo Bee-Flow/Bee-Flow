@@ -11,6 +11,7 @@ const agentCrud = require('./agent/agentCrud');
 const agentTools = require('./agent/agentTools');
 const agentConversations = require('./agent/agentConversations');
 const directConversations = require('./agent/directConversations');
+const conversationTurns = require('./agent/conversationTurns');
 const systemAgents = require('./agent/systemAgents');
 const agentStats = require('./agent/agentStats');
 const agentUsage = require('./agent/agentUsage');
@@ -50,6 +51,7 @@ module.exports = {
     getOrCreateConversation: agentConversations.getOrCreateConversation,
     createNewConversation: agentConversations.createNewConversation,
     updateConversation: agentConversations.updateConversation,
+    saveConversationTurn: conversationTurns.saveConversationTurn,
     clearConversation: agentConversations.clearConversation,
     updateConversationWorkspace: agentConversations.updateConversationWorkspace,
     getConversationWorkspace: agentConversations.getConversationWorkspace,
@@ -126,6 +128,7 @@ module.exports = {
     getDirectConversation: directConversations.getDirectConversation,
     listDirectConversations: directConversations.listDirectConversations,
     updateDirectConversation: directConversations.updateDirectConversation,
+    placeDirectConversationTurn: conversationTurns.placeDirectConversationTurn,
     updateDirectConversationMeta: directConversations.updateDirectConversationMeta,
     getDirectConversationMeta: directConversations.getDirectConversationMeta,
     updateDirectConversationTitle: directConversations.updateDirectConversationTitle,
