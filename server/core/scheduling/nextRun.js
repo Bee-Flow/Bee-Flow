@@ -61,11 +61,11 @@ function isPlainObject(v) {
 /**
  * @param {object|null} schedule  `{ cron?, tz?, everyMinutes? }`
  * @param {number} [fromTs]
- * @param {object} [opts]
- * @param {number | null} [opts.consecutiveErrors=0]
- * @param {number | null} [opts.retryAfterMs=0]   a provider's own "come back in N ms"
- * @param {number} [opts.defaultMinutes=60] cadence when the schedule names none
- * @param {number} [opts.floorMinutes=0]    the fastest this kind may ever poll
+ * @param {{ consecutiveErrors?: number | null, retryAfterMs?: number | null, defaultMinutes?: number,
+ *   floorMinutes?: number }} [opts]
+ *   `consecutiveErrors`: defaults to 0; `retryAfterMs`: a provider's own "come back in N ms"; defaults to
+ *   0; `defaultMinutes`: cadence when the schedule names none; defaults to 60; `floorMinutes`: the fastest
+ *   this kind may ever poll; defaults to 0
  * @returns {string} ISO timestamp
  */
 function nextRunFor(schedule, fromTs = Date.now(), {
