@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # version exists only on the PyTorch index, so this can never resolve to the
 # CUDA build on PyPI.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch==2.14.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.15.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
