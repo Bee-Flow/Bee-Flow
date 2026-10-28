@@ -205,7 +205,7 @@ function makeSharingRouter(overrides = {}) {
             next();
         },
         (req, res, next) => (req.automationShares.widens ? sharingGate(req, res, next) : next()),
-        async (req, res) => {
+        async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SharesBody>, import('qs').ParsedQs>} */ req, res) => {
             const { a, acc, orgId, wanted } = req.automationShares;
             const saved = await store().replaceSharesForAutomation(a.id, wanted, req.session.user.id);
             log.info(`[automation sharing] ${a.id} shares set to ${saved.length} entr${saved.length === 1 ? 'y' : 'ies'} by ${req.session.user.id}`);
@@ -219,7 +219,7 @@ function makeSharingRouter(overrides = {}) {
         });
 
     // ── POST /:id/transfer-owner ────────────────────────────────────────
-    router.post('/:id/transfer-owner', validate({ body: TransferBody }), async (req, res) => {
+    router.post('/:id/transfer-owner', validate({ body: TransferBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TransferBody>, import('qs').ParsedQs>} */ req, res) => {
         const loaded = await loadAutomation(req, res, 'owner');
         if (!loaded) return;
         const { a } = loaded;

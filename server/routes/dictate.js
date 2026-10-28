@@ -91,7 +91,7 @@ router.post('/', requireAuth, (req, res, next) => {
             code: tooBig ? 'recording_too_large' : 'bad_upload',
         });
     });
-}, validate({ body: DictateFields }), async (req, res) => {
+}, validate({ body: DictateFields }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DictateFields>, import('qs').ParsedQs>} */ req, res) => {
     if (!req.file || !req.file.buffer?.length) {
         return res.status(400).json({ error: 'No audio received', code: 'no_audio' });
     }

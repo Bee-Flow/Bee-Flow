@@ -95,7 +95,7 @@ function registerAgentStepRoutes(router) {
      * the reason (it lists only agents the caller can already see); this route
      * cannot, because it will answer about any id it is handed.
      */
-    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (req, res) => {
+    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (/** @type {import('express').Request<{ agentId: string }, any, any, import('zod').infer<typeof AgentPreviewQuery>>} */ req, res) => {
         const yes = (v) => v === '1' || v === 'true';
         const permissions = {
             startAutomations: yes(req.query.startAutomations),

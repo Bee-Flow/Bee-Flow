@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ingestGmeetRecording — download a finished Google Meet recording from the
  * organizer's Drive and run it through Bee Flow's own transcription pipeline,
@@ -191,6 +191,7 @@ async function resolveSharedWith(ownerId, attendees) {
         const { getAllUsers } = require('../../stores/userStore');
         const configStore = require('../../stores/configStore');
         const users = await getAllUsers();
+        /** @type {Record<string, unknown>} */
         const configs = await configStore.getConfigsByKeys(users.map(u => `google_workspace_email_user_${u.id}`));
 
         const userByEmail = new Map();

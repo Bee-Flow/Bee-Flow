@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * License Refresh Scheduler
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU GPT — the one model its API serves.
  *

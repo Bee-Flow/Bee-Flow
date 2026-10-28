@@ -172,7 +172,7 @@ async function gatherUsage(agent, askerId) {
 
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
-router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/usage', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
@@ -199,8 +199,6 @@ router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
     });
 });
 
-module.exports = router;
-module.exports.gatherUsage = gatherUsage;
-module.exports.audienceOf = audienceOf;
+module.exports = Object.assign(router, { gatherUsage, audienceOf });
 
 /** @typedef {import('express').Router & { gatherUsage: typeof gatherUsage, audienceOf: typeof audienceOf }} UsageRouter */

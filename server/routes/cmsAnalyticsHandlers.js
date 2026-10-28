@@ -1,3 +1,4 @@
+// @typecheck
 const configStore = require('../stores/configStore');
 const cmsStore = require('../stores/cmsStore');
 const umamiClient = require('../core/umamiClient');
@@ -74,6 +75,10 @@ async function setAnalyticsWebsiteId(siteId, websiteId) {
 
 // Best-effort: ensure the live/published site has a Umami website provisioned
 // and its id persisted. Never throws — analytics must not break publishing.
+/**
+ * @param {string} siteId
+ * @param {{ name?: string, domain?: string }} [site]
+ */
 async function provisionAnalyticsForSite(siteId, { name, domain } = {}) {
     try {
         const settings = await getAnalyticsSettings();

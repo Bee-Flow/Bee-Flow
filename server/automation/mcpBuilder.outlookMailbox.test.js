@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The automations MCP can build Outlook flows on a shared mailbox: the field
  * is in every Outlook tool's schema as builder_inspect_tool returns it, in the

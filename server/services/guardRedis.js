@@ -1,6 +1,11 @@
+// @typecheck strict
 'use strict';
 // Split out of guardInstaller.js (file budget): the Redis half of the guard pair.
 
+/**
+ * @param {import('./docker/dockerKit').DockerClient} docker
+ * @param {string} name
+ */
 async function ensureVolume(docker, name) {
     try {
         await docker.getVolume(name).inspect();
@@ -13,6 +18,7 @@ async function ensureVolume(docker, name) {
 
 /**
  * The guard's Redis cache container, on the guard network, with its own volume.
+ * @param {import('./docker/dockerKit').DockerClient} docker
  * @param {{ container: string, volume: string, network: string }} names
  */
 async function startRedis(docker, { container: containerName, volume, network }) {

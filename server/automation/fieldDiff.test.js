@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * automation/fieldDiff.js — the per-field version diff and its plain-language
  * description (Studio → Automations handoff 5, artboard 5d), on fixtures.

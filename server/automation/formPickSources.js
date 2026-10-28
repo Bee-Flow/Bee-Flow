@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The apps a form question can pick FROM.
  *
@@ -52,7 +53,6 @@
  */
 
 'use strict';
-
 /** What one picked record may contribute to a run. Mirrors formUploadText. */
 const MAX_TEXT_CHARS = 60_000;
 /** How many results one search may return, whatever the caller asks for. */

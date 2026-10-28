@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Templating: turn a mail subject or file name into a template whose variable
@@ -403,8 +403,7 @@ async function maskNames(templates, opts = {}) {
     const starts = [];
     let pos = 0;
     for (const t of list) { starts.push(pos); pos += t.length + 1; }
-    /** @type {Array<Array<{ start: number, end: number, ph: string }>>} */
-    const perLine = list.map(() => []);
+    const perLine = list.map(() => /** @type {Array<{ start: number, end: number, ph: string }>} */ ([]));
     const categories = new Set();
     for (const e of result.entities) {
         const off = Number(e?.offset);

@@ -114,11 +114,11 @@ function start({ gate } = {}) {
     const gatedTick = moduleGatedTick('apps', processDueSyncs, 'studioAppConnectorSync');
     log.info(`[StudioAppConnectorSync] started: every ${INTERVAL_MS / 1000}s, up to ${MAX_PER_TICK} per tick, ${SYNC_CONCURRENCY} at a time`);
     _timer = setInterval(() => {
-        gatedTick().catch((e) => log.warn('[StudioAppConnectorSync] tick error:', e && e.message));
+        gatedTick().catch((/** @type {{ message: unknown; }} */ e) => log.warn('[StudioAppConnectorSync] tick error:', e && e.message));
     }, INTERVAL_MS);
     _timer.unref?.();
     setTimeout(() => {
-        gatedTick().catch((e) => log.warn('[StudioAppConnectorSync] boot tick error:', e && e.message));
+        gatedTick().catch((/** @type {{ message: unknown; }} */ e) => log.warn('[StudioAppConnectorSync] boot tick error:', e && e.message));
     }, BOOT_DELAY_MS).unref?.();
 }
 

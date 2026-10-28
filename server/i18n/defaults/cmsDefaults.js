@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS Defaults — schema-of-record for the website builder.
  *

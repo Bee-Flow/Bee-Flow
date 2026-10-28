@@ -5,7 +5,7 @@ const { lookupTable, normaliseKey } = require('../../../automation/builderTools/
 const { normaliseFieldArgs } = require('../../../automation/builderTools/datatableCreate');
 const { boundDatatableIds } = require('../../../automation/builderTools/pendingDatatables');
 const { parseAnswersText } = require('../../../automation/builderTools/questionAnswers');
-
+// @typecheck
 // These tools only inspect the draft, a schema or the document library. Unknown
 // tools fail closed.
 //
@@ -231,6 +231,7 @@ function tableQuestion(q, datatables) {
     }
     const names = rows.map((r) => String(r.name || r.key || r.id).trim());
     const labelOf = (r, i) => (names.filter((n) => n.toLowerCase() === names[i].toLowerCase()).length > 1 ? `${names[i]} (${r.key})` : names[i]);
+    /** @type {{ label: string, datatableId?: string, create?: boolean }[]} */
     const options = rows.map((r, i) => ({ label: labelOf(r, i).slice(0, 300), datatableId: r.id }));
     const createLabel = (typeof q.createLabel === 'string' && q.createLabel.trim() ? q.createLabel.trim() : DEFAULT_CREATE_LABEL).slice(0, 60);
     options.push({ label: createLabel, create: true });
@@ -383,7 +384,6 @@ function pendingProposal(saved, liveDef) {
 // One staged table as a line the agent can act on: the id to bind to, the key,
 // the name and the columns.
 const stagedTableLine = (e) => `${e.ref} · key ${e.key} · "${e.name}" · columns: ${(e.fields || []).map((f) => `${f.key} ${f.type}`).join(', ')}`;
-
 const oneLineText = (t) => String(t ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /**

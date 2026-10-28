@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation-builder harness — drives a REAL build end to end and judges it.
  *
@@ -48,7 +49,6 @@ const log = require('../telemetry/log');
 // against a checkout; the requires themselves happen inside main() so the
 // unit tests can load this file without a server around.
 const APP = process.env.BEEFLOW_APP_DIR || '/app';
-
 const ORG = process.env.HARNESS_ORG || 'nc-nextcloud-nc-host-bee';
 const NC_UID = process.env.HARNESS_NC_UID || 'admin';
 const EMAIL = process.env.HARNESS_EMAIL || 'admin@example.com';

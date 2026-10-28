@@ -186,6 +186,8 @@ async function requireBinding(req, { write = false } = {}) {
 /**
  * Every refusal with `safe` may be returned verbatim; the rest becomes a 500.
  * @param {string} fallback
+ * @param {express.Response<unknown, Record<string, unknown>>} res
+ * @param {{ safe: boolean; status: unknown; message: unknown; code: unknown; row: unknown; name: string; }} err
  */
 function sendError(res, err, fallback) {
     if (err && err.safe === true && typeof err.status === 'number') {

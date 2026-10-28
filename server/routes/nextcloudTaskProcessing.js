@@ -376,7 +376,7 @@ async function requireConnectorSig(req, res, next) {
     return next();
 }
 
-router.post('/execute', captureRaw, requireConnectorSig, validate({ body: ExecuteBody }), async (req, res) => {
+router.post('/execute', captureRaw, requireConnectorSig, validate({ body: ExecuteBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ExecuteBody>, import('qs').ParsedQs>} */ req, res) => {
     const org = req.connectorOrg;
     const { taskType, input, ncUid } = req.body;
 
@@ -449,11 +449,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     return res.json({ output: { output: text } });
 });
 
-module.exports = router;
-module.exports.HANDLERS = HANDLERS;
-module.exports.AGENT_TASK_TYPE = AGENT_TASK_TYPE;
-module.exports.runAgentTurn = runAgentTurn;
-module.exports.LANGUAGE_RULE = LANGUAGE_RULE;
+module.exports = Object.assign(router, { HANDLERS, AGENT_TASK_TYPE, runAgentTurn, LANGUAGE_RULE });
 
 /** @typedef {Record<string, unknown>} TaskInput  the task input object Nextcloud sent (ExecuteBody.input) */
 

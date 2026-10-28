@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — POST /summarise-layer: a fast-tier, one-sentence
  * plain-language summary of a single flowlet, plus the guardrails on the
@@ -106,10 +107,11 @@ router.post('/summarise-layer', requireAuth, summariseLayerRateLimit, validate({
     return res.json({ summary });
 });
 
-module.exports = router;
 // Pure helpers, re-exported through the facade's ._test surface.
-module.exports.validateLayerForSummary = validateLayerForSummary;
-module.exports.sanitiseLayerSummary = sanitiseLayerSummary;
+module.exports = Object.assign(router, {
+    validateLayerForSummary,
+    sanitiseLayerSummary,
+});
 
 /**
  * @typedef {import('express').Router & { validateLayerForSummary: typeof validateLayerForSummary; sanitiseLayerSummary: typeof sanitiseLayerSummary }} RouterExports

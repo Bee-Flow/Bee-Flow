@@ -13,7 +13,7 @@ const { validate } = require('../../core/http/validate');
 const { NO_QUERY, NOTHING } = require('./schemas');
 const { sessionUser } = require('../../core/http/sessionUser');
 
-/** @param {import('express').Router} router */
+/** @type {(router: import('express').Router, deps?: unknown) => void}  deps is passed to every part; this one does not read it */
 function register(router) {
 
     // ── Preview token (for sandboxed iframe → API calls) ────────────────

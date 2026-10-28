@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What a saved audio clip says about where it came from.
  *

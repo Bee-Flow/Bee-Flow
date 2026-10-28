@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — sources (K1): creating one (POST /:id/sources). One
  * creator per kind (text, meeting tag, datatable, upload, webpage) behind the

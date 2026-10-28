@@ -23,7 +23,7 @@
  *     (literal + base64/base64url + urlencoded forms) via the canonical
  *     scrubber in customIntegrationRunner.
  */
-
+// @typecheck
 const ssrfGuard = require('./ssrfGuard');
 // The secret scrubber lives in the feature's runner; looked up on use
 // (core/featureModules.js), which also keeps the cycle with the runner lazy.

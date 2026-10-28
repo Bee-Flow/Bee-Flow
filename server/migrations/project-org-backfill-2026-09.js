@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Migration: give every project whose owner has an organisation that
  * organisation (2026-09).

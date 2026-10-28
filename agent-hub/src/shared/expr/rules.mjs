@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rule logic of the Condition node — the ONE copy the runtime (server), the
  * builder (agent-hub, generated mirror) and the phone (mobile vendor copy)

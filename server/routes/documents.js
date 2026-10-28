@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Document Routes — PDF downloads from the document-renderer component
  *
@@ -114,7 +115,7 @@ router.get('/list', (req, res) => {
                 viewUrl: `/api/documents/view/${f}`
             };
         })
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     res.json({ documents: files });
 });

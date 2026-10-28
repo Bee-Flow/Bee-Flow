@@ -1,3 +1,4 @@
+// @typecheck
 const { featureModule } = require('../featureModules');
 const dns = require('dns').promises;
 const net = require('net');

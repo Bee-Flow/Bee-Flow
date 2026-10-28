@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — which fields a ref path yields, so a `loop.<var>.<field>`
  * binding can be checked (and repaired) at add time instead of at run time.
@@ -35,7 +36,6 @@ const { formatPath, flattenShape } = require('../expr');
 const { normalizeAiPath } = require('./aiPaths');
 const { shapeAtRef, checkAgainst, describeProblem } = require('./refCheck');
 const { itemOf } = require('./shapeTree');
-
 const MAX_FIELDS_LISTED = 20;
 // A forEach over a fan-out over a fan-out is the deepest shape a build has
 // produced; beyond that a self-referencing overRef would recurse forever.

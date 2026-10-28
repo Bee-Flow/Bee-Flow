@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Put the S3 fixture account back the way session one found it.
  *
@@ -42,7 +43,6 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 
 const fs = require('fs');
-
 const configStore = require('../../stores/configStore');
 const kbStore = require('../../stores/knowledgeBases');
 const userStore = require('../../stores/userStore');

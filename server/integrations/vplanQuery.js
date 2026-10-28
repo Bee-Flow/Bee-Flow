@@ -1,3 +1,4 @@
+// @typecheck
 const { DEFAULT_LIMIT, WITH_OPTIONS } = require('./vplanToolDefs');
 const { clampLimit, clampOffset } = require('./vplanClient');
 

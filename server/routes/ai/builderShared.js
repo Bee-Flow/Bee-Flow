@@ -1,4 +1,5 @@
-/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
+// @typecheck
+/** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Shared internals for the conversational builder routes
  * (routes/ai/automationBuilder.js and routes/ai/appStudioBuilder.js).
@@ -117,8 +118,12 @@ const LOCAL_STREAM_TIMEOUT_MS = 120000;
  * `signal` is the caller's client-disconnect signal and `timeoutMs` a per-chunk
  * stall watchdog; both are applied to every attempt. On a self-hosted runtime
  * they are not optional — see LOCAL_STREAM_TIMEOUT_MS.
- * @param {string} modelId
  * @param {BaseProvider} adapter
+ * @param {{ providerType?: string, apiKey: string, url: string }} cfg
+ * @param {string} modelId
+ * @param {Parameters<BaseProvider['stream']>[3]} messages
+ * @param {Parameters<BaseProvider['stream']>[4]} options
+ * @param {BuilderStreamOptions} [hooks]
  */
 async function streamWithRetry(adapter, cfg, modelId, messages, options, {
     send,
@@ -150,6 +155,7 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
 
         /**
          * @param {string} id
+         * @param {boolean} [redacted]
          */
         const ensurePart = (id, redacted) => {
             let p = partById.get(id);

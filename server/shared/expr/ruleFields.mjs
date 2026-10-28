@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The field menu of a rule row while a Condition works through a list —
  * one builder for the web and the phone (both pass their own field tree and

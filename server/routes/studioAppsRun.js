@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio — action-run bridge.
  *
@@ -427,7 +427,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // Collected so a timeout can still answer with a pollable run id.
     /** @type {string[]} */
     const startedRunIds = [];
-    const offRunStarted = runEventBus.onRunEvent('run.started', (ev) => {
+    const offRunStarted = runEventBus.onRunEvent('run.started', (/** @type {{ runId: string; automationId: unknown; }} */ ev) => {
         if (ev && ev.runId && ev.automationId === automation.id) startedRunIds.push(ev.runId);
     });
     const runPromise = runner.executeAutomation(automation, {
@@ -605,7 +605,7 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
     const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
     const send = (/** @type {Record<string, unknown>} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
     try {
-        await aiRuntime.streamChat(app, model, { system, messages }, (type, data) => {
+        await aiRuntime.streamChat(app, model, { system, messages }, (/** @type {string} */ type, /** @type {{ text: unknown; }} */ data) => {
             if (type === 'text' && data && data.text) send({ type: 'text', text: data.text });
             else if (type === 'error') send({ type: 'error', error: 'The assistant failed to respond.' });
         });

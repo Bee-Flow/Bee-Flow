@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Ready to activate?" (Studio → Automations handoff 5, settings page): the
  * checklist beside the settings, answered from the same rules the server
@@ -71,7 +72,7 @@ function stepsCompleteOf(definition, validation) {
 
 /**
  * @param {{
- *   automation: object,
+ *   automation: { definition?: unknown, description?: unknown, version?: number | null, [key: string]: unknown } | null | undefined,
  *   validation: { ok: boolean, errors?: any[] },
  *   runs?: any[],
  *   aiAct: { required: boolean, status: string, expiresAt: string|null, outcome?: string|null, attestedAt?: string|null },

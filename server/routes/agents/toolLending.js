@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GET /agents/:id/tool-lending — for which apps can this agent borrow the connection
  * of its OWNER?
@@ -133,7 +134,7 @@ async function lendableAppsFor(agent) {
 // A failed read is a 500 from the terminal handler, never an empty answer with
 // `readable: true`: the card reads a failure as "cannot be checked" and then
 // offers no lending choice.
-router.get('/:id/tool-lending', validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/tool-lending', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });

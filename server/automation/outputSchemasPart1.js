@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Part 1 of OUTPUT_SCHEMAS (split out of outputSchemas.js; key order is preserved there).
 
 const OUTPUT_SCHEMAS_PART_1 = {

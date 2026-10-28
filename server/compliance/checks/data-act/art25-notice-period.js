@@ -136,7 +136,7 @@ module.exports = {
             contracts,
         };
 
-        const describe = (c) => c.party === 'platform'
+        const describe = (/** @type {{ status?: string; days?: number; reason?: string; party: unknown; }} */ c) => c.party === 'platform'
             ? `the platform's notice period (billing settings)`
             : `this organisation's own customer notice period`;
 

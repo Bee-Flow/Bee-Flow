@@ -247,7 +247,7 @@ function _parseId(raw) {
     return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-router.get('/incidents', requireAuth, requirePermission('admin_compliance'), validate({ query: IncidentQuery }), async (req, res) => {
+router.get('/incidents', requireAuth, requirePermission('admin_compliance'), validate({ query: IncidentQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof IncidentQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const kind = req.query.kind ? String(req.query.kind) : undefined;
     if (kind && !incidentStore.VALID_KINDS.includes(kind)) {
@@ -256,7 +256,7 @@ router.get('/incidents', requireAuth, requirePermission('admin_compliance'), val
     res.json(await incidentStore.listIncidents(orgId, { status: req.query.status, kind }));
 });
 
-router.post('/incidents', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateIncident }), async (req, res) => {
+router.post('/incidents', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateIncident }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateIncident>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;
@@ -329,7 +329,7 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
     }
 });
 
-router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: PatchIncident }), async (req, res) => {
+router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: PatchIncident }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PatchIncident>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;
@@ -359,7 +359,7 @@ router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'
 // CRA Art. 14 — record that the early warning (24 h) or the full notification /
 // final report was submitted to the CSIRT / ENISA single reporting platform.
 // Record-only: timestamp, channel and reference number.
-router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_compliance'), validate({ body: CraReport }), async (req, res) => {
+router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_compliance'), validate({ body: CraReport }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CraReport>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;
@@ -398,7 +398,7 @@ router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_c
 
 // DORA / CRA — the customer notice went out (record-only; the notice itself
 // is the org's own communication, this stamps when).
-router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;
@@ -442,7 +442,7 @@ router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('
 // deleting keys: a column added to either next year would otherwise walk into
 // the ledger by itself.
 const NOTIFY_CHANNEL = 'email';
-router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const id = _parseId(req.params.id);
     try {
         const orgId = await resolveOrgId(req);
@@ -498,8 +498,6 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
     }
 });
 
-module.exports = router;
-module.exports.CRA_CHECK_ID = CRA_CHECK_ID;
-module.exports.CRA_EVENT = CRA_EVENT;
+module.exports = Object.assign(router, { CRA_CHECK_ID, CRA_EVENT });
 
 /** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

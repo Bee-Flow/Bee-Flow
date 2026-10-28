@@ -11,7 +11,7 @@
  * (projects/stages/runner.js `admit`, plan.js, release.js) and shape the
  * answer. Every refusal is an HttpError; the terminal handler renders it.
  */
-
+// @typecheck
 const crypto = require('crypto');
 const express = require('express');
 const { validate } = require('../../../core/http/validate');
@@ -77,7 +77,7 @@ function resolveDeps(deps = {}) {
                 store: require('../../../stores/studioAppStore'),
                 userStore: require('../../../stores/userStore'),
                 validateSharedGroupsForOrg: require('../../../auth').validateSharedGroupsForOrg,
-                audit: { auditPublishChange: (/** @type {{ app?: AppRef; actorId?: string | null; isPublished?: boolean; sharedGroups?: string[] | null; organizationId?: string | null; publishedVersion?: number | null; }} */ entry) => require('../../../appStudio/publicationAudit').auditPublishChange(entry) },
+                audit: { auditPublishChange: (/** @type {{ app?: import('../../../appStudio/publicationAudit').AppRef; actorId?: string | null; isPublished?: boolean; sharedGroups?: string[] | null; organizationId?: string | null; publishedVersion?: number | null; }} */ entry) => require('../../../appStudio/publicationAudit').auditPublishChange(entry) },
                 notifyMenuChange: (/** @type {string | null | undefined} */ orgId, /** @type {import("../../../appStudio/nextcloudMenuSync").Meta | undefined} */ meta) => require('../../../appStudio/nextcloudMenuSync').notifyMenuChange(orgId, meta),
             }));
         },

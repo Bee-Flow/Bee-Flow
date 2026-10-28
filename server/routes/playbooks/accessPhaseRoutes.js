@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * THE ACCESS PHASE — who may open the app the playbook built, and with which
  * role. No recipe asks for it and no model writes it: the assistant here

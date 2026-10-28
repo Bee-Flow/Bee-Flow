@@ -371,7 +371,7 @@ function makeSettingsRouter(d, h) {
         gate(d, 'blueprint_packaging', hasGateFields), gate(d, 'approvals', turnsGateOn), patchStage);
 
     /** GET /:id/stages/:stage/requirements */
-    router.get('/:id/stages/:stage/requirements', gate(d, 'projects'), authMw(d, { stage: 'editor' }), validate({ query: S.RequirementsQuery }), async (req, res) => {
+    router.get('/:id/stages/:stage/requirements', gate(d, 'projects'), authMw(d, { stage: 'editor' }), validate({ query: S.RequirementsQuery }), async (/** @type {import('express').Request<{ id: string, stage: string }, any, any, import('zod').infer<typeof S.RequirementsQuery>>} */ req, res) => {
         const ctx = req.stageCtx;
         const { dev, stage } = ctx;
         let release = null;
@@ -405,7 +405,7 @@ function makeSettingsRouter(d, h) {
     });
 
     /** PUT /:id/stages/:stage/bindings */
-    router.put('/:id/stages/:stage/bindings', gate(d, 'blueprint_packaging'), authMw(d, { stage: 'owner' }), validate({ body: S.PutBindingsBody }), async (req, res) => {
+    router.put('/:id/stages/:stage/bindings', gate(d, 'blueprint_packaging'), authMw(d, { stage: 'owner' }), validate({ body: S.PutBindingsBody }), async (/** @type {import('express').Request<{ id: string, stage: string }, any, import('zod').infer<typeof S.PutBindingsBody>, import('qs').ParsedQs>} */ req, res) => {
         const ctx = req.stageCtx;
         const { dev, stage, userId } = ctx;
         if (req.body.settingsVersion !== stage.settingsVersion) {
@@ -452,7 +452,7 @@ function makeSettingsRouter(d, h) {
     });
 
     /** PUT /:id/variables */
-    router.put('/:id/variables', gate(d, 'blueprint_packaging'), authMw(d, { dev: 'editor' }), validate({ body: S.PutVariablesBody }), async (req, res) => {
+    router.put('/:id/variables', gate(d, 'blueprint_packaging'), authMw(d, { dev: 'editor' }), validate({ body: S.PutVariablesBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.PutVariablesBody>, import('qs').ParsedQs>} */ req, res) => {
         const { dev, userId } = req.stageCtx;
         const { CONNECTOR_SECRET_KEY_RE } = require('../../../core/dataEngine/dataModel/vocabulary');
         const names = new Set();
@@ -493,7 +493,7 @@ function makeSettingsRouter(d, h) {
     router.post('/:id/stages/:stage/resume', gate(d, 'projects'), authMw(d, { stage: 'editor', orgAdmin: true }), validate({ body: S.EmptyBody }), h.resume);
 
     /** PATCH /:id/parts/:ref/options */
-    router.patch('/:id/parts/:ref/options', gate(d, 'blueprint_packaging'), authMw(d, { dev: 'owner' }), validate({ body: S.PartOptionsBody }), async (req, res) => {
+    router.patch('/:id/parts/:ref/options', gate(d, 'blueprint_packaging'), authMw(d, { dev: 'owner' }), validate({ body: S.PartOptionsBody }), async (/** @type {import('express').Request<{ id: string, ref: string }, any, import('zod').infer<typeof S.PartOptionsBody>, import('qs').ParsedQs>} */ req, res) => {
         const { dev, userId } = req.stageCtx;
         const row = (await d.blueprintStore.refsFor(dev.id)).find(r => r.ref === req.params.ref && !r.retiredAt);
         if (!row) throw notFound('part_not_found', 'This part is not in the Solution.');

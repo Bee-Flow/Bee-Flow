@@ -293,7 +293,7 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
 });
 
 /** Delete the caller's own voice profile. Also withdraws the recorded consent. */
-router.delete('/me', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.delete('/me', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
     if (removed) await recordConsentWithdrawal(req, userId);

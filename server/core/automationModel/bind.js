@@ -15,7 +15,7 @@
  *   trigger.output, steps.<id>.output, loop.<itemVar>, vars, secrets
  *   (`secrets` is excluded from `template` bindings — see resolveValue.)
  */
-
+// @typecheck
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { evaluate, parseExpr, templateText, parsePath, walkTokens, getRelativePath, replaceTemplate, scanTemplate, parseJsonText, formatPath, jsonCacheFor } = require('../../shared/expr/index.mjs');
 const log = require('../../telemetry/log');

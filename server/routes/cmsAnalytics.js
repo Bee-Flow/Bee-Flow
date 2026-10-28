@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Website analytics (Umami) — admin routes.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What can live inside a project, and the things each kind must be able to do.
  *
@@ -522,7 +523,6 @@ const RAW_KINDS = [
 
 // Every entry behind the stage gate (see the header), including kinds added later.
 const KINDS = RAW_KINDS.map(withStageGuard);
-
 const BY_KIND = new Map(KINDS.map(k => [k.kind, k]));
 
 /** Every kind, in the order the project page shows them. */

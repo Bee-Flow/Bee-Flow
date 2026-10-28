@@ -1,3 +1,4 @@
+// @typecheck
 const datatableStore = require('../../../../stores/datatableStore');
 const { SpreadsheetSourceError, providerName } = require('./errors');
 const reading = require('./reading');
@@ -107,6 +108,10 @@ function toItem(ref, linked) {
  * mirrors in `scope` already copy a sheet of each. `folderId` is `'root'`,
  * `'shared'` (Drive/OneDrive shared-with-me; Nextcloud has none) or the
  * storage's own id — on Nextcloud the id IS the path.
+ * @param {unknown} session
+ * @param {unknown} principal
+ * @param {unknown} scope
+ * @param {{ provider?: string, folderId?: string | null, q?: unknown, shared?: unknown, pageToken?: string | null }} [options]
  */
 async function browse(session, principal, scope, { provider, folderId = null, q = null, shared = null, pageToken = null } = {}) {
     assertProvider(provider);

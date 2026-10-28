@@ -119,7 +119,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     res.json({ ...config, nextcloudConnected, recordingEnabled });
 });
 
-router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
+router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UserSettingsBody>, import('qs').ParsedQs>} */ req, res) => {
     const config = await talkNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });

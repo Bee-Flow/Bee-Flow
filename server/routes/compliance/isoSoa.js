@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the ISO 27001 Statement of Applicability rows (list, seed,
  * per-control decision) and the two honest readiness numbers.
@@ -112,7 +113,7 @@ router.get('/iso/soa', requireAuth, requirePermission('admin_compliance'), async
 // decision (INSERT … DO NOTHING in the store). Physical controls get the
 // inherited-from-IaaS justification template pre-filled — still editable, and
 // excluding a control remains an explicit human decision on the row.
-router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: SeedBody }), async (req, res) => {
+router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: SeedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SeedBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const provider = String(req.body?.provider || 'our IaaS provider').slice(0, 120);
@@ -135,7 +136,7 @@ router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'),
     res.json({ inserted, total: isoControls.CONTROLS.length });
 });
 
-router.put('/iso/soa/:ref', requireAuth, requirePermission('admin_compliance'), validate({ body: SoaPatch }), async (req, res) => {
+router.put('/iso/soa/:ref', requireAuth, requirePermission('admin_compliance'), validate({ body: SoaPatch }), async (/** @type {import('express').Request<{ ref: string }, any, import('zod').infer<typeof SoaPatch>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const ref = String(req.params.ref);
@@ -171,7 +172,7 @@ router.put('/iso/soa/:ref', requireAuth, requirePermission('admin_compliance'), 
  */
 const SOA_HISTORY_MAX = 500;
 
-router.get('/iso/soa/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (req, res) => {
+router.get('/iso/soa/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (/** @type {import('express').Request<{}, any, any, { limit?: number }>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     // Clamped rather than refused: asking for more rows than the trail shows
     // is not a mistake worth a 400. A limit that is not a number is.

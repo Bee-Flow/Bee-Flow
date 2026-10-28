@@ -1,3 +1,4 @@
+// @typecheck
 const { chartFromAny, statsFromAny, stepsFromAny, slideStyle, chartType } = require('./deckChart');
 const { normaliseIconName } = require('./deckIcons');
 const { SLIDE_LAYOUTS, MAX_CARDS, RE_ICON_TAG, DECK_LIMITS, DeckError, stripInlineMarkdown, clampText, classifyImageRef, inferLayout } = require('./deckBase');
@@ -35,6 +36,16 @@ function splitTableRow(line) {
     return s.split('|').map((c) => c.trim());
 }
 
+/**
+ * @typedef {{ text: string, level?: number }} Bullet
+ * @typedef {{ title: string, bullets: Bullet[], body: string[], icon?: string | null, image?: unknown }} Column
+ * @typedef {{ lines: string[], attribution: string | null }} Quote
+ * @typedef {{ columns: string[], rows: string[][] }} Table
+ * @typedef {{ bullets: Bullet[], body: string[], table: Table | null, quote: Quote | null, image: unknown, notes: string[], layoutHint: string | null,
+ *   columns: Column[], warnings: string[], chartText: string | null, chartHint: string | null, statsText: string | null, styleHint: string | null }} SlideFields
+ */
+
+/** @returns {SlideFields} */
 function emptyFields() {
     return {
         bullets: [], body: [], table: null, quote: null, image: null, notes: [], layoutHint: null, columns: [], warnings: [],
@@ -49,6 +60,7 @@ function emptyFields() {
  */
 function parseSlideLines(lines) {
     const f = emptyFields();
+    /** @type {SlideFields | Column} */
     let target = f;                 // where bullets/body go: the slide or the current column
     let noteMode = false;           // a trailing "Notes:" paragraph swallows the rest
     let commentNotes = null;        // inside a multi-line <!-- notes: … -->
@@ -105,6 +117,7 @@ function parseSlideLines(lines) {
         if ((m = RE_NOTES_PARA.exec(line.trim()))) { noteMode = true; if (m[1]) f.notes.push(m[1]); continue; }
         if ((m = RE_H3.exec(line))) {
             const iconTag = RE_ICON_TAG.exec(m[1]);
+            /** @type {Column} */
             const col = { title: stripInlineMarkdown(iconTag ? m[1].replace(RE_ICON_TAG, '') : m[1]), bullets: [], body: [], icon: iconTag ? iconTag[1].trim() : null, image: null };
             f.columns.push(col);
             target = col;
@@ -181,7 +194,12 @@ function cardFrom(c, warnings) {
     };
 }
 
-/** Assemble one normalised slide from parsed fields plus the explicit bits. */
+/**
+ * Assemble one normalised slide from parsed fields plus the explicit bits.
+ * @param {string} title
+ * @param {ReturnType<typeof fieldsFromContent>} f
+ * @param {{ layout?: string | null, notes?: string | null, image?: unknown, chart?: unknown, stats?: unknown, steps?: unknown[] | null, style?: unknown, warnings?: string[] }} [extras]
+ */
 function slideFromFields(title, f, { layout = null, notes = null, image = null, chart = null, stats = null, steps = null, style = null, warnings } = {}) {
     const slide = {
         layout: null,

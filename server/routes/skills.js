@@ -182,7 +182,7 @@ router.use(requireAuth);
 // "read my chats through the skills API" surface for an account that could
 // not have created the example anyway.
 const examples = () => require('./skills/examples');
-router.get('/examples/conversations', requirePermission('manage_skills'), validate({ query: NoQuery }), (req, res) => examples().listConversations(req, res));
+router.get('/examples/conversations', requirePermission('manage_skills'), validate({ query: NoQuery }), (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => examples().listConversations(req, res));
 router.get('/examples/conversations/:conversationId/messages', requirePermission('manage_skills'), validate({ query: NoQuery }), /** @param {import('express').Request<{ conversationId: string }>} req */ (req, res) => examples().listMessages(req, res));
 
 // ── S3: drafting with AI, and the Test tab ─────────────────────────
@@ -200,11 +200,11 @@ const testLimit = (req, res, next) => tests().limiter(req, res, next);
 
 // Before `/:id`, the same reason `/usage-summary` is: the literal strings
 // would otherwise be read as skill ids.
-router.post('/ai/draft', requirePermission('manage_skills'), validate({ body: DraftBody }), aiLimit, (req, res) => ai().draft(req, res));
+router.post('/ai/draft', requirePermission('manage_skills'), validate({ body: DraftBody }), aiLimit, (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DraftBody>, import('qs').ParsedQs>} */ req, res) => ai().draft(req, res));
 // `manage_skills` for the same reason `/examples/conversations` carries it:
 // this picker exists only to feed the Test tab, which lives behind that
 // permission, so the refusal belongs at the moment the picker opens.
-router.get('/test-agents', requirePermission('manage_skills'), validate({ query: NoQuery }), (req, res) => tests().listAgents(req, res));
+router.get('/test-agents', requirePermission('manage_skills'), validate({ query: NoQuery }), (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => tests().listAgents(req, res));
 
 // Helper: resolve the user's org ID
 /** @param {import('express').Request} req */
@@ -248,7 +248,7 @@ function pickStructured(body) {
 }
 
 // ── GET /api/skills — list available skills ──────────────────
-router.get('/', validate({ query: NoQuery }), async (req, res) => {
+router.get('/', validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     // orgId may be null — getAvailableSkills then returns the user's personal
     // (org-less) skills.
     const orgId = await getOrgId(req);
@@ -258,7 +258,7 @@ router.get('/', validate({ query: NoQuery }), async (req, res) => {
 });
 
 // ── GET /api/skills/usage-summary — counts per skill (before /:id) ──
-router.get('/usage-summary', validate({ query: NoQuery }), async (req, res) => {
+router.get('/usage-summary', validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await getOrgId(req);
     const skills = await skillStore.getAvailableSkills(orgId, req.session.user.id);
     const summary = await skillStore.getUsageSummary(orgId, skills.map(s => s.id));
@@ -266,7 +266,7 @@ router.get('/usage-summary', validate({ query: NoQuery }), async (req, res) => {
 });
 
 // ── POST /api/skills — create a new skill ────────────────────
-router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkillBody }), async (req, res) => {
+router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkillBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateSkillBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         // orgId may be null — the skill is then created as a personal skill
         // (org_id NULL, owned by the creator). Sharing to groups still requires

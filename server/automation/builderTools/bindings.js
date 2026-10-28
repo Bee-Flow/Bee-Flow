@@ -5,7 +5,7 @@
  * per-step `forEach` spec. Required from within automation/builderTools/
  * and re-exported (for tests) via the ../builderTools facade.
  */
-
+// @typecheck
 const { triggerFieldsFor } = require('./triggerCatalog');
 const { formatPath, readPath, scanTemplate } = require('../expr');
 const { normalizeAiPath, hasPlaceholder } = require('./aiPaths');

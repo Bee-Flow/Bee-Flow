@@ -105,7 +105,7 @@ router.get('/unread-count', requireUser, async (req, res) => {
 });
 
 // POST /read-all — mark all as read (must be before /:id/read to avoid route conflict)
-router.post('/read-all', requireUser, validate({ body: NoBody }), async (req, res) => {
+router.post('/read-all', requireUser, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const count = await notificationStore.markAllRead(sessionUser(req).id);
     res.json({ success: true, marked: count });
 });

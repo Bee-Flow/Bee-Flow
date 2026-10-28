@@ -1,3 +1,4 @@
+// @typecheck
 const datatableStore = require('../../../../stores/datatableStore');
 const datatableDbStore = require('../../../../stores/datatableDbStore');
 const queryCompiler = require('../../queryCompiler');

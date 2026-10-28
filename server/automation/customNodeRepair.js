@@ -326,6 +326,10 @@ function replaceStep(graph, target, next) {
 /**
  * @typedef {Object} RepairCustomNodeArgs
  * @property {string} [goal]
+ * @property {unknown} [definition]
+ * @property {unknown} [inputs]
+ * @property {unknown} [maxAttempts]
+ * @property {unknown} [onProgress]
  */
 /**
  * The same loop, asked of a custom node instead of a loose body.

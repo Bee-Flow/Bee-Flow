@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CMS page handlers: create / reorder / page settings / homepage / delete,
  * the full PageDoc read and write, page locale overrides, AI translation of a
@@ -30,7 +30,7 @@ const { mediaWarningFor } = require('../stores/cms/localeMedia');
  */
 async function requirePageInSite(siteId, pageId) {
     const site = await cmsStore.getProject(siteId, { fresh: true });
-    if (!site || !Array.isArray(site.pages) || !site.pages.some((p) => p.id === pageId)) {
+    if (!site || !Array.isArray(site.pages) || !site.pages.some((/** @type {{ id: string; }} */ p) => p.id === pageId)) {
         throw notFound('page_not_found', 'Page not found');
     }
 }
@@ -132,7 +132,7 @@ async function deletePageHandler(req, res) {
         // Optional ?redirectTo=/path: the deleted address should lead there (301).
         const redirectTo = typeof req.query?.redirectTo === 'string' ? req.query.redirectTo.trim() : '';
         const site = redirectTo ? await cmsStore.getProject(req.siteId, { fresh: true }) : null;
-        const entry = site?.pages.find((p) => p.id === req.params.id);
+        const entry = site?.pages.find((/** @type {{ id: string; }} */ p) => p.id === req.params.id);
         const wasHomepage = site?.homepageId === req.params.id;
         const outcome = await cmsStore.removePage(req.siteId, req.params.id);
         if (!outcome) return res.status(404).json({ error: 'Page not found' });

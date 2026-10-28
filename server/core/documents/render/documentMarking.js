@@ -1,3 +1,4 @@
+// @typecheck
 const { escapeHtml } = require('../../../templates/exportTemplate');
 
 /*

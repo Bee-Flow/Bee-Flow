@@ -96,7 +96,7 @@ function makeFindingStateRouter(overrides = {}) {
         d.requireAuth,
         d.requirePermission('admin_compliance'),
         validate({ body: StateBody }),
-        async (req, res) => {
+        async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof StateBody>, import('qs').ParsedQs>} */ req, res) => {
             const orgId = await d.resolveOrgId(req);
             const checkId = String(req.params.id);
             const def = registry().get(checkId);

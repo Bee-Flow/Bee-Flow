@@ -16,7 +16,7 @@
  * No new npm deps — reuses the unified adapter layer + the existing `playwright`
  * package and the shared, network-isolated bf-browser container.
  */
-
+// @typecheck
 const fs = require('fs');
 const path = require('path');
 

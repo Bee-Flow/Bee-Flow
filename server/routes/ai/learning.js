@@ -64,7 +64,7 @@ const coachLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
 const MAX_SUBMISSION_CHARS = 4000;
 
-router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), async (req, res) => {
+router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CoachBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = req.session.user.organizationId || null;
     const { exerciseId, mode = 'grade', modelTier = 'fast' } = req.body || {};
@@ -189,7 +189,7 @@ const MAX_QUESTION_CHARS = 1000;
 const MAX_STEP_CONTEXT_CHARS = 2000;
 const TUTOR_FALLBACK_ANSWER = 'The AI coach is unavailable right now — try again in a moment, or keep going with the lesson.';
 
-router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), async (req, res) => {
+router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TutorBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = req.session.user.organizationId || null;
     const { lessonId = '', stepId = '', modelTier = 'fast' } = req.body || {};
@@ -297,7 +297,7 @@ const PRACTICE_TOPIC_CACHE_MAX = 100;
 const practiceGenerateLimiter = perUserRateLimit({ windowMs: 60 * 60_000, max: 10 });
 const practiceGradeLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 
-router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate({ body: PracticeBody }), async (req, res) => {
+router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate({ body: PracticeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PracticeBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = req.session.user.organizationId || null;
     const unavailable = () => res.json({ error: 'practice_unavailable', items: [] });
@@ -381,7 +381,7 @@ router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate
 // Grade one practice answer against the server-held key. Mirrors /quiz/grade:
 // correct ids are revealed only on a pass; an expired/unknown practiceId is a
 // retriable 404 (the client offers a fresh session instead of blocking).
-router.post('/practice/grade', requireAuth, practiceGradeLimiter, validate({ body: PracticeGradeBody }), async (req, res) => {
+router.post('/practice/grade', requireAuth, practiceGradeLimiter, validate({ body: PracticeGradeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PracticeGradeBody>, import('qs').ParsedQs>} */ req, res) => {
     const { practiceId, itemId } = req.body || {};
     const choiceIds = Array.isArray(req.body?.choiceIds) ? req.body.choiceIds.map(String).slice(0, 8) : [];
     let entry = typeof practiceId === 'string' ? practiceKeyCache.get(practiceId) : null;
@@ -450,7 +450,7 @@ router.get('/catalog', requireAuth, async (req, res) => {
 // retried, mirroring the built-in client-side quiz behaviour.
 const quizLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 
-router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeBody }), async (req, res) => {
+router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof QuizGradeBody>, import('qs').ParsedQs>} */ req, res) => {
     const userOrgId = req.session.user.organizationId || null;
     const { lessonId, stepId } = req.body || {};
     const choiceIds = Array.isArray(req.body?.choiceIds) ? req.body.choiceIds.map(String).slice(0, 12) : [];
@@ -534,7 +534,7 @@ router.get('/achievements', requireAuth, async (req, res) => {
 });
 
 // Issue (or update visibility of) a certificate. Server recomputes eligibility.
-router.post('/certificate', requireAuth, validate({ body: CertificateBody }), async (req, res) => {
+router.post('/certificate', requireAuth, validate({ body: CertificateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CertificateBody>, import('qs').ParsedQs>} */ req, res) => {
     const user = req.session.user;
     const { certificateId, makePublic = false } = req.body || {};
     if (!getCertificate(certificateId)) return res.status(404).json({ error: 'Unknown certificate' });
@@ -658,7 +658,7 @@ router.get('/training-rules', requireAuth, requirePrimaryOrgAdmin(), async (req,
 // because a rule pointing at a course nobody can open would lock the area for
 // good (courseSatisfied would answer null and fail open, but an admin who
 // thinks they gated something and did not is worse than a loud 400).
-router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ body: TrainingRulesBody }), async (req, res) => {
+router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ body: TrainingRulesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TrainingRulesBody>, import('qs').ParsedQs>} */ req, res) => {
     const incoming = req.body?.areas;
     if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
         return res.status(400).json({ error: 'areas must be an object of { areaId: courseId }' });

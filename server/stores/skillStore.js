@@ -94,6 +94,11 @@ async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = 
  * Create a new skill. Text fields and/or structured fields; see the
  * precedence rule in the module header. Throws SkillStructureError (400)
  * on a malformed structured field.
+ * @param {{ orgId: string, userId: string, name: string, description?: string, instructions?: string,
+ *   workflow?: string, rules?: string, examples?: string, icon?: string, isShared?: boolean,
+ *   dynamicActivation?: boolean, sharedGroups?: string[], automationId?: string | null,
+ *   enabledIntegrations?: string[], steps?: unknown, rulesV2?: unknown, examplesV2?: unknown,
+ *   outputSchema?: unknown, knowledgeBaseIds?: unknown, allowedAutomationIds?: unknown }} args
  */
 async function createSkill({
     orgId, userId, name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation,

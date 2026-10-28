@@ -118,7 +118,7 @@ function retentionFieldError(tableMeta, field) {
  *
  * @param {Array} incoming            the client's full column list
  * @param {Array} [existing]          the stored fields for this table, for identity matching
- * @returns {{ok: true, fields: Array}|{ok: false, error: string}}
+ * @returns {{ok: true, fields: Array, error?: undefined}|{ok: false, error: string, fields?: undefined}}
  */
 function normalizeFields(incoming, existing = []) {
     if (!Array.isArray(incoming)) return { ok: false, error: 'Send the full column list' };

@@ -226,7 +226,7 @@ function makeWorkspaceRouter(deps = {}) {
 
     // Transient: no row, no seq, no replay — a reconnecting client must never
     // be told somebody is here because they were ten minutes ago.
-    router.post('/:id/presence', requireRole('viewer'), presenceLimiter, validate({ body: S.PresenceBody }), async (req, res) => {
+    router.post('/:id/presence', requireRole('viewer'), presenceLimiter, validate({ body: S.PresenceBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.PresenceBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
             await publishTransient(req.params.id, { kind: 'presence.online', actorId: userIdOf(req), target: req.body.target || null });
             res.json({ ok: true });

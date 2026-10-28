@@ -13,11 +13,27 @@
  * nothing from running the owner's automation.
  */
 
-/** @typedef {{ userId: string|undefined, session: any|null|undefined, orgId: string|null|undefined, userGroupIds: string[], orgRole: string|null|undefined, homeOrgId: string|null|undefined, isAdmin: boolean }} ToolIdentity */
+/** @typedef {{ userId: string|undefined, session: Express.Session|null|undefined, orgId: string|null|undefined, userGroupIds: string[], orgRole: string|null|undefined, homeOrgId: string|null|undefined, isAdmin: boolean }} ToolIdentity */
 
+/**
+ * The starter's own identity on a run that uses `runPolicy.connections = 'caller'` (callerConnections.js).
+ * @typedef {{ userId?: string, session?: Express.Session | null, orgId?: string | null, userGroupIds?: string[], orgRole?: string | null, homeOrgId?: string | null, isAdmin?: boolean }} CallerIdentity
+ */
+
+/**
+ * What the identity helpers read off a run context.
+ * @typedef {{ userId?: string, session?: Express.Session | null, orgId?: string | null, userGroupIds?: string[], orgRole?: string | null,
+ *   userHomeOrgId?: string | null, automationId?: string | null, resourceOwnerUserId?: string | null, callerOnly?: CallerIdentity | null }} IdentityCtx
+ */
+
+/** @param {Express.Session | null | undefined} session */
 const isAdminSession = (session) => !!(session && (session.isAdmin || session.user?.role === 'admin'));
 
-/** The automation owner's identity on this run. @returns {ToolIdentity} */
+/**
+ * The automation owner's identity on this run.
+ * @param {IdentityCtx} ctx
+ * @returns {ToolIdentity}
+ */
 function ownerIdentity(ctx) {
     return {
         userId: ctx.userId, session: ctx.session, orgId: ctx.orgId,
@@ -26,7 +42,10 @@ function ownerIdentity(ctx) {
     };
 }
 
-/** @returns {ToolIdentity} */
+/**
+ * @param {IdentityCtx} ctx
+ * @returns {ToolIdentity}
+ */
 function toolIdentity(ctx) {
     const c = ctx.callerOnly;
     if (!c) return ownerIdentity(ctx);
@@ -38,7 +57,10 @@ function toolIdentity(ctx) {
     };
 }
 
-/** Connection-lending policy for the catalog lookup: none for a caller-only run. */
+/**
+ * Connection-lending policy for the catalog lookup: none for a caller-only run.
+ * @param {IdentityCtx} ctx
+ */
 function lendPolicyFor(ctx) {
     if (ctx.callerOnly) return null;
     return (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
@@ -46,7 +68,10 @@ function lendPolicyFor(ctx) {
         : null;
 }
 
-/** The (user, org) pair a memo/cache key is built from: whoever the step dispatches as. */
+/**
+ * The (user, org) pair a memo/cache key is built from: whoever the step dispatches as.
+ * @param {IdentityCtx} ctx
+ */
 function stepKeyIdentity(ctx) {
     const who = toolIdentity(ctx);
     return { stepUserId: who.userId, stepOrgId: who.orgId };
@@ -59,7 +84,7 @@ const toolNameOf = (t) => t?.function?.name;
  * the owner's, as ever. For a caller-only run it is the owner's catalog
  * intersected with the caller's, so neither side can widen the other.
  *
- * @param {any} ctx
+ * @param {IdentityCtx} ctx
  * @param {(opts: any) => Promise<{ tools?: any[] }>} getIntegrationTools
  * @param {any} [options]  `lend`: ask with the connection-lending policy (owner runs only);
  *                            everything else goes to the lookup as is (automationStep, grants, ...)

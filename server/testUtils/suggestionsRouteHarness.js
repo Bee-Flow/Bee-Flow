@@ -31,7 +31,7 @@ const pass = (_req, _res, next) => next();
 
 /**
  * @param {typeof import('node:test')} test
- * @param {Function} router
+ * @param {import("express-serve-static-core").RequestHandler<import("express-serve-static-core").ParamsDictionary, unknown, unknown, import("qs").ParsedQs, Record<string, unknown>>} router
  * @param {{ prefix?: string, errorHandler: Function }} opts
  */
 function mountSuggestions(test, router, { prefix = '/builder', errorHandler }) {

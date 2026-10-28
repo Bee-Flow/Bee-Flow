@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance Runner — executes checks and persists their results.
  *
@@ -170,7 +171,7 @@ const SUBJECT_LABEL_MAX = 120;
  * labels are the org's own configuration (an agent's or automation's title),
  * and the row is not the chain: the ledger payload keeps `_evidenceSubject`,
  * id only. A check that already wrote its own `subject_label` keeps it.
- * @param {{ id: string; } | null} subject
+ * @param {{ id: string, label?: unknown } | null} subject
  */
 function _rowEvidence(evidence, subject) {
     const label = typeof subject?.label === 'string' ? subject.label.trim().slice(0, SUBJECT_LABEL_MAX) : '';
@@ -580,7 +581,7 @@ async function runAll(orgId, { runType = 'scheduled', frameworks: only = null } 
  * is not active yields no rows.
  * @param {string} orgId
  * @param {string} frameworkId
- * @param {{ runType: string; }} [opts]
+ * @param {{ runType?: string }} [opts]
  */
 async function runFramework(orgId, frameworkId, opts = {}) {
     const regulation = frameworks.regulationOf(frameworkId);
@@ -760,8 +761,7 @@ async function autoFix(orgId, checkId, opts = {}) {
 }
 
 module.exports = {
-    runAll, runFramework, runOne, runForSubject, autoFix,
-    FrameworkDisabledError, CHECK_TIMEOUT_MS, COVERAGE_SCOPE,
+    runAll, runFramework, runOne, runForSubject, autoFix, FrameworkDisabledError, CHECK_TIMEOUT_MS, COVERAGE_SCOPE,
     // Exported for the tests: the pure pieces of the coverage answer
     // (compliance/coverage.js) and of "is this subject list the whole population".
     _coverageVerdict: coverageVerdict, _coverageSummary: coverageSummary, _asListing,

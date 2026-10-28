@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const { fallback } = require('../utils/bestEffort');
 
 /**

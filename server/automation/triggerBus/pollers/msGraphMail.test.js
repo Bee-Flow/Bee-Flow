@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "New email" on a shared Outlook mailbox, by polling (Graph has no change
  * notifications for shared mailboxes on delegated access).

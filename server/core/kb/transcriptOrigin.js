@@ -32,7 +32,7 @@ const log = require('../../telemetry/log');
  *
  * @param {string} transcriptionId  the id from `config.metadata`
  * @param {string} userId           the WRITER, not the owner of the KB
- * @returns {Promise<{ok: true} | {ok: false, status: number, code: string, error: string}>}
+ * @returns {Promise<OneOf<{ ok: true }, { ok: false, status: number, code: string, error: string }>>}
  *   `ok:false` with status 400 (`transcription_not_visible`) if he may not see it, or 502
  *   (`transcription_probe_failed`) if we could NOT establish it. Two codes, because "no" and
  *   "I don't know" are two different sentences: only with the first does the writer know that he

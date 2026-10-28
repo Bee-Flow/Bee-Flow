@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The run summary's reuse counters — and the branch that used to delete them.
  *

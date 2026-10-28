@@ -234,7 +234,7 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  * was already redeemed. Idempotent: the second viewer of the same attachment
  * costs zero provider calls.
  *
- * @param {object} app    - studio app row (userId = owner)
+ * @param {{ userId: unknown; id: unknown; }} app    - studio app row (userId = owner)
  * @param {object} model  - the canonical data model
  * @param {object} opts
  * @param {string} opts.attachmentId - the provider attachment id (or a fileId)

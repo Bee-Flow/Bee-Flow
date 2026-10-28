@@ -67,7 +67,7 @@ function iconName(v) {
     return !v || v === 'box' ? DEFAULT_ICON : v;
 }
 
-router.get('/frontend', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/frontend', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const rows = await store.getAllStates();
 
     const out = [];

@@ -1,3 +1,4 @@
+// @typecheck
 const { sanitizeContentForExport, escapeHtml } = require('../../../templates/exportTemplate');
 const { markingText, markingFooterHtml } = require('./documentMarking');
 const { ensureResolvedTheme, deckThemeCss, slideVariantStyle, slidesCss } = require('./deckThemeCss');

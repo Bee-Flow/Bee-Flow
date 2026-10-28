@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Shared expression language — single source of truth for both the automation
  * runtime (server, via server/automation/expr.js which re-requires this) and

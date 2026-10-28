@@ -57,7 +57,10 @@ function _str(v, max = 120) {
     return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null;
 }
 
-/** Attestation entries keyed on the canonical operator name; later entries win. */
+/**
+ * Attestation entries keyed on the canonical operator name; later entries win.
+ * @param {{ scc_confirmed_operators: unknown; }} settings
+ */
 function _attestations(settings) {
     const map = new Map();
     for (const e of _asArray(settings.scc_confirmed_operators)) {

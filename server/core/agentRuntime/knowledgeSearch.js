@@ -1,3 +1,4 @@
+// @typecheck
 const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const { getAll } = require('../../db');
@@ -192,9 +193,8 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
  * @param {string} userId
  * @param {string[]} kbIds
  * @param {string} query — the user message
- * @param {object} [options]
- * @param {number} [options.topK=6] — max results to return
- * @param {number} [options.contentCap=3000] — max chars per chunk
+ * @param {{ topK?: number, contentCap?: number, session?: Express.Session | null }} [options]
+ *   topK (default 6): max results to return; contentCap (default 3000): max chars per chunk
  * @returns {Promise<Array<{title: string, content: string, score: number}>>}
  */
 async function quickKBSearch(userId, kbIds, query, options = {}) {

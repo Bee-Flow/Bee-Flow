@@ -117,7 +117,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {VaultLi
  * this token loses its restoration, so the placeholder becomes permanent. The
  * client confirms with that wording before calling.
  */
-router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
+router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NO_BODY>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const ok = await vault.deleteEntry(userId, req.params.id);
     if (!ok) return res.status(404).json({ error: 'Entry not found' });
@@ -131,7 +131,7 @@ router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }),
  * Takes NOTHING, and says so: this is the route a misplaced `?id=` used to land
  * on, and "delete one" must never be able to arrive here as "delete all".
  */
-router.delete('/', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
+router.delete('/', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NO_BODY>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const removed = await vault.clearForUser(userId);
     audit(req, 'pii_vault.clear', { removed });

@@ -75,7 +75,7 @@ const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.
         .max(MAX_QUESTION_CHARS, `A test question is at most ${MAX_QUESTION_CHARS} characters.`),
 }).strict());
 
-router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, res, next) => {
+router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof AskBody>, import('qs').ParsedQs>} */ req, res, next) => {
     // Null until the stream is open: before that, an error is still a status.
     let sse = null;
     /**

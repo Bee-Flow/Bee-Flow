@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool family registry: which executor runs a tool call, by name.
  *
@@ -117,6 +118,9 @@ module.exports = {
  *   activatedSessionSkillIds?: string[],
  *   completedSessionSkillIds?: string[],
  *   roundsInCurrentStep?: number,
+ *   runScope?: { runId: string, rootRunId?: string } | null,
+ *   userGroupIds?: string[],
+ *   userOrgIds?: string[],
  *   [key: string]: unknown,
  * }} ToolContext
  */

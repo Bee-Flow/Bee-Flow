@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * msgraph mail.new: `mailbox` picks the inbox, it is not a payload match,
  * except that an event only ever starts the automation that watches ITS

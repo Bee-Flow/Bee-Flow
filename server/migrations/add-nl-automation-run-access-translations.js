@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the hint a viewer sees where "Run now" / "Run again" would be
  * (automations.run.*): the share role "view" reads an automation but does not

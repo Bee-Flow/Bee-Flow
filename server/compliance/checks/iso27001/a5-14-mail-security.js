@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.14 — mail security (SPF/DMARC/DKIM) for the org's domain.
  * Reads the latest mail-security connector snapshot for the configured domain;
@@ -23,6 +24,7 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_mail_security.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /** @returns {Promise<import('../../lib/connectorEvidence').CheckOutcome>} */
     async evaluate(orgId) {
         const read = await readConnector(isoEvidenceStore, orgId, 'mail-security');
         if (read.failed) return read.failed;

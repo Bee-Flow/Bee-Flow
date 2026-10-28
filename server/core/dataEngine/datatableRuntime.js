@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * THE SHARED DATATABLE RUNNER: "read/write this table, as this person, and only these columns".
  *
@@ -338,7 +338,7 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     const hasMore = all.length > compiled.limit;
     const last = page[page.length - 1];
     return {
-        rows: page.map(r => projectRow(r, columns)),
+        rows: page.map((/** @type {Record<string, unknown>} */ r) => projectRow(r, columns)),
         hasMore,
         count: page.length,
         nextCursor: (hasMore && last)

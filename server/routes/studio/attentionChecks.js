@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The six sources behind Studio Home's "Needs attention", as a register.
  *
@@ -60,7 +61,6 @@
  */
 
 'use strict';
-
 const { makeFinding } = require('../../core/findings/finding');
 const {
     buildCompleteness, emptyKnowledgeBaseFinding,

@@ -21,7 +21,7 @@ const { z } = require('../../utils/zod');
 /** This route reads nothing from the query; a parameter there is a typo. */
 const NoQuery = z.object({}).strict();
 
-router.get('/deadlines', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (req, res) => {
+router.get('/deadlines', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     res.set('Cache-Control', 'private, no-store');

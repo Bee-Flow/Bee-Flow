@@ -133,7 +133,7 @@ function formatDuration(seconds) {
  * over their own gated routes, and what is recorded here is provenance the
  * owner wrote onto their own note.
  */
-router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PatchBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { title, actionItems, tags, decisions, questions } = req.body;
     if (!title && actionItems === undefined && tags === undefined
@@ -177,7 +177,7 @@ router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY })
 
 // ── Regenerate summary with template ─────────────────────
 
-router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateBody, query: NO_QUERY }), async (req, res) => {
+router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RegenerateBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { template = 'general', templateId = null, customPrompt = null } = req.body;
@@ -368,7 +368,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
 // ── Export transcription ─────────────────────────────────
 
 router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
-    require('../../compliance/dataPortability/stampExport')('meeting_notes'), async (req, res) => {
+    require('../../compliance/dataPortability/stampExport')('meeting_notes'), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ExportQuery>>} */ req, res) => {
     const userId = req.session.user.id;
     // `?fromat=txt` produced a markdown file: the parameter was dropped and the
     // default took over. Now the name of the parameter is as strictly closed as its
@@ -424,7 +424,7 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
  * that warning, and then sends `?confirm=1`. The escape hatch is deliberate
  * and it is a CONFIRMED one — never a silent retry.
  */
-router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (req, res) => {
+router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
     const userId = req.session.user.id;
     const confirmed = req.query.confirm === true;
 
@@ -464,7 +464,7 @@ router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery 
 //
 // Owner-only. Validates that supplied group IDs belong to the owner's org.
 
-router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PublishBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { isPublished, sharedGroups } = req.body;
 

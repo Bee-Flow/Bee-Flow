@@ -29,7 +29,7 @@ async function buildTurnMessages({
     const _scanExtracted = async (text, filename) => {
         if (!_dlpActive || !text) return text;
         const r = await _scanAttText({ text, filename, orgShield: _psShield, conversationId: _dlpConvId });
-        if (r.action === 'block') { const e = new Error('attachment blocked'); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
+        if (r.action === 'block') { /** @type {Error & { filename?: string, summary?: unknown }} */ const e = new Error('attachment blocked'); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
         // Prefer whatever the scanner returned: on an incomplete scan that is
         // the TRUNCATED document, and falling back to `text` would put the
         // unchecked tail straight back into the prompt.

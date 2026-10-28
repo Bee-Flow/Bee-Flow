@@ -44,7 +44,7 @@ function importSiteUpload(/** @type {import('express').Request} */ req, /** @typ
     if (!String(req.headers['content-type'] || '').includes('multipart/form-data')) {
         return next();
     }
-    importUpload.single('file')(req, res, (err) => {
+    importUpload.single('file')(req, res, (/** @type {{ code: string; message: unknown; }} */ err) => {
         if (!err) return next();
         const message = err.code === 'LIMIT_FILE_SIZE'
             ? `Archive too large (max ${SITE_IMPORT_MAX_BYTES / 1024 / 1024} MB)`

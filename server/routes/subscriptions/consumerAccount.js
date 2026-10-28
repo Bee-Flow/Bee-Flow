@@ -114,7 +114,7 @@ router.get('/consumer/usage', async (req, res) => {
 });
 
 // POST /api/subscriptions/consumer/:userId/start-trial — one-time consumer trial via Stripe
-router.post('/consumer/:userId/start-trial', validate({ body: StartTrialBody }), async (req, res) => {
+router.post('/consumer/:userId/start-trial', validate({ body: StartTrialBody }), async (/** @type {import('express').Request<{ userId: string }, any, import('zod').infer<typeof StartTrialBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = /** @type {string} */ (req.params.userId);
         const { plan_id } = req.body;

@@ -69,7 +69,7 @@ function makeRunCompareRouter(overrides = {}) {
     const limiter = overrides.limiter
         || (rpm > 0 ? perUserRateLimit({ windowMs: 60_000, max: rpm }) : (_req, _res, next) => next());
 
-    router.get('/runs/:runId/compare/:otherRunId', limiter, validate({ query: CompareQuery }), async (req, res) => {
+    router.get('/runs/:runId/compare/:otherRunId', limiter, validate({ query: CompareQuery }), async (/** @type {import('express').Request<{ runId: string, otherRunId: string }, any, any, import('zod').infer<typeof CompareQuery>>} */ req, res) => {
         const first = await runData.readableRun(req, res, req.params.runId, 'compare it');
         if (!first) return undefined;
         const second = await runData.readableRun(req, res, req.params.otherRunId, 'compare it');

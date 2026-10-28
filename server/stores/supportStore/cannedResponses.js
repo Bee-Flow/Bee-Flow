@@ -10,6 +10,10 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 
 // ── Canned responses ─────────────────────────────────────────────────────────
 
+/**
+ * @param {string | null} [organizationId]
+ * @returns {Promise<DbRow.SupportCannedResponses[]>}
+ */
 async function listCannedResponses(organizationId = null) {
     await initDB();
     const { rows } = await pool.query(
@@ -21,12 +25,20 @@ async function listCannedResponses(organizationId = null) {
     return rows;
 }
 
+/**
+ * @param {string} id
+ * @returns {Promise<DbRow.SupportCannedResponses | null>}
+ */
 async function getCannedResponse(id) {
     await initDB();
     const { rows } = await pool.query(`SELECT * FROM support_canned_responses WHERE id = $1`, [id]);
     return rows[0] || null;
 }
 
+/**
+ * @param {{ organizationId?: string | null, title: string, body: string, shortcut?: string | null, createdBy?: string | null }} input
+ * @returns {Promise<DbRow.SupportCannedResponses>}
+ */
 async function createCannedResponse({ organizationId = null, title, body, shortcut = null, createdBy = null }) {
     await initDB();
     if (!title || !title.trim()) throw new Error('title required');
@@ -45,6 +57,12 @@ const CANNED_COLUMNS = {
     shortcut: { col: 'shortcut', transform: v => (v ? v.trim() : null) },
 };
 
+/**
+ * @param {string} id
+ * @param {{ title?: string, body?: string, shortcut?: string | null }} changes
+ * @param {string | null} [organizationId]
+ * @returns {Promise<DbRow.SupportCannedResponses | null>}
+ */
 async function updateCannedResponse(id, { title, body, shortcut }, organizationId = null) {
     await initDB();
     const built = buildUpdate({
@@ -68,6 +86,10 @@ async function updateCannedResponse(id, { title, body, shortcut }, organizationI
     return rows[0] || null;
 }
 
+/**
+ * @param {string} id
+ * @param {string | null} [organizationId]
+ */
 async function deleteCannedResponse(id, organizationId = null) {
     await initDB();
     const { rowCount } = await pool.query(

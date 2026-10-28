@@ -32,8 +32,8 @@ const log = require('../../telemetry/log');
  * Resolves ALL matching documents, not just the first: re-ingesting a source
  * can leave several rows sharing a source_uri, and stopping at one orphaned the
  * rest — deleted text stayed searchable.
- * @param {Awaited<ReturnType<typeof notebookStore.getNotebook>>} nb
- * @param {Awaited<ReturnType<typeof notebookStore.getSources>>[number]} source
+ * @param {{ knowledgeBaseIds?: string[] } | null | undefined} nb  the notebook (or anything that names its knowledge bases)
+ * @param {{ id: string, storageKey?: string | null } | null | undefined} source
  * @param {string} userId
  */
 async function cleanupSourceArtifacts(nb, source, userId) {

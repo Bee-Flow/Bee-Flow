@@ -107,7 +107,7 @@ async function requireAdmin(req, res, next) {
 }
 
 // GET /api/stripe/promo-codes — List all promo codes
-router.get('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeUserLimiter, validate({ query: PromoCodeQuery }), async (req, res) => {
+router.get('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeUserLimiter, validate({ query: PromoCodeQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof PromoCodeQuery>>} */ req, res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe is not enabled' });
 
@@ -118,7 +118,7 @@ router.get('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeUs
 });
 
 // POST /api/stripe/promo-codes — Create a new promo code
-router.post('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeUserLimiter, validate({ body: PromoCodeBody }), async (req, res) => {
+router.post('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeUserLimiter, validate({ body: PromoCodeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PromoCodeBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const enabled = await stripeService.isEnabled();
         if (!enabled) return res.status(400).json({ error: 'Stripe is not enabled' });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the per-record display components: badges, progress,
  * stepper, file gallery, connector status, timeline, message thread and the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Screenshots of the product website for the CMS MCP server.
  *
@@ -29,7 +30,6 @@
  */
 
 'use strict';
-
 const log = require('../../telemetry/log');
 const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
@@ -76,7 +76,7 @@ function isHubAssetPath(pathname) {
 }
 
 /** @param {{ origin?: string, fetchImpl?: typeof fetch, now?: () => number }} [opts] */
-function createHubFetcher({ origin, fetchImpl = (...a) => fetch(...a), now = Date.now } = {}) {
+function createHubFetcher({ origin, fetchImpl = (/** @type {Parameters<typeof fetch>} */ ...a) => fetch(...a), now = Date.now } = {}) {
     const cache = new Map();
     return async function fetchHubAsset(pathname) {
         if (!isHubAssetPath(pathname)) return null;

@@ -34,7 +34,7 @@ const HTTP_RESPONSE_CAP = 1024 * 1024;
 
 /**
  * Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller.
- * @param {ReadableStream<Uint8Array<ArrayBuffer>> | ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>} target
+ * @param {{ cancel?: () => Promise<unknown> } | null | undefined} target  a body stream or its reader, from either fetch implementation
  */
 async function cancelQuietly(target) {
     try { await target?.cancel?.(); } catch (e) { bestEffort('core/http/httpResponseLimits:cancelQuietly', e); /* [httpResponseLimits] cancel failed: */ }
@@ -51,7 +51,7 @@ const MAX_BYTES_PER_CHAR = 4;
  * `stopOnOversizeHeader` skips the body entirely when Content-Length already
  * declares more than the budget.
  *
- * @param {Response} resp
+ * @param {FetchResponse} resp
  * @param {{charCap?: number, stopOnOversizeHeader?: boolean}} [opts]
  * @returns {Promise<{text: string, truncated: boolean}>} `text` is at most
  *   `charCap` characters; `truncated` is true when the body was longer.
@@ -133,7 +133,7 @@ const kbSitemapMaxBytes = () => envByteLimit('KB_SITEMAP_MAX_BYTES', DEFAULT_KB_
  * stream is cancelled as soon as the running total passes the cap. A cap of 0
  * or Infinity reads everything.
  *
- * @param {Response} resp
+ * @param {FetchResponse} resp
  * @param {{byteCap?: number}} [opts]
  * @returns {Promise<{buffer: Buffer|null, truncated: boolean, declaredBytes: number|null}>}
  *   `buffer` is null when `truncated`; `declaredBytes` is Content-Length when sent.
@@ -178,7 +178,7 @@ async function readBytesBounded(resp, { byteCap = Infinity } = {}) {
  * THROWS with a message naming the limit and `envName` (a partial page or
  * sitemap must not be indexed). A cap of Infinity (env value 0) reads everything.
  *
- * @param {Response} resp
+ * @param {FetchResponse} resp
  * @param {{byteCap: number, what: string, envName: string}} opts
  * @returns {Promise<string>}
  */
@@ -204,7 +204,7 @@ async function readTextOrThrowOversize(resp, { byteCap, what, envName }) {
 
 /**
  * A web page for the knowledge base, capped by KB_WEB_PAGE_MAX_BYTES (throws when over).
- * @param {Response} resp
+ * @param {FetchResponse} resp
  * @param {string} url
  */
 const readKbPage

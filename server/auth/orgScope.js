@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Which organisation is this request acting for, and which may it see.
@@ -58,7 +59,7 @@ function groupIdsOf(user) {
  * Resolve the caller's org scope. Never throws for a policy reason — an
  * anonymous request simply reaches no org.
  *
- * @param {import('express').Request} req
+ * @param {OrgScopeRequest | null | undefined} req
  * @param {{strict?: boolean}} [opts] `strict` rethrows a failed store read
  *   instead of degrading. Opt-in, because every existing caller reads a narrow
  *   answer as an answer; whoever uses the result as a decision key wants it on.
@@ -127,6 +128,8 @@ async function orgScope(req, { strict = false } = {}) {
  *
  * Throws a 403-shaped error the terminal handler turns into a worded response,
  * so the handler below it never has to repeat the "no organisation" branch.
+ * @param {OrgScopeRequest | null | undefined} req
+ * @param {{strict?: boolean}} [opts]
  */
 async function requireOrgScope(req, opts) {
     const scope = await orgScope(req, opts);
@@ -143,6 +146,12 @@ async function requireOrgScope(req, opts) {
 }
 
 module.exports = { orgScope, requireOrgScope };
+
+/**
+ * What the scope reads off a request: the session, and where it memoises its answer. An Express
+ * request fits; so does `{ session: { user: { id } } }` for work that has no request (a migration).
+ * @typedef {{ session?: { isAdmin?: boolean, user?: { id?: string, role?: string } | null } | null, _orgScope?: OrgScope }} OrgScopeRequest
+ */
 
 /**
  * @typedef {{ userId: string|null, isSuperAdmin: boolean, orgIds: Set<string>|null,

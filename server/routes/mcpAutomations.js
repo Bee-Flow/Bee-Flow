@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automations as an MCP server — build Bee Flow automations from an external editor.
  *

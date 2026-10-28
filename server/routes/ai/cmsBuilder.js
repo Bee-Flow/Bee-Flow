@@ -1,4 +1,4 @@
-/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
+/** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * CMS Builder — conversational SSE endpoint (trimmed clone of
  * routes/ai/appStudioBuilder.js for CMS page building).
@@ -49,7 +49,6 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { trackUsageTotals, usageTotalsLogFields } = require('../../core/providers/usageNormalizer');
 const router = express.Router();
-
 const cmsStore = require('../../stores/cmsStore');
 const usageStore = require('../../stores/usageStore');
 const { getProviderForModel, getAIConfig } = require('../../core/aiAgent');
@@ -118,7 +117,7 @@ router.get('/session/:siteId', requireAdmin, validate({ params: SessionParams })
     res.json({ snapshot });
 });
 
-router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBody }), async (req, res) => {
+router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof StreamBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     // Wall-clock start of the turn — feeds the usage row's duration_ms and
     // the structured observability line. Set before any SSE so a turn that
@@ -566,26 +565,27 @@ function streamWithRetry(adapter, cfg, modelId, messages, options, opts = {}) {
     });
 }
 
-module.exports = router;
 // Internals exposed for unit tests (server/routes/ai/cmsBuilder.test.js).
-module.exports._test = {
-    parseToolArgs,
-    isTransientChatError,
-    streamWithRetry,
-    applyBuilderTierFloor,
-    sanitizeHistory,
-    sanitizeEditorContext,
-    renderEditorContextNote,
-    renderValidationNote,
-    renderBlockFeedbackNote,
-    summariseToolResult,
-    labelForTool,
-    truncateJson,
-    VALIDATION_NOTE_PREFIX,
-    DRAFT_STATE_PREFIX,
-    EDITOR_CONTEXT_PREFIX,
-    BLOCK_FEEDBACK_PREFIX,
-};
+module.exports = Object.assign(router, {
+    _test: {
+        parseToolArgs,
+        isTransientChatError,
+        streamWithRetry,
+        applyBuilderTierFloor,
+        sanitizeHistory,
+        sanitizeEditorContext,
+        renderEditorContextNote,
+        renderValidationNote,
+        renderBlockFeedbackNote,
+        summariseToolResult,
+        labelForTool,
+        truncateJson,
+        VALIDATION_NOTE_PREFIX,
+        DRAFT_STATE_PREFIX,
+        EDITOR_CONTEXT_PREFIX,
+        BLOCK_FEEDBACK_PREFIX,
+    },
+});
 
 /**
  * @typedef {import('express').Router & { _test: Record<string, unknown> }} RouterExports

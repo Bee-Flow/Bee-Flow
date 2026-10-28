@@ -303,7 +303,7 @@ function createCustomDataRouter(deps = null) {
     const testLimiter = d.rateLimit({ name: 'shield-custom-data-test', windowMs: MINUTE, max: 30 });
     const tuneLimiter = d.rateLimit({ name: 'shield-custom-data-tune', windowMs: MINUTE, max: 10 });
 
-    router.post('/assist/preview', requireAuth, previewLimiter, validate({ body: PreviewBody }), async (req, res) => {
+    router.post('/assist/preview', requireAuth, previewLimiter, validate({ body: PreviewBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PreviewBody>, import('qs').ParsedQs>} */ req, res) => {
         const { orgId } = await admit(req, d);
         noStore(res);
         const { type, examples, keepFixed } = req.body;
@@ -311,7 +311,7 @@ function createCustomDataRouter(deps = null) {
         res.json({ outbound: built.outbound, keepFixedProposal: built.keepFixedProposal });
     });
 
-    router.post('/assist', requireAuth, assistLimiter, assistDayLimiter, validate({ body: AssistBody }), async (req, res) => {
+    router.post('/assist', requireAuth, assistLimiter, assistDayLimiter, validate({ body: AssistBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof AssistBody>, import('qs').ParsedQs>} */ req, res) => {
         const { orgId, userId } = await admit(req, d);
         noStore(res);
         const { type, examples, keepFixed, expectLookalikes } = req.body;
@@ -374,7 +374,7 @@ function createCustomDataRouter(deps = null) {
         });
     });
 
-    router.post('/test', requireAuth, testLimiter, validate({ body: TestBody }), async (req, res) => {
+    router.post('/test', requireAuth, testLimiter, validate({ body: TestBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestBody>, import('qs').ParsedQs>} */ req, res) => {
         const { orgId } = await admit(req, d);
         noStore(res);
         const orgTypes = await orgTypesOf(d, orgId);
@@ -386,7 +386,7 @@ function createCustomDataRouter(deps = null) {
         res.json(out);
     });
 
-    router.post('/tune', requireAuth, tuneLimiter, validate({ body: TuneBody }), async (req, res) => {
+    router.post('/tune', requireAuth, tuneLimiter, validate({ body: TuneBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TuneBody>, import('qs').ParsedQs>} */ req, res) => {
         const { orgId } = await admit(req, d);
         noStore(res);
         const sentences = benchSentences(req.body.sentences);

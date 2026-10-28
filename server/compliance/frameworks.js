@@ -334,7 +334,6 @@ const FRAMEWORKS = Object.freeze([
 // catalogue entry: there is one per org, not one per product.
 const CUSTOM_REGULATION = 'CUSTOM';
 const CUSTOM_ID_PREFIX = 'custom:';
-
 const CORE_IDS = Object.freeze(FRAMEWORKS.filter(f => f.core).map(f => f.id));
 
 /**
@@ -405,8 +404,9 @@ function _dayMs(iso) {
 /**
  * How current one framework's legal status is. A missing or unreadable date
  * is stale, never fresh: "nobody recorded a check" must not read as "checked".
- * @returns {{ verified_on: string|null, age_days: number|null, stale: boolean, stale_after_days: number, sources: number }}
+ * @param {{ legal_status_verified?: unknown, sources?: unknown } | null | undefined} fw
  * @param {number} [nowMs]
+ * @returns {{ verified_on: string|null, age_days: number|null, stale: boolean, stale_after_days: number, sources: number }}
  */
 function legalReview(fw, nowMs = Date.now()) {
     const verified = fw && typeof fw.legal_status_verified === 'string' ? fw.legal_status_verified : null;

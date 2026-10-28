@@ -179,7 +179,7 @@ async function _loadPublished() {
  * rules the model output goes through, so a caller holding the ingest token
  * cannot write arbitrary shapes — or unbounded text — into the changelog.
  */
-router.post('/ingest', _requireIngestToken, validate({ body: IngestBody }), async (req, res) => {
+router.post('/ingest', _requireIngestToken, validate({ body: IngestBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof IngestBody>, import('qs').ParsedQs>} */ req, res) => {
     const {
         channel, version = null,
         commitSubjects, prTitles, diffstat,

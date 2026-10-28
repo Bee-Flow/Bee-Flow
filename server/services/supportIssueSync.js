@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Keeps the linked-issue snapshot on support tickets fresh, and raises the
  * follow-up flag when a linked issue actually moves.
@@ -259,6 +260,7 @@ async function syncThread(threadId, { userId = null } = {}) {
 /**
  * @typedef {Object} StartArgs
  * @property {number} [intervalMs]
+ * @property {typeof import('../modules').moduleGatedTick} [gate]  test seam
  */
 /**
  * Mount the issue-sync tick behind the runtime module gate, so removing

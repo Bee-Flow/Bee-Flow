@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webhook receiver for NC events forwarded by the Bee Flow connector.
  *

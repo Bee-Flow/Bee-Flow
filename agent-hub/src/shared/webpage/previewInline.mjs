@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The inliners of a webpage PREVIEW document and its selection relay: the
  * sandboxed, opaque-origin preview iframe cannot fetch the project's other

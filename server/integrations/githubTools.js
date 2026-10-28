@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GitHub Tools — AI tools for repository management
  * 
@@ -132,8 +133,9 @@ async function getToken(userId) {
 }
 
 /**
+ * @param {string} token
  * @param {string} endpoint
- * @param {{ method: string; headers: { 'Content-Type': string; }; body: string; }} [options]
+ * @param {{ method?: string; headers?: Record<string, string>; body?: string; }} [options]
  */
 async function ghFetch(token, endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${GITHUB_API}${endpoint}`;

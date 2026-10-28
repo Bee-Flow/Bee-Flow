@@ -136,7 +136,7 @@ router.get('/plans', async (req, res) => {
 });
 
 // POST /api/subscriptions/plans
-router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
+router.post('/plans', validate({ body: CreatePlanBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreatePlanBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const plan = await userStore.createPlan(req.body);
         if (!plan) return res.status(400).json({ error: 'Failed to create plan' });

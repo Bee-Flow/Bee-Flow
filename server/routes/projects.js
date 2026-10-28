@@ -178,7 +178,6 @@ async function sharedChatsRemain(projectId, count) {
         details);
 }
 
-
 // ── Role middleware ──────────────────────────────────────
 // Lives in auth/projectAccess.js so the chat, memory, notebook and automation
 // paths enforce the same ladder from the same code. Behaviour is unchanged:
@@ -190,7 +189,7 @@ const { requireProjectRole: requireRole } = require('../auth/projectAccess');
 
 // GET / — list user's projects (owned + shared). `?kind=` narrows the list to
 // one side of the split; a legacy (unclassified) project is on both sides.
-router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
+router.get('/', validate({ query: S.ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof S.ListQuery>>} */ req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const kind = req.query.kind || undefined;
@@ -200,7 +199,7 @@ router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
 });
 
 // POST / — create project
-router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
+router.post('/', validate({ body: S.CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -271,7 +270,7 @@ router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
 const MAX_SUMMARY_PROJECTS = 60;
 const MAX_SUMMARY_SINCE_MS = 7 * 24 * 60 * 60 * 1000;
 
-router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => {
+router.get('/summary', validate({ query: S.SummaryQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof S.SummaryQuery>>} */ req, res) => {
     try {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -364,7 +363,7 @@ router.get('/:id', requireRole('viewer'), async (req, res) => {
 });
 
 // PUT /:id — update project (editor+)
-router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), async (req, res) => {
+router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.UpdateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     const before = await projectStore.getProject(req.params.id);
     if (!before) return res.status(404).json({ error: 'Not found' });
@@ -462,7 +461,7 @@ router.use('/', require('./projects/kind').makeKindRouter({
 
 // POST /:id/archive and /:id/restore — the owner closes a project (read-only for everyone, hidden from
 // the default list) and opens it again. Both are idempotent and pass `allowArchived`, as does DELETE.
-router.post('/:id/archive', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
+router.post('/:id/archive', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ArchiveBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     const project = req.project || await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
@@ -473,7 +472,7 @@ router.post('/:id/archive', requireRole('owner', { allowArchived: true }), valid
     res.json({ success: true, archivedAt: updated?.archivedAt || null });
 });
 
-router.post('/:id/restore', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
+router.post('/:id/restore', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ArchiveBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     const project = req.project || await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
@@ -594,7 +593,7 @@ router.use('/', require('./projects/packaging'));
 // ── Conversation assignment ──────────────────────────────
 
 // PUT /:id/conversations — assign/unassign conversations (editor+)
-router.put('/:id/conversations', requireRole('editor'), validate({ body: S.ConversationsBody }), async (req, res) => {
+router.put('/:id/conversations', requireRole('editor'), validate({ body: S.ConversationsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ConversationsBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     const { assign, unassign } = req.body;
     // assign: [{ id, type: 'direct'|'agent' }]
@@ -693,7 +692,6 @@ router.use('/', require('./projects/complianceHints'));
 // routes/solutionStages.js, mounted in index.js without the projects licence.
 router.use('/', require('./projects/stages').makeStagesRouter({ projectStore }));
 
-module.exports = router;
 // The loader behind GET /:id/graph, GET /:id/completeness and GET /summary.
 // The loader itself is projects/graphForProject.js; this wrapper stays
 // exported so routes/studio/attention.js can ask the SAME question
@@ -701,7 +699,9 @@ module.exports = router;
 // list, which is what keeps "could not read half of it" from reading as "clean".
 // It authorises nothing on its own: every caller resolves the project role, or
 // the project list, before it hands an id over.
-module.exports.buildGraphForProject = buildGraphForProject;
+module.exports = Object.assign(router, {
+    buildGraphForProject,
+});
 
 /**
  * Request after requireRole: the loaded project.

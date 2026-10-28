@@ -203,7 +203,7 @@ router.get('/health', requireSuperAdmin, async (req, res) => {
     });
 });
 
-router.get('/audit', requireSuperAdmin, validate({ query: AuditQuery }), async (req, res) => {
+router.get('/audit', requireSuperAdmin, validate({ query: AuditQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof AuditQuery>>} */ req, res) => {
     const userStore = require('../../stores/userStore');
     const limit = Math.max(1, Math.min(500, req.query.limit || 100));
     const rows = await userStore.getAccessAuditLog({
@@ -228,7 +228,7 @@ router.get('/:id/health', requireSuperAdmin, async (req, res) => {
     res.json(await moduleHealthRow(id, runtimeHealth, ledgerRows, stateRow));
 });
 
-router.get('/:id/logs', requireSuperAdmin, validate({ query: LogsQuery }), (req, res) => {
+router.get('/:id/logs', requireSuperAdmin, validate({ query: LogsQuery }), (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof LogsQuery>>} */ req, res) => {
     const logBuffer = require('../../modules/moduleLogBuffer');
     const logs = logBuffer.get(req.params.id, {
         limit: req.query.limit || 200,
@@ -250,7 +250,7 @@ router.post('/:id/reactivate', requireSuperAdmin, async (req, res, next) => {
 });
 
 // ── Hub marketplace / connection ───────────────────────────────────────────
-router.get('/marketplace', requireSuperAdmin, validate({ query: MarketplaceQuery }), async (req, res, next) => {
+router.get('/marketplace', requireSuperAdmin, validate({ query: MarketplaceQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof MarketplaceQuery>>} */ req, res, next) => {
     try {
         const conn = await hubClient.getConnection();
         const q = req.query.q || '';
@@ -317,7 +317,7 @@ router.get('/marketplace/:id/media/:mediaId', requireSuperAdmin, async (req, res
     }
 });
 
-router.post('/connect', requireSuperAdmin, validate({ body: ConnectBody }), async (req, res, next) => {
+router.post('/connect', requireSuperAdmin, validate({ body: ConnectBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConnectBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const connection = await hubClient.connect({ hubUrl: req.body?.hubUrl });
         res.json({ ok: true, connection });
@@ -370,7 +370,7 @@ router.post('/:id/remove', requireSuperAdmin, async (req, res) => {
 });
 
 // ── Remote-module purchase / install / update ──────────────────────────────
-router.post('/:id/purchase', requireSuperAdmin, validate({ body: PurchaseBody }), async (req, res, next) => {
+router.post('/:id/purchase', requireSuperAdmin, validate({ body: PurchaseBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PurchaseBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         let priceId = req.body?.priceId || req.body?.price_id || null;
         if (!priceId) {
@@ -398,7 +398,7 @@ router.post('/:id/purchase', requireSuperAdmin, validate({ body: PurchaseBody })
     }
 });
 
-router.post('/:id/install', requireSuperAdmin, validate({ body: InstallBody }), async (req, res) => {
+router.post('/:id/install', requireSuperAdmin, validate({ body: InstallBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof InstallBody>, import('qs').ParsedQs>} */ req, res) => {
     const id = req.params.id;
     if (packageLoader.isInstalling(id)) return res.status(409).json({ error: 'install_in_progress' });
     // Fire-and-forget: the client polls GET /:id/install-progress. Errors
@@ -424,7 +424,7 @@ router.get('/:id/install-progress', requireSuperAdmin, async (req, res) => {
     res.json(progress);
 });
 
-router.post('/:id/update', requireSuperAdmin, validate({ body: UpdateBody }), async (req, res, next) => {
+router.post('/:id/update', requireSuperAdmin, validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const r = await packageLoader.updateModule(req.params.id, {
             actorId: req.session.user?.id || null,
@@ -443,7 +443,7 @@ router.post('/:id/update', requireSuperAdmin, validate({ body: UpdateBody }), as
 
 // Per-module update policy: which release channel to follow and how tightly
 // to pin (none | major | minor). Consumed by updateModule + marketplaceRow.
-router.patch('/:id/update-policy', requireSuperAdmin, validate({ body: UpdatePolicyBody }), async (req, res) => {
+router.patch('/:id/update-policy', requireSuperAdmin, validate({ body: UpdatePolicyBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdatePolicyBody>, import('qs').ParsedQs>} */ req, res) => {
     const { channel, pin } = req.body;
     const row = await platformModuleStore.getState(req.params.id);
     if (!row || !remoteCatalog.isRemoteRow(row)) return res.status(404).json({ error: 'not_found' });
@@ -460,7 +460,7 @@ const SIDELOAD_MAX_BYTES = 200 * 1024 * 1024;
 router.post('/sideload', requireSuperAdmin,
     express.raw({ type: ['application/octet-stream', 'application/zip'], limit: SIDELOAD_MAX_BYTES }),
     validate({ query: SideloadQuery }),
-    async (req, res, next) => {
+    async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof SideloadQuery>>} */ req, res, next) => {
         try {
             if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
                 return res.status(400).json({ error: 'empty_package' });
@@ -502,7 +502,7 @@ router.post('/:id/offline-grant', requireSuperAdmin, async (req, res, next) => {
     }
 });
 
-router.post('/:id/activate-staged', requireSuperAdmin, validate({ body: VersionBody }), async (req, res, next) => {
+router.post('/:id/activate-staged', requireSuperAdmin, validate({ body: VersionBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof VersionBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const r = await packageLoader.activateStaged(req.params.id, {
             version: req.body.version || null, actorId: req.session.user?.id || null,
@@ -522,7 +522,7 @@ router.get('/:id/versions', requireSuperAdmin, async (req, res) => {
     res.json({ versions: await packageLoader.listVersions(req.params.id) });
 });
 
-router.post('/:id/rollback', requireSuperAdmin, validate({ body: RollbackBody }), async (req, res, next) => {
+router.post('/:id/rollback', requireSuperAdmin, validate({ body: RollbackBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RollbackBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const r = await packageLoader.rollbackTo(req.params.id, {
             version: req.body.version || null,

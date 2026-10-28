@@ -125,7 +125,7 @@ function makeFormScenariosRouter(overrides = {}) {
         return res.json({ scenario: { ...describeScenario(row), answers: { trigger: answers.trigger ?? null, pages: answers.pages || {} } } });
     });
 
-    router.post('/:id/form-scenarios', validate({ body: CreateBody }), async (req, res) => {
+    router.post('/:id/form-scenarios', validate({ body: CreateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         await runData.assertTestDataAllowed(a);
@@ -157,7 +157,7 @@ function makeFormScenariosRouter(overrides = {}) {
         return res.status(201).json({ scenario: describeScenario(row) });
     });
 
-    router.put('/:id/form-scenarios/:scenarioId', validate({ body: RenameBody }), async (req, res) => {
+    router.put('/:id/form-scenarios/:scenarioId', validate({ body: RenameBody }), async (/** @type {import('express').Request<{ id: string, scenarioId: string }, any, import('zod').infer<typeof RenameBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         const row = await testing().renameFormScenario(a.id, req.params.scenarioId, req.body.name);

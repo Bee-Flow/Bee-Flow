@@ -128,7 +128,7 @@ router.get('/system', async (req, res) => {
 // This endpoint uses SSE streaming, so it can't use the generic handler factory.
 // It stays as a standalone implementation.
 
-router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, validate({ body: DesignerBody }), async (req, res, next) => {
+router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, validate({ body: DesignerBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DesignerBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const { message } = req.body;
 

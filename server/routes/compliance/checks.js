@@ -159,7 +159,7 @@ const ChecksQuery = z.object({
 
 // ───────────────── Checks ─────────────────
 
-router.get('/checks', requireAuth, requirePermission('admin_compliance'), validate({ query: ChecksQuery }), async (req, res) => {
+router.get('/checks', requireAuth, requirePermission('admin_compliance'), validate({ query: ChecksQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ChecksQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const fwParam = typeof req.query.framework === 'string' && req.query.framework ? req.query.framework : null;
     if (fwParam && !frameworks.byId(fwParam) && !frameworks.isCustomId(fwParam)) {
@@ -212,7 +212,7 @@ const HistoryQuery = z.object({
         .optional(),
 }).strict();
 
-router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (req, res) => {
+router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof HistoryQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const scopeId = typeof req.query.scope_id === 'string' ? req.query.scope_id : null;
     const rows = scopeId

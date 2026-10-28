@@ -18,7 +18,7 @@
  * reads `automation.definition` after that swap. `vars` are the automation's own
  * with the project's Solution variable values over them (stageVars.js).
  */
-
+// @typecheck
 const automationStore = require('../../stores/automationStore');
 const { buildLinearEdges } = require('./engine');
 const { seedReplayState } = require('./replaySeeding');
@@ -34,7 +34,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 // replay from. Production never sets it; a test captures the synthetic here
 // instead of replacing a module.
 const defaultDeps = {
-    executeAutomation: (...a) => execution.executeAutomation(...a),
+    executeAutomation: (/** @type {Parameters<typeof execution.executeAutomation>} */ ...a) => execution.executeAutomation(...a),
     seedReplayState: (...a) => seedReplayState(...a),
 };
 let deps = defaultDeps;
@@ -45,7 +45,7 @@ function configurePartialRuns(overrides = {}) {
     deps = { ...deps, ...overrides };
     return () => { deps = previous; };
 }
-const executeAutomation = (...a) => deps.executeAutomation(...a);
+const executeAutomation = (/** @type {Parameters<typeof execution.executeAutomation>} */ ...a) => deps.executeAutomation(...a);
 const executePartial = (automation, opts, ctx) => runSeeded(executeAutomation, automation, opts, ctx);
 
 /**

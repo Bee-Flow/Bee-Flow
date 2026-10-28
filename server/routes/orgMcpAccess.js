@@ -21,12 +21,12 @@ const router = express.Router();
 
 const NO_QUERY = z.object({}, { error: onUnknownKeys('This route takes no query parameters.') }).strict();
 
-router.get('/', requirePrimaryOrgAdmin(), validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/', requirePrimaryOrgAdmin(), validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const policy = await getOrgMcpPolicy(req.primaryOrgId);
     res.json({ policy, callerIp: req.ip || null });
 });
 
-router.put('/', requirePrimaryOrgAdmin(), validate({ body: PolicySchema }), async (req, res) => {
+router.put('/', requirePrimaryOrgAdmin(), validate({ body: PolicySchema }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PolicySchema>, import('qs').ParsedQs>} */ req, res) => {
     const policy = await saveOrgMcpPolicy(req.primaryOrgId, req.body, sessionUser(req).id);
     res.json({ policy });
 });

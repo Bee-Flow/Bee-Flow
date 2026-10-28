@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A KB id (or document id) that is not even shaped like a UUID.
  *

@@ -85,7 +85,7 @@ router.get('/iso/docs/published/:slug/body', requireAuth, async (req, res) => {
     res.json(v);
 });
 
-router.post('/iso/docs/:slug/acknowledge', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.post('/iso/docs/:slug/acknowledge', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{ slug: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const userId = req.session?.user?.id;
     const slug = String(req.params.slug);
@@ -110,7 +110,7 @@ router.get('/iso/docs', requireAuth, requirePermission('admin_compliance'), asyn
     });
 });
 
-router.post('/iso/docs/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/iso/docs/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const inserted = await ismsDocStore.seedMissing(orgId, _policySeeds());
     res.json({ inserted });
@@ -123,7 +123,7 @@ router.get('/iso/docs/:slug', requireAuth, requirePermission('admin_compliance')
     res.json(doc);
 });
 
-router.put('/iso/docs/:slug', requireAuth, requirePermission('admin_compliance'), validate({ body: DocPatch }), async (req, res) => {
+router.put('/iso/docs/:slug', requireAuth, requirePermission('admin_compliance'), validate({ body: DocPatch }), async (/** @type {import('express').Request<{ slug: string }, any, import('zod').infer<typeof DocPatch>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const slug = String(req.params.slug);
@@ -140,7 +140,7 @@ router.put('/iso/docs/:slug', requireAuth, requirePermission('admin_compliance')
     res.json(doc);
 });
 
-router.post('/iso/docs/:slug/publish', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/iso/docs/:slug/publish', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ slug: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;

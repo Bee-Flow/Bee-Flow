@@ -111,6 +111,9 @@ async function _orgForUser(userId) {
 /**
  * @typedef {Object} _resolveIntegrationCtxArgs
  * @property {string | null} [toolName]
+ * @property {unknown} userId
+ * @property {unknown} orgId
+ * @property {unknown} session
  */
 /**
  * @param {_resolveIntegrationCtxArgs} param0

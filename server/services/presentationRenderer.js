@@ -259,8 +259,9 @@ function flattenMarking(marking) {
  * @param {object|null} [args.theme]       per-deck look overrides (deckThemeOptions: preset, accent, background, font, coverStyle, tableStyle, logo, logoPlacement, footerText…)
  * @param {object|null} [args.marking]     compliance marking (compliance/marking.js shape) or null
  * @param {Function} [args.resolveImage]   async (imageRef) => data: URL | null
- * @returns {Promise<{buffer:Buffer, contentType:string, format:string, extension:string, slideCount:number,
- *   warnings:string[], degraded:boolean, marking:null|{visible:boolean,metadata:boolean}, houseStyle:boolean}>}
+ * @returns {Promise<{buffer?:Buffer, html?:string, contentType:string, format:string, extension:string, slideCount:number,
+ *   warnings:string[], degraded?:boolean, marking:null|{visible:boolean,metadata:boolean}, houseStyle:boolean,
+ *   deck:ReturnType<typeof normalizeDeck>}>}
  */
 async function renderPresentation({
     deck = null, content = null, format = 'pptx', title = '', author = '', date = '',

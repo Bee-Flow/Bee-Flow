@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../telemetry/log');
 const templateStore = require('../stores/templateStore');
 const kbStore = require('../stores/knowledgeBases');

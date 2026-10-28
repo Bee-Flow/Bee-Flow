@@ -103,8 +103,8 @@ function resolveFilters(filters, resolveValue) {
  * wants a summary — but the query compiler's own MAX_RESULT_ROWS still
  * ceilings whatever is asked for, so no caller can escape the hard limit.
  *
- * @param {object} app           { id, userId, organizationId }
- * @param {object} model         the app's data model
+ * @param {unknown} app           { id, userId, organizationId }
+ * @param {{ tables: unknown; }} model         the app's data model
  * @param {object} binding       a record / records / aggregate binding
  * @param {object} opts          { viewer, role, resolveValue, maxRows? }
  */

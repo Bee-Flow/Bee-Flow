@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — organisation invitations: create + email, list, revoke,
  * with the invite flood-control state. Split out of auth/adminRoutes.js;

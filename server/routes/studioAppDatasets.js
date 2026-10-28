@@ -120,7 +120,6 @@ const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
-
 const studioAppStore = require('../stores/studioAppStore');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const storageStore = require('../stores/storageStore');
@@ -430,8 +429,9 @@ router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, data
     res.json({ ok: true });
 });
 
-module.exports = router;
-module.exports._internals = { PART_BYTES, MAX_FILE_BYTES, TOTAL_BYTES_PER_OWNER, MAX_FILES_PER_APP, publicDataset };
+module.exports = Object.assign(router, {
+    _internals: { PART_BYTES, MAX_FILE_BYTES, TOTAL_BYTES_PER_OWNER, MAX_FILES_PER_APP, publicDataset },
+});
 
 /**
  * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp

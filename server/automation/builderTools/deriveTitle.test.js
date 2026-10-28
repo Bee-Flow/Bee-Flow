@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * deriveTitle / ensureDraftTitle — the six briefs in scripts/builder-briefs/
  * and the rules between them.

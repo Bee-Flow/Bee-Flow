@@ -129,7 +129,7 @@ function makeThreadsRouter(deps = {}) {
     // into a project they were only ever a viewer on, could never clean it up
     // again. Safe by construction: every read and write here matches on the
     // caller's user id.
-    router.delete('/conversations/:convId', validate({ query: S.TypeQuery }), async (req, res) => {
+    router.delete('/conversations/:convId', validate({ query: S.TypeQuery }), async (/** @type {import('express').Request<{ convId: string }, any, any, import('zod').infer<typeof S.TypeQuery>>} */ req, res) => {
         const userId = userIdOf(req);
         if (!userId) throw unauthorized('not_authenticated', 'Not authenticated');
         const table = tableOf(req.query.type);
@@ -145,7 +145,7 @@ function makeThreadsRouter(deps = {}) {
 
     // ── Shared threads ───────────────────────────────────────────────
 
-    router.get('/:id/threads', requireRole('viewer'), validate({ query: S.PageQuery }), async (req, res) => {
+    router.get('/:id/threads', requireRole('viewer'), validate({ query: S.PageQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof S.PageQuery>>} */ req, res) => {
         const limit = Math.min(parseInt(String(req.query.limit), 10) || 50, 200);
         const offset = parseInt(String(req.query.offset), 10) || 0;
         const threads = await shared().listProjectThreads(req.params.id, { limit, offset });
@@ -154,7 +154,7 @@ function makeThreadsRouter(deps = {}) {
 
     // Editor on the project AND owner of the conversation (the store matches
     // on user_id): sharing re-encrypts, and only the owner holds the key.
-    router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody }), async (req, res) => {
+    router.post('/:id/threads', requireRole('editor'), validate({ body: S.ShareThreadBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ShareThreadBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = userIdOf(req);
         const { conversationId, type } = req.body || {};
 
@@ -184,7 +184,7 @@ function makeThreadsRouter(deps = {}) {
         res.json(result);
     });
 
-    router.delete('/:id/threads/:convId', requireOwnThreadMw, validate({ query: S.TypeQuery }), async (req, res) => {
+    router.delete('/:id/threads/:convId', requireOwnThreadMw, validate({ query: S.TypeQuery }), async (/** @type {import('express').Request<{ id: string, convId: string }, any, any, import('zod').infer<typeof S.TypeQuery>>} */ req, res) => {
         if (!(/** @type {any} */ (req).threadFiling?.shared)) {
             // Filed here but not shared: nothing to re-encrypt, nothing to announce.
             return res.json({ shared: false, rekeyed: 0 });

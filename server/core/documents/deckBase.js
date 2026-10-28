@@ -1,3 +1,4 @@
+// @typecheck
 const SLIDE_LAYOUTS = Object.freeze(['title', 'section', 'bullets', 'two_column', 'cards', 'table', 'image', 'quote', 'chart', 'stats', 'timeline', 'closing']);
 
 const MAX_CARDS = 6;

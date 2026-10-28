@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — POST /map-json-fields: turn a JSON sample plus a
  * plain-language request into deterministic parse_json extraction paths,
@@ -221,7 +222,7 @@ function verifyMapJsonItemsRef(rawItemsRef, sample) {
  * The sample is user DATA — it is never treated as instructions and never
  * logged (errors log e.message only, like the sibling routes).
  */
-router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ body: MapJsonBody }), async (req, res) => {
+router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ body: MapJsonBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof MapJsonBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
     if (!await userHasBetaFeature(userId, 'automations', req.session)) {
@@ -256,12 +257,13 @@ router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ 
     return res.json({ itemsRef, fields: verifyMappedFields(structured?.fields, sample, { itemsRef }) });
 });
 
-module.exports = router;
 // Pure helpers, re-exported through the facade's ._test surface.
-module.exports.validateMapJsonRequest = validateMapJsonRequest;
-module.exports.verifyMappedFields = verifyMappedFields;
-module.exports.verifyMapJsonItemsRef = verifyMapJsonItemsRef;
-module.exports.MAP_JSON_FIELDS_TOOL = MAP_JSON_FIELDS_TOOL;
+module.exports = Object.assign(router, {
+    validateMapJsonRequest,
+    verifyMappedFields,
+    verifyMapJsonItemsRef,
+    MAP_JSON_FIELDS_TOOL,
+});
 
 /**
  * @typedef {import('express').Router & { validateMapJsonRequest: typeof validateMapJsonRequest; verifyMappedFields: typeof verifyMappedFields; verifyMapJsonItemsRef: typeof verifyMapJsonItemsRef; MAP_JSON_FIELDS_TOOL: typeof MAP_JSON_FIELDS_TOOL }} RouterExports

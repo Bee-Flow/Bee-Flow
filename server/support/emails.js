@@ -37,6 +37,7 @@ function _escape(s) {
  * @property {string} body
  * @property {string} [ctaLabel]
  * @property {string} [footer]
+ * @property {unknown} ctaUrl
  */
 /**
  * @param {_shellArgs} param0
@@ -95,6 +96,9 @@ function _bodyAsHtml(body) {
 /**
  * @typedef {Object} SendThreadCreatedEmailArgs
  * @property {string | string[]} to
+ * @property {unknown} requesterName
+ * @property {unknown} subject
+ * @property {unknown} threadUrl
  */
 /**
  * Confirmation to the requester right after a thread is created.
@@ -120,6 +124,10 @@ async function sendThreadCreatedEmail({ to, requesterName, subject, threadUrl })
  * @typedef {Object} SendAiReplyEmailArgs
  * @property {string | string[]} to
  * @property {boolean} [escalated]
+ * @property {unknown} requesterName
+ * @property {unknown} subject
+ * @property {unknown} replyBody
+ * @property {unknown} threadUrl
  */
 /**
  * Posted by the AI auto-responder.
@@ -148,6 +156,11 @@ async function sendAiReplyEmail({ to, requesterName, subject, replyBody, threadU
 /**
  * @typedef {Object} SendStaffReplyEmailArgs
  * @property {string | string[]} to
+ * @property {unknown} requesterName
+ * @property {unknown} subject
+ * @property {unknown} staffName
+ * @property {unknown} replyBody
+ * @property {unknown} threadUrl
  */
 /**
  * Reply posted by Bee Flow staff.
@@ -189,6 +202,10 @@ function _csatBlock(csatLinks) {
 /**
  * @typedef {Object} SendThreadResolvedEmailArgs
  * @property {string | string[]} to
+ * @property {unknown} requesterName
+ * @property {unknown} subject
+ * @property {unknown} threadUrl
+ * @property {unknown} [csatLinks]
  */
 /**
  * Resolution notice. When `csatLinks` is supplied, embeds a 1-5 rating row and
@@ -241,6 +258,7 @@ function _redactEmail(addr) {
 /**
  * @typedef {Object} _markMessageEmailStatusArgs
  * @property {string} [messageId]
+ * @property {unknown} status
  */
 /**
  * @param {_markMessageEmailStatusArgs} param0
@@ -261,6 +279,7 @@ async function _markMessageEmailStatus({ messageId, status }) {
  * @typedef {Object} _notifyStaffOfFailureArgs
  * @property {string} kind
  * @property {string} threadId
+ * @property {unknown} errorMsg
  */
 /**
  * @param {_notifyStaffOfFailureArgs} param0
@@ -289,6 +308,7 @@ async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
  * @typedef {Object} _recordAuditEventArgs
  * @property {string} threadId
  * @property {string} kind
+ * @property {unknown} errorMsg
  */
 /**
  * @param {_recordAuditEventArgs} param0
@@ -312,7 +332,7 @@ async function _recordAuditEvent({ threadId, kind, errorMsg }) {
  * Wraps a single send-call with surfacing logic.
  *
  * @param {Function} sendFn  one of sendThreadCreatedEmail / sendAiReplyEmail / …
- * @param {Object}   sendArgs  passed to `sendFn` verbatim
+ * @param {{ to: unknown; }}   sendArgs  passed to `sendFn` verbatim
  * @param {Object}   ctx
  * @param {string}   ctx.kind       'thread_created' | 'ai_reply' | 'staff_reply' | 'resolved'
  * @param {string}   ctx.threadId   for notification + audit

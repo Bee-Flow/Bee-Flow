@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the steps that reach outside the graph: a web service call
  * (with the two ways its answer is remembered, askOnce and cacheInto), a
@@ -73,7 +74,7 @@ function liftUrlQuery(url, query) {
  * Lives here rather than in stepEditing so BOTH paths can reach it — that file
  * already requires this one, so the reverse would be a cycle — and so an added
  * step and a patched one are byte-identical.
- * @param {boolean} value
+ * @param {boolean | { acrossRuns?: unknown, ttlSeconds?: unknown } | null | undefined} value
  */
 function normalizeAskOnce(value) {
     if (value === true) return true;
@@ -217,6 +218,8 @@ function applyAddNotification(draft, args, draftWrap) {
 function applyAddKnowledgeWrite(draft, args, draftWrap) {
     const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    /** @typedef {ReturnType<typeof bindingToTemplate>} TemplateText */
+    /** @type {{ id: string, type: string, label: string, forEach?: NonNullable<typeof forEach>, knowledgeBaseId: string, title: TemplateText, content: TemplateText, sourceUri: TemplateText, nearDuplicateStrategy?: string }} */
     const step = {
         id: newId('kbw'),
         type: 'knowledge_write',

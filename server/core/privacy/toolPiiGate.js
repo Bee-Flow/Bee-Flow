@@ -61,7 +61,7 @@ const DEFAULT_THRESHOLD = 0.7;
 // Resolved lazily: piiDetection and orgShield both reach the config store at
 // require time. Tests replace these through `_deps`.
 const _deps = {
-    detectPii: (...args) => require('./piiDetection').detectPii(...args),
+    detectPii: (/** @type {Parameters<typeof import('./piiDetection').detectPii>} */ ...args) => require('./piiDetection').detectPii(...args),
     orgShield: () => require('./orgShield'),
 };
 

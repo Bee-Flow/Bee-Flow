@@ -73,7 +73,7 @@ function makeMembersRouter(deps) {
     // POST /:id/share — share with user or group. The owner always; an editor only
     // while the project allows it (editorsCanInvite), only as viewer or editor, and
     // never over someone already on the project (that is a role change: owner only).
-    router.post('/:id/share', memberMutationLimiter, requireRole('editor'), validate({ body: S.ShareBody }), async (req, res) => {
+    router.post('/:id/share', memberMutationLimiter, requireRole('editor'), validate({ body: S.ShareBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ShareBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = getUserId(req);
         const { sharedWithType, sharedWithId, permission } = req.body;
         if (!sharedWithType || !sharedWithId) return res.status(400).json({ error: 'sharedWithType and sharedWithId required' });
@@ -175,7 +175,7 @@ function makeMembersRouter(deps) {
     // (the getOrgMembersForDirectory precedent, routes/automation/sharing.js). One-segment-deeper than `/:id`,
     // so nothing above can swallow it.
     const PRINCIPALS_MAX = 20;
-    router.get('/:id/principals', requireRole('viewer'), validate({ query: S.PrincipalsQuery }), async (req, res) => {
+    router.get('/:id/principals', requireRole('viewer'), validate({ query: S.PrincipalsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof S.PrincipalsQuery>>} */ req, res) => {
         const project = await projectStore.getProject(req.params.id);
         if (!project) throw notFound();
         const orgId = await projectOrgOf(project);
@@ -220,7 +220,7 @@ function makeMembersRouter(deps) {
     });
 
     // PUT /:id/members/:memberId — change role (owner only)
-    router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner'), validate({ body: S.MemberRoleBody }), async (req, res) => {
+    router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner'), validate({ body: S.MemberRoleBody }), async (/** @type {import('express').Request<{ id: string, memberId: string }, any, import('zod').infer<typeof S.MemberRoleBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = getUserId(req);
         const { role } = req.body;
         const normalized = projectStore.normalizePermission(role);
@@ -250,7 +250,7 @@ function makeMembersRouter(deps) {
     // the rescue covers an admin who already has at least viewer access; an admin with no access at all gets the
     // gate's 404 (accepted for this wave). The store checks the owner inside the write: a stale expectedOwnerId
     // (or a concurrent transfer) is a 409 owner_changed and nothing is written.
-    router.post('/:id/transfer-owner', memberMutationLimiter, requireRole('viewer'), validate({ body: S.TransferBody }), async (req, res) => {
+    router.post('/:id/transfer-owner', memberMutationLimiter, requireRole('viewer'), validate({ body: S.TransferBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.TransferBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
         const project = await projectStore.getProject(req.params.id);

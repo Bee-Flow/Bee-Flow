@@ -147,7 +147,7 @@ const EvidenceQuery = z.object({
 
 const ChainQuery = z.object({ limit: _word('limit') }).strict();
 
-router.get('/evidence', requireAuth, requirePermission('admin_compliance'), validate({ query: EvidenceQuery }), async (req, res) => {
+router.get('/evidence', requireAuth, requirePermission('admin_compliance'), validate({ query: EvidenceQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof EvidenceQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const regulation = req.query.regulation ? String(req.query.regulation).slice(0, 40) : null;
     const subjectType = req.query.subject_type ? String(req.query.subject_type).slice(0, 40) : null;
@@ -170,7 +170,7 @@ router.get('/evidence', requireAuth, requirePermission('admin_compliance'), vali
  * never drift. `ok: null` + `reason: 'columns_missing'` is the not-provisioned
  * case the client must render as "unknown", not as "broken").
  */
-router.get('/evidence/chain', requireAuth, requirePermission('admin_compliance'), validate({ query: ChainQuery }), async (req, res) => {
+router.get('/evidence/chain', requireAuth, requirePermission('admin_compliance'), validate({ query: ChainQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ChainQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const limit = _int(/** @type {string | undefined} */ (req.query.limit), CHAIN_LIMIT_DEFAULT, 1, CHAIN_LIMIT_MAX);
     const { verifyChain } = require('../../compliance/evidence/chain');

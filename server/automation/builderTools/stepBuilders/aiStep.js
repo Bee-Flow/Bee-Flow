@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — builder_add_ai: the ai_step, the model-tier gate, and the
  * R2 block that hands the thinking to an agent (agentId, skillIds and the
@@ -117,8 +118,10 @@ function sanitizeAgentPermissions(v) {
  * loses nothing. The invariant still holds where it means something: the
  * moment a step names an agent, the full set is written.
  *
- * @returns {{permissions?: object} | {error: string, _fixHint: string}}
+ * @returns {{ permissions?: ReturnType<typeof sanitizeAgentPermissions>, error?: undefined, _fixHint?: undefined } | { error: string, _fixHint: string, permissions?: undefined }}
+ * @param {unknown} rawPermissions
  * @param {string | null} agentId
+ * @param {{ hasSkills?: boolean }} [options]
  */
 function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = {}) {
     if (agentId) return { permissions: sanitizeAgentPermissions(rawPermissions) };

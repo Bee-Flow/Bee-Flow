@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * bfElements — THE `bf-*` vocabulary. One list, three consumers.
  *
@@ -68,7 +69,6 @@
  */
 
 'use strict';
-
 const { deepFreeze } = require('../../utils/deepFreeze');
 
 /** Upper bound on the number of rows that a public table may show. */
@@ -651,7 +651,7 @@ function effectiveAttributes(tag, attrs) {
 
 /**
  * Is this attribute required here, given what else is written?
- * @param {{ name: string; required: boolean; means: string; }} spec
+ * @param {BfAttribute} spec
  * @param {{ [x: string]: string; }} effective
  */
 function isRequired(spec, effective) {

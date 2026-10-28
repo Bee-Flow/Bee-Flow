@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One normaliser for what a provider reports as token usage.
  *
@@ -69,7 +70,6 @@
  */
 
 const MODALITIES = ['text', 'image', 'audio', 'video', 'document'];
-
 // A usage block is data that came from outside (a provider, or a self-hosted
 // endpoint an admin pointed us at), and it ends up in INTEGER columns, cost
 // maths and later in a price lookup. So it is read defensively: counts are

@@ -101,7 +101,7 @@ const SYSTEM = [
     'Bullets are short: one instruction each, no numbering, no trailing punctuation.',
 ].join(' ');
 
-router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimiter, validate({ body: ParseBody }), async (req, res) => {
+router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimiter, validate({ body: ParseBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ParseBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });

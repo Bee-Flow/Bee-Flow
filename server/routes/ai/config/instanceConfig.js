@@ -200,7 +200,7 @@ router.get('/config', requireAuth, async (req, res) => {
     });
 });
 
-router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, res) => {
+router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConfigBody>, import('qs').ParsedQs>} */ req, res) => {
     if (!(await isAdminUser(req))) {
         return res.status(403).json({ error: 'Admin access required' });
     }
@@ -561,7 +561,7 @@ router.delete('/config/setting/:keyName', requireAuth, async (req, res) => {
 
 // Admin-only: it makes the installation's own service mailbox send mail to any
 // address. It used to take requireAuth alone, so any signed-in user could.
-router.post('/config/test-service-email', requireAuth, validate({ body: TestEmailBody }), async (req, res) => {
+router.post('/config/test-service-email', requireAuth, validate({ body: TestEmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestEmailBody>, import('qs').ParsedQs>} */ req, res) => {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
     const { testRecipient } = req.body;
     if (!testRecipient || !testRecipient.trim()) {

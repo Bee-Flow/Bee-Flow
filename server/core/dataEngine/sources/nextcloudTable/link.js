@@ -203,7 +203,7 @@ function slugKey(title) {
  * @param {object} args.session     the caller's request session
  * @param {Array}  args.tables      [{ ncTableId?, ncViewId?, name?, key?, description? }]
  * @param {Array}  [args.relations] [{ from:{ncTableId, ncColumnId}, to:{ncTableId, ncColumnId} }]
- * @param {object} [args.schedule]  { everyMinutes }
+ * @param {unknown} [args.schedule]  accepted for compatibility and ignored
  * @returns {Promise<{ datatables:Array, warnings:string[], partial:boolean }>}
  */
 async function linkTables({ scope, principal, session, tables, relations = [], schedule = null }) {

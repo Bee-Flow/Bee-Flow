@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * projects/participation/index.js — the public face: one engine per process,
  * the team chat surface registered, other surfaces checked at registration.

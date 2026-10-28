@@ -1,5 +1,5 @@
 'use strict';
-
+// @typecheck
 /**
  * Automation import/export — the WS6 portability layer.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 const JSZip = require('jszip');
 const { xmlEscape, isNumericCell, sanitizeSheetName } = require('./xlsxWorkbook');
 

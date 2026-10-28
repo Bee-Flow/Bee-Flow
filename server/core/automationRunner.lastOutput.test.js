@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * `executeAutomation` returns the run's final step output as `lastOutput`.
  *

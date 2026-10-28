@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — POST /route-rules: the Condition node's model fallback.
  *
@@ -80,7 +81,6 @@ const { z, typeError, worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
 const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
-
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
@@ -88,7 +88,6 @@ const { validate } = require('../../../core/http/validate');
 const { routeRulesRateLimit } = require('./rateLimits');
 const { parseExpr, TOPIC_HOST_SPEC, parsePath, formatPath, appendKey } = require('../../../automation/expr');
 const { CONDITION_RULES_HINT } = require('../../../automation/builderTools/ruleExamples');
-
 const MAX_ROUTE_RULES_DESCRIPTION_CHARS = 500;
 /** A key the model is shown. A longer one is left out, never cut (header). */
 const MAX_FIELD_KEY_CHARS = 200;
@@ -415,7 +414,7 @@ function routeRulesProblem(structured, verified) {
  * from the body is logged (errors log e.message only, like the sibling
  * routes).
  */
-router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomationsBeta, validate({ body: RouteRulesBody }), async (req, res) => {
+router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomationsBeta, validate({ body: RouteRulesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof RouteRulesBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
 
     const parsed = validateRouteRulesRequest(req.body);
@@ -465,16 +464,17 @@ router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomations
     return res.json({ rules, problem: routeRulesProblem(structured, rules) });
 });
 
-module.exports = router;
 // Pure helpers, re-exported through the facade's ._test surface.
-module.exports.validateRouteRulesRequest = validateRouteRulesRequest;
-module.exports.verifyRouteRules = verifyRouteRules;
-module.exports.collectFieldPaths = collectFieldPaths;
-module.exports.routeRulesProblem = routeRulesProblem;
-module.exports.routeRulesSystemPrompt = routeRulesSystemPrompt;
-module.exports.ROUTE_RULES_TOOL = ROUTE_RULES_TOOL;
-module.exports.MAX_ROUTE_RULES = MAX_ROUTE_RULES;
-module.exports.requireAutomationsBeta = requireAutomationsBeta;
+module.exports = Object.assign(router, {
+    validateRouteRulesRequest,
+    verifyRouteRules,
+    collectFieldPaths,
+    routeRulesProblem,
+    routeRulesSystemPrompt,
+    ROUTE_RULES_TOOL,
+    MAX_ROUTE_RULES,
+    requireAutomationsBeta,
+});
 
 /**
  * @typedef {import('express').Router & { validateRouteRulesRequest: typeof validateRouteRulesRequest; verifyRouteRules: typeof verifyRouteRules; collectFieldPaths: typeof collectFieldPaths; routeRulesProblem: typeof routeRulesProblem; routeRulesSystemPrompt: typeof routeRulesSystemPrompt; ROUTE_RULES_TOOL: typeof ROUTE_RULES_TOOL; MAX_ROUTE_RULES: typeof MAX_ROUTE_RULES; requireAutomationsBeta: typeof requireAutomationsBeta }} RouterExports

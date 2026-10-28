@@ -33,7 +33,7 @@ const { z } = require('../../utils/zod');
 
 const NoQuery = z.object({}).strict();
 
-router.get('/available', requireAuth, validate({ query: NoQuery }), (req, res) => {
+router.get('/available', requireAuth, validate({ query: NoQuery }), (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     try {
         const swarms = listAvailableSwarms();
         return res.json({ swarms });

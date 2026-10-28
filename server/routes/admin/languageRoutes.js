@@ -4,7 +4,7 @@
  * All admin routes require authentication + admin permissions.
  * User-facing routes (GET effective strings) require only authentication.
  */
-
+// @typecheck
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -199,7 +199,7 @@ router.get('/:code/gui', requireAdmin, async (req, res) => {
 });
 
 // PUT /admin/languages/:code/gui — Save GUI translations for a locale
-router.put('/:code/gui', requireAdmin, validate({ body: GuiBody }), async (req, res) => {
+router.put('/:code/gui', requireAdmin, validate({ body: GuiBody }), async (/** @type {import('express').Request<{ code: string }, any, import('zod').infer<typeof GuiBody>, import('qs').ParsedQs>} */ req, res) => {
     const { translations } = req.body;
     await languageStore.setGUITranslations(req.params.code, translations);
     res.json({ success: true });
@@ -247,7 +247,7 @@ router.get('/:code/email-templates', requireAdmin, async (req, res) => {
 
 // PUT /admin/languages/:code/email-templates — save one template's fields
 // (empty/blank field = reset that field to the English default)
-router.put('/:code/email-templates', requireAdmin, validate({ body: EmailTemplateBody }), async (req, res) => {
+router.put('/:code/email-templates', requireAdmin, validate({ body: EmailTemplateBody }), async (/** @type {import('express').Request<{ code: string }, any, import('zod').infer<typeof EmailTemplateBody>, import('qs').ParsedQs>} */ req, res) => {
     const { templateId, fields } = req.body;
     const templates = await languageStore.setEmailTemplate(req.params.code, templateId, fields);
     res.json({ success: true, templates });
@@ -257,7 +257,7 @@ router.put('/:code/email-templates', requireAdmin, validate({ body: EmailTemplat
 // Render a branded HTML preview WITHOUT sending. Accepts optional in-progress
 // `fields` in the body so the admin sees unsaved edits; otherwise uses the
 // effective (saved/merged) template.
-router.post('/:code/email-templates/:templateId/preview', requireAdmin, validate({ body: EmailPreviewBody }), async (req, res) => {
+router.post('/:code/email-templates/:templateId/preview', requireAdmin, validate({ body: EmailPreviewBody }), async (/** @type {import('express').Request<{ code: string, templateId: string }, any, import('zod').infer<typeof EmailPreviewBody>, import('qs').ParsedQs>} */ req, res) => {
     const { code, templateId } = req.params;
     if (!EMAIL_TEMPLATE_IDS.includes(templateId)) {
         return res.status(400).json({ error: 'Unknown templateId' });
@@ -636,7 +636,7 @@ router.get('/:code/prompts/:promptId', requireAdmin, async (req, res) => {
 });
 
 // PUT /admin/languages/:code/prompts/:promptId — Save a single prompt translation
-router.put('/:code/prompts/:promptId', requireAdmin, validate({ body: PromptTextBody }), async (req, res) => {
+router.put('/:code/prompts/:promptId', requireAdmin, validate({ body: PromptTextBody }), async (/** @type {import('express').Request<{ code: string, promptId: string }, any, import('zod').infer<typeof PromptTextBody>, import('qs').ParsedQs>} */ req, res) => {
     const { code, promptId } = req.params;
     const { text } = req.body;
 
@@ -715,7 +715,7 @@ router.get('/org/default', requireOrgAdmin, async (req, res) => {
 });
 
 // PUT /api/languages/org/default — Set the org default locale for new users
-router.put('/org/default', requireOrgAdmin, validate({ body: OrgDefaultBody }), async (req, res) => {
+router.put('/org/default', requireOrgAdmin, validate({ body: OrgDefaultBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof OrgDefaultBody>, import('qs').ParsedQs>} */ req, res) => {
     const { defaultLocale } = req.body;
     // Validate that the locale exists
     const locales = await languageStore.getAvailableLocales();

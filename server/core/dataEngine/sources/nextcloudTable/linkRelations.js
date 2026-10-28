@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../mirror/syncPipeline').MirrorSiblings} MirrorSiblings */
 /**
  * The relations a link request declares, in Nextcloud-native terms (table and
@@ -76,6 +77,5 @@ function guessFieldId(mirror, ncColumnId) {
 
 module.exports = { resolveDeclared, guessFieldId };
 
-/** @typedef {import('../mirror/linking').MirrorTable & { _ncColumnTypes?: Record<string, string> }} NcMirror */
 
 /** @typedef {{ ncTableId?: number|string, ncColumnId?: number|string }} NcSide */

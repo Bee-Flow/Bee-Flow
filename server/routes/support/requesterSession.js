@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a requester's mailed link becomes once it has been used.
  *

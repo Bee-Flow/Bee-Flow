@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
 /**
  * Automation Builder — the rounds of a turn: one model call per round

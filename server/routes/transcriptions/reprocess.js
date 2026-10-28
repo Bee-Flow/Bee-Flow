@@ -33,7 +33,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 // the request. A body key that looks as if it could send that (`provider`,
 // `language`) should get a 400 and not be ignored — the previous run chose that
 // service, and that choice stands.
-router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     // Set once the note is flipped to 'processing' and the 202 sent; from then
     // on all outcomes are written to the note, never to the HTTP response.
     let transcriptionId = null;

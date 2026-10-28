@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * routes/skills/automationLink.js: linking an automation to a skill is starting
  * it, so only a caller who may start it may link it.

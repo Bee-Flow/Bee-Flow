@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: nested automation folders (2026-10).
  *

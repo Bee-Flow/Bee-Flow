@@ -29,7 +29,7 @@ const NoQuery = z.object({}).strict();
 // GET the persisted builder-session snapshot for an app. Used by the client
 // on mount to rehydrate chat history + validation state after a refresh or
 // SSE drop. Owner-scoped inside getBuilderSession (non-owners get null).
-router.get('/session/:appId', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/session/:appId', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ appId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const snapshot = await studioAppStore.getBuilderSession(/** @type {string} */ (req.params.appId), userId);
     if (!snapshot) return res.status(404).json({ error: 'No builder session for this app' });

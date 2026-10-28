@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Template Routes — CRUD + file upload/download for Word templates.
  *
@@ -104,7 +105,7 @@ async function authorizeKbIds(req, ids) {
 
 // ── Upload template ──────────────────────────────────────────────
 
-router.post('/upload', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (req, res) => {
+router.post('/upload', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const knowledgeBaseIds = await authorizeKbIds(req, req.body.knowledgeBaseIds);
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -207,7 +208,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 // ── Update template ──────────────────────────────────────────────
 
-router.put('/:id', requireAuth, validate({ body: UpdateBody }), async (req, res) => {
+router.put('/:id', requireAuth, validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('qs').ParsedQs>} */ req, res) => {
     await authorizeKbIds(req, req.body.knowledgeBaseIds);
     const userId = req.session.user.id;
     const { name, description, instructions, knowledgeBaseIds } = req.body;
@@ -309,7 +310,7 @@ async function renderTemplate(template, values) {
     };
 }
 
-router.post('/:id/fill', requireAuth, validate({ body: FillBody }), async (req, res) => {
+router.post('/:id/fill', requireAuth, validate({ body: FillBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FillBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const template = await templateStore.getTemplate(req.params.id, userId);
     if (!template) return res.status(404).json({ error: 'Template not found' });
@@ -322,7 +323,7 @@ router.post('/:id/fill', requireAuth, validate({ body: FillBody }), async (req, 
 });
 
 // Fill template and store result — returns a download URL for use in chat
-router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), async (req, res) => {
+router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FillBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const template = await templateStore.getTemplate(req.params.id, userId);
     if (!template) return res.status(404).json({ error: 'Template not found' });
@@ -377,5 +378,4 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
 
 // ── Background: Auto-parameterize template document ─────────────
 
-router._test_autoCreateTemplateKB = autoCreateTemplateKB;
-module.exports = router;
+module.exports = Object.assign(router, { _test_autoCreateTemplateKB: autoCreateTemplateKB });

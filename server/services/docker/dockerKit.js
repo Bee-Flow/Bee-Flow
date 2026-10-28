@@ -12,6 +12,17 @@ const fs = require('fs');
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
+ * The slice of the dockerode client these helpers use (dockerode ships no usable typings here).
+ * @typedef {object} DockerClient
+ * @property {(image: string) => { inspect(): Promise<unknown> }} getImage
+ * @property {(name: string) => { inspect(): Promise<unknown> }} getVolume
+ * @property {(opts: { Name: string }) => Promise<unknown>} createVolume
+ * @property {(opts: Record<string, unknown>) => Promise<{ start(): Promise<unknown> }>} createContainer
+ * @property {(image: string, callback: (err: Error | null, stream: NodeJS.ReadableStream) => void) => void} pull
+ * @property {{ followProgress(stream: NodeJS.ReadableStream, onFinished: (err: Error | null) => void, onProgress?: (event: { status?: string, id?: string }) => void): void }} modem
+ */
+
+/**
  * Detect whether the server itself is running inside a Docker container.
  * - /.dockerenv is created by the docker engine in every container.
  * - Falls back to checking cgroup membership for non-standard runtimes.
@@ -29,6 +40,7 @@ function isServerInContainer() {
 
 /**
  * True when the image is present locally; a non-404 error propagates.
+ * @param {DockerClient} docker
  * @param {string} image
  */
 async function imageExists(docker, image) {
@@ -45,7 +57,9 @@ async function imageExists(docker, image) {
  * Pull an image and resolve when the pull stream finishes. `onProgress`, when
  * given, receives every progress event; throttling and reporting stay with the
  * caller.
+ * @param {DockerClient} docker
  * @param {string} image
+ * @param {(event: { status?: string, id?: string }) => void} [onProgress]
  */
 function pullImage(docker, image, onProgress) {
     return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {

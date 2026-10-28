@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Consent to bind an EXISTING datatable (pure; no db, no state).
  *
@@ -50,12 +51,14 @@ const escapeRegExp = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the phrase is escaped literal text (no quantifiers), so the pattern is linear
 /**
  * @param {string} text
+ * @param {string} phrase
  */
 const namesPhrase = (text, phrase) => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(phrase)}(?![\\p{L}\\p{N}_])`, 'u').test(text);
 
 /**
  * Ids of the (real) catalog tables the texts name: by name, key or exact id, as whole phrases.
  * @param {string[]} texts
+ * @param {CatalogTable[] | null | undefined} catalog
  */
 function namedTableIds(texts, catalog) {
     const haystack = (Array.isArray(texts) ? texts : []).map(fold).join('\n');
@@ -83,9 +86,11 @@ function namedTableIds(texts, catalog) {
  * `tables` repeats the approved ids as {id, key, name} rows, for the note the
  * next turn's agent reads.
  *
- * @returns {{approvedIds: string[], createFor: string[], tables: object[]}}
+ * @param {{ questions?: ReviewQuestion[] | null, message?: unknown, catalog?: CatalogTable[] | null }} [args]
+ * @returns {TableChoice}
  */
 function resolveTableChoice({ questions, message, catalog } = {}) {
+    /** @type {TableChoice} */
     const out = { approvedIds: [], createFor: [], tables: [] };
     const answers = parseAnswersText(message);
     if (!answers) return out;
@@ -118,8 +123,13 @@ function resolveTableChoice({ questions, message, catalog } = {}) {
 // ── the approved set ───────────────────────────────────────────────────────
 
 /**
- * @typedef {Object} BuildApprovedSetArgs
- * @property {{ approvedIds: string[]; createFor: string[]; tables: object[]; } | null} [choice]
+ * @typedef {object} BuildApprovedSetArgs
+ * @property {CatalogTable[] | null} [catalog]  the tables the caller can see; anything but a list turns the gate off
+ * @property {unknown[]} [defs]  the definitions whose bound tables are already approved
+ * @property {string[]} [userTexts]  what the user wrote (their own words only)
+ * @property {unknown} [carried]  ids approved in an earlier turn
+ * @property {TableChoice | null} [choice]
+ * @property {unknown[]} [planUse]  ids an approved plan lists
  */
 /**
  * @returns {Set<string>|null} null when the catalog is unreadable: no
@@ -156,4 +166,5 @@ module.exports = {
  * @typedef {{ id?: string, key?: string, name?: string, pending?: boolean }} CatalogTable
  * @typedef {{ label?: string, create?: boolean, datatableId?: string }} ChoiceOption
  * @typedef {{ prompt?: string, choice?: { options?: ChoiceOption[] } }} ReviewQuestion
+ * @typedef {{ approvedIds: string[], createFor: string[], tables: { id?: string, key?: string, name?: string }[] }} TableChoice
  */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A list's path as a person reads it: "Read the purchasing inbox ▸ Value ▸
  * Attachments (inside each row)" for `steps.s1.output.value[*].attachments`.

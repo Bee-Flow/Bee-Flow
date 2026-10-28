@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The composer writes the instruction FROM THE WORDS OF THE USER, so it too resolves its model
  * under the org of that user (EU overrides and org tiers included), not under the global map.

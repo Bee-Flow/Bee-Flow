@@ -24,7 +24,7 @@
  * route (server/routes/ai/automationBuilder.js) doesn't grow a tree of
  * if/else on model IDs.
  */
-
+// @typecheck
 // Regex bands ordered from most-specific to most-generic. First match
 // wins. Anchored to lowercased modelId.
 const FRONTIER_PATTERNS = [

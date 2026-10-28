@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Create ONE Studio datatable for an owner, programmatically — the same
  * transaction the POST /api/datatables route and projects/packaging/install.js
@@ -43,6 +44,10 @@ function defaultDeps() {
  * @property {string} [description]
  * @property {boolean} [hasManageDatatables]
  * @property {boolean} [exactKey]
+ * @property {unknown} principal
+ * @property {unknown} name
+ * @property {unknown} [key]
+ * @property {unknown} fields
  */
 /**
  * @param {CreateStudioDatatableArgs} param0

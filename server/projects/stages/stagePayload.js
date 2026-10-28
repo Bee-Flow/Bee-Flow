@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ONE canonical payload per part kind (design 6.3).
  *
@@ -45,7 +46,6 @@
  */
 
 'use strict';
-
 const { hashOf } = require('./model');
 const { stripCapturedData } = require('../../core/automationModel/testDataKeys');
 

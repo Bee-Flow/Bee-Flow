@@ -17,7 +17,6 @@
  *                          "Bee Flow Support" system prompt and tools.
  *   support_ai_kb_ids    — JSON array of KB UUIDs to search.
  */
-// @typecheck
 const supportStore = require('../stores/supportStore');
 const configStore = require('../stores/configStore');
 const { chatWithAgent } = require('../core/agentRuntime');
@@ -25,7 +24,7 @@ const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
 const { buildSupportToolset, makeActionPolicy } = require('../integrations/supportTools');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
-
+// @typecheck
 const ESCALATE_RE = /\[ESCALATE(?::\s*([^\]]+))?\]/i;
 const RESOLVED_RE = /\[RESOLVED\]/i;
 const DEFAULT_AUTORESOLVE_THRESHOLD = 0.78;
@@ -65,7 +64,7 @@ async function _resolveConfig() {
 
 const REPLY_MODES = ['draft', 'auto_confident', 'autonomous'];
 
-function _normalizeConfig(c) {
+function _normalizeConfig(/** @type {Support.ResponderConfig} */ c) {
     return {
         agentId: c.agentId || null,
         kbIds: Array.isArray(c.kbIds) ? c.kbIds : [],
@@ -91,6 +90,7 @@ function _normalizeConfig(c) {
  * tenant inbox injects `config` (or a `resolveConfig` async fn). When neither
  * is given we fall back to the GLOBAL configStore keys — Bee Flow's own company
  * inbox, `replyMode: 'legacy'`, behaviour unchanged.
+ * @param {Support.ResponderOptions} [opts]
  */
 async function _resolveEffectiveConfig(thread, opts = {}) {
     if (opts.config) return _normalizeConfig(opts.config);
@@ -441,7 +441,7 @@ async function _autoTag(thread, lastBody, draftReply) {
  * status is still AI-handled).
  *
  * @param {string} threadId
- * @param {{ aiUserId?: string }} [opts]
+ * @param {Support.ResponderOptions} [opts]
  * @returns {Promise<{ message: object, escalated: boolean, escalateReason: string|null, resolved?: boolean, mode?: string, sent?: boolean, confidence?: number } | null>}
  */
 async function runAiAutoResponder(threadId, opts = {}) {
