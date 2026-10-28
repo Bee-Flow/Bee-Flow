@@ -807,6 +807,11 @@ async function resendVerificationCode() {
 // mint) happens; once it caches the key, later calls take the fast cached path.
 /** @type {Promise<void> | null} */
 let _bootstrapInFlight = null;
+// Bumped by every explicit reset (invalidateAndRebootstrap). A provision that
+// started before the reset may still be waiting on its server; when it
+// answers, its result belongs to the abandoned target and is dropped instead
+// of overwriting the newer binding.
+let _provisionGeneration = 0;
 /**
  * @returns {Promise<void>}
  */
@@ -821,6 +826,12 @@ function bootstrapIfNeeded() {
 }
 
 async function _provisionFlow() {
+    const generation = _provisionGeneration;
+    const superseded = () => {
+        if (generation === _provisionGeneration) return false;
+        log.warn('[Bootstrap] a newer setup change superseded this provision — its answer is dropped');
+        return true;
+    };
     if (!config.isAutoTenantKey) {
         log.info('[Bootstrap] BEEFLOW_TENANT_KEY explicitly set, skipping auto-bootstrap');
         return;
@@ -948,6 +959,8 @@ async function _provisionFlow() {
         await recordBootstrapError(err, 'saas_post');
         throw err;
     }
+
+    if (superseded()) return;
 
     if (res.status === 202) {
         const json = /** @type {SaasBootstrapResponse} */ (await res.json());
@@ -1091,6 +1104,7 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
         // in-flight one (which may be mid-bind to the old target / without the
         // pairing code).
         _bootstrapInFlight = null;
+        _provisionGeneration += 1;
         await bootstrapIfNeeded();
         if (!config.tenantKey) {
             // Read through the getter: TS narrowed pendingState to null above.
