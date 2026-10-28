@@ -15,7 +15,12 @@
  */
 
 import { createRequire } from 'node:module';
-import type { Request, Response, Router } from 'express';
+// Structural types instead of 'express': agent-hub's typecheck reaches this file
+// through server modules its tests require, and the frontend CI job has no
+// server node_modules to resolve express's types from.
+type Request = { headers: Record<string, string | string[] | undefined> };
+type Response = { status(code: number): Response; json(body: unknown): unknown; set(field: string, value: string): unknown };
+type Router = { post(path: string, ...handlers: unknown[]): unknown };
 
 const nodeRequire = createRequire(import.meta.url);
 
