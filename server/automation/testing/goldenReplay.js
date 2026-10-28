@@ -95,7 +95,6 @@ async function resolveEntry(runEntry, automation, goldenRun) {
  * @property {typeof import('./runCompare').compareRuns} compareRuns
  * @property {{ warn: (msg: string) => void }} log
  */
-/** @typedef {{ store: typeof import('../../stores/automationStore'), testingStore: { setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }, executeAutomation: typeof import('../../core/automationRunner').executeAutomation, answersFromJourney: typeof import('./formAnswers').answersFromJourney, runEntry: { entryDefinitionOf: typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf, resolveTriggerStepId: typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId }, compareRuns: typeof import('./runCompare').compareRuns, log: { warn: (msg: string) => void } }} ReplayDeps */
 
 /**
  * Replay one golden; the outcome is written on the golden.
