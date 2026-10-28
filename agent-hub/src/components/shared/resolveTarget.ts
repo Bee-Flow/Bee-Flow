@@ -166,7 +166,7 @@ function resolveAppPath(definition: TargetNode, path: string) {
 }
 
 function resolveAppNode(definition: TargetNode, nodeId: string) {
-    for (const screen of definition.screens as TargetNode[]) {
+    for (const screen of (Array.isArray(definition.screens) ? definition.screens : []) as TargetNode[]) {
         if (!isObject(screen)) continue;
         let found: TargetNode | null = null;
         const walk = (nodes: TargetNode[] | undefined) => {
