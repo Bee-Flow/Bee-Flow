@@ -11,11 +11,12 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { hasBash, sandbox, run, callsOf, flagValues, REPO } from './lib/docker-stub.mjs';
 
 const skip = hasBash ? false : 'bash is not available';
 
-const SCRIPTS = ['scripts/build-images.sh', 'scripts/lib/compose-env.sh'];
+const SCRIPTS = ['scripts/build-images.sh', 'scripts/lib/compose-env.sh', 'scripts/app-version.sh'];
 const STACK = {
     'docker-compose.from-registry.yml': 'services: {}\n',
     'docker-compose.hub.local.yml': 'services: {}\n',
@@ -251,6 +252,28 @@ test('the server build stages its context and stamps the image with the same sha
     assert.deepStrictEqual(stageCalls(dir), ['local all']);
     const [b] = callsOf(res.calls, 'build');
     assert.ok(flagValues(b.args, '--build-arg').includes('APP_BUILD_SHA=local'), b.args.join(' '));
+});
+
+test('the server build stamps APP_VERSION from scripts/app-version.sh, like CI', { skip }, (t) => {
+    const dir = repo(t);
+    const res = run(dir, 'scripts/build-images.sh', ['build', 'dev', 'server'], { APP_VERSION: 'v2.3.4' });
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+    const [b] = callsOf(res.calls, 'build');
+    assert.ok(flagValues(b.args, '--build-arg').includes('APP_VERSION=2.3.4'), b.args.join(' '));
+    assert.match(workflow, /APP_VERSION=\$\{\{ steps\.appver\.outputs\.version \}\}/);
+    assert.match(workflow, /bash scripts\/app-version\.sh/);
+    assert.match(ps1, /scripts\/app-version\.sh/);
+});
+
+test('app-version.sh: highest release tag without the v, a bad value stamps nothing', { skip }, (t) => {
+    const dir = repo(t);
+    const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+    git('init', '-q'); git('-c', 'user.email=t@example.com', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'x');
+    for (const tag of ['v1.9.0', 'v1.10.0', 'prod-2026.10.01']) git('tag', tag);
+    const ver = (env = {}) => spawnSync('bash', [path.join(dir, 'scripts/app-version.sh')], { cwd: dir, encoding: 'utf8', env: { ...process.env, APP_VERSION: '', ...env } }).stdout.trim();
+    assert.strictEqual(ver(), '1.10.0');
+    assert.strictEqual(ver({ APP_VERSION: 'v3.0.1' }), '3.0.1');
+    assert.strictEqual(ver({ APP_VERSION: 'prod-2026.10.01-12' }), '');
 });
 
 test('FAST_DEV=1 skips the runtime bundle for a dev server build, never for prd', { skip }, (t) => {

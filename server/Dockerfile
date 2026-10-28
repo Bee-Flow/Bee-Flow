@@ -220,6 +220,12 @@ ENV PORT=3001
 ARG APP_BUILD_SHA=""
 ENV APP_BUILD_SHA=$APP_BUILD_SHA
 
+# The product version of the release (scripts/app-version.sh), read by
+# server/modules/appVersion.js for the modules' min/max_app_version. Empty =
+# unknown: the server warns once and skips those bounds.
+ARG APP_VERSION=""
+ENV APP_VERSION=$APP_VERSION
+
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

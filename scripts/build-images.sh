@@ -206,6 +206,8 @@ build_one() {
       local build_sha
       build_sha="$(git -C "$REPO_ROOT" rev-parse --verify -q HEAD 2>/dev/null || echo local)"
       extra+=(--build-arg "APP_BUILD_SHA=${build_sha}")
+      # Product version for the module compat gates (scripts/app-version.sh, as in CI).
+      extra+=(--build-arg "APP_VERSION=$(bash "${REPO_ROOT}/scripts/app-version.sh" 2>/dev/null || true)")
       stage_server_context "$env" "$build_sha"
       ;;
     agent-hub)

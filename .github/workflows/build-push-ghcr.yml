@@ -387,6 +387,16 @@ jobs:
         run: |
           echo "::warning::SBOM generation failed — this server image ships WITHOUT /app/sbom/cyclonedx.json; the CRA Annex I Part II(1) check will report no SBOM."
           echo "Server image built WITHOUT an SBOM (npm sbom failed); the compliance check CRA-AnnexI-II1-sbom will fail on this image." >> "$GITHUB_STEP_SUMMARY"
+      # Product version for the modules' min/max_app_version gates: the version
+      # input of a prod run, else the highest v* release tag (scripts/app-version.sh,
+      # shared with build-images.sh and build-images.ps1).
+      - name: Resolve the product version
+        id: appver
+        env:
+          APP_VERSION: ${{ inputs.version }}
+        run: |
+          git fetch --force --tags origin || echo "::warning::could not fetch tags; the image is stamped from the version input only"
+          echo "version=$(bash scripts/app-version.sh)" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -426,6 +436,7 @@ jobs:
           # sha does not invalidate any cached layer that wasn't already stale.
           build-args: |
             APP_BUILD_SHA=${{ github.sha }}
+            APP_VERSION=${{ steps.appver.outputs.version }}
             GEO_DB_MONTH=${{ steps.geo.outputs.month }}
           cache-from: type=gha,scope=server
           cache-to:   type=gha,scope=server,mode=max
