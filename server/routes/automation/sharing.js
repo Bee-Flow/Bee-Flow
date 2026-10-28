@@ -59,15 +59,14 @@ const keyOf = (s) => `${s.principalType}:${s.principalId}`;
 const nameOf = (u) => (u ? (u.displayName || u.username || null) : null);
 
 /**
- * @param {object} [overrides]
- * @param {object} [overrides.store]            automationStore surface
- * @param {Function} [overrides.getUser]        (id) => user row
- * @param {Function} [overrides.getGroup]       (id) => group row
- * @param {Function} [overrides.hasPermission]  (userId, perm, session) => bool
- * @param {Function} [overrides.validateGroups] (orgId, ids) => ids (throws 400)
- * @param {Function} [overrides.sharingGate]    Express middleware for `automation_sharing`
- * @param {Function} [overrides.sharingAvailable] async (req) => bool
- * @param {object} [overrides.subscriptions]    { revokeRemoteSubscriptions, syncAppEventSubscription, hasAppEventTrigger }
+ * @param {{ store?: typeof import('../../stores/automationStore'),
+ *   getUser?: typeof import('../../stores/userStore').getUser,
+ *   getGroup?: typeof import('../../stores/userStore').getGroup,
+ *   hasPermission?: typeof import('../../auth/permissions').hasPermission,
+ *   validateGroups?: typeof import('../../auth/permissions').validateSharedGroupsForOrg, // throws 400
+ *   sharingGate?: import('express').RequestHandler, // for `automation_sharing`
+ *   sharingAvailable?: (req: import('express').Request) => Promise<boolean>,
+ *   subscriptions?: Pick<typeof import('../../automation/subscriptionSync'), 'revokeRemoteSubscriptions'|'syncAppEventSubscription'|'hasAppEventTrigger'> }} [overrides]
  */
 function makeSharingRouter(overrides = {}) {
     const router = express.Router();

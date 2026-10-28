@@ -75,9 +75,9 @@ function pageParams(query, limits) {
 
 /**
  * @param {object} [overrides]
- * @param {any}   [overrides.store]       automationStore surface (getRun, getRunsInChain, getAutomation, getRunTableForRuns, ...)
- * @param {any}   [overrides.tableStore]  { readTablePage, streamTableCsv }
- * @param {any}   [overrides.storage]     unused by the routes themselves; kept so a test can name the seam
+ * @param {any}   [overrides.store]       automationStore surface; typed, its nullable rows do not fit RunTableRow
+ * @param {Pick<typeof import('../../core/automationRunner/tables/tableStore'), 'readTablePage'|'streamTableCsv'>} [overrides.tableStore]
+ * @param {typeof import('../../stores/storageStore')} [overrides.storage]  unused by the routes themselves; kept so a test can name the seam
  * @param {() => ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]

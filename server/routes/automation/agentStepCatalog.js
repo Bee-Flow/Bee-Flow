@@ -63,11 +63,10 @@ function integrationOfTool(name, def, resolveIntegration) {
  * `reason` is then the reason they share (or the first one when they differ).
  * `withheldTools` lists the per-tool reasons either way.
  *
- * @param {object} args
- * @param {string[]} args.allowed   names the step gets
- * @param {Array<{name:string,reason:string}>} args.withheld
- * @param {ToolDef[]} [args.toolDefs] definitions seen by the gate, for grouping
- * @param {ResolveIntegration | null} [args.resolveIntegration]
+ * @param {{ allowed: string[], // names the step gets
+ *   withheld: Array<{name:string,reason:string}>,
+ *   toolDefs?: ToolDef[], // definitions seen by the gate, for grouping
+ *   resolveIntegration?: ResolveIntegration | null }} args
  * @returns {Array<{integration:string,label:string,tools:string[],withheld:boolean,reason:string|null,withheldTools:Array<{name:string,reason:string}>}>}
  */
 function groupToolsByIntegration({ allowed = [], withheld = [], toolDefs = [], resolveIntegration = null }) {

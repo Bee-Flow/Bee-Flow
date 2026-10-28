@@ -199,7 +199,5 @@ function buildFormPickSources(userToolNames) {
 module.exports = { actionLabel, loadUserTools, isWebpagesAvailable, buildApps, buildSteps, buildFormPickSources };
 
 /**
- * @typedef {Object} BuildAppsArgs
- * @property {Set<string>} userToolNames
- * @property {boolean} [webpagesAvailable]
+ * @typedef {{ userToolNames: Set<string>, webpagesAvailable?: boolean }} BuildAppsArgs
  */

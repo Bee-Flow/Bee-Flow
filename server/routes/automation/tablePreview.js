@@ -112,12 +112,12 @@ const isMissingObject = (e) => !!e && (e.name === 'NoSuchKey' || e.code === 'ENO
 
 /**
  * @param {object} [overrides]
- * @param {any} [overrides.store]       automationStore surface
- * @param {any} [overrides.tableStore]  { readTablePage }
- * @param {any} [overrides.storage]     unused; the preview never writes storage
- * @param {any} [overrides.spec]        core/automationModel/tableOps/spec
- * @param {any} [overrides.engine]      core/automationRunner/tables/ops
- * @param {any} [overrides.groupPolicy] core/automationRunner/tables/groupPolicy
+ * @param {any} [overrides.store]       automationStore surface; typed, its nullable rows do not fit the handlers
+ * @param {Pick<typeof import('../../core/automationRunner/tables/tableStore'), 'readTablePage'>} [overrides.tableStore]
+ * @param {typeof import('../../stores/storageStore')} [overrides.storage]  unused; the preview never writes storage
+ * @param {any} [overrides.spec]        core/automationModel/tableOps/spec; typed, its lazily defined validateTableStep is missing from the module type
+ * @param {typeof import('../../core/automationRunner/tables/ops')} [overrides.engine]
+ * @param {typeof import('../../core/automationRunner/tables/groupPolicy')} [overrides.groupPolicy]
  * @param {(automation: any) => Promise<Record<string, unknown>>} [overrides.runVarsFor]
  * @param {() => ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]
