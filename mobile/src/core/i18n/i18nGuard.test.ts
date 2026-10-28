@@ -225,7 +225,6 @@ const UNCONVERTED = new Map<string, number>([
     // any. The total went 1669 -> 1655 only where a duplicated string is now
     // drawn once (shared toasts, QueryScreen headers, content duplicates),
     // and 1655 -> 1649 where dead code went (cowork's unused WHEN_PRESETS).
-    ['app/(root)', 1],
     // 24 -> 22: the avatar picker's "Photos not allowed" dialog, gone with the
     // media-library permission the Photo Picker never needed.
     ['src/features/account', 22],
