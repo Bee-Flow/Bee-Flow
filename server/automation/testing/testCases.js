@@ -46,14 +46,14 @@ const REASON_OF = Object.freeze({
  * The code step `stepId` in a definition: a root step, a loop or parallel body
  * step, or a step of any layer. Only a step of type 'code' qualifies.
  *
- * @param {any} definition
+ * @param {unknown} definition
  * @param {string} stepId
- * @returns {any|null}
+ * @returns {import('../automationGraph').AutomationStep|null}
  */
 function findCodeStep(definition, stepId) {
-    /** @type {any} */
+    /** @type {import('../automationGraph').AutomationStep | null} */
     let found = null;
-    walkAllSteps(definition, (/** @type {any} */ s) => {
+    walkAllSteps(definition, (/** @type {import('../automationGraph').AutomationStep} */ s) => {
         if (!found && s && s.id === stepId && s.type === 'code') found = s;
     });
     return found;
@@ -61,7 +61,7 @@ function findCodeStep(definition, stepId) {
 
 /**
  * The input names a code step reads (its `inputs` keys), without the secret declaration.
- * @param {any} step
+ * @param {import('../automationGraph').AutomationStep | null | undefined} step
  */
 function declaredInputNames(step) {
     return isObject(step?.inputs) ? Object.keys(step.inputs).filter((k) => k !== 'secretKeys') : [];
@@ -79,8 +79,8 @@ async function captureFixture({ automation, stepId, run, legs, attempts }, deps)
     if (!step) throw new HttpError(404, 'step_not_found', 'Not found');
     const readable = new Set((legs && legs.length ? legs : [run]).map((/** @type {{ id: string }} */ l) => l.id));
     const rows = (await deps.store.getRunStepsForChain(run.id))
-        .filter((/** @type {any} */ r) => r.stepId === stepId && readable.has(r.runId) && r.input !== undefined && r.input !== null);
-    const row = attempts != null ? rows.find((/** @type {any} */ r) => r.attempts === attempts) : rows[rows.length - 1];
+        .filter((/** @type {RunStepRow} */ r) => r.stepId === stepId && readable.has(r.runId) && r.input !== undefined && r.input !== null);
+    const row = attempts != null ? rows.find((/** @type {RunStepRow} */ r) => r.attempts === attempts) : rows[rows.length - 1];
     if (!row) throw new HttpError(422, 'step_not_in_run', 'This step has no recorded input in that run.');
     if (isTruncatedOutput(row.input)) {
         throw new HttpError(422, 'fixture_truncated', 'The input of this step was too large to be recorded in full, so it cannot be used as test data.');
@@ -101,7 +101,20 @@ async function captureFixture({ automation, stepId, run, legs, attempts }, deps)
 /** @param {string} expected */
 const EMPTY_EXPECTATION = (expected) => ({ expected, got: /** @type {string | null} */ (null) });
 
-/** @typedef {{ caseId: string, name: string, status: string, reason: string | null, expectation: { expected: string, got: string | null }, assertions: import('./assertions').AssertionResult[], logs: unknown[], calls: unknown[], durationMs: number, result?: unknown, error?: string }} CaseResult */
+/**
+ * @typedef CaseResult
+ * @property {string} caseId
+ * @property {string} name
+ * @property {string} status
+ * @property {string | null} reason
+ * @property {{ expected: string, got: string | null }} expectation
+ * @property {import('./assertions').AssertionResult[]} assertions
+ * @property {unknown[]} logs
+ * @property {unknown[]} calls
+ * @property {number} durationMs
+ * @property {unknown} [result]
+ * @property {string} [error]
+ */
 
 /**
  * The result of one case: always the full contract shape.
@@ -174,3 +187,5 @@ async function runTestCases({ automation, step, cases, code, orgId }, deps) {
 }
 
 module.exports = { findCodeStep, declaredInputNames, captureFixture, runTestCases, fixtureMaxBytes };
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRunStep>>} RunStepRow  a run step as the store maps it */

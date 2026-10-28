@@ -431,7 +431,7 @@ module.exports = { renderCatalog, renderCatalogLean, renderCatalogSlim, emptyCat
 /** @typedef {{ id: string, label?: string, available?: boolean, actions?: CatalogAction[] }} CatalogAppRow */
 
 /**
- * @typedef {object} PromptCatalog  what buildCatalogForUser and buildPickerCatalogsForUser hand the prompt renderers
+ * @typedef PromptCatalog  what buildCatalogForUser and buildPickerCatalogsForUser hand the prompt renderers
  * @property {CatalogAppRow[]} [apps]
  * @property {number} [appsOmitted]  set only when the app cap cut the list
  * @property {string} [catalogError]

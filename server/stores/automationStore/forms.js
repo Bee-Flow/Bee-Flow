@@ -25,7 +25,7 @@ const UPLOAD_TTL_MS = 6 * 60 * 60 * 1000;
 const { AUDIENCES } = require('../../automation/formAudience');
 
 /**
- * @typedef {object} PageRow
+ * @typedef PageRow
  * @property {string} id
  * @property {string} automation_id
  * @property {string | null} [trigger_step_id]
@@ -45,7 +45,7 @@ const { AUDIENCES } = require('../../automation/formAudience');
  * @property {number | null} [live_version]
  */
 /**
- * @typedef {object} UploadRow
+ * @typedef UploadRow
  * @property {string} id
  * @property {string} form_page_id
  * @property {string} storage_key
@@ -58,7 +58,7 @@ const { AUDIENCES } = require('../../automation/formAudience');
  * @property {string | Date | null} [claimed_at]
  */
 /**
- * @typedef {object} SessionRow
+ * @typedef SessionRow
  * @property {string} id
  * @property {string} form_page_id
  * @property {string} automation_id

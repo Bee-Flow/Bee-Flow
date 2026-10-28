@@ -143,9 +143,8 @@ async function getRunCountForUserSince(userId, sinceTs, { mode = 'live' } = {}) 
  * only — a test run that fails is somebody trying something out.
  *
  * @param {string} userId
- * @param {object} [opts]
- * @param {number} [opts.perAutomation=10]  window size per automation
- * @param {string|null} [opts.sinceTs]      ISO lower bound on started_at
+ * @param {{ perAutomation?: number, sinceTs?: string|null }} [opts]
+ *   perAutomation: window size per automation; sinceTs: ISO lower bound on started_at
  * @returns {Promise<Array<{automationId, title, status}>>} newest first per automation
  */
 async function getRecentRunStatusesForUser(userId, { perAutomation = 10, sinceTs = null } = {}) {

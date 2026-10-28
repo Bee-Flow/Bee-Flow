@@ -22,14 +22,15 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 /**
- * @param {object} [deps]
- * @param {object} [deps.automationStore]   ensureFormPage
- * @param {object} [deps.userStore]         getUser
- * @param {object} [deps.subjectReview]     reviewAutomation
- * @param {object} [deps.formAnswers]       ensureAnswersTable
- * @param {Function} [deps.agentCatalogForOwner]
- * @param {Function} [deps.kbStepFindings]
- * @param {object} [deps.stageVars]         runVarsFor
+ * @param {{
+ *   automationStore?: Pick<typeof import('../stores/automationStore'), 'ensureFormPage'>,
+ *   userStore?: Pick<typeof import('../stores/userStore'), 'getUser'>,
+ *   subjectReview?: Pick<typeof import('../compliance/subjectReview'), 'reviewAutomation'>,
+ *   formAnswers?: Pick<typeof import('./formAnswers'), 'ensureAnswersTable'>,
+ *   agentCatalogForOwner?: typeof import('../core/automationModel/agentCatalog').agentCatalogForOwner,
+ *   kbStepFindings?: typeof import('../core/kb/automationKbCheck').kbStepFindings,
+ *   stageVars?: Pick<typeof import('../core/automationRunner/stageVars'), 'runVarsFor'>,
+ * }} [deps]
  */
 function makeLiveSideEffects(deps = {}) {
     const automationStore = () => deps.automationStore || require('../stores/automationStore');

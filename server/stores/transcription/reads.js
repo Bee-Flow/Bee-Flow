@@ -122,7 +122,7 @@ function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProjec
      *
      * @param {string} tag
      * @param {string} readerId
-     * @param {any} [ctx]  `{ orgIds, userGroupIds, since, limit }`
+     * @param {{ orgIds?: string[], userGroupIds?: string[], since?: string | Date | null, limit?: number }} [ctx]
      */
     async function listByTag(tag, readerId, { orgIds = [], userGroupIds = [], since = null, limit = 200 } = {}) {
         await initDB();

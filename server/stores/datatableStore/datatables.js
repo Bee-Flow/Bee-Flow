@@ -171,20 +171,19 @@ async function getTableMeta(scope, datatableId) {
  * A reference table created there gets `rowsLocked: true` on its model entry,
  * so every row writer but the deploy's own refuses it (queryCompiler).
  *
- * @param {object}   [opts]
- * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
- * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
- * @param {(usage: {tables:number, sheetTables:number, rows:number, bytes:number}) => Promise<any>} [opts.assertQuota]
- *   Runs with the tenant's usage read UNDER the model row's FOR UPDATE lock and
- *   BEFORE anything is written. Injected rather than imported for the same
- *   reason applyPhysical is — this store keeps no engine dependency — and it
- *   runs inside the lock because the caller used to count every table in the
- *   organisation outside any transaction, so two replicas could both see 49 and
- *   both create the 50th. Throwing refuses the create.
- * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
- *   Runs on the transaction's own client, AFTER the metadata is written (the
- *   engine's access check reads `datatable_models`, so the row has to be there
- *   already). Throwing rolls the whole create back.
+ * @param {{
+ *   client?: import('pg').PoolClient|null, managedWrite?: {deploymentId?: string}|null,
+ *   assertQuota?: (usage: {tables:number, sheetTables:number, rows:number, bytes:number}) => Promise<any>,
+ *   applyPhysical?: (client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>,
+ * }} [opts]
+ *   client: the caller's transaction, when they own one. managedWrite: the deploy's capability (see above).
+ *   assertQuota: Runs with the tenant's usage read UNDER the model row's FOR UPDATE lock and BEFORE anything is
+ *     written. Injected rather than imported for the same reason applyPhysical is — this store keeps no engine
+ *     dependency — and it runs inside the lock because the caller used to count every table in the organisation
+ *     outside any transaction, so two replicas could both see 49 and both create the 50th. Throwing refuses the
+ *     create.
+ *   applyPhysical: Runs on the transaction's own client, AFTER the metadata is written (the engine's access check
+ *     reads `datatable_models`, so the row has to be there already). Throwing rolls the whole create back.
  */
 async function createDatatable({
     scope, ownerUserId, key, name, description = '', projectId = null,
@@ -297,23 +296,23 @@ async function createDatatable({
  *
  * @param {{ kind: string, id: string }} scope
  * @param {Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown> | null} proposed  the whole next model; ignored when `opts.buildNext` is given.
- * @param {object}   [opts]
- * @param {number|null} [opts.expectedVersion]
- * @param {(lockedBefore: import('../../core/dataEngine/dataModel/migrationShape').ModelShape) => (Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>) | Promise<Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>>} [opts.buildNext]
- *   Computes the next model from a deep copy of the model read UNDER THE LOCK,
- *   so a writer that replaces only its own entries cannot overwrite a
- *   concurrent edit to another table (the deploy commit, design 3.2 step 6).
- *   Throwing rolls the save back.
- * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
- * @param {boolean} [opts.mirrorReconcile]  the mirror schema reconcile of a sync or (re)link:
- *   a stage table that is a source mirror (`source IS NOT NULL`) may then change
- *   its `fields` (and take its row's name) without a capability, because its
- *   columns follow its source, not a release. Any other change still needs one.
- * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
- * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
- *   `before` is the model as read UNDER THE LOCK — the only baseline a plan may
- *   be diffed against. Throwing rolls the model write back with it, so a failed
- *   ALTER can never leave `model_version` claiming a column that is not there.
+ * @param {{
+ *   expectedVersion?: number|null,
+ *   buildNext?: (lockedBefore: import('../../core/dataEngine/dataModel/migrationShape').ModelShape) => (Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>) | Promise<Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>>,
+ *   managedWrite?: {deploymentId?: string}|null, mirrorReconcile?: boolean, client?: import('pg').PoolClient|null,
+ *   applyPhysical?: (client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>, modelVersion: number}) => Promise<any>,
+ * }} [opts]
+ *   buildNext: Computes the next model from a deep copy of the model read UNDER THE LOCK, so a writer that replaces
+ *     only its own entries cannot overwrite a concurrent edit to another table (the deploy commit, design 3.2 step
+ *     6). Throwing rolls the save back.
+ *   managedWrite: the deploy's capability (see above).
+ *   mirrorReconcile: the mirror schema reconcile of a sync or (re)link: a stage table that is a source mirror
+ *     (`source IS NOT NULL`) may then change its `fields` (and take its row's name) without a capability, because
+ *     its columns follow its source, not a release. Any other change still needs one.
+ *   client: the caller's transaction, when they own one.
+ *   applyPhysical: `before` is the model as read UNDER THE LOCK — the only baseline a plan may be diffed against.
+ *     Throwing rolls the model write back with it, so a failed ALTER can never leave `model_version` claiming a
+ *     column that is not there.
  */
 async function saveModel(scope, proposed, {
     expectedVersion = null, client = null, applyPhysical = null, buildNext = null, managedWrite = null,
@@ -439,9 +438,8 @@ const META_COLUMNS = Object.freeze({
  * @param {string} id
  * @param {{kind: string, id: string}} scope
  * @param {Record<string, any>} patch
- * @param {object} [opts]
- * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
- * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
+ * @param {{ client?: import('pg').PoolClient|null, managedWrite?: {deploymentId?: string}|null }} [opts]
+ *   client: the caller's transaction, when they own one. managedWrite: the deploy's capability.
  */
 async function updateDatatableMeta(id, scope, patch, { client = null, managedWrite = null } = {}) {
     await initDB();
@@ -562,9 +560,8 @@ function assertReferenceAllowed(row) {
  * decides whether a deploy carries the rows), so changing it there needs
  * `opts.managedWrite`, like any other managed setting.
  *
- * @param {object} [opts]
- * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
- * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
+ * @param {{ client?: import('pg').PoolClient|null, managedWrite?: {deploymentId?: string}|null }} [opts]
+ *   client: the caller's transaction, when they own one. managedWrite: the deploy's capability.
  * @returns {Promise<object|null>} the table, or null when it is not in `scope`.
  */
 async function setReferenceFlag(id, scope, isReference, { client = null, managedWrite = null } = {}) {
@@ -644,12 +641,13 @@ async function bumpAfterWrite(id, scope, delta = 0) {
  *
  * @param {string} id
  * @param {{ kind: string, id: string }} scope
- * @param {object}   [opts]
- * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
- * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
- * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>} [opts.dropPhysical]
- *   Runs on the transaction's own client, after the metadata is gone and only
- *   when a row was actually deleted. Throwing rolls the whole delete back.
+ * @param {{
+ *   client?: import('pg').PoolClient|null, managedWrite?: {deploymentId?: string}|null,
+ *   dropPhysical?: (client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>,
+ * }} [opts]
+ *   client: the caller's transaction, when they own one. managedWrite: the deploy's capability.
+ *   dropPhysical: Runs on the transaction's own client, after the metadata is gone and only when a row was actually
+ *     deleted. Throwing rolls the whole delete back.
  */
 async function deleteDatatable(id, scope, { dropPhysical = null, client: outerClient = null, managedWrite = null } = {}) {
     await initDB();

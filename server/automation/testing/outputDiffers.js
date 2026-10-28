@@ -126,7 +126,7 @@ function comparePart(changes, label, i, pa, pb) {
     }
 }
 
-/** @param {any} sa @param {any} sb */
+/** @param {FileSummary} sa @param {FileSummary} sb */
 function compareSummaries(sa, sb) {
     /** @type {Change[]} */
     const changes = [];
@@ -168,3 +168,5 @@ registerOutputDiffer({
 });
 
 module.exports = { registerOutputDiffer, listOutputDiffers, differFor, cutValue, compareSummaries };
+
+/** @typedef {Awaited<ReturnType<typeof import('./fileSummary').summarizeFile>>} FileSummary */

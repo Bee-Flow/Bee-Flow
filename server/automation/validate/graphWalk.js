@@ -9,7 +9,7 @@ const { isObject } = require('./helpers');
 const { checkBindableStepId } = require('./fieldChecks');
 
 /**
- * @param {object} ctx   validateGraph's context
+ * @param {import('./helpers').GraphCtx} ctx   validateGraph's context
  * @param {object} walk  { ids, stepById, order } plus the step-rule catalogues
  *                      (availableTools, toolRequiredParams, knownConnectionIds,
  *                      availableAgents, topicClassifier).

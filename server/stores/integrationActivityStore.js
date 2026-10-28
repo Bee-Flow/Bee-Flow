@@ -120,7 +120,12 @@ log.info('[IntegrationActivityStore] Initialized (PostgreSQL)');
 const _transferSignalCache = new Map(); // `${orgId}:${operator}` -> last emit ts
 const TRANSFER_SIGNAL_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** @typedef {{ operator?: string | null, countryCode?: string | null, orgId: unknown }} _signalExternalTransferArgs */
+/**
+ * @typedef _signalExternalTransferArgs
+ * @property {string | null} [operator]
+ * @property {string | null} [countryCode]
+ * @property {unknown} orgId
+ */
 /**
  * @param {_signalExternalTransferArgs} param0
  */
@@ -760,7 +765,7 @@ async function getOperatorSummary(filters = {}) {
  * SERVER-side sovereignty score), timeline, top breakdowns, the map block,
  * category aggregations and a health block. Built in integrationOverview.js.
  *
- * @param {any} [filters]
+ * @param {ActivityFilters} [filters]
  * @param {'day'|'hour'} [interval]
  * @param {{ normalizeCategory?: Function }} [opts]  the PII category normaliser
  *   (core/privacy/piiCategories), passed in by the route: this store is

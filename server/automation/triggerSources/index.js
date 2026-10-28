@@ -203,7 +203,7 @@ module.exports = {
 
 /**
  * How one event is produced (the runtime half of a declaration).
- * @typedef {Object} TriggerSourceSpec
+ * @typedef TriggerSourceSpec
  * @property {string} kind  'poller' | 'push' | 'poll_diff'
  * @property {boolean} [auto]
  * @property {string} [tool]
@@ -224,7 +224,7 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} TriggerEventDecl
+ * @typedef TriggerEventDecl
  * @property {string} id
  * @property {string} [label]
  * @property {boolean} [hidden]
@@ -237,7 +237,7 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} TriggerSourceDecl
+ * @typedef TriggerSourceDecl
  * @property {string} id
  * @property {string} label
  * @property {number} [order]

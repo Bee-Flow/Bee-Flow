@@ -36,7 +36,7 @@ function makeDocAccess(db, ready) {
              RETURNING ${DOC_COLUMNS}`,
             [id, projectId, kind, resourceId, field, createdBy],
         );
-        if (inserted.rows[0]) return { doc: /** @type {any} */ (rowToDoc(inserted.rows[0])), created: true };
+        if (inserted.rows[0]) return { doc: /** @type {NonNullable<ReturnType<typeof rowToDoc>>} */ (rowToDoc(inserted.rows[0])), created: true };
         const existing = await getDocByResource(kind, resourceId, field);
         if (!existing) throw new CollabStoreError('RACE', 'The document disappeared while it was being opened');
         return { doc: existing, created: false };

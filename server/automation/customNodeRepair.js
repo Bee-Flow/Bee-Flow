@@ -166,19 +166,18 @@ function proposedCode(answer) {
 /**
  * Test a code body, and repair it while it is broken — at most a few times.
  *
- * @param {string}   code            the body as written.
- * @param {object}   [inputs]        sample inputs for the rehearsal.
- * @param {string[]} [allowedTools]  the tools the body may reach — the same
- *                                   list codeSandbox gates through
- *                                   bridges.allowedTools.
- * @param {object}   [limits]        the body's resource ceilings.
- * @param {string[]} [expectOutputs] the node's declared outputs. A run is
- *                                   green only when the returned object
- *                                   carries every one of them.
- * @param {number}   [maxAttempts]   clamped to 1..ATTEMPT_CEILING.
- * @param {string}   [goal]          what the body is for, passed to the fixer.
- * @param {function} [onProgress]    ({ type, detail }) per turn, like
- *                                   _chatLoop's `emit`.
+ * @param {{ code: string, inputs?: Record<string, unknown>, allowedTools?: string[], limits?: Record<string, unknown>,
+ *   expectOutputs?: string[], maxAttempts?: number, goal?: string,
+ *   onProgress?: ((e: { type: string, detail: unknown }) => void) | null }} [p]
+ *   code: the body as written. inputs: sample inputs for the rehearsal.
+ *   allowedTools: the tools the body may reach — the same list codeSandbox
+ *                 gates through bridges.allowedTools.
+ *   limits: the body's resource ceilings.
+ *   expectOutputs: the node's declared outputs. A run is green only when the
+ *                  returned object carries every one of them.
+ *   maxAttempts: clamped to 1..ATTEMPT_CEILING. goal: what the body is for, passed to the fixer.
+ *   onProgress: called per turn, like _chatLoop's `emit`.
+ * @param {RepairDeps} [deps]
  *
  * @returns {Promise<{ ok: true, code: unknown, repaired: unknown, attempts: unknown, attemptsUsed: unknown, result: unknown }
  *                 | { ok: false, reason: unknown, message: string, code: null, lastCandidate: unknown, lastError: string, attempts: unknown, attemptsUsed: unknown }>}
@@ -323,7 +322,14 @@ function replaceStep(graph, target, next) {
     return out;
 }
 
-/** @typedef {{ goal?: string, definition?: unknown, inputs?: unknown, maxAttempts?: unknown, onProgress?: unknown }} RepairCustomNodeArgs */
+/**
+ * @typedef RepairCustomNodeArgs
+ * @property {string} [goal]
+ * @property {unknown} [definition]
+ * @property {unknown} [inputs]
+ * @property {unknown} [maxAttempts]
+ * @property {unknown} [onProgress]
+ */
 /**
  * The same loop, asked of a custom node instead of a loose body.
  *
@@ -368,7 +374,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} RepairDeps
+ * @typedef RepairDeps
  * @property {(p: { code: string, inputs: object, limits: object, allowedTools: string[] }) => Promise<{ result?: unknown, logs?: unknown[], calls?: unknown[] }|undefined>} runTest
  * @property {((ctx: object) => Promise<string|{ code?: string }|null>)|null} [proposeFix]
  */

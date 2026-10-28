@@ -57,7 +57,7 @@ const TAG = '[form answers]';
  * @param {AutomationRef} automation
  */
 async function principalCtxFor(automation) {
-    const p = /** @type {any} */ (await resolveDatatablePrincipalForUser(automation.userId));
+    const p = /** @type {import('../../auth/datatableAccess').DatatablePrincipal} */ (await resolveDatatablePrincipalForUser(automation.userId));
     return {
         userId: automation.userId,
         orgId: automation.organizationId || p.orgId || null,

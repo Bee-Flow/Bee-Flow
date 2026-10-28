@@ -109,7 +109,7 @@ function columnAad(transcriptionId, column) {
  * never silent when the org asked for encryption.
  *
  * @param {string|null} orgId
- * @param {any} [deps] injection seam for tests
+ * @param {{ resolvePolicy?: typeof import('./encryptionPolicy').resolvePolicy, shouldEncrypt?: typeof import('./encryptionPolicy').shouldEncrypt, getTranscriptDek?: typeof import('../auth/transcriptEscrow').getTranscriptDek }} [deps] injection seam for tests
  */
 async function resolveTranscriptCrypto(orgId, deps = {}) {
     try {

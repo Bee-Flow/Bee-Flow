@@ -199,7 +199,7 @@ function toDraft(c) {
         const steps = anchored
             ? [{ family: 'ai', label: 'Read the file' }, { family: 'app', app: anchorApp, label: 'File it in the right place' }]
             : fileDropSteps(c, anchorApp);
-        return { trigger, steps: /** @type {any} */ (steps) };
+        return { trigger, steps: /** @type {Array<{ family: 'app'|'ai'|'data'|'branch', app?: string, label: string }>} */ (steps) };
     }
 
     /** @type {Array<{ family: 'app'|'ai'|'data'|'branch', app?: string, label: string }>} */

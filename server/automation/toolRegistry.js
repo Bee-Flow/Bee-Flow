@@ -323,7 +323,7 @@ module.exports = {
 
 /**
  * One app that owns tool names.
- * @typedef {Object} ToolAppEntry
+ * @typedef ToolAppEntry
  * @property {string} app
  * @property {string} label
  * @property {string} module  require path of the module that exports the TOOLS array

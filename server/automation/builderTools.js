@@ -651,7 +651,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} ToolSchemaProp  one property of a tool's parameter schema (the parts patched here)
+ * @typedef ToolSchemaProp  one property of a tool's parameter schema (the parts patched here)
  * @property {string} [type]
  * @property {string} [description]
  * @property {string[]} [enum]
@@ -660,7 +660,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} ToolSchema
+ * @typedef ToolSchema
  * @property {string} type
  * @property {{ name: string, description?: string, parameters?: { type?: string, properties?: Record<string, ToolSchemaProp>, required?: string[] } }} function
  */

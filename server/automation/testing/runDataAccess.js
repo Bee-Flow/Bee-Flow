@@ -56,7 +56,7 @@ function makeRunDataAccess(overrides = {}) {
     const readableRun = makeJourneyReader({ store, access, what: 'see its data' });
 
     /**
-     * @param {any} run
+     * @param {{ id: string, status: string, connectionsMode?: string | null }} run
      * @param {any[]} legs
      */
     async function assertCapturable(run, legs) {

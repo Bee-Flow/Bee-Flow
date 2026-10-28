@@ -136,12 +136,12 @@ function refuse(issues) {
 /**
  * Promote one code step to a custom-node definition.
  *
- * @param {object}   step        the `code` step, as it is stored in the automation.
- * @param {string[]} [outputs]   the names the body returns, when the author
- *                               named them. Without it the step's own
- *                               `outputSchema` is read, and without that the
- *                               promotion is refused rather than guessed.
- * @param {string}   [label]     the body's label inside the node.
+ * @param {{ step: CodeStep, outputs?: string[] | null, label?: string | null }} [p]
+ *   step: the `code` step, as it is stored in the automation.
+ *   outputs: the names the body returns, when the author named them. Without it
+ *            the step's own `outputSchema` is read, and without that the
+ *            promotion is refused rather than guessed.
+ *   label: the body's label inside the node.
  *
  * @returns {{ ok: true, definition, callInputs, contract, warnings }
  *        | { ok: false, reason, issues }}
@@ -297,13 +297,13 @@ module.exports = {
 /** @typedef {{ code: string, path: string, message: string, hint?: string }} Issue */
 
 /**
- * @typedef {object} CodeStep  a `code` step, as stored in the automation
+ * @typedef CodeStep  a `code` step, as stored in the automation
  * @property {string} [type]
  * @property {string} [code]
  * @property {string} [label]
- * @property {object} [forEach]
+ * @property {unknown} [forEach]
  * @property {Record<string, unknown> & { secretKeys?: { value?: string[] } }} [inputs]  secretKeys: a literal binding (or a bare array, checked at run time)
  * @property {string[]} [allowedTools]
- * @property {object} [limits]
+ * @property {unknown} [limits]
  * @property {{ properties?: object }} [outputSchema]
  */

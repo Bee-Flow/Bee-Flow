@@ -212,13 +212,12 @@ async function listProjectThreads(projectId, { limit = 50, offset = 0 } = {}) {
  * retry converges. Flipping first would publish a thread whose rows nobody with
  * the project key could open.
  *
- * @param {object} opts
- * @param {string} opts.conversationId
- * @param {'direct'|'agent'} opts.type
- * @param {string} opts.projectId    project the conversation is being shared into
- * @param {string} opts.ownerId      the conversation's owner (the only valid caller)
- * @param {string|null} opts.orgId   the PROJECT's organisation
- * @param {string|Buffer|null} opts.encryptionKey  owner's session DEK, if any
+ * @param {{
+ *   conversationId: string, type: 'direct'|'agent', projectId: string, ownerId: string, orgId: string|null,
+ *   encryptionKey: string|Buffer|null,
+ * }} opts
+ *   projectId: project the conversation is being shared into; ownerId: the conversation's owner (the only valid
+ *   caller); orgId: the PROJECT's organisation; encryptionKey: owner's session DEK, if any
  * @returns {Promise<{shared: true, rekeyed: number}>}
  */
 async function shareConversationToProject({ conversationId, type, projectId, ownerId, orgId, encryptionKey = null }) {

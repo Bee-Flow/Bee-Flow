@@ -62,7 +62,7 @@ function clientRev(raw, what, ctx) {
  * With no `expectedRev` nothing is checked. With one, the stored document must
  * still exist (a write must never recreate a document deleted meanwhile) and
  * be at that revision.
- * @param {any} stored the document as read under the lock
+ * @param {unknown} stored the document as read under the lock
  * @param {number | undefined} expectedRev
  * @param {string} what e.g. "page" or "site"
  */

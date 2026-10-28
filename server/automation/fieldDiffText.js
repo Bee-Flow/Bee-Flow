@@ -28,7 +28,7 @@ const LONG_TEXT_SETTINGS = new Set([
 
 const maxBytes = () => envCap('AUTOMATION_VERSION_DIFF_TEXT_MAX_BYTES', 204800);
 
-/** @param {any} v @returns {string|null} */
+/** @param {import('./summarise').SummaryBinding} v @returns {string|null} */
 function textOf(v) {
     if (typeof v === 'string') return v;
     if (v && typeof v === 'object' && (v.kind === 'literal' || v.kind === 'template') && typeof v.value === 'string') return v.value;

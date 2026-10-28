@@ -8,7 +8,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 
 /**
- * @typedef {object} SecurityKey
+ * @typedef SecurityKey
  * @property {string} id
  * @property {string} userId
  * @property {string} credentialId   base64url, as the authenticator reports it

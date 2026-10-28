@@ -307,7 +307,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} AutomationRow  the parts of a store row this module reads
+ * @typedef AutomationRow  the parts of a store row this module reads
  * @property {string} id
  * @property {string} [userId]
  * @property {string|null} [organizationId]  the automation's own organisation; falls back to its owner's

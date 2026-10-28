@@ -142,7 +142,7 @@ module.exports = { SECRET_KEYS, createAuthConfigStore,
     migrate: () => defaultStore().migrate() };
 
 /**
- * @typedef {object} OAuthEntry
+ * @typedef OAuthEntry
  * @property {string} [nextcloudUrl]
  * @property {string} [clientId]
  * @property {string} [clientSecret]
@@ -156,7 +156,7 @@ module.exports = { SECRET_KEYS, createAuthConfigStore,
 /** @typedef {{ admin?: Partial<AdminConfig>, oauth?: OAuthEntry, providers?: Record<string, OAuthEntry> }} AuthConfigPatch */
 
 /**
- * @typedef {object} AuthConfigTx
+ * @typedef AuthConfigTx
  * @property {AuthConfigState} state
  * @property {(provider: string) => string} secretValue
  * @property {(key: string, value: unknown, secret?: boolean) => Promise<void>} write

@@ -488,7 +488,7 @@ module.exports = {
 
 /**
  * One app a form question can pick from.
- * @typedef {object} PickSource
+ * @typedef PickSource
  * @property {string} id
  * @property {string} appId
  * @property {string} app

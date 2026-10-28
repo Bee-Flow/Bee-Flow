@@ -68,7 +68,7 @@ function leafType(props, segments) {
     return typeOfNode(node);
 }
 
-/** Every field path the step's lists and checks name, with where it sits. @param {any} step */
+/** Every field path the step's lists and checks name, with where it sits. @param {import('../helpers').StepDef} step */
 function namedFields(step) {
     const out = [];
     (Array.isArray(step.enumFrom) ? step.enumFrom : []).forEach((e, i) => {
@@ -80,7 +80,7 @@ function namedFields(step) {
     return out;
 }
 
-/** Every run path the step's lists and checks read, with where it sits. @param {any} step */
+/** Every run path the step's lists and checks read, with where it sits. @param {import('../helpers').StepDef} step */
 function namedRefs(step) {
     const out = [];
     (Array.isArray(step.enumFrom) ? step.enumFrom : []).forEach((e, i) => {

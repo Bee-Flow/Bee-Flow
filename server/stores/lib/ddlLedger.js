@@ -78,7 +78,7 @@ const UNIT_PREFIX = 'store:';
 /** @typedef {import('./ddlLedgerTable').LedgerQuery} LedgerQuery */
 
 /**
- * @typedef {Object} UnitContext
+ * @typedef UnitContext
  * @property {string} unit             ledger name, `store:<tag>`
  * @property {Set<string>} recorded    statement keys this unit already applied on this database
  * @property {Map<string, string>} applied  key -> statement text, applied this run (executed or skipped)

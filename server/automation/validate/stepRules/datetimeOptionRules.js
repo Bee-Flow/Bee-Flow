@@ -8,7 +8,7 @@ const { resolveTimezone, EPOCH_UNITS } = require('../../../core/automationRunner
 
 /**
  * @param {{ pushE: (finding: object) => void }} ctx
- * @param {any} step
+ * @param {import('../helpers').StepDef} step
  * @param {string} at path of the step in the definition
  */
 function checkDatetimeOptions(ctx, step, at) {

@@ -59,7 +59,7 @@ class FieldDecryptError extends Error {
  */
 function isEnvelope(value) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
-        return value[MARKER] === VERSION && typeof /** @type {any} */ (value).ct === 'string';
+        return value[MARKER] === VERSION && typeof /** @type {{ ct?: unknown }} */ (value).ct === 'string';
     }
     if (typeof value === 'string') {
         // Cheap reject before paying for JSON.parse on every message body.
@@ -85,7 +85,7 @@ function _toObject(value) {
  * @param {string} plaintext
  * @param {Buffer} key    32-byte key
  * @param {string|Buffer} aad    context string, bound into the tag (a Buffer is read as its String())
- * @returns {any}      the envelope (caller decides object vs JSON string)
+ * @returns {{ _bfenc: number, alg: string, iv: string, tag: string, ct: string }}  the envelope (caller decides object vs JSON string)
  */
 function buildEnvelope(plaintext, key, aad) {
     const iv = crypto.randomBytes(IV_LEN);

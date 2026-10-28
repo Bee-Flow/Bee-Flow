@@ -212,7 +212,7 @@ try {
  * entry with real ids and its anchor — so the model resends from that index
  * (gate rejections keep their inlined `toolSchema` so the retry costs one
  * round). Entries already built this turn come back `reused:true`.
- * @param {*} graph @param {*} args @param {{ draft?: *, scope?: *, sent?: * }} [opts] @param {*} [draftWrap]
+ * @param {*} graph @param {Builder.Args} args @param {{ draft?: DraftGraph, scope?: string | null, sent?: Builder.Args | null }} [opts] @param {import('./pendingDatatables').DraftWrap} [draftWrap]
  */
 function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, draftWrap) {
     const rawEntries = Array.isArray(args?.steps) ? args.steps : null;

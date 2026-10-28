@@ -121,7 +121,7 @@ async function eraseOwnedProjects(userId, opts = {}) {
                 : null;
             if (refused) {
                 report.kept += 1;
-                log.warn(`[UserStore] project ${projectId} kept: ${/** @type {any} */ (refused).code || 'refused'}`);
+                log.warn(`[UserStore] project ${projectId} kept: ${/** @type {{ code?: string }} */ (refused).code || 'refused'}`);
                 continue;
             }
             if (await handOver(projectId, userId)) {

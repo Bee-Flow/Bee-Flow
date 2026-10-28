@@ -21,14 +21,12 @@ const { scrubSkillFromAllAgents, transferAgentOwner } = require('./agentOrgMaint
 const { listProjectAgents, countProjectAgents, setAgentProject, clearProjectFromAgents } = require('./agentProjects');
 
 /**
- * @param {object} [opts]
- * @param {object|null} [opts.persona] The structured role (A1c). Absent ⇒ the
- *   column stays NULL, which reads back as free mode over `systemPrompt` — the
- *   same thing every pre-A1c agent does, so a caller that knows nothing about
- *   personas creates exactly what it always created. New trailing argument on
- *   purpose: the positional list here is already thirteen long, and the last
- *   time one was appended (`categoryId`) a caller that stopped short silently
- *   wiped it (see updateAgent).
+ * @param {{ persona?: object|null }} [opts]
+ *   persona: The structured role (A1c). Absent ⇒ the column stays NULL, which reads back as free mode over
+ *     `systemPrompt` — the same thing every pre-A1c agent does, so a caller that knows nothing about personas
+ *     creates exactly what it always created. New trailing argument on purpose: the positional list here is already
+ *     thirteen long, and the last time one was appended (`categoryId`) a caller that stopped short silently wiped
+ *     it (see updateAgent).
  * @param {boolean} [threadsEnabled]
  * @param {boolean} [copyEnabled]
  * @param {boolean} [workspaceEnabled]
@@ -67,11 +65,10 @@ async function createAgent(name, description, systemPrompt, ownerId, model = nul
  * WHERE clause), so no caller can put a support singleton into split mode.
  *
  * @param {string} id
- * @param {object} [opts]
- * @param {number|null} [opts.expectedRev] CAS token; null = publish whatever is there now.
- * @param {object|null} [opts.config] The (validated) config to publish; defaults to the stored concept.
- * @param {any} [opts.client] A transaction client ({ query }); the deploy commit passes its own.
- * @param {{ deploymentId?: string }|null} [opts.managedWrite] The deploy's capability, needed on a managed agent.
+ * @param {{ expectedRev?: number|null, config?: object|null, client?: DbQueryable|null, managedWrite?: { deploymentId?: string }|null }} [opts]
+ *   expectedRev: CAS token; null = publish whatever is there now. config: The (validated) config to publish;
+ *   defaults to the stored concept. client: A transaction client ({ query }); the deploy commit passes its
+ *   own. managedWrite: The deploy's capability, needed on a managed agent.
  * @returns {Promise<{ok:true,row:object,publishedVersion:number,publishedRev:number,publishedAt:string}
  *                  |{ok:false,conflict:true,currentRev:number}
  *                  |{ok:false,notFound:true}
@@ -149,22 +146,20 @@ const AGENT_UPDATE_COLUMNS = Object.freeze({
  * `organizationId`, `sharedGroups` and `categoryId` are PRESERVED when the
  * argument is `undefined` and only cleared when it is explicitly null/[].
  *
- * @param {object} [opts]
- * @param {number|null} [opts.expectedRev] When set, the write is a compare-and-swap
- *   on the `rev` column: if the row's current rev != expectedRev the UPDATE matches
- *   zero rows and the caller gets `{ ok:false, conflict:true, currentRev }` instead of
- *   silently clobbering. Callers that must always win (version restore, support tools)
- *   pass null → last-write-wins, same as before.
- * @param {object|null} [opts.persona] The structured role (A1c). Follows the
- *   SAME undefined-means-preserve rule as the three optional columns above,
- *   and for the same reason: the `persona` clause is only added to the SET list
- *   when a caller actually supplied one, so `routes/versions.js` and every
- *   other short caller leave the column alone instead of erasing a role they
- *   never heard of. Explicit `null` clears it — which is not data loss, it is
- *   the row falling back to free mode over its own `system_prompt`.
- * @param {{ deploymentId?: string }|null} [opts.managedWrite] A deploy's capability. On an
- *   agent filed into a Solution stage, only sharing, `embed_enabled` and the
- *   category may change without it (409 managed_part otherwise).
+ * @param {{
+ *   expectedRev?: number|null, persona?: object|null, managedWrite?: { deploymentId?: string }|null,
+ * }} [opts]
+ *   expectedRev: When set, the write is a compare-and-swap on the `rev` column: if the row's current rev !=
+ *     expectedRev the UPDATE matches zero rows and the caller gets `{ ok:false, conflict:true, currentRev }`
+ *     instead of silently clobbering. Callers that must always win (version restore, support tools) pass null →
+ *     last-write-wins, same as before.
+ *   persona: The structured role (A1c). Follows the SAME undefined-means-preserve rule as the three optional
+ *     columns above, and for the same reason: the `persona` clause is only added to the SET list when a caller
+ *     actually supplied one, so `routes/versions.js` and every other short caller leave the column alone instead of
+ *     erasing a role they never heard of. Explicit `null` clears it — which is not data loss, it is the row falling
+ *     back to free mode over its own `system_prompt`.
+ *   managedWrite: A deploy's capability. On an agent filed into a Solution stage, only sharing, `embed_enabled` and
+ *     the category may change without it (409 managed_part otherwise).
  * @returns {Promise<{ok:true, rev:number}|{ok:false, conflict:true, currentRev:number}|{ok:false, notFound:true}>}
  * @param {boolean} [threadsEnabled]
  * @param {boolean} [copyEnabled]
@@ -284,9 +279,7 @@ async function updateAgent(id, name, description, systemPrompt, ownerId, model =
  *
  * @param {string} id
  * @param {string|null} [userId]
- * @param {object} [opts]
- * @param {'autosave'|'published'|'pre_refine'} [opts.kind]
- * @param {string} [opts.changeSummary]
+ * @param {{ kind?: 'autosave'|'published'|'pre_refine', changeSummary?: string }} [opts]
  */
 async function snapshotAgent(id, userId = null, { kind = 'pre_refine', changeSummary = 'Before AI refine' } = {}) {
     const loaded = await _loadAgentRow(id);

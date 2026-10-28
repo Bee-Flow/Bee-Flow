@@ -55,7 +55,7 @@ async function scopeForAutomation(automationId, organizationId) {
 /**
  * @param {string} automationId
  * @param {string|null} organizationId  the automation's org — NOT the session's
- * @param {object} definition
+ * @param {import('./automationGraph').AutomationDefinition} definition
  * @param {{label?: string, extraEntries?: any[]}} [opts] log prefix, so the ops line names the path
  * @returns {Promise<number>} rows written, or -1 when the reconcile itself failed
  */

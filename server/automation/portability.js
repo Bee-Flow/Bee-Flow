@@ -55,7 +55,7 @@ const EXPORT_SCHEMA_VERSION = 1;
 const EXPORT_SUPPORTED_VERSIONS = [1];
 
 /**
- * @param {{ id: string; key: string; name?: string; }} x
+ * @param {unknown} x
  */
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
@@ -239,7 +239,7 @@ function stripEnvironmentRefs(def, warnings) {
  * file. Refusing would be too harsh there — it is a label, not a right, and the rest of the file is perfectly
  * importable — so: remove it and say so.
  *
- * @param {any} definition  is modified IN PLACE
+ * @param {import('./automationGraph').AutomationDefinition} definition  is modified IN PLACE
  * @param {string[]} warnings  receives a sentence per removed pointer
  * @returns {number} how many were removed
  */
@@ -373,7 +373,7 @@ function sanitizeImport(envelope) {
  *
  * Mutates `definition`.
  *
- * @param {any} definition
+ * @param {import('./automationGraph').AutomationDefinition} definition
  * @param {Array<{id: string, key: string, name?: string}>} tables  tables the importer may use
  * @returns {{ relinked: number, entries: Array<any> }}
  */

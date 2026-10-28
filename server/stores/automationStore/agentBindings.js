@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const { AUTOMATION_SELECT } = require('./lifecycle');
 
 /**
- * @typedef {object} BindingRow
+ * @typedef BindingRow
  * @property {string} id
  * @property {string} automation_id
  * @property {string} agent_id

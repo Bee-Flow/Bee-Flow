@@ -144,16 +144,13 @@ function scopePredicate({ userId, agentId = null, projectId = null, includeGener
  * cast that throws, a CTE that materialises and full-scans, an interpolated
  * dimension.
  *
- * @param {object}  [opts]
- * @param {string}  [opts.userId]
- * @param {string}  [opts.agentId]
- * @param {string}  [opts.projectId]
- * @param {boolean} [opts.includeGeneral]
- * @param {boolean} [opts.includeSensitive]  read sensitivity='art9' rows too (default false)
- * @param {number}  [opts.dim]            active embedding dimension, if any
- * @param {number[]}[opts.queryVector]    the embedded user message, if any
- * @param {string}  [opts.queryText]      raw user message, for the lexical leg
- * @param {number}  [opts.legLimit]
+ * @param {{
+ *   userId?: string, agentId?: string, projectId?: string, includeGeneral?: boolean, includeSensitive?: boolean,
+ *   dim?: number, queryVector?: number[], queryText?: string, legLimit?: number,
+ * }} [opts]
+ *   includeSensitive: read sensitivity='art9' rows too (default false)
+ *   dim: active embedding dimension, if any; queryVector: the embedded user message, if any; queryText: raw user
+ *   message, for the lexical leg
  * @returns {{sql: string, params: any[], legs: string[]}}
  */
 function buildCandidateQuery({

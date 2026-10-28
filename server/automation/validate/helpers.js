@@ -200,7 +200,7 @@ module.exports = {
  * @typedef {(finding: Finding) => void} PushFinding  a finding sink (pushE / pushW)
  * @typedef {Record<string, { title?: string, params?: Array<{ name?: string, required?: boolean }> }>} AvailableBlocks  the callable-Steps catalog, by block id
  * @typedef {Record<string, { trigger?: { params?: Array<{ name?: string, required?: boolean }> } }>} LayersMap  the `layers` of a definition, by key
- * @typedef {object} ValidateCatalogs  the optional catalogs a caller hands the validator (see validateDefinition)
+ * @typedef ValidateCatalogs  the optional catalogs a caller hands the validator (see validateDefinition)
  * @property {Set<string> | null} [availableTools]
  * @property {Record<string, string[]> | null} [toolRequiredParams]
  * @property {Record<string, Set<string>> | null} [deliverableEvents]
@@ -210,7 +210,7 @@ module.exports = {
  * @property {Set<string> | null} [availableAgents]
  * @property {boolean | null} [topicClassifier]
  * @typedef {ValidateCatalogs & { scope?: string, stage?: string }} ValidateOptions  the options of validateDefinition
- * @typedef {object} GraphCtx  what validateGraph hands to every rule group of one graph
+ * @typedef GraphCtx  what validateGraph hands to every rule group of one graph
  * @property {GraphDoc} graph
  * @property {string} pathPrefix
  * @property {string} scope

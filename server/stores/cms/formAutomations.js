@@ -20,7 +20,7 @@ const KEY_PREFIX = 'cms_form_automation:';
 const keyOf = (/** @type {string} */ automationId) => `${KEY_PREFIX}${automationId}`;
 
 /**
- * @typedef {object} FormAutomationEntry
+ * @typedef FormAutomationEntry
  * @property {string | null} organizationId
  * @property {string} enabledAt
  * @property {string | null} enabledBy

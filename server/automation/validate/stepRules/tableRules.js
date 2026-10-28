@@ -96,7 +96,7 @@ function checkSaltDeclared(ctx, step, at) {
  */
 function checkTable(ctx, step, at) {
     if (step.type !== 'table') return;
-    const { validateTableStep } = /** @type {any} */ (require('../../../core/automationModel/tableOps/spec'));
+    const { validateTableStep } = /** @type {typeof import('../../../core/automationModel/tableOps/spec')} */ (require('../../../core/automationModel/tableOps/spec'));
     const { tableLimits } = require('../../../core/automationRunner/tables/limits');
     report(ctx, validateTableStep(step, { maxOps: tableLimits().maxOps }), at);
     checkSaltPlacement(ctx, step, at);

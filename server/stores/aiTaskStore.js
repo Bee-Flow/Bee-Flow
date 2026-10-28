@@ -354,7 +354,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} AiTaskRow
+ * @typedef AiTaskRow
  * @property {string} id
  * @property {string} user_id
  * @property {string} title

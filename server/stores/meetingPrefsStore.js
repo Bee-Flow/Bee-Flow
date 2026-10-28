@@ -423,11 +423,9 @@ function participantCountOf(meeting) {
 /**
  * Should this meeting be recorded?
  *
- * @param {object} [args]
- * @param {Array} [args.rows]             rows from listPrefs (or loadMeetingPrefs)
- * @param {Array} [args.ids]              [{kind, id}] of this meeting
- * @param {number|null} [args.participantCount]  NULL/undefined = unknown
- * @param {boolean} [args.fallback]       the global autoRecord/autoImport setting
+ * @param {{ rows?: Array, ids?: Array, participantCount?: number|null, fallback?: boolean }} [args]
+ *   rows: rows from listPrefs (or loadMeetingPrefs); ids: [{kind, id}] of this meeting; participantCount:
+ *   NULL/undefined = unknown; fallback: the global autoRecord/autoImport setting
  * @returns {{record: boolean, reason: string}}
  *   reason: opted_out | opted_in | small_meeting | unknown_size | auto | auto_off
  */

@@ -183,14 +183,14 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
      * retires the stamp (keeping the first retirement time), `false` revives
      * it, `undefined` leaves it.
      *
-     * @param {any} client  a transaction client, or null for the pool
+     * @param {DbQueryable | null} client  a transaction client, or null for the pool
      * @param {{ projectId: string, ref: string, kind: string, entityId: string, installHash: string,
      *   installedVersion?: number, releaseId?: string|null, sourceHash?: string|null,
      *   stepIdMap?: object|null, retired?: boolean }} row
      */
     async function upsertStamp(client, row) {
         await ready();
-        const { projectId, ref, kind, entityId, installHash } = row || /** @type {any} */ ({});
+        const { projectId, ref, kind, entityId, installHash } = row || /** @type {typeof row} */ ({});
         for (const [name, v] of Object.entries({ projectId, ref, kind, entityId, installHash })) {
             if (!isNonEmptyString(v)) throw new TypeError(`upsertStamp: ${name} is required`);
         }

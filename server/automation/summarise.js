@@ -398,7 +398,7 @@ function renderGraphState(graph, out, opts = {}) {
 }
 
 /**
- * @param {object} def   the draft definition
+ * @param {import('./automationGraph').AutomationDefinition} def   the draft definition
  * @param {{ codeParams?: (code: string) => Array<object>|null }} [opts]
  */
 function renderAgentDraftState(def, opts = {}) {

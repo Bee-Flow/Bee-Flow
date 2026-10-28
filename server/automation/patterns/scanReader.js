@@ -29,7 +29,7 @@ const LOADERS = {
     captureCall: () => require('../../core/http/captureCall').captureCall,
     logEgress: () => require('../../core/automationRunner/safety').logEgress,
     toolLoopGate: () => require('../../core/privacy/toolPiiGate').toolLoopGate,
-    logGuardrailEvent: () => (/** @type {any} */ row) => require('../../stores/guardrailEventStore').logGuardrailEvent(row),
+    logGuardrailEvent: () => (/** @type {Parameters<typeof import('../../stores/guardrailEventStore').logGuardrailEvent>[0]} */ row) => require('../../stores/guardrailEventStore').logGuardrailEvent(row),
 };
 
 /** @param {Record<string, any>|null|undefined} overrides */
@@ -86,7 +86,7 @@ function makeScanReader(ctx, overrides = null) {
             userId: ctx.userId, session: ctx.session, orgId: ctx.orgId ?? null, signal,
         }));
         try {
-            await d.logEgress(/** @type {any} */ ({
+            await d.logEgress(/** @type {Parameters<typeof d.logEgress>[0]} */ ({
                 toolName: name, toolArgs: args,
                 ...(call.ok ? { result: call.value } : { error: call.error }),
                 probe: call.probe, policy: ctx.policy, auditBase: ctx.auditBase, mode: 'live', durationMs: Date.now() - t0,

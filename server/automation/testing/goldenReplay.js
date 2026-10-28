@@ -86,6 +86,14 @@ async function resolveEntry(runEntry, automation, goldenRun) {
 
 /**
  * What replayGoldens resolves its collaborators to (the real modules, unless overridden).
+ * @typedef ReplayDeps
+ * @property {typeof import('../../stores/automationStore')} store
+ * @property {{ setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }} testingStore
+ * @property {typeof import('../../core/automationRunner').executeAutomation} executeAutomation
+ * @property {typeof import('./formAnswers').answersFromJourney} answersFromJourney
+ * @property {{ entryDefinitionOf: typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf, resolveTriggerStepId: typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId }} runEntry
+ * @property {typeof import('./runCompare').compareRuns} compareRuns
+ * @property {{ warn: (msg: string) => void }} log
  */
 /** @typedef {{ store: typeof import('../../stores/automationStore'), testingStore: { setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }, executeAutomation: typeof import('../../core/automationRunner').executeAutomation, answersFromJourney: typeof import('./formAnswers').answersFromJourney, runEntry: { entryDefinitionOf: typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf, resolveTriggerStepId: typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId }, compareRuns: typeof import('./runCompare').compareRuns, log: { warn: (msg: string) => void } }} ReplayDeps */
 
@@ -122,8 +130,8 @@ async function replayOne(golden, input, deps) {
 
         const result = await deps.compareRuns({
             runA: goldenRun, runB: replay,
-            legsA: legs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
-            legsB: replayLegs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
+            legsA: legs.filter((/** @type {Parameters<typeof canReadRunData>[0]} */ l) => canReadRunData(l, userId)),
+            legsB: replayLegs.filter((/** @type {Parameters<typeof canReadRunData>[0]} */ l) => canReadRunData(l, userId)),
             viewerId: userId, ignorePaths: golden.ignorePaths || [],
         });
         await testingStore.setGoldenReplay(golden.id, { status: result.verdict, summary: result.summary, replayRunId, errorCode: null });

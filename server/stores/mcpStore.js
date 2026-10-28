@@ -84,7 +84,8 @@ const initDB = makeStoreInit('MCPStore', initTable);
 
 /**
  * Create a new MCP server definition.
- * @param {Object} server - { id, name, command, args, required_credentials }
+ * @param {{ id: string, name: string, command?: string, args?: string[], required_credentials?: Array<{ key: string, label?: string, description?: string }>,
+ *   transport?: string, url?: string, category?: string, description?: string, icon?: string, source?: string }} server
  * required_credentials: [{ key: 'GITHUB_TOKEN', label: 'GitHub Token', description: '...' }]
  */
 async function createServer({ id, name, command, args = [], required_credentials = [], transport = 'stdio', url, category, description, icon, source = 'manual' }) {

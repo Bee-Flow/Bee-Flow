@@ -99,7 +99,7 @@ function aiKind(step) {
  * listed in `unresolvedBlocks`. AI found inside a Step is reported as the
  * call_block step itself, type 'block'.
  *
- * @param {object} definition
+ * @param {AutomationDefinition} definition
  * @param {{ blocks?: Record<string, object|null>|null }} [opts]
  */
 function detectAiUse(definition, { blocks = null } = {}) {
@@ -346,7 +346,11 @@ function signatureOf(q) {
     return crypto.createHash('sha256').update(JSON.stringify([q.answer, q.confidence, q.lean ?? null, shape])).digest('hex').slice(0, 16);
 }
 
-/** @typedef {{ title?: string, description?: string }} HintTextArgs */
+/**
+ * @typedef HintTextArgs
+ * @property {string} [title]
+ * @property {string} [description]
+ */
 /**
  * The text the Annex III keyword hints read: title, description and the AI steps' instructions.
  * @param {HintTextArgs} param0
@@ -425,7 +429,7 @@ module.exports = {
 /** @typedef {{ step: AutomationStep, ref: StepRef, kind: string, reach: string }} OutwardStep */
 
 /**
- * @typedef {object} Question  one question's answer
+ * @typedef Question  one question's answer
  * @property {string} answer  'yes' | 'no' | 'unknown'
  * @property {string} confidence  'certain' | 'likely' | 'unknown'
  * @property {Evidence[]} evidence
@@ -436,7 +440,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} Verdict  the fast model's verdict (aiActClassify.js)
+ * @typedef Verdict  the fast model's verdict (aiActClassify.js)
  * @property {boolean} [available]
  * @property {{ answer?: unknown, confidence?: string, domains?: string[] }} [highRisk]
  * @property {{ answer?: unknown, confidence?: string, practices?: string[] }} [prohibited]

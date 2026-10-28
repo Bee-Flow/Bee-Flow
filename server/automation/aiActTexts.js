@@ -76,7 +76,7 @@ function withText(evidence) {
 module.exports = { AREA_TEXT, PRACTICE_TEXT, TEXT, textFor, withText };
 
 /**
- * @typedef {object} TextParams  what a piece of evidence names (aiActDetect.js)
+ * @typedef TextParams  what a piece of evidence names (aiActDetect.js)
  * @property {number} [count]
  * @property {Array<{ label?: string }>} [steps]
  * @property {string} [label]

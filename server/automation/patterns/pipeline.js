@@ -48,9 +48,9 @@ const LOADERS = {
     collectAll: () => require('./sources').collectAll,
     detectPii: () => require('../../core/privacy/piiDetection').detectPii,
     namePatterns: () => require('./explain').namePatterns,
-    getAutomatedToolNames: () => (/** @type {any} */ p) => require('../../stores/integrationActivityStore').getAutomatedToolNames(p),
+    getAutomatedToolNames: () => (/** @type {Parameters<typeof import('../../stores/integrationActivityStore').getAutomatedToolNames>[0]} */ p) => require('../../stores/integrationActivityStore').getAutomatedToolNames(p),
     getAutomations: () => (/** @type {string} */ userId) => require('../../stores/automationStore').getAutomationsForUser(userId),
-    getSuppressedSignatures: () => (/** @type {any} */ p) => require('../../stores/suggestionFeedbackStore').getSuppressedSignatures(p),
+    getSuppressedSignatures: () => (/** @type {Parameters<typeof import('../../stores/suggestionFeedbackStore').getSuppressedSignatures>[0]} */ p) => require('../../stores/suggestionFeedbackStore').getSuppressedSignatures(p),
     appOfTool: () => (/** @type {string} */ tool) => require('../../core/integrations/integrationToolMap').resolveIntegration(tool)?.integration
         || String(tool).split('_')[0],
 };
@@ -86,8 +86,8 @@ function scanCacheKey({ userId, mode, sources, focus = '', now = Date.now(), tim
 /**
  * Bridge collectAll's onProgress callback into the generator: each step is
  * yielded as soon as it happens, then the collected result is returned.
- * @param {Function} collectAll
- * @param {any} ctx
+ * @param {typeof import('./sources').collectAll} collectAll
+ * @param {Parameters<typeof import('./sources').collectAll>[0]} ctx
  * @param {AbortSignal|undefined} signal
  */
 async function* streamCollect(collectAll, ctx, signal) {
@@ -157,7 +157,7 @@ async function softly(what, fn, fallback) {
         const v = await fn();
         return v ?? fallback;
     } catch (err) {
-        log.warn(`[RepeatingWork] ${what} unavailable: ${/** @type {any} */ (err)?.message}`);
+        log.warn(`[RepeatingWork] ${what} unavailable: ${/** @type {Error} */ (err)?.message}`);
         return fallback;
     }
 }
@@ -167,7 +167,7 @@ async function softly(what, fn, fallback) {
  * feedback, for suppressCandidates.
  * @param {string} userId
  * @param {number} now
- * @param {any} d deps
+ * @param {ReturnType<typeof depsFor>} d deps
  * @param {{ tools?: boolean }} [opts]
  */
 async function suppressionInputs(userId, now, d, opts = {}) {
@@ -354,7 +354,7 @@ async function suppressSuggestions(suggestions, { userId, now = Date.now() }, ov
  *   executeTool?: (name: string, args: object) => Promise<any>,
  *   nextcloudUid?: string|null,
  *   naming?: { modelId?: string|null, llmClient?: any, guard?: ((messages: any[]) => Promise<any>)|null },
- *   collectors?: Record<string, Function>, sourceDeps?: Record<string, any>, limits?: Record<string, number>,
+ *   collectors?: Parameters<typeof import('./sources').collectAll>[0]['collectors'], sourceDeps?: Record<string, any>, limits?: Record<string, number>,
  *   maxPatterns?: number,
  * }} input
  * @param {Record<string, any>|null} [overrides]
