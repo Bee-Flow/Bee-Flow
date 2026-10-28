@@ -26,6 +26,7 @@ import { minutesAgo } from './common';
 import { ME } from './automationsPeople';
 import { opaqueId } from './automationsMailFanout';
 import type { DemoRun } from './automationsRuns';
+import { pick } from '../lang';
 
 type Obj = Record<string, unknown>;
 type StepResult = { stepType: string; input: unknown; output: unknown };
@@ -33,10 +34,40 @@ type StepResult = { stepType: string; input: unknown; output: unknown };
 const MAIL_FLATTEN_AUTOMATION_ID = 'auto_demo_mail_flatten';
 const MAIL_FLATTEN_AUTOMATION_TITLE = 'Fabrikam invoices as one table';
 
-const FABRIKAM = 'Fabrikam Facturen <facturen@fabrikam.example>';
+/** The sample copy of this demo, per demo language (see demo/lang.ts). */
+const L = pick({
+    en: {
+        fabrikam: 'Fabrikam Invoices <invoices@fabrikam.example>',
+        to: 'payables@contoso.example',
+        query: 'has:attachment invoice newer_than:30d',
+        subject: 'Your Fabrikam invoice',
+        body: (subject: string, sender: string) => [
+            'Dear customer,', '',
+            `Attached you will find the invoice for "${subject}", as a PDF and as an XML (UBL) file for your bookkeeping.`,
+            'Please pay within 30 days of the invoice date to account NL00 BANK 0123 4567 89, quoting the invoice number.',
+            ...Array.from({ length: 9 }, (_, i) => `Line ${i + 1}: this e-mail was sent automatically. Questions about this invoice? Reply to this e-mail or call our customer service on working days.`),
+            '', 'Kind regards,', sender.split(' <')[0],
+        ].join('\n'),
+    },
+    nl: {
+        fabrikam: 'Fabrikam Facturen <facturen@fabrikam.example>',
+        to: 'crediteuren@contoso.example',
+        query: 'has:attachment factuur newer_than:30d',
+        subject: 'Je Fabrikam factuur',
+        body: (subject: string, sender: string) => [
+            'Beste klant,', '',
+            `In de bijlage vind je de factuur bij "${subject}", als PDF en als XML (UBL) voor je boekhouding.`,
+            'Betaal binnen 30 dagen na factuurdatum op rekening NL00 BANK 0123 4567 89 onder vermelding van het factuurnummer.',
+            ...Array.from({ length: 9 }, (_, i) => `Regel ${i + 1}: deze e-mail is automatisch verstuurd. Vragen over deze factuur? Antwoord op deze e-mail of bel onze klantenservice op werkdagen.`),
+            '', 'Met vriendelijke groet,', sender.split(' <')[0],
+        ].join('\n'),
+    },
+});
+
+const FABRIKAM = L.fabrikam;
 const CONTOSO = 'Contoso Billing <billing@contoso.example>';
-const TO = 'crediteuren@contoso.example';
-const QUERY = 'has:attachment factuur newer_than:30d';
+const TO = L.to;
+const QUERY = L.query;
 
 const LOGOS = [
     'logo-header.png', 'icon-facebook.png', 'icon-linkedin.png', 'icon-x.png', 'icon-instagram.png', 'icon-youtube.png', 'badge-iso.png',
@@ -46,9 +77,9 @@ const LOGOS = [
 /** id, from, subject, invoice number, date; newest first, as the search returns them. */
 const MAILS: Array<[string, string, string, string, string]> = [
     ['19a11e7b3f0c6a59', CONTOSO, 'Invoice C-77012', 'C-77012', 'Mon, 28 Sep 2026 07:12:40 +0000 (UTC)'],
-    ['19a0c4d1a8e35f02', FABRIKAM, 'Je Fabrikam factuur F-2026-1003', 'F-2026-1003', 'Mon, 21 Sep 2026 06:41:09 +0000 (UTC)'],
-    ['19a06b2e91c4d877', FABRIKAM, 'Je Fabrikam factuur F-2026-1002', 'F-2026-1002', 'Mon, 14 Sep 2026 06:40:55 +0000 (UTC)'],
-    ['19a01f3c7d2e4b10', FABRIKAM, 'Je Fabrikam factuur F-2026-1001', 'F-2026-1001', 'Mon, 07 Sep 2026 06:39:31 +0000 (UTC)'],
+    ['19a0c4d1a8e35f02', FABRIKAM, `${L.subject} F-2026-1003`, 'F-2026-1003', 'Mon, 21 Sep 2026 06:41:09 +0000 (UTC)'],
+    ['19a06b2e91c4d877', FABRIKAM, `${L.subject} F-2026-1002`, 'F-2026-1002', 'Mon, 14 Sep 2026 06:40:55 +0000 (UTC)'],
+    ['19a01f3c7d2e4b10', FABRIKAM, `${L.subject} F-2026-1001`, 'F-2026-1001', 'Mon, 07 Sep 2026 06:39:31 +0000 (UTC)'],
 ];
 
 const MIME: Record<string, string> = { png: 'image/png', pdf: 'application/pdf', xml: 'application/xml' };
@@ -60,13 +91,7 @@ function sizeOf(ext: string, seed: number): number {
     return 1_000 + (seed * 1_237) % 8_000;
 }
 
-const bodyOf = (subject: string, sender: string) => [
-    'Beste klant,', '',
-    `In de bijlage vind je de factuur bij "${subject}", als PDF en als XML (UBL) voor je boekhouding.`,
-    'Betaal binnen 30 dagen na factuurdatum op rekening NL00 BANK 0123 4567 89 onder vermelding van het factuurnummer.',
-    ...Array.from({ length: 9 }, (_, i) => `Regel ${i + 1}: deze e-mail is automatisch verstuurd. Vragen over deze factuur? Antwoord op deze e-mail of bel onze klantenservice op werkdagen.`),
-    '', 'Met vriendelijke groet,', sender.split(' <')[0],
-].join('\n');
+const bodyOf = (subject: string, sender: string) => L.body(subject, sender);
 
 function readMail([id, from, subject, invoice, date]: (typeof MAILS)[number], mi: number) {
     const names = [...LOGOS, `${invoice}.pdf`, `${invoice}.xml`];

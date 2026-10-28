@@ -68,7 +68,7 @@ describe.each(['en', 'nl'] as const)('demo sample data in %s', (lang) => {
         for (const text of all) {
             // Names are short strings; running prose may legitimately say "de" or "van".
             if (text.length < 40) expect(text, `${id}/${lang}`).not.toMatch(LOCALE_TIED_NAMES);
-            if (lang === 'en' && id !== 'automations') {
+            if (lang === 'en') {
                 expect(unquoted(text), `${id}/en has a Dutch word`).not.toMatch(DUTCH_WORDS);
             }
         }
@@ -92,7 +92,7 @@ describe.each(['en', 'nl'] as const)('rendered demo in %s', (lang) => {
                 if (other.length < 40) continue;
                 expect(text.includes(other), `${id}/${lang} shows copy of the other language: ${other.slice(0, 60)}`).toBe(false);
             }
-            if (lang === 'en' && id !== 'automations') expect(unquoted(text)).not.toMatch(DUTCH_WORDS);
+            if (lang === 'en') expect(unquoted(text)).not.toMatch(DUTCH_WORDS);
         } finally {
             cleanup();
         }
