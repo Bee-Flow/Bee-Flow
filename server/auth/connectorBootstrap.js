@@ -53,6 +53,7 @@ const {
     defaultProvisioningMode,
     resolveProvisioningMode,
     getOrMintTenantKey,
+    rotateTenantKey,
     ensureOrgAdminUser,
     ensureAdditionalOrgAdmins,
     _selectSecondaryAdmins,
@@ -100,6 +101,17 @@ const statusReportLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many status reports; try again later.' },
+    validate: { trustProxy: false },
+});
+
+// Key rotation is an admin button in the connector's setup page: a handful per
+// hour is plenty, and the cap bounds what a leaked key can churn.
+const rotateKeyLimiter = rateLimit({
+    windowMs: 15 * 60_000,         // 15 minutes
+    max: 10,                       // 10 rotations per IP per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many key rotations; try again later.' },
     validate: { trustProxy: false },
 });
 
@@ -509,15 +521,16 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
 // strict whitelist {state, category, code, connectorVersion, lastAttemptAt}
 // are ignored. Always 204 on success — the connector treats this as
 // fire-and-forget and must never block on it.
-router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb' }), async (req, res) => {
+/**
+ * The tenant a connector-signed bearer token belongs to, or the 401 answer.
+ * @param {import('express').Request} req
+ * @returns {Promise<{ orgId: string, payload: Record<string, unknown> } | { error: string }>}
+ */
+async function resolveConnectorBearer(req) {
     const authHeader = String(req.headers['authorization'] || '');
-    if (!authHeader.toLowerCase().startsWith('bearer ')) {
-        return res.status(401).json({ error: 'Missing bearer token' });
-    }
+    if (!authHeader.toLowerCase().startsWith('bearer ')) return { error: 'Missing bearer token' };
     const token = authHeader.slice(7).trim();
-    if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
-        return res.status(401).json({ error: 'Invalid connector token' });
-    }
+    if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) return { error: 'Invalid connector token' };
     let resolved = null;
     try {
         const { _resolveTenant } = require('./connectorJwt');
@@ -525,9 +538,15 @@ router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb
     } catch (_) {
         resolved = null;
     }
-    if (!resolved) {
+    if (!resolved) return { error: 'Connector token rejected: no matching tenant key' };
+    return resolved;
+}
+
+router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb' }), async (req, res) => {
+    const resolved = await resolveConnectorBearer(req);
+    if ('error' in resolved) {
         // No emit here — see header comment (spam protection).
-        return res.status(401).json({ error: 'Connector token rejected: no matching tenant key' });
+        return res.status(401).json({ error: resolved.error });
     }
     const orgId = resolved.orgId;
 
@@ -557,6 +576,38 @@ router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb
         orgHealth.resolve(orgId, ['connector.reported_error', 'connector.key_divergence']);
     }
     return res.status(204).end();
+});
+
+// ── Tenant-key rotation ─────────────────────────────────────────────────────
+// POST /auth/connector/rotate-key — the connector's "Rotate tenant key" button
+// (Nextcloud → Bee Flow /setup). Replaces the org's key with a fresh one and
+// answers it once; the old key stops verifying. Re-bootstrapping could never
+// do this: a known instance id always gets its existing key back.
+//
+// Auth: a bearer JWT signed with the CURRENT key, carrying
+// `purpose: "connector:rotate-tenant-key"` and a lifetime of at most two
+// minutes. The purpose claim keeps a captured per-user token (which carries
+// none) from rotating the key; whoever holds the key itself can rotate it, as
+// they could already act as the connector.
+const ROTATE_PURPOSE = 'connector:rotate-tenant-key';
+const ROTATE_MAX_TOKEN_LIFETIME_S = 120;
+
+router.post('/connector/rotate-key', rotateKeyLimiter, async (req, res) => {
+    const resolved = await resolveConnectorBearer(req);
+    if ('error' in resolved) return res.status(401).json({ error: resolved.error });
+    const { orgId, payload } = resolved;
+    if (payload.purpose !== ROTATE_PURPOSE) {
+        return res.status(403).json({ error: 'This token may not rotate the tenant key', code: 'wrong_token_purpose' });
+    }
+    const exp = typeof payload.exp === 'number' ? payload.exp : null;
+    if (exp === null || exp - Math.floor(Date.now() / 1000) > ROTATE_MAX_TOKEN_LIFETIME_S) {
+        return res.status(401).json({ error: `A rotation token must expire within ${ROTATE_MAX_TOKEN_LIFETIME_S} seconds`, code: 'token_lifetime' });
+    }
+    const tenantKey = await rotateTenantKey(orgId);
+    await userStore.logAccessAudit('connector_tenant_key_rotated', 'organization', orgId,
+        'system:connector', null, {}, orgId);
+    res.set('Cache-Control', 'no-store');
+    return res.json({ tenantKey, organizationId: orgId });
 });
 
 module.exports = Object.assign(router, { helpers: {

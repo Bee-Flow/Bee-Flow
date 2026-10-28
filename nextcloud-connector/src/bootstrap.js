@@ -29,6 +29,7 @@ const log = require('./log');
 
 const fs = require('fs').promises;
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
 // ncHostFromUrl and stableInstanceIdFallback are the server's own code: src/shared/orgNaming.js is
@@ -1122,6 +1123,100 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
     }
 }
 
+/**
+ * Replace this install's tenant key with a fresh one ("Rotate tenant key").
+ *
+ * Asks the Bee Flow server to rotate (POST /auth/connector/rotate-key, signed
+ * with the current key), then applies the new key here: cache, webhook
+ * secrets and the other key-dependent registrations follow via
+ * tenantKeyReady. The old key no longer verifies on the server.
+ *
+ * Re-bootstrapping, which this button used to do, could never rotate: the
+ * server answers a known instance id with its existing key, and the admin was
+ * shown that same fingerprint as "new".
+ *
+ * When the answer is lost after the server may have rotated (network error,
+ * 5xx), the connector re-fetches its binding so it does not keep a key the
+ * server no longer accepts, then reports whether the key changed.
+ * @returns {Promise<{ previousFingerprint: string, fingerprint: string }>}
+ */
+async function rotateTenantKey() {
+    const before = config.tenantKey;
+    if (!before) {
+        const e = new Error('There is no tenant key to rotate yet.');
+        e.code = 'no_tenant_key';
+        throw e;
+    }
+    if (!config.isAutoTenantKey) {
+        const e = new Error('The tenant key is set with BEEFLOW_TENANT_KEY. Rotate it in Bee Flow (Admin → Nextcloud) and set the new key with occ app_api:app:setenv.');
+        e.code = 'env_tenant_key';
+        throw e;
+    }
+    const token = jwt.sign({ purpose: 'connector:rotate-tenant-key' }, before, {
+        algorithm: 'HS256', issuer: 'nextcloud-connector', audience: 'beeflow.nl', expiresIn: 60,
+    });
+    /** @type {Response | null} */
+    let res = null;
+    /** @type {unknown} */
+    let netErr = null;
+    try {
+        res = await fetch(`${config.apiBaseUrl}/auth/connector/rotate-key`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'X-Beeflow-Source': 'nextcloud-connector' },
+            signal: AbortSignal.timeout(15_000),
+        });
+    } catch (e) {
+        netErr = e;
+    }
+    const json = res ? /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({}))) : {};
+
+    if (res?.ok && json.tenantKey) {
+        if (json.tenantKey === before) {
+            const e = new Error('The Bee Flow server answered with the same key; nothing was rotated.');
+            e.code = 'unchanged';
+            throw e;
+        }
+        const cached = await readCache();
+        await applyTenantKeyResponse({
+            tenantKey: json.tenantKey,
+            organizationId: config.organizationId ?? undefined,
+            organizationName: config.organizationName ?? undefined,
+            ncVersion: cached?.ncVersion,
+        }, config.ncInstanceId ?? undefined);
+        log.info(`[Bootstrap] Tenant key rotated for org ${config.organizationId}`);
+        return { previousFingerprint: keyFingerprint(before), fingerprint: keyFingerprint(json.tenantKey) };
+    }
+
+    if (res && res.status === 404) {
+        const e = new Error('This Bee Flow server cannot rotate tenant keys yet. Update the Bee Flow server, then try again.');
+        e.code = 'rotation_unsupported';
+        throw e;
+    }
+    if (res && res.status < 500) {
+        const e = new Error(json.error || `Key rotation refused (HTTP ${res.status})`);
+        e.code = json.code || 'rotation_refused';
+        e.status = res.status;
+        throw e;
+    }
+    // Unknown outcome: the server may have rotated before the answer was lost.
+    // Re-fetch the binding (a known instance gets its CURRENT key back).
+    log.warn(`[Bootstrap] key rotation outcome unknown (${netErr ? errMessage(netErr) : `HTTP ${res?.status}`}); re-fetching the binding`);
+    await invalidateAndRebootstrap();
+    if (config.tenantKey && config.tenantKey !== before) {
+        return { previousFingerprint: keyFingerprint(before), fingerprint: keyFingerprint(config.tenantKey) };
+    }
+    const e = new Error(`Could not rotate the tenant key: ${netErr ? errMessage(netErr) : `HTTP ${res?.status}`}. The current key is unchanged.`);
+    e.code = 'saas_unreachable';
+    throw e;
+}
+
+// First 16 hex chars of sha256(key): enough for an admin to tell two keys
+// apart, never the key itself.
+/** @param {string} key */
+function keyFingerprint(key) {
+    return require('crypto').createHash('sha256').update(String(key)).digest('hex').slice(0, 16);
+}
+
 // Is this NC uid in the admin group? Gates the in-app verification request so
 // only an admin can drive pairing.
 /**
@@ -1190,6 +1285,7 @@ module.exports = {
     getLastErrorState,
     remediationFor,
     invalidateAndRebootstrap,
+    rotateTenantKey,
     submitVerificationCode,
     resendVerificationCode,
     requestVerificationCode,

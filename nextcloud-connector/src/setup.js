@@ -483,27 +483,25 @@ function rebindFailed(res, caught, action, uid, remediation) {
     });
 }
 
-// Rotate the per-install tenant key — drop the cached key + run a fresh
-// bootstrap against the same SaaS so the org binding survives but every
-// downstream signature changes. Surfaced via the "Rotate tenant key"
-// button in NC admin settings (declarativeSettings.js). Synchronous: the
-// caller blocks until SaaS responds so the UI can show success or the
-// concrete remediation in one click. invalidateAndRebootstrap() rolls back
-// to the previous key on failure so a momentary SaaS outage can't strand
-// the install.
+// Rotate the per-install tenant key: the Bee Flow server issues a new key
+// and the old one stops working, for when the current key is suspected
+// leaked. The org binding survives. Synchronous, so the "Rotate tenant key"
+// button on the /setup page shows the outcome in one click. It used to
+// re-bootstrap, which always got the SAME key back, and reported it as new.
 router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     log.info(`[Setup] tenant-key rotation requested by uid=${log.ref(uid)}`);
     try {
-        await bootstrap.invalidateAndRebootstrap();
+        const { previousFingerprint, fingerprint } = await bootstrap.rotateTenantKey();
         log.info(`[Setup] tenant-key rotated by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
             organizationId: config.organizationId,
-            tenantKeyFingerprint: tenantKeyFingerprint(),
+            previousTenantKeyFingerprint: previousFingerprint,
+            tenantKeyFingerprint: fingerprint,
         });
     } catch (err) {
-        rebindFailed(res, err, `tenant-key rotation`, uid, 'Check connector logs for the SaaS response, then retry.');
+        rebindFailed(res, err, `tenant-key rotation`, uid, 'The current key is unchanged. Check the connector logs for the Bee Flow server response, then retry.');
     }
 });
 
