@@ -1,6 +1,6 @@
 /**
  * The datatable step, the pure half of the web's DatatableFields
- * (datatableEditors.jsx). NOTHING IS FREE TEXT: the table comes from a list
+ * (datatableEditors.tsx). NOTHING IS FREE TEXT: the table comes from a list
  * the server filtered by what this person may use, a column from that
  * table's declared columns, the test from a closed operator list narrowed by
  * the column's type; only the VALUE is a binding. Pinned by

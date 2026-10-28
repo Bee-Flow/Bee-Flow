@@ -1,5 +1,5 @@
 /**
- * "Which rows" — the datatable step's conditions (datatableEditors.jsx): a
+ * "Which rows" — the datatable step's conditions (datatableEditors.tsx): a
  * column from the table's own, a test narrowed by that column's type, and a
  * value that is a binding (none for "is empty"). A write that changes rows
  * must have at least one condition, or it would change every row.
