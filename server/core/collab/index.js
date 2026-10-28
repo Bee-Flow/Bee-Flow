@@ -98,16 +98,19 @@ function makeCollab(deps = {}) {
         resources: deps.resources || makeResources(),
         settings: deps.settings || require('./settings'),
         projectInfo,
-        /** @param {any} doc @param {any} [project] */
+        /**
+         * @param {{ id: string, projectId: string, keyScope?: string }} doc
+         * @param {Awaited<ReturnType<typeof projectInfo>>} [project]
+         */
         async cryptoFor(doc, project) {
             const p = project || await projectInfo(doc.projectId);
             if (!p) throw Object.assign(new Error('Project not found'), { code: 'NOT_FOUND' });
             return collabCrypto.forDoc({ id: doc.id, projectId: doc.projectId, orgId: p.organizationId, keyScope: doc.keyScope });
         },
         publishTransient: deps.publishTransient
-            || ((/** @type {string} */ projectId, /** @type {object} */ ev) => require('../projectEventBus').publishTransient(projectId, ev)),
+            || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../projectEventBus').publishTransient>[1]} */ ev) => require('../projectEventBus').publishTransient(projectId, ev)),
         emitProjectEvent: deps.emitProjectEvent
-            || ((/** @type {string} */ projectId, /** @type {object} */ ev) => require('../projectFeed').emitProjectEvent(projectId, ev, { label: 'Collab' })),
+            || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../projectFeed').emitProjectEvent>[1]} */ ev) => require('../projectFeed').emitProjectEvent(projectId, ev, { label: 'Collab' })),
         changeFeed: deps.changeFeed || (() => optional('../../projects/changeFeed')),
         contentSignals: deps.contentSignals || (() => optional('../dlp/contentSignals')),
         /**
@@ -128,7 +131,7 @@ function makeCollab(deps = {}) {
             const c = await ctx.cryptoFor(doc);
             return rows.map((r) => c.openUpdate(r.seq, /** @type {Buffer} */ (r.body)));
         },
-        subscribeProject: /** @type {any} */ (deps.subscribeProject),
+        subscribeProject: /** @type {Parameters<typeof makeDocHub>[0]['subscribeProject']} */ (deps.subscribeProject),
         isDistributed: deps.isDistributed,
         log,
     });
@@ -182,7 +185,7 @@ function optional(path) {
     try {
         return require(path);
     } catch (err) {
-        if (/** @type {any} */ (err).code === 'MODULE_NOT_FOUND') return null;
+        if (/** @type {NodeJS.ErrnoException} */ (err).code === 'MODULE_NOT_FOUND') return null;
         throw err;
     }
 }
@@ -208,7 +211,11 @@ module.exports = {
     read: (kind, resourceId) => instance().read(kind, resourceId),
     /** The live Yjs state, opened once, handed to `fn` (relative positions). @param {string} kind @param {string} resourceId @param {(state: any) => any} fn */
     withFragment: (kind, resourceId, fn) => instance().withFragment(kind, resourceId, fn),
-    /** @param {string} kind @param {string} resourceId @param {any} actor @param {any} edit */
+    /**
+     * @param {string} kind @param {string} resourceId
+     * @param {Parameters<ReturnType<typeof makeCollab>['applyServerEdit']>[2]} actor
+     * @param {Parameters<ReturnType<typeof makeCollab>['applyServerEdit']>[3]} edit
+     */
     applyServerEdit: (kind, resourceId, actor, edit) => instance().applyServerEdit(kind, resourceId, actor, edit),
     /** @param {string} kind @param {string} resourceId @param {{ reason?: string }} [opts] */
     detach: (kind, resourceId, opts) => instance().detach(kind, resourceId, opts),

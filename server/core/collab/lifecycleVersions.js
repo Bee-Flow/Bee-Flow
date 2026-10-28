@@ -127,7 +127,7 @@ function makeLifecycleVersions(ctx, base, kinds) {
         }
         if ('gone' in out || !out.value) return { closed: false, versionId: null };
         if (out.value.stale) return { closed: false, versionId: null, stale: true };
-        await announceVersion(doc, s, v, render, /** @type {any} */ (out.value));
+        await announceVersion(doc, s, v, render, /** @type {Parameters<typeof announceVersion>[4]} */ (out.value));
         return { closed: true, versionId: out.value.versionId };
     }
 
