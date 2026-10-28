@@ -135,7 +135,10 @@ const ANNEX_III_RE = new RegExp(ANNEX_III_DOMAINS.map(d => d.hint.source).join('
 
 const BY_ID = new Map(ANNEX_III_DOMAINS.map(d => [d.id, d]));
 
-/** The ids whose keyword pattern the text touches. Ordering, never an answer. */
+/**
+ * The ids whose keyword pattern the text touches. Ordering, never an answer.
+ * @param {string} text
+ */
 function hintsIn(text) {
     const t = String(text == null ? '' : text);
     if (!t) return [];
@@ -148,6 +151,7 @@ function hintsIn(text) {
  * ALL TEN, always. A list that only shows what a pattern matched is the
  * false-negative half of the old regex wearing a different hat: the domains
  * nobody thought to write a word for are exactly the ones that need asking.
+ * @param {string} text
  */
 function questionsFor(text) {
     const hinted = new Set(hintsIn(text));
@@ -197,13 +201,19 @@ function answerFromDomains(domains) {
     return values.every(v => v === 'no') ? 'no' : 'unknown';
 }
 
-/** Has anyone answered any of the ten? Distinguishes "not asked" from "answered no". */
+/**
+ * Has anyone answered any of the ten? Distinguishes "not asked" from "answered no".
+ * @param {Record<string, string>} domains
+ */
 function anyAnswered(domains) {
     const d = normalizeDomainAnswers(domains);
     return ANNEX_III_IDS.some(id => d[id] !== 'unknown');
 }
 
-/** The ids still open — what the drawer lists as "still to answer". */
+/**
+ * The ids still open — what the drawer lists as "still to answer".
+ * @param {Record<string, string>} domains
+ */
 function unansweredDomains(domains) {
     const d = normalizeDomainAnswers(domains);
     return ANNEX_III_IDS.filter(id => d[id] === 'unknown');
@@ -214,9 +224,11 @@ function unansweredDomains(domains) {
  * yes. This is the "answer that refers to the right article" — a high-risk
  * verdict says which point of the annex made it one, so the reader can look
  * it up instead of taking the product's word.
+ * @param {Record<string, string>} domains
  */
 function articlesFor(domains) {
     const d = normalizeDomainAnswers(domains);
+    /** @type {string[]} */
     const out = [];
     for (const id of ANNEX_III_IDS) {
         if (d[id] === 'yes' && !out.includes(BY_ID.get(id).article)) out.push(BY_ID.get(id).article);

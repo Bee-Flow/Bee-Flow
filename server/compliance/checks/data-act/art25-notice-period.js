@@ -83,6 +83,9 @@ module.exports = {
     remediationKey: 'compliance.check_data_act_notice_period_fix',
     remediationLink: 'admin/compliance/settings',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = (await complianceStore.getSettings(orgId)) || {};
         if (_relevance(settings).data_act === 'not_relevant') {

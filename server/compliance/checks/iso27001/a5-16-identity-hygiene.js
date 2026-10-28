@@ -102,6 +102,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_identity_hygiene.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         /** @type {string[]} */
         const enabledSources = [];

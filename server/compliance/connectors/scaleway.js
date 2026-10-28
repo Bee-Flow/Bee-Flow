@@ -188,6 +188,7 @@ module.exports = {
         }
 
         // Kubernetes clusters — degrade to null (unknown) without KubernetesReadOnly.
+        /** @type {number | null} */
         let clusters = null;
         let clusterRows = [];
         const kubeQs = `?page_size=100${projectId ? `&project_id=${encodeURIComponent(projectId)}` : ''}`;
