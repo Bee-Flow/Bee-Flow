@@ -77,13 +77,13 @@ const SEALED_FIELDS = Object.freeze(['content', 'summary', 'value', 'evidence_qu
 const ENVELOPE_LIKE = '{"_bfenc"%';
 
 /**
- * @typedef {object} MemoryKeys
+ * @typedef MemoryKeys
  * @property {Buffer} enc    AES-256-GCM key for the sealed columns
  * @property {Buffer} index  HMAC key for key_hash
  */
 
 /**
- * @typedef {object} MemoryWriteContext
+ * @typedef MemoryWriteContext
  * @property {boolean} encrypt        seal what is written
  * @property {MemoryKeys|null} keys   present whenever a key resolved, even if the surface is off (lookups need it)
  */

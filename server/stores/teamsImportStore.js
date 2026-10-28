@@ -57,12 +57,12 @@ async function _initDB() {
 }
 
 /**
- * @param {string | number | Date} v
+ * @param {string | number | Date | null} v
  */
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 
 /**
- * @param {any} r
+ * @param {DbRow.TeamsImportJobs | null} r
  */
 function mapJob(r) {
     if (!r) return null;

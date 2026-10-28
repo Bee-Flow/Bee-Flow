@@ -54,7 +54,7 @@ function makeManualActivityReader(db, { ready = async () => {} } = {}) {
      * @param {{ userId: string, since?: Date|string, limit?: number }} p
      * @returns {Promise<Array<{tool_name: string, integration_type: string|null, timestamp: Date, conversation_id: string|null}>>}
      */
-    async function getManualToolEvents({ userId, since, limit = DEFAULT_LIMIT } = /** @type {any} */ ({})) {
+    async function getManualToolEvents({ userId, since, limit = DEFAULT_LIMIT } = /** @type {{ userId: string, since?: Date|string, limit?: number }} */ ({})) {
         if (!userId) return [];
         const cap = Math.max(1, Math.min(MAX_LIMIT, Math.trunc(Number(limit) || DEFAULT_LIMIT)));
         const { rows } = await q(`
@@ -78,7 +78,7 @@ function makeManualActivityReader(db, { ready = async () => {} } = {}) {
      * @param {{ userId: string, since?: Date|string }} p
      * @returns {Promise<string[]>}
      */
-    async function getAutomatedToolNames({ userId, since } = /** @type {any} */ ({})) {
+    async function getAutomatedToolNames({ userId, since } = /** @type {{ userId: string, since?: Date|string }} */ ({})) {
         if (!userId) return [];
         const { rows } = await q(`
             SELECT DISTINCT tool_name

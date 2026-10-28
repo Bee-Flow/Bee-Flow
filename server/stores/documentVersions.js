@@ -157,16 +157,14 @@ async function headRow(client, documentId, versionId) {
  * `versionId`), inside the caller's transaction and under its row lock.
  *
  * @param {{ query: Function }} client
- * @param {any} doc          the document after the save (id, versionId, slots, settings, …)
- * @param {object} meta
- * @param {string} [meta.summary]
- * @param {string} [meta.source]           one of VERSION_SOURCES; 'autosave' when omitted
- * @param {string|null} [meta.actorId]
- * @param {Array} [meta.contributors]      defaults to the actor as a user
- * @param {object|null} [meta.stats]       computed against `previous` when omitted
- * @param {string|null} [meta.name]
- * @param {string|null} [meta.restoredFrom]
- * @param {any} [previous]                 the document before the save (null for a new one)
+ * @param {MappedDocument} doc          the document after the save (id, versionId, slots, settings, …)
+ * @param {{
+ *   summary?: string, source?: string, actorId?: string|null, contributors?: Array, stats?: object|null,
+ *   name?: string|null, restoredFrom?: string|null,
+ * }} meta
+ *   source: one of VERSION_SOURCES; 'autosave' when omitted; contributors: defaults to the actor as a user; stats:
+ *   computed against `previous` when omitted
+ * @param {MappedDocument | null} [previous]  the document before the save (null for a new one)
  * @returns {Promise<{ id: string, seq: number|null, continued: boolean }>}
  */
 async function writeRevision(client, doc, meta = {}, previous = null) {
@@ -276,3 +274,5 @@ module.exports = {
     mapVersion, cleanContributors, cleanStats, headRow, writeRevision, listRows, contentHash,
     _test: { encodeCursor, decodeCursor },
 };
+
+/** @typedef {Partial<import('./documentStore').DocumentView>} MappedDocument  a document as the store hands it over, or as a create builds it */

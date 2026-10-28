@@ -93,7 +93,7 @@ async function refreshIndex() {
  * Append one price card. A card for the same (provider, model, tier, valid_from)
  * that already exists is left untouched (append-only), and `inserted` is false.
  *
- * @param {object} card  see stores/lib/priceCatalog.validateRow for the fields
+ * @param {Record<string, unknown>} card  see stores/lib/priceCatalog.validateRow for the fields
  * @returns {Promise<{ inserted: boolean, id: number|null }>}
  */
 async function addPrice(card) {

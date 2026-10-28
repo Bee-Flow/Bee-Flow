@@ -44,7 +44,7 @@ async function getWatcherState(watcherId) {
 /**
  * Save the current state for a watcher
  * @param {string} watcherId
- * @param {any} items
+ * @param {unknown} items
  */
 async function saveWatcherState(watcherId, items) {
     await initDB();

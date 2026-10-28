@@ -55,13 +55,14 @@ const WRITABLE_STATUSES = Object.freeze(['active', 'pending_review']);
  * @param {string|null} [value]
  * @param {string|null} [evidenceQuote]
  * @param {string|null} [projectId]
- * @param {object} [options]
- * @param {'explicit'|'inferred'|'imported'|'tool'} [options.origin]  default 'inferred'
- * @param {string|null} [options.sourceConversationId]  the conversation it came from
- * @param {'none'|'art9'} [options.sensitivity]  default 'none'
- * @param {'active'|'pending_review'} [options.status]  default 'active'
- * @param {number} [options.confidence]  0..1, default 1.0 (explicit / UI writes)
- * @param {string|null} [options.replacesId]  a pending_review row: the active row that approval supersedes
+ * @param {{
+ *   origin?: 'explicit'|'inferred'|'imported'|'tool', sourceConversationId?: string|null,
+ *   sensitivity?: 'none'|'art9', status?: 'active'|'pending_review', confidence?: number,
+ *   replacesId?: string|null,
+ * }} [options]
+ *   origin: default 'inferred'; sourceConversationId: the conversation it came from; sensitivity: default 'none';
+ *   status: default 'active'; confidence: 0..1, default 1.0 (explicit / UI writes)
+ *   replacesId: a pending_review row: the active row that approval supersedes
  */
 async function createMemory(userId, agentId, type, content, summary = null, importance = 0.5, subject = null, attribute = null, value = null, evidenceQuote = null, projectId = null, options = {}) {
     await initDB();
