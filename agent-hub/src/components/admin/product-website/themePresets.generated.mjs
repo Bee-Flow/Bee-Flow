@@ -3,9 +3,9 @@
 /**
  * Theme presets — SCHEMA OF RECORD.
  *
- * Presets used to live only in the admin bundle, which meant (a) the AI
+ * Presets live here, not only in the admin bundle: otherwise (a) the AI
  * builder could not apply a theme by name and (b) sanitizeDesign's `preset`
- * enum was a hardcoded literal that drifted. This module is now the source
+ * enum would be a hardcoded literal that drifts. This module is the source
  * of truth; the client mirrors it in
  * agent-hub/src/components/admin/ProductWebsite/themePresets.js and a sync
  * test deep-equals the two (same pattern as BLOCK_DEFAULTS/BLOCK_VARIANTS).
