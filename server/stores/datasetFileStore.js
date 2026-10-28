@@ -124,7 +124,12 @@ async function createDataset({ id = null, appId, ownerId, orgId, uploaderId, nam
     return mapRow(row);
 }
 
-/** Owner-scoped fetch — a foreign id resolves to null, indistinguishable from absent. */
+/**
+ * Owner-scoped fetch — a foreign id resolves to null, indistinguishable from absent.
+ * @param {string} id
+ * @param {string} appId
+ * @param {string} ownerId
+ */
 async function getDataset(id, appId, ownerId) {
     await initDB();
     const row = await getOne(
@@ -148,6 +153,11 @@ async function listDatasets(appId, ownerId) {
  * this part — SQL is the arbiter, so replicas cannot race and a client retry
  * of an already-recorded part fails with the current expectation.
  * @returns {Promise<{ok:true, partsDone:number} | {ok:false, expected:number|null}>}
+ * @param {string} id
+ * @param {string} etag
+ * @param {number} bytes
+ * @param {string} appId
+ * @param {string} ownerId
  */
 async function recordPart(id, appId, ownerId, n, etag, bytes) {
     await initDB();
@@ -171,7 +181,10 @@ async function recordPart(id, appId, ownerId, n, etag, bytes) {
     return { ok: false, expected: cur && cur.status === 'uploading' ? cur.partsDone : null };
 }
 
-/** uploading → uploaded, only when every part landed. */
+/**
+ * uploading → uploaded, only when every part landed.
+ * @param {string} id
+ */
 async function markUploaded(id, appId, ownerId) {
     await initDB();
     const { rowCount } = await run(`
@@ -187,6 +200,7 @@ async function markUploaded(id, appId, ownerId) {
  * Claim one ingest: the oldest 'uploaded' row, or an 'ingesting' row whose
  * claim went stale (dead replica). SKIP LOCKED keeps concurrent tickers off
  * each other's rows.
+ * @param {string} claimedBy
  */
 async function claimNextIngest(claimedBy) {
     await initDB();
@@ -283,6 +297,7 @@ async function sumBytesForOwner(ownerId) {
  * excluded). Per uploader, not per app: a member may delete only their own,
  * so an app-wide count let one member's uploads lock everyone else out
  * (routes/studioAppDatasets.js).
+ * @param {string} uploaderId
  */
 async function countForUploader(appId, uploaderId) {
     await initDB();
@@ -293,7 +308,10 @@ async function countForUploader(appId, uploaderId) {
     return row?.n || 0;
 }
 
-/** Delete the manifest row; returns it (owner-scoped) so the caller can clean artifacts. */
+/**
+ * Delete the manifest row; returns it (owner-scoped) so the caller can clean artifacts.
+ * @param {string} id
+ */
 async function deleteDataset(id, appId, ownerId) {
     await initDB();
     const row = await getOne(
@@ -303,7 +321,10 @@ async function deleteDataset(id, appId, ownerId) {
     return mapRow(row);
 }
 
-/** Failed rows still holding a raw upload older than the TTL — the sweep target. */
+/**
+ * Failed rows still holding a raw upload older than the TTL — the sweep target.
+ * @param {number} ttlHours
+ */
 async function listFailedRawSweep(ttlHours) {
     await initDB();
     const rows = await getAll(`
@@ -314,6 +335,9 @@ async function listFailedRawSweep(ttlHours) {
     return rows.map(mapRow);
 }
 
+/**
+ * @param {string} id
+ */
 async function clearRawKey(id) {
     await initDB();
     await run(`UPDATE studio_app_dataset_files SET raw_key = NULL, updated_at = NOW() WHERE id = $1`, [id]);
