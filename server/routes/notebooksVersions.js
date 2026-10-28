@@ -66,10 +66,12 @@ const RestoreBody = bodyOf({
     expectedVersion: wholeNumber('expectedVersion is the whole-number version you loaded.').nullish(),
 }, 'Restoring a version');
 
+/** @typedef {{ notebook: NonNullable<import('express').Request['notebook']> & { lastEditedBy?: string | null } }} NotebookReq  after requireNotebookRole */
+
 const restoreUnavailable = () => new HttpError(503, 'restore_unavailable', 'The notebook could not be restored right now. Nothing was changed; try again in a moment.');
 
 /** What a list row carries: metadata only, never content. */
-function versionMeta(/** @type {any} */ v) {
+function versionMeta(/** @type {Awaited<ReturnType<typeof import('../stores/notebookStore').listVersions>>['versions'][number]} */ v) {
     return {
         id: v.id,
         seq: v.seq,
@@ -114,13 +116,13 @@ function makeNotebookVersionsRouter(deps = {}) {
     const asContributor = (/** @type {string} */ userId) => [{ userId, kind: 'user' }];
 
     router.get('/:id/versions', validate({ query: ListQuery }), gate('viewer'), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
-        const q = /** @type {any} */ (req.query);
+        const q = /** @type {import('zod').infer<typeof ListQuery>} */ (req.query);
         const { versions, nextCursor } = await store.listVersions(req.params.id, { cursor: q.cursor || null, limit: q.limit || 50 });
         res.json({ versions: versions.map(versionMeta), nextCursor });
     });
 
     router.get('/:id/versions/:ref', gate('viewer'), async (req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         if (req.params.ref === 'current') {
             const current = await notebookCollab.readCurrentContent(nb, collab());
             return res.json({
@@ -141,7 +143,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     });
 
     router.post('/:id/versions', validate({ body: NameBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NameBody>, import('qs').ParsedQs>} */ req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         const userId = actor(req);
         const current = await notebookCollab.readCurrentContent(nb, collab());
         if (!current.html.trim()) {
@@ -161,7 +163,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     // version like the copy the server keeps of a refused save, so nothing a
     // person typed is dropped without a copy in the history.
     router.post('/:id/versions/kept', validate({ body: KeptBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof KeptBody>, import('qs').ParsedQs>} */ req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         const userId = actor(req);
         const v = await store.recordVersion(nb.id, {
             html: req.body.html, source: 'conflict', createdBy: userId, contributors: asContributor(userId),
@@ -170,7 +172,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     });
 
     router.put('/:id/versions/:ref/name', validate({ body: RenameBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string, ref: string }, any, import('zod').infer<typeof RenameBody>, import('qs').ParsedQs>} */ req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         const v = await store.nameVersion(nb.id, req.params.ref, req.body.name);
         if (!v) throw new HttpError(404, 'version_not_found', 'Version not found');
         if (v.name) {
@@ -180,7 +182,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     });
 
     router.post('/:id/versions/:ref/restore', validate({ body: RestoreBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string, ref: string }, any, import('zod').infer<typeof RestoreBody>, import('qs').ParsedQs>} */ req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         const userId = actor(req);
         if (req.params.ref === 'current') throw new HttpError(400, 'version_is_current', 'The current state cannot be restored over itself.');
         const target = await store.getNotebookVersion(nb.id, req.params.ref);
@@ -206,7 +208,7 @@ function makeNotebookVersionsRouter(deps = {}) {
             try {
                 live = await notebookCollab.applyEdit(nb.id, { origin: 'restore', actorId: userId }, content, facade);
             } catch (err) {
-                log.warn('[NotebookVersions] restore through co-editing failed', { notebookId: nb.id, error: /** @type {any} */ (err)?.message });
+                log.warn('[NotebookVersions] restore through co-editing failed', { notebookId: nb.id, error: /** @type {Error | undefined} */ (err)?.message });
                 throw restoreUnavailable();
             }
         }
@@ -246,7 +248,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     });
 
     router.delete('/:id/versions/:ref', gate('owner'), async (req, res) => {
-        const nb = /** @type {any} */ (req).notebook;
+        const nb = /** @type {NotebookReq} */ (req).notebook;
         const ok = await store.deleteVersion(req.params.ref, nb.id);
         if (!ok) throw new HttpError(404, 'version_not_found', 'Version not found');
         res.json({ success: true });

@@ -39,12 +39,12 @@ function makeDocumentSuggestionsRouter(deps = {}) {
     const router = require('express').Router({ mergeParams: true });
     const documents = () => deps.documents || require('../stores/documentStore');
     const store = () => deps.store || require('../stores/documentSuggestionStore');
-    /** @type {any} */
+    /** @type {ReturnType<typeof import('../core/documents/suggestions/apply').makeSuggestionApplier> | null} */
     let madeApplier = null;
     const applier = () => deps.applier || (madeApplier ||= require('../core/documents/suggestions/apply').makeSuggestionApplier({ store: store(), documents: documents() }));
-    const auth = deps.requireAuth || ((/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) => require('../auth/permissions').requireAuth(req, res, next));
+    const auth = deps.requireAuth || ((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => require('../auth/permissions').requireAuth(req, res, next));
     const isManaged = deps.isManaged || (async (/** @type {string} */ id) => !!(await require('../stores/document/solutionTemplates').managedOf(id)));
-    const isOrgAdmin = deps.isOrgAdmin || ((/** @type {string} */ userId, /** @type {any} */ session) => require('../auth/permissions').hasPermission(userId, 'org_admin', session));
+    const isOrgAdmin = deps.isOrgAdmin || ((/** @type {string} */ userId, /** @type {import('../core/entitlements/entitlementTypes').SessionLike | null} */ session) => require('../auth/permissions').hasPermission(userId, 'org_admin', session));
 
     async function readable(/** @type {any} */ req) {
         const doc = await documents().getDocument(req.params.id, req.session.user.id);
@@ -61,7 +61,7 @@ function makeDocumentSuggestionsRouter(deps = {}) {
         return doc;
     }
 
-    router.get('/:id/suggestions', auth, async (/** @type {any} */ req, /** @type {any} */ res) => {
+    router.get('/:id/suggestions', auth, async (/** @type {any} */ req, /** @type {import('express').Response} */ res) => {
         const doc = await readable(req);
         const rows = await store().list('document', doc.id, { status: ['open', 'stale'] });
         res.json({ suggestions: rows.map(view), open: rows.filter((/** @type {SuggestionView} */ s) => s.status === 'open').length });
@@ -69,7 +69,7 @@ function makeDocumentSuggestionsRouter(deps = {}) {
 
     /** @param {'accept'|'reject'} action @param {(req: any, doc: any) => Promise<string[]>} idsOf */
     function resolveRoute(action, idsOf) {
-        return async (/** @type {any} */ req, /** @type {any} */ res) => {
+        return async (/** @type {any} */ req, /** @type {import('express').Response} */ res) => {
             const doc = await editable(req);
             const ids = await idsOf(req, doc);
             if (ids.length === 0) throw notFound('suggestion_not_found', 'Suggestion not found');
@@ -83,11 +83,11 @@ function makeDocumentSuggestionsRouter(deps = {}) {
         };
     }
 
-    const single = async (/** @type {any} */ req, /** @type {any} */ doc) => {
+    const single = async (/** @type {import('express').Request<{ sid: string }>} */ req, /** @type {{ id: string }} */ doc) => {
         const s = await store().get(req.params.sid);
         return s && s.targetId === doc.id ? [s.id] : [];
     };
-    const batch = async (/** @type {any} */ req, /** @type {any} */ doc) =>
+    const batch = async (/** @type {import('express').Request<{ batchId: string }>} */ req, /** @type {{ id: string }} */ doc) =>
         (await store().listBatch('document', doc.id, req.params.batchId)).filter((/** @type {SuggestionView} */ s) => s.status === 'open' || s.status === 'stale').map((/** @type {SuggestionView} */ s) => s.id);
 
     for (const action of ACTIONS) {

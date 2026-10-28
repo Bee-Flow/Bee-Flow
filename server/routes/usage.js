@@ -778,18 +778,17 @@ router.get('/prompt-cache', async (req, res) => {
 });
 
 /**
- * @typedef {object} UsageFilters
- * @property {string} [startDate]
- * @property {string} [endDate]
- * @property {string} [userId]
- * @property {string} [agentId]
- * @property {string} [model]
- * @property {string} [source]
- * @property {string} [integrationType]
- * @property {string} [piiCategory]
- * @property {string} [organizationId]
- * @property {number} [beforeId]
- * @property {string} [violationType]
+ * @typedef {{ startDate?: string,
+ *   endDate?: string,
+ *   userId?: string,
+ *   agentId?: string,
+ *   model?: string,
+ *   source?: string,
+ *   integrationType?: string,
+ *   piiCategory?: string,
+ *   organizationId?: string,
+ *   beforeId?: number,
+ *   violationType?: string }} UsageFilters
  */
 
 /**

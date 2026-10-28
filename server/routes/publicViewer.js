@@ -206,9 +206,8 @@ function viewTokenOf(req) {
 }
 
 /**
- * @typedef {Object} ComposeViewerChromeArgs
- * @property {string | number | boolean} addr
- * @property {string} [viewToken]
+ * @typedef {{ addr: string | number | boolean,
+ *   viewToken?: string }} ComposeViewerChromeArgs
  */
 /**
  * @param {ComposeViewerChromeArgs} param0
@@ -293,12 +292,11 @@ function appendViewTokenToRelativeUrls(markup, viewToken) {
 }
 
 /**
- * @typedef {Object} ComposeIframeContentArgs
- * @property {string} [html]
- * @property {string} [css]
- * @property {string} [base]
- * @property {string | number | boolean} addr
- * @property {string} [viewToken]
+ * @typedef {{ html?: string,
+ *   css?: string,
+ *   base?: string,
+ *   addr: string | number | boolean,
+ *   viewToken?: string }} ComposeIframeContentArgs
  */
 /**
  * @param {ComposeIframeContentArgs} param0
@@ -332,12 +330,11 @@ ${bodyHtml}
 }
 
 /**
- * @typedef {Object} ComposeGateArgs
- * @property {string} csrf
- * @property {string} [error]
- * @property {string} mode
- * @property {string} nonce
- * @property {string | number | boolean} addr
+ * @typedef {{ csrf: string,
+ *   error?: string,
+ *   mode: string,
+ *   nonce: string,
+ *   addr: string | number | boolean }} ComposeGateArgs
  */
 /**
  * @param {ComposeGateArgs} param0
@@ -395,8 +392,7 @@ function composeGate({ share: _share, csrf, error, mode, nonce, base, addr }) {
 }
 
 /**
- * @typedef {Object} ComposeMagicSentArgs
- * @property {string} nonce
+ * @typedef {{ nonce: string }} ComposeMagicSentArgs
  */
 /**
  * @param {ComposeMagicSentArgs} param0
@@ -408,8 +404,7 @@ function composeMagicSent({ nonce }) {
 }
 
 /**
- * @typedef {Object} ComposeNotFoundArgs
- * @property {string} nonce
+ * @typedef {{ nonce: string }} ComposeNotFoundArgs
  */
 /**
  * @param {ComposeNotFoundArgs} param0

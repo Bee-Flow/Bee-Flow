@@ -37,12 +37,11 @@ const CollabBody = bodyOf({
 }, 'The co-editing setting');
 
 /**
- * @param {object} [deps]
- * @param {import('express').RequestHandler} [deps.requireAuth]        Express middleware: 401 without a session
- * @param {(req: import('express').Request) => Set<string> | null | Promise<Set<string> | null>} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
- * @param {(req: import('express').Request, orgId: string) => boolean} [deps.isOrgAdmin]         (req, orgId) => boolean
- * @param {any}   [deps.settings]           core/collab/settings surface
- * @param {typeof import('../stores/configStore').getConfig} [deps.getConfig]          configStore.getConfig: the stored row, read fresh by GET
+ * @param {{ requireAuth?: import('express').RequestHandler, // Express middleware: 401 without a session
+ *   resolveUserOrgIds?: (req: import('express').Request) => Set<string> | null | Promise<Set<string> | null>, // (req) => Set<orgId> | null (null = every org, a super admin)
+ *   isOrgAdmin?: (req: import('express').Request, orgId: string) => boolean, // (req, orgId) => boolean
+ *   settings?: typeof import('../core/collab/settings'),
+ *   getConfig?: typeof import('../stores/configStore').getConfig }} [deps]  getConfig: configStore.getConfig: the stored row, read fresh by GET
  */
 function makeOrgCollabRouter(deps = {}) {
     const router = express.Router();
