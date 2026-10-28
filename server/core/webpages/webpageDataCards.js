@@ -100,9 +100,7 @@ function foldAutomations(usageRows, { datatableId, tableName }) {
 /**
  * Bouw het kaartenmodel voor één pagina.
  *
- * @param {object} args
- * @param {string} args.webpageId
- * @param {string} args.userId   the OWNER (the route is owner-only)
+ * @param {{ webpageId: string, userId: string }} args `userId`: the OWNER (the route is owner-only)
  */
 async function buildDataCards({ webpageId, userId }) {
     const grants = await bridgeGrants.getBridgeGrants(webpageId);

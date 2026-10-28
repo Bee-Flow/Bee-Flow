@@ -151,11 +151,9 @@ function restoreSummary(seq) {
  * Who made the version, as the history list may show it.
  *
  * @param {string|null} actorUserId  the column value
- * @param {object} [opts]
- * @param {string|null} [opts.viewerId]  who is looking (for `isYou`)
- * @param {Map<any, any>|Record<string, any>|null} [opts.names] id → display name, looked up by the
- *        route. An id that is not in it is an account that can no longer be
- *        read.
+ * @param {{ viewerId?: string|null, names?: Map<any, any>|Record<string, any>|null }} [opts]
+ *   `viewerId`: who is looking (for `isYou`); `names`: id → display name, looked up by the route. An id
+ *   that is not in it is an account that can no longer be read
  * @returns {null | { id: string, name: string|null, isYou: boolean }}
  *          `null` = never recorded. `name: null` = recorded but not
  *          readable. The UI draws both as "unknown"; the distinction is kept
