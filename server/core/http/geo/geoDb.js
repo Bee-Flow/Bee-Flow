@@ -311,10 +311,4 @@ module.exports = {
 
 /** @typedef {import('mmdb-lib/lib/metadata').Metadata} Metadata */
 
-/**
- * @typedef {Object} __setReadersForTestsArgs
- * @property {MmdbReader | null} [city]
- * @property {MmdbReader | null} [asn]
- * @property {string} [edition]
- * @property {string} [date]
- */
+/** @typedef {{ city?: MmdbReader | null, asn?: MmdbReader | null, edition?: string, date?: string }} __setReadersForTestsArgs */

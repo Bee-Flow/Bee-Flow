@@ -21,10 +21,7 @@ const {
 const MAX_ANSWER_STREAMED = 8000;
 const MAX_GRADE_TOKENS = 400;
 
-/**
- * @typedef {Object} BuildTestResultRecordArgs
- * @property {number} index
- */
+/** @typedef {{ index: number }} BuildTestResultRecordArgs */
 /**
  * Split one graded turn into what is STORED (`item`, written to
  * `agent_test_runs.results`, not an encrypted column) and what is only
@@ -63,12 +60,7 @@ function buildTestResultRecord({ verdict, test, facts, index, turn }) {
     return { item, event };
 }
 
-/**
- * @typedef {Object} RunOneTestArgs
- * @property {string} userId
- * @property {string | null} [orgId]
- * @property {AbortSignal} signal
- */
+/** @typedef {{ userId: string, orgId?: string | null, signal: AbortSignal }} RunOneTestArgs */
 /**
  * One test: a real turn, then the facts, then — only if the facts left
  * anything open — the grader.

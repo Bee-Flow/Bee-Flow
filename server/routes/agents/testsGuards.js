@@ -126,11 +126,7 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
     }
 }
 
-/**
- * @typedef {Object} ResolveFastTierOrRefuseArgs
- * @property {string | null} orgId
- * @property {string} userId
- */
+/** @typedef {{ orgId: string | null, userId: string }} ResolveFastTierOrRefuseArgs */
 /**
  * The fast tier that reads an agent's answers — for grading, or for proposing
  * what a test should expect.

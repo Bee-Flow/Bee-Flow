@@ -108,13 +108,7 @@ async function _orgForUser(userId) {
     return orgId;
 }
 
-/**
- * @typedef {Object} _resolveIntegrationCtxArgs
- * @property {string | null} [toolName]
- * @property {unknown} userId
- * @property {unknown} orgId
- * @property {unknown} session
- */
+/** @typedef {{ toolName?: string | null, userId: unknown, orgId: unknown, session: unknown }} _resolveIntegrationCtxArgs */
 /**
  * @param {_resolveIntegrationCtxArgs} param0
  */

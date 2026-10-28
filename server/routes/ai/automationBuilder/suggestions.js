@@ -178,12 +178,7 @@ async function recordUsage(d, { userId, orgId, modelId, usage, mode, startedAt }
     }
 }
 
-/**
- * @typedef {Object} CachedScanArgs
- * @property {string} scopeKey
- * @property {string} cacheKey
- * @property {string} userId
- */
+/** @typedef {{ scopeKey: string, cacheKey: string, userId: string }} CachedScanArgs */
 /**
  * @param {Record<string, any>|null} [deps] collaborators to replace (tests)
  */

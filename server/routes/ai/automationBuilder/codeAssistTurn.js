@@ -62,11 +62,7 @@ function sanitizeConversation(messages) {
         .map(m => ({ role: m.role, content: m.content }));
 }
 
-/**
- * @typedef {Object} ComposeMessagesArgs
- * @property {{ role: string; content: string; }[]} messages
- * @property {string} context
- */
+/** @typedef {{ messages: { role: string; content: string; }[], context: string }} ComposeMessagesArgs */
 /**
  * The model's messages: the constant system prompt, the earlier turns, the
  * step context as a late system message (after the cacheable prefix, the

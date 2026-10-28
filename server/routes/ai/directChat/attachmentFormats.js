@@ -343,36 +343,8 @@ async function processAttachment(att, ctx) {
 
 module.exports = { processAttachment };
 
-/**
- * @typedef {Object} ChatAttachment
- * @property {string} name
- * @property {string} [type]
- * @property {string} [content]
- * @property {string} [source]
- */
+/** @typedef {{ name: string, type?: string, content?: string, source?: string }} ChatAttachment */
 
-/**
- * @typedef {Object} AttachmentCtx
- * @property {import('express').Request} req
- * @property {(event: string, data: unknown) => void} send
- * @property {{ markCreated(id: unknown): void } | undefined} documentScope
- * @property {string} userId
- * @property {{ supportsVision(modelId: string): boolean, supportsDocuments?: (modelId: string) => boolean }} adapter
- * @property {string} modelId
- * @property {{ providerType?: string } | null | undefined} config
- * @property {{ enabled?: boolean } | null | undefined} shield
- * @property {Array<Record<string, unknown>>} contentParts
- * @property {Array<Record<string, unknown>>} persistedAttachments
- * @property {(base: Record<string, unknown> & { name: string }, fullText?: string) => Promise<void>} pushAttachment
- * @property {(text: string, pages: unknown, name: string) => Promise<string>} scan
- * @property {unknown[]} summaries
- */
+/** @typedef {{ req: import('express').Request, send: (event: string, data: unknown) => void, documentScope: { markCreated(id: unknown): void } | undefined, userId: string, adapter: { supportsVision(modelId: string): boolean, supportsDocuments?: (modelId: string) => boolean }, modelId: string, config: { providerType?: string } | null | undefined, shield: { enabled?: boolean } | null | undefined, contentParts: Array<Record<string, unknown>>, persistedAttachments: Array<Record<string, unknown>>, pushAttachment: (base: Record<string, unknown> & { name: string }, fullText?: string) => Promise<void>, scan: (text: string, pages: unknown, name: string) => Promise<string>, summaries: unknown[] }} AttachmentCtx */
 
-/**
- * @typedef {Object} UploadOriginalArgs
- * @property {string} userId
- * @property {() => string} filename
- * @property {() => Buffer<ArrayBuffer>} buffer
- * @property {string} contentType
- * @property {string} label
- */
+/** @typedef {{ userId: string, filename: () => string, buffer: () => Buffer<ArrayBuffer>, contentType: string, label: string }} UploadOriginalArgs */

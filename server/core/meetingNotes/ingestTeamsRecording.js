@@ -45,14 +45,7 @@ function ingestError(message, meta) {
 const MAX_AUDIO_BYTES = 500 * 1024 * 1024;
 const MAX_SHARED_WITH = 50;
 
-/**
- * @typedef {Object} TeamsSourceUriArgs
- * @property {string | null} [orgId]
- * @property {string} userId
- * @property {string} meetingId
- * @property {string} artifactKind
- * @property {string} artifactId
- */
+/** @typedef {{ orgId?: string | null, userId: string, meetingId: string, artifactKind: string, artifactId: string }} TeamsSourceUriArgs */
 /**
  * Dedup key of one Teams artifact (recording or transcript) for one owner scope.
  * @param {TeamsSourceUriArgs} param0

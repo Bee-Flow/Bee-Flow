@@ -106,10 +106,7 @@ function applyCap(requested, cap) {
     return intersect(cap, requested);
 }
 
-/**
- * @typedef {Object} AuditPlanCapDriftArgs
- * @property {boolean} [trim]
- */
+/** @typedef {{ trim?: boolean }} AuditPlanCapDriftArgs */
 /**
  * Walk every active org subscription and report any beta-feature or
  * integration that the org has enabled but its current plan no longer

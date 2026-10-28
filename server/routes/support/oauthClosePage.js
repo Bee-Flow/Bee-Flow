@@ -25,12 +25,7 @@ function scriptString(value) {
         .replace(SCRIPT_UNSAFE, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
-/**
- * @typedef {Object} ClosePageArgs
- * @property {string} type
- * @property {string} title
- * @property {string} okText
- */
+/** @typedef {{ type: string, title: string, okText: string }} ClosePageArgs */
 /**
  * @param {ClosePageArgs} param0
  * @param {boolean} ok

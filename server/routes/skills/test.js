@@ -192,11 +192,7 @@ async function resolveModel(rawModel, { userId, userOrgId }) {
     }
 }
 
-/**
- * @typedef {Object} LogTestUsageArgs
- * @property {number} startMs
- * @property {string} source
- */
+/** @typedef {{ startMs: number, source: string }} LogTestUsageArgs */
 /**
  * One usage row per model call. `runToolLoop`/`chatForcedTool` log nothing themselves.
  * @param {LogTestUsageArgs} param0

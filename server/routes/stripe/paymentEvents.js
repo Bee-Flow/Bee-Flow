@@ -318,10 +318,7 @@ async function handleInvoicePaymentFailed(invoice) {
     });
 }
 
-/**
- * @typedef {Object} _sendFinalDunningEmailOnceArgs
- * @property {string} [customerId]
- */
+/** @typedef {{ customerId?: string }} _sendFinalDunningEmailOnceArgs */
 /**
  * @param {_sendFinalDunningEmailOnceArgs} param0
  */
@@ -373,11 +370,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
     }
 }
 
-/**
- * @typedef {Object} _sendPaymentFailedEmailOnceArgs
- * @property {number} attempt
- * @property {string} [customerId]
- */
+/** @typedef {{ attempt: number, customerId?: string }} _sendPaymentFailedEmailOnceArgs */
 /**
  * @param {_sendPaymentFailedEmailOnceArgs} param0
  */

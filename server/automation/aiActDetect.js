@@ -346,11 +346,7 @@ function signatureOf(q) {
     return crypto.createHash('sha256').update(JSON.stringify([q.answer, q.confidence, q.lean ?? null, shape])).digest('hex').slice(0, 16);
 }
 
-/**
- * @typedef {Object} HintTextArgs
- * @property {string} [title]
- * @property {string} [description]
- */
+/** @typedef {{ title?: string, description?: string }} HintTextArgs */
 /**
  * The text the Annex III keyword hints read: title, description and the AI steps' instructions.
  * @param {HintTextArgs} param0

@@ -163,13 +163,7 @@ function gateLinesFrom(messages, now) {
     return kept;
 }
 
-/**
- * @typedef {Object} BuildGateInputArgs
- * @property {string} triggerKind
- * @property {{ label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; }[]} lines
- * @property {number | null} [memberCount]
- * @property {number | null} [readByOthers]
- */
+/** @typedef {{ triggerKind: string, lines: { label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; }[], memberCount?: number | null, readByOthers?: number | null }} BuildGateInputArgs */
 /**
  * The user message: the header facts, then the conversation as data.
  * @param {BuildGateInputArgs} param0

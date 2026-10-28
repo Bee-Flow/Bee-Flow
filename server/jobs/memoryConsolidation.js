@@ -229,10 +229,7 @@ const scopeKey = (/** @type {{ type?: string, project_id?: string | null, agent_
  */
 const ts = (v) => (v ? new Date(v).getTime() : 0);
 
-/**
- * @typedef {Object} RunOnceArgs
- * @property {number} [budgetMs]
- */
+/** @typedef {{ budgetMs?: number }} RunOnceArgs */
 function createConsolidation(overrides = {}) {
     const d = { ...realDeps(), ...overrides };
 

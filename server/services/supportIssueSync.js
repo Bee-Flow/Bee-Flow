@@ -183,10 +183,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
     return flagged;
 }
 
-/**
- * @typedef {Object} SyncTickArgs
- * @property {number} [chunkSize]
- */
+/** @typedef {{ chunkSize?: number }} SyncTickArgs */
 /**
  * One pass over every linked issue.
  *

@@ -160,25 +160,5 @@ module.exports = { z: zod.z, zod3Text, typeError, onUnknownKeys, datetimeWithOff
 
 /**
  * The fields of a zod 4 issue that the zod 3 wording reads (a union in zod; every field is optional here).
- * @typedef {Object} IssueLike
- * @property {string} [code]
- * @property {unknown} [input]
- * @property {string} [origin]
- * @property {unknown} [minimum]
- * @property {unknown} [maximum]
- * @property {boolean} [exact]
- * @property {boolean} [inclusive]
- * @property {string} [expected]
- * @property {unknown[]} [values]
- * @property {unknown[]} [keys]
- * @property {unknown[]} [options]
- * @property {string} [note]
- * @property {string} [format]
- * @property {string} [includes]
- * @property {unknown} [position]
- * @property {string} [prefix]
- * @property {string} [suffix]
- * @property {unknown} [divisor]
- * @property {unknown} [inst]
- * @property {Array<{ message?: string }>} [issues]
  */
+/** @typedef {{ code?: string, input?: unknown, origin?: string, minimum?: unknown, maximum?: unknown, exact?: boolean, inclusive?: boolean, expected?: string, values?: unknown[], keys?: unknown[], options?: unknown[], note?: string, format?: string, includes?: string, position?: unknown, prefix?: string, suffix?: string, divisor?: unknown, inst?: unknown, issues?: Array<{ message?: string }> }} IssueLike */

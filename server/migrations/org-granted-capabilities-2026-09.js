@@ -72,10 +72,7 @@ function newUserFacingCoreIds() {
     return [...USER_FACING_CORE].filter((id) => !seeded.has(id)).sort();
 }
 
-/**
- * @typedef {Object} UpArgs
- * @property {boolean} [dryRun]
- */
+/** @typedef {{ dryRun?: boolean }} UpArgs */
 /**
  * @param {UpArgs} [param0]
  */

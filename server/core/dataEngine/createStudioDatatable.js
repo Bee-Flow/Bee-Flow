@@ -38,17 +38,7 @@ function defaultDeps() {
     };
 }
 
-/**
- * @typedef {Object} CreateStudioDatatableArgs
- * @property {string} ownerUserId
- * @property {string} [description]
- * @property {boolean} [hasManageDatatables]
- * @property {boolean} [exactKey]
- * @property {unknown} principal
- * @property {unknown} name
- * @property {unknown} [key]
- * @property {unknown} fields
- */
+/** @typedef {{ ownerUserId: string, description?: string, hasManageDatatables?: boolean, exactKey?: boolean, principal: unknown, name: unknown, key?: unknown, fields: unknown }} CreateStudioDatatableArgs */
 /**
  * @param {CreateStudioDatatableArgs} param0
  */

@@ -111,14 +111,7 @@ function buildKbContext(kbText) {
     return `\n\n[TEMPLATE KNOWLEDGE BASE]\nRelevant information from the template's knowledge base:\n${kbText}`;
 }
 
-/**
- * @typedef {Object} BuildSystemPromptArgs
- * @property {string} templateContext
- * @property {string} instructionsContext
- * @property {string} kbContext
- * @property {string} meetingContext
- * @property {string} timezone
- */
+/** @typedef {{ templateContext: string, instructionsContext: string, kbContext: string, meetingContext: string, timezone: string }} BuildSystemPromptArgs */
 /**
  * The full system prompt; the date and clock lines are read at call time.
  * @param {BuildSystemPromptArgs} param0

@@ -450,9 +450,4 @@ module.exports = {
 
 /** @typedef {import('./personaPrompt').Persona} Persona */
 
-/**
- * @typedef {Object} BuildAttributionMessagesArgs
- * @property {string[]} rules
- * @property {string | undefined} question
- * @property {string} answer
- */
+/** @typedef {{ rules: string[], question: string | undefined, answer: string }} BuildAttributionMessagesArgs */

@@ -206,18 +206,7 @@ function htmlToText(html) {
         .trim();
 }
 
-/**
- * @typedef {Object} BuildRawMimeArgs
- * @property {string | MimeNodeAddress | MimeNodeAddressInput[]} fromEmail
- * @property {string} to
- * @property {string | undefined} [cc]
- * @property {string} subject
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [text]
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [html]
- * @property {string} [inReplyTo]
- * @property {string | undefined} [references]
- * @property {MailComposerAttachment[]} [attachments]
- */
+/** @typedef {{ fromEmail: string | MimeNodeAddress | MimeNodeAddressInput[], to: string, cc?: string | undefined, subject: string, text?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, html?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, inReplyTo?: string, references?: string | undefined, attachments?: MailComposerAttachment[] }} BuildRawMimeArgs */
 /**
  * @param {BuildRawMimeArgs} param0
  */
@@ -283,13 +272,7 @@ function mintMessageId(seed, fromEmail) {
 
 // ── Provider senders ─────────────────────────────────────────────────────────
 
-/**
- * @typedef {Object} SendViaGmailArgs
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} textBody
- * @property {string} htmlBody
- * @property {string} [inReplyTo]
- * @property {MailComposerAttachment[]} attachments
- */
+/** @typedef {{ textBody: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, htmlBody: string, inReplyTo?: string, attachments: MailComposerAttachment[] }} SendViaGmailArgs */
 /**
  * @param {SendViaGmailArgs} param0
  */
@@ -325,10 +308,7 @@ async function sendViaGmail({
     };
 }
 
-/**
- * @typedef {Object} SendViaOutlookArgs
- * @property {string | number | boolean} [sourceProviderMessageId]
- */
+/** @typedef {{ sourceProviderMessageId?: string | number | boolean }} SendViaOutlookArgs */
 /**
  * @param {SendViaOutlookArgs} param0
  */

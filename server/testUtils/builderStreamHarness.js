@@ -342,10 +342,7 @@ function toEvents(spec) {
     return out;
 }
 
-/**
- * @typedef {Object} FakeExchangeArgs
- * @property {{ message: string; }} body
- */
+/** @typedef {{ body: { message: string; } }} FakeExchangeArgs */
 /**
  * A request/response pair the Express router can serve, minus the socket.
  * @param {FakeExchangeArgs} param0

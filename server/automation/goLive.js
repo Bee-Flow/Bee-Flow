@@ -408,10 +408,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
     return { ok: true, automation: u, warnings: verdict.warnings };
 }
 
-/**
- * @typedef {Object} DeactivateCoreArgs
- * @property {string} actorId
- */
+/** @typedef {{ actorId: string }} DeactivateCoreArgs */
 /**
  * Switch an automation off — POST /:id/deactivate after its access check.
  *
@@ -434,12 +431,7 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
     return { ok: true, automation: u };
 }
 
-/**
- * @typedef {Object} ConvergeAfterPublishArgs
- * @property {boolean} [isActive]
- * @property {string} [reason]
- * @property {boolean} [saveSyncs]
- */
+/** @typedef {{ isActive?: boolean, reason?: string, saveSyncs?: boolean }} ConvergeAfterPublishArgs */
 /**
  * The side effects after a definition went live — idempotent, retriable, and
  * never throwing (each failure is logged and returned as a warning).

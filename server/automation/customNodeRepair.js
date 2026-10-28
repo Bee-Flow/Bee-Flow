@@ -323,14 +323,7 @@ function replaceStep(graph, target, next) {
     return out;
 }
 
-/**
- * @typedef {Object} RepairCustomNodeArgs
- * @property {string} [goal]
- * @property {unknown} [definition]
- * @property {unknown} [inputs]
- * @property {unknown} [maxAttempts]
- * @property {unknown} [onProgress]
- */
+/** @typedef {{ goal?: string, definition?: unknown, inputs?: unknown, maxAttempts?: unknown, onProgress?: unknown }} RepairCustomNodeArgs */
 /**
  * The same loop, asked of a custom node instead of a loose body.
  *

@@ -72,14 +72,7 @@ function categoryTableDigest() {
     return _catTableDigest;
 }
 
-/**
- * @typedef {Object} ScanKeyArgs
- * @property {string} text
- * @property {string[] | undefined} [categories]
- * @property {number | undefined} threshold
- * @property {string} engineFingerprint
- * @property {string | undefined} [scope]
- */
+/** @typedef {{ text: string, categories?: string[] | undefined, threshold: number | undefined, engineFingerprint: string, scope?: string | undefined }} ScanKeyArgs */
 /**
  * @param {ScanKeyArgs} param0
  */

@@ -30,15 +30,7 @@ function _escape(s) {
         .replace(/'/g, '&#39;');
 }
 
-/**
- * @typedef {Object} _shellArgs
- * @property {string} title
- * @property {string} [intro]
- * @property {string} body
- * @property {string} [ctaLabel]
- * @property {string} [footer]
- * @property {unknown} ctaUrl
- */
+/** @typedef {{ title: string, intro?: string, body: string, ctaLabel?: string, footer?: string, ctaUrl: unknown }} _shellArgs */
 /**
  * @param {_shellArgs} param0
  */
@@ -93,13 +85,7 @@ function _bodyAsHtml(body) {
         .split(/\n{2,}/).map(p => `<p style="margin:0 0 12px;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
 }
 
-/**
- * @typedef {Object} SendThreadCreatedEmailArgs
- * @property {string | string[]} to
- * @property {unknown} requesterName
- * @property {unknown} subject
- * @property {unknown} threadUrl
- */
+/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, threadUrl: unknown }} SendThreadCreatedEmailArgs */
 /**
  * Confirmation to the requester right after a thread is created.
  * @param {SendThreadCreatedEmailArgs} param0
@@ -120,15 +106,7 @@ async function sendThreadCreatedEmail({ to, requesterName, subject, threadUrl })
     });
 }
 
-/**
- * @typedef {Object} SendAiReplyEmailArgs
- * @property {string | string[]} to
- * @property {boolean} [escalated]
- * @property {unknown} requesterName
- * @property {unknown} subject
- * @property {unknown} replyBody
- * @property {unknown} threadUrl
- */
+/** @typedef {{ to: string | string[], escalated?: boolean, requesterName: unknown, subject: unknown, replyBody: unknown, threadUrl: unknown }} SendAiReplyEmailArgs */
 /**
  * Posted by the AI auto-responder.
  * @param {SendAiReplyEmailArgs} param0
@@ -153,15 +131,7 @@ async function sendAiReplyEmail({ to, requesterName, subject, replyBody, threadU
     });
 }
 
-/**
- * @typedef {Object} SendStaffReplyEmailArgs
- * @property {string | string[]} to
- * @property {unknown} requesterName
- * @property {unknown} subject
- * @property {unknown} staffName
- * @property {unknown} replyBody
- * @property {unknown} threadUrl
- */
+/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, staffName: unknown, replyBody: unknown, threadUrl: unknown }} SendStaffReplyEmailArgs */
 /**
  * Reply posted by Bee Flow staff.
  * @param {SendStaffReplyEmailArgs} param0
@@ -199,14 +169,7 @@ function _csatBlock(csatLinks) {
     `;
 }
 
-/**
- * @typedef {Object} SendThreadResolvedEmailArgs
- * @property {string | string[]} to
- * @property {unknown} requesterName
- * @property {unknown} subject
- * @property {unknown} threadUrl
- * @property {unknown} [csatLinks]
- */
+/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, threadUrl: unknown, csatLinks?: unknown }} SendThreadResolvedEmailArgs */
 /**
  * Resolution notice. When `csatLinks` is supplied, embeds a 1-5 rating row and
  * a "not resolved" dispute link (both HMAC-token URLs built by the route).
@@ -255,11 +218,7 @@ function _redactEmail(addr) {
     return addr.slice(0, Math.min(2, at)) + '***@' + addr.slice(at + 1).split('.')[0].slice(0, 1) + '***';
 }
 
-/**
- * @typedef {Object} _markMessageEmailStatusArgs
- * @property {string} [messageId]
- * @property {unknown} status
- */
+/** @typedef {{ messageId?: string, status: unknown }} _markMessageEmailStatusArgs */
 /**
  * @param {_markMessageEmailStatusArgs} param0
  */
@@ -275,12 +234,7 @@ async function _markMessageEmailStatus({ messageId, status }) {
     }
 }
 
-/**
- * @typedef {Object} _notifyStaffOfFailureArgs
- * @property {string} kind
- * @property {string} threadId
- * @property {unknown} errorMsg
- */
+/** @typedef {{ kind: string, threadId: string, errorMsg: unknown }} _notifyStaffOfFailureArgs */
 /**
  * @param {_notifyStaffOfFailureArgs} param0
  */
@@ -304,12 +258,7 @@ async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
     }
 }
 
-/**
- * @typedef {Object} _recordAuditEventArgs
- * @property {string} threadId
- * @property {string} kind
- * @property {unknown} errorMsg
- */
+/** @typedef {{ threadId: string, kind: string, errorMsg: unknown }} _recordAuditEventArgs */
 /**
  * @param {_recordAuditEventArgs} param0
  */

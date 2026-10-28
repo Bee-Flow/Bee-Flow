@@ -266,10 +266,7 @@ function cut(s) {
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
-/**
- * @typedef {Object} MakeRendererArgs
- * @property {{ agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } | undefined} [names]
- */
+/** @typedef {{ names?: { agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } | undefined }} MakeRendererArgs */
 /**
  * @param {MakeRendererArgs} [param0]
  */

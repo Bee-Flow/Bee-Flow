@@ -181,14 +181,6 @@ module.exports = { converge, tasksFor, MAX_ATTEMPTS, BACKOFF_MS };
 
 /** @typedef {import('./model').StageRow} StageRow */
 
-/**
- * @typedef {Object} TasksForArgs
- * @property {DeploymentRow} deployment
- * @property {StageRow} stage
- */
+/** @typedef {{ deployment: DeploymentRow, stage: StageRow }} TasksForArgs */
 
-/**
- * @typedef {Object} FeedEventArgs
- * @property {DeploymentRow} deployment
- * @property {StageRow} stage
- */
+/** @typedef {{ deployment: DeploymentRow, stage: StageRow }} FeedEventArgs */

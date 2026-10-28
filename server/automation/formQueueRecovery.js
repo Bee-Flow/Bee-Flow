@@ -10,10 +10,7 @@ const log = require('../telemetry/log');
 const { lostToConcurrency, LEASE_MS, MAX_RECOVERIES, RECOVERY_BATCH } = require('./formQueueShared');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
-/**
- * @typedef {Object} RecoverPendingArgs
- * @property {number} [limit]
- */
+/** @typedef {{ limit?: number }} RecoverPendingArgs */
 /**
  * @param {{
  *   automationStore: any,

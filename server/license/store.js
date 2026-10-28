@@ -54,19 +54,7 @@ function rowToLicense(row) {
     };
 }
 
-/**
- * @typedef {Object} UpsertLicenseArgs
- * @property {string} [licenseId]
- * @property {string | null | undefined} [organizationId]
- * @property {string} [scope]
- * @property {string} [rawToken]
- * @property {string} [tier]
- * @property {string} issuer
- * @property {string} issuedAt
- * @property {string} expiresAt
- * @property {string} [billingInterval]
- * @property {string | null} [activatedBy]
- */
+/** @typedef {{ licenseId?: string, organizationId?: string | null | undefined, scope?: string, rawToken?: string, tier?: string, issuer: string, issuedAt: string, expiresAt: string, billingInterval?: string, activatedBy?: string | null }} UpsertLicenseArgs */
 /**
  * Insert or replace a license activation. Older active licenses for the same
  * scope target are marked expired so only one is "current".
@@ -344,11 +332,7 @@ async function markRevoked(licenseId, reason = null) {
     }
 }
 
-/**
- * @typedef {Object} GetAdminIssuedLicensesArgs
- * @property {string | null} [organizationId]
- * @property {boolean} [includeInactive]
- */
+/** @typedef {{ organizationId?: string | null, includeInactive?: boolean }} GetAdminIssuedLicensesArgs */
 /**
  * List licenses issued by the admin console (issuer = 'beeflow.admin.console').
  * Pass `organizationId` to scope to a single org. Includes expired/revoked rows

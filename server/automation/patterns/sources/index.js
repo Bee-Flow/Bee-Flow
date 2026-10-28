@@ -213,11 +213,7 @@ function runWithin(run, limit, controller, parentSignal) {
 
 const REASONS = new Set(['auth', 'error', 'timeout', 'budget', 'aborted', 'not_connected', 'shield']);
 
-/**
- * @typedef {Object} RunUnitArgs
- * @property {SourceGroup} group
- * @property {SourceApp} app
- */
+/** @typedef {{ group: SourceGroup, app: SourceApp }} RunUnitArgs */
 /**
  * @param {{
  *   userId: string,

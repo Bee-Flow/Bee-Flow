@@ -63,11 +63,7 @@ function postPath(locale, slug, defaultLocale) {
     return buildPublicPath(locale, `${BLOG_BASE}/${slug}`, defaultLocale);
 }
 
-/**
- * @typedef {Object} IndexQueryArgs
- * @property {string} [tag]
- * @property {number | undefined} [page]
- */
+/** @typedef {{ tag?: string, page?: number | undefined }} IndexQueryArgs */
 /**
  * The blog's index page query string for paging / a tag filter.
  * @param {IndexQueryArgs} param0

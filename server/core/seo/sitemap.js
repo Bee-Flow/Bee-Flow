@@ -53,15 +53,7 @@ const PRIORITY = {
 // diff. Emitting the default explicitly makes the omission visible instead.
 const DEFAULT_PRIORITY = '0.5';
 
-/**
- * @typedef {Object} UrlEntryArgs
- * @property {string | undefined} origin
- * @property {string} slug
- * @property {string} locale
- * @property {string} defaultLocale
- * @property {string[]} locales
- * @property {string | null} [lastmod]
- */
+/** @typedef {{ origin: string | undefined, slug: string, locale: string, defaultLocale: string, locales: string[], lastmod?: string | null }} UrlEntryArgs */
 /**
  * @param {UrlEntryArgs} param0
  */
@@ -129,11 +121,7 @@ function buildSitemap(pages, { origin, defaultLocale = 'en', locales = ['en'] })
     ].join('\n');
 }
 
-/**
- * @typedef {Object} BuildRobotsArgs
- * @property {string} origin
- * @property {boolean} [allow]
- */
+/** @typedef {{ origin: string, allow?: boolean }} BuildRobotsArgs */
 /**
  * robots.txt. Served from here rather than as a static file so it can name
  * the sitemap at the real origin.

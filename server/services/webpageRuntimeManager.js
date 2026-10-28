@@ -314,10 +314,7 @@ function withOrgLock(orgId, fn) {
     return result;
 }
 
-/**
- * @typedef {Object} EnsureRuntimeArgs
- * @property {string | number | boolean} webpageId
- */
+/** @typedef {{ webpageId: string | number | boolean }} EnsureRuntimeArgs */
 /**
  * Ensure a running dev container for this project and return its reachable base
  * { reachableHost, containerId } for the reverse proxy, or null when the full
@@ -339,10 +336,7 @@ async function ensureRuntime({ webpageId, userId, orgId }) {
     return withOrgLock(orgId, () => createRuntime({ webpageId, userId, orgId }));
 }
 
-/**
- * @typedef {Object} CreateRuntimeArgs
- * @property {string | number | boolean} webpageId
- */
+/** @typedef {{ webpageId: string | number | boolean }} CreateRuntimeArgs */
 /**
  * @param {CreateRuntimeArgs} param0
  */

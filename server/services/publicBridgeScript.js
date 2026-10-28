@@ -49,11 +49,7 @@
 
 const { buildBfNoticeScript, jsonLiteral } = require('./bfBridgeNotices');
 
-/**
- * @typedef {Object} BuildPublicBridgeScriptArgs
- * @property {string} [token]
- * @property {string} [apiBase]
- */
+/** @typedef {{ token?: string, apiBase?: string }} BuildPublicBridgeScriptArgs */
 /**
  * @param {BuildPublicBridgeScriptArgs} param0
  */

@@ -18,13 +18,7 @@ const { replayGapError } = require('./replayGaps');
 const { reachableFrom, createFanInGate, ancestorsOf, descendantsOf, createTakeNext } = require('./runDagGraph');
 const { dispatchLiveStep } = require('./runDagRecord');
 
-/**
- * @typedef {Object} BuildPartialPlanArgs
- * @property {string} [fromStepId]
- * @property {unknown} skipUntilStepId
- * @property {unknown} onlyStepId
- * @property {unknown} untilStepId
- */
+/** @typedef {{ fromStepId?: string, skipUntilStepId: unknown, onlyStepId: unknown, untilStepId: unknown }} BuildPartialPlanArgs */
 /**
  * Resume / partial-execution flags:
  *   - skipUntilStepId: replay all steps up to AND INCLUDING this id,

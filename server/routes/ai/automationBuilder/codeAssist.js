@@ -139,13 +139,7 @@ async function resolveAssistModel({ userId, session, modelTier }) {
     return { tierName, tier, modelId, cfg, adapter };
 }
 
-/**
- * @typedef {Object} MakeShieldGateArgs
- * @property {string} userId
- * @property {string} [orgId]
- * @property {unknown} automationId
- * @property {unknown} modelId
- */
+/** @typedef {{ userId: string, orgId?: string, automationId: unknown, modelId: unknown }} MakeShieldGateArgs */
 /**
  * The Privacy Shield tool gate for this turn, resolved on its first use.
  * @param {MakeShieldGateArgs} param0

@@ -93,15 +93,5 @@ module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTI
 
 /**
  * What triggerBus.js hands to the extracted pollers, escalation and renewal.
- * @typedef {Object} TriggerBusCtx
- * @property {() => typeof import('../../stores/automationStore')} store
- * @property {() => typeof import('../../integrations/googleClient')} googleClient
- * @property {() => typeof import('../../integrations/gmailTools')} gmailTools
- * @property {() => typeof import('../../integrations/nextcloudActivityTools')} nextcloudActivityTools
- * @property {() => typeof import('../../integrations/nextcloudNotificationsTools')} nextcloudNotificationsTools
- * @property {() => typeof import('../../integrations/nextcloudCalendarTools')} nextcloudCalendarTools
- * @property {() => typeof import('../../core/integrations/ncScopeGuard')} ncScopeGuard
- * @property {() => typeof import('../../stores/notificationStore')} notificationStore
- * @property {(userId: string) => Promise<TriggerSession | null>} loadSession
- * @property {(sub: TriggerSubscription, threshold: number, errorMsg?: string) => Promise<void>} escalate
  */
+/** @typedef {{ store: () => typeof import('../../stores/automationStore'), googleClient: () => typeof import('../../integrations/googleClient'), gmailTools: () => typeof import('../../integrations/gmailTools'), nextcloudActivityTools: () => typeof import('../../integrations/nextcloudActivityTools'), nextcloudNotificationsTools: () => typeof import('../../integrations/nextcloudNotificationsTools'), nextcloudCalendarTools: () => typeof import('../../integrations/nextcloudCalendarTools'), ncScopeGuard: () => typeof import('../../core/integrations/ncScopeGuard'), notificationStore: () => typeof import('../../stores/notificationStore'), loadSession: (userId: string) => Promise<TriggerSession | null>, escalate: (sub: TriggerSubscription, threshold: number, errorMsg?: string) => Promise<void> }} TriggerBusCtx */

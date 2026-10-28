@@ -290,8 +290,4 @@ module.exports = {
     MIME_BY_EXT,
 };
 
-/**
- * @typedef {Object} DiscardSavedAudioArgs
- * @property {string | null} [audioPath]
- * @property {string | null} [audioStorageKey]
- */
+/** @typedef {{ audioPath?: string | null, audioStorageKey?: string | null }} DiscardSavedAudioArgs */

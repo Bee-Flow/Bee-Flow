@@ -167,8 +167,4 @@ if (require.main === module) {
     });
 }
 
-/**
- * @typedef {Object} RunMigrationsArgs
- * @property {Console} [log]
- * @property {boolean} [force]
- */
+/** @typedef {{ log?: Console, force?: boolean }} RunMigrationsArgs */

@@ -169,10 +169,7 @@ function mayNameGroup(group, { orgIds, ownGroups = [] } = {}) {
 /** How many groups a picker gets. A workspace with more than this has bigger problems. */
 const MAX_SIMULATABLE_GROUPS = 200;
 
-/**
- * @typedef {Object} ListSimulatableGroupsArgs
- * @property {string} [userId]
- */
+/** @typedef {{ userId?: string }} ListSimulatableGroupsArgs */
 /**
  * The groups this person may preview an agent as — the picker behind
  * "Test as \u00b7 group …".

@@ -274,42 +274,8 @@ module.exports = { compareRuns, isSimulated };
 
 /** @typedef {{ row: StepRow, hidden: boolean }} StepEntry */
 
-/**
- * @typedef {Object} Side
- * @property {RunRow} run
- * @property {string[]} runIds
- * @property {Map<string, StepEntry>} byKey
- * @property {Record<string, unknown>} header
- * @property {Set<string>} aiIds
- * @property {Map<string, Promise<any>>} files
- */
+/** @typedef {{ run: RunRow, runIds: string[], byKey: Map<string, StepEntry>, header: Record<string, unknown>, aiIds: Set<string>, files: Map<string, Promise<any>> }} Side */
 
-/**
- * @typedef {Object} CompareEnv
- * @property {any} store
- * @property {any} differs
- * @property {Side} sideA
- * @property {Side} sideB
- * @property {ReturnType<typeof caps>} caps
- * @property {string[]} ignorePaths
- * @property {object} ctx
- * @property {(file: any) => Promise<any>} loadA
- * @property {(file: any) => Promise<any>} loadB
- */
+/** @typedef {{ store: any, differs: any, sideA: Side, sideB: Side, caps: ReturnType<typeof caps>, ignorePaths: string[], ctx: object, loadA: (file: any) => Promise<any>, loadB: (file: any) => Promise<any> }} CompareEnv */
 
-/**
- * @typedef {Object} StepCompare
- * @property {string} key
- * @property {string} stepId
- * @property {string | null} stepType
- * @property {string | null} parentStepId
- * @property {number | null} branchIndex
- * @property {{ present: boolean, status: string | null }} a
- * @property {{ present: boolean, status: string | null }} b
- * @property {string} verdict
- * @property {string | null} softReason
- * @property {string} kind
- * @property {import('./outputDiffers').Change[]} changes
- * @property {boolean} changesTruncated
- * @property {any[]} [files]
- */
+/** @typedef {{ key: string, stepId: string, stepType: string | null, parentStepId: string | null, branchIndex: number | null, a: { present: boolean, status: string | null }, b: { present: boolean, status: string | null }, verdict: string, softReason: string | null, kind: string, changes: import('./outputDiffers').Change[], changesTruncated: boolean, files?: any[] }} StepCompare */

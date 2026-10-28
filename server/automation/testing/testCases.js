@@ -101,20 +101,7 @@ async function captureFixture({ automation, stepId, run, legs, attempts }, deps)
 /** @param {string} expected */
 const EMPTY_EXPECTATION = (expected) => ({ expected, got: /** @type {string | null} */ (null) });
 
-/**
- * @typedef {Object} CaseResult
- * @property {string} caseId
- * @property {string} name
- * @property {string} status
- * @property {string | null} reason
- * @property {{ expected: string, got: string | null }} expectation
- * @property {import('./assertions').AssertionResult[]} assertions
- * @property {unknown[]} logs
- * @property {unknown[]} calls
- * @property {number} durationMs
- * @property {unknown} [result]
- * @property {string} [error]
- */
+/** @typedef {{ caseId: string, name: string, status: string, reason: string | null, expectation: { expected: string, got: string | null }, assertions: import('./assertions').AssertionResult[], logs: unknown[], calls: unknown[], durationMs: number, result?: unknown, error?: string }} CaseResult */
 
 /**
  * The result of one case: always the full contract shape.

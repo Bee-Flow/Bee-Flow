@@ -81,14 +81,7 @@ async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {any
     return stages;
 }
 
-/**
- * @typedef {Object} TitleForArgs
- * @property {boolean} [deleteData]
- * @property {unknown} kind
- * @property {unknown} releaseSeq
- * @property {unknown} solutionName
- * @property {unknown} stage
- */
+/** @typedef {{ deleteData?: boolean, kind: unknown, releaseSeq: unknown, solutionName: unknown, stage: unknown }} TitleForArgs */
 /**
  * @param {TitleForArgs} param0
  */

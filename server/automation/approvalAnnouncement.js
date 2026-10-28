@@ -38,10 +38,7 @@ function oneLine(text, max = 120) {
     return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
-/**
- * @typedef {Object} RoleWordingArgs
- * @property {{ index: number; total: number; } | null} [position]
- */
+/** @typedef {{ position?: { index: number; total: number; } | null }} RoleWordingArgs */
 /**
  * Who the request is asked of, in role terms: the stage name the automation's
  * designer gave it (never its free-text description), else the kind of

@@ -120,12 +120,7 @@ log.info('[IntegrationActivityStore] Initialized (PostgreSQL)');
 const _transferSignalCache = new Map(); // `${orgId}:${operator}` -> last emit ts
 const TRANSFER_SIGNAL_TTL_MS = 24 * 60 * 60 * 1000;
 
-/**
- * @typedef {Object} _signalExternalTransferArgs
- * @property {string | null} [operator]
- * @property {string | null} [countryCode]
- * @property {unknown} orgId
- */
+/** @typedef {{ operator?: string | null, countryCode?: string | null, orgId: unknown }} _signalExternalTransferArgs */
 /**
  * @param {_signalExternalTransferArgs} param0
  */

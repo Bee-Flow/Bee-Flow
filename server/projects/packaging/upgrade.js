@@ -77,10 +77,7 @@ const PLAN_LISTS = (entities) => [
     ['knowledge_base', entities.knowledgeBases],
 ];
 
-/**
- * @typedef {Object} PlanUpgradeArgs
- * @property {string} [projectId]
- */
+/** @typedef {{ projectId?: string }} PlanUpgradeArgs */
 /**
  * Decide what an upgrade would do, without doing any of it.
  *
@@ -147,10 +144,7 @@ async function planUpgrade({ projectId, manifest } = {}) {
 }
 
 
-/**
- * @typedef {Object} IsNewerArgs
- * @property {number} blueprintVersion
- */
+/** @typedef {{ blueprintVersion: number }} IsNewerArgs */
 /**
  * Is this Blueprint newer than what the project has?
  *
@@ -477,12 +471,7 @@ async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
     }
 }
 
-/**
- * @typedef {Object} ApplyUpgradeArgs
- * @property {string} [projectId]
- * @property {string} [ownerId]
- * @property {string | null} [organizationId]
- */
+/** @typedef {{ projectId?: string, ownerId?: string, organizationId?: string | null }} ApplyUpgradeArgs */
 /**
  * Apply an upgrade.
  *

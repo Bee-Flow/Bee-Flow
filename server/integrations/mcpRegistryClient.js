@@ -187,13 +187,7 @@ function registryEntryToInstallConfig(entry) {
 
 // ── network (impure) ────────────────────────────────────────────────────
 
-/**
- * @typedef {Object} SearchOfficialArgs
- * @property {string} [q]
- * @property {string} [cursor]
- * @property {number} [limit]
- * @property {number} [timeoutMs]
- */
+/** @typedef {{ q?: string, cursor?: string, limit?: number, timeoutMs?: number }} SearchOfficialArgs */
 /**
  * Fetch one page of the official registry. Returns `{ servers, nextCursor }`.
  * `servers` are raw `{ server, _meta }` entries (map them with
