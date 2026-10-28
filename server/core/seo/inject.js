@@ -32,10 +32,8 @@ const STRIP_PATTERNS = [
 
 /**
  * @param {string} shell   the built index.html
- * @param {object} [parts]
- * @param {string} [parts.head]  tags to insert before </head>
- * @param {string} [parts.body]  HTML to place inside #root
- * @param {string} [parts.lang]  the locale for <html lang>
+ * @param {{ head?: string, body?: string, lang?: string }} [parts] `head`: tags to insert before
+ *   </head>; `body`: HTML to place inside #root; `lang`: the locale for <html lang>
  * @returns {string}
  */
 function injectIntoShell(shell, { head = '', body = '', lang = 'en' } = {}) {

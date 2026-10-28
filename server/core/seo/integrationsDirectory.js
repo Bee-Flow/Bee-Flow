@@ -129,17 +129,9 @@ h2.cat { margin: 32px 0 12px; font-size: 1.2rem; }
 `.trim();
 
 /**
- * @param {object} p
- * @param {string} p.origin
- * @param {string} p.siteName
- * @param {string} p.title
- * @param {string} p.description
- * @param {string} p.path       canonical path
- * @param {string} p.body
- * @param {boolean} [p.noindex]
- * @param {any[]} [p.jsonLd]
- * @param {string} [p.lang]
- * @param {{ integrations?: boolean, blog?: boolean }} [p.nav] which site sections exist; only those are linked
+ * @param {{ origin: string, siteName: string, title: string, description: string, path: string, body: string,
+ *   noindex?: boolean, jsonLd?: any[], lang?: string, nav?: { integrations?: boolean, blog?: boolean } }} p
+ *   `path`: canonical path; `nav`: which site sections exist; only those are linked
  */
 function page({ origin, siteName, title, description, path, body, noindex = false, jsonLd = [], lang = 'en', nav = {} }) {
     const url = `${origin}${path}`;
