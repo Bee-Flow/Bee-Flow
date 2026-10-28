@@ -60,6 +60,19 @@ updates:
     # pwt-runner build jobs in build-push-ghcr.yml both run
     # scripts/check-playwright-lockstep.mjs and fail when the two disagree.
     ignore:
+      # @mistralai/mistralai declares @opentelemetry/resources ^2 as a peer, so the
+      # OpenTelemetry 3 line (core/resources/sdk-metrics 3, sdk-node 0.300, api 1.10)
+      # waits until the Mistral SDK admits it.
+      - dependency-name: "@opentelemetry/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@opentelemetry/sdk-node"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/exporter-*"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/auto-instrumentations-node"
+        versions: [">=0.82.0"]
+      - dependency-name: "@opentelemetry/api"
+        versions: [">=1.10.0"]
       - dependency-name: playwright
       # The runtime is Node 22 (.nvmrc, engines, node:22 images); the types
       # follow the runtime major, not the newest Node (#33).
@@ -86,6 +99,10 @@ updates:
     # the PR that makes its condition true, never on its own. `ignore` also
     # silences security-update PRs for these names: act on an alert by hand.
     ignore:
+      # mermaid 12 adds about 280 kB to the bundle (bundle ratchet). Take it in a PR
+      # that lazy-loads the diagram renderer.
+      - dependency-name: mermaid
+        update-types: ["version-update:semver-major"]
       # 7.1 reports every React Compiler finding per function (react#35873-35884):
       # 2 errors and +508 warnings over the agent-hub baseline. Lift in
       # the PR that fixes those findings or re-baselines eslint-suppressions.json with a reason.
