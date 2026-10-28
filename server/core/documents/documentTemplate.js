@@ -314,7 +314,7 @@ function renderNodes(nodes, scopes, report, depth, self) {
  * slide.
  *
  * @param {string} bodyHtml the template's body markup
- * @param {object} values   the run's data
+ * @param {Record<string, unknown>} values   the run's data
  * @param {{escape?: boolean}} [options]
  * @returns {{bodyHtml: string, missing: string[], notLists: string[], truncated: string[], tooDeep: string[], errors: string[]}}
  */

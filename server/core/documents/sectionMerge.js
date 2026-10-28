@@ -138,7 +138,7 @@ function labelOf(list, $) {
     return text.slice(0, LABEL_MAX);
 }
 
-/** @param {any} node */
+/** @param {{ name: string, attribs?: Record<string, string> }} node  an element */
 function openTag(node) {
     const attrs = Object.entries(node.attribs || {})
         .map(([k, v]) => (v === '' ? ` ${k}` : ` ${k}="${String(v).replace(/"/g, '&quot;')}"`))
@@ -146,9 +146,9 @@ function openTag(node) {
     return `<${node.name}${attrs}>`;
 }
 
-/** @param {any} node @param {import('cheerio').CheerioAPI} $ */
+/** @param {import('domhandler').AnyNode} node @param {import('cheerio').CheerioAPI} $ */
 const innerHtml = (node, $) => $(node).html() || '';
-/** @param {any} node */
+/** @param {{ attribs?: Record<string, string> }} node */
 const attrsOf = (node) => JSON.stringify(Object.entries(node.attribs || {}).sort(([a], [b]) => a.localeCompare(b)));
 
 /**

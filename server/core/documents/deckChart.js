@@ -307,7 +307,7 @@ function fromAny(value, opts, warnings) {
  * numbers could be found.
  *
  * @param {*} input        rows | matrix | {labels,series} | {columns,rows} | markdown table | ```chart text | {type, data, labels?, values?, …}
- * @param {any} [opts]  { type, labels, values, stacked, unit, title, showValues } — defaults the input may override
+ * @param {{ type?: string, labels?: unknown, values?: unknown, stacked?: unknown, unit?: unknown, title?: unknown, showValues?: unknown }} [opts]  defaults the input may override
  * @param {string[]} [warnings]
  */
 function chartFromAny(input, opts = {}, warnings = []) {

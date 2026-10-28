@@ -20,31 +20,33 @@ function validateCondition(rule, depth = 0) {
     } else if (!safePath(rule.parameter) || !OPERATORS.includes(rule.operator)) throw bad('Invalid section rule.');
 }
 /**
- * @typedef {object} ContractParameter
- * @property {string} key
- * @property {string} type
- * @property {string} label
- * @property {boolean} required
- * @property {string} summary
- * @property {string} instructions
- * @property {any} [example]
- * @property {any} [default]
- * @property {string[]} [options]
- * @property {ContractParameter[]} [fields]
- * @property {boolean} [inferred]
- * @property {string[]} [usedInSections]
- * @property {string[]} [conditionForSections]
- * @property {boolean} [usedOutsideSections]
+ * @typedef {{
+ *   key: string,
+ *   type: string,
+ *   label: string,
+ *   required: boolean,
+ *   summary: string,
+ *   instructions: string,
+ *   example?: unknown,
+ *   default?: unknown,
+ *   options?: string[],
+ *   fields?: ContractParameter[],
+ *   inferred?: boolean,
+ *   usedInSections?: string[],
+ *   conditionForSections?: string[],
+ *   usedOutsideSections?: boolean,
+ * }} ContractParameter
  */
 
 /**
- * @typedef {object} ContractSection
- * @property {string} id
- * @property {string} title
- * @property {string} summary
- * @property {any} condition
- * @property {{ documentId: string, versionId: string }} [source]
- * @property {string|null} [parentId]
+ * @typedef {{
+ *   id: string,
+ *   title: string,
+ *   summary: string,
+ *   condition: unknown,
+ *   source?: { documentId: string, versionId: string },
+ *   parentId?: string|null,
+ * }} ContractSection
  */
 
 /**

@@ -118,8 +118,7 @@ function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking 
  */
 
 /**
- * @typedef {Object} DocxOptionsArgs
- * @property {string} [title]
+ * @typedef {{ title?: string }} DocxOptionsArgs
  */
 /**
  * html-to-docx writes the core properties it is given (title, subject,

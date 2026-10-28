@@ -1,15 +1,17 @@
 // @typecheck strict
 /**
- * @typedef {object} RenderInput  What renderDocument takes.
- * @property {string} [content]
- * @property {string} [contentFormat]
- * @property {string} [title]
- * @property {string} [author]
- * @property {string} [format]
- * @property {string} [layout]
- * @property {any} [marking]
- * @property {any} [theme]
- * @property {any} [docxStyle]
+ * What renderDocument takes.
+ * @typedef {{
+ *   content?: string,
+ *   contentFormat?: string,
+ *   title?: string,
+ *   author?: string,
+ *   format?: string,
+ *   layout?: string,
+ *   marking?: import('./documentRenderer').AiMarking | null,
+ *   theme?: import('../office/officegen').DeckThemeInput | null,
+ *   docxStyle?: ReturnType<typeof import('../docxHouseStyle').buildDocxStylingFromHouseStyle> | null,
+ * }} RenderInput
  */
 
 module.exports = {};

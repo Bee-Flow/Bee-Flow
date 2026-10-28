@@ -131,13 +131,10 @@ async function toBuffer(out) {
 /**
  * Build a .pptx from a NORMALISED deck (core/documents/deckModel.js).
  *
- * @param {object} args
- * @param {object} args.deck      normalizeDeck() output; slide images must already be PNG/JPEG data: URLs
- * @param {object} [args.theme]   a RESOLVED deck theme (deckThemeOptions.resolveDeckTheme); neutral when absent
- * @param {string} [args.title]   overrides deck.title on the cover and in the file properties
- * @param {string} [args.author]
- * @param {string} [args.date]
- * @param {object} [args.marking] FLAT: { subject, creator, keywords:[], description, footerLine } or null
+ * @param {{ deck: import('../deckModel').Deck, theme?: DeckThemeInput | null, title?: string | null, author?: string | null,
+ *   date?: string | null, marking?: DeckMarking | null }} [args]  `deck` is normalizeDeck() output (slide images must
+ *   already be PNG/JPEG data: URLs); `theme` a RESOLVED deck theme (deckThemeOptions.resolveDeckTheme), neutral when
+ *   absent; `title` overrides deck.title on the cover and in the file properties; `marking` the FLAT marking or null
  * @returns {Promise<{buffer: Buffer, contentType: string, format: 'pptx', slideCount: number}>}
  */
 async function buildPresentation({ deck, theme = null, title = null, author = null, date = null, marking = null } = {}) {
@@ -295,19 +292,20 @@ module.exports = {
 
 /**
  * A slide of a normalised deck (core/documents/deckModel.js).
- * @typedef {object} DeckSlide
- * @property {string} [layout]
- * @property {string} [style]
- * @property {string} [title]
- * @property {string} [body]
- * @property {string} [notes]
- * @property {DeckBullet[]} bullets
- * @property {{ columns: string[], rows: unknown[][] }} [table]
- * @property {DeckImage} [image]
- * @property {{ text: string, attribution?: string }} [quote]
- * @property {Array<{ title?: string, bullets: DeckBullet[] }>} [columns]
- * @property {DeckChart} [chart]
- * @property {Array<{ value: string, label?: string, delta?: string, icon?: string, iconDataUrl?: string }>} [stats]
- * @property {Array<{ title?: string, text?: string, icon?: string, iconDataUrl?: string, image?: DeckImage }>} [cards]
- * @property {Array<{ title: string, text?: string }>} [steps]
+ * @typedef {{
+ *   layout?: string,
+ *   style?: string,
+ *   title?: string,
+ *   body?: string,
+ *   notes?: string,
+ *   bullets: DeckBullet[],
+ *   table?: { columns: string[], rows: unknown[][] },
+ *   image?: DeckImage,
+ *   quote?: { text: string, attribution?: string },
+ *   columns?: Array<{ title?: string, bullets: DeckBullet[] }>,
+ *   chart?: DeckChart,
+ *   stats?: Array<{ value: string, label?: string, delta?: string, icon?: string, iconDataUrl?: string }>,
+ *   cards?: Array<{ title?: string, text?: string, icon?: string, iconDataUrl?: string, image?: DeckImage }>,
+ *   steps?: Array<{ title: string, text?: string }>,
+ * }} DeckSlide
  */

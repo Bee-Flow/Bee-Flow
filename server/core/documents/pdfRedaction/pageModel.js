@@ -25,24 +25,25 @@ const MAX_FORM_DEPTH = 8;
 /** @typedef {import('./contentLexer').PdfOperand} PdfOperand */
 /**
  * One drawable object on a page; `id` is its index in the page's `objects`.
- * @typedef {object} PageObject
- * @property {'text'|'path'|'image'} kind
- * @property {number} [id]
- * @property {number} start
- * @property {number} end
- * @property {number[]} bbox
- * @property {string} [text]
- * @property {number[]} [origin]
- * @property {number} [size]
- * @property {number[]|null} [fill]
- * @property {number[]|null} [stroke]
- * @property {number} [lineWidth]
- * @property {number} [segments]
- * @property {boolean} [clip]
- * @property {string|null} [name]
- * @property {boolean} [inline]
- * @property {string|null} form
- * @property {boolean} removable
+ * @typedef {{
+ *   kind: 'text'|'path'|'image',
+ *   id?: number,
+ *   start: number,
+ *   end: number,
+ *   bbox: number[],
+ *   text?: string,
+ *   origin?: number[],
+ *   size?: number,
+ *   fill?: number[]|null,
+ *   stroke?: number[]|null,
+ *   lineWidth?: number,
+ *   segments?: number,
+ *   clip?: boolean,
+ *   name?: string|null,
+ *   inline?: boolean,
+ *   form: string|null,
+ *   removable: boolean,
+ * }} PageObject
  */
 
 const mul = (/** @type {number[]} */ a, /** @type {number[]} */ b) => [
