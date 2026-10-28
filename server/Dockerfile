@@ -29,6 +29,7 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
     NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    ONNXRUNTIME_NODE_INSTALL=skip \
     npm ci --omit=dev --no-audit --no-fund
 
 # ── dev ──────────────────────────────────────────────────────────────────────
