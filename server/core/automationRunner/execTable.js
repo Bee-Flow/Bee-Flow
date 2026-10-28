@@ -89,9 +89,10 @@ function dryRunResult(step, spec, handle, deps) {
 }
 
 /**
- * @param {any} step
- * @param {any} ctx
- * @param {any} runState
+ * @param {{ id?: string, label?: string, [key: string]: unknown }} step
+ * @param {{ userId: string, automationId: string, runId: string, rootRunId?: string, orgId?: string | null,
+ *   userHomeOrgId?: string | null }} ctx  what the table store and the group floor read of it
+ * @param {import('../automationModel/bind').BindRunState} runState
  * @param {'live'|'dry_run'|string} mode
  * @param {typeof defaultDeps} [overrides]
  */

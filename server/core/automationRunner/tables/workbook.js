@@ -101,7 +101,7 @@ async function detectFormat(buffer, requested, limits) {
  */
 function parseOptions(headerRow, limits) {
     const options = { cellNF: true, cellDates: false, raw: true, cellFormula: false, cellHTML: false, cellText: false };
-    if (limits.maxRows > 0) /** @type {any} */ (options).sheetRows = headerRow + limits.maxRows + 1;
+    if (limits.maxRows > 0) /** @type {typeof options & { sheetRows?: number }} */ (options).sheetRows = headerRow + limits.maxRows + 1;
     return options;
 }
 

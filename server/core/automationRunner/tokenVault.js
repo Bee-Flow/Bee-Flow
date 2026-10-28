@@ -41,11 +41,9 @@ const MAX_TOKENS_PER_RUN = 5000;
 const PERSIST_DEBOUNCE_MS = 250;
 
 /**
- * @param {object}  opts
- * @param {string}  opts.runId
- * @param {object}  [opts.seed]     prior map (resume / retry / calling chat)
- * @param {function} [opts.persist] async (runId, map) => void; injected for tests
- * @param {function} [opts.onEvict] called with the evicted count (audit marker)
+ * Options (typed on the parameter): `runId`; `seed` the prior map (resume / retry / calling chat);
+ * `persist` async (runId, map) => void, injected for tests; `onEvict` called with the evicted
+ * count (audit marker).
  */
 function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?: Function|null, onEvict?: Function|null}} */ { runId = null, seed = null, persist = null, onEvict = null } = {}) {
     /** @type {Record<string,string>} token → real value */

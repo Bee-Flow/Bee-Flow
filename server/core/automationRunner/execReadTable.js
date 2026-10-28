@@ -26,10 +26,10 @@ const { noteRunWarning } = require('./runWarnings');
 // The collaborators, required lazily so this file loads before they do and a
 // test can hand in fakes.
 const defaultDeps = {
-    readSourceFile: (/** @type {any[]} */ ...a) => /** @type {any} */ (require('./tables/sourceFile')).readSourceFile(...a),
-    writeTable: (/** @type {any[]} */ ...a) => /** @type {any} */ (require('./tables/tableStore')).writeTable(...a),
+    readSourceFile: (/** @type {Parameters<typeof import('./tables/sourceFile').readSourceFile>} */ ...a) => /** @type {typeof import('./tables/sourceFile')} */ (require('./tables/sourceFile')).readSourceFile(...a),
+    writeTable: (/** @type {Parameters<typeof import('./tables/tableStore').writeTable>} */ ...a) => /** @type {typeof import('./tables/tableStore')} */ (require('./tables/tableStore')).writeTable(...a),
     readWorkbookTables: (/** @type {any[]} */ ...a) => /** @type {any} */ (require('./tables/workbook')).readWorkbookTables(...a),
-    dryRunHandle: (/** @type {any[]} */ ...a) => /** @type {any} */ (require('./tables/handle')).dryRunHandle(...a),
+    dryRunHandle: (/** @type {Parameters<typeof import('./tables/handle').dryRunHandle>} */ ...a) => /** @type {typeof import('./tables/handle')} */ (require('./tables/handle')).dryRunHandle(...a),
     tableLimits: () => require('./tables/limits').tableLimits(),
 };
 
@@ -81,9 +81,9 @@ function sheetSummary(sheet, tableIndex) {
 }
 
 /**
- * @param {any} step
- * @param {any} ctx
- * @param {any} runState
+ * @param {{ id?: string, label?: string, [key: string]: unknown }} step
+ * @param {{ userId: string, automationId: string, runId: string, rootRunId?: string }} ctx  what the reader and the writer use of it
+ * @param {import('../automationModel/bind').BindRunState} runState
  * @param {'live'|'dry_run'|string} mode
  * @param {typeof defaultDeps} [deps]
  */

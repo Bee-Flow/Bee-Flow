@@ -90,7 +90,7 @@ function listValuesOf(spec, runState) {
 /**
  * Resolve the `enumFrom` entries of a step.
  * @param {Array<{ field: string, ref: string, value?: string, ignoreCase?: boolean, allowEmpty?: boolean }>} entries
- * @param {any} runState
+ * @param {import('../automationModel/bind').BindRunState} runState
  * @param {{ mode: string, ctx: any }} env
  * @returns {Array<{ field: string, ignoreCase: boolean, allowEmpty: boolean, ok: boolean, values: string[], sendable: boolean }>}
  *   `sendable` is false for a list over the cap: it is still checked, never sent.
@@ -154,8 +154,8 @@ function schemaNodeAt(parameters, field) {
  * value is still checked after the answer). A field with `allowEmpty` also
  * accepts the empty text: a strict native schema makes every property required,
  * so without it the model could not leave the field empty.
- * @param {any} parameters
- * @param {any} guardedLists
+ * @param {ReturnType<typeof toToolParameters>} parameters
+ * @param {Record<string, unknown> | null} guardedLists  what guardedListsOf read back
  * @param {Iterable<string>} [allowEmptyFields] fields whose entry has allowEmpty: true
  * @returns {number} how many fields got an enum
  */

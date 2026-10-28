@@ -42,10 +42,10 @@ function fail(message, errorClass) {
  * Resolve a datatable for a step, at or above `needed` grade.
  *
  * @param {string} datatableId
- * @param {object} ctx                the run context
- * @param {object} [opts]
- * @param {'viewer'|'editor'|'owner'} [opts.needed]  minimum grade, default 'viewer'
- * @param {boolean} [opts.requireColumns]  also load the table descriptor and
+ * @param {{ userId?: string | null, orgId?: string | null, userHomeOrgId?: string | null, orgRole?: string | null,
+ *   userGroupIds?: string[], identityError?: string | null }} ctx  the run context, as far as it is read here
+ * @param {{ needed?: 'viewer'|'editor'|'owner', requireColumns?: boolean }} [opts]  `needed` is the minimum
+ *   grade, default 'viewer'. `requireColumns`: also load the table descriptor and
  *   fail with `datatable_no_columns` when there is none. Default true — every
  *   caller so far needs it, and a caller that forgot would compile against
  *   `undefined`.

@@ -39,7 +39,7 @@ function analysisFor(code) {
 
 /**
  * @param {{ id?: string, code?: unknown, allowedHosts?: string[] }} step  the code step
- * @param {object} resolvedInputs  values, never bindings
+ * @param {Record<string, unknown>} resolvedInputs  values, never bindings
  * @param {{ log?: { info: (message: string) => unknown } }} [opts]
  * @returns {{ refusal: string|null, inputs: object, analysis: object,
  *             refuseHost: (host: string) => string|null, manifest: { hosts: string[], enforced: boolean } }}

@@ -48,7 +48,8 @@ function parseTopicExpr(src) {
 /**
  * @param {Array<object|null>} asts       the step's parsed expressions (nulls skipped)
  * @param {() => Iterable<object>} scopes every scope the step will evaluate in
- * @param {object} ctx                    the run context (cancelSignal, budget, test seam)
+ * @param {{ cancelSignal?: AbortSignal, _topicTextsUsed?: number, _classifyTopics?: typeof import('../classify/classifierClient').classify }} ctx
+ *   the run context (cancelSignal, budget, test seam)
  * @returns {Promise<{ host: object|null, summary: object|null }>}
  */
 async function prepareTopics(asts, scopes, ctx) {

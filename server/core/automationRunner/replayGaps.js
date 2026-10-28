@@ -66,7 +66,8 @@ function readsStep(step, stepId) {
 /**
  * The gaps that matter: those some step after the pause reads.
  *
- * @param {any} definition           the automation being resumed
+ * @param {{ steps?: Array<{ id?: string }>, edges?: Array<{ from?: string, to?: string }> } | null | undefined} definition
+ *   the automation being resumed
  * @param {string} fromStepId           the step the run paused on
  * @param {Map<string, number|null>} gaps  stepId → original size in bytes
  * @returns {Map<string, number|null>}  the subset a later step reads

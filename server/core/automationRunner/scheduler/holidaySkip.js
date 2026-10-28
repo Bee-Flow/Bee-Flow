@@ -25,7 +25,7 @@ const { definitionForRun } = require('../definitionForRun');
 const holidays = require('../../scheduling/holidays');
 
 /**
- * @param {object} automation  the claimed automation row
+ * @param {import('../runSetup').RunAutomation} automation  the claimed automation row
  * @param {{ triggerStepId?: string|null, cron: string, tz?: string|null, scheduledFor?: string|null, now?: number }} slot
  * @returns {null | { holiday: { date: string, key: string, name: string }, nextRunAt: string|null }}
  *          null = run it; otherwise skip it and store `nextRunAt`.

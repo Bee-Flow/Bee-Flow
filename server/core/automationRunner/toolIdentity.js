@@ -86,7 +86,7 @@ const toolNameOf = (t) => t?.function?.name;
  *
  * @param {IdentityCtx} ctx
  * @param {(opts: any) => Promise<{ tools?: any[] }>} getIntegrationTools
- * @param {any} [options]  `lend`: ask with the connection-lending policy (owner runs only);
+ * @param {{ lend?: boolean, [key: string]: unknown }} [options]  `lend`: ask with the connection-lending policy (owner runs only);
  *                            everything else goes to the lookup as is (automationStep, grants, ...)
  */
 async function permittedCatalog(ctx, getIntegrationTools, options = {}) {

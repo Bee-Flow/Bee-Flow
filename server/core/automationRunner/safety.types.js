@@ -1,18 +1,22 @@
 // @typecheck strict
 /**
- * @typedef {object} EgressEntry  One outbound call, as logEgress records it.
- * @property {string} toolName
- * @property {object} [toolArgs]
- * @property {unknown} [result]
- * @property {unknown} [error]
- * @property {unknown} [blocked]
- * @property {unknown} [probe]
- * @property {any} policy  the run's resolved safety policy
- * @property {any} auditBase  who and what the audit row belongs to
- * @property {string} mode
- * @property {number} [durationMs]
- * @property {any} [integMeta]
- * @property {boolean} [servedFromCache]
+ * One outbound call, as logEgress records it. `policy` is the run's resolved safety policy,
+ * `auditBase` who and what the audit row belongs to, `integMeta` the ledger metadata of a
+ * call that is not a catalog tool (http_request, the code step's fetch, notifications).
+ * @typedef {{
+ *   toolName: string,
+ *   toolArgs?: Record<string, unknown>,
+ *   result?: unknown,
+ *   error?: unknown,
+ *   blocked?: unknown,
+ *   probe?: unknown,
+ *   policy: import('./safety').SafetyPolicy,
+ *   auditBase: import('./safety').AuditBase,
+ *   mode: string,
+ *   durationMs?: number,
+ *   integMeta?: Record<string, unknown> | null,
+ *   servedFromCache?: boolean,
+ * }} EgressEntry
  */
 
 module.exports = {};

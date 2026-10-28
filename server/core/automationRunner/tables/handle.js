@@ -23,7 +23,7 @@ const PROVENANCE_ENTRIES = 200;
 /** @param {unknown} v */
 function isTableHandle(v) {
     if (!v || typeof v !== 'object') return false;
-    const h = /** @type {any} */ (v);
+    const h = /** @type {{ kind?: unknown, tableId?: unknown, columns?: unknown, rowCount?: unknown }} */ (v);
     return h.kind === 'table'
         && typeof h.tableId === 'string'
         && (h.tableId === 'dry-run' || TABLE_ID_RE.test(h.tableId))
