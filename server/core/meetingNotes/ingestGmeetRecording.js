@@ -40,18 +40,16 @@ const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
 const MAX_SHARED_WITH = 50;
 
 /**
- * @param {object} opts
- * @param {object} [opts.accessCtx]        the caller's access context, for a dedup hit it must be able to read
- * @param {string} opts.userId               Bee Flow user who owns the note
- * @param {object} opts.session              req.session OR vault pseudo-session
- * @param {string} [opts.orgId]              org id (model-tier + EU resolution)
- * @param {string} opts.conferenceRecordName `conferenceRecords/{record}` (dedup key)
- * @param {string} opts.driveFileId          Drive file id of the recording MP4
- * @param {string} [opts.meetingCode]        typeable meeting code (`abc-defg-hij`)
- * @param {string} [opts.title]              calendar event title (titleHint)
- * @param {string} [opts.language]           BCP-47-ish lang code (default 'nl')
- * @param {string} [opts.contextTerms]       bias terms for the transcriber
- * @param {Array<{ email?: string, displayName?: string | null }>} [opts.attendees]        calendar attendees ({email, displayName})
+ * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string,
+ *   session: import('./gmeetArtifacts').GoogleSession, orgId?: string, conferenceRecordName: string,
+ *   driveFileId: string, meetingCode?: string, title?: string, language?: string, contextTerms?: string,
+ *   attendees?: Array<{ email?: string, displayName?: string | null }> }} opts `accessCtx`: the
+ *   caller's access context, for a dedup hit it must be able to read; `userId`: Bee Flow user who owns
+ *   the note; `session`: req.session OR vault pseudo-session; `orgId`: org id (model-tier + EU
+ *   resolution); `conferenceRecordName`: `conferenceRecords/{record}` (dedup key); `driveFileId`: Drive
+ *   file id of the recording MP4; `meetingCode`: typeable meeting code (`abc-defg-hij`); `title`:
+ *   calendar event title (titleHint); `language`: BCP-47-ish lang code (default 'nl'); `contextTerms`:
+ *   bias terms for the transcriber; `attendees`: calendar attendees ({email, displayName})
  * @returns {Promise<{ id: string, title?: string | null, dedup?: boolean, sourceUri?: string }>} the saved-note payload (+ `dedup`)
  */
 async function ingestGmeetRecording(opts) {

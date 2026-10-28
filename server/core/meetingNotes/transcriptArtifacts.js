@@ -218,7 +218,7 @@ const SPEAKER_WORD = {
  * @param {Array<string|{id:string}>} speakerIds  Diarizer IDs (bare or stat rows).
  * @param {object|null} nameMapping  { id: realName } from identifySpeakerNames.
  * @param {string} language  Meeting language code (e.g. 'nl').
- * @returns {object} A complete mapping: real names kept, unnamed IDs → generic labels.
+ * @returns {Record<string, string>} A complete mapping: real names kept, unnamed IDs → generic labels.
  */
 function fillGenericSpeakerLabels(speakerIds, nameMapping = {}, language = 'en') {
     const word = SPEAKER_WORD[String(language || 'en').slice(0, 2).toLowerCase()] || SPEAKER_WORD.en;
@@ -388,7 +388,7 @@ const ARTIFACTS_FAILED = Object.freeze({ ok: false });
  *
  * UNKNOWN NARROWS. Not `ok !== false` — that let through everything the flag did not set, including an answer without lists, and the merge made "the meeting was empty" out of that. Only what looks like a completed pass is usable: the three lists are there, and the flag does not say no.
  *
- * @param {any} artifacts what extractMeetingArtifacts returned
+ * @param {{ ok?: boolean, actionItems?: unknown, decisions?: unknown, questions?: unknown } | null | undefined} artifacts what extractMeetingArtifacts returned
  * @returns {boolean} true = this outcome may replace existing artifacts
  */
 function artifactsUsable(artifacts) {

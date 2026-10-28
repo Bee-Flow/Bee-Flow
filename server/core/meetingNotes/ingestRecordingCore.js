@@ -141,25 +141,20 @@ async function saveNote(row, savedAudio) {
 }
 
 /**
- * @param {object} opts
- * @param {string} opts.userId             Bee Flow user who owns the note
- * @param {string | null} [opts.orgId]            org id (model-tier + EU resolution)
- * @param {string} [opts.filePath]         local recording file (consumed); absent only with transcriptResponse
- * @param {string} [opts.fileName]         display name (default: basename)
- * @param {string} [opts.language]         BCP-47-ish lang code (default 'nl')
- * @param {string | null} [opts.provider]         explicit provider override
- * @param {string | null} [opts.contextTerms]     bias terms for the transcriber
- * @param {string | null} [opts.titleHint]        fallback title
- * @param {string | null} [opts.userName]         recorder's first name (speaker hint)
- * @param {string[]}[opts.participantNames] real attendee roster for diarization
- * @param {string} [opts.source]           provenance tag ('nextcloud', 'gmeet', …)
- * @param {string} [opts.sourceUri]        canonical dedup key
- * @param {any} [opts.extraStoreFields] extra createTranscription fields
- * @param {{text?: string, segments: any[]}} [opts.transcriptResponse]
- *        an already-made transcript (Teams VTT): transcription is skipped and
- *        `filePath` may be absent, in which case the note has no audio
- * @param {boolean} [opts.speakersNamed]   the segments' speakerIds are real
- *        names (from the platform), so the LLM naming pass is skipped
+ * @param {{ userId: string, orgId?: string | null, filePath?: string, fileName?: string, language?: string,
+ *   provider?: string | null, contextTerms?: string | null, titleHint?: string | null,
+ *   userName?: string | null, participantNames?: string[], source?: string, sourceUri?: string,
+ *   extraStoreFields?: Record<string, unknown>, transcriptResponse?: {text?: string, segments: any[]}, speakersNamed?: boolean }} opts
+ *   `userId`: Bee Flow user who owns the note; `orgId`: org id (model-tier + EU resolution);
+ *   `filePath`: local recording file (consumed); absent only with transcriptResponse; `fileName`:
+ *   display name (default: basename); `language`: BCP-47-ish lang code (default 'nl'); `provider`:
+ *   explicit provider override; `contextTerms`: bias terms for the transcriber; `titleHint`: fallback
+ *   title; `userName`: recorder's first name (speaker hint); `participantNames`: real attendee roster
+ *   for diarization; `source`: provenance tag ('nextcloud', 'gmeet', …); `sourceUri`: canonical dedup
+ *   key; `extraStoreFields`: extra createTranscription fields; `transcriptResponse`: an already-made
+ *   transcript (Teams VTT): transcription is skipped and `filePath` may be absent, in which case the
+ *   note has no audio; `speakersNamed`: the segments' speakerIds are real names (from the platform), so
+ *   the LLM naming pass is skipped
  * @returns {Promise<any>} the saved-note payload (+ `dedup`)
  */
 async function ingestLocalRecording(opts) {

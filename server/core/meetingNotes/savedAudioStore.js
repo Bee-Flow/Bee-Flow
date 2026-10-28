@@ -281,7 +281,5 @@ module.exports = {
 };
 
 /**
- * @typedef {Object} DiscardSavedAudioArgs
- * @property {string | null} [audioPath]
- * @property {string | null} [audioStorageKey]
+ * @typedef {{ audioPath?: string | null, audioStorageKey?: string | null }} DiscardSavedAudioArgs
  */

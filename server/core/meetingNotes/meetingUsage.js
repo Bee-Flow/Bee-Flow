@@ -462,11 +462,10 @@ async function scanNotebook(meeting, db) {
 /**
  * Everything that consumes this meeting.
  *
- * @param {any} meeting  `{ id, tags, ownerId, organizationId }` — the note
+ * @param {MeetingRef | null | undefined} meeting  `{ id, tags, ownerId, organizationId }` — the note
  *                          as the store returns it. Only these four fields are
  *                          read; passing the whole note is fine.
- * @param {object} [opts]
- * @param {any} [opts.db]  injection seam for the tests
+ * @param {{ db?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> } }} [opts] `db`: injection seam for the tests
  * @returns {Promise<{ rows: Array, partial: string[] }>}
  *          `partial` names the kinds that could NOT be answered. Non-empty
  *          means "I do not know" — never "nothing".

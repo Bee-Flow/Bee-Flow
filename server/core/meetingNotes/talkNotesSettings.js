@@ -196,7 +196,5 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} ResolveTalkNotesSettingsArgs
- * @property {string | null} [orgId]
- * @property {string | null} [userId]
+ * @typedef {{ orgId?: string | null, userId?: string | null }} ResolveTalkNotesSettingsArgs
  */

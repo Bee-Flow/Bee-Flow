@@ -42,21 +42,17 @@ const ACCEPTED_RECORDING_EXTS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac
 const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
 
 /**
- * @param {object} opts
- * @param {any} [opts.accessCtx]        the caller's access context, for a dedup hit it must be able to read
- * @param {string} opts.userId          Bee Flow user who owns the note
- * @param {any} opts.session         req.session OR triggerBus pseudo-session
- * @param {string} [opts.orgId]         org id (model-tier + EU resolution)
- * @param {string} opts.ncPath          Nextcloud Files path to the recording
- * @param {string} [opts.language]      BCP-47-ish lang code (default 'nl')
- * @param {string} [opts.provider]      explicit provider override
- * @param {string} [opts.contextTerms]  bias terms for the transcriber
- * @param {string} [opts.titleHint]     fallback title
- * @param {string} [opts.userName]      recorder's first name (speaker hint)
- * @param {string} [opts.source]        'nextcloud' | 'talk' | 'talk-auto'
- * @param {string} [opts.sourceUri]     canonical dedup key (derived if absent)
- * @param {string} [opts.talkRoomToken] originating Talk room (for write-back)
- * @param {boolean}[opts.postSummaryBack] post summary back into the Talk room
+ * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string, session: Express.Session, orgId?: string, ncPath: string, language?: string,
+ *   provider?: string, contextTerms?: string, titleHint?: string, userName?: string, source?: string,
+ *   sourceUri?: string, talkRoomToken?: string, postSummaryBack?: boolean }} opts `accessCtx`: the
+ *   caller's access context, for a dedup hit it must be able to read; `userId`: Bee Flow user who owns
+ *   the note; `session`: req.session OR triggerBus pseudo-session; `orgId`: org id (model-tier + EU
+ *   resolution); `ncPath`: Nextcloud Files path to the recording; `language`: BCP-47-ish lang code
+ *   (default 'nl'); `provider`: explicit provider override; `contextTerms`: bias terms for the
+ *   transcriber; `titleHint`: fallback title; `userName`: recorder's first name (speaker hint);
+ *   `source`: 'nextcloud' | 'talk' | 'talk-auto'; `sourceUri`: canonical dedup key (derived if absent);
+ *   `talkRoomToken`: originating Talk room (for write-back); `postSummaryBack`: post summary back into
+ *   the Talk room
  * @returns {Promise<any>} the saved-note payload (+ `dedup`, `writeBack`)
  */
 async function ingestNextcloudRecording(opts) {

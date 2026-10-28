@@ -21,7 +21,7 @@ function lazyDeps(loaders) {
     let overrides = {};
     /** @type {Record<string, any>} */
     const cache = {};
-    const deps = /** @type {any} */ (new Proxy({}, {
+    const deps = /** @type {{ [K in keyof L]: ReturnType<L[K]> }} */ (new Proxy({}, {
         get(_target, key) {
             const name = String(key);
             if (Object.prototype.hasOwnProperty.call(overrides, name)) return overrides[name];
