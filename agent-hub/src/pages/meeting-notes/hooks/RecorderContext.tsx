@@ -4,6 +4,7 @@ import * as api from '@/api/transcriptionsApi';
 import { generateAutoTitle } from '../lib/format';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { errorCode } from '@/utils/caughtError';
+import { useImportJobFollower } from './useImportJobFollower';
 
 /** Why an upload was moved to another engine (server/routes/transcriptions/upload.js). */
 export interface ProviderFallback {
@@ -110,6 +111,13 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
     // "switch engine & retry" must not be re-filed as an upload.
     const [lastFailedCapture, setLastFailedCapture] = useState<string>('upload');
     const [version, setVersion] = useState(0); // bumps when a transcription finishes — list listeners refetch
+    // A manual Teams / Meet import runs on the server after a 202; the job is
+    // polled until it ends, and the promise the panel awaits settles then.
+    const followImportJob = useImportJobFollower({
+        onUploading: (stage) => { setUploading(stage !== null); setUploadStage(stage ?? ''); },
+        onDone: (noteId) => { setLastResultId(noteId); setLastResultMeta({ providerFallback: null }); setVersion((v) => v + 1); },
+        onFailed: setUploadError,
+    });
 
     const handleFileReady = useCallback(async (file: File, overrideProvider?: string, captureMode = 'upload'): Promise<UploadOutcome> => {
         setUploading(true);
@@ -208,6 +216,8 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
                 title: item.title || undefined,
                 contextTerms: contextTerms ?? settings.contextTerms,
             });
+            // 202: the import runs on the server; follow its job.
+            if (result && result.jobId && !result.id) return await followImportJob('gmeet', result.jobId);
             setLastResultId(result.id);
             setLastResultMeta({ providerFallback: result.providerFallback || null });
             setVersion((v) => v + 1);
@@ -219,7 +229,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setUploading(false);
             setUploadStage('');
         }
-    }, [settings.language, settings.contextTerms]);
+    }, [settings.language, settings.contextTerms, followImportJob]);
 
     const importFromTeams = useCallback(async (item: { eventId: string }, { language, contextTerms }: ImportOptions = {}): Promise<UploadOutcome> => {
         setUploading(true);
@@ -231,9 +241,9 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
                 language: language || settings.language,
                 contextTerms: contextTerms ?? settings.contextTerms,
             });
-            // 202: Teams is still processing the recording; the background
-            // import picks it up, so this is not an error and not a note yet.
-            if (result && result.jobId && !result.id) return { ok: false, pending: true, result };
+            // 202: the import runs on the server (a long recording takes far
+            // longer than a request may); follow its job until it ends.
+            if (result && result.jobId && !result.id) return await followImportJob('teams', result.jobId);
             setLastResultId(result.id);
             setLastResultMeta({ providerFallback: result.providerFallback || null });
             setVersion((v) => v + 1);
@@ -245,7 +255,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setUploading(false);
             setUploadStage('');
         }
-    }, [settings.language, settings.contextTerms]);
+    }, [settings.language, settings.contextTerms, followImportJob]);
 
     const consumeLastResult = useCallback(() => {
         const id = lastResultId;

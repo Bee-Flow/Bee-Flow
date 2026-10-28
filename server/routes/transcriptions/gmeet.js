@@ -37,53 +37,7 @@ const GMEET_ERROR_STATUS = {
     unsupported_edition: 400,
 };
 
-/**
- * @param {string} message
- * @param {string} code
- */
-function gmeetError(message, code) {
-    const e = new Error(message);
-    e.code = code;
-    return e;
-}
-
-/**
- * Resolve a Google session for the gmeet routes. The live Google session wins;
- * otherwise an 'active' vault credential (refreshed via getProviderAuth) is
- * wrapped in a session shim. Returns { session, source: 'live'|'vault'|null,
- * cred, connection } — `connection` is the status block the UI renders its
- * connect/reconnect CTAs from, `session` is null without usable Google auth.
- */
-async function resolveGmeetSession(req) {
-    const userId = req.session.user.id;
-    const { deriveConnectionStatus } = require('../../core/meetingNotes/gmeetNotesSettings');
-    let cred = null;
-    try {
-        const automationCredentialStore = require('../../stores/automationCredentialStore');
-        cred = await automationCredentialStore.getCredential(userId, 'google');
-    } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:resolveGmeetSession', err); /* vault unavailable → session-only */ }
-    const connection = deriveConnectionStatus({ session: req.session, credential: cred });
-
-    if (req.session.oauthProvider === 'google' && req.session.accessToken) {
-        return { session: req.session, source: 'live', cred, connection };
-    }
-    if (cred && cred.status === 'active') {
-        const { getProviderAuth } = require('../../auth/automationAuth');
-        const auth = await getProviderAuth(userId, 'google');
-        if (auth && auth.accessToken) {
-            // Session shim — createGoogleApiClient writes refreshed tokens back
-            // into this object; the durable copy lives in the vault, refreshed
-            // by getProviderAuth itself on the next resolve.
-            return {
-                session: { accessToken: auth.accessToken, refreshToken: auth.refreshToken },
-                source: 'vault',
-                cred: auth,
-                connection,
-            };
-        }
-    }
-    return { session: null, source: null, cred, connection };
-}
+const { gmeetError, resolveGmeetSession, requireMeetAccess } = require('../../core/meetingNotes/gmeetSession');
 
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
@@ -318,29 +272,18 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     res.json({ connection, items });
 });
 
-// Manual import of a finished Meet recording. Runs the shared inline ingest
-// (parity: /from-nextcloud, 10-minute timeout); responds 202 { jobId, status }
-// when Meet's artifacts aren't ready yet, classified 4xx `code`s otherwise.
+// Manual import of a finished Meet recording. Minutes of Drive download and
+// transcription do not fit in a proxied request (ingress 504), so this seeds
+// the job and answers 202 { jobId, status } at once; the shared ingest runs in
+// the background and the client polls GET /gmeet-imports. Classified 4xx
+// `code`s for everything that can be refused up front.
 router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromGmeetBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { event_id, meeting_code, meet_link, language, title, context_terms } = req.body;
 
-    req.setTimeout(600000); res.setTimeout(600000);
-
     try {
         const userOrgId = await resolveUserOrgFromReq(req);
-        const { session, connection } = await resolveGmeetSession(req);
-        if (!session) {
-            throw gmeetError(
-                connection.needsReauth
-                    ? 'Google access expired — reconnect your Google account'
-                    : 'Google is not connected for this account',
-                connection.needsReauth ? 'needs_reauth' : 'not_connected',
-            );
-        }
-        if (!connection.meetScopesGranted) {
-            throw gmeetError('Google Meet access has not been granted — reconnect Google to add the Meet scopes', 'needs_meet_scopes');
-        }
+        const { session } = await requireMeetAccess(req);
 
         const { extractMeetCode, listRecentlyEndedMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
         let meetingCode = extractMeetCode(meet_link || meeting_code);
@@ -384,14 +327,25 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         }
         if (!job) throw gmeetError('Could not create an import job for this meeting', 'failed');
 
-        // Lazy — shared with the background poller so manual and auto imports
-        // behave identically (dedup, artifact waits, failure classification).
-        const { processJobInline } = require('../../core/meetingNotes/gmeetAutoImport');
-        const out = await processJobInline({ job, session, language, contextTerms: context_terms || '' });
-        if (out && out.pending) {
-            return res.status(202).json({ jobId: job.id, status: out.status || job.status });
+        if (job.status === 'ingested' && job.transcriptionId) {
+            return res.json({ id: job.transcriptionId, dedup: true });
         }
-        res.json(out.transcription);
+
+        const { startBackgroundImport } = require('../../core/meetingNotes/gmeetManualImport');
+        const outcome = await startBackgroundImport({
+            job, userId, orgId: userOrgId, knownCodes: GMEET_ERROR_STATUS,
+            work: async () => {
+                // Access is checked again: the session may have changed since the 202.
+                const { session: freshSession } = await requireMeetAccess(req);
+                // Lazy — shared with the background poller so manual and auto imports
+                // behave identically (dedup, artifact waits, failure classification).
+                const { processJobInline } = require('../../core/meetingNotes/gmeetAutoImport');
+                await processJobInline({ job, session: freshSession, language, contextTerms: context_terms || '' });
+            },
+            accept: () => res.status(202).json({ jobId: job.id, status: 'pending' }),
+            tooMany: () => Object.assign(gmeetError('Too many meeting imports are running; wait for one to finish', 'too_many_imports'), { status: 429 }),
+        });
+        if (outcome === 'already_running') res.status(202).json({ jobId: job.id, status: 'pending' });
     } catch (err) {
         const status = err.status || GMEET_ERROR_STATUS[err.code];
         if (!status || status >= 500) throw err; // unclassified: the terminal handler logs it and answers generically
