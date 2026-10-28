@@ -11,6 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Sheet, Text, useToast } from '@/shared/ui';
 
@@ -21,6 +22,7 @@ export function RecoveryCodesSheet({
     codes: string[] | null;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
@@ -28,11 +30,11 @@ export function RecoveryCodesSheet({
     const close = () => {
         if (!copied) {
             Alert.alert(
-                'Save these first',
-                'These codes will not be shown again. If you lose your authenticator without them, an administrator has to reset your two-factor.',
+                t('mobile.security.codes_save_title', 'Save these first'),
+                t('mobile.security.codes_save_message', 'These codes will not be shown again. If you lose your authenticator without them, an administrator has to reset your two-factor.'),
                 [
-                    { text: 'Go back', style: 'cancel' },
-                    { text: 'I have saved them', style: 'destructive', onPress: onClose },
+                    { text: t('mobile.security.codes_go_back', 'Go back'), style: 'cancel' },
+                    { text: t('mobile.security.codes_saved', 'I have saved them'), style: 'destructive', onPress: onClose },
                 ],
             );
             return;
@@ -45,13 +47,13 @@ export function RecoveryCodesSheet({
         <Sheet
             visible={codes !== null}
             onClose={close}
-            title="Your recovery codes"
-            subtitle="Shown once. Store them somewhere you can reach without this phone."
-            footer={<Button label="Done" onPress={close} fullWidth />}
+            title={t('mobile.security.codes_title', 'Your recovery codes')}
+            subtitle={t('mobile.security.codes_subtitle', 'Shown once. Store them somewhere you can reach without this phone.')}
+            footer={<Button label={t('automations.sharing.done', 'Done')} onPress={close} fullWidth />}
         >
             <View style={styles.body}>
                 <Banner tone="warning">
-                    Each code works once. They are your only way in if you lose your authenticator.
+                    {t('mobile.security.codes_banner', 'Each code works once. They are your only way in if you lose your authenticator.')}
                 </Banner>
                 <View style={styles.codes}>
                     {(codes ?? []).map((code) => (
@@ -61,12 +63,12 @@ export function RecoveryCodesSheet({
                     ))}
                 </View>
                 <Button
-                    label={copied ? 'Copied' : 'Copy all codes'}
+                    label={copied ? t('common.copied_short', 'Copied') : t('mobile.security.codes_copy_all', 'Copy all codes')}
                     variant="secondary"
                     onPress={() => {
                         void Clipboard.setStringAsync((codes ?? []).join('\n'));
                         setCopied(true);
-                        toast('Recovery codes copied', 'success');
+                        toast(t('mobile.security.codes_copied', 'Recovery codes copied'), 'success');
                     }}
                     fullWidth
                 />

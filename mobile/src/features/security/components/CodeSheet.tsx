@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { FormSheet } from '@/shared/patterns';
 import { TextField } from '@/shared/ui';
 
@@ -27,6 +28,7 @@ export function CodeSheet({
     error: unknown;
     destructive?: boolean;
 }) {
+    const t = useTranslation();
     const [code, setCode] = useState('');
     return (
         <FormSheet
@@ -42,13 +44,13 @@ export function CodeSheet({
             error={error}
         >
             <TextField
-                label="Code"
+                label={t('automations.node.code.label', 'Code')}
                 value={code}
                 onChangeText={setCode}
                 keyboardType="default"
                 autoCapitalize="none"
                 autoComplete="one-time-code"
-                hint="A six-digit code from your authenticator, or one recovery code."
+                hint={t('mobile.security.code_hint', 'A six-digit code from your authenticator, or one recovery code.')}
             />
         </FormSheet>
     );

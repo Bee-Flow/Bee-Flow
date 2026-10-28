@@ -267,7 +267,6 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/org', 73],
     ['src/features/recording', 98],
     ['src/features/search', 9],
-    ['src/features/security', 30],
     ['src/features/settings', 21],
     // Not new debt: the sitemap's destination labels and hints, moved out of
     // features/shell (98) when the drawer replaced the More tab. The shell
