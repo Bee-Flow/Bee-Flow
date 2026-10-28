@@ -9,6 +9,7 @@
 
 const { LIMITS } = require('./limits');
 const { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS } = require('./actionSpecsActionKinds');
+const { COPY_DOCUMENT_FIELDS } = require('./documentSpecs');
 
 // The look vocabulary is owned by core/documents/deckThemeOptions.js.
 
@@ -303,6 +304,7 @@ const STEP_SPECS = {
     file_intake: { mutatesData: true, fields: FILE_INTAKE_FIELDS },
     dataset_query: { mutatesData: true, fields: DATASET_QUERY_FIELDS },
     ai_browse: { mutatesData: true, fields: AI_BROWSE_FIELDS },
+    copy_document: { mutatesData: true, fields: COPY_DOCUMENT_FIELDS },
     condition: {
         mutatesData: false, // flow-control; mutation lives in the child steps
         fields: {

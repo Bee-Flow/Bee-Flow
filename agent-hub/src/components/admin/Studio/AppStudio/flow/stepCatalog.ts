@@ -1,5 +1,5 @@
 import {
-    ArrowRight, BadgeCheck, Bell, Bot, Braces, CheckCircle2, Database, Dna, Download, Eraser, ExternalLink, FileDown, FileSignature,
+    ArrowRight, BadgeCheck, Bell, Bot, Braces, CheckCircle2, Copy, Database, Dna, Download, Eraser, ExternalLink, FileDown, FileSignature,
     FileSearch, GitBranch, Globe, Inbox, Layers, Mail, MessageSquare, Pencil, Presentation, RefreshCw,
     Repeat, Search, SquareStack, Trash2, Workflow,
 } from 'lucide-react';
@@ -171,6 +171,11 @@ export const STEP_CATALOG: Record<string, StepMeta> = {
         blurb: 'Read a bounded slice out of a large genome file — by gene, region or rsID.',
         blurbKey: 'studio_apps_edit.step_catalog.dataset_query_blurb',
     },
+    copy_document: {
+        label: 'Copy a document', labelKey: 'studio_apps_edit.step_catalog.copy_document_label', group: 'Data', icon: Copy, server: true,
+        blurb: 'Copy a Studio document into your library, a presentation optionally in another template’s look, to compare with the original.',
+        blurbKey: 'studio_apps_edit.step_catalog.copy_document_blurb',
+    },
 
     // ── AI ──────────────────────────────────────────────────────────────────
     ai_browse: {
@@ -301,6 +306,9 @@ export function newStep(kind: string, { screenId = '', modalId = '', t = null }:
         // ("show my BRCA1"), so a fresh step starts with an empty gene binding.
         case 'dataset_query': return { kind, dataset: { kind: 'static', value: '' }, gene: { kind: 'static', value: '' }, resultVar: 'variants' };
         case 'ai_browse': return { kind, task: { kind: 'static', value: '' }, resultVar: 'browse' };
+        // Seeded to the variable a document picker called "document" fills;
+        // the copy lands in `copy`, which a document_compare's right side binds.
+        case 'copy_document': return { kind, source: { kind: 'formula', expr: 'form.document' }, resultVar: 'copy' };
         case 'condition': return { kind, expr: '', then: [], else: [] };
         // A case is matched on `value` — canonicalize keeps { value, steps } and
         // drops anything else, and the runner compares against c.value. This

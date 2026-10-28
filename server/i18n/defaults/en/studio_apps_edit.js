@@ -349,6 +349,8 @@ module.exports = {
     'studio_apps_edit.step_catalog.confirm_blurb': 'Stop and ask. Declining cancels everything after it.',
     'studio_apps_edit.step_catalog.confirm_default': 'Are you sure?',
     'studio_apps_edit.step_catalog.confirm_label': 'Ask first',
+    'studio_apps_edit.step_catalog.copy_document_blurb': 'Copy a Studio document into your library, a presentation optionally in another template’s look, to compare with the original.',
+    'studio_apps_edit.step_catalog.copy_document_label': 'Copy a document',
     'studio_apps_edit.step_catalog.create_record_blurb': 'Write a new row into one of this app’s tables.',
     'studio_apps_edit.step_catalog.create_record_label': 'Add a row',
     'studio_apps_edit.step_catalog.dataset_query_blurb': 'Read a bounded slice out of a large genome file — by gene, region or rsID.',

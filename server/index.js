@@ -552,8 +552,8 @@ app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio
 // large_datasets licence gate is the first handler of each of its routes, never
 // path-less on the router, so requests for the routers after it pass untouched.
 app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppDatasets'));
-// AI browsing: the ONE streaming ai_browse step endpoint (SSE screenshots).
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppBrowse'));
+// AI browsing (the ONE streaming ai_browse step endpoint) and Studio documents in an app (viewer, picker, compare).
+app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppBrowse'), require('./routes/studioAppDocuments'));
 // Studio Playbooks — phased AI builds (table → automation → fill → app →
 // approvals). A playbook owns an automation AND an app, so both modules and both
 // gates apply; writes need manage_apps (router-level); the approvals phase is

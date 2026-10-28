@@ -125,6 +125,7 @@ const { RICH_INPUT_SPECS } = require('./componentSpecs/richInputSpecs');
 const { LAYOUT_SPECS } = require('./componentSpecs/layoutSpecs');
 const { RECORD_DISPLAY_SPECS } = require('./componentSpecs/recordDisplaySpecs');
 const { INTERACTIVE_SPECS } = require('./componentSpecs/interactiveSpecs');
+const { DOCUMENT_SPECS } = require('./componentSpecs/documentSpecs');
 // A leaf module, not mailboxConnector.js: this file is loaded by the mobile
 // tests, and everything it requires is what ci.yml's mobile filter lists.
 const { MAILBOX_TABLE_TEMPLATES } = require('./mailboxTableTemplates');
@@ -174,6 +175,7 @@ const COMPONENT_SPECS = Object.assign(Object.create(null),
     LAYOUT_SPECS,           // tabs … markdown
     RECORD_DISPLAY_SPECS,   // badge_list … record_detail
     INTERACTIVE_SPECS,      // filter_bar, kanban, calendar, ai_chat
+    DOCUMENT_SPECS,         // document_viewer, document_compare, input_document
 );
 
 const COMPONENT_TYPES = Object.keys(COMPONENT_SPECS);

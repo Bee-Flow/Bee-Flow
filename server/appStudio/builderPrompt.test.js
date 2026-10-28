@@ -761,8 +761,13 @@ test('the form-save shot is byte-true: theme, table (key derived from name), com
  * kind costs ~40 chars by construction, and the headroom was already spent.
  * Raised to 34_400 when the pdf_compare component landed at 34_252 (its line in
  * the compact catalog). The next raise should come with a diet of the core prose instead.
+ * Raised to 35_200 when the three Studio-document components (document_viewer,
+ * document_compare, input_document) and the copy_document step landed at 34_981:
+ * three compact catalog lines, one step kind named three times and one line on
+ * whose documents an app may show. Product, not prose; the diet of the core
+ * prose is still owed.
  */
-const CORE_PROMPT_CHAR_CEILING = 34_400;
+const CORE_PROMPT_CHAR_CEILING = 35_200;
 
 test(`the core system prompt with the compact catalog stays under ${CORE_PROMPT_CHAR_CEILING} chars`, () => {
     const core = buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' });

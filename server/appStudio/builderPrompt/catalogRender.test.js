@@ -202,8 +202,12 @@ const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr')
  * 52_000 → 53_000 (pdf_compare component, measured 2026-10-21): one new
  * component type with seven props took the catalog to 52_446. A new type is
  * product, not prose; 53_000 leaves ~550 headroom.
+ *
+ * 53_000 → 54_500 (Studio documents in apps, measured 2026-10-26): three
+ * component types (document_viewer, document_compare, input_document) and the
+ * copy_document step took the catalog to 54_074. ~430 headroom.
  */
-const CATALOG_CHAR_CEILING = 53_000;
+const CATALOG_CHAR_CEILING = 54_500;
 
 test('renderCatalogText is byte-stable across calls (prompt-cache discipline)', () => {
     const a = renderCatalogText();
@@ -498,7 +502,9 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-10-06, the Condition node's rule functions joined the engine (equals,
 // fileType, anyOf, everyOf, noneOf) — 51_935 chars.
 // 2026-10-21, the pdf_compare component type joined the catalog — 52_446 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '6b6a0637d04ac961d5ea576f5fdb1c19b1fd66cbc2f85b80b84a689288300fe3';
+// 2026-10-26, document_viewer, document_compare, input_document and the
+// copy_document step joined the catalog — 54_074 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '43c3ebfc8eb0a0b67adbbee439723e473aa3a5c75e790820caf00449870f4c8a';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

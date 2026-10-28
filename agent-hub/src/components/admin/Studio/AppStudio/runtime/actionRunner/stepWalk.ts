@@ -57,7 +57,7 @@ export const MAX_LOOP_ITERATIONS = 200;
 // set for that invariant, but execStep intercepts it FIRST (it streams over a
 // dedicated SSE endpoint, not the plain JSON /step dispatch) — the generic
 // branch below never sees it.
-export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse']);
+export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document']);
 
 // A bare v1 action is an implicit 1-step sequence; a v2 action carries its steps.
 export function normalizeSequence(action: RunStep | null | undefined): unknown[] {

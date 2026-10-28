@@ -96,6 +96,38 @@ credentials), behind an SSRF guard that blocks private/internal addresses. The A
 *wire* an existing connector into the app, but it never authors credentials — you set
 those up yourself.
 
+## Documents in an app
+
+Studio documents (pages, designed documents, presentations and spreadsheets) can be
+shown inside an app with three components from the **Content** and **Input** groups:
+
+- **Document** (`document_viewer`): one document, read-only. A presentation or page
+  looks exactly like its Studio preview; a spreadsheet shows its computed values, one
+  tab at a time. Its source is a fixed document id, or a formula, record field or
+  action result that holds one.
+- **Document picker** (`input_document`): lets the user choose from the documents you
+  list (`documentIds`) and/or one of your folders (`folderId`), narrowed to pages,
+  presentations or spreadsheets. It submits the chosen id.
+- **Document compare** (`document_compare`): what changed between two documents, or
+  between two versions of one (give it only a left document and the user picks a
+  version). Text is compared paragraph by paragraph with the changed words marked,
+  presentations slide by slide (plus a summary of the look: theme, colours, fonts,
+  template), spreadsheets per tab, row, column and cell. Side by side or inline, with
+  "only changes" and next/previous change.
+
+The **Copy document** step (`copy_document`) copies a document into your library; for
+a presentation it can apply another presentation's look (`templateDocumentId`). Bind
+its result to a compare's right side, with the original on the left, and the user sees
+exactly what the new look changed.
+
+**Whose documents.** An app reads documents as its owner, and only the owner's own
+documents (or an organisation team template). A document merely shared with the owner
+is never shown: an app's audience is wider than that share. On top of that an app shows
+only what you put into it (a fixed id in a component, a picker's list or folder, a copy
+step's source or template) plus the copies it made itself, and only through components
+the viewer's role can see. A formula pointing anywhere else gets "not available". The
+server checks this on every read.
+
 ## Publishing & consuming
 
 Publish from the editor's **Publish** button. Three audiences:
@@ -172,7 +204,9 @@ database passes 80% of the size cap.
 
 **Rate limits** (per user, per app; env-tunable on self-hosted): AI builder 12/min,
 data reads 60/min, data writes 20/min, action runs 10/min, sequence steps 60/min,
-connector runs 20/min.
+connector runs 20/min, document compares 60/min. The size caps of documents in an app
+(picker options, versions, spreadsheet tabs, compare detail) are environment variables
+too; see `server/.env.example`.
 
 Org admins can see per-app and total storage under **App Studio usage**
 (`GET /api/studio-apps/usage`).

@@ -128,4 +128,36 @@ function assertActionRoleAccess(res, def, actionId, role, { isOwner }) {
     return true;
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess };
+/**
+ * The role checks the app document pool (appDocuments/pool.mts) walks with:
+ * which screens and nodes this viewer sees, which actions they can reach.
+ * The same rules as the two gates above, so a document behind an admin-only
+ * screen is as hidden as the button behind it. The owner sees everything.
+ * @param {{ screens?: unknown } | null | undefined} def
+ * @param {string | null | undefined} role
+ */
+function documentChecks(def, role) {
+    const everything = role === 'owner';
+    return {
+        visible: (/** @type {unknown} */ nodeOrScreen) => everything || roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (nodeOrScreen), role),
+        actionAllowed: (/** @type {string} */ actionId) => {
+            if (everything) return true;
+            const access = actionRoleAccess(def, actionId, role);
+            return !access.referenced || access.allowed;
+        },
+    };
+}
+
+/**
+ * What a copy_document step adds to its executor ctx: the app's document pool
+ * for this viewer. Any other step gets nothing.
+ * @param {{ kind?: unknown } | null | undefined} step
+ * @param {{ screens?: unknown, actions?: unknown } | null | undefined} def
+ * @param {string | null | undefined} role
+ */
+function stepDocumentContext(step, def, role) {
+    if (!step || step.kind !== 'copy_document' || !def) return {};
+    return { documentPool: require('../appStudio/appDocuments/pool.mts').documentPool(def, documentChecks(def, role)) };
+}
+
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, documentChecks, stepDocumentContext };

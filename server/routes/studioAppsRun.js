@@ -118,7 +118,7 @@ const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
 // the SAME copy — a second walk is how one surface drifts wider than the other.
-const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require('./studioAppRunGate');
 
 // ── Input resolution + final output ─────────────────────────────────
 // resolveInputs (action.inputMapping → automation inputs; the ONLY bridge
@@ -171,7 +171,7 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
 // model call and no side effects — it gets its own 30/min bucket below instead
 // of the tight 10/min heavy budget (which would cap genome browsing at ten
 // clicks a minute for no reason).
-const HEAVY_STEP_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake'];
+const HEAVY_STEP_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'copy_document'];
 
 // The subset of HEAVY_STEP_KINDS that is a model call. Still heavy — they keep
 // the role gate above, which is what stops a role-less viewer spending the
@@ -302,7 +302,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // server had only an id.
         viewerName: req.session.user.name || null,
         viewerEmail: req.session.user.email || null,
-        role,
+        role, ...stepDocumentContext(step, def, role), // copy_document: the app's document pool for this role
         orgId: app.organizationId || null,
         formValues,
         vars,

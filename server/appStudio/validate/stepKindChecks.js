@@ -289,6 +289,30 @@ if (!ctx.aiBrowsingEnabled) {
 }
 }
 
+/**
+ * copy_document: the template must be a presentation of the owner's (when
+ * the caller knows the owner's documents), and only a presentation takes one.
+ */
+function checkCopyDocument(step, path, ctx) {
+    const { pushW } = ctx;
+    const templateId = typeof step.templateDocumentId === 'string' ? step.templateDocumentId : '';
+    if (!templateId || !ctx.ownedDocuments) return;
+    const known = ctx.ownedDocuments.get(templateId);
+    if (!known) {
+        pushW({
+            code: 'action.copy_document_template_unknown', severity: 'warning', path: `${path}.templateDocumentId`,
+            message: `Step "copy_document" names template ${JSON.stringify(templateId)}, which is not one of the owner's documents.`,
+            hint: 'Use the id of one of the owner\'s presentations from Studio → Documents.',
+        });
+    } else if (known.docType && known.docType !== 'presentation') {
+        pushW({
+            code: 'action.copy_document_template_not_deck', severity: 'warning', path: `${path}.templateDocumentId`,
+            message: `Step "copy_document" names template "${known.name}", which is not a presentation; only a presentation's look can be applied.`,
+            hint: 'Pick a presentation, or leave templateDocumentId out for a plain copy.',
+        });
+    }
+}
+
 const KIND_CHECKS = {
     request_approval: checkApproval,
     send_email: checkSendEmail,
@@ -297,6 +321,7 @@ const KIND_CHECKS = {
     generate_presentation: checkGeneratePresentation,
     loop: checkLoopCosts,
     ai_browse: checkAiBrowse,
+    copy_document: checkCopyDocument,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };

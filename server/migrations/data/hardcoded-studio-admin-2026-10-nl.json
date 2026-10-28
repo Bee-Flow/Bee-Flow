@@ -780,6 +780,8 @@
     "studio_apps_edit.step_catalog.open_url_label": "Een webpagina openen",
     "studio_apps_edit.step_catalog.redact_pdf_blurb": "Verwijder namen, initialen, contactgegevens en het logo van de klant uit een PDF en laat de rest precies zoals het was.",
     "studio_apps_edit.step_catalog.redact_pdf_label": "Een PDF opschonen",
+    "studio_apps_edit.step_catalog.copy_document_blurb": "Kopieer een Studio-document naar je bibliotheek, een presentatie desgewenst in de stijl van een ander sjabloon, om het met het origineel te vergelijken.",
+    "studio_apps_edit.step_catalog.copy_document_label": "Een document kopiëren",
     "studio_apps_edit.step_catalog.refresh_blurb": "Haal de rijen opnieuw op nadat er iets is gewijzigd.",
     "studio_apps_edit.step_catalog.refresh_label": "De gegevens opnieuw laden",
     "studio_apps_edit.step_catalog.request_approval_blurb": "Zet een vraag in de inbox met goedkeuringen van iemand; een record kan wijzigen zodra die beslist.",

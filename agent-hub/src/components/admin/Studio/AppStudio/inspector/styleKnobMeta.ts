@@ -147,6 +147,8 @@ export const TYPE_STYLE_KNOBS: Record<string, string[]> = {
     image:          ['span', 'height', 'radius', 'align'],
     file_preview:   ['span', 'height', 'radius'],
     pdf_compare:    ['span', 'height', 'radius'],
+    document_viewer:  ['span', 'height', 'radius'],
+    document_compare: ['span', 'height', 'radius'],
     browser_view:   ['span'],
     divider:        ['span'],
     spacer:         ['span'],
@@ -176,6 +178,7 @@ export const TYPE_STYLE_KNOBS: Record<string, string[]> = {
     input_relation:    ['span', 'size'],
     input_person:      ['span', 'size'],
     input_multiselect: ['span', 'size'],
+    input_document:    ['span', 'size'],
     // v2 containers
     tabs:     ['span', 'gap', 'padding', 'height'],
     tab:      ['gap', 'padding', 'height'],
@@ -270,6 +273,7 @@ export const INPUT_TYPES: string[] = [
     'input_select', 'input_checkbox', 'input_date',
     'input_file', 'input_dataset', 'input_richtext', 'input_html', 'input_datetime',
     'input_relation', 'input_person', 'input_multiselect',
+    'input_document',
 ];
 
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;

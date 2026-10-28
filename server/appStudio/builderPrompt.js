@@ -237,6 +237,13 @@ as (list) must be bound to a binding that resolves to an ARRAY; anything else re
 A PRESENTATION needs no design: a \`generate_presentation\` step turns the outline an \`ai_generate\`
 step wrote ("# " title, "## " per slide, "- " bullets) — or records with title/content columns — into
 a PowerPoint in the owner's house style, returning that same attachment descriptor.
+SHOWING a document is not filling one: \`document_viewer\` shows one read-only (source = its id, or a
+formula/record field holding one), \`input_document\` lets the user pick from the documentIds/folderId you
+list, \`document_compare\` shows what changed between two (left/right ids; only left = its versions).
+An app shows ONLY documents you put into it that way, so list every document a dynamic binding may
+point at in a picker. \`copy_document\` {source, templateDocumentId?, name?, resultVar} copies one into
+the owner's library — a presentation wearing templateDocumentId's look — and its result
+({documentId, …}) bound to a document_compare's right side shows what the conversion changed.
 
 ${documentsSection}
 ${discovery}

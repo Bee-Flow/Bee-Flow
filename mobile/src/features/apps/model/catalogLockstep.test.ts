@@ -77,6 +77,9 @@ const NOT_YET_BUILT = [
     'filter_bar',
     'calendar',
     'ai_chat',
+    // A Studio document picker: a searchable list fits a phone, it is simply
+    // not built yet (2026-10).
+    'input_document',
 ];
 
 describe('the phone against the App Studio catalog', () => {

@@ -16,15 +16,14 @@ const {
     containerPassesHeightDown,
     FIXED_HEIGHT_PRESETS,
     FORMULA_SCOPE_ROOTS,
-    EVENT_NAMES,
-    COMPONENT_SPECS,
-    COMPONENT_TYPES,
+    EVENT_NAMES, COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { isObject } = require('./shared');
 const { validateFormula } = require('./formulas');
 const { checkTableRef, checkTableSource } = require('./refs');
 const { validateBinding } = require('./bindings');
+const { checkDocumentPicker } = require('./documentPicker');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -507,6 +506,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     }
     // Collect modal ids so open_modal actions can resolve them.
     if (node.type === 'modal' && typeof node.id === 'string') ctx.modalIds.add(node.id);
+    if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
 
     // events — only on types whose spec allows them, and must resolve
     for (const ev of EVENT_NAMES) {

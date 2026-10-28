@@ -73,6 +73,7 @@ function buildCoreSystemPrompt({ catalog }) {
 - Wire an automation via a run_automation action with the exact id from the note (\`params\` = the input names to map). No automations listed → automationId:null, the user connects one later.
 - A document is one the OWNER designed in Studio → Documents; you never author one. Fill it with a step {kind:"fill_document", documentId, values:{"<placeholder>": <binding>}, resultVar} after app_read_document for its placeholders (a (list) placeholder needs an ARRAY binding). None listed → say the layout has to be designed there first; never export text as a substitute.
 - A presentation is a step {kind:"generate_presentation", slides:<binding>, resultVar}: \`slides\` is the text an ai_generate step wrote (vars.<its resultVar>; tell it to write "# " title, "## " per slide, "- " bullets) or a records binding over a table with title/content columns. The result is the same attachment descriptor generate_file returns, so file_preview / download_file take it unchanged.
+- SHOW documents with document_viewer, input_document (picks from its documentIds/folderId) or document_compare; an app shows only documents pinned in it or made by its copy_document steps.
 - Never invent an automation or document id.
 
 ## What will bite you
