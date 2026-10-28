@@ -232,7 +232,7 @@ function makeWorkspaceRouter(deps = {}) {
             res.json({ ok: true });
         } catch (err) {
             // Presence is decoration. Never fail a request over it.
-            log.warn('[Projects] presence publish failed:', err.message);
+            log.warn('[Projects] presence publish failed:', /** @type {Error} */ (err).message);
             res.json({ ok: false });
         }
     });

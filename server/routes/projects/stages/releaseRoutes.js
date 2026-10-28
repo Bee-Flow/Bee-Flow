@@ -102,7 +102,7 @@ function makeReleaseRouter(d) {
         } catch (err) {
             // The release is cut; what is missing is the user's word on the plan.
             if (err && err.code === 'acknowledgement_missing') {
-                throw new HttpError(409, 'acknowledgement_missing', err.message, { ...(err.details || {}), release, plan: planned });
+                throw new HttpError(409, 'acknowledgement_missing', /** @type {Error} */ (err).message, { ...(err.details || {}), release, plan: planned });
             }
             throw err;
         }

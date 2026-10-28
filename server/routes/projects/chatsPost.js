@@ -62,7 +62,7 @@ async function announcePost(ctx, { project, chat, userId, stored, kept }) {
     await ctx.emit(project.id, chatEvent('chat.mention', userId, chat.id, { messageId: stored.id, mentionedUserIds: kept }));
     // Best effort: the bell carries the project and the writer's name, never the message.
     try { await ctx.collabNotifier().chatMentioned({ project, actorId: userId, mentionedUserIds: kept, chatId: chat.id }); } catch (err) {
-        log.warn(`[ProjectChat] mention not notified: ${err && err.message}`);
+        log.warn(`[ProjectChat] mention not notified: ${err && /** @type {Error} */ (err).message}`);
     }
 }
 
@@ -86,7 +86,7 @@ async function askAssistantFor(ctx, req, { project, chat, userId, stored, conten
         try {
             agentName = (await ctx.resolveAgent({ agentId: chat.agentId, userId }))?.name || null;
         } catch (err) {
-            log.warn(`[ProjectChat] agent lookup failed for chat ${chat.id}: ${err && err.message}`);
+            log.warn(`[ProjectChat] agent lookup failed for chat ${chat.id}: ${err && /** @type {Error} */ (err).message}`);
         }
     }
     const decision = decideAiTrigger({ aiMode, content, askAi, agentName });
@@ -142,7 +142,7 @@ async function postMessage(ctx, req, { project, chat, box, content, clientMsgId 
         await announcePost(ctx, { project, chat, userId, stored, kept });
         ai = await askAssistantFor(ctx, req, { project, chat, userId, stored, content, askAi, threadId, modelTier });
     } catch (err) {
-        log.warn(`[ProjectChat] message ${stored.id} in chat ${chat.id} stored, but the AI step failed: ${err && err.message}`);
+        log.warn(`[ProjectChat] message ${stored.id} in chat ${chat.id} stored, but the AI step failed: ${err && /** @type {Error} */ (err).message}`);
         ai = { status: 'skipped', reason: 'unavailable' };
     }
     return { created: true, message: presentMessage(box, stored, content), ai };

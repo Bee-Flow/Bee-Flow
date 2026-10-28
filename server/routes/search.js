@@ -62,9 +62,18 @@ const { bestEffort } = require('../utils/bestEffort');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+/**
+ * @param {string} message
+ */
 const texts = (message) => z.array(worded(message), { error: message }).min(1, message);
+/**
+ * @param {string} message
+ */
 const id = (message) => worded(message).min(1, message);
 // Coerced, like pydantic's lax mode: "5" is 5 on the Python side too.
+/**
+ * @param {string} message
+ */
 const count = (message) => z.coerce.number({ error: typeError({ invalid: message }) }).int(message).min(1, message);
 /** Sent for the Python service, unused by this twin: declared, never policed. */
 const ignored = z.unknown().optional();

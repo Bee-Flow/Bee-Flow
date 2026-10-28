@@ -27,7 +27,7 @@ async function listProjectPeople(project) {
             const user = await require('../../stores/userStore').getUser(id);
             const name = user && await belongsToProjectOrg(id, org) ? displayNameOf(user) : '';
             if (name) people.push({ id, name });
-        } catch (err) { log.warn(`[ProjectTasks] member lookup failed: ${err && err.message}`); }
+        } catch (err) { log.warn(`[ProjectTasks] member lookup failed: ${err && /** @type {Error} */ (err).message}`); }
     }
     return people;
 }
@@ -73,7 +73,7 @@ function resolveTasksDeps(deps) {
         }),
         listPeople: deps.listPeople || listProjectPeople,
         emit: deps.emit
-            || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectTasks' })),
+            || ((/** @type {string} */ projectId, /** @type {{ kind?: string; actorId?: string | null; targetType?: string | null; targetId?: string | null; payload?: object; }} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectTasks' })),
         publishTransient: () => deps.publishTransient || require('../../core/projectEventBus').publishTransient,
         logActivity: deps.logActivity
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
@@ -104,7 +104,7 @@ function makeTasksContext(deps = {}) {
         try {
             await ctx.logActivity(projectId, actorId, action, { targetType: 'project_task', targetId: taskId });
         } catch (err) {
-            log.warn(`[ProjectTasks] activity not recorded (${action}): ${err && err.message}`);
+            log.warn(`[ProjectTasks] activity not recorded (${action}): ${err && /** @type {Error} */ (err).message}`);
         }
     }
 

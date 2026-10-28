@@ -232,7 +232,7 @@ router.get('/public', async (req, res) => {
     } catch (err) {
         // A stale cache still beats an empty changelog.
         if (_cache.data) return res.json({ entries: _cache.data });
-        log.warn('[ReleaseNotes] public read failed:', err.message);
+        log.warn('[ReleaseNotes] public read failed:', /** @type {Error} */ (err).message);
         throw unavailable('unavailable', 'unavailable');
     }
 });
