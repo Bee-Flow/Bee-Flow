@@ -5,8 +5,8 @@
  * The counterpart of auth/googleSessionHydration.js. Outlook surfaces read
  * tokens straight off the live session (routes/integrations/outlook.js) and
  * core/integrationTools.js gates the outlook_* tools on
- * `session.oauthProvider === 'microsoft'` — so before this, a user who
- * connected Microsoft through Settings → Connections still saw "not connected"
+ * `session.oauthProvider === 'microsoft'` — so without hydration, a user who
+ * connected Microsoft through Settings → Connections would still see "not connected"
  * everywhere until they logged out and back in via Microsoft SSO.
  *
  * Rules are identical to the Google helper, and the first one is load-bearing:

@@ -127,7 +127,7 @@ function replayRoute(step, { replayedEntry, hasReplayData }, { adj, replayGaps, 
     if (BRANCHER_TYPES.has(step.type)) {
         if (replayed && replayed.branch) nextLabel = replayed.branch;
         else {
-            // No recorded label. This used to throw and abort the
+            // No recorded label. Throwing here would abort the
             // whole resume — but a PINNED brancher never records
             // one (the pin IS the output), and pinning is the
             // documented escape hatch for a slow step, so an
@@ -202,7 +202,7 @@ function routeOutEdges(step, adj, nextLabel, branchOutput) {
  *
  * This fired for `switch` only, so the other ways to reach the same dead end
  * went unreported: a guard's 'else', and — the one that made it a bug rather
- * than a gap — a DISABLED brancher, which used to route on the fallback
+ * than a gap — a DISABLED brancher, which routes on the fallback
  * 'on_success' label that matches none of a then/else/case:* wiring, ending
  * the run green with nothing after it executed and no warning anywhere
  * (W4-11).

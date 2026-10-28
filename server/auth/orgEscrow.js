@@ -241,9 +241,9 @@ async function _rootKeyFromConfigStore(orgId) {
     // risk: `INSERT … ON CONFLICT DO NOTHING` cannot overwrite an existing row,
     // and its read-back invalidates the local cache first, so whatever comes
     // back is the authoritative winner — ours if we minted it, the other boot's
-    // if it beat us to it. That is the convergence the pre-fix code had, and
-    // probing the row BEFORE this call took it away: a benign race and a stale
-    // cached null both looked exactly like an undecryptable row and threw.
+    // if it beat us to it. Probing the row BEFORE this call would lose that
+    // convergence: a benign race and a stale cached null both look exactly like
+    // an undecryptable row and would throw.
     const fresh = crypto.randomBytes(32).toString('base64');
     const winner = await configStore.setSecretIfAbsent(configKey, fresh);
     if (winner) return _adoptStoredRootKey(orgId, winner);
@@ -332,14 +332,14 @@ async function getOrCreateUserDek(userId, orgIdHint = undefined, { seedDek = nul
     // First escrow for this user. Prefer ADOPTING their login-derived DEK over
     // minting a random one.
     //
-    // This used to always mint fresh, which quietly gave every user two
-    // unrelated keys: content written while they were logged in went under the
-    // login DEK (resolveCrypto preferred the session key), while every keyless
-    // caller read under this one. The reads then threw FieldDecryptError and
-    // the tier delivered neither of the two things it exists for. resolveCrypto
-    // now treats the escrow as authoritative on `managed`, so seeding it with
-    // the key their existing rows were actually written under is what keeps
-    // that content readable across the change.
+    // Always minting fresh would quietly give every user two unrelated keys:
+    // content written while they are logged in goes under the login DEK
+    // (resolveCrypto prefers the session key), while every keyless caller reads
+    // under this one. The reads would then throw FieldDecryptError and the tier
+    // would deliver neither of the two things it exists for. resolveCrypto
+    // treats the escrow as authoritative on `managed`, so seeding it with the
+    // key their existing rows were actually written under keeps that content
+    // readable.
     const dek = _seedBuffer(seedDek) || crypto.randomBytes(DEK_LENGTH);
     const sealed = await wrapUserDek(dek, orgId, userId);
 

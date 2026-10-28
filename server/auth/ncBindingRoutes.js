@@ -45,8 +45,8 @@ function isExpired(row) {
  * "whoever holds it gets to bind this NC instance to that specific org… the
  * code already IS the approval", which mints the org's tenantKey and can
  * promote the redeemer to org_admin. Every operation on one therefore carries
- * the same gate the generator does; the listing endpoint used to be `requireAuth`
- * alone, which handed a live code to any rank-and-file member of the org.
+ * the same gate the generator does; the listing endpoint must not be `requireAuth`
+ * alone, which would hand a live code to any rank-and-file member of the org.
  *
  * The role test goes through permissions.isOrgAdminRole, not `=== 'org_admin'`:
  * accounts predating the 'admin' → 'org_admin' rename still carry orgRole
@@ -209,9 +209,9 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
 //      tenantKey directly — no separate approval step (the code IS the
 //      approval).
 const ORG_TEXT = 'organizationId required';
-// Optional: absent means "my own organisation". A mis-spelled key used to mean
+// Optional: absent means "my own organisation". A mis-spelled key would mean
 // the same thing silently, so a super-admin minting a pairing code FOR another
-// tenant got one for their own instead, and the code looked identical.
+// tenant would get one for their own instead, and the code would look identical.
 const PairingCodeBody = z.object({
     organizationId: worded(ORG_TEXT).trim().min(1, ORG_TEXT).max(200, ORG_TEXT).optional(),
 }).strict();

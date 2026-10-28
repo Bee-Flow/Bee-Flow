@@ -3,9 +3,9 @@
  * Shared helpers for the AI config routers in this directory: the admin gate
  * every admin-only route checks.
  *
- * Org-id resolution used to live here as a private copy. It is
- * `auth/orgScope.js` now — the copy answered the same question as three other
- * helpers and none of them had to agree.
+ * Org-id resolution lives in `auth/orgScope.js`, not in a private copy here —
+ * a copy would answer the same question as three other helpers without any
+ * of them having to agree.
  */
 
 const { hasPermission } = require('../../../auth/permissions');

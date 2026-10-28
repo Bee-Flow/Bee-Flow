@@ -176,7 +176,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
         //
         // Org scoping is done in SQL: an agent that belongs to no organisation
         // (organization_id IS NULL) is a platform-wide object, not a tenant's,
-        // and it used to be counted for EVERY org — putting its id and name
+        // and it must not be counted for EVERY org — that would put its id and name
         // into every tenant's immutable evidence chain (BFSF-441). Only
         // org-less users see such an agent, and the scheduler sweeps them as
         // the 'default' bucket, so that bucket judges it (projectData.orgMatch:

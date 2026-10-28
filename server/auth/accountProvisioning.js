@@ -2,12 +2,12 @@
 /**
  * accountProvisioning.js — the one path every web signup takes.
  *
- * Organisation and consumer accounts used to be created by two near-verbatim
+ * Organisation and consumer accounts share this one path. Two near-verbatim
  * copies of the same code (the password route in loginRoutes.js and the OAuth
- * callback in oauthRoutes.js), which had silently drifted apart: the OAuth copy
- * skipped the signup_org_enabled check, logged a warning instead of failing when
- * the org name or domain was taken (leaving the founder without an organisation),
- * and assigned the default plan a second time without filtering on plan_type.
+ * callback in oauthRoutes.js) drift apart: one skips the signup_org_enabled
+ * check, one logs a warning instead of failing when the org name or domain is
+ * taken (leaving the founder without an organisation), one assigns the default
+ * plan a second time without filtering on plan_type.
  *
  * This module owns everything around identity creation — the guards, where the
  * account lands, and the post-creation side effects — but deliberately NOT the
@@ -198,16 +198,16 @@ function slugifyOrgId(name) {
  * so without this the first org with a gmail contact would silently block every
  * later gmail-based org signup.
  *
- * ── M-04: this refusal used to be an organisation-existence oracle ──
- * It answered anonymous callers with
+ * ── M-04: this refusal must not be an organisation-existence oracle ──
+ * Answering anonymous callers with
  *   "An organization with the domain "example.com" already exists.
  *    Please join the existing organization instead."
- * so anyone could probe arbitrary company domains and learn which ones are Bee
- * Flow customers — unauthenticated, and (before the signup rate limit) at any
- * speed they liked. On a privacy-first product sold to companies, the customer
+ * would let anyone probe arbitrary company domains and learn which ones are Bee
+ * Flow customers — unauthenticated, and at any speed the signup rate limit
+ * allows. On a privacy-first product sold to companies, the customer
  * list is exactly the thing not to publish.
  *
- * The message is now generic and never echoes the domain or confirms that
+ * The message is generic and never echoes the domain or confirms that
  * anything exists. Where the platform can send mail, the caller is not told at
  * all: the address gets an e-mail explaining that their organisation is already
  * registered and how to get an invite, and the HTTP response is the ordinary
@@ -529,8 +529,8 @@ async function writePrivacyShield(intent, placement, userId) {
             await configStore.setConfig(shieldKey(placement, userId), shield);
             log.info(`[Signup] Privacy shield for org ${placement.organizationId}: ${shield.piiDetectionCategories.length} PII categories, action=${shield.piiDetectionAction}`);
         } else if (!placement.organizationId) {
-            // Consumer accounts used to be created without a shield and started
-            // unprotected (BFSF-289).
+            // A consumer account without a shield starts unprotected, so it gets
+            // one at creation.
             const { buildUserShieldConfig } = require('../core/privacy/userShieldDefaults');
             const shield = buildUserShieldConfig(intent.privacyShield, {
                 updatedBy: intent.channel === 'oauth' ? 'system-signup-oauth' : 'system-signup',

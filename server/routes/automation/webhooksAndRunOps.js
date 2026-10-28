@@ -53,9 +53,9 @@ router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (/** @typ
     }
 
     const wh = await automationStore.createWebhook(a.id, triggerStepId);
-    // Absolute, not the relative path this used to return: the client shows
+    // Absolute, not a relative path: the client shows
     // this URL for the user to paste into an external system, so a
-    // path-only value is unusable (BFSF-320).
+    // path-only value is unusable.
     res.json({ webhook: { ...wh, url: webhookUrlForSlug(wh.id, req) }, url: webhookUrlForSlug(wh.id, req) });
 });
 
@@ -65,7 +65,7 @@ router.get('/:id/webhooks', async (req, res) => {
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     const list = await automationStore.getWebhooksForAutomation(a.id);
     // Carry the absolute URL on every row so the trigger-node panel can
-    // show it without reconstructing the origin client-side (BFSF-320).
+    // show it without reconstructing the origin client-side.
     res.json({ webhooks: list.map(w => ({ ...w, url: webhookUrlForSlug(w.id, req) })) });
 });
 
@@ -218,7 +218,7 @@ router.get('/runs/:id/steps', async (req, res) => {
 
 /**
  * The full output of one step whose run-history row holds only the truncation
- * sentinel (BFSF-402). The row keeps 256 KB at most; above that the store
+ * sentinel. The row keeps 256 KB at most; above that the store
  * keeps a full copy beside it and the sentinel says so in `fullOutputRef`,
  * which is where the Output panel gets these three coordinates. `:id` is the
  * LEG that recorded the row (the ref's runId), not necessarily the journey's

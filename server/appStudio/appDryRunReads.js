@@ -155,7 +155,7 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
  * Execute one AGGREGATE binding read-only.
  *
  * It needs its own compiler call, and that is the whole point of this function.
- * Every non-dataset binding used to go through compileRecordList — which
+ * Every non-dataset binding goes through compileRecordList — which
  * resolves `sort.field` against the table's real columns. An aggregate sorts by
  * its own OUTPUT: `count`, `aanvragen`, a bucketed `day`. Those are aliases, not
  * columns, so a perfectly good chart came back as `unknown field: count` and the

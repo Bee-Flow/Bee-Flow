@@ -64,7 +64,7 @@ const DESCRIPTION_TEXT = 'description is text.';
 
 const PatchBody = bodyOf({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT).optional(),
-    // null clears it; it used to be saved as the word "null".
+    // null clears it (it is not saved as the word "null").
     description: worded(DESCRIPTION_TEXT).nullable().optional().transform((v) => (v === null ? '' : v)),
     isDefault: z.boolean({ error: typeError({ invalid: 'isDefault is true or false.' }) }).optional(),
     reExtract: z.boolean({ error: typeError({ invalid: 'reExtract is true or false.' }) }).optional(),

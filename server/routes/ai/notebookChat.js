@@ -165,7 +165,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook ${notebook.id} (${readySources.length} sources)`);
 
     // Keep the stream warm through the NC AppAPI proxy during long reasoning /
-    // doc-edit turns so it isn't idle-timed-out into a 504 (BFSF-221/177).
+    // doc-edit turns so it isn't idle-timed-out into a 504.
     // One abort signal per turn, tripped when the client disconnects (the Stop
     // button closes the EventSource). Without this the tool loop kept running
     // after Stop and a notebook_doc_write still landed in the database — the

@@ -426,8 +426,8 @@ function applyReasoningDefaults(merged, userConfig, tierName) {
     }
     if (!userSetEffort && (merged.reasoningEffort === undefined || merged.reasoningEffort === null)) {
         // The fast/swarm tiers are tuned for speed, so ask for the cheapest
-        // reasoning tier the model actually has. That used to be a flat
-        // 'minimal' for anything matching /^gpt-5/ — but 'minimal' was retired
+        // reasoning tier the model actually has. A flat
+        // 'minimal' for anything matching /^gpt-5/ is wrong: 'minimal' was retired
         // in gpt-5.6 and never existed on gpt-6, where sending it is a 400.
         // Ask the model what its cheapest tier is instead of assuming.
         const isFastTier = tierName === 'fast' || tierName === 'swarm';
@@ -479,10 +479,10 @@ async function getTierConfig(tierName, /** @type {{ userOrgId?: string | null, u
  * Shorthand for resolveModelForTier('tier:' + tierName, opts).
  *
  * `fallback` IS OPT-IN — it defaults to null, and a caller that does not name
- * one gets null when nothing is configured. It used to default to a hardcoded
- * `gemini-2.0-flash-lite`, which meant this function could never return
- * anything falsy: every "is a model configured at all?" gate downstream was
- * unreachable, and a workspace that never chose that Google model had text
+ * one gets null when nothing is configured. It must not default to a hardcoded
+ * `gemini-2.0-flash-lite`, which would mean this function could never return
+ * anything falsy: every "is a model configured at all?" gate downstream would be
+ * unreachable, and a workspace that never chose that Google model would have text
  * routed to it anyway — outside its own tier choice and outside the EU
  * overrides. On a privacy product "which model saw this text" is not a detail,
  * so the answer to "nobody configured one" is a readable refusal from the
@@ -524,7 +524,7 @@ async function getEUAwareTiers({ userOrgId = null, userId = null } = {}) {
  * merged with global + org custom tiers (org wins on id collisions, EU model
  * override honoured). This is the single source of truth for "which tiers
  * exist for this user" — the chat dropdown, the automation builder, and the
- * ai_step runtime all resolve against it (previously three hand-copied
+ * ai_step runtime all resolve against it (instead of three hand-copied
  * merge blocks that could drift).
  */
 async function getUserTierMap(/** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {

@@ -143,7 +143,7 @@ function normaliseExamples(rows) {
  * Improve mode: the "Delivers" fields a person configured are KEPT.
  *
  * `output_schema` is a whole-column write in `skillStore.updateSkill`, so a
- * model that proposed one field used to leave a skill with exactly that one
+ * model that proposed one field would leave a skill with exactly that one
  * field — the three a person had set in `OutputFieldsCard` gone, and no
  * version history to get them back (`skill_versions` does not exist; `version`
  * is a counter). Same doctrine as `examplesV2` one facet up: ADD, never
@@ -315,7 +315,7 @@ function buildImproveMessages(skill, sentence = '') {
     ].join('\n');
     // The fields the skill already delivers. Shown because the tool INVITES
     // `outputFields`: a model that cannot see them proposes a fresh set, and
-    // the parser used to write that set over the person's own.
+    // the parser would write that set over the person's own.
     const props = skill?.outputSchema?.properties;
     const delivers = props && typeof props === 'object'
         ? Object.entries(props).map(([key, pr]) => `- ${key} (${pr?.type || 'string'})${pr?.title ? ` — ${pr.title}` : ''}`).join('\n')

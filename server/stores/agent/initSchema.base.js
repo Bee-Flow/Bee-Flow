@@ -216,8 +216,7 @@ async function addSharedScopeColumns() {
     // They move together in the normal case, but a conversation can be shared
     // before it is re-keyed, so conflating them into one column would make that
     // window unrepresentable.
-    // Previously one error aborted the whole loop ("migration skipped") and
-    // every individual error stayed invisible; via runDdl the rest keeps going
+    // Via runDdl one error does not abort the whole loop; the rest keeps going
     // and each failing statement is reported loudly on its own.
     await runDdl('agentSchema', ['direct_conversations', 'agent_conversations'].flatMap((t) => [
         `ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS shared_scope TEXT NOT NULL DEFAULT 'private'`,

@@ -2,9 +2,9 @@
 /**
  * One mapping from a failed Nextcloud HTTP answer to a tool error.
  *
- * Before this, Teams and Forms sent every 401 AND 403 to the connector
+ * Without this, Teams and Forms would send every 401 AND 403 to the connector
  * message ("could not reach Nextcloud"), and every 404 to "app not
- * installed", so a plain permission error or a wrong id looked like an
+ * installed", so a plain permission error or a wrong id would look like an
  * outage. Here:
  *   401  the connector or session itself -> `authError` (the caller's text)
  *   403  permission denied, with Nextcloud's own reason when it gives one

@@ -35,7 +35,7 @@ function readSheetNames(buffer) {
  * @param {string}  mime     — MIME type
  * @param {string}  filename — original file name
  * @returns {Promise<{ text: string, meta: { pageCount: number|null, sheetNames: string[]|null, pages?: Array<{pageNumber:number, text:string}> } }>}
- *   `text` is byte-for-byte what extractFileContent() used to return; `meta`
+ *   `text` is byte-for-byte what extractFileContent() returns; `meta`
  *   feeds documents.page_count / sheet_count and (later) per-chunk page numbers.
  */
 async function extractFileContentWithMeta(buffer, mime, filename) {

@@ -20,7 +20,7 @@ const { tagGate } = require('../gateMeta');
 // === OAuth/SSO Configuration API (Admin Only) ===
 
 // Instance-wide SSO configuration: the OAuth client id/secret and the provider
-// set for the whole installation, not for one tenant. Previously requireAdmin,
+// set for the whole installation, not for one tenant. Not requireAdmin,
 // which passes on 'manage_users' — a permission every org_admin holds — so an
 // org admin could read and repoint the installation's identity provider.
 const { validate } = require('../../core/http/validate');

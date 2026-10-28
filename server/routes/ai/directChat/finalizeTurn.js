@@ -109,8 +109,8 @@ async function persistTurn(t, conv) {
         await agentStore.updateDirectConversationModelTier(convId, modelTier, userId).catch((e) => bestEffort('routes/ai/directChat/finalizeTurn:persistTurn', e));
     }
     // Memory extraction runs ONCE per turn, at the tail of
-    // finalizeDirectChatTurn (the retired core/memoryExtractor used to fire
-    // from here as well: two fast-tier calls and two dedupe-then-insert races).
+    // finalizeDirectChatTurn (a second extraction from here would mean two fast-tier
+    // calls and two dedupe-then-insert races).
     // Returned wrapped: an async function that returns a promise adopts it,
     // and the caller's await would then wait for the title model call.
     return scheduleTitle({ ...t, conv, savedMessages, send });

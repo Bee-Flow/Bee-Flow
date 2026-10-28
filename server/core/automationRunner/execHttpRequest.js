@@ -104,8 +104,8 @@ async function injectCredential(step, ctx, runState, req, { parsedUrl, blockPriv
 
 /**
  * ── Safety: the URL, headers and body are all interpolated from runState, so
- * this step can post an org's personal data to any address. It used to do that
- * completely unscanned and unlogged. Credential headers injected above are
+ * this step can post an org's personal data to any address, so it is never sent
+ * unscanned or unlogged. Credential headers injected above are
  * excluded — they are secrets, and masking them would break the request rather
  * than protect anyone.
  */
@@ -248,11 +248,11 @@ async function execHttpRequest(step, ctx, runState, mode) {
     const { guarded, httpMeta, destination } = await guardHttpRequest(step, ctx, mode, req, { parsedUrl, authInjectedHeaders });
     if (mode === 'dry_run' && guarded.guarded && guarded.guarded.wouldBlock) {
         // A `block` policy THROWS in live mode but, in dry-run, hands the
-        // payload back UNTRANSFORMED with wouldBlock — and this path used to
-        // ignore that flag and dispatch, so the exact request that is blocked in
-        // production was really sent during a preview. Every other outbound path
+        // payload back UNTRANSFORMED with wouldBlock — and this path must not
+        // ignore that flag and dispatch, or the exact request that is blocked in
+        // production would really be sent during a preview. Every other outbound path
         // (execIntegrationAction, execAiStep, execParseJson) synthesizes here;
-        // this one now does too, in the same shape so the inspector renders it
+        // this one does too, in the same shape so the inspector renders it
         // identically to the write/credential dry-run above.
         return {
             output: dryRunHttpOutput({ _guardrailWouldBlock: guarded.guarded.categories || [] }),

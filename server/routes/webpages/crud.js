@@ -329,7 +329,7 @@ function register(router) {
         // Re-snapshot any active public shares so a published page reflects the
         // edit immediately. The snapshot used to be written only at share
         // creation, so recipients saw the stale version until they cleared their
-        // browser cache (BFSF-190). Fire-and-forget — never blocks the save.
+        // browser cache. Fire-and-forget — never blocks the save.
         if (Object.keys(slotUpdates).length > 0) {
             reSnapshotWebpageShares(id, userId);
         }

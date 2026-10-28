@@ -7,9 +7,8 @@
  *   push  — Nextcloud's bundled `webhook_listeners` app calls the Bee Flow
  *           connector. Only available for event classes that implement
  *           `OCP\\EventDispatcher\\IWebhookCompatibleEvent`: Files, SystemTag,
- *           Calendar, Forms and Tables. (The connector previously used AppAPI's
- *           `events_listener` API, which Nextcloud has since removed — that is
- *           why these events were all marked undeliverable.)
+ *           Calendar, Forms and Tables. (AppAPI's `events_listener` API is not
+ *           used: Nextcloud has removed it.)
  *   bot    — Talk chat events, delivered by the Bee Flow Talk bot. Talk exposes
  *           no webhook-compatible event class, so a bot is the supported route
  *           — and it only sees conversations a moderator added the bot to.

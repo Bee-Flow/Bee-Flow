@@ -9,16 +9,16 @@
  *   - ctx.integrations.<tool>(args) : proxy to toolDispatcher.executeTool
  *   - ctx.secrets(name) : NOT WIRED — always throws SecretsNotConfiguredError.
  *
- * About ctx.secrets. This header used to promise "returns only secrets
- * explicitly listed in step.inputs.secretKeys", and builderTools/schemas.js
- * advertised the same thing to the model that writes code steps. It was never
- * true: the only source the runner ever read from is `runState.secrets`, which
+ * About ctx.secrets. The promise that it "returns only secrets
+ * explicitly listed in step.inputs.secretKeys" is NOT true, so neither this
+ * header nor builderTools/schemas.js (which tells the model that writes code
+ * steps) may make it: the only source the runner reads from is `runState.secrets`, which
  * execution.js initialises to `{}` and which NOTHING in the codebase ever
- * assigns to (grep it). So `bridges.secrets` arrived empty from both call
- * sites, `ctx.secrets('stripe_key')` returned null, and a handler built on
- * that promise silently sent `null` to a third party with no run-level signal
+ * assigns to (grep it). So `bridges.secrets` arrives empty from both call
+ * sites, `ctx.secrets('stripe_key')` would return null, and a handler built on
+ * that promise would silently send `null` to a third party with no run-level signal
  * that anything was wrong. A credential that reads as empty is far worse than
- * one that is absent — the author has no way to find out. So the bridge now
+ * one that is absent — the author has no way to find out. So the bridge
  * fails loudly instead: ctx.secrets(name) throws an in-isolate Error whose
  * .name is 'SecretsNotConfiguredError' and whose .secretName is the key that
  * was asked for, so user code can catch it by name and a step that does not
@@ -363,8 +363,8 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         // The guest never holds an isolated-vm object. Holding a single
         // `ivm.Reference` is the precondition of GHSA-864f-rcv7-6rh4
         // (critical, 2026-08-07: a guest with one Reference can reach the
-        // ExternalCopy constructor and corrupt host memory), and this file
-        // used to put four of them on the global. Now every host function is
+        // ExternalCopy constructor and corrupt host memory), so none goes on the
+        // global. Every host function is
         // a fire-and-forget CALLBACK (inside the isolate: a plain function,
         // arguments copied) that takes a call id; the host does the work and
         // delivers the answer by calling an in-isolate settle function that
@@ -469,20 +469,19 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         // error's number and every frame of a runtime stack at once.
         const lineOffset = prefix.split('\n').length - 1;
 
-        // A SYNTAX ERROR IN THE AUTHOR'S CODE THROWS HERE, and `compileScript`
-        // used to sit OUTSIDE the try/finally below. So every typo leaked a
+        // A SYNTAX ERROR IN THE AUTHOR'S CODE THROWS HERE, so `compileScript`
+        // must sit INSIDE the try/finally below. Outside it, every typo would leak a
         // whole V8 isolate — up to `memoryMb` of heap, 64 MB by default — for
         // the lifetime of the process, and a typo is the single most common
-        // thing to happen to code being written. Nothing about it was visible:
-        // the author got their syntax error, the run failed cleanly, and the
-        // pod's memory climbed. It was survivable only because there was no
-        // way to run a code step from the editor; the moment there is a Run
-        // button, an author iterating on a function leaks one per run.
+        // thing to happen to code being written. Nothing about it would be visible:
+        // the author gets their syntax error, the run fails cleanly, and the
+        // pod's memory climbs. With a Run button in the editor, an author
+        // iterating on a function would leak one per run.
         //
-        // The same was true of everything above it — createContext, each
+        // The same holds for everything above it — createContext, each
         // jail.set, and the ExternalCopy of `inputs`, which throws on a value
         // it cannot clone, i.e. on data the author supplied. All of it is
-        // inside the guard now.
+        // inside the guard.
         script = await isolate.compileScript(bootstrap, { filename: 'step.js', lineOffset: -lineOffset });
         wallTimer = setTimeout(() => { timedOut = true; isolate.dispose(); }, lim.wallMs);
         const cpuBudgetNs = BigInt(Math.round(lim.cpuMs * 1e6));

@@ -43,7 +43,7 @@ const LoginBody = z.object({
 /**
  * ── Constant-time credential check (H-02) ────────────────────────────────────
  *
- * Response time used to separate a real account from an imaginary one by a
+ * Without this, response time separates a real account from an imaginary one by a
  * factor of about ninety:
  *
  *   admin              -> 0.516s   ← exists
@@ -99,9 +99,9 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     // SSO-only mode. The operator account keeps password access — it is the way
     // back in when SSO breaks — but nobody else authenticates this way.
     //
-    // This used to return 403 immediately for every name EXCEPT the operator's,
-    // before the throttle and with no padding, so a single request named the
-    // admin account. Now the check decides only whether credentials can succeed;
+    // Returning 403 immediately for every name EXCEPT the operator's, before the
+    // throttle and with no padding, would let a single request name the
+    // admin account. So the check decides only whether credentials can succeed;
     // the refusal itself is emitted from the one shared failure exit below, with
     // the same wording, timing and floor for every identifier — including the
     // operator's when their password is wrong.
@@ -165,7 +165,7 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
                 // least stops it from being readable without parsing the body.
                 //
                 // The pad matters in BOTH directions: this branch spends a real
-                // bcrypt and used to answer without the floor, which made it an
+                // bcrypt, so without the floor it would be an
                 // outlier below every other failure on the route.
                 await burnPasswordCompare(password);
                 await auditLoginFailure(req, {

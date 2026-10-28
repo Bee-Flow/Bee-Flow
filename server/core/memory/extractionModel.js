@@ -4,11 +4,11 @@
  *
  * ONE extractor runs after every chat reply (agents/memory/extractor.js; the
  * second one, core/memoryExtractor.js, was retired in the 2026-08 memory
- * overhaul — see agents/memory/singleExtractor.test.js). It used to inherit
+ * overhaul — see agents/memory/singleExtractor.test.js). It does not inherit
  * the Fast tier with a 2,500-token output cap and up to 40,000 characters of
  * context. Against a hosted provider that is a rounding error. Against a
  * single-slot self-hosted server it is the SAME model the chat just used, so
- * every turn paid more full prompt evaluations (~150 tok/s prompt processing
+ * every turn would pay more full prompt evaluations (~150 tok/s prompt processing
  * on this box, measured 2026-09-11) queued in front of the user's next
  * message.
  *

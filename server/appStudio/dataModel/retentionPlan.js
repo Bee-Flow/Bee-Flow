@@ -65,8 +65,8 @@ function dependentDatedColumn(table, declared) {
  * How a retention purge reaches every table this connector writes.
  *
  * PURE — no database, no clock. That is the point: the connector-save gate and
- * the purge itself must decide from the same rule. The purge used to skip, with
- * a console.warn, any table it could not find a date column on. A mailbox in
+ * the purge itself must decide from the same rule, and it must not skip a
+ * table just because it has no date column of its own. A mailbox in
  * thread mode keeps the conversation stamp on the PARENT and the actual personal
  * data — every body, every sender, every attachment — in children that carry no
  * date at all, so a support desk could report a 90-day policy while deleting

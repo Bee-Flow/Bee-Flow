@@ -5,7 +5,7 @@
  * While the model streams a tool call, the adapter hands us the arguments JSON
  * accumulated so far (`tool_args_delta { name, partial }`). For a
  * builder_add_steps call that is a 5-10 KB document that takes a small model
- * half a minute to write, and the canvas used to show nothing until the last
+ * half a minute to write, and the canvas would show nothing until the last
  * brace. This module reads the UNFINISHED JSON and says which steps it already
  * describes — type, tool, label, and whether the object is still open — so the
  * client can place ghost cards as they are being typed.

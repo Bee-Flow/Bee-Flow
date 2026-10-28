@@ -26,21 +26,21 @@ const { resolveUserOrgIds } = require('./permissionsResolve');
  * able to admin a suspended org). Active orgs (or no-org consumer accounts)
  * pass through.
  *
- * WHICH org is checked is never *selected* by the caller. The gate used to read
- * `req.body.organizationId` as an override "for super-admin routes" — but
- * super-admins have already returned above, so in practice the only callers who
- * could reach that override were ordinary members, i.e. exactly the people the
- * gate exists to stop. Adding one field to the JSON body (even a nonexistent
- * org id, since an unknown org falls through to next()) turned the whole
- * suspension/archive gate off.
+ * WHICH org is checked is never *selected* by the caller. The gate must not read
+ * `req.body.organizationId` as an override "for super-admin routes" — super-admins
+ * have already returned above, so the only callers who could reach that
+ * override are ordinary members, i.e. exactly the people the gate exists to
+ * stop. Adding one field to the JSON body (even a nonexistent org id, since an
+ * unknown org falls through to next()) would turn the whole suspension/archive
+ * gate off.
  *
  * The rule is therefore: a named org can only ADD a check, never replace one.
  *   - the caller's own (primary) org is ALWAYS evaluated;
  *   - a route param (`/orgs/:orgId/...`, the resource being acted on) is
  *     evaluated in addition when present;
  *   - `req.body.organizationId` is evaluated in addition too, but ONLY when the
- *     caller genuinely belongs to that org. Dropping the body entirely was the
- *     wrong correction: routes/agents/crud.js and routes/knowledgeBases.js do
+ *     caller genuinely belongs to that org. Dropping the body entirely would be
+ *     wrong: routes/agents/crud.js and routes/knowledgeBases.js do
  *     take the target org from the body, and assertUserCanUseOrg admits any org
  *     in the resolveUserOrgIds union — so a multi-org member whose PRIMARY org
  *     is active could write into a SUSPENDED secondary org unchecked. An org the
@@ -290,8 +290,7 @@ tagGate(requireSuperAdmin, { axis: 'platform', kind: 'superAdmin' });
  * Returns the first org they belong to, or null. Super admins return null.
  *
  * Same read as `orgScope`: `orgId` is the account's own org, else the first
- * one a group grants — which is exactly the first member of the union this
- * used to take.
+ * one a group grants — which is exactly the first member of the union.
  */
 async function resolvePrimaryOrgId(req) {
     const scope = await orgScope(req);

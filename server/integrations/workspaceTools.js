@@ -233,7 +233,7 @@ async function getWorkspace(convId) {
 
 // Fails CLOSED. `conversationId` is client-supplied and getWorkspace resolves
 // it by id alone, so this is the only thing standing between a caller and
-// another user's notebook. A missing callerUserId used to short-circuit the
+// another user's notebook. A missing callerUserId must not short-circuit the
 // comparison and wave everything through — treat it as a denial instead.
 /**
  * @param {NotebookCall} call

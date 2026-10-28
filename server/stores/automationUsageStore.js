@@ -186,7 +186,7 @@ function mapRow(r) {
         consumerTitle: r.app_title || null,
         // The OWNER OF THE AUTOMATION, not of the app. The column is called
         // `owner_user_id` and is read at the INSERT from `automations.user_id`;
-        // it used to be called `consumerOwner` here, which read it as an
+        // calling it `consumerOwner` would read it as an
         // app-ownership check while it is a staleness filter on the
         // automation owner. Who may OPEN the APP is a different question, and
         // that is answered in the route (`canOpen`), not derived.

@@ -9,7 +9,7 @@
  *      message bodies. The tier is per organisation (stores/encryptionPolicy)
  *      and defaults to 'none', which writes plaintext.
  *
- * The check used to pass on (1) alone and claim "messages stored encrypted at
+ * The check must not pass on (1) alone and claim "messages stored encrypted at
  * rest" for every install on the default tier, whose messages are plaintext.
  */
 

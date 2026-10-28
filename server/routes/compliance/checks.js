@@ -142,7 +142,7 @@ const { z, typeError } = require('../../utils/zod');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const FRAMEWORK_TEXT = 'framework must be a framework id.';
-/** `?framwork=gdpr` used to drop the filter and answer with every framework's checks. */
+/** `?framwork=gdpr` must not drop the filter and answer with every framework's checks. */
 const ChecksQuery = z.object({
     framework: z.string({ error: typeError({ invalid: FRAMEWORK_TEXT }) }).max(120, 'framework is at most 120 characters.').optional(),
 }).strict();

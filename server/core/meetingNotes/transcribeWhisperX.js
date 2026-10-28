@@ -21,8 +21,8 @@ async function transcribeWithWhisperX(filePath, fileName, language, contextTerms
     // set in Admin → Integrations → Transcription, which is stored encrypted
     // and must therefore be read with getSecret, not getConfig.
     //
-    // There is deliberately NO hosted default here. This used to fall back to
-    // a hardcoded https://services.beeflow.nl/whisperx, which meant a
+    // There is deliberately NO hosted default here. Falling back to
+    // a hardcoded https://services.beeflow.nl/whisperx would mean a
     // self-hoster who configured WhisperX in the admin UI but left
     // WHISPERX_URL empty had their meeting audio uploaded to our servers —
     // contradicting the "no data leaves your server" promise of this provider.

@@ -297,8 +297,7 @@ async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
 }
 
 // Bind an existing un-bound org to this NC instance. Used by the approval
-// handler in ncBindingRoutes.js. Replaces what used to be the inline
-// "adopt existing org" branch.
+// handler in ncBindingRoutes.js.
 /**
  * @param {OrgRow} org
  * @param {{ ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, connectorCallbackUrl?: string|null }} params

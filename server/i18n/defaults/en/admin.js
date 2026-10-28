@@ -372,7 +372,7 @@ module.exports = {
     // ── Compliance (AI Act + GDPR) ─────────────────────────────
     'admin.tab_compliance': 'Compliance',
 
-    // ── Backfilled defaults (previously only inline t() fallbacks in agent-hub) — 2026-07-03 ──
+    // ── Backfilled defaults (inline t() fallbacks in agent-hub) ──
     "admin.all": "All",
     "admin.categories_selected": "categories selected",
     "admin.none": "None",
@@ -802,7 +802,7 @@ module.exports = {
     'admin.shield_scan_kbs': 'Also check knowledge-base content for personal data',
     'admin.shield_scan_kbs_desc': 'A knowledge base keeps its documents and quotes them to whoever asks — including people who never saw the original file. This applies both when documents are added and when they are used in answers. Checking at the moment a document is added means personal data is replaced BEFORE it is stored, so the AI knows the terms and not the customer. That cannot be undone afterwards: the stored text is the checked text. Turn it off and knowledge-base passages reach the AI as they are stored.',
 
-    // ── Privacy Shield redesign, round 2 (2026-09-15) ──────────────────
+    // ── Privacy Shield redesign ──────────────────
     // The tab strip became a pipeline, the three 21-item category grids
     // became one matrix, the two checks share a pane, and "What happened"
     // became a single cross-filter. Dutch lives in the

@@ -64,8 +64,8 @@ async function reapStuckAutomations() {
                 });
             } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#2', err); /* telemetry must never break the reaper */ }
         }
-        // Flip the durable approval rows and TELL people. Expiry used to be
-        // silent: the run died, and neither the owner nor the assignee heard
+        // Flip the durable approval rows and TELL people. Expiry must not be
+        // silent: the run would die, and neither the owner nor the assignee would hear
         // about it until they went looking. Also close pending rows whose run
         // is gone or no longer waiting (cancelled runs, pre-table decisions).
         try {

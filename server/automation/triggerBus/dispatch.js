@@ -144,8 +144,8 @@ async function dispatchEvent({ provider, event, payload = {}, userId = null, org
         log.warn(`[TriggerBus] dropping ${provider}.${event} with no userId and no orgId — cannot scope fan-out (no cross-tenant leak)`);
         return [];
     }
-    // Fail closed by default. Previously a provider in NEITHER hardcoded set
-    // that arrived unidentified fanned out to every subscriber in every
+    // Fail closed by default. A provider in NEITHER hardcoded set
+    // that arrives unidentified would fan out to every subscriber in every
     // organisation. With providers now declarable at runtime that default is
     // untenable: an unidentified event is only let through for the closed
     // legacy allowlist above.

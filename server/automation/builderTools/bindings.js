@@ -41,11 +41,11 @@ function canonicalizeInputs(inputs) {
 // 2026-09-17: a valid path followed by escape/punctuation the model cannot
 // stop emitting) is trimmed after the LONGEST valid prefix.
 //
-// This used to turn every bracket into a dot and cut at the first character
-// outside [A-Za-z0-9_.$] — `value[0].from` became `value.0.from`,
-// `fields["Story Points"]` became `fields.Story`, `["price-with-tax"]` became
-// `.price` (another field) — and builder_update_step ran it over the user's
-// own untouched mappings (findings C1, 2026-10).
+// Turning every bracket into a dot and cutting at the first character
+// outside [A-Za-z0-9_.$] turns `value[0].from` into `value.0.from`,
+// `fields["Story Points"]` into `fields.Story` and `["price-with-tax"]` into
+// `.price` (another field) — and builder_update_step ran that over the user's
+// own untouched mappings.
 function _normalizeRefPath(path) {
     if (typeof path !== 'string') return path;
     return normalizeAiPath(path).path;

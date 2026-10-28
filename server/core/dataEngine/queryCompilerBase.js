@@ -203,10 +203,10 @@ function compileFilter(tableMeta, fm, filter, out, dialect) {
             break;
         case 'in':
         case 'notIn': {
-            // A non-array is a MISTAKE, not "match nothing". `in` used to
-            // silently compile a string value to a literal FALSE, so a step
-            // whose binding produced 'a,b' instead of ['a','b'] matched zero
-            // rows for ever and reported success.
+            // A non-array is a MISTAKE, not "match nothing". Compiling a string value
+            // to a literal FALSE silently would make a step
+            // whose binding produced 'a,b' instead of ['a','b'] match zero
+            // rows for ever and report success.
             if (!Array.isArray(filter.value)) {
                 throw new CompileError(`${op} needs a list of values, not ${typeof filter.value}`);
             }

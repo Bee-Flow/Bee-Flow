@@ -1,7 +1,7 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 // @typecheck strict
 /**
- * Google session hydration from the automation-credential vault (BFSF-255).
+ * Google session hydration from the automation-credential vault.
  *
  * Historically, Google Workspace tools only worked when the LIVE SESSION was
  * created by Google-SSO login (session.accessToken/oauthProvider set in the

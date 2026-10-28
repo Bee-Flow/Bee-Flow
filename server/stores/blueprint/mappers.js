@@ -240,9 +240,9 @@ const META_COLUMNS = `id, organization_id, created_by, source_project_id, soluti
  *
  * ONE RULE, AND IT IS `listBlueprintsFor`'s. That query answers: an org
  * blueprint belongs to the organisation, a personal one (org NULL) to whoever
- * captured it. This predicate used to answer something wider — it returned true
- * for `createdBy === userId` BEFORE looking at the organisation at all — and the
- * gap between the two was reachable: someone who captured a Blueprint for org A
+ * captured it. This predicate must not answer something wider — returning true
+ * for `createdBy === userId` BEFORE looking at the organisation would open a
+ * reachable gap between the two: someone who captured a Blueprint for org A
  * and has since moved to org B could no longer see it in any list, but could
  * still read and install it by id. A permission that the list and the fetch
  * disagree about is decided by whichever one the caller happens to use.

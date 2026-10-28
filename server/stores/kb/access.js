@@ -220,7 +220,7 @@ function makeAccessFns(ctx) {
         },
 
         /**
-         * "Is this user allowed to MANAGE this KB's settings?" (BFSF-214).
+         * "Is this user allowed to MANAGE this KB's settings?".
          * Deliberately separate from canUserAccessKB: draft status gates READING
          * content, not managing settings. Non-owner managers must belong to the
          * KB's org AND hold manage_knowledge (checked by the caller via

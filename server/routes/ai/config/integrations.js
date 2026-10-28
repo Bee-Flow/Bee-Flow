@@ -162,8 +162,8 @@ router.get('/agent-search/defaults', requireAuth, async (req, res) => {
     res.json(defaults);
 });
 
-// Installation-wide: every agent's search reads these. It used to take
-// requireAuth only, so any signed-in user could rewrite them for everyone.
+// Installation-wide: every agent's search reads these. requireAuth
+// alone would let any signed-in user rewrite them for everyone.
 router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefaultsBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof SearchDefaultsBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
     const { mode, include_citations, web, web_fast } = req.body;
@@ -251,9 +251,9 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
         }
         const base = n8nUrl.replace(/\/+$/, '');
         const apiBase = base.includes('/api/v1') ? base : `${base}/api/v1`;
-        // Certificate policy lives in integrations/n8nHttp.js. This route used to
-        // disable verification unconditionally, which made the "Test connection"
-        // button the one place that would talk to any certificate at all.
+        // Certificate policy lives in integrations/n8nHttp.js. Disabling verification
+        // unconditionally here would make the "Test connection"
+        // button the one place that talks to any certificate at all.
 
         const r = await n8nFetch(`${apiBase}/workflows?limit=1`, {
             headers: { 'X-N8N-API-KEY': apiKey, 'Content-Type': 'application/json' },

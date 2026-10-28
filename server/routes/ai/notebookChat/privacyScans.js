@@ -26,8 +26,8 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
         res.end();
     };
     // A `block` verdict is the shield saying "this content must not leave
-    // the tenant". It was never handled here: the scan result was only
-    // inspected for `action === 'tokenize'`, so a block fell through and the
+    // the tenant". It must be handled here: inspecting the scan result only
+    // for `action === 'tokenize'` would let a block fall through and the
     // content went to the provider anyway — the strictest setting was the
     // one that silently did nothing.
     /**
@@ -73,15 +73,15 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
 
     // Tokenize PII in extracted attachment text BEFORE it enters the prompt
     // — a file attached in Legal/Notebook chat must not send names/BSN/email
-    // to the model raw (notebook chat used to inline attachment text raw).
+    // to the model raw.
     // Honors the org's chosen action and merges into the same notebook token
     // map so the streamed reply un-tokenises consistently. Reuses the same
     // scanner as direct chat + the KB/doc scans.
     // Returns the verdict, not just text: `{ blocked }` when the shield
     // blocks the attachment (or a fail-closed scan could not finish),
     // `{ scanFailed }` when the scan threw under fail_closed, else
-    // `{ text }`. A block used to fall through to the ORIGINAL text, so
-    // the strictest setting sent the attachment to the provider; with
+    // `{ text }`. A block must not fall through to the ORIGINAL text, or
+    // the strictest setting would send the attachment to the provider; with
     // an image in the turn the message gate below scans only the typed
     // question, so nothing caught it afterwards. The caller aborts the
     // turn (it cannot be thrown from here: the per-attachment

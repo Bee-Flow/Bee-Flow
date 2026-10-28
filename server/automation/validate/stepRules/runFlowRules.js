@@ -195,9 +195,9 @@ function checkFormPage(ctx, step, at) {
             const formTriggers = [trigger, ...(Array.isArray(graph.triggers) ? graph.triggers : [])]
                 .filter(t => isObject(t) && t.kind === 'form');
             if (formTriggers.length === 0) {
-                // BFSF-348 — the message used to open with a raw internal id
-                // ("Step step_7c1a: a form step needs…") and stopped at the
-                // rule, leaving the reader with no way out of it. Say what is
+                // The message does not open with a raw internal id
+                // ("Step step_7c1a: a form step needs…") nor stop at the
+                // rule, which leaves the reader with no way out of it. Say what is
                 // wrong in the user's own vocabulary and put the fix in the
                 // hint; the step id stays available in `path` (and at the end
                 // of the hint) for the canvas badge mapping. The CODE is

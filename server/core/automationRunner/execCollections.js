@@ -83,7 +83,7 @@ function unresolvedListMessage(label, ref, resolved) {
 /**
  * Shared "arrayRef didn't resolve" stub (A10). The top-level `skippedReason`
  * makes runDag's status mapper record the row as `'skipped'` instead of a
- * green `success` — a bound-but-unresolvable source list used to run as a
+ * green `success` — a bound-but-unresolvable source list must not run as a
  * silent empty-result success, indistinguishable from a genuinely empty list.
  * The output keys stay bindable so downstream steps behave exactly as before.
  */
@@ -158,7 +158,7 @@ async function execLimit(step, ctx, runState) {
     if (!arr) return skippedArrayRef(step, runState, { items: [], count: 0 });
     const n = Math.max(0, Math.floor(Number(step.count) || 0));
     const mode = step.mode === 'last' ? 'last' : 'first';
-    // `slice(-0)` is `slice(0)` — a FULL copy: mode=last with count=0 used to
+    // `slice(-0)` is `slice(0)` — a FULL copy: mode=last with count=0 would
     // return the entire array, the exact opposite of the documented
     // "0 returns no items" (A6).
     const items = n === 0 ? [] : (mode === 'last' ? arr.slice(-n) : arr.slice(0, n));
@@ -205,7 +205,7 @@ function anyItemHasField(arr, field) {
 async function execAggregate(step, ctx, runState) {
     const arr = resolveArrayRef(step, runState);
     if (!arr) return skippedArrayRef(step, runState, { values: [], count: 0 });
-    // A18: a field present on NO item used to produce `values: [undefined × N]`
+    // A18: a field present on NO item would produce `values: [undefined × N]`
     // with a green status — a full-length list of nothing, which reads
     // downstream as real data. Record the row as 'skipped' (the A10 /
     // skippedArrayRef mechanism) so it shows amber, while keeping the output
@@ -256,8 +256,8 @@ async function execSummarize(step, ctx, runState) {
         }
     }
     // op='count' counts ITEMS (field is ignored), so `count` must report the
-    // item count too — it used to report values.length, which is 0 for
-    // non-numeric items while `result` showed the true length (A7).
+    // item count too — it must not report values.length, which is 0 for
+    // non-numeric items while `result` shows the true length (A7).
     // usedCount/inputCount say how much of the list the number is built from:
     // "12 of 40 items had that field" is the difference between a total and a
     // misleading total.

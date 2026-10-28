@@ -71,9 +71,9 @@ const GuiPatchBody = bodyOf({ updates: stringMap('updates', (t) => worded(t).nul
 const TEMPLATE_TEXT = `templateId is one of: ${EMAIL_TEMPLATE_IDS.join(', ')}.`;
 const TemplateId = z.enum(EMAIL_TEMPLATE_IDS, { error: () => TEMPLATE_TEXT });
 /**
- * The template's own fields, and only those. A misspelled field name used to
+ * The template's own fields, and only those. A misspelled field name would
  * be dropped by the store's own allow-list and answered with the saved row,
- * so the edit simply did not happen.
+ * so the edit simply would not happen.
  */
 const TemplateFields = z.object(Object.fromEntries(
     EMAIL_TEMPLATE_FIELDS.map((f) => [f, worded(`${f} must be text.`).optional()]),
@@ -155,9 +155,9 @@ router.delete('/:code', requireAdmin, async (req, res) => {
 //
 // `/org/default` at the bottom of this file is a FIXED path, and THIS one is
 // parameterised and registered first — so every `PUT /api/languages/org/default`
-// landed here with code='org' and answered `Locale 'org' not found`, while the
+// would land here with code='org' and answer `Locale 'org' not found`, while the
 // org default for new users was never written. An org admin, who is not a
-// platform admin, got requireAdmin's 403 instead. Hand that one path on.
+// platform admin, would get requireAdmin's 403 instead. Hand that one path on.
 router.put('/:code/default', (req, res, next) => (req.params.code === 'org' ? next('route') : next()), requireAdmin, async (req, res) => {
     try {
         const locales = await languageStore.setDefaultLocale(req.params.code);

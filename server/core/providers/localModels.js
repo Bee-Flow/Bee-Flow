@@ -184,7 +184,7 @@ function isPrivateHostUrl(url) {
 // ("greedy decoding … endless repetitions"), GLM-4.5+ and NVIDIA's Nemotron
 // reasoning cards the same number; the local adapter lifts a lower caller
 // temperature to it while thinking is on.
-// It used to be one constant for every model. Gemma 4 publishes no such
+// It is not one constant for every model. Gemma 4 publishes no such
 // floor and, measured on the demo box, does not loop at the 0.0-0.2 the
 // builder profiles send for stable tool-call JSON — so it has none, and a
 // family without an entry keeps the caller's temperature untouched.

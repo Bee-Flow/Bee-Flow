@@ -159,7 +159,7 @@ async function filterResult({ toolName, result, userId, orgId = null, agentId = 
     // Talk's POST /room is IDEMPOTENT for a one-to-one: asking to "open a chat
     // with Bob" returns the EXISTING conversation when there is one, and the
     // executor cannot tell 200-existing from 201-created. Because create_room
-    // is policy 'allow', its result used to pass through untouched — handing a
+    // is policy 'allow', its result must not pass through untouched — that hands a
     // user who had narrowed Talk the last message of a conversation they never
     // selected. The room itself is not granted (that would be the widening
     // this guard exists to prevent); only its message content is withheld, and

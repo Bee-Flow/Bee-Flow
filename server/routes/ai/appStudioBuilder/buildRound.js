@@ -143,8 +143,7 @@ async function requestRound(iter, ctx, ls) {
 /**
  * A call the model WROTE instead of made: Gemma 4 puts it in its thought
  * channel in its own wire syntax, and the runtime's parser does not read it
- * there (2026-09-13: round 4 of the invoice app came back as reasoning text
- * and the turn ended in silence). The server parses it and runs it like any
+ * there (the turn would end in silence with the call as reasoning text). The server parses it and runs it like any
  * other; the model reads what happened in the tool result. Runs before the
  * prose push so a recovered span never lands in the transcript.
  * @param {RoundResponse} response

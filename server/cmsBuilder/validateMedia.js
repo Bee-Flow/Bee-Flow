@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * CMS builder: page-speed warnings about a page's media (issue 245).
+ * CMS builder: page-speed warnings about a page's media.
  *
  *   heavy_hero_image    an image in the first two blocks (above the fold) whose
  *                       stored width is 2400 px or more. Publish stores the

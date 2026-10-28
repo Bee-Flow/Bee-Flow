@@ -58,9 +58,9 @@ async function buildTurnMessages({
 
     if (attachments && attachments.length > 0) {
         // Use the unified extractor so PDFs / DOCX / spreadsheets get the
-        // same pipeline as direct chat — previously this path was just
-        // base64-decode-as-utf8-and-slice, which fed the model raw PDF
-        // binary and made it claim it "can't read the file."
+        // same pipeline as direct chat — base64-decoding as utf8 and slicing
+        // would feed the model raw PDF binary and make it claim it
+        // "can't read the file."
         const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../../../core/documents/attachmentExtractor');
         const { nativePdfPart, isShieldActive } = require('../../../core/documents/nativePdf');
 

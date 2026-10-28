@@ -70,8 +70,8 @@ const LEAN_BATCH_TYPES = Object.freeze([
  * The batch type enum of the lean menu. `code` joins it ONLY when code steps are
  * enabled: the lean prompt then teaches "a `code` entry" (builderPrompt.js,
  * codeStepRule) and, with no builder_add_code_step on this menu, the batch entry
- * is the only way to make one. Before this the prompt promised an entry the
- * enum did not contain, and grammar-constrained decoding cannot emit a value
+ * is the only way to make one. Without this the prompt would promise an entry the
+ * enum does not contain, and grammar-constrained decoding cannot emit a value
  * outside the enum. With the flag off the enum is the plain LEAN_BATCH_TYPES, so
  * the bytes of the common case are unchanged.
  */

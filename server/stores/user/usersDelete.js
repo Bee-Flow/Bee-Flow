@@ -292,7 +292,7 @@ async function deleteUser(userId) {
     for (const [name, outcome] of Object.entries(traces)) if (outcome?.failed === true) failed.push(`project ${name}`);
     // Agents owned by this user. Without this they become orphans with a
     // non-existent owner; a future user re-created with the same id would inherit
-    // them as ghost agents in the library (BFSF-181). Mirror the org-delete
+    // them as ghost agents in the library. Mirror the org-delete
     // cascade: drop each agent's conversations first, then the agents.
     await step('agents', async () => {
         const ownedAgents = await getAll('SELECT id FROM agents WHERE owner_id = $1', [userId]);
@@ -313,7 +313,7 @@ async function deleteUser(userId) {
     // Either way the leaver stops being the owner. owner_user_id and the grant
     // rows are resolved BY ID, so left alone a user re-created with the same id
     // comes back as owner of a colleague's HR table — the same mechanism as the
-    // agents cascade above (BFSF-181).
+    // agents cascade above.
     await step('datatables', async () => {
         const datatableStore = require('../datatableStore');
         const removedGrants = await datatableStore.purgeGrantsForUser(userId);

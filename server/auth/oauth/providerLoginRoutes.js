@@ -20,14 +20,14 @@
  * whoever owns the embed contract.
  *
  * AN ABSENT PARAMETER MEANS "OFF" FOR THIS ATTEMPT, NOT "AS LAST TIME". The
- * popup, pickup and native-app flags used to be set when asked for and never
- * cleared here, while the callback clears them only after a successful popup
- * login. So an attempt abandoned in the embedded popup — or in the Android
- * Custom Tab, which shares Chrome's cookies — left them on the session, and
- * the next ordinary sign-in from that browser inherited them: it ended on the
- * "you can close this window" page with no opener to close, or was 302'd to
- * the `beeflow://` scheme, and parked a live session token under the old
- * pickup id. Each attempt now starts from none of the three.
+ * popup, pickup and native-app flags are cleared here when not asked for: the
+ * callback clears them only after a successful popup login, so an attempt
+ * abandoned in the embedded popup — or in the Android Custom Tab, which shares
+ * Chrome's cookies — would leave them on the session, and the next ordinary
+ * sign-in from that browser would inherit them: it would end on the
+ * "you can close this window" page with no opener to close, or be 302'd to
+ * the `beeflow://` scheme, and park a live session token under the old
+ * pickup id. Each attempt starts from none of the three.
  */
 
 const express = require('express');

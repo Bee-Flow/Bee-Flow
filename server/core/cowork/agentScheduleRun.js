@@ -226,7 +226,7 @@ async function runScheduleAgent(task, agent, userAuth, scheduleText) {
     // Capture both the streaming token deltas AND any post-stream content
     // replacements (the runtime emits `content_replace` after stripping
     // tool-call XML or after content moderation rewrites the response —
-    // missing those events used to leave schedules with an empty outcome).
+    // missing those events leaves schedules with an empty outcome).
     let collected = '';
     let replaced = null;
     const result = await chatWithAgentStream(

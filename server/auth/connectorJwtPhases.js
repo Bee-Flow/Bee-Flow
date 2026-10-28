@@ -42,7 +42,7 @@ function ok(user = null) { return { kind: 'ok', user }; }
 // let the org admin past the NC_ONBOARDING_PENDING gate so onboarding can never
 // deadlock. Match is an exact equality on the stable nc_admin_uid. reqNcUid
 // comes from _resolveRequesterNcUid: the tenant-key-signed JWT `sub` wins; the
-// unsigned X-Beeflow-NC-Uid header is only a last-resort fallback (BFSF-377).
+// unsigned X-Beeflow-NC-Uid header is only a last-resort fallback.
 /**
  * @param {string} reqNcUid
  */
@@ -56,7 +56,7 @@ function _resolveRequesterNcUid(req, payload) {
 }
 
 // The NC identity stored on the session: the user row's own nc_uid, then the
-// signed `sub`, and only last the unsigned header (BFSF-377).
+// signed `sub`, and only last the unsigned header.
 function _resolveSessionNcUid(user, req, payload) {
     return user?.nc_uid || _resolveRequesterNcUid(req, payload) || null;
 }

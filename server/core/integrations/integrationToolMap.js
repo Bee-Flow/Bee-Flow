@@ -49,8 +49,8 @@ const INTEGRATION_PREFIXES = {
 
     // Third-party SaaS
     fireflies_:     { integration: 'fireflies',       label: 'Fireflies',           server: 'api.fireflies.ai' },
-    // YouTrack URL is per-org (Connections settings). Static fallback used to
-    // be 'youtrack.cloud' which lied to the dashboard for self-hosted
+    // YouTrack URL is per-org (Connections settings). A static fallback such as
+    // 'youtrack.cloud' would lie to the dashboard for self-hosted
     // instances; null lets the probe-captured tls_servername be the truth.
     youtrack_:      { integration: 'youtrack',        label: 'YouTrack',            serverFn: (_a, ctx) => ctx?.youtrackUrl || null },
     signrequest_:   { integration: 'signrequest',     label: 'SignRequest',         server: 'api.signrequest.com' },

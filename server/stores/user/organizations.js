@@ -166,7 +166,7 @@ async function createOrganization(orgData, { autoGrantTrial = true } = {}) {
         // without ever consulting subscriptions.
         try {
             const subscriptionsEnabled = (process.env.DEPLOYMENT_MODE || 'cloud') === 'cloud';
-            // BFSF-226: resolve the default org plan via the shared helper, which
+            // Resolve the default org plan via the shared helper, which
             // falls back to the cheapest org plan if the is_default invariant was
             // lost. This guarantees a new cloud org never lands with no
             // subscription row (→ getEffectiveLimits null → unlimited access).

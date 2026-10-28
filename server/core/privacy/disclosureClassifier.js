@@ -65,7 +65,7 @@
  * It is also the DEFAULT state: the shipped guard image bakes no encoder
  * (guard-service/app/services/disclosure/encoder.py says why), so unless an
  * operator asked for one, this module returns null forever and the Art. 50
- * check behaves precisely as it did before this file existed. That is the
+ * check behaves precisely as without this file. That is the
  * intended resting state, not a failure of it.
  *
  * ── WHAT GOES OVER THE WIRE ─────────────────────────────────────────────

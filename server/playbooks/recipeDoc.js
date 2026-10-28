@@ -808,9 +808,9 @@ function fromDocument(doc) {
             const text = renderBrief(spec.brief, briefContext(ctx));
             // Placeholders GROW: `{{table.id}}` is 13 characters and a uuid is
             // 36, so a template the validator accepted at 1600 can render past
-            // 1200. This used to throw a codeless Error, which every caller
-            // rethrew — pressing Continue on the design handoff answered 500
-            // and the playbook was dead with no way past it. Cut on a line
+            // 1200. Throwing a codeless Error is not an option: every caller
+            // rethrows it, so pressing Continue on the design handoff would answer 500
+            // and the playbook would be dead with no way past it. Cut on a line
             // boundary instead, so the brief stays a document.
             return text.length > MAX_BRIEF_CHARS ? clampToLines(text, MAX_BRIEF_CHARS) : text;
         },

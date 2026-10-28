@@ -55,11 +55,11 @@ const log = require('../../telemetry/log');
 
 // Deployment-level overrides for the three scan budgets below.
 //
-// These used to be hardcoded, and the per-org fields `attachmentMaxPages` /
+// These are not hardcoded, because the per-org fields `attachmentMaxPages` /
 // `attachmentScanBudgetMs` that scanAttachmentText() reads are never populated
 // by the Privacy Shield (orgShield.js builds a fixed object and drops them), so
-// an operator whose guard is slower than ours had NO way to raise the budget:
-// a 16-page PDF timed out at 6 pages and the remainder went to the model
+// an operator whose guard is slower than ours would have NO way to raise the budget:
+// a 16-page PDF would time out at 6 pages and the remainder go to the model
 // unredacted under the default fail_open policy. Env vars are the honest fix —
 // how fast a page scans is a property of the guard's hardware, not of a tenant.
 //
@@ -90,16 +90,13 @@ const SCAN_CONCURRENCY_DEFAULT = _envInt('DLP_ATTACHMENT_SCAN_CONCURRENCY', 3);
 
 // Scan budget, PER PAGE — not per document.
 //
-// It used to be a flat 30s for the whole attachment, which is the bug that
-// produced the incident this file's header describes: the budget did not scale
-// with the work, so a one-page PDF and a fifty-page PDF got the same allowance
-// and anything past a handful of pages timed out by construction. The comment
-// that used to live here even predicted it ("a 16-page transcript needs ~90s")
-// while the default stayed at 30s.
+// The budget scales with the work: a flat allowance for the whole attachment
+// gives a one-page PDF and a fifty-page PDF the same time, so anything past a
+// handful of pages times out by construction (a 16-page transcript needs ~90s).
 //
-// It also made the SAME CONTENT behave differently depending on how it arrived:
-// pasted into the chat box it got SCAN_DEADLINE_MS (60s, piiDetection.js), and
-// attached as a PDF it got 30s. Users noticed — "if I copy-paste the same
+// A flat budget also makes the SAME CONTENT behave differently depending on how it arrives:
+// pasted into the chat box it gets SCAN_DEADLINE_MS (60s, piiDetection.js), and
+// attached as a PDF it would get 30s. Users notice — "if I copy-paste the same
 // content from the PDF it works fine" is what reported this.
 //
 // Now: each page carries its own allowance, so page count no longer decides
@@ -192,8 +189,8 @@ function _resolveAction(orgShield, allowAsk = false) {
     // and otherwise use `result.text` — an unhandled 'ask' would hand them
     // the ORIGINAL UNREDACTED text as if it were safe (`ask` intentionally
     // returns `text` unchanged; redaction happens only after the decision).
-    // Callers that never pass `allowAsk: true` see IDENTICAL behaviour to
-    // before this action existed, regardless of the org's dlpMode.
+    // Callers that never pass `allowAsk: true` never see 'ask', regardless of the
+    // org's dlpMode.
     if (allowAsk && orgShield?.dlpEnabled && orgShield?.dlpMode === 'ask') return 'ask';
     // Privacy Shield UI writes `piiDetectionAction` ∈ {'block','tokenize'}.
     // The canonical synthesised field is `privacyAction` ∈ {'block','redact','ask'}.
@@ -214,13 +211,13 @@ function _resolveFailureMode(orgShield) {
 
 // Large-input policy for the UNSCANNED portion (overflow/timeout/degraded).
 //
-// This used to hardcode 'fail_open' — deliberately NOT derived from
-// piiFailureMode — to avoid "a surprise hard-block regression" for orgs that
-// upload big PDFs. That reasoning rested on timeouts being a normal event,
+// The default follows the org's failure mode rather than hardcoding 'fail_open'
+// (which was meant to avoid "a surprise hard-block regression" for orgs that
+// upload big PDFs). That reasoning rested on timeouts being a normal event,
 // which they were only because the budget did not scale with page count (see
 // PER_PAGE_BUDGET_MS). With a per-page budget an incomplete scan is an
-// exception, not the daily case, so the setting can finally mean what the
-// header of this file has always claimed it meant.
+// exception, not the daily case, so the setting can mean what the
+// header of this file claims it means.
 //
 // An explicit org value still wins; absent one we follow the same failure-mode
 // axis as chat and automations (piiFailureMode → dlpFailureMode → fail_closed).
@@ -597,13 +594,13 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
         }
         // fail_open — proceed, but ONLY with what we actually checked.
         //
-        // This branch used to hand back the full `text`. Because tokenizeText is
+        // This branch must not hand back the full `text`. Because tokenizeText is
         // a splice-by-offset over spans found in the scanned prefix, the result
-        // was [scanned pages, tokenised] + [unscanned pages, verbatim] — so an
-        // unfinished scan shipped raw personal data to the model while the UI
+        // would be [scanned pages, tokenised] + [unscanned pages, verbatim] — so an
+        // unfinished scan would ship raw personal data to the model while the UI
         // told the user only placeholders had been sent. That was the incident.
         //
-        // Now the tail is CUT at the scan boundary. fail_open still means "the
+        // The tail is CUT at the scan boundary. fail_open still means "the
         // user gets an answer rather than a block", but it can no longer mean
         // "content nobody checked leaves the platform".
         const boundary = usePerPage

@@ -6,7 +6,7 @@ const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts')
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Every schema is `.strict()`, and on the LIST routes that is the point: a
-// misspelled filter used to be dropped, and a list that quietly drops a
+// misspelled filter would be dropped, and a list that quietly drops a
 // narrowing parameter answers a wider question than the one it was asked —
 // the same failure the trigger-source check in crud.js exists to prevent.
 
@@ -52,7 +52,7 @@ const SEED_TEXT = 'seedRunId is the id of a run of this automation.';
 const PARTIAL_TEXT = 'mode is "only", "from" or "upTo".';
 const PartialRunBody = bodyOf({
     ...RUN_SHAPE,
-    // An enum, not a fall-back: `upto` for `upTo` used to run ONLY that step
+    // An enum, not a fall-back: `upto` for `upTo` would run ONLY that step
     // instead of everything leading to it, and answer 200 either way.
     mode: z.enum(['only', 'from', 'upTo'], { error: () => PARTIAL_TEXT }).default('only'),
     // Re-run from a chosen run: take the replay from exactly that run (see

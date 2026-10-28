@@ -49,8 +49,8 @@ async function _clampRuntimeTools(agent) {
         // A map whose entries were junk clamps to a map of REFUSALS —
         // `{app: {actions: []}}`, one per unreadable entry — and handing that
         // to the runtime is deliberate: it is the narrowest true statement
-        // about the row. It used to clamp to `{}` instead, by DROPPING those
-        // entries, and that was the one clamp here that made a grant bigger:
+        // about the row. Clamping to `{}` instead, by DROPPING those
+        // entries, would be the one clamp here that makes a grant bigger:
         // a missing entry means "every action of this app" to every reader in
         // toolPolicy.js, so `{gmail: "nope"}` came back as the whole of Gmail.
         // Do not "fix" this back into dropping; a refusal has to survive, or

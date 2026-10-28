@@ -54,8 +54,8 @@
  *
  * ── AND "NOT AVAILABLE" IS NOT ONE SENTENCE EITHER ──────────────────
  * `ALL_TOOL_APPS` carries the apps whose tools are injected inline — the
- * browser, the notebooks, the regex rules — which used to be in NO list this
- * route reads. Two extra fields travel with every app because the picker
+ * browser, the notebooks, the regex rules — which no other list this
+ * route reads carries. Two extra fields travel with every app because the picker
  * cannot infer either of them:
  *
  *   `requiresGrant`     a curated agent gets nothing from this app unless its
@@ -91,7 +91,7 @@
  *
  * ── IT TAKES NO OPTIONS, AND SAYS SO ────────────────────────────────
  * The answer is per caller and complete: there is no filter by app, by agent
- * or by effect. A query string used to be ignored, so `?app=gmail` came back
+ * or by effect. A query string must not be ignored, or `?app=gmail` would come back
  * with every app under a 200 that read as if it had narrowed. It is refused.
  */
 

@@ -31,7 +31,7 @@ async function createAgentCategory(orgId, name, icon, color) {
     return { id, organization_id: orgId, name, icon: icon || '📁', color: color || '#6366f1' };
 }
 
-// BFSF-272: full category management. The DELETE route has preferred this
+// Full category management. The DELETE route has preferred this
 // helper since 2026-03 (`typeof agentStore.countAgentsInCategory === 'function'`)
 // but it never existed — every delete paid a full getAllAgents() scan.
 /** @param {string} id */
@@ -99,7 +99,7 @@ async function reassignAgentsCategory(fromId, toId = null) {
     return rowCount;
 }
 
-// `orgId` (when provided) scopes the delete to that org — BFSF-272: the old
+// `orgId` (when provided) scopes the delete to that org — the old
 // unscoped delete let any manage_agents holder remove another org's category
 // by id. Pass undefined only for super-admin callers.
 /**

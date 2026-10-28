@@ -160,7 +160,7 @@ const LESSON_ID_TEXT = "lessonIds holds this organisation's lesson ids (orgl-…
 
 /**
  * A course. `whole` is the PUT: it replaces the stored draft, so every field
- * is required — a missing `lessonIds` used to detach every lesson. A create
+ * is required — a missing `lessonIds` would detach every lesson. A create
  * may lean on the defaults a new course starts with.
  * @param {boolean} whole
  */

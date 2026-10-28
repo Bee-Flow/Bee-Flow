@@ -164,9 +164,9 @@ function pickClosestId(target, candidates) {
         if (d < bestDist) { bestDist = d; best = c; }
     }
     if (bestDist <= Math.max(3, Math.floor(t.length / 2))) return best;
-    // NO suggestion beats a WRONG one. This used to `return candidates[0]` —
-    // an array-order-dependent unrelated step — after having just computed the
-    // correct nearest match and discarded it. A model acts on the sentence
+    // NO suggestion beats a WRONG one. Returning `candidates[0]` suggests
+    // an array-order-dependent unrelated step, even after computing the
+    // correct nearest match. A model acts on the sentence
     // "Did you mean X?", so a confident wrong X sends it off to edit a step
     // that was never the problem. The caller still lists every real id.
     return null;
@@ -174,7 +174,7 @@ function pickClosestId(target, candidates) {
 
 /**
  * The key after the root — the step id of `steps.<id>` AND of `steps["<id>"]`
- * (the bracket form used to read as "no step id"), the item variable of
+ * (the bracket form must not read as "no step id"), the item variable of
  * `loop.<var>`. Read from the longest valid head, so a path with a broken
  * tail still names its step.
  */

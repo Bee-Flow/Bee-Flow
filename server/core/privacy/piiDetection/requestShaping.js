@@ -47,10 +47,10 @@ const BREAKER_COOLDOWN_MS = 10_000;
 let _inflight = 0;
 // Two queues, not one.
 //
-// This used to be a single FIFO shared by every caller. Attachment scanning
+// This is not a single FIFO shared by every caller. Attachment scanning
 // fans a document out over several lanes, so one user uploading a 16-page PDF
-// enqueued 16 page-scans ahead of everyone else — and with MAX_INFLIGHT at 2,
-// every other user's chat message waited behind the whole document. Making the
+// would enqueue 16 page-scans ahead of everyone else — and with MAX_INFLIGHT at 2,
+// every other user's chat message would wait behind the whole document. Making the
 // per-page budget generous (see dlp/attachmentScanner.js) would have made that
 // worse, so the queue has to distinguish the two kinds of work.
 //

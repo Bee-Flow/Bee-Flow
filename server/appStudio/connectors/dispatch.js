@@ -45,7 +45,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
     }
     const provider = (typeof connector.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
     // Same `include` the owner path uses — a viewer-mode connector must not fail
-    // for the config reason the owner path used to.
+    // for the config reason the owner path would hit.
     const sessionOpts = { include: integrationIdsFor(connector), providerHint: providerFor(provider, deps) };
 
     const session = await deps.buildUserSession(viewerId, app.organizationId || null, sessionOpts);

@@ -482,7 +482,7 @@ async function computeCounts(req, orgId, d) {
  * A key the body does not carry is left out, as counts.test.js pins: the rail
  * asks for the counts it knows and a Community build answers fewer of them, so
  * "ignore what is not there" is how a newer client talks to an older server.
- * What IS refused is a misspelled PARAMETER (`?kesy=`), which used to drop the
+ * What IS refused is a misspelled PARAMETER (`?kesy=`), which would drop the
  * filter and answer with every count — see CountsQuery below.
  * @param {Record<string, unknown>} body
  * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} keysParam

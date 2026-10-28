@@ -6,7 +6,7 @@
  * Both halves of the Blueprint lifecycle read it: install's stamp pass
  * (install.js stampAll) records the hash of what was actually stored, and an
  * upgrade compares that hash against this payload to decide whether anybody
- * touched the entity since. It used to live in upgrade.js, which made install
+ * touched the entity since. It lives in a leaf rather than in upgrade.js, which would make install
  * and upgrade require each other; a leaf both require keeps the graph one-way.
  */
 

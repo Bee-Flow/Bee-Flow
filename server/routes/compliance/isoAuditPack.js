@@ -130,7 +130,7 @@ router.get('/iso/evidence-bundle.zip', requireAuth, requirePermission('admin_com
     //
     // The reason is a fixed code plus the error's CLASS (its pg SQLSTATE or
     // constructor name) — never the error's own message, which routinely
-    // quotes the row value that broke (BFSF-441).
+    // quotes the row value that broke.
     const skip = (/** @type {string} */ name, /** @type {{ code?: string | number, name?: string } | null | undefined} */ err) => {
         const errorType = (err && (err.code || err.name)) ? String(err.code || err.name).slice(0, 60) : 'Error';
         failed.push({ file: name, reason: 'build_failed', error_type: errorType });

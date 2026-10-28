@@ -69,7 +69,7 @@ function addTokenPreservationAddendum(turn) {
 }
 
 /**
- * Seed the notebook store from the live client editor content (BFSF-287).
+ * Seed the notebook store from the live client editor content.
  * Same rationale as the agent runtime (chatStream.js). Gated on
  * canUseNotebooks (the authoritative entitlement/permission gate, also used
  * to inject WORKSPACE_TOOLS) and non-empty live content.
@@ -88,7 +88,7 @@ async function seedNotebook(turn, notebookspaceContent) {
 
 /**
  * Prepare the tool loop. `armInterruptedTurnHook` is called at the point the
- * handler used to arm its interrupted-turn hook (after the tool-context
+ * interrupted-turn hook is armed (after the tool-context
  * factory exists). Returns what the rounds need: the round cap, the tool
  * context factory and the volatile-block helpers.
  * @param {Turn} turn

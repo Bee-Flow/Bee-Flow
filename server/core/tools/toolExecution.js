@@ -66,8 +66,8 @@ function componentToTool(component, fixedParams = null) {
     };
 }
 
-// System Tools. The Component Designer agent that used to receive these (with
-// its component write tools) is gone; `execute_component` is kept, and no
+// System Tools. There is no Component Designer agent (with its component write
+// tools) any more; `execute_component` is kept, and no
 // agent is given it (see the agentId check in executeComponentTool).
 const SYSTEM_TOOLS = [
     {

@@ -20,10 +20,10 @@ const CLEANUP_INTERVAL = 300000; // Clean old entries every 5 min
  *
  * A SLIDING window: `stamps` holds the times of the user's decrypts in the
  * last WINDOW_MS (at most ALERT_THRESHOLD of them — enough to decide), so
- * any 60 seconds count. The window used to tumble: it reset at the first
- * decrypt more than a minute after it opened, and 49 decrypts at the end of
- * one window plus 49 at the start of the next (98 in two seconds) never
- * reached the threshold. `alertedAt` starts at -Infinity so the very first
+ * any 60 seconds count. A tumbling window (reset at the first decrypt more
+ * than a minute after it opened) would let 49 decrypts at the end of one
+ * window plus 49 at the start of the next (98 in two seconds) never reach
+ * the threshold. `alertedAt` starts at -Infinity so the very first
  * burst alerts; after that at most one alert per WINDOW_MS while it lasts
  * (the BREACH_SIGNAL handler dedupes per source per day on top).
  */

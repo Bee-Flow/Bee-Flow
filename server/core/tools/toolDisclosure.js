@@ -2,7 +2,7 @@
 /**
  * Progressive Tool Disclosure
  * ───────────────────────────
- * Direct chat used to send EVERY tool the user has (Gmail, Drive, the full
+ * Direct chat would otherwise send EVERY tool the user has (Gmail, Drive, the full
  * Nextcloud suite, n8n, MCP, …) as full JSON schemas on every single message —
  * dozens of schemas, ~15-40K input tokens, even for "what is my email address".
  * That prefix is also written to a 1h cache at 2× on the first message of every
@@ -277,7 +277,7 @@ function expandGroups(groupNames, { lazyByGroup, loadedNames, currentToolCount, 
     return { addedDefs, added, alreadyLoaded, unknown, capped };
 }
 
-// Behavioural nudges that the prose tool-hint used to carry but a one-line
+// Behavioural nudges that the prose tool-hint carries but a one-line
 // catalog can't. Surfaced in the load_tools result exactly when the group is
 // first pulled in, so they're present the moment the model can use the tools
 // (the system prompt is built once per turn, before any load happens).

@@ -113,10 +113,8 @@ async function getAutomationsForUser(userId) {
 /**
  * Automations filed into a project.
  *
- * The column this reads has existed since migrations/automation-project-id-2026-07.js
- * but that migration was never registered and nothing ever read the column —
- * the whole integration was written and then abandoned. This is the read side
- * it was missing.
+ * The column this reads comes from migrations/automation-project-id-2026-07.js;
+ * this is its read side.
  */
 /**
  * Automations filed into a project.
@@ -175,10 +173,9 @@ async function countAutomationsForProject(projectIds, { kinds = ['automation'] }
  * Detach every automation from a deleted project.
  *
  * project_id is a SOFT reference (no FK) exactly so that deleting a project
- * never deletes its members' automations. The original migration's header
- * promised this function and called it by name; it was never written, so
- * deleting a project left automations pointing at a project that no longer
- * existed — invisible in the project list and unfindable in the standalone one.
+ * never deletes its members' automations. Without this function,
+ * deleting a project would leave automations pointing at a project that no longer
+ * exists — invisible in the project list and unfindable in the standalone one.
  * @param {string} projectId
  */
 async function clearProjectFromAutomations(projectId) {

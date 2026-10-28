@@ -941,7 +941,7 @@ module.exports = {
     'automations.ndv.tables_row.whole_bound': 'The whole row comes from one earlier value — it must already be a map of column title to value.',
     'automations.ndv.tables_row.whole_label': 'Row values',
 
-    // Edit data node: a source list that is set but no longer found (BFSF-363)
+    // Edit data node: a source list that is set but no longer found
     'automations.ndv.set_source_unresolved': 'This list was not found in the latest data, so this step had nothing to work through. Pick the list again, or re-run the step that produces it.',
 
     // Condition node: "is about" rules, answered by the topic classifier (classify-service)
@@ -1801,7 +1801,7 @@ module.exports = {
     "automations.templates.beeFlow": "Bee Flow templates",
     "automations.templates.yourOrganisation": "Your organisation",
 
-    // Studio → Automations, handoff 5 round 2 (2026-09-28): the split + with its
+    // Studio → Automations: the split + with its
     // create menu, the "Building blocks" group in the list, the Templates tab and
     // Find repeating work.
     "automations.library.automations": "Automations",

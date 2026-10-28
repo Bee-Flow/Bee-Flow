@@ -128,9 +128,9 @@ function _int(v, dflt, min, max) {
 const _word = (name) => z.string({ error: typeError({ invalid: `${name} must be text.` }) }).optional();
 
 /**
- * `.strict()` only. `?regulaton=GDPR` used to drop the filter and hand back
+ * `.strict()` only. `?regulaton=GDPR` would drop the filter and hand back
  * the WHOLE ledger to someone reading one regulation's trail — that is the
- * silent one, and it is now a 400 naming the query.
+ * silent one, so it is a 400 naming the query.
  *
  * `limit` and `offset` keep `_int`'s clamping rather than becoming enums of
  * their own: the response echoes both back ("clamped and echoed back so the

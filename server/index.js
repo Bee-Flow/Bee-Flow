@@ -142,7 +142,7 @@ app.get('/api/session-token', async (req, res) => {
             connectorOrgId: req.session.connectorOrgId,
             connectorNcUid: req.session.connectorNcUid,
             // Two of the four gates the OAuth callback deposits, which this
-            // re-mint used to drop on the floor. Dropping them told a bridged
+            // re-mint would drop on the floor. Dropping them would tell a bridged
             // client that a user awaiting approval was approved — a real
             // bypass, and one that a native TTL would hold open for a month
             // instead of an hour. Both are set once at login and never cleared
@@ -164,8 +164,8 @@ app.get('/api/session-token', async (req, res) => {
             // Carrying them would put a bridged client in a gate loop it
             // cannot leave, for the full life of the token. Worse, the loop
             // lands on the encryption-SETUP screen, and completing setup a
-            // second time used to mint a fresh DEK over the live one — the
-            // guard in auth/encryption.js:setupSSOUserDEK now refuses that,
+            // second time would mint a fresh DEK over the live one — the
+            // guard in auth/encryption.js:setupSSOUserDEK refuses that,
             // but a loop that repeatedly asks the user to re-key their account
             // is not something to ship either.
             //
@@ -686,7 +686,7 @@ app.use('/api/modules', require('./routes/modulesFrontend'));
 // the SPA catch-all further down answers EVERY remaining path with index.html,
 // so a removed, mistyped or gated-away endpoint replied `200 text/html` to a
 // JSON client and the real failure surfaced as an unrelated parse error in the
-// browser. It also means every probe of a non-existent /auth/* path used to run
+// browser. It also means every probe of a non-existent /auth/* path would run
 // a CMS page lookup (a DB round-trip) before falling through. Scoped to the two
 // API prefixes so the CMS render, /share, /verify and static asset serving keep
 // their existing fallbacks untouched.

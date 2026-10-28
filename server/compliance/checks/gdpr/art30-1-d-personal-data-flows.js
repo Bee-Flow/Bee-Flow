@@ -41,7 +41,7 @@
  *
  * AND IT REPORTS ITS OWN COVERAGE. A per-source check only produces rows for
  * the subjects it can see, and the score is computed from the rows a sweep
- * produced: a check that quietly skipped half the workspace used to hand the
+ * produced: a check that quietly skipped half the workspace would hand the
  * Compliance Center a number computed over the other half, so the less anyone
  * had ever looked at, the greener the dashboard. `listCoverage()` (see the
  * COVERAGE section at the top of compliance/runner.js) hands the runner the

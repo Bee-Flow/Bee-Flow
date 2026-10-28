@@ -303,8 +303,8 @@ async function updateConversation(conversationId, messages, encryptionKey = /** 
 
     // ── New table write (Phase 4) ────────────────────────────────────────────
     // This table is what reads actually prefer once a conversation is migrated,
-    // so it is the one that has to carry the encryption. It previously took no
-    // key at all, which is why enabling encryption encrypted only the legacy
+    // so it is the one that has to carry the encryption. It must take the
+    // key: without one, enabling encryption would encrypt only the legacy
     // backup blob while every message stayed readable here.
     //
     // The key and the owner come from the ROW, not from whoever is asking. In a

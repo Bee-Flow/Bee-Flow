@@ -21,8 +21,8 @@ const { worded } = require('../../core/http/schemaParts');
 
 const CODE_TEXT = 'Enter the code from your authenticator app, or one of your recovery codes.';
 // A body that names no code at all is a malformed request, not a wrong code.
-// It used to be read as `undefined` and spent one of the five attempts on the
-// pending login — five typos of the key `code` destroyed mfaPending and sent
+// Reading it as `undefined` would spend one of the five attempts on the
+// pending login — five typos of the key `code` would destroy mfaPending and send
 // the user back to the password step with nothing to explain it.
 const VerifyLoginBody = z.object({
     code: worded(CODE_TEXT).trim().min(1, CODE_TEXT).max(64, CODE_TEXT),

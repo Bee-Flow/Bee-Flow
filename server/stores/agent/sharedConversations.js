@@ -123,8 +123,8 @@ async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
     // A re-key NEVER downgrades what is already on disk. We are only here
     // because the stored value WAS an envelope, so it is re-sealed as one
     // whenever a key exists — even if the CONVERSATION_META surface has since
-    // been switched off. Following the current surface flag instead meant that
-    // sharing or unsharing a thread rewrote a previously encrypted compaction
+    // been switched off. Following the current surface flag instead would mean that
+    // sharing or unsharing a thread rewrites a previously encrypted compaction
     // summary (conversation content) as plaintext at rest, triggered by an
     // action that is not a meta write of the user's own and with nothing said
     // about it anywhere. Reads are format-driven (isEnvelope), so the envelope

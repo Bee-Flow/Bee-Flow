@@ -76,7 +76,7 @@ function pickFilters(src) {
  * This exists because the failure modes here are all silent: a tracker that
  * never loads, a consent mode nobody satisfies, an internal URL the browser
  * cannot reach — every one of them presents as "the dashboard is empty", and
- * telling them apart used to mean reading source.
+ * telling them apart would mean reading source.
  */
 async function getDiagnoseHandler(req, res) {
     const checks = [];

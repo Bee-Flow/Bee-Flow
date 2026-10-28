@@ -5,7 +5,7 @@
  *
  * `compliancePhase.js` stayed self-referential on purpose: it reasons about
  * facts and is a pure function of them. This module is where those facts come
- * from, and every one of them replaces a guess the review used to make:
+ * from, and every one of them replaces a guess the review would otherwise make:
  *
  *   - personal data was decided from COLUMN NAMES. A column called "supplier"
  *     holding company names was reported as personal data; a column called

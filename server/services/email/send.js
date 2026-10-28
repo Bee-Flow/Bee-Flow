@@ -41,9 +41,9 @@ function senderDomain(email) {
 /**
  * Sanitise an outbound HTML body.
  *
- * This used to be five regexes over the string. That is fine against the
- * markdown renderer's own output — the only thing it ever saw — but the reply
- * editor now sends author-written HTML with pasted fragments in it, and a
+ * This is not five regexes over the string. That would be fine against the
+ * markdown renderer's own output — the only thing it sees — but the reply
+ * editor sends author-written HTML with pasted fragments in it, and a
  * regex that looks for `<script>` does not see `<img src=x onerror=…>` written
  * with a newline in the attribute, or `<svg><script>`, or a `<base>` that
  * silently reroutes every relative link in the message.

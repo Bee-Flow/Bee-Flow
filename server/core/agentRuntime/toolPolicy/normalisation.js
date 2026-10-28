@@ -165,7 +165,7 @@ function normaliseActions(appId, value, known, st) {
     }
     // NEVER "*". A value nobody can read is not a request for
     // everything: `{ actions: 'gmail_search' }` — one legacy client
-    // sending a bare string — used to come back as the whole of Gmail,
+    // sending a bare string — would come back as the whole of Gmail,
     // and `applyConfigValidation` then wrote that widening into the
     // row on the next PUT. Unreadable ⇒ no action granted, said out
     // loud, so the owner re-picks instead of silently getting more

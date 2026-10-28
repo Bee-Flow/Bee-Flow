@@ -13,8 +13,8 @@
  *
  * ── What a caller may send ──────────────────────────────────────────
  *
- * Every body and query is `.strict()` and typed, because each field used to
- * be read with a fallback that minted a DIFFERENT licence than the one asked
+ * Every body and query is `.strict()` and typed, because a field read
+ * with a fallback would mint a DIFFERENT licence than the one asked
  * for, under a 200 that said "License granted.":
  *
  *   - `scope` was `=== 'server' ? 'server' : 'organization'`, so 'Server'

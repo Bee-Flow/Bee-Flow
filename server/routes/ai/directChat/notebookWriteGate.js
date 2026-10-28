@@ -48,8 +48,8 @@ function evaluateNotebookWriteGate({ message, hasAttachment, notebookPanelOpen }
     const hasWriteIntent = WRITE_INTENT_RE.test(text);
 
     // Attachment Q&A shape: a short content question about a file. Privacy
-    // Shield tokenisation makes such answers look long, which used to steer
-    // the model into a tool-only notebook_write and surfaced to the user as
+    // Shield tokenisation makes such answers look long, which would steer
+    // the model into a tool-only notebook_write and surface to the user as
     // "Error generating response".
     if (hasAttachment && text.length < 80 && !hasWriteIntent) {
         return {

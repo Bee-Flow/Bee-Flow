@@ -138,11 +138,11 @@ function createAttachmentScanGate({ orgShield, conversationId, provider, userId,
 /**
  * The text that may actually leave the platform for a scanned attachment.
  *
- * Call sites used to write `scanned.action === 'tokenize' ? scanned.text :
- * <original>`, which quietly restored the full document on every non-tokenise
- * outcome. That is now wrong in a way that leaks: on an incomplete scan the
+ * Call sites must not write `scanned.action === 'tokenize' ? scanned.text :
+ * <original>`, which quietly restores the full document on every non-tokenise
+ * outcome. That is wrong in a way that leaks: on an incomplete scan the
  * scanner returns a TRUNCATED `text` under `action: 'pass'`, and falling back
- * to the original put the unchecked pages straight back into the prompt.
+ * to the original puts the unchecked pages straight back into the prompt.
  * Prefer whatever the scanner handed back; only fall back when it produced
  * nothing at all (shield disabled, empty input).
  * @param {{ text?: string | null } | null | undefined} scanned

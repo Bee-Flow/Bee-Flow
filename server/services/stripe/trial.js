@@ -77,10 +77,10 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
         }
     }
 
-    // BFSF-250: trial-started subscriptions previously never enabled
-    // automatic_tax, so they billed WITHOUT the 21% BTW breakdown forever —
-    // even after the trial converted to paid — while checkout-started
-    // subscriptions did tax correctly. Stripe rejects automatic_tax for
+    // Trial-started subscriptions must enable
+    // automatic_tax: without it they bill WITHOUT the 21% BTW breakdown forever —
+    // even after the trial converts to paid — while checkout-started
+    // subscriptions tax correctly. Stripe rejects automatic_tax for
     // customers without a valid address, so only set it when we have one
     // (consumer trials usually have no address source; they stay untaxed
     // until the Dashboard/ops backfill completes their address).

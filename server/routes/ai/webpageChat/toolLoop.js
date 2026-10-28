@@ -58,7 +58,7 @@ async function runToolLoop({
     // Per-turn read-set: tracks slots the AI called webpage_file_read on so
     // the read-before-edit guard can warn when an edit comes in cold.
     const readSlots = new Set();
-    // Post-generation validation bookkeeping (BFSF-222): extra files the
+    // Post-generation validation bookkeeping: extra files the
     // AI touched this turn + the framework as of the latest tool round, so
     // the end-of-turn validator knows what to scan. At most ONE repair
     // round per turn.

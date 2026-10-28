@@ -36,8 +36,7 @@
  *
  * 404 vs 403: a user with no role must not be able to tell a project they
  * cannot see from one that does not exist, so `requireProjectRole` returns 404
- * for "no role" and 403 only for "role too low". This mirrors what
- * routes/projects.js already did before this module existed.
+ * for "no role" and 403 only for "role too low". This mirrors routes/projects.js.
  *
  * No request schema lives here: this file declares no route and reads no
  * request. `req.body.projectId` below is a usage example.

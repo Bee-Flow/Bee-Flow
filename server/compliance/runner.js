@@ -28,8 +28,8 @@
  * no score. Rows of a framework that was later disabled stay in history and
  * are filtered at read time.
  *
- * One hanging evaluate() used to block the whole org sweep (and every org
- * after it — the scheduler runs orgs sequentially). Every evaluate() now races
+ * One hanging evaluate() would block the whole org sweep (and every org
+ * after it — the scheduler runs orgs sequentially). Every evaluate() races
  * a wall clock: past CHECK_TIMEOUT_MS the check is recorded as `fail` with the
  * timeout in its details, and the sweep moves on. listSubjects() and
  * listCoverage() race the same clock: a listing that times out is an
@@ -137,7 +137,7 @@ function _timeoutText(label) {
 }
 
 /**
- * THROWN ERRORS. A check's evaluate() reads the database, and since round 2
+ * THROWN ERRORS. A check's evaluate() reads the database, and since
  * several readers (observedOperators.fromActivityLog, the Art. 30 list
  * functions) rethrow instead of swallowing. The error's message never reaches
  * the result row, its details, the evidence chain or the log; only its class

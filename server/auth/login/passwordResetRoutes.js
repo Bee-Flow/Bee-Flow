@@ -23,8 +23,8 @@ const { worded } = require('../../core/http/schemaParts');
 
 const EMAIL_TEXT = 'Enter the e-mail address of the account you want to reset.';
 // The constant-200 contract below is unchanged: this only refuses a request
-// that names NO address, which used to be answered "success" while no mail was
-// ever attempted — a typo of the key `email` left the user waiting on an
+// that names NO address, which would otherwise be answered "success" while no mail
+// was ever attempted — a typo of the key `email` left the user waiting on an
 // e-mail nothing had been asked to send. The address FORMAT is deliberately
 // not checked: whether a given string could be an account here is exactly the
 // question this endpoint refuses to answer.
@@ -70,7 +70,7 @@ router.post('/forgot-password', forgotPasswordIpLimiter, forgotPasswordTargetLim
         const appPaths = require('../../utils/appPaths');
         // Point at the SPA login route, which reads `?reset=<token>` and shows the
         // "set new password" form (LoginPage.jsx). `/?reset=` lands on the marketing
-        // homepage, which ignores the param, so recovery silently dead-ends (BFSF-239).
+        // homepage, which ignores the param, so recovery silently dead-ends.
         //
         // Built through appPaths like the verification and invite redirects,
         // not by hand: this link sits in mailboxes for an hour at a time, and

@@ -6,7 +6,7 @@
  * Combines two signal sources:
  *   - PII detection (`server/core/privacy/piiDetection.js`), which also runs
  *     the org's own data types ("Your own data", core/privacy/customTypes);
- *     they replaced the separate custom-terms scan that used to live here
+ *     they stand in for a separate custom-terms scan
  *   - Provider classification (external vs. internal)
  *
  * And turns them into a single *action*:
@@ -184,10 +184,10 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
                 }
             } else if (piiResult === null || piiResult?.guardAbsent) {
                 // NOT the same as "clean". detectPii returns null when the
-                // guard is not installed at all, and this branch used to leave
-                // piiFailed false — so an org with the shield enabled, DLP
-                // enabled and fail_closed set shipped every message unmasked
-                // and reported scanStatus 'ok'. "No detector" and "no PII" are
+                // guard is not installed at all, and this branch must not leave
+                // piiFailed false — or an org with the shield enabled, DLP
+                // enabled and fail_closed set would ship every message unmasked
+                // and report scanStatus 'ok'. "No detector" and "no PII" are
                 // different answers and must not collapse into one.
                 // `guardAbsent` is the same answer from a scan that also ran
                 // the org's own words/patterns in Node: same failure, and its

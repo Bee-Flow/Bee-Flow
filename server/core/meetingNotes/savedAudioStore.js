@@ -248,7 +248,7 @@ async function repairSavedAudio({ id, ownerId, audioPath, audioStorageKey } = {}
  *
  * The durable copy is made BEFORE the note row exists, so every path that ends
  * without a row — a concurrent ingest winning the `source_uri` race, or the
- * INSERT itself failing — used to leave the local file and the object-storage
+ * INSERT itself failing — leaves the local file and the object-storage
  * object behind with nothing referencing them. Nothing cleans those up later:
  * the delete path finds them via the note row, and there is no note row. On a
  * duplicated Meet import that is one full recording orphaned per duplicate.

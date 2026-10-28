@@ -124,7 +124,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
     // widens" is load-bearing on THIS side, because what comes back is written
     // to the row, and it has two doors. A value the clamp cannot read (a bare
     // string where a list of actions belongs) grants nothing and says so in
-    // `warnings`, where it used to become `'*'` — the whole app, persisted, on
+    // `warnings`, never as `'*'` — the whole app, persisted, on
     // a client's typo. An app past the size bound does the same: it is kept as
     // `{actions: []}` rather than DROPPED, because a missing entry reads as
     // "every action of this app" to every reader in toolPolicy, so truncating
@@ -134,7 +134,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
     // and so a legacy editor that rebuilds `config` from a fixed field list
     // cannot silently resurrect a value the runtime would refuse.
     //
-    // Skipped entirely when there is no map: an agent from before this feature
+    // Skipped entirely when there is no map: an agent that predates the map
     // must not acquire one just by being saved.
     if (config.tools && typeof config.tools === 'object') {
         try {
@@ -189,11 +189,11 @@ function applyConfigValidation(config, validation) {
     }
     // The clamped map is written back WHOLE — including when it clamps to `{}`.
     //
-    // This used to keep the caller's raw map whenever the clamp emptied it, for
+    // Keeping the caller's raw map whenever the clamp empties it, for
     // fear that a stored `{}` would read as "someone has been through the
-    // picker". It does not: `hasCuratedGrants` asks the CONTENTS, and `{}` and
+    // picker", buys nothing: `hasCuratedGrants` asks the CONTENTS, and `{}` and
     // `{gmail:'nope'}` are the same nothing to every reader there is — grants,
-    // curation, confirm, actAs. So the guard bought nothing, and it cost the
+    // curation, confirm, actAs. And it costs
     // one thing the clamp is for: a REFUSED section (`datatables`, an
     // `automations` array, an entry that is not an object) empties the map, and
     // the raw value was then persisted verbatim — after which `GET /agents/:id`

@@ -10,7 +10,7 @@
  *   • "Refresh now"              (routes/studioAppConnectors.js)
  *
  * ── WHY THIS IS THE CHEAP PATH ──────────────────────────────────────
- * A connector binding used to mean one upstream call per viewer per paint. A
+ * A connector binding without a sync means one upstream call per viewer per paint. A
  * synced table means one call per REFRESH INTERVAL for the whole audience, and
  * the incremental tier narrows that further:
  *
@@ -560,7 +560,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         // have related every attachment to a ticket instead — quietly, since
         // both are valid record ids.
         //
-        // `?? 0` and not `?? level - 1`: every connector written before this
+        // `?? 0` and not `?? level - 1`: every connector written before parentLevel existed
         // declares no parentLevel and must keep relating to grain 0 exactly as
         // it did. Deeper nesting is opt-in.
         const recordIdsByLevel = { 0: primary.recordIdByRowIndex };

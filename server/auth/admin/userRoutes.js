@@ -19,11 +19,11 @@ const router = express.Router();
 const userStore = require('../../stores/userStore');
 const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole } = require('../permissions');
 const { rewrapUserDEKCompat, adminResetUser } = require('../encryption');
-// One password policy for every write path. These routes used to be the soft
-// underbelly: /change-password accepted 4 characters, and the admin create /
-// update paths hashed whatever they were handed with no check at all — so an
-// account provisioned or "reset" through the admin panel could carry a
-// one-character password while signup and password-reset enforced 8.
+// One password policy for every write path. Without it /change-password would
+// accept 4 characters and the admin create / update paths would hash whatever
+// they were handed — so an account provisioned or "reset" through the admin
+// panel could carry a one-character password while signup and password-reset
+// enforce 8.
 const { validatePassword } = require('../passwordPolicy');
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { checkResourceLimits } = require('../../core/entitlements/limits');
@@ -439,7 +439,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     }
 });
 
-// Reset a user's two-factor authentication (BFSF-274). Org admins over their
+// Reset a user's two-factor authentication. Org admins over their
 // own members (enforced by requireOrgAdminForUser) or super-admins. Clears
 // enrollment entirely; because `require_mfa_for_password_accounts` defaults
 // on, the user is forced to re-enroll at their next login — so this unlocks a

@@ -4,9 +4,9 @@
  *
  * The run reads paths with ONE grammar (shared/expr/path.mjs): `.name`,
  * `[0]`, `[-1]`, `[*]`, `["any key"]` and `[name="Subject"]`. A model writes
- * paths in a few other dialects too, and the builder used to "fix" them with
- * regexes that turned every bracket into a dot and then cut the path at the
- * first character outside [A-Za-z0-9_.$]. That destroyed every valid path
+ * paths in a few other dialects too, and the builder must not "fix" them with
+ * regexes that turn every bracket into a dot and then cut the path at the
+ * first character outside [A-Za-z0-9_.$]. That destroys every valid path
  * with an index, a wildcard or a quoted key (`value[0].from` became
  * `value.0.from`, `fields["Story Points"]` became `fields.Story`,
  * `order["price-with-tax"]` became `order.price`, a DIFFERENT field), and

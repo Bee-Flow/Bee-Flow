@@ -52,9 +52,8 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
 
     // Derive the beta-feature list AND the canUseFeature map from the ONE unified
     // resolver (the same resolveEntitlements that requireCapability enforces), so
-    // the SPA's UI gates agree with every API gate. Previously these were computed
-    // from a parallel resolver (getUserBetaFeatures + tier/grant math); that
-    // second path could drift, which is what made a page render while its API 403'd.
+    // the SPA's UI gates agree with every API gate. A parallel resolver
+    // (getUserBetaFeatures + tier/grant math) could drift, which is what made a page render while its API 403'd.
     let betaFeatures = [];
     /** @type {Record<string, boolean>} */
     const canUseFeature = {};

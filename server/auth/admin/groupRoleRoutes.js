@@ -382,7 +382,7 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
     }
 });
 
-// Reciprocal group→user membership management (BFSF-219). The forward
+// Reciprocal group→user membership management. The forward
 // user→group flow already existed (PUT /auth/users/:id with a `groups` array
 // from the Users tab); this lets an admin add/remove members directly from the
 // group view. Membership lives on the user's `groups` array, so we update the
@@ -639,11 +639,10 @@ router.delete('/roles/:id', requireSuperAdmin, async (/** @type {import('express
  * (server/config/orgRoles.json).
  *
  * It exists so the Organisation Roles screen can SHOW what a role grants
- * instead of describing it. That screen used to render a hand-written list in
- * the frontend's own config, which had drifted: it credited the Organisation
- * Admin with five permissions out of twenty-odd and mentioned no Studio section
- * at all, so the one page that answers "who in my organisation can use this"
- * answered it wrongly.
+ * instead of describing it. A hand-written list in the frontend's own config
+ * drifts from the resolver (it credited the Organisation Admin with five
+ * permissions out of twenty-odd and mentioned no Studio section), and the one
+ * page that answers "who in my organisation can use this" would answer it wrongly.
  *
  * Same audience and same reasoning as GET /roles above — an org admin needs it
  * to render their own roles page, and the payload is role ids and permission

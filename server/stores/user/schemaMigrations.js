@@ -193,7 +193,7 @@ const NC_CONNECTOR_COLUMNS = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "auto_provisioned" BOOLEAN DEFAULT FALSE`,
     `CREATE INDEX IF NOT EXISTS idx_users_nc_uid_org ON users ("organizationId", "nc_uid") WHERE "nc_uid" IS NOT NULL`,
 
-    // BFSF-286: provenance — how the organisation was registered. 'direct'
+    // Provenance — how the organisation was registered. 'direct'
     // (signup/OAuth wizard), 'admin' (admin panel), 'nextcloud_connector'
     // (connector bootstrap fresh-org). NULL = unknown/legacy (rendered as
     // "Unknown" in the admin UI so missing instrumentation stays visible).

@@ -6,7 +6,7 @@
  * Azure adapter (which extends it) stay in lock-step. The per-model FACTS now
  * live in ./openaiModels.js; this module turns them into request decisions.
  *
- * Why the split matters: these rules used to be regexes ("looks like GPT-5 →
+ * Why the split matters: these rules cannot be regexes ("looks like GPT-5 →
  * has a `minimal` tier", "only codex-max understands `xhigh`"). That held for
  * one generation. gpt-5.6 dropped `minimal` and made `xhigh`/`max` general;
  * gpt-6 additionally dropped `none` and rejects `temperature` outright. A regex
@@ -121,8 +121,8 @@ function clampEffort(model, effort) {
 /**
  * Build the Responses API `reasoning` object, or null for a model that takes
  * none — sending `reasoning` to a non-reasoning model is a 400, and since the
- * adapter now defaults to the Responses API for everything, that case is
- * reachable in a way it never used to be.
+ * adapter defaults to the Responses API for everything, that case is
+ * reachable.
  *
  * Only attaches `summary` when one was requested (`auto` by default,
  * `detailed` when explicitly asked) — never `concise`, which is rejected.

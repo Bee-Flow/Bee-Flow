@@ -19,7 +19,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
 // them itself and the cycle does not grow (lint:scc-ratchet). Lazy ones stay
-// lazy: the barrel passes a loader, called where the require used to be.
+// lazy: the barrel passes a loader, called at the point of use.
 let dispatchEmbedTexts = null;
 function wire(deps) {
     ({ dispatchEmbedTexts } = deps);
@@ -91,7 +91,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
 
     const client = await getClient();
     try {
-        // Issue #10: Set ef_search on THIS connection for better HNSW recall
+        // Set ef_search on THIS connection for better HNSW recall
         if (isPgvectorAvailable()) {
             await client.query('SET hnsw.ef_search = 100').catch((e) => bestEffort('core/kb/localSearch:searchLocally', e));
         }
@@ -118,7 +118,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
         results = fuseCandidates(cleanVecRows, cleanFtsRows, { query, topK });
         await expandContextWindow(client, results, filterOrphans);
     } finally {
-        // Issue #16 fix: release DB connection BEFORE reranker API call
+        // Release DB connection BEFORE reranker API call
         // The reranker is a pure HTTP call that doesn't need the DB.
         client.release();
     }
@@ -146,7 +146,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
     // Mark results as orphan-filtered so callers don't duplicate the work
     results._orphanFiltered = true;
 
-    // Issue #19: Attach search metrics for observability
+    // Attach search metrics for observability
     const totalMs = Date.now() - _searchStart;
     results._metrics = {
         latencyMs: totalMs,

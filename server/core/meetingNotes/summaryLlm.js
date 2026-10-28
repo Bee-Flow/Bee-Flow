@@ -26,7 +26,7 @@ const log = require('../../telemetry/log');
 const ACTION_ITEM_MAX_CHARS = 500000;
 
 // One budget for BOTH the original summary and regenerate-summary — the
-// regenerate route used to run at 4096 and truncated long meetings harder
+// regenerate route at 4096 would truncate long meetings harder
 // than the first pass did.
 const SUMMARY_MAX_TOKENS = 8192;
 
@@ -295,9 +295,9 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
             },
             {
                 role: 'user',
-                // Send the whole meeting. This used to cut at 80k chars ≈ 52
-                // minutes, so a 100-minute meeting yielded no action items at all
-                // from its second half — where the decisions usually land.
+                // Send the whole meeting. Cutting at 80k chars ≈ 52
+                // minutes would yield no action items at all for the second half of
+                // a 100-minute meeting — where the decisions usually land.
                 // generateMeetingSummary already sends the full transcript to
                 // this same tier and works, so the length is not the constraint.
                 content: transcript.length > ACTION_ITEM_MAX_CHARS

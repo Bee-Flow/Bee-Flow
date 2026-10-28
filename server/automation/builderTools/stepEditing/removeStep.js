@@ -10,11 +10,11 @@ const { BRANCHING_TYPES, listStepIds, findStepAnywhere } = require('../draftGrap
 /**
  * Which surviving steps still reference `id` in a binding.
  *
- * applyRemoveStep used to report a bare {removed} and bridge the edges, while
- * leaving every `steps.<id>.output.*` binding in the rest of the graph
- * pointing at a step that no longer exists. The breakage only surfaced a
+ * applyRemoveStep reports the bridged edges and also every
+ * `steps.<id>.output.*` binding left in the rest of the graph
+ * pointing at a step that no longer exists. Left unreported, the breakage only surfaces a
  * ROUND later, as a ref.unknown_step validation error, by which time the model
- * had usually moved on and had to backtrack. Reporting it in the result of the
+ * has usually moved on and has to backtrack. Reporting it in the result of the
  * call that caused it is what lets the model fix it immediately.
  *
  * Warn rather than refuse: removing a step and re-pointing its consumers is a

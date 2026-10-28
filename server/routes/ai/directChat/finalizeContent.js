@@ -32,7 +32,7 @@ function settleStreamedContent({ fullContent, streamContentFlush, displaySegment
     // the stream gets replaced via the live content channel.
     try { streamContentFlush(); } catch (err) { bestEffort('routes/ai/directChat/finalizeContent:settleStreamedContent', err); /* best-effort */ }
 
-    // BFSF-261: make persistence match the live view: join the earlier rounds'
+    // Make persistence match the live view: join the earlier rounds'
     // preamble text with the final round. Everything downstream (empty-check,
     // raw-payload capture, PII restore/content_replace, regex guard, save)
     // reads the joined content. The MODEL-facing history is untouched.

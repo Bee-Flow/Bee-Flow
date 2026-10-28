@@ -56,9 +56,9 @@ function stripToolCalls(msg) {
  * trim and the prompt's window agree on where the conversation starts, and
  * the cached prompt prefix is not moved by a byte-cap trim.
  *
- * This used to trim `snapshot.messages` — a key the automation builder never
- * wrote (it persists `conversation`), so the guard was a no-op that injected
- * an empty `messages: []` and left oversized snapshots oversized.
+ * It trims `conversation`, not `snapshot.messages` — a key the automation builder never
+ * writes; trimming that would be a no-op that injects
+ * an empty `messages: []` and leaves oversized snapshots oversized.
  */
 function trimSnapshot(snapshot, { block = 1 } = {}) {
     if (!snapshot) return null;

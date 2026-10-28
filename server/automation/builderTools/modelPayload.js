@@ -33,10 +33,10 @@ function bodyDigest(step) {
  *
  * A datatable step shows its op, table and value keys, and an extraction its
  * declared field names: the two steps the model chains most (extract → save
- * one row per file) are exactly the two whose echo used to be a bare
- * `{id, type}`. It had no way to confirm, from the echo, that the op it
+ * one row per file) are exactly the two whose echo would otherwise be a bare
+ * `{id, type}`, leaving the model no way to confirm, from the echo, that the op it
  * meant was stored, which table the step resolved to, or which field names
- * the next step may bind — so it re-inspected or guessed.
+ * the next step may bind — so it would re-inspect or guess.
  */
 function stepDigest(s) {
     const d = {
@@ -45,11 +45,11 @@ function stepDigest(s) {
         tool: s.tool || undefined,
         layerKey: s.type === 'call_layer' ? (s.layerKey || undefined) : undefined,
         forEach: s.forEach?.overRef ? `over ${s.forEach.overRef} as loop.${s.forEach.itemVar || 'item'}` : undefined,
-        // A loop's body steps used to be invisible in every model-facing
-        // view (this echo rendered only the loop itself, and the summary a
-        // bare count). The model was editing a structure it could not see,
-        // could not confirm its own writes against, and was told about only
-        // through validation errors naming `lb_…` ids it had never met.
+        // A loop's body steps are shown in every model-facing view: rendering
+        // only the loop itself, and a bare count in the summary, would leave the
+        // model editing a structure it cannot see,
+        // unable to confirm its own writes against it, and told about it only
+        // through validation errors naming `lb_…` ids it has never met.
         body: bodyDigest(s),
         label: s.label || undefined,
     };
@@ -104,12 +104,12 @@ function summariseDraftSteps(draft) {
 /**
  * The draft's real wiring, as `from→to(label)` per edge.
  *
- * A definition is a DAG, but every model-facing echo used to render it in
- * steps[] ARRAY order with no edges at all — so a fan-out (two steps both
+ * A definition is a DAG, so an echo that renders it in
+ * steps[] ARRAY order with no edges at all makes a fan-out (two steps both
  * hanging off one anchor) read to the model as a straight chain, and a step
- * that could never see another step's output looked like its direct
- * successor. The model then re-derived the topology from first principles on
- * every round, and guessed wrong. Cheap to carry: ~12 chars per edge.
+ * that can never see another step's output look like its direct
+ * successor. The model then re-derives the topology from first principles on
+ * every round, and guesses wrong. Cheap to carry: ~12 chars per edge.
  */
 function renderEdgeLine(draft) {
     /** @type {string[]} */
@@ -195,10 +195,10 @@ function compactSample(value, { maxArray = 1, maxDepth = 4, maxString = 120, max
  *
  * The FULL {run, steps} keeps flowing to the client (SSE `dryrun` event, and
  * `dryrun_started` before it so the canvas can follow the run live). What goes
- * back into the LLM context used to be every step's `outputHead` — a sample
+ * back into the LLM context is not every step's `outputHead` — a sample
  * of each output — which on a clean run is tokens the model reads only to
  * conclude "fine" (and in a dry run most of it is synthesised anyway:
- * `_dryRunSynthesised`). Owner, 2026-09-18: show the run, and hand the model
+ * `_dryRunSynthesised`). Owner decision: show the run, and hand the model
  * only what failed. So:
  *   - the `_hint` (output type, top-level keys, one-line shape) stays on EVERY
  *     step — it is the binding signal, and a missing column still shows as a

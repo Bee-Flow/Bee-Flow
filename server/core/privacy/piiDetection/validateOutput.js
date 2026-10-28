@@ -77,8 +77,8 @@ async function _tokenizeWithVault(inputText, entities, existingTokenMap, vaultUs
  * stores the detector's honest, unfiltered answer (see the cacheSet call in
  * validateInputForPii) so that two orgs sharing an entry cannot inherit each
  * other's policy — that only holds if the reading org's allowlist is applied on
- * the way OUT. The cache-hit branch used to skip it entirely, so an allowlisted
- * term was let through on the first send and hard-blocked (or tokenised) on an
+ * the way OUT. The cache-hit branch must not skip it, or an allowlisted
+ * term would be let through on the first send and hard-blocked (or tokenised) on an
  * identical send within the 5-minute TTL: enforcement decided by LRU state.
  *
  * @overload

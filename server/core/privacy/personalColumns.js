@@ -3,8 +3,8 @@
  * WHICH COLUMNS OF A TABLE HOLD PERSONAL DATA — asked once, answered in one
  * vocabulary, with a count behind every claim.
  *
- * The same question used to be answered in three places with three different
- * word lists, and they disagreed about the same table:
+ * The same question must not be answered in three places with three different
+ * word lists, which disagree about the same table:
  *
  *   - `playbooks/phases/compliancePhase.js` matched COLUMN NAMES against its
  *     own patterns and spoke in kinds ('email', 'id_number', 'supplier').
@@ -44,12 +44,12 @@
  *     could not look is the one thing this surface must never do.
  *
  * AND A COUNT, WHICH IS THE POINT OF SCANNING VALUES AT ALL. The value scan
- * used to join every sampled value of a column into one blob and ask the guard
- * once, so one stray address in a free-text notes column read exactly like a
- * column of two hundred addresses: both came back "personal data", with no
+ * does not join every sampled value of a column into one blob and ask the guard
+ * once: one stray address in a free-text notes column would read exactly like a
+ * column of two hundred addresses — both "personal data", with no
  * rate, no denominator and nothing a reviewer could weigh. Every commercial
  * scanner (Macie, Cloud DLP) reports a count over a sample for that reason, and
- * now so does this one: `sampled`, `matched`, `byKind` and `rate` say what was
+ * so does this one: `sampled`, `matched`, `byKind` and `rate` say what was
  * actually looked at.
  *
  * The count costs NO extra guard calls. The guard is a CPU-only sidecar and a

@@ -58,9 +58,9 @@ const RISKS = ['low', 'medium', 'high'];
  */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
-// A questionnaire is the assessment itself, so it cannot be blank. Every
-// answer used to be optional: one click on "Save assessment" with an empty
-// form recorded a DPIA and turned Art. 35 green. These three are the Art.
+// A questionnaire is the assessment itself, so it cannot be blank. No
+// answer may be optional: one click on "Save assessment" with an empty
+// form would record a DPIA and turn Art. 35 green. These three are the Art.
 // 35(7) facts the form asks for in words; `automated_decisions` is a toggle,
 // so `false` is an answer. An attestation records that the assessment exists
 // elsewhere and carries no answers.

@@ -135,7 +135,7 @@ const ListQuery = z.object({
     triggerEvent: worded(EVENT_TEXT).trim().min(1, EVENT_TEXT).optional(),
 }).strict().refine((q) => q.triggerEvent === undefined || q.triggerProvider !== undefined, {
     // An event belongs to a provider, so on its own it narrows nothing — and
-    // the answer to a narrowing parameter that narrows nothing used to be the
+    // the answer to a narrowing parameter that narrows nothing is the
     // caller's WHOLE list. That is the failure appEventTriggersOf guards
     // against, arriving through the other half of the filter.
     path: ['triggerEvent'],
@@ -479,16 +479,16 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (/** @type {i
     if (req.body.folderId !== undefined) updates.folderId = await folderIdForUpdate(req.body.folderId, await orgOf(req));
 
     // Test on `!== undefined`, NOT truthiness: line 199 already copied the
-    // field in on `!== undefined`, so a null/falsy definition used to skip
+    // field in on `!== undefined`, so a null/falsy definition would skip
     // validation here and still reach the store, which coerced it to `{}`.
     // That empty object then read back as truthy and defeated every
     // `def || seed` guard in the builder, producing the trigger-only
-    // definition behind "'steps' must be an array" (BFSF-318).
+    // definition behind "'steps' must be an array".
     // Draft stage: only INTEGRITY problems block a save. Completeness
     // problems (an unwired If branch, a tool input not filled in yet) come
-    // back as warnings so the user can keep building — a save used to be
+    // back as warnings so the user can keep building — a save must not be
     // blocked by any incomplete node ANYWHERE in the flow, because the node
-    // inspector PUTs the whole definition (BFSF-323). Activation still runs
+    // inspector PUTs the whole definition. Activation still runs
     // the full strict pass, so nothing broken can go live.
     let saveWarnings = [];
     if (updates.definition !== undefined) {
@@ -502,7 +502,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (/** @type {i
         saveWarnings = v.warnings;
         // An ACTIVE automation without a separate live version runs this very
         // working copy, so a save is a go-live: refuse hand-written pins here
-        // exactly as activation does (BFSF-452). With a live version the
+        // exactly as activation does. With a live version the
         // publish step re-checks.
         if (existing.isActive && !hasLive) {
             const pins = require('../../automation/portability').collectPinnedNodes(updates.definition);
@@ -523,7 +523,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (/** @type {i
     // The scheduler claims rows by `trigger_type = 'schedule'` + the
     // schedule_cron/tz columns, never by reading the JSON — but the visual
     // editor only ever sends `definition`, so a schedule configured in the
-    // node panel left trigger_type at 'manual' and never fired (BFSF-318).
+    // node panel left trigger_type at 'manual' and never fired.
     // The AI builder already does this in builderTools.persistDraft.
     // An explicit column in the request still wins (the JSON view sends
     // them directly).

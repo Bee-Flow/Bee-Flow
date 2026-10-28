@@ -2,7 +2,7 @@
  * builder_update_step — the position and branch-wiring keys of a patch
  * (afterStepId/branch/caseName, thenStepId/elseStepId), applied BEFORE the
  * per-type allow-list. Moved out of applyUpdateStep (stepEditing.js); the
- * body is verbatim, the function returns what the caller used to assign.
+ * body is verbatim, the function returns what the caller assigns.
  *
  * Returns { error } (refused), { result } (a move-only patch: the update's
  * answer), or { patch, moved, found } (the rest of the patch; `found` is the

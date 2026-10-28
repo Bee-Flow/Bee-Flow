@@ -20,7 +20,7 @@ const { entrySig, shellSig } = require('./batchIdentity');
 // unknown PROP and STYLE keys beautifully ("Dropped unknown prop keys: …") but
 // never sees entry-level keys, because buildComponentNode hands it the node it
 // built, not the entry — so `computed`, `onClick` or a typo'd `visibleIf`
-// used to vanish with the call still reporting success. Diffed below, in the
+// would vanish with the call still reporting success. Diffed below, in the
 // canonicalizer's own wording.
 const COMPONENT_ENTRY_KEYS = ['type', 'props', 'style', 'children', 'tempId', ...NODE_AUTHORABLE_FIELDS];
 const COMPONENT_ENTRY_KEY_SET = new Set(COMPONENT_ENTRY_KEYS);

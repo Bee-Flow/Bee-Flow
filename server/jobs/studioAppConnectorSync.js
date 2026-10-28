@@ -31,8 +31,8 @@ const MAX_PER_TICK = parseInt(process.env.STUDIO_APP_SYNC_PER_TICK, 10) || 20;
 /**
  * How many due syncs run at once.
  *
- * This loop used to be strictly serial, so one slow upstream (a Graph call that
- * takes ten seconds) delayed every other connector behind it in the same tick.
+ * This loop is not strictly serial: otherwise one slow upstream (a Graph call that
+ * takes ten seconds) would delay every other connector behind it in the same tick.
  * With mailbox connectors polling every two minutes that head-of-line blocking
  * becomes the difference between "live" and "stuck". Each row is still claimed
  * individually by syncConnector, so running several at once is safe.

@@ -78,8 +78,8 @@ function httpError(status, message, code) {
  * Moved here from routes/projects.js unchanged, so the whole-array replace on
  * `PUT /api/projects/:id` and the single-id move on `PUT /:id/resources` apply
  * ONE rule. Its history is the reason it is worth keeping in one piece: the
- * check used to be "the row exists" plus a string compare on organization_id,
- * which let three different things through —
+ * A check of "the row exists" plus a string compare on organization_id
+ * lets three different things through —
  *
  *   - another member's UNPUBLISHED draft KB (is_published was never consulted)
  *   - a shared_groups-restricted KB the linker is not a member of

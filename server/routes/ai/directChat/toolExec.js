@@ -5,9 +5,8 @@
  * Extracted byte-identically from the two duplicated tool-execution blocks in
  * routes/ai/directChat.js (the non-streamed pre-check loop and the streamed
  * tool loop). Every guard here (DLP token restore, web-search regex/PII guard,
- * guardrail audit events, integration-activity PII scan) used to exist in two
- * drifted copies; a guard fix now lands once. The historical drift between the
- * copies is PARAMETERIZED via `ctx.streamed` — never silently reconciled:
+ * guardrail audit events, integration-activity PII scan) exists once, so a guard fix lands once. The historical drift between the
+ * two original copies is PARAMETERIZED via `ctx.streamed` — never silently reconciled:
  *   - toolName fallback (`|| toolCall.name`) exists only on the pre-check path
  *   - log strings say "streamed" on the streamed path
  *   - the returned tool message encodes string results differently per path
@@ -15,9 +14,9 @@
  * Reconciliation with core/agentRuntime/chatStream.js is deferred to item M1.
  *
  * [PERF] makeTierToolParamsGetter memoizes the per-tool-call
- * `direct_chat_tier_tool_params` config read once per request (it used to be
- * one awaited configStore.getConfig per tool call; configStore's own cache
- * bounded staleness to 60s — the per-request memo is strictly narrower).
+ * `direct_chat_tier_tool_params` config read once per request (one awaited configStore.getConfig per tool call would
+ * otherwise be needed; configStore's own cache bounds staleness to 60s — the
+ * per-request memo is strictly narrower).
  */
 // @typecheck
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
@@ -54,7 +53,7 @@ function compactToolResultForLLM(toolResult) {
     if (toolResult._action === 'workspace_update' && toolResult.message) {
         return { action: 'notebook_updated', message: toolResult.message };
     }
-    // BFSF-208: keep the (potentially large) revert content out of the LLM context.
+    // Keep the (potentially large) revert content out of the LLM context.
     if (toolResult._nbWriteFailed) {
         const { _nbWriteFailed, _revertContent, ...rest } = toolResult;
         return rest;
@@ -106,7 +105,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the
-    // [email_1] placeholder (BFSF-171). Search queries keep their
+    // [email_1] placeholder. Search queries keep their
     // tokens so PII isn't leaked to external search providers.
     if (!/^(agent_search|web_search|search|brave_search|browse_web|read_url)$/i.test(toolName || '')) {
         try {
@@ -115,7 +114,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         } catch (err) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall#2', err); /* best-effort */ }
     }
 
-    // Notebook-write gate (BFSF-169). Enforced here rather than by removing
+    // Notebook-write gate. Enforced here rather than by removing
     // the tools from the turn's tool list, so the tool list — and therefore the
     // provider's cached prompt prefix — stays stable across the conversation.
     // See ./notebookWriteGate.js.
@@ -135,7 +134,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     ctx.send('tool_start', { name: toolName, args: toolArgs });
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"), the
-    // same check the agent tool loop runs (BFSF-354). Args hold real values
+    // same check the agent tool loop runs. Args hold real values
     // here for every tool except web search, which keeps its tokens.
     const _piiGate = await _checkToolPiiPolicy(toolName, toolArgs, ctx);
     if (_piiGate) {
@@ -459,7 +458,7 @@ function makeStreamCallback(opts) {
             }
             // Restore PII tokens in the reasoning before it reaches the client —
             // the thinking panel is user-visible, so placeholder tokens like
-            // [email_1] must be reversed just like content (BFSF-253). Accumulated
+            // [email_1] must be reversed just like content. Accumulated
             // part.text stays raw; the full text is restored again at persist time.
             send('thinking', { text: streamUntok.restore(data.text), partId: data.partId });
         } else if (type === 'thinking_signature') {

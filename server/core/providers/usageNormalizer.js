@@ -2,11 +2,11 @@
 /**
  * One normaliser for what a provider reports as token usage.
  *
- * Every adapter used to translate its own provider's usage block (or, on the
- * non-streaming Claude and Gemini paths, did not translate it at all and handed
+ * Adapters must not each translate their own provider's usage block (or, on the
+ * non-streaming Claude and Gemini paths, skip it and hand
  * the raw block to callers that only read `prompt_tokens` / `completion_tokens`,
- * which logged those calls as zero tokens at zero cost with the cache lost).
- * Everything now goes through `normalizeUsage`, and every consumer that writes
+ * which would log those calls as zero tokens at zero cost with the cache lost).
+ * Everything goes through `normalizeUsage`, and every consumer that writes
  * a usage row reads the one shape below.
  *
  * Normalised shape (all counts are non-negative integers):

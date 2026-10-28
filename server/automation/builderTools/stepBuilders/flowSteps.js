@@ -142,9 +142,9 @@ function applyAddLoop(draft, args, draftWrap) {
         let fixed = { ...child };
         // A loop body step is a FLAT step object. builder_add_steps top-level
         // entries are {type, spec} — the opposite — and a model that has
-        // internalised that rule applies it here too. This used to be accepted
-        // silently: `spec` is a field no step type has, so the child was stored
-        // inert and the failure surfaced a round later as
+        // internalised that rule applies it here too. Accepted silently, `spec`
+        // (a field no step type has) would leave the child stored
+        // inert, and the failure would surface a round later as
         // `integration_action.tool_missing` on an `lb_…` id the model had never
         // been shown. Reject it here, where the cause is still visible.
         if (fixed.spec && typeof fixed.spec === 'object' && !Array.isArray(fixed.spec)) {
@@ -162,9 +162,9 @@ function applyAddLoop(draft, args, draftWrap) {
             return null;
         }
         // Resolve `steps.$handle` against EARLIER body steps now, where the
-        // cause is visible. Before this the ref was stored verbatim and failed
+        // cause is visible. Stored verbatim, the ref fails
         // a round later as ref.unknown_step on an auto-minted lb_… id the model
-        // had never seen — a repair round per loop, in every measured build.
+        // has never seen — a repair round per loop, in every measured build.
         let missing = null;
         fixed = rewriteTempRefs(fixed, handles, (t) => { missing = missing || t; });
         if (missing) {
@@ -217,16 +217,16 @@ function applyAddLoop(draft, args, draftWrap) {
  * (validate/stepRules/branchingRules.js) — it parses `c.expr` through the
  * restricted grammar, and the runtime evaluates it (execControl.switchCaseRule).
  *
- * Both paths used to rebuild a case as `{ name: c.name, value: c.value }`,
- * which DROPPED `expr`. So the rule-style switch the canvas editor writes —
- * every output carrying its own condition — could not be built by the AI at
- * all (it arrived as `{name, value: undefined}`), and any builder_update_step
- * patch that touched `cases` silently erased the author's expressions. That is
- * the same class of loss BFSF-356 fixed on the client side, where
- * routeModel.js now persists `routeStyle` for exactly this reason.
+ * Both paths must keep `expr` when they rebuild a case, not only
+ * `{ name: c.name, value: c.value }`: dropping it means the rule-style switch the
+ * canvas editor writes — every output carrying its own condition — cannot be
+ * built by the AI at all (it arrives as `{name, value: undefined}`), and any
+ * builder_update_step patch that touched `cases` silently erases the author's
+ * expressions. That is the same class of loss as on the client side, where
+ * routeModel.js persists `routeStyle` for exactly this reason.
  *
  * Keys are still rebuilt, never merged — the discipline the rest of this file
- * keeps — but the rebuild now includes the two the engine actually reads, and
+ * keeps — but the rebuild includes the two the engine actually reads, and
  * omits whichever is absent so the stored shape stays clean.
  */
 function sanitizeSwitchCases(cases) {

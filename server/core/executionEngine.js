@@ -18,7 +18,7 @@ const COMPONENT_EXTRA_ENV = Object.freeze(['NODE_EXTRA_CA_CERTS', 'ATTACHMENTS_D
  * The environment a component's index.js runs with.
  *
  * A component is a directory of code (until 2026-10 it could be written from a
- * request). It used to be spawned with `env: process.env`, which handed
+ * request). It must not be spawned with `env: process.env`, which hands
  * that code every
  * secret the server holds (MASTER_ENCRYPTION_KEY, DATABASE_URL,
  * OPAQUE_SERVER_SETUP, provider API keys, licence and session secrets). A
@@ -303,7 +303,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
 
 /**
  * Wall-clock limit for one component run. A component that hangs (an endless
- * loop, a socket that never answers) used to keep its workflow, and the chat
+ * loop, a socket that never answers) would keep its workflow, and the chat
  * turn or HTTP request awaiting it, pending forever. Generous on purpose: the
  * bundled components that fetch the web (website-sitemap-fetcher walks nested
  * sitemaps with a per-request timeout of its own) finish far inside it.

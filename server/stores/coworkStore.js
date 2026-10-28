@@ -262,8 +262,8 @@ async function deleteUserSchedules(userId) {
  * Un-pause everything this user's expired integration took down, i.e. rows
  * left inactive with last_status='needs_reauth'. Called from the OAuth
  * callbacks once they have reconnected; the runner picks them up on the next
- * minute tick. Mirrors aiTaskStore.resumeNeedsReauthForUser — cowork was never
- * wired into that path, so a reconnected user's schedules stayed paused for
+ * minute tick. Mirrors aiTaskStore.resumeNeedsReauthForUser — cowork must be
+ * wired into that path, or a reconnected user's schedules stay paused for
  * good. Returns how many were resumed.
  * @param {string} userId
  */

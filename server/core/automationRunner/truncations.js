@@ -3,9 +3,9 @@
  * What a run says about an iteration cap that cut a list short.
  *
  * A Loop or a "run once per item" step stops at `maxIterations` (default 100,
- * platform ceiling 1000). The tail used to be dropped with the run finishing
- * green; the only trace was `truncated`/`totalItems` inside the step output.
- * Now the cut also lands in the run's warnings and in the run summary
+ * platform ceiling 1000). The tail is dropped, and the run must not finish
+ * silently green; `truncated`/`totalItems` inside the step output is not enough.
+ * The cut also lands in the run's warnings and in the run summary
  * ("1 step stopped at its iteration cap: s1 processed 100 of 250 items"), the
  * same two places a mapping that found nothing is reported (bindingMisses.js).
  *

@@ -63,9 +63,9 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     const chatMode = ['ask', 'auto', 'plan'].includes(rawChatMode) ? rawChatMode : 'auto';
 
     // Accept attachment-only turns (e.g. pasting an image with no text) — mirrors
-    // the direct-chat guard. Previously an empty `message` 400'd before the SSE
-    // stream opened, which the client surfaced as "Error generating response."
-    // even though the image was valid (BFSF-189).
+    // the direct-chat guard. An empty `message` must not 400 before the SSE
+    // stream opens, which the client surfaces as "Error generating response."
+    // even though the image was valid.
     if (!message && (!Array.isArray(attachments) || attachments.length === 0)) {
         return res.status(400).json({ error: 'Message or attachments required' });
     }
@@ -131,7 +131,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     // and on a single-slot local model the next message queued behind an answer
     // nobody wanted. The keep-alive holds the stream warm through the NC AppAPI
     // proxy during long, silent webpage builds so it isn't idle-timed-out into
-    // a 504 (BFSF-221).
+    // a 504.
     const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'WebpageChat' });
 
     if (modelTier === 'auto') {
@@ -144,7 +144,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
 
     try {
         // The turn's Privacy Shield: attachment scanning below, and the tool
-        // block lists on the injected passages and in the tool loop (BFSF-354).
+        // block lists on the injected passages and in the tool loop.
         const { resolveShieldFor: _resolveShieldFor } = require('../../core/privacy/orgShield');
         const _psShield = await _resolveShieldFor({ orgId: userOrgForTiers, userId }).catch((e) => fallback('routes/ai/webpageChat:anon', e, null));
         const toolPiiGate = require('../../core/privacy/toolPiiGate');

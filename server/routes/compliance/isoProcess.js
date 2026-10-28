@@ -140,7 +140,7 @@ const RiskPatch = bodyOf({
     likelihood: scale('likelihood').optional(),
     impact: scale('impact').optional(),
     // 'accepted' stamps who accepted it and writes an evidence row; a value
-    // outside this list used to leave the status alone and skip both.
+    // outside this list must not leave the status alone and skip both.
     status: oneOf('status', RISK_STATUSES).optional(),
 });
 const TreatmentBody = bodyOf({
@@ -166,7 +166,7 @@ const AuditPatch = bodyOf({
 const FindingBody = bodyOf({
     description: need('description', 4000),
     // The severity decides whether this finding can be raised as a
-    // nonconformity at all — an unrecognised one used to land as
+    // nonconformity at all — an unrecognised one must not land as
     // 'observation', which cannot.
     severity: oneOf('severity', FINDING_SEVERITIES).optional(),
     control_ref: text('control_ref', 120),
@@ -248,7 +248,7 @@ const OBLIGATION_FIELDS = {
         .int('recur_months is a number of months, 1 to 120.')
         .min(1, 'recur_months is a number of months, 1 to 120.')
         .max(120, 'recur_months is a number of months, 1 to 120.').nullish(),
-    // Days before the due date to remind. An unusable list used to be
+    // Days before the due date to remind. An unusable list must not be
     // replaced by the default tiers without a word.
     notify_offsets: z.array(
         z.number({ error: typeError({ invalid: 'notify_offsets is a list of whole days, 0 to 365.' }) })
@@ -268,7 +268,7 @@ const CreateObligation = bodyOf({
 const ObligationPatch = bodyOf({
     ...OBLIGATION_FIELDS,
     title: need('title', 300).optional(),
-    // An unreadable date used to reach `new Date(...)` and take the row's
+    // An unreadable date must not reach `new Date(...)` and take the row's
     // reminder tiers with it.
     due_at: worded('due_at must be a date.').trim().refine((v) => !Number.isNaN(Date.parse(v)), 'due_at must be a date.').optional(),
 });

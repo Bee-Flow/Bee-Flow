@@ -12,11 +12,11 @@ const { dep } = require('./permissionsDeps');
 /**
  * The Microsoft scope set, in ONE place.
  *
- * It used to be a string literal copied into three files (this one, the vault
+ * Not a string literal copied into several files (this one, the vault
  * refresh in auth/automationAuth.js and the session refresh in
  * integrations/msGraphClient.js). A refresh that re-requests fewer scopes than
- * were granted silently downgrades the token, so every copy that fell out of
- * date was a grant quietly losing capabilities on its next refresh.
+ * were granted silently downgrades the token, so every copy that falls out of
+ * date is a grant quietly losing capabilities on its next refresh.
  */
 const MICROSOFT_SCOPES = Object.freeze([
     'openid', 'email', 'profile', 'User.Read',

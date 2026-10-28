@@ -63,7 +63,7 @@ const RECORD_DISPLAY_SPECS = {
              * being over the real target reads as exactly on it.
              *
              * A bare number still works: canonicalize wraps it as
-             * { kind:'static', value: n }, so every app saved before this keeps
+             * { kind:'static', value: n }, so every app saved with a bare number keeps
              * its ceiling with no migration.
              */
             max: { type: 'binding', default: { kind: 'static', value: 100 } },

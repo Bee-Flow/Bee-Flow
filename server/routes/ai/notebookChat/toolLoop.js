@@ -82,7 +82,7 @@ function buildChatOptions({ tiers, resolvedTier, requestedEffort }) {
         // Pass an explicit reasoning effort. Without it, Claude 4.x adaptive
         // thinking defaults to 'medium' and can burn the entire (fast-tier,
         // 4096-token) budget on thinking, ending the stream with EMPTY content
-        // and no document edit — the "stuck in reasoning" symptom (BFSF-177).
+        // and no document edit — the "stuck in reasoning" symptom.
         reasoningEffort: requestedEffort || tierSettings.reasoningEffort || tierDefaults.reasoningEffort || 'low',
     };
     // Give thinking + answer headroom so a low tier doesn't share a tiny pot.
@@ -130,8 +130,8 @@ function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId
                     log.info(`[NotebookChat] turn aborted — discarding AI doc write for ${notebookId}`);
                     return { ...r, _aborted: true };
                 }
-                // PERSIST the AI's edit (an AI-written document used to live
-                // only in the browser editor and was lost on refresh), but
+                // PERSIST the AI's edit (an AI-written document that lives
+                // only in the browser editor is lost on refresh), but
                 // only over the version the page had: never blindly over a
                 // newer save by the user or a colleague.
                 let saved;
@@ -307,7 +307,7 @@ async function runToolLoop({
         // currentDocMd) and persist to the DB; running them concurrently lets a
         // notebook_doc_read batched alongside a notebook_doc_write observe the
         // document before the write commits, so the agent "can't read what it
-        // just wrote" (BFSF-234). Sequential execution makes each tool see the
+        // just wrote". Sequential execution makes each tool see the
         // committed result of the previous one. Order is preserved, so the
         // tool_call_id ↔ result mapping the model expects is unchanged.
         const toolResults = [];
@@ -327,7 +327,7 @@ async function runToolLoop({
                 return (Object.keys(m).length && typeof s === 'string') ? _rt(s, m) : s;
             };
             send('tool_start', { name: toolName, args: untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId) || {}) });
-            // Privacy Shield tool block lists (BFSF-354), on the values the
+            // Privacy Shield tool block lists, on the values the
             // call carries: real ones for every tool the notebook restores
             // (document writes, new sources), the tokens a web search keeps.
             // The same split direct chat makes.
@@ -376,7 +376,7 @@ async function runToolLoop({
             }
             send('tool_end', { name: toolName, result: _restoreView(resultStr).slice(0, 800) });
             // What the model reads, with the categories this tool's class
-            // forbids stripped out (BFSF-354).
+            // forbids stripped out.
             toolResults.push({ role: 'tool', tool_call_id: toolCall.id, content: await shieldGate.forModel(resultStr, toolName) });
         }
         messages.push(...toolResults);

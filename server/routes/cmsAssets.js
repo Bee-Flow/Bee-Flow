@@ -45,7 +45,7 @@ function matchesEtag(header, etag) {
 // hero/feature/logo case; image/gif + image/apng + image/webp cover animated
 // graphics; video/mp4 + video/webm cover the "silent loop" video kind used by
 // Media + Text. Anything outside the list is rejected as 400 by the wrapper
-// middleware below (NOT 500 — fileFilter errors used to bubble up uncaught and
+// middleware below (NOT 500 — a fileFilter error would otherwise bubble up uncaught and
 // surface as a generic Internal Server Error).
 //
 // SVG is accepted, but only after server-side sanitization (see

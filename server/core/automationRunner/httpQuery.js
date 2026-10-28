@@ -2,7 +2,7 @@
  * Structured query parameters of an http_request step (`step.query`).
  *
  * Why this exists: an API such as `?builder[0][orderByDesc]=created_at&…` wants a
- * nested query, and the only way to send one used to be to hand-encode it into
+ * nested query, and the only other way to send one is to hand-encode it into
  * the URL, with every dynamic part (domain, page size) frozen into the text.
  * A step now describes the parameters as data and the runner serialises them
  * after its bindings are resolved:

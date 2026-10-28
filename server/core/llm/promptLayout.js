@@ -75,7 +75,7 @@ function placeVolatileBlock(messages, volatileMessage) {
  *
  * For a provider outside the safe set — or after a mid-turn adapter swap to
  * one — the assembly-time shape `[stable, volatile, …]` is the one every
- * adapter already handled before this module existed. Same in-place,
+ * adapter already handles. Same in-place,
  * by-reference, idempotent contract as placeVolatileBlock.
  */
 function hoistVolatileBlock(/** @type {unknown} */ messages, /** @type {unknown} */ volatileMessage) {

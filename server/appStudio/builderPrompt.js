@@ -590,7 +590,7 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, op
         //
         // The line carries the FACTS (kind, mode); the doctrine — never seed,
         // never re-field, no dataset, read means no writes — is the LINKED
-        // TABLES bullet of both system prompts. It used to be repeated here
+        // TABLES bullet of both system prompts. It is not repeated here
         // per table, ~200 chars per linked table per turn, on the one message
         // the prefix cache never covers.
         const info = linkedTables instanceof Map ? linkedTables.get(t.id) : null;

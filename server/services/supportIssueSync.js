@@ -76,8 +76,8 @@ async function latestComment(creds, issue) {
 /**
  * The snapshot a new link starts from, read the way a sync tick reads it.
  *
- * Linking used to store the state and no comment, so the first tick after it
- * saw "no comment before, one now" and flagged a follow-up for a comment that
+ * Linking must not store the state and no comment, or the first tick after it
+ * sees "no comment before, one now" and flags a follow-up for a comment that
  * could be weeks old (BFSF-446). Taking the comment baseline here, and the
  * state through the same stateLabel the tick uses, makes that first tick
  * compare like with like. When the comment read fails the link stays

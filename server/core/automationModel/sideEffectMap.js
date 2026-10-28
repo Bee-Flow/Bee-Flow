@@ -13,9 +13,9 @@
  * **Keep this complete.** Every tool of every app in `ALL_TOOL_APPS`
  * (automation/toolRegistry.js — TOOL_REGISTRY *plus* the inline-injected apps)
  * MUST be listed in exactly one of READ_ONLY / SIDE_EFFECTS below —
- * sideEffectMap.test.js enforces it. The test used to walk TOOL_REGISTRY only,
- * so the nine tools A2-1 added to the shared list (browse_web, notebook_*,
- * regex_*) fell outside exactly the check this paragraph promises. An unclassified read is not harmless:
+ * sideEffectMap.test.js enforces it. The test walks the shared list as well as TOOL_REGISTRY,
+ * since the nine tools A2-1 added to the shared list (browse_web, notebook_*,
+ * regex_*) fall outside exactly the check this paragraph promises. An unclassified read is not harmless:
  * the fail-closed default silently SIMULATES it in dry-runs, so the builder
  * plans against fake sample data instead of the user's real data (this is
  * exactly how AFAS/NMBRS/n8n reads regressed before the test existed).

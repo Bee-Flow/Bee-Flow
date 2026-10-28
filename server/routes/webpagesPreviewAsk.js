@@ -202,7 +202,7 @@ async function dispatchAskTool(ask, toolCall) {
         role: 'tool',
         tool_call_id: toolCall.id,
         // What the model reads, with the categories this tool's class
-        // forbids stripped out (BFSF-354).
+        // forbids stripped out.
         content: await shieldGate.forModel(typeof compact === 'string' ? compact : JSON.stringify(compact), toolName),
     };
 }

@@ -1,6 +1,6 @@
 // @typecheck noImplicitAny
 /**
- * Google Workspace connector routes (BFSF-255) — mounted at
+ * Google Workspace connector routes — mounted at
  * /api/integrations/google.
  *
  * Before this, Google tokens ONLY existed as a by-product of Google-SSO
@@ -127,8 +127,8 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
     const userId = req.session?.user?.id;
 
     // One-shot: the state/verifier pair must not survive this request whatever
-    // the outcome. Previously they were only deleted on success, so a failed
-    // attempt left a replayable pair in the session for its whole lifetime.
+    // the outcome. Deleting them only on success would leave a replayable pair
+    // in the session for its whole lifetime after a failed attempt.
     const expectedState = req.session.googleConnectState;
     const codeVerifier = req.session.googleConnectVerifier || '';
     const storedRedirectUri = req.session.googleConnectRedirectUri;

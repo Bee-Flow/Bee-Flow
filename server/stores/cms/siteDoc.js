@@ -17,8 +17,8 @@ const { revOf } = require('./revision');
  * @param {any} v a private copy of the stored SiteDoc
  */
 function migrateSite(v) {
-    // Lazy v1 → v2 migration: pages used to auto-merge into the header
-    // nav at render time. That merge was removed; without a one-shot
+    // Lazy v1 → v2 migration: pages no longer auto-merge into the header
+    // nav at render time; without a one-shot
     // seed, existing live sites would lose their visible nav after the
     // deploy. Seed header.nav from the current page list — but only when
     // the user hasn't customised nav already (empty array or unset). Once

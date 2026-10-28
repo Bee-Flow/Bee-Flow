@@ -22,7 +22,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 
 const ALL_TEXT = 'all is one of: 1, 0, true, false.';
-/** `?all=yes` used to read as "only the relevant ones", quietly. */
+/** `?all=yes` must not read as "only the relevant ones", quietly. */
 const CalendarQuery = z.object({
     all: z.enum(['1', '0', 'true', 'false'], { error: () => ALL_TEXT }).optional(),
 }).strict();

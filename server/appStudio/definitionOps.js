@@ -132,7 +132,7 @@ function setVariables(def, variables) {
  * Open (or close) a PUBLIC entry point on the app: the screens an anonymous
  * visitor may open at /p/<token>. Passing null closes it, and the key goes away
  * entirely — an app that never opted in must serialise byte-identically to
- * before this feature existed (the design/nav/variables precedent).
+ * the feature existed (the design/nav/variables precedent).
  *
  * Shape validation and screen-id resolution belong to canonicalize.js +
  * appStudio/publicAccess.js; this is only the write.

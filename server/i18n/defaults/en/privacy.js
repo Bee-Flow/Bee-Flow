@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
-    // ── Personal Privacy Shield (BFSF-289 / BFSF-291) ───────────
+    // ── Personal Privacy Shield ───────────
     'privacy.scanned_no_findings': 'Scanned for personal data — nothing found.',
     'privacy.badge_scanned': 'scanned',
     'privacy.implicit_default_badge': 'On by default',

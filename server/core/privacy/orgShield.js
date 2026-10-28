@@ -184,8 +184,8 @@ async function resolveOrgShield(orgId) {
         // the user's "How I got this answer" panel can display exactly what
         // the AI saw and said. Default off so orgs have to opt in.
         showRawPayload: !!shield.showRawPayload,
-        // The Web-Search Guard PII filter used to maintain its own separate
-        // category list, which drifted from the main PII list. The new
+        // The Web-Search Guard PII filter does not keep its own separate
+        // category list, which would drift from the main PII list. The
         // contract: if Web-Search Guard is enabled and the admin hasn't
         // explicitly picked a subset, fall back to the main PII categories
         // so the two stay in sync. See plan S6.
@@ -346,7 +346,7 @@ function classifyToolClass(toolName, toolArgs = {}) {
     // only reach a public HTTPS host: the runner and the custom MCP client both
     // go through customIntegrations/ssrfGuard, which refuses private targets.
     // So they always leave the org. resolveIntegration answers null for them
-    // without the stored definition, which used to make every custom
+    // without the stored definition, which would make every custom
     // integration 'internal': the org's "Outside tools" rules never applied.
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored literal prefix: constant time
     if (/^cint_/.test(toolName || '')) return 'external';

@@ -114,7 +114,7 @@ function sanitizeMapping(mapping, ruledOutNames) {
     };
     for (const [key, rawValue] of Object.entries(mapping)) {
         // Same coercion the action-item assignee gets. A `{name:'Tom'}`
-        // reply used to become the literal speaker label
+        // reply would become the literal speaker label
         // "[object Object]" on every one of that speaker's segments —
         // and, because it is a stable string, it survived rename,
         // reprocess and the report.

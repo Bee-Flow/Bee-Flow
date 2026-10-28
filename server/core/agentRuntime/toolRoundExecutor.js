@@ -93,7 +93,7 @@ const log = require('../../telemetry/log');
 const _toolClassOf = (name) => require('../privacy/orgShield').classifyToolClass(name);
 
 // What the ./toolRound/ modules use from the import cycle. The getters are
-// the lazy requires that used to sit in the per-call closure, unchanged: each
+// the lazy requires of the per-call closure, unchanged: each
 // one still loads its module on first use, and a test stub that swaps the
 // module under these exact require strings still reaches every step.
 const deps = {

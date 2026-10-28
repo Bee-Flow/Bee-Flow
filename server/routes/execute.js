@@ -58,8 +58,8 @@ const SubworkflowBody = z.preprocess((v) => (v === undefined || v === null ? {} 
 router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req, res, next) => {
     const { workflow, workflowId, workflowName } = req.body;
     const userAuth = await getUserAuth(req);
-    // requireAuth guarantees a session user here — the old `|| 'anonymous'`
-    // fallback (anonymous execution without a record) can no longer occur.
+    // requireAuth guarantees a session user here, so there is no anonymous
+    // execution without a record.
     const userId = sessionUser(req).id;
     const workflowStore = require('../stores/workflowStore');
 

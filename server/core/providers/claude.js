@@ -351,10 +351,10 @@ class ClaudeProvider extends BaseProvider {
     // manual budget_tokens — adaptive thinking only. Opus 4.6 / Sonnet 4.6
     // still accept temperature + budgets.
     //
-    // This used to be a regex spelling the Opus generation as `4-[78]`, which
-    // no 5-series id can match: claude-opus-5 was therefore treated as a legacy
+    // This must not be a regex spelling the Opus generation as `4-[78]`, which
+    // no 5-series id can match: claude-opus-5 would be treated as a legacy
     // 4.x model and sent `temperature: 1` plus `budget_tokens`, both of which
-    // Opus 5 answers with a 400. The fact now lives in ./claudeModels.js, where
+    // Opus 5 answers with a 400. The fact lives in ./claudeModels.js, where
     // an unreleased id still inherits its generation's rules.
     /**
      * @param {string} modelId

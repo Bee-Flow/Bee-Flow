@@ -316,7 +316,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
 
         if (!key && !backgroundKey) {
             // The org asked for encryption and we are about to write plaintext.
-            // This used to return silently, which is how an org sat on the `zk`
+            // Returning silently would let an org sit on the `zk`
             // tier writing cleartext with nothing in the logs to show for it.
             // Falling back to plaintext is still the right call — emitting a
             // value nobody can ever open would be worse — but it must be loud.

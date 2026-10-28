@@ -115,7 +115,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         const shieldConfig = orgShieldConfig || await (async () => {
             // Legacy fallback for callers that don't resolve a shield themselves.
             //
-            // This used to be `.find(...)` — the FIRST key in an unordered
+            // This must not be `.find(...)` — the FIRST key in an unordered
             // object. On a single-org install that is the right shield by
             // accident; on a multi-tenant install it applies an ARBITRARY
             // org's categories and threshold to another org's scan. Narrowing
@@ -210,8 +210,8 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
             // meaningfully more likely per request AND degrades the whole
             // response — without this check an org scoped to {Email,
             // PhoneNumber} gets blocked because the government-id group died,
-            // for a category it never asked about. That org previously never
-            // touched the model at all and could never fail closed.
+            // for a category it never asked about. That org otherwise never
+            // touches the model at all and could never fail closed.
             //
             // Absent/empty degradedCategories means "unknown — assume all"
             // (older guard, or an oversize partial scan whose unscanned tail
@@ -283,11 +283,11 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         const categoryList = [...new Set(result.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
         // Counts, category names and confidences only — never span text.
         //
-        // This used to emit `snippets`, up to 20 characters of EVERY detected
-        // entity, at warn level. That put the very values this service exists
+        // This must not emit `snippets`, up to 20 characters of EVERY detected
+        // entity, at warn level. That would put the very values this service exists
         // to protect into the server log, where they are shipped to whatever
-        // aggregator the deployment uses and outlive the conversation. It also
-        // contradicted the guard's own stated policy, which it is careful about
+        // aggregator the deployment uses and outlive the conversation. It would also
+        // contradict the guard's own stated policy, which it is careful about
         // (guard-service/app/routers/pii.py:96-99: "Never span text").
         //
         // A per-entity confidence breakdown keeps the diagnostic value that

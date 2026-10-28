@@ -232,7 +232,6 @@ async function userCanAccessPublishedAgent(agent, userId, req) {
  * gives every session a `guest_…` id, so the turn routes below send a visitor
  * through userCanAccessPublishedAgent as an account with no organisation — and
  * that admits every published agent WITHOUT an org, embed switch on or off.
- * The "(embed flow)" branch this check replaces was never reached.
  *
  * Signed-in people are unaffected: for them the embed switch is not an
  * audience rule, userCanAccessPublishedAgent is.

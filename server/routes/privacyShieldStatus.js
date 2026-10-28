@@ -54,7 +54,7 @@
  * only 'redact' may be worded as "replaced". Anything else is the negative
  * state, designed first.
  *
- * What never appears here (BFSF-441): names, e-mail, org or user ids, the
+ * What never appears here: names, e-mail, org or user ids, the
  * shield's rules or allow-terms, the guard's `load_error`/`degradedReason`
  * text, or any error message. Booleans and enums, plus (in `chatMonitoring`
  * only) one https URL the organisation itself publishes under Art. 13, a date

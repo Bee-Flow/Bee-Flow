@@ -67,7 +67,7 @@ module.exports = {
     'signup.err_org_select': 'Please select an organisation.',
     'signup.err_generic': 'Please complete the required fields.',
     'signup.invited_to_join': "You've been invited to join {orgName}",
-    // Shown on step 1, before the org/personal choice on step 2 (BFSF-276).
+    // Shown on step 1, before the org/personal choice on step 2.
     'signup.wizard_welcome_neutral': "Let's set up your account on Bee Flow in a few quick steps.",
     'signup.wizard_welcome_org': "Let's set up your organisation on Bee Flow in a few quick steps.",
     'signup.wizard_welcome_consumer': "Let's create your personal Bee Flow account in a few quick steps.",

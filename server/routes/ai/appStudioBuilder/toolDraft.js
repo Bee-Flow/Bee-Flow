@@ -3,7 +3,7 @@
  * App Studio Builder — live "tool draft" scanner.
  *
  * While the model streams an app_add_components call (a 3–10 KB document a
- * small model takes half a minute to write), the canvas used to show nothing
+ * small model takes half a minute to write), the canvas would show nothing
  * until the last brace. This reads the UNFINISHED arguments and says which
  * components it already describes — type, label, and whether the object is
  * still open — so the editor can place a ghost cell where the card will land.

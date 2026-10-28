@@ -5,7 +5,7 @@
  * A user can save their own Nextcloud base URL alongside their app password
  * (Settings → Verbindingen). Every subsequent call attaches their Basic
  * credentials, so an unvalidated URL turns the server into a credential-bearing
- * probe of its own network. Previously the only check was "is it http(s)".
+ * probe of its own network. A check of "is it http(s)" alone is not enough.
  *
  * Policy:
  *   - Private / loopback / link-local targets are REFUSED by default.

@@ -13,14 +13,14 @@
  * `connector_tenant_key_<orgId>` (see auth/connectorJwt.js).
  *
  * ── THE ORG ID HAS TO NAME SOMETHING ────────────────────────────────
- * A super-admin passes every org check, so a mistyped `:orgId` used to be
- * answered like a real one. POST minted a key for an organisation that does
+ * A super-admin passes every org check, so a mistyped `:orgId` would be
+ * answered like a real one. POST would mint a key for an organisation that does
  * not exist, and connectorJwt.js — which learns the tenant from WHICH key
- * verifies a token — then signed the customer's connector in as that phantom:
- * new users were refused with "Connector tenant has no organization", and an
- * existing user without an org had the phantom id written onto their row.
- * DELETE answered `revoked: true` for the typo while the real key, the one
- * somebody meant to kill, went on working. POST now needs an organisation that
+ * verifies a token — would then sign the customer's connector in as that phantom:
+ * new users would be refused with "Connector tenant has no organization", and an
+ * existing user without an org would have the phantom id written onto their row.
+ * DELETE would answer `revoked: true` for the typo while the real key, the one
+ * somebody meant to kill, went on working. So POST needs an organisation that
  * exists; DELETE needs a key to revoke (a key whose organisation was since
  * deleted can still be revoked — it is exactly the one that must not linger).
  *

@@ -21,10 +21,10 @@
  * user's text, and the next scan of that text detects the corrupted fragment as
  * a fresh entity — the damage compounds across turns.
  *
- * Overlaps are not exotic. `mergeWindowResults` used to dedupe on the exact
- * triple `offset:length:category`, so an entity clipped by an 8k window
+ * Overlaps are not exotic. `mergeWindowResults` cannot dedupe on the exact
+ * triple `offset:length:category`, since an entity clipped by an 8k window
  * boundary in window A and complete in window B — SAME offset, DIFFERENT
- * length — passed the dedupe as two distinct spans.
+ * length — would pass the dedupe as two distinct spans.
  *
  * THE RULE
  * --------

@@ -84,7 +84,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     const { email, role } = req.body;
     // The role travels to the invitee — it is shown on the invite screen and
     // named in the e-mail — so a value this installation does not define is a
-    // promise nobody can keep. It used to be stored verbatim.
+    // promise nobody can keep.
     if (role !== undefined && role !== 'user' && !Object.prototype.hasOwnProperty.call(getOrgRolePermissions(), role)) {
         throw new HttpError(400, 'unknown_role', `Unknown role: ${role.slice(0, 64)}`);
     }
@@ -118,9 +118,9 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
         return res.status(409).json({ error: 'A user with this email is already in your organisation' });
     }
 
-    // BFSF-251: seat-cap pre-check. Previously the invite ALWAYS succeeded
-    // and the cap only fired at signup redemption — for the INVITEE, who
-    // then hit a dead-end error the admin never saw. Fail fast here with a
+    // Seat-cap pre-check. Without it the invite would ALWAYS succeed and the
+    // cap would only fire at signup redemption — for the INVITEE, who
+    // then hits a dead-end error the admin never sees. Fail fast here with a
     // structured code so the UI can point the admin at the upgrade flow.
     // Pending (unaccepted, unexpired) invites count toward the cap so an
     // admin can't queue up more redemptions than seats.
@@ -179,7 +179,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     // The auth router is mounted at `/auth` (server/index.js), NOT `/api/auth`,
     // so the redeem endpoint lives at `/auth/redeem-invite/:token`. Using the
     // wrong prefix here produced a raw "Cannot GET /api/auth/redeem-invite/..."
-    // 404 for every invited user (BFSF-240).
+    // 404 for every invited user.
     const inviteUrl = `${clientHost}/auth/redeem-invite/${invitation.token}`;
 
     // Get org name and inviter display name

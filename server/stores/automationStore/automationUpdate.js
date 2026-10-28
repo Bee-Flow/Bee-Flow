@@ -44,7 +44,7 @@ function buildAutomationUpdate(updates) {
         // truthy, so it reads back as a "present" definition and silently
         // defeats the builder's `def || seed` fallbacks — that is how a
         // automation ended up persisting a trigger-only graph and failing
-        // validation forever (BFSF-318). Callers must validate first.
+        // validation forever. Callers must validate first.
         const v = updates.definition;
         if (!v || typeof v !== 'object' || Array.isArray(v)) {
             throw new Error('definition must be a non-null object');

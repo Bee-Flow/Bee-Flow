@@ -127,7 +127,7 @@ function createToolDispatcher({
 
         // Restore DLP tokens before the tool runs, so a write-side tool gets
         // the real value instead of the `[email_1]` placeholder the model was
-        // shown (BFSF-171). Without this the token was written verbatim into
+        // shown. Without this the token was written verbatim into
         // the page/file the tool edits. Search queries keep their tokens so no
         // PII reaches an external search provider — same carve-out as
         // ../directChat/toolExec.js, which this mirrors.
@@ -144,7 +144,7 @@ function createToolDispatcher({
         send('tool_start', { name: toolName, args: toolArgs });
 
         // Privacy Shield tool block lists ("Outside tools" / "Own server"),
-        // the check direct chat and the agent loop run (BFSF-354): a call
+        // the check direct chat and the agent loop run: a call
         // whose arguments carry a forbidden category is never dispatched.
         const refusal = await shieldGate.refuse(toolName, toolArgs);
         if (refusal) {
@@ -277,7 +277,7 @@ function createToolDispatcher({
         // already wrote and over-large query rows so prompt size doesn't
         // balloon round-over-round.
         // What the model reads, with the categories this tool's class
-        // forbids stripped out (BFSF-354); the UI got the full result above.
+        // forbids stripped out; the UI got the full result above.
         /**
          * @param {string} content
          */

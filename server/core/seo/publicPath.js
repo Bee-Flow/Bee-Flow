@@ -9,10 +9,10 @@
  * reserved list against the client's copy so they cannot drift silently.
  *
  * NEW HERE vs the client's original rule: an optional locale prefix.
- * `/nl/pricing` and `/nl` are marketing paths. Before this, Dutch lived at
- * `?locale=nl`, which gave every page three crawlable URLs
+ * `/nl/pricing` and `/nl` are marketing paths. Dutch at
+ * `?locale=nl` would give every page three crawlable URLs
  * (`/pricing`, `/pricing?locale=en`, `/pricing?locale=nl`) serving two
- * content variants with no canonical and no hreflang — so search engines saw
+ * content variants with no canonical and no hreflang — so search engines would see
  * duplicates rather than a translation.
  */
 

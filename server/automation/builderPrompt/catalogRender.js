@@ -205,8 +205,8 @@ function renderRelevantToolSchemas(catalog, userMessage, draft, { max = 10 } = {
  * The "Datatables you may use" block — the tables THIS user may address in a
  * datatable step, with their ids, keys and column keys.
  *
- * Before this block the prompt said "datatableId must be an id from the
- * catalog" and the catalog carried apps only, so the model invented `tbl_…`
+ * Without this block the prompt says "datatableId must be an id from the
+ * catalog" and the catalog carries apps only, so the model invents `tbl_…`
  * ids or keyed `values` by column TITLE ("Excl. btw") where the runner wants
  * the KEY (excl_btw). Measured on the invoice brief: every datatable step the
  * fast model produced named a table that did not exist.

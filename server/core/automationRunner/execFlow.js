@@ -116,8 +116,8 @@ async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
     // instead — n8n's Split-In-Batches semantics.
     const batchSize = Math.max(1, Number(step.batchSize) || 1);
     // maxIterations caps ITERATIONS, as the label/chip/validator all say —
-    // it used to slice the ITEM list before batching, so batchSize 10 +
-    // max 100 over 500 items ran only 10 iterations and silently dropped
+    // it must not slice the ITEM list before batching, or batchSize 10 +
+    // max 100 over 500 items would run only 10 iterations and silently drop
     // 400 items (A9). batchSize=1 is unchanged (items == iterations).
     const maxIter = Math.min(step.maxIterations || 100, 1000);
     const totalIter = batchSize === 1 ? list.length : Math.ceil(list.length / batchSize);
@@ -153,7 +153,7 @@ async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
     }
     return {
         // `truncated`/`totalItems` are additive observability keys: a loop
-        // that hit its iteration cap used to drop the tail silently (A9).
+        // that hit its iteration cap would drop the tail silently (A9).
         output: {
             iterations: iterationCount, results,
             ...(truncated ? {

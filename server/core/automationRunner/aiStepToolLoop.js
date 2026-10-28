@@ -128,8 +128,8 @@ async function handleAiToolCall(tc, env) {
     let toolResult;
     try {
         // Guard the AI-chosen tool args + log the egress, just like a
-        // first-class integration_action — ai_step tool calls were
-        // previously completely unmonitored.
+        // first-class integration_action — ai_step tool calls must not be
+        // unmonitored.
         const toolAudit = { ...auditBase, step_id: `${step.id}:${tc.function.name}` };
         const gIn = await safety.guardToolInput(args, policy, toolAudit, mode, ctx);
         const { resolveIntegration: _resolveInteg } = require('../integrations/integrationToolMap');

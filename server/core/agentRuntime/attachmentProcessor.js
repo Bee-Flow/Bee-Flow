@@ -11,11 +11,11 @@ const { appendPdf, appendImage, appendInlineText, appendParsedDocument } = requi
 // Decide whether a model ID supports vision for the PDF-vision-fallback
 // decision, independently of which adapter the agent ultimately selects.
 //
-// This used to be a standalone regex that "mirrors the supportsVision regexes
-// in the individual provider adapters" — and had drifted out of sync with them:
+// A standalone regex that "mirrors the supportsVision regexes
+// in the individual provider adapters" drifts out of sync with them:
 // it omitted claude-sonnet-5, claude-opus-5 and claude-fable, silently turning
-// the PDF-vision fallback OFF for models we already ship. Claude now answers
-// from the same catalog the adapter reads, so the two cannot diverge again.
+// the PDF-vision fallback OFF for models we already ship. Claude therefore answers
+// from the same catalog the adapter reads, so the two cannot diverge.
 /**
  * @param {string} modelId
  */

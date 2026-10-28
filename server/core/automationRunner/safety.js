@@ -29,10 +29,10 @@ const { fallback } = require('../../utils/bestEffort');
  *    only: off = no payload inspection at all; on = regex sniff + GLiNER when
  *    the org has PII detection. See core/integrationLogging.js.
  *  - The org's `piiFailureMode` decides what happens when the detector is
- *    unreachable or degraded. It used to be hard fail-OPEN here — worse, a
+ *    unreachable or degraded. It is not hard fail-OPEN here — worse, a
  *    degraded result ({hasPii:false, degraded:true}, e.g. the guard circuit
- *    open) was read as "clean", so an org that had explicitly chosen
- *    fail_closed shipped everything unscanned. "No detector" and "no PII" are
+ *    open) must not be read as "clean", or an org that had explicitly chosen
+ *    fail_closed ships everything unscanned. "No detector" and "no PII" are
  *    different answers.
  *  - In dry-run a `block` is converted to an annotation, never a hard failure,
  *    so the builder preview can show "would block".
@@ -116,9 +116,9 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
         // Which DESTINATIONS the privacy rule covers — the same meaning it has
         // in DLP, where it comes from: 'external' = third parties only,
         // 'all' = third parties AND on-box destinations (the stricter setting).
-        // It used to be read backwards here: 'all' restored real values before
-        // egress while 'external' kept them tokenized, so the strictest setting
-        // gave the least protection. See prepareForEgress.
+        // Do not read it backwards: 'all' restoring real values before
+        // egress while 'external' keeps them tokenized would give the strictest setting
+        // the least protection. See prepareForEgress.
         privacyScope: override.privacyScope || (shield && shield.privacyScope) || 'external',
         confidence: (shield && shield.piiDetectionConfidenceThreshold)
             ?? aiConfig.piiDetectionConfidenceThreshold ?? 0.7,

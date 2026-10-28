@@ -15,9 +15,9 @@
  *
  * ── Why the database ─────────────────────────────────────────────────────
  * The visitor gets a 202 the moment a submission is accepted; the run happens
- * in the background. That queue used to live only in this process's memory, so
- * a deploy or a crash with work still waiting lost submissions the visitor had
- * been told were received. Now the work is written onto the visitor's session
+ * in the background. A queue in this process's memory alone would lose, on
+ * a deploy or a crash with work still waiting, submissions the visitor had
+ * been told were received. So the work is written onto the visitor's session
  * row (`pending_work`) BEFORE the 202, and:
  *
  *   - the pod that accepted it holds a LEASE on it (`pending_lease_until`) and

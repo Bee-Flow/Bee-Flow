@@ -17,7 +17,7 @@
  *     an attacker working links. Additionally, the raw token is stored
  *     AES-256-GCM-encrypted (token_cipher) under MASTER_ENCRYPTION_KEY — the
  *     same trust level as all config secrets — so the server can rebuild share
- *     URLs for already-authorized readers (BFSF-188). Without the key, the
+ *     URLs for already-authorized readers. Without the key, the
  *     cipher is NULL and the share degrades to the legacy non-retrievable
  *     behaviour.
  *   • Magic-link query parameter `k=...` (email-gated mode) is signed with
@@ -88,7 +88,7 @@ async function runInit() {
     `);
 
     // Self-migration: encrypted raw token at rest so already-authorized
-    // readers can recover share URLs (BFSF-188). Nullable — rows created
+    // readers can recover share URLs. Nullable — rows created
     // before this column (or without MASTER_ENCRYPTION_KEY) stay legacy.
     await exec(`
         ALTER TABLE webpage_public_shares ADD COLUMN IF NOT EXISTS token_cipher TEXT;
@@ -292,7 +292,7 @@ async function getShareById(id) {
 
 /**
  * Decrypt the raw tokens for a webpage's non-revoked shares so the route
- * layer can rebuild share URLs for already-authorized readers (BFSF-188).
+ * layer can rebuild share URLs for already-authorized readers.
  * Returns { [shareId]: rawToken }. Legacy rows (NULL cipher) and rows whose
  * cipher no longer decrypts (key rotation) are silently omitted — the share
  * degrades to non-retrievable, it never breaks. Ciphertext stays inside this

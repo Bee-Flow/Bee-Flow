@@ -269,7 +269,7 @@ async function skillsContextFor({ activeSkillIds, userOrgForTiers, userId, conve
 }
 
 /**
- * Capability-honesty addenda (BFSF-176/125/127): the truth about which media
+ * Capability-honesty addenda: the truth about which media
  * tools are registered, so the model doesn't invent an image via HTML/WebGL
  * when generate_image is absent, and Gmail attachment reads steered to the
  * real tool rather than a hallucinated convert_document_to_text.

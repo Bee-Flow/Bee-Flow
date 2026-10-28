@@ -222,10 +222,9 @@ function registerTemplateAndImportRoutes(router) {
 }
 
 function registerExportRoute(router) {
-    // §WS4.3 — the export route was documented and buildExport imported, but the
-    // handler was never registered (dead import). Implement it with the same
-    // ownership guard as the rest of the file so a user can download a sanitized,
-    // portable envelope of their own automation (matching POST /import).
+    // Export: the same ownership guard as the rest of the file, so a user can
+    // download a sanitized, portable envelope of their own automation
+    // (matching POST /import).
     router.get('/:id/export', require('../../compliance/dataPortability/stampExport')('automations'), async (req, /** @type {import('express').Response} */ res) => {
         const a = await automationStore.getAutomation(req.params.id);
         if (!a) return res.status(404).json({ error: 'Not found' });

@@ -15,7 +15,7 @@
  * login hash runs on every sign-in attempt, including every failed and every
  * unknown-user attempt (the dummy compare in passwordLoginRoutes.js), so
  * 128 MiB per attempt would turn the login endpoint into a memory lever, and a
- * compare that long would no longer sit under the failure-response floor in
+ * compare that long would not sit under the failure-response floor in
  * loginThrottle.js (450 ms), which is what keeps all failure paths equally slow.
  */
 

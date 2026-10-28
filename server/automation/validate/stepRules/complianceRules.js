@@ -62,7 +62,7 @@
  *     the runtime agrees (`execSummarize` is sum/count/avg over a collection —
  *     arithmetic, no model), and `execDocument.js`'s Art. 50(2) marking pass
  *     reads it that way too. `dataFlow.MODEL_TYPES` carries `summarize`
- *     forward from the hand-rolled list the playbook review used to keep, so
+ *     forward from the playbook review's hand-rolled list, so
  *     using it here would put "this step hands data to a model" on a step that
  *     counts rows. Worth fixing there; not from inside the validator.
  *

@@ -20,7 +20,7 @@
  *
  * Three reads can fail INSIDE a kind, and each is counted rather than dropped:
  *   - an app's full definition (the listing gives meta only) — a missing one
- *     used to delete the app from the graph entirely: node, edges AND problems;
+ *     would delete the app from the graph entirely: node, edges AND problems;
  *   - an agent's config, which is where its wiring lives, same story;
  *   - a knowledge base's sources, which is where "every meeting tagged X" is.
  *

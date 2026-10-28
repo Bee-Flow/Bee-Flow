@@ -53,7 +53,7 @@ router.get('/categories', async (req, res) => {
     res.json(categories);
 });
 
-// BFSF-272: category mutations are org-scoped. resolveUserOrgIds returns null
+// Category mutations are org-scoped. resolveUserOrgIds returns null
 // only for super-admins (skip the check); org categories require membership;
 // org-less (global) categories are manageable only by org-less requesters —
 // mirrors who can create them.
@@ -66,7 +66,7 @@ async function canManageCategory(req, category) {
 
 // Create a new category. Idempotent on a case-insensitive duplicate: returns
 // the EXISTING row with `existing: true` so clients select it instead of
-// stacking "Sales" next to "sales" (BFSF-272).
+// stacking "Sales" next to "sales".
 router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, icon, color } = req.body;
     const orgIds = await resolveUserOrgIds(req);
@@ -172,7 +172,7 @@ router.get('/:id', async (req, res) => {
         return res.status(404).json({ error: 'Agent not found' });
     }
     // `can_edit` lets the client render read-only editors from the same
-    // policy the server enforces (BFSF-271) instead of a local heuristic.
+    // policy the server enforces instead of a local heuristic.
     const canEdit = await canModifyAgent(agent, userId, req);
     const wantsDraft = req.query?.draft === '1' || req.query?.draft === 'true';
     const publishedVersion = Number(agent.published_version) || 0;
@@ -509,8 +509,8 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
     const { newOwnerId } = req.body;
 
     // Authorisation: current owner OR org-admin of agent's org OR super-admin.
-    // BFSF-271: any same-org member with manage_agents used to fall through to
-    // allowed=true here — transfers now require an actual org-admin role.
+    // Transfers require an actual org-admin role: any same-org member with
+    // manage_agents must not fall through to allowed=true here.
     const isSuperAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
     let allowed = isSuperAdmin || agent.owner_id === userId;
     if (!allowed && agent.organization_id) {

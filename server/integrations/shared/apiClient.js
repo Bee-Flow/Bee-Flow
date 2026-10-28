@@ -12,7 +12,7 @@
  *   - Hang → agent-loop DoS: a third-party API that never responds blocked a
  *     tool call indefinitely. Every request gets a mandatory AbortSignal
  *     timeout.
- *   - Credential/URL leakage into the model: error handlers used to throw the
+ *   - Credential/URL leakage into the model: error handlers must not throw the
  *     full response body (and sometimes the URL) into LLM context. Here the
  *     error is message-only and truncated.
  *

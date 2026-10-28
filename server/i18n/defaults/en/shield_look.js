@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 //
-// Privacy Shield (round 3), "What we look for": the intro, how strict, the one-table matrix and its link cards.
+// Privacy Shield, "What we look for": the intro, how strict, the one-table matrix and its link cards.
 // Plain English for non-technical admins. Setting names stay as they are elsewhere.
 module.exports = {
     "shield_look.col_count": "{n} of {total}",

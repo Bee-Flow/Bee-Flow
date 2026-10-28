@@ -152,7 +152,7 @@ function applyModelPrefix(texts, modelId, kind) {
  *
  * @param {string[]} texts
  * @param {{kind?: 'query'|'passage', strict?: boolean}} [options]
- *   'passage' (the default, and what every caller got before this existed) is
+ *   'passage' (the default, and what every caller that passes nothing gets) is
  *   for text being STORED; 'query' is for text being SEARCHED WITH. On a
  *   symmetric model the distinction is a no-op — but on an asymmetric one,
  *   embedding a query as a passage is a silent quality loss.

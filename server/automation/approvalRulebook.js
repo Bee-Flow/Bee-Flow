@@ -75,7 +75,7 @@ function isFinalApprover(approval, viewer) {
 // ── The stage chain ──────────────────────────────────────────────────────
 // A staged approval asks its stages IN ORDER; only the current stage's people
 // may act. Legacy panel rows carry no chain and keep the panel/final code
-// path below, so nothing authored before this release changes behaviour.
+// path below, so nothing authored before the stage chain existed changes behaviour.
 
 function hasStages(approval) {
     return Array.isArray(approval?.stages) && approval.stages.length > 0;

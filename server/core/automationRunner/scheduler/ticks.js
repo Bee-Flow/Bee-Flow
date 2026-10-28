@@ -175,8 +175,8 @@ async function processDuePrimarySchedules() {
         for (let i = 0; i < allowed.length; i += MAX_CONCURRENT) {
             const batch = allowed.slice(i, i + MAX_CONCURRENT);
             // `{ now }` is the one field the builder catalog advertises for a
-            // schedule trigger (`__schedule.now`); it used to be a promise the
-            // runtime never kept, so `trigger.output.now` resolved undefined.
+            // schedule trigger (`__schedule.now`); without it the promise of
+            // `trigger.output.now` is not kept and it resolves undefined.
             const now = new Date().toISOString();
             await Promise.allSettled(batch.map(a => executeAutomation(a, { triggerKind: 'schedule', triggerPayload: { now } })));
         }

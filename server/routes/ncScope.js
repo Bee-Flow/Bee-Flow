@@ -191,7 +191,7 @@ const RESOURCE_CACHE_TTL_MS = 60_000;
 const RESOURCE_CACHE_MAX = 500;
 
 // Entries were only ever replaced, never removed, so every (user, integration,
-// path) ever listed stayed in memory (BFSF-381). Each insert drops expired
+// path) ever listed stayed in memory. Each insert drops expired
 // entries, then the oldest ones while the map is over its cap.
 /**
  * @param {string} key

@@ -10,7 +10,7 @@ module.exports = {
     'compliance.nav_aia': 'AI Act',
     'compliance.nav_aia_desc': 'EU Artificial Intelligence Act — transparency, risk and governance.',
     'compliance.nav_dsr': 'DSR Inbox',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.nav_dsr_desc': 'Data-subject requests — answer within one month (Art. 12–22).',
     'compliance.nav_incidents': 'Incidents',
     'compliance.nav_incidents_desc': 'Breach registry with the 72-hour Art. 33 workflow.',
@@ -669,7 +669,7 @@ module.exports = {
     'compliance.iso.a8_34.title': 'Protection during audit testing',
     'compliance.iso.a8_34.objective': 'Plan audits and security tests so they cannot disrupt production or expose data: agree scope and safeguards before anyone starts probing.',
 
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.dsr_subtitle': 'Every request starts a one-month clock (GDPR Art. 12(3)). Fulfil or reject each one and keep the summary — it is your accountability record.',
     'compliance.dsr_refresh': 'Refresh',
     'compliance.dsr_empty': 'No data-subject requests received.',
@@ -770,7 +770,7 @@ module.exports = {
     'compliance.inc_f_severity': 'Severity',
     'compliance.inc_f_occurred': 'Occurred at (if known)',
     'compliance.inc_f_high_risk': 'High risk for the people involved (triggers Art. 34)',
-    // round 2 · P04-dsr-incidents: one sentence; the "Became aware at" field carries the rest
+    // One sentence; the "Became aware at" field carries the rest
     'compliance.inc_clock_hint': 'The reporting clocks run from the moment your organisation became aware of the breach.',
     'compliance.inc_create': 'Record — start the clock',
     'compliance.inc_start_assess': 'Start assessment',
@@ -870,7 +870,7 @@ module.exports = {
     'compliance.settings_ai_literacy_desc': 'Take measures that support the AI literacy of staff operating AI systems (AI Act Art. 4 as amended in July 2026: no specific level has to be guaranteed). Confirm your training or guidelines yearly; the tool records the attestation, not the training itself.',
     'compliance.ai_literacy_url': 'Training material URL (optional)',
     'compliance.ai_literacy_confirm': 'Confirm measures now',
-    // round 2 · P07-admin: a saved stamp no longer says "remember to save"; ai_literacy_confirmed_unsaved does, while it differs
+    // A saved stamp no longer says "remember to save"; ai_literacy_confirmed_unsaved does, while it differs
     'compliance.ai_literacy_confirmed_at': 'Confirmed {date}',
     'compliance.ai_literacy_never': 'Not confirmed yet',
     'compliance.settings_breach': 'Breach notification recipients',
@@ -934,7 +934,7 @@ module.exports = {
     'compliance.checks.gdpr_art12.fix': 'Publish your privacy notice and paste its URL in Compliance → Settings.',
 
     'compliance.checks.gdpr_art44.title': 'International transfers controlled',
-    // CHANGED round 2 · detect-legal-wording: Chapter V transfer tools are adequacy (Art. 45) or safeguards (Art. 46); a DPA is Art. 28, not a transfer tool
+    // Chapter V transfer tools are adequacy (Art. 45) or safeguards (Art. 46); a DPA is Art. 28, not a transfer tool
     'compliance.checks.gdpr_art44.desc': 'Using an external LLM can transfer personal data outside the EEA. Such a transfer needs an adequacy decision (Art. 45, e.g. the EU-US Data Privacy Framework for certified US recipients) or appropriate safeguards such as SCCs (Art. 46). A DPA (Art. 28) on its own is not a transfer tool.',
     'compliance.checks.gdpr_art44.fix': 'Either switch the agent(s) to self-hosted models, or register each external provider with a signed DPA/SCC in your records.',
 
@@ -943,7 +943,7 @@ module.exports = {
     'compliance.checks.aia_art50.fix': 'Add a line like "You are chatting with an AI assistant" to the system prompt or welcome banner of each published agent.',
 
     'compliance.checks.aia_art13.title': 'Transparency: agent described',
-    // CHANGED round 2 · detect-legal-wording: Art. 13 is a high-risk duty towards deployers (Annex III from 2 Dec 2027); AI disclosure is Art. 50(1)
+    // Art. 13 is a high-risk duty towards deployers (Annex III from 2 Dec 2027); AI disclosure is Art. 50(1)
     'compliance.checks.aia_art13.desc': "Art. 13 (high-risk AI systems; Annex III from 2 Dec 2027): the instructions for use must let deployers understand the system's provider, intended purpose, capabilities and limitations. For other agents a clear description is good practice; telling people they are talking to an AI is Art. 50(1).",
     'compliance.checks.aia_art13.fix': 'Fill in a meaningful description (30+ characters) for each agent in Admin → Agents.',
 
@@ -952,12 +952,12 @@ module.exports = {
     'compliance.checks.gdpr_art5_1_e.fix': 'Set a default retention window in Compliance → Settings; the retention job then enforces it automatically.',
 
     'compliance.checks.gdpr_art15.title': 'Access requests answered on time',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month (two further on extension), not 30 days
+    // Art. 12(3) is one calendar month (two further on extension), not 30 days
     'compliance.checks.gdpr_art15.desc': 'Art. 15 gives every person the right to a copy of their data. Requests must be answered within one month of receipt (GDPR Art. 12(3)), or within the extended deadline.',
     'compliance.checks.gdpr_art15.fix': 'Open Compliance → DSR Inbox and fulfil the open access requests before their one-month deadline.',
 
     'compliance.checks.gdpr_art17.title': 'Deletion requests fulfilled',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month (two further on extension), not 30 days
+    // Art. 12(3) is one calendar month (two further on extension), not 30 days
     'compliance.checks.gdpr_art17.desc': 'Art. 17 (right to erasure) — deletion requests must be honoured without undue delay, at the latest within one month of receipt (GDPR Art. 12(3)), or within the extended deadline.',
     'compliance.checks.gdpr_art17.fix': 'Open Compliance → DSR Inbox and fulfil the open deletion requests before their one-month deadline.',
 
@@ -967,7 +967,7 @@ module.exports = {
     'compliance.checks.gdpr_art30_datatables.title': 'Registered processing still matches the table',
     'compliance.checks.gdpr_art30_datatables.desc': 'Every Studio table you recorded a legal basis or a retention period for is read again: the basis is still one of the six, the date column the retention counts from still exists, no rows sit outside the window the register promises, and someone has confirmed it within the interval you set.',
     'compliance.checks.gdpr_art30_datatables.fix': 'Open Compliance → Processing register, open the table this is about, and correct the basis, the retention period or the date it is counted from.',
-    // round 2 · P07-admin: short enough to share a row with the other day fields; the hint keeps the detail
+    // Short enough to share a row with the other day fields; the hint keeps the detail
     'compliance.settings.datatable_review_days': 'Register review every (days)',
     'compliance.settings.datatable_review_days_hint': 'How long an entry in the processing register may stand before someone reads it again. 180 days when left empty.',
 
@@ -996,7 +996,7 @@ module.exports = {
     'compliance.checks.aia_art26_6.fix': 'Do not purge the integration-activity and guardrail logs below six months; if a cleanup job trims them, raise its window.',
 
     'compliance.checks.aia_art53.title': 'GPAI model inventory',
-    // CHANGED round 2 · detect-legal-wording: Art. 53 binds GPAI model providers; the per-provider safeguard is GDPR Art. 28/46
+    // Art. 53 binds GPAI model providers; the per-provider safeguard is GDPR Art. 28/46
     'compliance.checks.aia_art53.desc': 'Art. 53 (applies since 2 Aug 2025) obliges providers of general-purpose AI models to keep technical documentation (Art. 53(1)(a)) and to give the providers who integrate their models the information they need (Art. 53(1)(b)). This check keeps the inventory of which models your workspace uses, so you can ask for that documentation, and checks that each external provider is covered by a DPA/SCC (GDPR Art. 28/46).',
     'compliance.checks.aia_art53.fix': "Review the model inventory in this check's evidence and attest the SCC/DPA for each external provider under Compliance → ROPA.",
 
@@ -1085,7 +1085,7 @@ module.exports = {
     'compliance.deadline_kind_dsr': 'Data-subject request',
     'compliance.deadline_kind_incident': 'Incident notification',
     'compliance.deadline_kind_cra_early_warning': 'CRA early warning',
-    // CHANGED round 2 · detect-legal-clocks: the CRA stage is the final report (Art. 14(2)(c) / 14(4)(c))
+    // The CRA stage is the final report (Art. 14(2)(c) / 14(4)(c))
     'compliance.deadline_kind_cra_full_report': 'CRA final report',
     'compliance.deadline_kind_obligation': 'ISMS obligation',
     'compliance.deadline_kind_attestation_expiry': 'Attestation expires',
@@ -1128,7 +1128,7 @@ module.exports = {
     'compliance.dsr_state_overdue': 'Overdue',
     'compliance.dsr_state_urgent': 'Due soon',
     'compliance.dsr_state_ok': 'On track',
-    // CHANGED round 2 · detect-legal-wording: Art. 12(3) caps the extension at two further months; "a single extension" is not in the text
+    // Art. 12(3) caps the extension at two further months; "a single extension" is not in the text
     'compliance.dsr_error_already_extended': 'This request was already extended once — Art. 12(3) allows at most two further months.',
     'compliance.dsr_error_not_open': 'This request is already closed.',
     'compliance.dsr_error_invalid_token': 'This verification link is invalid or has expired.',
@@ -1145,15 +1145,15 @@ module.exports = {
     'compliance.check_cra_support_period_desc': 'Manufacturers must decide how long security updates are provided and publish the end-of-support date (CRA Art. 13(8), Annex II(7)); under the PLD the same window is the period in which updates remain under the manufacturer\'s control (Art. 11(2)(c)). This is an attestation: the platform cannot know the business decision, so an admin records it.',
     'compliance.check_cra_support_period_fix': 'Record the support policy URL, the end-of-support date and the security-update channel under Compliance → Settings. Renew or announce a successor when the date comes within twelve months.',
     'compliance.check_pld_release_record_title': 'Release version and date recorded',
-    // CHANGED round 2 · detect-legal-wording: the renewed liability window is the Art. 17(1)(b) expiry period; Art. 8(2) says who becomes manufacturer
+    // The renewed liability window is the Art. 17(1)(b) expiry period; Art. 8(2) says who becomes manufacturer
     'compliance.check_pld_release_record_desc': 'Strict liability attaches to the version placed on the market and to its date (PLD Art. 9, Art. 2(1)); a substantial modification restarts the 10-year expiry period for the modified product (Art. 17(1)(b)), and whoever makes it outside the manufacturer\'s control and then makes the product available is considered a manufacturer (Art. 8(2)). The running build and every published solution or webpage must have a recorded release, and entities modified long after their last release are flagged for a substantial-modification assessment.',
     'compliance.check_pld_release_record_fix': 'Publish a release for the flagged solution or webpage from Studio; set APP_BUILD_SHA in the deployment so the platform release is stamped in the release log.',
     'compliance.check_data_act_export_coverage_title': 'Every data kind can be exported',
-    // CHANGED round 2 · detect-legal-clocks: Art. 30(1) is IaaS functional equivalence; porting all exportable data is Art. 23(c) / 25(2)(a),(e)
+    // Art. 30(1) is IaaS functional equivalence; porting all exportable data is Art. 23(c) / 25(2)(a),(e)
     'compliance.check_data_act_export_coverage_desc': 'Customers must be able to take all their exportable data when switching (Data Act Art. 23(c), 25(2)(a) and (e)). Each kind of data held here needs a working export endpoint.',
     'compliance.check_data_act_export_coverage_fix': 'Ship an export endpoint for the listed kinds (see the Portability matrix) or remove the data kind from the product.',
     'compliance.check_data_act_formats_title': 'Exports use machine-readable formats',
-    // CHANGED round 2 · detect-legal-wording: the statutory phrase (Art. 30(5)) includes "machine-readable"
+    // The statutory phrase (Art. 30(5)) includes "machine-readable"
     'compliance.check_data_act_formats_desc': 'Exported data must be in a structured, commonly used and machine-readable format (Data Act Art. 30(5)), such as JSON, CSV, ZIP or DOCX. PDF-only exports do not allow migration.',
     'compliance.check_data_act_formats_fix': 'Add a JSON or CSV variant to the flagged export endpoints.',
     'compliance.check_data_act_notice_period_title': 'Switching notice period ≤ 2 months',
@@ -1163,15 +1163,15 @@ module.exports = {
     'compliance.check_data_act_exit_procedure_desc': 'A written exit procedure plus a recent export test shows switching works in practice, not just on paper (Data Act Art. 25, DORA Art. 28(8)).',
     'compliance.check_data_act_exit_procedure_fix': 'Publish the exit-procedure policy under Compliance → Policies and perform (or attest) a full export at least yearly.',
     'compliance.check_dora_incident_path_title': 'Incident reporting path to financial customers',
-    // CHANGED round 2 · detect-legal-wording: the 4 h / 24 h clock is the entity's (Art. 19, RTS 2025/301); the provider is bound through the Art. 30 contract
+    // The 4 h / 24 h clock is the entity's (Art. 19, RTS 2025/301); the provider is bound through the Art. 30 contract
     'compliance.check_dora_incident_path_desc': 'Financial entities must send an initial notification of a major ICT incident within 4 hours of classifying it, and no later than 24 hours after becoming aware of it (DORA Art. 19; Delegated Regulation (EU) 2025/301). Your contract with them must provide for your assistance when an ICT incident occurs (Art. 30(2)(f)) and, for services supporting critical or important functions, your notice periods and reporting obligations (Art. 30(3)(b)). Customer contacts and a notice window must be in place.',
     'compliance.check_dora_incident_path_fix': 'Add customer incident contacts and the notice window under Compliance → Settings → DORA; stamp the customer notification on each incident.',
     'compliance.check_dora_register_title': 'Register of ICT third-party providers',
-    // CHANGED round 2 · detect-legal-wording: Art. 28(3) binds the financial entity; the provider supplies its supply-chain part (ITS 2024/2956)
+    // Art. 28(3) binds the financial entity; the provider supplies its supply-chain part (ITS 2024/2956)
     'compliance.check_dora_register_desc': 'DORA Art. 28(3) requires your financial customers to keep a register of information on all their ICT third-party arrangements, using the templates in Implementing Regulation (EU) 2024/2956, including the subcontractors that effectively underpin ICT services supporting their critical or important functions. As their provider, you must be able to hand over your part of that chain: which subcontractors you rely on, and where they provide the service and process data. The register is derived from the operators your workspace actually uses.',
     'compliance.check_dora_register_fix': 'Complete the contract reference, country and criticality for each operator under Compliance → ROPA.',
     'compliance.check_dora_contract_clauses_title': 'Contractual clauses confirmed',
-    // CHANGED round 2 · detect-legal-wording: audit rights and exit strategies are Art. 30(3), for critical or important functions only
+    // Audit rights and exit strategies are Art. 30(3), for critical or important functions only
     'compliance.check_dora_contract_clauses_desc': 'Contracts with financial entities must contain the DORA Art. 30(2) provisions (service descriptions, locations, data protection, data access and return, service levels, incident assistance, cooperation with supervisors, termination rights, participation in security-awareness training). Where you support a critical or important function, Art. 30(3) adds precise service levels, notice and reporting duties, contingency plans, participation in threat-led penetration testing, audit and access rights, and exit strategies. Confirm your template yearly.',
     'compliance.check_dora_contract_clauses_fix': 'Confirm your contract template covers Art. 30 and link it under Compliance → Settings → DORA.',
     'compliance.pf_kind_automations': 'Automations',
@@ -1197,7 +1197,7 @@ module.exports = {
     'compliance.pf_gap_ai_webpages': 'Only a PDF render exists — a render is not a portable export (no HTML, CSS, scripts or files).',
     'compliance.pf_gap_form_submissions': 'No export route yet — form answers and runs cannot be taken along.',
     'compliance.check_eaa_webpage_a11y_title': 'Published pages pass the accessibility lint',
-    // CHANGED round 2 · detect-legal-wording: EN 301 549 V4.1.1 (WCAG 2.2 AA) is published but not yet cited under the EAA
+    // EN 301 549 V4.1.1 (WCAG 2.2 AA) is published but not yet cited under the EAA
     'compliance.check_eaa_webpage_a11y_desc': 'Public pages are measured against WCAG 2.1 AA (EN 301 549 V3.2.1, the current reference; V4.1.1 of Sep 2026 is based on WCAG 2.2 AA and gives a presumption of conformity under the EAA once it is cited in the Official Journal). A static lint of the published HTML checks the declared language, image alternatives, labelled controls, named links and buttons, page titles, iframe titles, heading order, duplicate ids, focus-order hints, refresh/zoom/autoplay settings and table headers. Colour contrast, focus visibility, keyboard operability, reflow and dynamic ARIA state need a rendered page and are covered by the CI conformance check, not by this one.',
     'compliance.check_eaa_webpage_a11y_fix': 'Fix the listed findings in the page and republish it; the check re-runs on the next sweep.',
     'compliance.check_eaa_product_surfaces_title': 'Public forms, apps and the DSR form are accessibility-tested',
@@ -1207,7 +1207,7 @@ module.exports = {
     'compliance.check_eaa_statement_desc': 'Service providers must publish how their service meets the accessibility requirements (Art. 13). The statement\'s URL is recorded under Compliance → Settings and fetched to confirm it is publicly reachable and actually talks about accessibility, WCAG or EN 301 549.',
     'compliance.check_eaa_statement_fix': 'Publish an accessibility statement and paste its URL under Compliance → Settings; record the conformance level and date you declare in it.',
     'compliance.check_machinery_detection_title': 'Industrial control integrations detected?',
-    // CHANGED round 2 · detect-legal-wording: Art. 3(3) requires the software to be placed on the market on its own
+    // Art. 3(3) requires the software to be placed on the market on its own
     'compliance.check_machinery_detection_desc': 'Software that fulfils a safety function and is placed on the market on its own is a safety component under the Machinery Regulation (EU) 2023/1230 (Art. 3(3)); software built into a machine is assessed as part of that machine. This check scans custom integrations, automations, connections, 90 days of outbound traffic and MCP servers for OPC UA, Modbus, MQTT/SCADA, PLC vendor endpoints and industrial vocabulary. No matches means the Regulation does not appear to apply; matches are a prompt to assess, never a verdict.',
     'compliance.check_machinery_detection_fix': 'Review each detected integration under Compliance → Machinery and record a safety-component assessment for it, or mark the Machinery Regulation as not relevant when none of them touches a machine.',
     'compliance.check_machinery_assessment_title': 'Safety-component assessment recorded',
@@ -1289,7 +1289,7 @@ module.exports = {
     'compliance.fw_iso27001_name': 'ISO 27001',
     'compliance.fw_iso27001_desc': 'Information security management system: Annex A controls, Statement of Applicability, risk register, policies and audits — including whether climate change is a relevant issue (Amd 1:2024).',
     'compliance.fw_iso27001_affects': 'the whole organisation — the controls are verified continuously and the SoA shows what counts for which control.',
-    // CHANGED round 2 · detect-legal-wording: in English the bare "Cybersecurity Act" is Regulation (EU) 2019/881
+    // In English the bare "Cybersecurity Act" is Regulation (EU) 2019/881
     'compliance.fw_nis2_name': 'NIS2 · Dutch Cybersecurity Act (Cbw)',
     'compliance.fw_nis2_desc': 'Duty of care, incident reporting, registration for around 8,000 organisations, explicit board accountability.',
     'compliance.fw_nis2_affects': 'via customers in scope — supplier questionnaires, reporting agreements, contractual onboarding requirements. If you host Bee Flow as a cloud or managed service for others and are medium-sized or larger, you may be in scope yourself, with Implementing Regulation (EU) 2024/2690 setting your measures.',
@@ -1302,7 +1302,7 @@ module.exports = {
     'compliance.fw_data_act_name': 'Data Act',
     'compliance.fw_data_act_desc': 'Switching: at most two months\' notice, the switch completed within 30 days, all exportable data in a structured, machine-readable format, open interfaces free of charge (functional equivalence only for IaaS); reduced switching charges until 12 Jan 2027, none after.',
     'compliance.fw_data_act_affects': 'the exit procedure must actually work — Solutions › Export becomes a check.',
-    // CHANGED round 2 · detect-legal-wording: 12 Sep 2025 is the application date (in force since 11 Jan 2024)
+    // 12 Sep 2025 is the application date (in force since 11 Jan 2024)
     'compliance.fw_data_act_phase_in_force': 'applies',
     'compliance.fw_data_act_phase_switching_charges': 'switching charges abolished',
     'compliance.fw_pld_name': 'Product liability',
@@ -1310,7 +1310,7 @@ module.exports = {
     'compliance.fw_pld_affects': 'the release date becomes legally relevant; "substantial modification" must be answerable in the release process. Fix now: SBOM, vulnerability policy, end-of-support date.',
     'compliance.fw_pld_phase_in_force': 'applies to new products',
     'compliance.fw_eaa_name': 'Accessibility (EAA)',
-    // CHANGED round 2 · detect-legal-wording: the Art. 2(2) service list in full; EN 301 549 V4.1.1 (WCAG 2.2 AA) is not yet cited
+    // The Art. 2(2) service list in full; EN 301 549 V4.1.1 (WCAG 2.2 AA) is not yet cited
     'compliance.fw_eaa_desc': 'Consumer services in scope (e-commerce, consumer banking, e-books, electronic communications, access to audiovisual media services, passenger transport) must meet the accessibility requirements of Annex I. EN 301 549 V3.2.1 (WCAG 2.1 AA) is the current reference; V4.1.1 (WCAG 2.2 AA) gives a presumption of conformity once it is cited in the Official Journal. Micro-enterprises providing services are exempt.',
     'compliance.fw_eaa_affects': 'published webpages and public forms (/f, /p, /dsr).',
     'compliance.fw_eaa_phase_in_force': 'in force',
@@ -1318,10 +1318,10 @@ module.exports = {
     'compliance.fw_dora_name': 'DORA',
     'compliance.fw_dora_desc': 'Contractual outsourcing, exit-plan and incident-reporting requirements for financial institutions.',
     'compliance.fw_dora_affects': 'only with financial customers.',
-    // CHANGED round 2 · detect-legal-wording: 17 Jan 2025 is the application date (in force since 16 Jan 2023)
+    // 17 Jan 2025 is the application date (in force since 16 Jan 2023)
     'compliance.fw_dora_phase_in_force': 'applies',
     'compliance.fw_machinery_name': 'Machinery Regulation 2023/1230',
-    // CHANGED round 2 · detect-legal-wording: Art. 3(3) requires the software to be placed on the market on its own; Art. 18 for the modifier
+    // Art. 3(3) requires the software to be placed on the market on its own; Art. 18 for the modifier
     'compliance.fw_machinery_desc': 'Software that fulfils a safety function and is placed on the market on its own is a safety component (Art. 3(3)); whoever substantially modifies a machine is treated as its manufacturer (Art. 18).',
     'compliance.fw_machinery_affects': 'only integrations that drive a PLC or a machine — an ERP update is something else than a PLC.',
     'compliance.fw_machinery_phase_in_force': 'replaces the Machinery Directive',
@@ -1329,26 +1329,26 @@ module.exports = {
     'compliance.cal_ms_aia_gpai_legacy_models_detail': 'providers of general-purpose AI models already on the market before 2 Aug 2025 must meet the GPAI obligations (Art. 111(3)); it binds the model provider, and your model inventory shows which ones you use',
     'compliance.fw_data_act_phase_connected_products': 'access by design for new connected products',
     'compliance.cal_ms_data_act_connected_products_label': 'Data Act: access by design for new connected products',
-    // CHANGED round 2 · detect-legal-wording: Art. 3(1) binds providers of related services too
+    // Art. 3(1) binds providers of related services too
     'compliance.cal_ms_data_act_connected_products_detail': 'connected products and related services placed on the market after this date must give users access to their data by design (Art. 3(1)) · only for manufacturers of connected products and providers of related services',
     'compliance.cal_ms_data_act_chapter_iv_legacy_contracts_label': 'Data Act unfair-terms test reaches older contracts',
-    // CHANGED round 2 · detect-legal-wording: Art. 50 counts the ten years from 11 Jan 2024, not from the contract date
+    // Art. 50 counts the ten years from 11 Jan 2024, not from the contract date
     'compliance.cal_ms_data_act_chapter_iv_legacy_contracts_detail': 'Chapter IV also applies to data-sharing contracts concluded on or before 12 Sep 2025 that are of indefinite duration or due to expire at least ten years from 11 Jan 2024, i.e. not before 11 Jan 2034 (Art. 50)',
     'compliance.fw_cra_phase_notified_bodies': 'notified bodies (Chapter IV)',
     'compliance.cal_ms_cra_notified_bodies_label': 'CRA: rules for notified bodies apply',
-    // CHANGED round 2 · detect-legal-wording: any product can involve a notified body through a third-party module (Art. 32(1))
+    // Any product can involve a notified body through a third-party module (Art. 32(1))
     'compliance.cal_ms_cra_notified_bodies_detail': 'conformity assessment bodies can be notified (Chapter IV, Art. 71(2)) · matters mainly for important (Annex III) and critical (Annex IV) products; for other products only when the manufacturer chooses a third-party module (Art. 32(1))',
-    // CHANGED round 2 · detect-legal-wording: 17 Jan 2025 is the application date (in force since 16 Jan 2023)
+    // 17 Jan 2025 is the application date (in force since 16 Jan 2023)
     'compliance.cal_ms_dora_in_force_label': 'DORA applies',
     'compliance.cal_ms_dora_in_force_detail': 'contractual outsourcing, exit-plan and incident-reporting requirements for financial institutions',
     'compliance.cal_ms_aia_art4_art5_label': 'AI Act Art. 4 literacy · Art. 5 prohibited practices',
     'compliance.cal_ms_aia_art4_art5_detail': 'AI literacy: since 27 Jul 2026 a duty to take supporting measures, not to guarantee a level; keep them demonstrable · prohibited practices apply directly (Dutch fining powers wait for the implementation act)',
     'compliance.cal_ms_eaa_in_force_label': 'Accessibility Act (EAA)',
-    // CHANGED round 2 · detect-legal-wording: the Art. 2(2) service list in full; EN 301 549 V4.1.1 (WCAG 2.2 AA) is not yet cited
+    // The Art. 2(2) service list in full; EN 301 549 V4.1.1 (WCAG 2.2 AA) is not yet cited
     'compliance.cal_ms_eaa_in_force_detail': 'in-scope consumer services (e-commerce, consumer banking, e-books, electronic communications, access to audiovisual media services, passenger transport) · measured against EN 301 549 V3.2.1 (WCAG 2.1 AA) until V4.1.1 (WCAG 2.2 AA) is cited in the Official Journal',
     'compliance.cal_ms_aia_gpai_label': 'AI Act GPAI rules',
     'compliance.cal_ms_aia_gpai_detail': 'obligations for providers of general-purpose AI models',
-    // CHANGED round 2 · detect-legal-wording: 12 Sep 2025 is the application date (in force since 11 Jan 2024)
+    // 12 Sep 2025 is the application date (in force since 11 Jan 2024)
     'compliance.cal_ms_data_act_in_force_label': 'Data Act applies',
     'compliance.cal_ms_data_act_in_force_detail': 'switching: at most two months\' notice, switch within 30 days, export in a structured, machine-readable format; functional equivalence applies to IaaS only',
     'compliance.cal_ms_aia_art50_enforcement_label': 'AI Act Art. 50 transparency',
@@ -1360,7 +1360,7 @@ module.exports = {
     'compliance.cal_ms_aia_marking_transition_end_label': 'Machine-readable marking of AI content — end of transition',
     'compliance.cal_ms_aia_marking_transition_end_detail': 'AI Act Art. 50(2) transition (Art. 111(4)): only for generative systems placed on the market before 2 Aug 2026; newer systems mark from day one · same day: new Art. 5 ban on AI-generated NCII/CSAM (fines up to € 35 m / 7 %)',
     'compliance.cal_ms_pld_in_force_label': 'New product liability',
-    // CHANGED round 2 · detect-legal-wording: name the pending Dutch bill (status checked 6 Oct 2026; re-check at the next review)
+    // Name the pending Dutch bill (status checked 6 Oct 2026; re-check at the next review)
     'compliance.cal_ms_pld_in_force_detail': 'software, AI systems and connected services · affects you as a supplier · Dutch bill 36906 (Implementatiewet richtlijn herziening productaansprakelijkheid) is still before the Tweede Kamer, not yet adopted',
     'compliance.cal_ms_data_act_switching_charges_label': 'Switching charges for data processing fully abolished',
     'compliance.cal_ms_data_act_switching_charges_detail': 'Data Act Art. 29(1) · until then only reduced, cost-based switching charges (Art. 29(2)–(3)); egress for parallel use may still be charged at cost (Art. 34(2))',
@@ -1378,25 +1378,24 @@ module.exports = {
     'compliance.cal_ms_omnibus_data_part_detail': 'still a proposal (COM(2025) 837): no agreement between Council and Parliament yet. Only the AI part is law. The proposed changes to the GDPR (including cookies and breach notification), the Data Act and a single incident-reporting entry point do not apply — do not design around them',
     'compliance.cal_ms_nl_uitvoeringswet_ai_label': 'Dutch AI Act Implementation Act',
     'compliance.cal_ms_nl_uitvoeringswet_ai_detail': 'consultation closed 1 Jun 2026, bill not yet before parliament. The AI Act applies directly, but no Dutch supervisor is designated by law yet, so there are no national AI Act fines until this act is in force. Proposed: the AP and RDI coordinate supervision.',
-    // round 2 · detect-legal-register: calendar milestones added in the review of 7 Oct 2026
+    // Calendar milestones added in the review of 7 Oct 2026
     'compliance.cal_ms_gdpr_procedural_regulation_label': 'GDPR cross-border enforcement procedure',
     'compliance.cal_ms_gdpr_procedural_regulation_detail': 'Regulation (EU) 2025/2518 (in force 1 Jan 2026) applies to new cross-border cases: uniform rules for how data protection authorities handle complaints and investigations, including admissibility, the right to be heard on preliminary findings, access to the file and time limits · matters only if your processing is cross-border (GDPR Art. 4(23))',
     'compliance.cal_ms_eaa_en301549_v4_citation_label': 'EN 301 549 V4.1.1 (WCAG 2.2 AA) cited under the EAA',
     'compliance.cal_ms_eaa_en301549_v4_citation_detail': 'published Sep 2026; gives a presumption of conformity only once the Commission cites it in the Official Journal. Until then V3.2.1 / WCAG 2.1 AA is the reference.',
-    // ── end round 2 · detect-legal-register ──
     'compliance.policy_seed_exit_procedure_title': 'Exit and data-portability procedure',
-    // CHANGED round 2 · detect-legal-wording: A.5.29/A.5.30 are continuity controls; supplier agreements and cloud exit are A.5.20/A.5.23
+    // A.5.29/A.5.30 are continuity controls; supplier agreements and cloud exit are A.5.20/A.5.23
     'compliance.policy_seed_exit_procedure_desc': 'How data is handed back and a service is wound down when a customer or supplier leaves — Data Act switching rights (Art. 23, 25), ISO 27001 A.5.20/A.5.23.',
     'compliance.back_to_settings': 'Back to settings',
     'compliance.dsr_capture_cta': 'Record a request',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.dsr_toast_captured': 'Request recorded — the one-month clock is running',
     'compliance.dsr_toast_extend_failed': 'Could not extend the deadline',
     'compliance.fw_toast_failed': 'Could not update the framework',
     'compliance.fw_toast_locked': 'This framework is not included in your plan',
     'compliance.hdr_dsr_ok': 'All requests within the deadline',
     'compliance.hdr_dsr_overdue': '{n} past the deadline',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one month, extendable by two further months
+    // Art. 12(3) is one month, extendable by two further months
     'compliance.hdr_dsr_window': 'Art. 12–22 · one month, +2 months with reason',
     'compliance.hdr_fw_add': 'Add framework',
     'compliance.hdr_fw_asof': 'As of {date} · not legal advice',
@@ -1467,7 +1466,7 @@ module.exports = {
     'compliance.ovw_act_open_fix': 'Open fix',
     'compliance.ovw_act_navigate': 'Open',
     'compliance.ovw_deadlines_title': 'Deadlines',
-    // round 2 · P06-overview: the hint says what the card is, not three clock lengths
+    // The hint says what the card is, not three clock lengths
     'compliance.ovw_deadlines_hint': 'Legal response deadlines, most urgent first',
     'compliance.ovw_deadlines_loading': 'Reading the clocks…',
     'compliance.ovw_deadlines_unavailable': 'Could not read the deadlines right now.',
@@ -1590,7 +1589,7 @@ module.exports = {
     'compliance.dsr_filter_empty': 'No requests match this filter.',
     'compliance.dsr_sort_deadline': 'By deadline',
     'compliance.dsr_search': 'Search number or e-mail…',
-    // CHANGED round 2 · detect-legal-clocks: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.dsr_intake_note': 'Requests arrive through the public form (no account, rate-limited, linked from the privacy notice) or are recorded here by hand. The one-month clock starts at receipt, not when work starts.',
     'compliance.dsr_view_form': 'View form',
     'compliance.dsr_drawer_aria': 'Request #{id}',
@@ -1620,15 +1619,15 @@ module.exports = {
     'compliance.dsr_reject_ellipsis': 'Reject…',
     'compliance.dsr_reject_reason': 'Reason for rejecting — goes into the reply to the data subject',
     'compliance.dsr_reject_confirm': 'Reject and e-mail the data subject',
-    // CHANGED round 2 · detect-nl: Art. 12(3) extends by two further months, and dsrStore.extend adds two calendar months, not 60 days
+    // Art. 12(3) extends by two further months, and dsrStore.extend adds two calendar months, not 60 days
     'compliance.dsr_extend_60': 'Extend +2 months',
     'compliance.dsr_extend_reason': 'Reason for the extension (Art. 12(3): complexity or number of requests)',
-    // CHANGED round 2 · detect-nl: Art. 12(3) extends by two further months, not 60 days
+    // Art. 12(3) extends by two further months, not 60 days
     'compliance.dsr_extend_confirm': 'Extend by two months',
     'compliance.dsr_export': 'Export',
     'compliance.dsr_privacy_note': 'Personal data leaves Bee Flow only by e-mail to the data subject. The export is the file of this request, not the data.',
     'compliance.dsr_capture_title': 'Record a request',
-    // CHANGED round 2 · detect-nl: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.dsr_capture_desc': 'For a request that arrived by e-mail, phone or letter. The one-month clock starts at receipt.',
     'compliance.dsr_capture_submit': 'Record',
     'compliance.dsr_capture_type': 'Kind of request',
@@ -1644,12 +1643,12 @@ module.exports = {
     'compliance.dsr_capture_err_future': 'The receipt date cannot be in the future.',
     'compliance.dsr_toast_fulfilled': 'Request fulfilled — the data subject has been e-mailed',
     'compliance.dsr_toast_rejected': 'Request rejected — the data subject has been e-mailed',
-    // CHANGED round 2 · detect-nl: Art. 12(3) extends by two further months, not 60 days
+    // Art. 12(3) extends by two further months, not 60 days
     'compliance.dsr_toast_extended': 'Deadline extended by two months',
     'compliance.dsr_toast_started': 'Request started',
     'compliance.dsr_toast_capture_failed': 'Could not record the request',
     'compliance.dsr_pf_title': 'Public request form',
-    // CHANGED round 2 · detect-nl: Art. 12(3) is one calendar month, not 30 days
+    // Art. 12(3) is one calendar month, not 30 days
     'compliance.dsr_pf_intro': 'Data subjects submit requests here without an account. Link it from your privacy notice; every submission starts the one-month clock at receipt.',
     'compliance.dsr_pf_rate_title': 'Rate-limited',
     'compliance.dsr_pf_rate_body': 'Five submissions per hour per IP address; the status check is limited too. The organisation is resolved from the e-mail address, so the form needs no login.',
@@ -1843,7 +1842,7 @@ module.exports = {
     'compliance.dpia_col_status': 'DPIA',
     'compliance.dpia_empty_title': 'No agent needs a DPIA',
     'compliance.dpia_on_record_short': 'DPIA on record',
-    // CHANGED round 2 · detect-legal-wording: Art. 35(7)(a)–(d), the risk assessment (c) included
+    // Art. 35(7)(a)–(d), the risk assessment (c) included
     'compliance.dpia_questionnaire_hint': 'Art. 35(7): description and purposes, necessity and proportionality, risks to the rights and freedoms of the people concerned, measures.',
     'compliance.dpia_q_mitigations_hint': 'One per line',
     'compliance.set_loading': 'Reading your compliance settings…',
@@ -1866,7 +1865,7 @@ module.exports = {
     'compliance.set_group_ai_act': 'AI Act',
     'compliance.set_group_ai_act_desc': 'AI literacy (Art. 4) and the marking of AI-generated content (Art. 50(2)).',
     'compliance.set_ai_marking': 'Mark AI-generated content',
-    // CHANGED round 2 · detect-legal-wording: Art. 50(2) requires machine-readable marking only; the visible note is Bee Flow's own addition
+    // Art. 50(2) requires machine-readable marking only; the visible note is Bee Flow's own addition
     'compliance.set_ai_marking_hint': 'AI Act Art. 50(2) requires machine-readable marking of AI-generated output since 2 August 2026 (systems already on the market before then: by 2 December 2026). Bee Flow also adds a visible note.',
     'compliance.set_ai_marking_footer': 'Visible footer text (optional)',
     'compliance.set_ai_marking_footer_hint': 'Leave empty for the default sentence.',
@@ -2060,7 +2059,7 @@ module.exports = {
     'compliance.custom_err_attest_failed': 'The attestation could not be recorded.',
     'compliance.custom_err_upload': 'The file could not be stored as evidence.',
     'compliance.pf_title': 'Data Act export matrix',
-    // CHANGED round 2 · detect-legal-clocks: Art. 30(1) is IaaS functional equivalence; porting all exportable data is Art. 23(c) / 25(2)(a),(e), the format Art. 30(5)
+    // Art. 30(1) is IaaS functional equivalence; porting all exportable data is Art. 23(c) / 25(2)(a),(e), the format Art. 30(5)
     'compliance.pf_intro': 'The Data Act asks that a customer can take all exportable data along when they switch (Art. 23(c), 25(2)(a) and (e)): every kind this platform holds, in a structured, commonly used and machine-readable format (Art. 30(5)). A kind without a working export route is a gap in the exit procedure — it is listed here, not hidden.',
     'compliance.pf_coverage': '{portable} of {total} kinds portable',
     'compliance.pf_footer': '{portable} of {total} kinds have a working export route. The gaps are product work, tracked with the Data Act checks — the exit procedure describes them honestly until they close.',
@@ -2079,7 +2078,7 @@ module.exports = {
     'compliance.pf_scope_bulk': 'in bulk',
     'compliance.pf_scope_platform': 'platform-wide, not per organisation',
     'compliance.mach_title': 'Machinery Regulation — safety components',
-    // CHANGED round 2 · detect-legal-wording: Art. 3(3) requires the software to be placed on the market on its own
+    // Art. 3(3) requires the software to be placed on the market on its own
     'compliance.mach_intro': 'Software that steers or monitors a safety function can be a safety component from 20 January 2027 — when it is placed on the market on its own (Art. 3(3)); built into a machine, it is assessed with the machine. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.',
     'compliance.mach_not_provisioned': 'The industrial-integration detector is not installed on this deployment, so nothing was scanned. That is not the same as "no machines found".',
     'compliance.mach_read_failed': 'The machine-integration scan could not be read.',
@@ -2153,11 +2152,11 @@ module.exports = {
     'compliance.ladder_outcome_chip_not_applicable': 'AI Act not applicable',
     'compliance.ladder_outcome_chip_prohibited': 'Prohibited (Art. 5)',
     'compliance.ladder_outcome_chip_transparency': 'Art. 4 + Art. 50',
-    // CHANGED round 2 · detect-legal-wording: the Annex III duties apply from 2 Dec 2027 (Regulation (EU) 2026/1744)
+    // The Annex III duties apply from 2 Dec 2027 (Regulation (EU) 2026/1744)
     'compliance.ladder_outcome_high_risk': 'Outcome: the AI Act applies — high-risk (Annex III). From 2 Dec 2027 risk management, technical documentation and human oversight are required (provider: Art. 9, 11, 14; deployer: Art. 26).',
     'compliance.ladder_outcome_minimal': 'Outcome: the AI Act applies — Art. 4 (literacy). Minimal risk: no customer contact, no generated content.',
     'compliance.ladder_outcome_not_applicable': 'Outcome: the AI Act does not apply — no step calls a model. Only the GDPR applies.',
-    // CHANGED round 2 · detect-legal-wording: a deployer classifying its own agent is not an Art. 53 duty
+    // A deployer classifying its own agent is not an Art. 53 duty
     'compliance.ladder_outcome_note': 'Recorded with the model inventory and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.',
     'compliance.ladder_outcome_pending': 'Outcome: pending — tick the chips of steps 1 and 3 to declare.',
     'compliance.ladder_outcome_prohibited': 'Outcome: prohibited practice (Art. 5) — this may not run.',
@@ -2272,7 +2271,7 @@ module.exports = {
     'compliance.rail_risks': 'Risk register',
     'compliance.rail_soa': 'SoA (Annex A)',
     'compliance.rail_policies': 'Policies',
-    // compliance.rail_audits: see the round 2 · P05-header block
+    // compliance.rail_audits: see the section-header block below
     'compliance.rail_training': 'Training & competence',
     'compliance.rail_access_log': 'Access log',
     'compliance.rail_portability': 'Data portability',
@@ -2333,7 +2332,7 @@ module.exports = {
     'compliance.clock_none': 'no open deadline',
     'compliance.clock_short_days': '{days}',
     'compliance.clock_short_hours': '{hours} h',
-    // round 2 · P02-shared: clock copy without "still", singular forms, the
+    // Clock copy without "still", singular forms, the
     // compact row form, and the "+k" of a shortened reference list.
     'compliance.clock_days_left': '{days} days left',
     'compliance.clock_hours_left': '{hours} hours left',
@@ -2347,7 +2346,6 @@ module.exports = {
     'compliance.clock_row_hours_left': '{hours} h left',
     'compliance.clock_row_hours_overdue': '{hours} h overdue',
     'compliance.ref_more': '+{n}',
-    // end round 2 · P02-shared
     'compliance.custom_attest_upload_unavailable': 'Attaching a file is not available here.',
     'compliance.ovw_attention_loading': 'Reading what needs attention…',
     'compliance.ladder_annex_high_risk_points': 'High risk under {points}.',
@@ -2380,7 +2378,7 @@ module.exports = {
     'compliance.checks.gdpr_project_personal_data.fix': 'Open Compliance → Processing register, find the project under Collaborative projects and record its purpose, lawful basis and retention.',
     'compliance.checks.iso_project_orphaned_content.title': 'Projects and their content have an owner who is still here',
     'compliance.checks.iso_project_orphaned_content.desc': 'Only a project’s owner manages who has access. When the owner leaves, nobody can govern the project any more. Chats shared into a project and project notebooks of people who left are smaller versions of the same problem.',
-    // CHANGED round 2 · detect-iso: projects have no archive state; handing over and deleting both go through the owner
+    // Projects have no archive state; handing over and deleting both go through the owner
     'compliance.checks.iso_project_orphaned_content.fix': 'Reactivate the departed owner long enough to hand the project over or delete it. A chat shared by someone who left is encrypted with their key: it cannot be given to someone else, only archived or deleted.',
     'compliance.checks.gdpr_project_retention.title': 'Unused projects with personal data are not kept forever',
     'compliance.checks.gdpr_project_retention.desc': 'A project that holds personal data and has not been used for longer than your organisation keeps project data should be archived, exported or deleted — or the reason it is kept should be on record. The window is the project’s own processing record, else the project retention setting, else 365 days.',
@@ -2394,7 +2392,7 @@ module.exports = {
     'compliance.checks.aia_project_ai_edits.title': 'AI-written changes in projects are attributed to the AI',
     'compliance.checks.aia_project_ai_edits.desc': 'The version history of project documents and notebooks records who wrote each version. A version the AI wrote must name the AI among its contributors, so machine-written text is never presented as a person’s.',
     'compliance.checks.aia_project_ai_edits.fix': 'Nothing to configure: this is a product guarantee. If it fails, report it — the version history recorded an AI change without its author.',
-    // round 2 · P07-admin: short enough to share a row with the other day fields; the hint keeps the detail
+    // Short enough to share a row with the other day fields; the hint keeps the detail
     'compliance.settings.project_retention_days': 'Project retention (days)',
     'compliance.settings.project_retention_days_hint': 'How long a collaborative project may go unused while it holds personal data. 365 days when left empty.',
     'compliance.settings.project_owner_hints_enabled': 'Show project owners one gentle hint they can act on',
@@ -2501,7 +2499,7 @@ module.exports = {
     'compliance.dsr_found_team_chat': '{n} team chat messages they wrote',
     'compliance.dsr_found_projects': '{n} project items',
     // ── end compliance checks on collaborative projects ──
-    // round 2 · P01-nav — rail meta: one actionable count per row, nothing when clean
+    // Rail meta: one actionable count per row, nothing when clean
     'compliance.rail_meta_new': '{n} new',
     'compliance.rail_meta_to_decide': '{n} to decide',
     'compliance.rail_meta_review_overdue': '{n} review overdue',
@@ -2509,8 +2507,7 @@ module.exports = {
     'compliance.rail_meta_review_due': 'review due',
     'compliance.rail_meta_failing': '{n} to fix',
     'compliance.rail_meta_high': '{n} high',
-    // ── end round 2 · P01-nav ──
-    // round 2 · P03-checks — the check table: the copy of the Art. 30(1)(d)
+    // The check table: the copy of the Art. 30(1)(d)
     // flows check, the row's compact "Fix", the finding in full, one Snooze menu
     'compliance.checks.gdpr_art30_flows.title': 'Personal data leaving through automations is recorded',
     'compliance.checks.gdpr_art30_flows.desc': 'Art. 30(1)(d) requires the register to name the recipients of personal data. This check follows every automation step that sends data out of Bee Flow and confirms the destination is recorded or protected.',
@@ -2520,8 +2517,7 @@ module.exports = {
     'compliance.finding_state.snooze': 'Snooze',
     'compliance.finding_state.snooze_7_short': '7 days',
     'compliance.finding_state.snooze_30_short': '30 days',
-    // ── end round 2 · P03-checks ──
-    // round 2 · P04-dsr-incidents — requests: confirm identity, the toolbar's
+    // Requests: confirm identity, the toolbar's
     // form link, actors by name; incidents: when the organisation became aware,
     // one Reporting list, the next step, closing without notifying (Art. 33(5))
     'compliance.dsr_identity_confirm': 'Confirm identity…',
@@ -2545,8 +2541,7 @@ module.exports = {
     'compliance.inc_filed_count': '{n} of {total} filed',
     'compliance.inc_close_reason': 'Why was the authority not notified? (Art. 33(5))',
     'compliance.vuln_close_reason': 'Why was it not reported? (CRA Art. 14)',
-    // ── end round 2 · P04-dsr-incidents ──
-    // round 2 · P05-header — the section header: the incident clock by stage,
+    // The section header: the incident clock by stage,
     // the SoA Export menu, the ROPA / portability / own-framework / machinery
     // actions, and the phone subtitle for a run on another day
     'compliance.hdr_inc_open_stage': '{n} open · {stage} in {hours} h',
@@ -2569,8 +2564,7 @@ module.exports = {
     'compliance.mob_run_at': 'run {date} {time}',
     // CHANGED (was 'Audits & management review'): the rail row and the header title
     'compliance.rail_audits': 'Audits & reviews',
-    // ── end round 2 · P05-header ──
-    // round 2 · P07-admin — Settings: sub-headings, progress per group, one
+    // Settings: sub-headings, progress per group, one
     // disclosure for the frameworks that are off, a leave guard; connectors:
     // what collects apart from what is available, one status vocabulary
     'compliance.set_section_accountability': 'Accountability',
@@ -2595,8 +2589,7 @@ module.exports = {
     'compliance.conn_sweep_cell': 'Swept {last} · next ~{next}',
     'compliance.conn_status_findings': 'Swept with findings',
     'compliance.conn_connection_missing': 'Linked connection not found ({id})',
-    // ── end round 2 · P07-admin ──
-    // round 2 · P08-iso-process — audits, nonconformities, objectives,
+    // Audits, nonconformities, objectives,
     // management reviews, training and the access log: steps that keep the
     // drawer's edits, and names where the screens printed ids and raw keys
     'compliance.nc_needs_ca': 'Describe the corrective action first',
@@ -2621,8 +2614,7 @@ module.exports = {
     'compliance.aa_subject_request': 'Request #{id}',
     'compliance.aa_by': 'by {name}',
     'compliance.aa_actor_system': 'System',
-    // ── end round 2 · P08-iso-process ──
-    // round 2 · P06-overview — the whole to-do list in one place, short clocks,
+    // The whole to-do list in one place, short clocks,
     // quiet score cards, the other frameworks on the Overview, and the
     // calendar and reports reachable on a phone
     'compliance.ovw_show_all': 'Show all {n}',
@@ -2646,8 +2638,7 @@ module.exports = {
     'compliance.mob_calendar_entry': 'Regulatory calendar',
     'compliance.mob_reports_entry': 'Reports and downloads',
     'compliance.mob_fw_open': '{n} open',
-    // ── end round 2 · P06-overview ──
-    // round 2 · P10-framework-pages — the AI Act page carries the per-agent
+    // The AI Act page carries the per-agent
     // classification, More frameworks splits enabled from available, singular
     // counts, the ladder's legacy "yes", and a confirm before deleting an item
     'compliance.tab_aia_systems': 'Systems',
@@ -2672,8 +2663,7 @@ module.exports = {
     'compliance.ladder_sub_ai_steps_one': '1 AI step',
     'compliance.ladder_legacy_yes_note': 'Declared high-risk earlier — pick the area(s) to confirm',
     'compliance.custom_delete_confirm': 'Delete this item?',
-    // ── end round 2 · P10-framework-pages ──
-    // round 2 · P09-ropa-dpia — the processing register keeps every Art. 30
+    // The processing register keeps every Art. 30
     // fact on screen and says "EU" once, an SCC attestation is withdrawn only
     // after a confirm, a DPIA on record opens as its summary and a blank
     // questionnaire cannot be saved. ropa_scc_not_needed_short and
@@ -2702,8 +2692,7 @@ module.exports = {
     'compliance.dpia_required': 'Fill in purpose, data and oversight to save',
     'compliance.dpia_q_mitigations_short': 'Mitigations',
     'compliance.dpia_answers_failed': 'The recorded answers could not be read.',
-    // ── end round 2 · P09-ropa-dpia ──
-    // round 2 · P11-iso-registers — risks, SoA and policies: the treatment
+    // Risks, SoA and policies: the treatment
     // count beside the risk status, a muted dash where no live check exists,
     // the version inside the policy pill, row exceptions with their date, and
     // a question before a publish resets every acknowledgement.
@@ -2719,12 +2708,10 @@ module.exports = {
     'compliance.pol_publish_confirm_first': 'Publish v{n}? Members will be asked to acknowledge this version.',
     'compliance.pol_publish_go': 'Publish v{n}',
     'compliance.pol_publish_nothing': 'Nothing changed since the published version',
-    // ── end round 2 · P11-iso-registers ──
-    // round 2 · detect-legal-clocks — the CRA 72-hour notification as its own
+    // The CRA 72-hour notification as its own
     // deadline kind (Art. 14(2)(b) / 14(4)(b))
     'compliance.deadline_kind_cra_notification': 'CRA notification (72 h)',
-    // ── end round 2 · detect-legal-clocks ──
-    // round 2 · P12-final — the toasts after switching a framework on or off
+    // The toasts after switching a framework on or off
     // (data/aggregates.js useFrameworks) had English fallbacks but no key.
     'compliance.fw_toast_enabled': 'Framework enabled — its checks are running',
     'compliance.fw_toast_disabled': 'Framework disabled',
@@ -2736,5 +2723,4 @@ module.exports = {
     'compliance.aa_reason_mfa_invalid_code': 'wrong verification code',
     'compliance.aa_reason_security_key_rejected': 'security key rejected',
     'compliance.aa_reason_password_login_disabled': 'password sign-in is off',
-    // ── end round 2 · P12-final ──
 };

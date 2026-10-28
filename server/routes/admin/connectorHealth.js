@@ -36,8 +36,8 @@ const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
-// Both list routes narrow on a value the store matches EXACTLY, and both
-// used to accept whatever arrived:
+// Both list routes narrow on a value the store matches EXACTLY, so both
+// must refuse whatever does not fit:
 //
 //   - `?severity=warn` (the store writes 'warning') matched no row, so the
 //     timeline came back empty -- read by the operator as "nothing happened

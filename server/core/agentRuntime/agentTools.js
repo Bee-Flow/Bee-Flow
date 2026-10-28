@@ -75,7 +75,7 @@ async function subworkflowsVisibleTo(userId) {
  * Whether a FILE component is listed for, and callable by, one caller.
  *
  * components/ is one global directory, so a component written through the
- * Component Designer (removed 2026-10) used to land in the catalogue and the agent tools of
+ * Component Designer (since removed) landed in the catalogue and the agent tools of
  * EVERY organisation: an admin of org B was offered code a member of org A
  * had the model write, as a tool that would then receive org B's inputs. That
  * route recorded who a component belonged to in component.json, and a

@@ -39,8 +39,8 @@ async function getPublishedAgents() {
 async function setAgentPublished(id, isPublished, ownerId, sharedGroups = undefined) {
     await initDB();
     // When sharedGroups is undefined, preserve the existing DB value — do NOT
-    // overwrite with []. Previously a toggle-publish with no sharedGroups in the
-    // request body silently wiped any group restrictions.
+    // overwrite with []. Overwriting would let a toggle-publish with no sharedGroups in the
+    // request body silently wipe any group restrictions.
     let rowCount;
     if (sharedGroups === undefined) {
         ({ rowCount } = await run(
@@ -65,7 +65,7 @@ async function getPublishedAgentsForUser(userGroups = [], userOrgId = null, reso
     await initDB();
     // Defensive: exclude orphaned agents whose owner no longer exists (e.g. left
     // behind by a pre-fix user deletion) so they can't surface as ghost agents in
-    // a re-created user's library (BFSF-181).
+    // a re-created user's library.
     const allPublished = await getAll("SELECT a.* FROM agents a WHERE a.is_published = TRUE AND a.owner_id NOT IN ('system', 'swarm') AND EXISTS (SELECT 1 FROM users u WHERE u.id = a.owner_id) ORDER BY a.name ASC");
 
     // Use pre-resolved org IDs if provided (from resolveUserOrgIds), otherwise build from params

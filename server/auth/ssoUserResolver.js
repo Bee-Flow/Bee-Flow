@@ -112,9 +112,9 @@ function resolveOrgByEmailDomain(email, orgs, freeDomains) {
  * - org.autoApproveSSO true → active member, org default groups applied
  * - org.autoApproveSSO false → pending member (awaits admin approval), no groups
  *
- * This is what closes the approval-bypass: previously the create path stamped
- * the org with the default 'active' status directly, so the auto-approve/pending
- * decision (which lived in a later block guarded by !userHasOrg) never ran.
+ * This closes the approval-bypass: stamping the org with the default 'active'
+ * status directly would mean the auto-approve/pending decision (which lives in
+ * a later block guarded by !userHasOrg) never ran.
  *
  * `existingGroups` is for the second caller — binding a pre-existing org-less
  * account found by domain match, which must keep the groups it already had. The
@@ -143,8 +143,8 @@ function planNewSSOUserPlacement(org, /** @type {{ existingGroups?: string[] }} 
  *
  * The base slug (email local-part) is guessable, so keying a new account on it
  * bare lets an attacker registering `<victim-local-part>@gmail.com` land on the
- * victim's row (the failed create was previously swallowed and the session was
- * built around whatever row already held the id — an account-takeover path). On
+ * victim's row (a swallowed failed create would build the session around
+ * whatever row already held the id — an account-takeover path). On
  * collision we append a short, deterministic suffix derived from the provider's
  * stable subject id + email, so repeated callbacks for the SAME identity resolve
  * to the same id (idempotent) while a DIFFERENT identity never reuses the slug.

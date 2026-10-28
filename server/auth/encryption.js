@@ -84,9 +84,8 @@ const publicExports = {
     validateEncryptionPin,
     MIN_ENCRYPTION_PIN_LENGTH,
 
-    // Envelope primitives. These were previously test/development-only, which
-    // meant no other production module could wrap a DEK without duplicating
-    // the envelope format — and a second copy of an envelope format is how
+    // Envelope primitives. Exported so no other production module has to
+    // duplicate the envelope format to wrap a DEK — a second copy of an envelope format is how
     // the hex/base64 split in agent-hub/src/lib/opaque.ts happened. They are
     // pure functions over caller-supplied keys and hold no secret state, so
     // there is nothing to protect by hiding them. auth/orgEscrow.js uses them.

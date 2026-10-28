@@ -17,7 +17,7 @@ const { bestEffort } = require('../utils/bestEffort');
 
 // Seed the four baseline locales so the Preferences "Interface Language" row
 // (gated on locales.length > 1) is visible out of the box. Untranslated locales
-// degrade gracefully — useTranslation falls back to English per key (BFSF-200).
+// degrade gracefully — useTranslation falls back to English per key.
 const DEFAULT_LOCALES = [
     { code: 'en', name: 'English', isDefault: true },
     { code: 'nl', name: 'Nederlands' },
@@ -73,7 +73,7 @@ async function getAvailableLocales() {
     // Non-destructive merge for existing deployments seeded with English-only:
     // ensure the baseline locales (en/nl/de/fr) are always present so the
     // language selector becomes visible, without removing/overriding any
-    // admin-added locale or the chosen default (BFSF-200). Idempotent.
+    // admin-added locale or the chosen default. Idempotent.
     const have = new Set(locales.map(l => l && l.code));
     const missing = DEFAULT_LOCALES
         .filter(l => !have.has(l.code))

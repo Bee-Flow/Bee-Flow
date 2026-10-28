@@ -126,7 +126,7 @@ function fuseCandidates(cleanVecRows, cleanFtsRows, { query, topK }) {
     const scores = new Map();
     const contentMap = new Map();
 
-    // Issue #5: Short queries (≤2 words) — boost FTS weight.
+    // Short queries (≤2 words) — boost FTS weight.
     // Single words like "phishing" are better matched by exact keyword
     // search than by embedding similarity (embeddings need more context).
     const queryWordCount = query.trim().split(/\s+/).filter(w => w.length >= 2).length;
@@ -206,7 +206,7 @@ async function expandContextWindow(client, results, filterOrphans) {
             [results.map(r => r.id)]
         );
 
-        // Issue #6 fix: apply orphan filter to adjacent chunks too
+        // Apply orphan filter to adjacent chunks too
         const cleanAdjacentRows = filterOrphans(adjacentRows.rows);
 
         for (const adj of cleanAdjacentRows) {

@@ -21,9 +21,9 @@ const { sessionUser } = require('../../core/http/sessionUser');
 
 const ID_TEXT = 'Name the consent you want to change.';
 const GRANTED_TEXT = 'Say whether the consent is given or withdrawn.';
-// `granted` is REQUIRED and must be a real boolean. It used to be read as
-// `granted === true`, so "true", 1 and a body that forgot the field altogether
-// all meant WITHDRAW — and this writes a consent ledger row, which is the
+// `granted` is REQUIRED and must be a real boolean. Reading it as
+// `granted === true` would make "true", 1 and a body that forgot the field
+// altogether all mean WITHDRAW — and this writes a consent ledger row, which is the
 // record of what the person decided. A withdrawal filed as if they had asked
 // for it is the one outcome this route must never produce by accident.
 const OptionalConsentBody = z.object({
@@ -147,7 +147,7 @@ router.get('/user', async (req, res) => {
                     const orgRequired = await resolveOrgMfaRequired(freshUser?.organizationId || null);
                     if (!platformRequired && !orgRequired) return false;
                     if (freshUser?.mfa_enabled) return false;            // already enrolled
-                    // BFSF-255: a connector-hydrated session (password account
+                    // a connector-hydrated session (password account
                     // that connected Google via Settings → Connections) is NOT
                     // an SSO login — connecting Google must never silently
                     // exempt a password account from forced MFA enrollment.

@@ -129,7 +129,7 @@ function labelFor(meta, key) {
 /**
  * An empty block — what is there when there is nothing to show.
  *
- * The reason code does NOT go into the element. It used to stand here as
+ * The reason code does NOT go into the element. It must not stand here as
  * `data-bf-table="<reason>"`, and that survives the sanitiser: DOMPurify leaves `data-*` alone (`ALLOW_DATA_ATTR` is on, and SANITIZE_HTML_CONFIG in services/webpageSnapshot.js does not turn it off). The code therefore literally ended up in the stored bytes and could be read in the source on /w/<slug> — an anonymous visitor could tell 'unavailable' (the author may no longer read the table) and 'read-failed' (the database was down) apart, and saw 'empty' change as soon as the table got its first row, because the reconciler rewrites the snapshot on every table mutation.
  *
  * "Empty" and "unreadable" must stay distinct — that is why there are several codes — but on the ADMIN side, not in what goes outward. That is why the code now sits in the log and the block itself is the same for every reason.

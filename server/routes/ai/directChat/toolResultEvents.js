@@ -5,8 +5,7 @@
  * Runs sequentially after all tools of a round settle, so the drafts cannot
  * race. Both tool loops (the non-streaming pre-check and the streamed one)
  * call this; they now differ only in the notebook rollback, which can only
- * fire once content has been streamed. Both carry `_toolName`, which the
- * non-streamed return used to omit — see toolExec.js.
+ * fire once content has been streamed. Both carry `_toolName` — see toolExec.js.
  */
 
 /**
@@ -36,7 +35,7 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
         // Key on the REAL draft fields (action/title/startTime/endTime/
         // eventId) — the old key read summary/start/end which calendar
         // drafts never carry, so the dedup was a no-op and the model
-        // re-calling the tool across rounds duplicated the card (BFSF-123).
+        // re-calling the tool across rounds duplicated the card.
         if (toolResult._action === 'calendar_draft') {
             const calKey = /** @param {{ action?: string, title?: string, startTime?: string, endTime?: string, eventId?: string }} d */ (d) => JSON.stringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
             const draftKey = calKey(toolResult.draft);
@@ -70,7 +69,7 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
             send('workspace_update', { content: rendered });
             turn.notebookWriteCommitted = true;
         }
-        // BFSF-208: write failed after partial content was live-streamed to the panel — roll back to last persisted content.
+        // Write failed after partial content was live-streamed to the panel — roll back to last persisted content.
         if (streamed && toolResult._nbWriteFailed && turn._nbStreamLastLen > 0) {
             /** @type {Pick<typeof import('../../../core/privacy/piiDetection'), 'restoreTokens'>} */
             const { restoreTokens } = require('../../../core/privacy/piiDetection');

@@ -259,7 +259,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
     });
 
     // The Privacy Shield's tool block lists ("Outside tools" / "Own server")
-    // apply to this agent's tools as to every other tool loop (BFSF-354); a
+    // apply to this agent's tools as to every other tool loop; a
     // failed lookup leaves them unapplied, as a missing shield does elsewhere.
     const toolPiiGate = require('../core/privacy/toolPiiGate');
     const shieldGate = toolPiiGate.toolLoopGate({

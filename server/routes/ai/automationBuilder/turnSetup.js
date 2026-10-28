@@ -115,7 +115,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
 // ── What a turn may send ─────────────────────────────────────────────
 // The keys the stream reads (see the header) and nothing else. The values
 // stay as loose as the handler reads them — history and attachments are
-// windowed and summarised downstream — but a misspelled key used to be a
+// windowed and summarised downstream — but a misspelled key would be a
 // silent default under a 200 and a paid turn: `modelTeir` built on `auto`,
 // `automationID` started a NEW draft beside the one on screen, and
 // `webSearchEnabled: "false"` switched web search ON (`!!"false"`).
@@ -199,9 +199,9 @@ async function setupTurn(turn) {
     // The persisted builder session is read on EVERY turn of an existing
     // draft, not only on ?resume=1: it carries session state the prompt
     // must replay verbatim — the catalogue order chosen on the first turn
-    // (see rankApps.applyCatalogOrder) and the to-do list. Before this the
-    // to-do list was only seeded on a resume, so a normal second turn
-    // started from an empty plan while the comment further down claimed
+    // (see rankApps.applyCatalogOrder) and the to-do list. Seeding the
+    // to-do list only on a resume would start a normal second turn
+    // from an empty plan while the comment further down claims
     // it "survives across turns".
     let snapshot = null;
     if (draftWrap.automationId) {
@@ -226,7 +226,7 @@ async function setupTurn(turn) {
     }
     const turnMode = approvedPlan ? 'build' : workMode;
     // A new or empty draft is built directly: the size check is for
-    // changes to a flow that already exists (BFSF-486).
+    // changes to a flow that already exists.
     const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);
     const permissionMode = bufferedBuild ? 'approve' : turnMode;
     const isolated = turnMode !== 'build' || bufferedBuild;
@@ -248,7 +248,7 @@ async function setupTurn(turn) {
     // A proposal from an earlier turn that still waits for Apply. An
     // isolated turn works ON it, so the agent's draft view shows what it
     // staged and a follow-up adds to the proposal instead of starting over
-    // from the live draft (BFSF-486). The live draft stays the base.
+    // from the live draft. The live draft stays the base.
     const savedProposal = pendingProposal(snapshot?.proposal, baseDraft);
     const reviewOutcome = snapshot?.reviewOutcome || null;
     // ── The question round of a plan ──
@@ -316,8 +316,8 @@ async function setupTurn(turn) {
     // params. `_inspectedTools` tracks what the agent inspected this turn.
     //
     // Built from the catalog's `actions`, which buildCatalogForUser has
-    // already narrowed to what this user can RUN. It used to be built from
-    // the full TOOL_REGISTRY, and that is what let `unknownToolError` read
+    // already narrowed to what this user can RUN. It must not be built from
+    // the full TOOL_REGISTRY, or `unknownToolError` would read
     // "the catalog knows this tool's schema" as "the user has this tool".
     // The two lists must come from one source or they drift back apart.
     draftWrap._inputSchemasByTool = {};

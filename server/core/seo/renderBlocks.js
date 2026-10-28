@@ -172,8 +172,8 @@ function walk(node, out, depth, state) {
         return;
     }
 
-    // Pure CTAs become real anchors — before this, the server-rendered page
-    // contained no <a> at all, so internal link structure only existed after
+    // Pure CTAs become real anchors — otherwise the server-rendered page
+    // contains no <a> at all, so internal link structure only exists after
     // hydration. Mixed objects (a card with a title and a link) fall through
     // to the normal walk and keep their current rendering.
     const ctaHref = internalCtaHref(node);
@@ -328,8 +328,8 @@ function renderBlocksWithHints(blocks, { fallbackTitle = '', chrome = null } = {
  * Layout for the pre-hydration view, inlined into <head> so it costs no
  * request and applies on the very first paint.
  *
- * PAINTS IMMEDIATELY — the 450ms reveal delay this used to carry is gone,
- * and its removal is the FCP fix, not a simplification. The delay existed to
+ * PAINTS IMMEDIATELY — there is no 450ms reveal delay, and its absence
+ * is the FCP fix, not a simplification. A delay would exist to
  * hide a plain-page flash while a ~2.1 MB entry chunk parsed; after the
  * bundle diet a marketing pageview is ~190 KB gzipped and React mounts over
  * this markup in a few hundred milliseconds. The delay's cost meanwhile had

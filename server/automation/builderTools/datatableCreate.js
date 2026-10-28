@@ -1,10 +1,10 @@
 /**
  * Builder tool — `builder_create_datatable`: create a Studio datatable at
  * DESIGN time, so an automation can be built onto a table that did not exist
- * yet ("extract the invoices into a new table called invoice"). Before this
- * the builder could only write into tables that already existed, and a
- * model asked for a new one invented a create-table STEP (measured
- * 2026-09-14: `builder_add_action` with no such tool, refused every round).
+ * yet ("extract the invoices into a new table called invoice"). Without it
+ * the builder can only write into tables that already exist, and a
+ * model asked for a new one invents a create-table STEP (measured:
+ * `builder_add_action` with no such tool, refused every round).
  *
  * The table is made the way the Datatables section and the Playbook table
  * phase make one (core/dataEngine/createStudioDatatable), owned by the

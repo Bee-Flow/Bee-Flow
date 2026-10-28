@@ -115,9 +115,8 @@ function classify(targetId, byId, known) {
 /**
  * What each kind of target is CALLED in a sentence.
  *
- * The prose used to say "an automation" because an automation was the only thing an
- * edge could point at. Now that a reference can be a table, a knowledge base or
- * a skill, the noun is a parameter — an unknown kind falls back to the neutral
+ * The prose does not always say "an automation": an edge can point at a table,
+ * a knowledge base or a skill too, so the noun is a parameter — an unknown kind falls back to the neutral
  * "thing" rather than claiming the wrong one.
  */
 const TARGET_NOUN = {

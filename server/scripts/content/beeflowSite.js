@@ -146,8 +146,8 @@ const header = {
     // Mega menu on Product; plain items elsewhere. `dropdown.layout` must be
     // 'columns' — 'list' stores data that renders nothing.
     //
-    // Mega-item icons are LUCIDE NAMES, same as block icons. They used to be
-    // emoji, which meant the menu rendered in the visitor's OS emoji font —
+    // Mega-item icons are LUCIDE NAMES, same as block icons. They are not
+    // emoji, which would render the menu in the visitor's OS emoji font —
     // three different visual languages across Mac, Windows and Android, none
     // of them ours, sitting next to a line-drawn product UI. NavIcon still
     // renders a non-PascalCase value verbatim, so sites seeded before the
@@ -227,8 +227,8 @@ const header = {
                         id: 'navcol_cmp_ms',
                         heading: 'Microsoft',
                         items: [
-                            // One item, deliberately. An "All comparisons" entry used to sit
-                            // here for column balance and read as though the hub were a
+                            // One item, deliberately. An "All comparisons" entry must not sit
+                            // here for column balance: it reads as though the hub were a
                             // Microsoft page. The hub is reached by the Compare label itself
                             // — on mobile too, since MobileNav splits the row so the label
                             // navigates and only the caret expands — and it is the first
@@ -298,8 +298,8 @@ const footer = {
     columns: [
         // Six columns of five or six, not one of eleven beside one of three.
         //
-        // "Product" used to hold every product page — eleven links — while
-        // "Source" held three. A grid whose tallest column is nearly four
+        // "Product" must not hold every product page — eleven links — while
+        // "Source" holds three. A grid whose tallest column is nearly four
         // times its shortest reads as a dumping ground with some labels
         // sprinkled over it: the eye has nothing to scan, because "Product"
         // is not a category when it contains the entire site.
@@ -4261,7 +4261,7 @@ const supportPage = demoPage({
 
 // ── Identity & access ──────────────────────────────────────
 //
-// The identity story used to live in asides: a trust-band chip on /security
+// The identity story does not live in asides: a trust-band chip on /security
 // phrased as an apology, "one permission model" said nine times and explained
 // nowhere. This page is where it is spelled out — and where the boundary
 // (no SAML, no SCIM, no generic IdP) is said plainly, because procurement

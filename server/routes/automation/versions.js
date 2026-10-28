@@ -152,9 +152,9 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     const v = validateDefinition(version.definition || {});
     if (!v.ok) return res.status(400).json({ error: 'Stored version no longer validates', details: v.errors });
     // Every other save path (create, PUT, the MCP builder) refuses an approver
-    // outside the owner's organisation. The restore wrote one, and at run time
-    // approvalLifecycle quietly gave the approval to the OWNER instead — the
-    // person the step names was never asked. An approver who has left since
+    // outside the owner's organisation. A restore that wrote one would, at run time, have
+    // approvalLifecycle quietly give the approval to the OWNER instead — the
+    // person the step names would never be asked. An approver who has left since
     // the version was saved is exactly the case a restore meets.
     const assigneeErrors = await validateApprovalAssignees(version.definition, ownerId);
     if (assigneeErrors.length) return res.status(400).json({ error: 'Stored version no longer validates', details: assigneeErrors });
@@ -164,7 +164,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     // the live definition until the restored version is published.
     const hasLive = a.liveVersion != null;
     // An ACTIVE automation without a live version runs this very working copy,
-    // so a restore is a go-live: refuse hand-written pins like PUT does (BFSF-452).
+    // so a restore is a go-live: refuse hand-written pins like PUT does.
     if (a.isActive && !hasLive) {
         const pinRefusal = editedPinRefusal(require('../../automation/portability').collectPinnedNodes(version.definition), { verb: 'save' });
         if (pinRefusal) return res.status(400).json(pinRefusal);
@@ -197,8 +197,8 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
         });
     const { answers, usage: answersUsage } = await provisionForm(updated || a, version.definition);
     // A restore replaces the definition without going through PUT /:id, so
-    // the usage index kept describing the version that was just replaced —
-    // steps that no longer exist went on claiming they write to a table. The
+    // the usage index would keep describing the version that was just replaced —
+    // steps that no longer exist would go on claiming they write to a table. The
     // answers table rides in with the steps, as on PUT: a second writer would
     // erase the step rows, and leaving it out erases the table's.
     await syncDatatableUsage(a.id, a.organizationId || null, version.definition,

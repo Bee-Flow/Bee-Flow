@@ -66,8 +66,8 @@ const DesignerBody = bodyOf({ message: worded('Message is required').min(1, 'Mes
  * @param {Function} opts.buildPrompt   - (body) => user message string
  * @param {Function} opts.parseResult   - (content, body) => response JSON
  *
- * The per-endpoint body check that used to live here is a zod schema on the
- * route now (`validate({ body: … })`), so a refusal names the field.
+ * The per-endpoint body check is a zod schema on the
+ * route (`validate({ body: … })`), so a refusal names the field.
  */
 function createHandler({ agentId, tier, maxTokens, buildPrompt, parseResult }) {
     return async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {

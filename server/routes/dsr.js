@@ -24,7 +24,7 @@
  * (mounted with `gate: null` in featureMap). GDPR requires the channel to be
  * reachable; admin endpoints stay enterprise-only.
  *
- * BFSF-441: the subject's address appears in exactly two places — the audited
+ * The subject's address appears in exactly two places — the audited
  * detail (GET /:id) and the letters e-mailed to the subject. Lists, evidence,
  * notifications and the export carry the masked form, built from allow-lists
  * (compliance/dsr/mask.js). The downloadable dossier gets the STRICTER of the
@@ -443,7 +443,7 @@ function idFromUnverifiedToken(token) {
  * link is burned here, so past this point the caller held a fresh, unspent link
  * for exactly this request. Every failure is the same 400 `invalid_token`: a
  * probe learns nothing about which part failed. Nothing about the row is
- * logged (BFSF-441) — `row` travels no further than `req.dsrVerified`.
+ * logged — `row` travels no further than `req.dsrVerified`.
  */
 /** @param {VerifyRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 async function requireVerifyToken(req, res, next) {

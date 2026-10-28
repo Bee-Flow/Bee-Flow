@@ -74,9 +74,9 @@ async function _detectBuiltIn(text, enabledCategories, confidenceThreshold, opts
         + `via=${how} degraded=${!!r?.degraded} reason=${r?.degradedReason || '-'}`,
     );
 
-    // The cache lives HERE so every caller inherits it. It used to sit only in
-    // validateInput/OutputForPii, which meant the interactive DLP chat path —
-    // the one on time-to-first-token — re-paid a full guard round trip for
+    // The cache lives HERE so every caller inherits it. Sitting only in
+    // validateInput/OutputForPii, it would leave the interactive DLP chat path —
+    // the one on time-to-first-token — re-paying a full guard round trip for
     // every identical scan (a regenerate, a retry, the same tool payload in
     // two lanes). Checked before the circuit breaker on purpose: a cached
     // entry was a SUCCESSFUL scan within TTL and stays valid while the guard
