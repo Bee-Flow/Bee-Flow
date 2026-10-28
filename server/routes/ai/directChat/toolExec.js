@@ -19,7 +19,7 @@
  * one awaited configStore.getConfig per tool call; configStore's own cache
  * bounded staleness to 60s — the per-request memo is strictly narrower).
  */
-
+// @typecheck
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
 const toolDisclosure = require('../../../core/tools/toolDisclosure');
 const {
@@ -131,7 +131,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         };
     }
 
-    log.info(`[DirectChat] Executing ${streamed ? 'streamed ' : ''}tool: ${toolName}`, toolArgs);
+    log.info(`[DirectChat] Executing ${streamed ? 'streamed ' : ''}tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
     ctx.send('tool_start', { name: toolName, args: toolArgs });
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"), the

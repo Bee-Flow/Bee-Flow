@@ -15,7 +15,7 @@
 // in the multi-field cards).
 
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface DeleteConfirmButtonsProps {
     onConfirm: () => void;

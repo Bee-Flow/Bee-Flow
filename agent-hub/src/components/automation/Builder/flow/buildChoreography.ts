@@ -1,5 +1,5 @@
 import { flowOrder } from './flowOrder';
-import { MIN_MOVE_GAP_MS } from '../../../shared/builder/revealSchedule';
+import { MIN_MOVE_GAP_MS } from '@/components/shared/builder/revealSchedule';
 import type { DiagramDefinition } from './diagramPaneTypes';
 import type { Rect } from './useBuildChoreography.types';
 import type { Viewport } from '@xyflow/system';
@@ -25,7 +25,7 @@ export { COL_PITCH,     } from './buildChoreography.constants';
 
 // Cadence constants, revealSchedule and orderAdded are shared with the App Studio
 // editor (shared/builder/revealSchedule.js) and re-exported here unchanged.
-export { REVEAL_STAGGER_MS, REVEAL_STAGGER_MIN_MS, REVEAL_BUDGET_MS, MIN_MOVE_GAP_MS, revealSchedule, orderAdded } from '../../../shared/builder/revealSchedule';
+export { REVEAL_STAGGER_MS, REVEAL_STAGGER_MIN_MS, REVEAL_BUDGET_MS, MIN_MOVE_GAP_MS, revealSchedule, orderAdded } from '@/components/shared/builder/revealSchedule';
 
 // Presenter mode (flow/presenterMode.js) frames tighter — higher zoom floors,
 // so the pushed-in cards are legible from the back of a room — without the

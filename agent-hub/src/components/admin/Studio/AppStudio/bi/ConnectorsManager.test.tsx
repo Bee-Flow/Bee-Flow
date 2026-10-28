@@ -50,13 +50,13 @@ const listAutomations = vi.fn(() => Promise.resolve({
         { id: 'auto-2', title: 'Sync contacts', definition: { trigger: { kind: 'manual' } } },
     ],
 }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ getCatalog, listAutomations }),
 }));
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import ConnectorsManager, { connectorProblem } from './ConnectorsManager';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock, partial, stub } from '@/test/mocks';
 
 /**

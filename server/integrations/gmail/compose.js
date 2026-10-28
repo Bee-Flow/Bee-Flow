@@ -86,7 +86,7 @@ async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail =
     if (threadId) sendParams.requestBody.threadId = threadId;
 
     const result = await gmail.users.messages.send(sendParams);
-    log.info(`[Gmail] (autoSend) Email sent: ${result.data.id} to ${to}`);
+    log.info(`[Gmail] (autoSend) Email sent: ${result.data.id} to ${String(to || '').split(',').filter(Boolean).length} recipient(s)`);
     return { id: result.data.id, threadId: result.data.threadId };
 }
 

@@ -3,7 +3,7 @@
  * automation engine (extracted verbatim from engine.js). Leaf relative to
  * every executor module: nothing here requires another engine module.
  */
-
+// @typecheck
 // Feature C — http_request credential injection. MASK_VALUES is the Symbol-
 // keyed mask array on runState: unreachable from templates/exprs/code steps
 // (bind.js walks string paths only), folded into secretValuesFor below.

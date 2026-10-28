@@ -703,7 +703,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
 });
 
 // PUT /user/me — save user-level shield config (consumer accounts)
-router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (req, res) => {
+router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UserShieldBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     refuseStrangers(req.body, await configStore.getConfig(`user_privacy_shield_${userId}`), USER_SHAPE);
     const {

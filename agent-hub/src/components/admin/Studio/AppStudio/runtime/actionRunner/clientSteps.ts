@@ -4,12 +4,12 @@
  * confirm, set_variable and refresh. Control flow (condition/switch/loop)
  * lives with the coordinator in ./sequence.ts.
  */
-import toast from '../../../../../shared/Toast';
+import toast from '@/components/shared/Toast';
 import { closeAppModal, openAppModal } from '../components/AppModal';
 import { resetAppForm } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import type { ResolveResult } from '../resolveBinding.types';
-import { attachmentUrl, getAuthed } from '../../../../../../api/actionHttp';
+import { attachmentUrl, getAuthed } from '@/api/actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
 import type { RunStep } from './core';
 import type { RunnerContext } from './runnerContext';

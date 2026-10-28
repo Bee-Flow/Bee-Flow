@@ -1,9 +1,9 @@
 import { useMemo, type ComponentType, type ReactNode } from 'react';
-import type { TableColumn } from '../../../../../../../api/queries/automation/runTables';
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
-import ValueBuilderJs from '../../../../mapping/ValueBuilder';
-import { sampleToFields } from '../../../../mapping/upstream/sampleFields';
-import { useVariablePickerContext, VariablePickerProvider } from '../../../../mapping/VariablePickerContext';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import { useTranslation } from '@/hooks/useTranslation';
+import ValueBuilderJs from '@/components/automation/Builder/mapping/ValueBuilder';
+import { sampleToFields } from '@/components/automation/Builder/mapping/upstream/sampleFields';
+import { useVariablePickerContext, VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import type { DeriveOp } from '../tableOpModel';
 import { AddButton, Row, TextInput } from './inputs';
 import type { OpFormProps } from './opFormTypes';

@@ -2,12 +2,12 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { authFetch } from '../../../../utils/helpers';
-import { withQueryClient } from '../../../../test/queryWrapper';
-import type { TableHandle } from '../../../../api/queries/automation/runTables';
+import { authFetch } from '@/utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
+import type { TableHandle } from '@/api/queries/automation/runTables';
 import RunTableView, { cellText } from './RunTableView';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const TABLE_ID = 'rtb_0123456789abcdef0123456789abcdef';
 

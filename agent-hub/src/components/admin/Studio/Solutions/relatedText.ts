@@ -1,5 +1,5 @@
 import type { RelatedPart } from './relatedParts';
-import type { useTranslation } from '../../../../hooks/useTranslation';
+import type { useTranslation } from '@/hooks/useTranslation';
 
 /** The words for a related part: why it is needed, and why it cannot come along. */
 

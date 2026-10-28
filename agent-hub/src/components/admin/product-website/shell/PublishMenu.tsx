@@ -1,9 +1,9 @@
 import React from 'react';
 import Dropdown from './Dropdown';
 import SaveBadge from './SaveBadge';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 
 function formatRelative(iso: string | null | undefined, t: TranslateFn): string | null {
     if (!iso) return null;

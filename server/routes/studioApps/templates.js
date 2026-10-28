@@ -89,7 +89,7 @@ router.delete('/templates/:templateId', requireAuth, requireManageApps, async (r
  */
 router.get('/templates/:templateId/export', requireAuth, requireManageApps, validate({ query: DownloadQuery }),
     require('../../compliance/dataPortability/stampExport')('app_templates'),
-    async (req, res) => {
+    async (/** @type {import('express').Request<{ templateId: string }, any, any, import('zod').infer<typeof DownloadQuery>>} */ req, res) => {
         const { userId, orgIdArr } = await audienceFor(req);
         const template = await resolveTemplate(/** @type {string} */ (req.params.templateId), { userId, orgIds: orgIdArr });
         if (!template) return res.status(404).json({ error: 'Template not found' });

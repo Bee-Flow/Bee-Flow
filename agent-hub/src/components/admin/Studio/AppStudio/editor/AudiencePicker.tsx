@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { GROUPS, joinNames, ORG, ownerRunFeeds, PRIVATE, summarizeAudience } from './publishAccessSummary';
 import type { AudienceGroup, AudienceSummary } from './publishAccessSummary';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
 
 /**

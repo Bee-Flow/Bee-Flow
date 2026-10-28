@@ -5,15 +5,16 @@ import RowRuleBuilder from './RowRuleBuilder';
 import { buildRowRule, compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
 import { BASE_SCOPES } from './rowRuleModel.constants';
 import useAppRoles from './useAppRoles';
-import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
-import { insertAtCursor } from '../../../../../utils/bindingHelpers';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import EmptyState from '../../../../shared/EmptyState';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import toast from '../../../../shared/Toast';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import { insertAtCursor } from '@/utils/bindingHelpers';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import toast from '@/components/shared/Toast';
 import type { AppRole, DataModelTable } from './useAppRoles';
 import type { AccessEntry, RuleTable, RuleCondition } from './rowRuleModel.types';
 import type { RuleDraft, RowRuleEditorProps, RawRuleBoxProps } from './RowRuleEditor.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * RowRuleEditor — per-table, per-role row-level access.
@@ -76,18 +77,14 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
     const [saved, setSaved] = useState(() => ({ access: scopeToEntry('all'), rule: '' }));
     const [pendingSwitch, setPendingSwitch] = useState<{ tableId: string; } | { roleKey: string; } | null>(null);
 
-    // Default the pickers once data is present.
-    useEffect(() => {
-        if (!tableId && tables.length) setTableId(tables[0].id as string);
-    }, [tables, tableId]);
-    useEffect(() => {
-        if (!roleKey && roles.length) setRoleKey(roles[0].key);
-    }, [roles, roleKey]);
+    // Default the pickers once data is present (during render: no extra pass).
+    if (!tableId && tables.length) setTableId(tables[0].id as string);
+    if (!roleKey && roles.length) setRoleKey(roles[0].key);
 
     const table = useMemo(() => findTable(tables, tableId), [tables, tableId]);
 
     // Re-seed the editor whenever the (table, role) selection changes.
-    useEffect(() => {
+    useAdjustOnChange([table, roleKey], () => {
         if (!table || !roleKey) return;
         const nextAccess = resolveAccessEntry(table, roleKey);
         const next = seedDraft(currentRule(table, roleKey), table);
@@ -97,7 +94,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
         // so the baseline is what the pickers WOULD write — otherwise the editor
         // would claim unsaved changes the moment it opened.
         setSaved({ access: nextAccess, rule: draftToRule(next) });
-    }, [table, roleKey]);
+    });
 
     const rule = draftToRule(draft);
     const dirty = !sameAccess(access, saved.access) || rule.trim() !== saved.rule.trim();

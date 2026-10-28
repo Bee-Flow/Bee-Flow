@@ -178,8 +178,7 @@ function replaceInContent(currentContent, { findText, replaceText, sectionHeadin
                 const after = lines.slice(mdMatchEnd + 1).join('\n');
                 newContent = [before, replaceText, after].filter(p => p !== '').join('\n');
             } else {
-                log.warn('[NotebookTool] Replace match failed. find_text:', JSON.stringify(findText.substring(0, 200)));
-                log.warn('[NotebookTool] Current content starts with:', JSON.stringify(currentContent.substring(0, 200)));
+                log.warn(`[NotebookTool] Replace match failed: find_text ${findText.length} chars, notebook ${currentContent.length} chars`);
                 return { error: `Could not find the specified text in the notebook. Try using notebook_read with mode="search" to find the exact text, then retry.` };
             }
         }

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A DATATABLE AS AGENT KNOWLEDGE — `datatable_query`, read-only, at question
  * time, as the person asking.
@@ -117,12 +118,10 @@ function refuse(message) {
  * Run `datatable_query`.
  *
  * @param {string} toolName
- * @param {object} toolArgs   the model's arguments
- * @param {object} context
- *   @param {string} context.userId    the person asking — the identity every
- *     access decision here is made for
- *   @param {string} context.agentId   whose grants apply
- *   @param {object} [context.deps]    injection seam for tests
+ * @param {Record<string, unknown>} toolArgs   the model's arguments
+ * @param {{ userId?: string, agentId?: string, deps?: object }} [context]
+ *   userId: the person asking — the identity every access decision here is made for;
+ *   agentId: whose grants apply; deps: injection seam for tests
  */
 async function executeDatatableTool(toolName, toolArgs, context = {}) {
     if (!isDatatableTool(toolName)) return refuse(`Unknown tool: ${toolName}`);

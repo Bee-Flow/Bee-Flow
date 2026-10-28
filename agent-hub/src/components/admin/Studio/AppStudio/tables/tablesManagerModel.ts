@@ -4,7 +4,7 @@
  */
 import { slugifyKey } from './TableDesigner';
 import type { Connector } from '../bi/connectors/connectorModel';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One field of a model table, as the table designer edits it. */
 export interface ModelField {

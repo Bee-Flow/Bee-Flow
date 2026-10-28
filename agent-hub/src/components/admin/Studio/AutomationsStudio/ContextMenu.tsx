@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 
 export interface ContextMenuItem {
     label?: string;

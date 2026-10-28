@@ -6,7 +6,7 @@ import {
 import { partLabel, whyNot, whyText } from './relatedText';
 import { SECTIONS } from './solutionSections';
 import Notice from './Notice';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * "Comes along": under the checklist, what else the ticked parts need and
@@ -21,11 +21,13 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  * parts) and answered.
  */
 
-const KIND_ICON = new Map(SECTIONS.map(s => [s.kind, s.icon]));
+// A prototype-free table (like the Map it replaces, an unknown kind finds
+// nothing): render reads a component from it, never creates one.
+const KIND_ICON: Record<string, (typeof SECTIONS)[number]['icon'] | undefined> = Object.assign(Object.create(null), Object.fromEntries(SECTIONS.map(s => [s.kind, s.icon])));
 
 function PartRow({ part, line, testId }: { part: RelatedPart; line: string; testId: string }) {
     const { t } = useTranslation();
-    const Icon = KIND_ICON.get(part.kind) ?? Link2;
+    const Icon = KIND_ICON[part.kind] ?? Link2;
     return (
         <li className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm bg-[var(--bg-card)] border border-[var(--border-subtle)]" data-testid={testId}>
             <Icon className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />

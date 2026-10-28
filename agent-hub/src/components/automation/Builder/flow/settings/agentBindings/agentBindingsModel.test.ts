@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BoundAgent } from '../../../../../../api/queries/automation/agentBindings';
+import type { BoundAgent } from '@/api/queries/automation/agentBindings';
 import { editableIds, pickableAgents, refusalText, withAgent, withoutAgent } from './agentBindingsModel';
 
 const bound = (over: Partial<BoundAgent>): BoundAgent => ({ agentId: 'a1', name: 'A', canEdit: true, missing: false, usable: true, notGranted: false, ...over });

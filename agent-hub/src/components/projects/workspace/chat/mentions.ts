@@ -2,7 +2,7 @@
 // `@`, completing it, and working out afterwards who (or which AI) the sent
 // text still mentions. Pure functions, no React, no text of their own.
 
-import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
+import type { TeamChatRef } from '@/api/queries/projectChatTypes';
 
 type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting' | 'task';
 

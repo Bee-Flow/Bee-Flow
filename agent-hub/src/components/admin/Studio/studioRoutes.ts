@@ -1,5 +1,5 @@
 import { STUDIO_SECTIONS, STUDIO_START_SECTION } from './studioSections';
-import { getRuntimeStudioApps } from '../../../moduleRuntime/registry';
+import { getRuntimeStudioApps } from '@/moduleRuntime/registry';
 import type { AppRef } from './AppStudio/inspector/appDefinition';
 
 /** The automation the Studio shell keeps `from` pinned to. */

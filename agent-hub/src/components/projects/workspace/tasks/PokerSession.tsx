@@ -6,8 +6,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import {
     useCancelPokerSession, useCastPokerVote, useFinishPokerSession, useNextPokerTask, useRevealPokerVotes, type PokerSession as Session,
-} from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+} from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { Avatar, GhostButton, PrimaryButton } from '../workspaceUi';
 import { CARD, Chip, InfoTip, META, SECTION_LABEL } from './sprintUi';

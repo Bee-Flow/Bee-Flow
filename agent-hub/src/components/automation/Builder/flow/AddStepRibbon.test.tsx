@@ -2,14 +2,14 @@ import { render, screen, cleanup, within, fireEvent } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import AddStepRibbon from './AddStepRibbon';
-import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 import { STEP_DND_MIME } from './stepDrag';
 import { ribbonAnchor } from './ribbon/ribbonAnchor';
 
-vi.mock('../../../../api/queries/automation/usage', () => ({
+vi.mock('@/api/queries/automation/usage', () => ({
     useOrgStepUsageQuery: () => ({ data: [{ key: 'step:wait', count: 12 }, { key: 'step:approval', count: 3 }] }),
 }));
-vi.mock('../../../../api/queries/skills', () => ({
+vi.mock('@/api/queries/skills', () => ({
     useSkillsQuery: () => ({ data: [{ id: 'sk1', name: 'Meeting summary', description: 'Summarise a meeting' }] }),
 }));
 

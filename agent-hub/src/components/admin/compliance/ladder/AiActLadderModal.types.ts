@@ -1,5 +1,5 @@
 import type { outcome as computeOutcome, DomainAnswers } from './ladderOutcome';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LadderSubject, LadderData, LadderSignals } from './useAiActAssessment';
 import type React from 'react';
 import type { LucideIcon } from 'lucide-react';

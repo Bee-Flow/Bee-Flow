@@ -11,12 +11,12 @@
  * paused automation that never ran says "Never ran", because there that is
  * news.
  */
-import { automation as lifecycleOf } from '../../../shared/statusOf';
+import { automation as lifecycleOf } from '@/components/shared/statusOf';
 import { isFailing, triggerKindOf, triggerLabelOf, triggerTextOf, type AutomationRecord } from './overviewModel';
 import { automationStatusParts, type StatusPart } from './automationStatus';
 import { toneLabelOf, triggerToneOf } from './triggerTone';
-import { describeCron } from '../../../automation/Builder/flow/scheduleBuilderUtils';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { describeCron } from '@/components/automation/Builder/flow/scheduleBuilderUtils';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 type Lifecycle = 'live' | 'paused' | 'draft';
 type Outcome = 'running' | 'failed' | 'ok' | 'other' | 'never';

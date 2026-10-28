@@ -3,7 +3,7 @@
 // result. No code is needed: every part is a form field with its own help.
 import { Loader2 } from 'lucide-react';
 import { useId, useState } from 'react';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
 import {
     testCaseErrorCode,
     testCaseErrorField,
@@ -12,8 +12,8 @@ import {
     useUpdateTestCase,
     type TestCase,
     type TestCaseErrorField,
-} from '../../../../../../api/queries/automation/testCases';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+} from '@/api/queries/automation/testCases';
+import { useTranslation } from '@/hooks/useTranslation';
 import { serverRefusal } from './assertionText';
 import TestCaseAssertions from './TestCaseAssertions';
 import TestCaseBasics from './TestCaseBasics';

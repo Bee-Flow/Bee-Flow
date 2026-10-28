@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * FORM ANSWERS — provisioning: the datatable that follows a form.
  *

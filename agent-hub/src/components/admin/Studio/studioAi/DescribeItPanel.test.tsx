@@ -22,12 +22,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { fetchMock, routeMock } = vi.hoisted(() => ({ fetchMock: vi.fn(), routeMock: vi.fn() }));
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: (...a: Parameters<typeof fetchMock>) => fetchMock(...a) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: (...a: Parameters<typeof fetchMock>) => fetchMock(...a) }));
 vi.mock('./routeApi', () => ({ routeDescription: (...a: Parameters<typeof routeMock>) => routeMock(...a), ROUTE_ERROR_CODES: [] }));
-vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
+vi.mock('@/components/automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ pages: [] }),
 }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
 import DescribeItPanel from './DescribeItPanel';

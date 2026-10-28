@@ -3,7 +3,7 @@
 // (POST /:id/steps/:stepId/run with seedRunId). The server refuses to run
 // anything that sends or writes until the caller confirmed it.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { failure } from './http';
 
 export interface RerunSideEffect {

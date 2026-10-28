@@ -1,4 +1,4 @@
-import useContainerWidth from '../../../shared/useContainerWidth';
+import useContainerWidth from '@/components/shared/useContainerWidth';
 
 /**
  * useDrawerMode: where a register's SideDrawer goes, decided by the width the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — pure, immutable operations over an app definition (server facade).
  *

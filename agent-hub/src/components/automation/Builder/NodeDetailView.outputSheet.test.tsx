@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({
     api: { getCatalog: vi.fn().mockResolvedValue({ apps: [], triggerOutputs: {} }) },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 import {
     AI_STEP as step, AI_DEFINITION as definition, aiStepProps as baseProps, renderInQueryClient as render,

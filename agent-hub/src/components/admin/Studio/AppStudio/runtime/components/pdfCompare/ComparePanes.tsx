@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties, type ReactNode } from 'react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import ChangeBoxes from './ChangeBoxes';
 import PageCanvas from './PageCanvas';
 import { clampPercent, scrollFromRatio, scrollRatio, type ChangeRegion } from './pdfCompareMath';

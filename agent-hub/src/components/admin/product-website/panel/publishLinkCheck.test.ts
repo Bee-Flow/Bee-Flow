@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { mutate } from '../../../../api/mutate';
+import { mutate } from '@/api/mutate';
 import { confirmPublishDespiteBrokenLinks, describeLinkErrors, fetchLinkErrors } from './publishLinkCheck';
 
-vi.mock('../../../../api/mutate', () => ({ mutate: vi.fn() }));
+vi.mock('@/api/mutate', () => ({ mutate: vi.fn() }));
 
 const reply = (body: unknown, ok = true) => ({ ok, json: async () => body }) as unknown as Response;
 const error = { where: 'site > footer', url: '/terms', code: 'path_not_found', problem: 'No page.', severity: 'error' };

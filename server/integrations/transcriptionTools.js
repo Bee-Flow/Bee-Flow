@@ -189,7 +189,7 @@ ${formattedLines.join('\n').substring(0, 20000)}`;
         for (const [key, value] of Object.entries(nameMapping)) {
             if (!value || value === 'null' || value === 'unknown') delete nameMapping[key];
         }
-        log.info(`[Transcription] Speaker names identified via ${modelId}: ${JSON.stringify(nameMapping)}`);
+        log.info(`[Transcription] ${Object.keys(nameMapping).length} speaker name(s) identified via ${modelId}`);
         return nameMapping;
     } catch (nameErr) {
         log.error('[Transcription] Speaker identification failed:', /** @type {Error} */ (nameErr).message);
@@ -301,7 +301,7 @@ async function handleAzureTranscription(args, context) {
     }
 
     const language = args.language || 'nl';
-    log.info(`[Transcription:Azure] Transcribing "${audioFileName}", lang: ${language}`);
+    log.info(`[Transcription:Azure] Transcribing ${log.nameForLog(audioFileName)}, lang: ${language}`);
 
     try {
         const { transcribeWithAzureSpeech } = require('../core/voice/azureSpeech');

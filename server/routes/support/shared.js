@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared internals of the /api/support router.
  *
@@ -87,6 +88,7 @@ function _buildCsatLinks(thread) {
 // (e.g. a subject containing "{{x}}") is treated as literal text — it never
 // triggers a second substitution pass, so it can't inject new placeholders.
 // Minimal self-contained HTML page for the public CSAT landing.
+/** @param {{ score?: number, disputed?: boolean, error?: string }} [page] */
 function _csatHtml({ score, disputed, error } = {}) {
     let heading, body;
     if (error) { heading = 'Hmm'; body = error; }

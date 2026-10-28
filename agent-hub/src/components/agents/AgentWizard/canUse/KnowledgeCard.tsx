@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import CanUseCard, { CanUseRow, CardMenu, EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import Toggle from '../../../shared/Toggle';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import Toggle from '@/components/shared/Toggle';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ReadState } from '../agentEditor.types';
 import type { datatableRows, knowledgeBaseRows } from './canUseFacts';
 

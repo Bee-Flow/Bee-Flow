@@ -39,11 +39,11 @@ vi.mock('./studioAi/DescribeItPanel', async () => {
     };
 });
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: (...args: Parameters<typeof fetchMock>) => fetchMock(...args) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: (...args: Parameters<typeof fetchMock>) => fetchMock(...args) }));
 
 // The real hook, with a spy on the options: the “once, no poller” point belongs
 // to this header and is run in useStudioCounts.test.js itself.
-vi.mock('../../../hooks/useStudioCounts', async (importOriginal) => {
+vi.mock('@/hooks/useStudioCounts', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
     return {
         ...actual,
@@ -51,11 +51,11 @@ vi.mock('../../../hooks/useStudioCounts', async (importOriginal) => {
     };
 });
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { STUDIO_APPS, resolveStudioNav } from './studioApps';
 import StudioHomeHeader from './StudioHomeHeader';
-import { queryWrapper } from '../../../test/queryWrapper';
+import { queryWrapper } from '@/test/queryWrapper';
 import type { ReactElement } from 'react';
 
 // The hooks under this tree read through React Query, so every render needs

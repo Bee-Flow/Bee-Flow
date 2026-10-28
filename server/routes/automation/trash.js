@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The automation trash (Studio → Automations handoff 5).
  *
@@ -36,6 +37,7 @@ function purgeAtOf(deletedAt) {
  *            listTrash: Function, deleteSubscriptionsForAutomation: Function },
  *   revokeRemoteSubscriptions: (automationId: string, userId: string) => Promise<void>,
  *   wakeComplianceReview?: (a: object, reason: string) => void,
+ *   managedParts?: typeof import('../../stores/managedPartsDefault'),
  *   access?: { guard: (req, res, a, need) => Promise<object|null> },
  * }} deps
  *

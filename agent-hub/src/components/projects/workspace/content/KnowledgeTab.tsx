@@ -5,13 +5,13 @@ import { InstructionsCard } from '../OverviewCards';
 // knowledge bases linked to it, and the project memory.
 
 import React, { useMemo } from 'react';
-import { useProjectFilesQuery } from '../../../../api/queries/projectContent';
-import useTranslation from '../../../../hooks/useTranslation';
+import { useProjectFilesQuery } from '@/api/queries/projectContent';
+import useTranslation from '@/hooks/useTranslation';
 import { Card, ViewerNote, WorkspaceColumn } from '../workspaceUi';
 import SectionToolbar from '../SectionToolbar';
 import FilesSection from './FilesSection';
 import KnowledgeBasesSection from './KnowledgeBasesSection';
-import MemoryPanel from '../../../knowledge/memory/MemoryPanel';
+import MemoryPanel from '@/components/knowledge/memory/MemoryPanel';
 import { canEditContent, type ContentTabProps } from './types';
 import { useMemberNames } from './useContentActions';
 

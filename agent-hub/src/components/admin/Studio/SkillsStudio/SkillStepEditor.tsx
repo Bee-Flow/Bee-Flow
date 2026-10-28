@@ -2,7 +2,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
 import React, { useMemo } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { moveItem, newLocalId } from './skillModel';
 import type { SkillStepEditorProps, Step, StepRef } from './SkillStepEditor.types';
 import { StepCard } from './StepCard';
@@ -61,7 +61,7 @@ export default function SkillStepEditor({
     onOpenRef = null,
 }: SkillStepEditorProps) {
     const { t } = useTranslation();
-    const rows = Array.isArray(steps) ? steps : [];
+    const rows = useMemo(() => (Array.isArray(steps) ? steps : []), [steps]);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),

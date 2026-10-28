@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Flatten a list": one row for every item of a list inside a list, such as
  * one row per attachment with its email's details.

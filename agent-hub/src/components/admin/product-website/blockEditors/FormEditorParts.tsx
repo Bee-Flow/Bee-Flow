@@ -1,10 +1,10 @@
 import React from 'react';
 import { TextField, TextArea, Toggle, RepeatableList } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useFormAutomationsQuery, useSetFormAutomationEnabled, useSetFormBlockApproved } from '../../../../api/queries/cmsFormAutomations';
-import { FORM_FIELD_TYPES } from '../../../../marketing/sections/formBlockModel';
-import type { FormField, FormFieldType } from '../../../../marketing/sections/formBlockModel';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useFormAutomationsQuery, useSetFormAutomationEnabled, useSetFormBlockApproved } from '@/api/queries/cmsFormAutomations';
+import { FORM_FIELD_TYPES } from '@/marketing/sections/formBlockModel';
+import type { FormField, FormFieldType } from '@/marketing/sections/formBlockModel';
 
 // The cards of the Form block editor (FormEditor.tsx composes them).
 

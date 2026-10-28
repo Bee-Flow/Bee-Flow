@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
+import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import ProjectSearchPanel from './ProjectSearchPanel';
 
 const { searchMock } = vi.hoisted(() => ({ searchMock: vi.fn() }));
-vi.mock('../../../api/queries/projectDiscovery', async (importOriginal) => ({
+vi.mock('@/api/queries/projectDiscovery', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     useProjectSearch: searchMock,
     useProjectPins: () => ({ data: { items: [] }, error: null }),

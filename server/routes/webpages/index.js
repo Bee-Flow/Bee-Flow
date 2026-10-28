@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Webpage Routes — CRUD for webpages + source management + versions.
  *

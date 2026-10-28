@@ -3,10 +3,10 @@ import React from 'react';
 import { Card, Eyebrow, EmojiTile, SecondaryButton, PrimaryButton, shortDate, type TFn } from './bits';
 import { courseSegments, splitCapstone, SEGMENT } from './curriculum';
 import SegmentedProgress, { countSegments, repeatSegments } from './SegmentedProgress';
-import { LEVELS } from '../../../components/onboarding/courses';
-import { getCourse } from '../../../components/onboarding/courses';
-import type { LocaleCoverage } from '../../../components/admin/product-website/shell/LocaleMenu';
-import type { Course, LessonDoc } from '../../../api/lessons.types';
+import { LEVELS } from '@/components/onboarding/courses';
+import { getCourse } from '@/components/onboarding/courses';
+import type { LocaleCoverage } from '@/components/admin/product-website/shell/LocaleMenu';
+import type { Course, LessonDoc } from '@/api/lessons.types';
 
 /**
  * AchievementsView — artboard 1d, the ONLY place all nine badges show: as

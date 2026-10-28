@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { applyLink, linkRangeAt, removeLink } from '../engine/links';
 import { isText as isTextSel } from '../engine/selection.js';
 import type { EditorState } from '../engine/state.js';
@@ -77,18 +77,20 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
   }, [setLinkEdit, withLinkSelection]);
 
   /* keyboard shortcuts (catalogue in shortcuts.ts; the sheet reads the same list) */
-  runShortcutRef.current = (action: string) => {
-    const view = viewRef.current;
-    if (!view) return false;
-    if (action === 'find') { setFindOpen(true); setFindFocus((n) => n + 1); return true; }
-    if (action === 'shortcuts') { setShortcutsOpen(true); return true; }
-    if (!editableRef.current) return false;
-    if (action === 'link') { openLinkEditor(); return true; }
-    const command = SHORTCUT_COMMANDS[action as ShortcutAction];
-    if (!command) return false;
-    command(chainOf(view).focus()).run();
-    return true;
-  };
+  useLayoutEffect(() => {
+    runShortcutRef.current = (action: string) => {
+      const view = viewRef.current;
+      if (!view) return false;
+      if (action === 'find') { setFindOpen(true); setFindFocus((n) => n + 1); return true; }
+      if (action === 'shortcuts') { setShortcutsOpen(true); return true; }
+      if (!editableRef.current) return false;
+      if (action === 'link') { openLinkEditor(); return true; }
+      const command = SHORTCUT_COMMANDS[action as ShortcutAction];
+      if (!command) return false;
+      command(chainOf(view).focus()).run();
+      return true;
+    };
+  });
 
   /* AI action helpers */
   const aiAction = (key: string, customQuery: string | null = null) => {
@@ -112,7 +114,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
     setAskQuery('');
   };
 
-  const insertMath = () => {
+  const insertMath = useCallback(() => {
     const view = viewRef.current;
     const text = selectionText(view);
     // Insert the node directly. Round-tripping the literal '$formula$' through
@@ -120,7 +122,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
     // "formula" — visible placeholder text the user then had to delete. An empty
     // latex makes MathView open its input straight away instead (BFSF-317).
     if (view) chainOf(view).focus().insertInlineNode({ type: 'mathInline', attrs: { latex: text?.trim() || '' } }).run();
-  };
+  }, [viewRef]);
 
   /* ── block insertion (shared by the status-strip Insert menu + slash menu) ── */
   const insertItems = React.useMemo(() => buildInsertItems(t), [t]);
@@ -139,7 +141,7 @@ export default function useEditorInteractions(s: EditorShared, props: BeeEditorP
       else if (item.action === 'math') insertMath();
     }
     refreshChrome();
-  }, [refreshChrome]);
+  }, [refreshChrome, viewRef, imageInputRef, insertMath]);
 
   /* ── slash menu (/ at the start of a text run) ── */
   const [slash, setSlash] = useState<SlashState | null>(null); // { query, rect:{top,left}, matchLen }

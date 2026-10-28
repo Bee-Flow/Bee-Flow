@@ -1,7 +1,7 @@
 import type { KbSource, KbDocument } from './knowledgeApi';
 import type { ScheduleChange } from './ScheduleMenu';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type React from 'react';
 
 /**

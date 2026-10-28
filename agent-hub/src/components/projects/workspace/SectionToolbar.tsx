@@ -5,7 +5,7 @@
 
 import { Search } from 'lucide-react';
 import React from 'react';
-import { useViewport } from '../../../hooks/useViewport';
+import { useViewport } from '@/hooks/useViewport';
 import { StudioSectionHeader } from './studioParts';
 
 export interface SectionToolbarProps {

@@ -1,7 +1,7 @@
 // Words for the inline "Ask AI": what the selection is called, and the one
 // sentence of a long reply that fits in a toast.
 
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { cellName, columnName } from './sheetEngine';
 import type { Range, SelectionKind } from './sheetModel';
 

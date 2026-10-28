@@ -6,8 +6,8 @@
 
 import { Check, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { usePokerSessionQuery, useStartPokerSession, type ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { usePokerSessionQuery, useStartPokerSession, type ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { PrimaryButton, Skeleton } from '../workspaceUi';
 import PokerSession from './PokerSession';

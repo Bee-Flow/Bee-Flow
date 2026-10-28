@@ -20,8 +20,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const recorderMock = { current: null };
 vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.current }));
 
+import { LANGUAGES } from '@/config/meetingNotesConfig';
 import CaptureControls from './CaptureControls';
-import { LANGUAGES } from '../../../config/meetingNotesConfig';
 
 const makeRecorder = (settings = {}) => ({
     settings: { language: 'nl', provider: '', contextTerms: '', attendees: '', numSpeakers: '', ...settings },

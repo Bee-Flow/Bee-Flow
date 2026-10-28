@@ -1,7 +1,7 @@
 import { Plus, TriangleAlert } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import OwnDataIntro from './OwnDataIntro';
 import type { CustomDataType, ShieldLists, SwitchCol } from './ownDataModel';
 import { LIMITS, switchesFor } from './ownDataModel';

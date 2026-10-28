@@ -24,7 +24,7 @@
  * that lacks one and mentions binding/ref/path/kind, which would send the
  * model to fix a binding that was fine.
  */
-
+// @typecheck
 const { DATATABLE_OPS, PENDING_DATATABLE_RE } = require('../validate/constants');
 const { KEY_RE, SYSTEM_COLUMNS } = require('../../core/dataEngine/dataModel/vocabulary');
 
@@ -81,7 +81,7 @@ const OP_ALIAS_SUMMARY = 'append/insert → add_row, upsert → save_row, list/q
  *   an absent op on a step WITH values is a write whose kind we cannot guess
  *   (insert vs upsert vs update differ in what they do to existing rows), an
  *   absent op WITHOUT values can only be the one op that changes nothing.
- * @returns {{op: string, note?: string} | {error: string, _fixHint: string}}
+ * @returns {Builder.Result<{ op: string, note?: string }>}
  */
 function resolveDatatableOp(raw, { hasValues = false } = {}) {
     const text = raw == null ? '' : String(raw).trim();
@@ -122,7 +122,7 @@ const TABLE_ALIASES = ['tableId', 'table', 'datatable', 'tableName', 'datatableN
  * Returns a NEW args object — every consumed alias is deleted from it, so a
  * foreign key never reaches the stored definition.
  *
- * @returns {{args: object, notes: string[]} | {error: string, _fixHint: string}}
+ * @returns {Builder.Result<{ args: Builder.Args, notes: string[] }>}
  */
 function translateDatatableVocabulary(args) {
     if (!isPlainObject(args)) return { args, notes: [] };
@@ -227,7 +227,8 @@ function lookupTable(term, datatables) {
  * The caller writes `table.id` / `table.key` back onto the step — this only
  * decides, and the "replaced by" notes describe what the caller will do.
  *
- * @returns {{table: object, notes: string[]} | {table: null, notes: []} | {error: string, _fixHint: string}}
+ * @param {{ id?: unknown, key?: unknown, datatables?: Builder.CatalogTable[] | null }} [ref]
+ * @returns {Builder.Result<{ table: Builder.CatalogTable | null, notes: string[] }>}
  *   `table: null` only when no catalog was given at all (nothing to check
  *   against — permissive, the validator still demands an id).
  */
@@ -396,7 +397,7 @@ const ambiguousColumnError = (what, term, cols, tableName) => ({
  * else is an error that names EVERY unknown key at once, so one round fixes
  * them all. Returns a new map in the original key order.
  *
- * @returns {{map: object, notes: string[]} | {error: string, _fixHint: string}}
+ * @returns {Builder.Result<{ map: object, notes: string[] }>}
  */
 function mapColumnKeys(map, columns, { what = 'values', tableName = 'this table' } = {}) {
     if (!isPlainObject(map)) return { map, notes: [] };
@@ -448,7 +449,7 @@ function mapColumnKeys(map, columns, { what = 'values', tableName = 'this table'
  * `allowSystem` admits the system columns (id, created_at, …) — a where or
  * sort on created_at is ordinary, a write to it is not.
  *
- * @returns {{key: *, note?: string} | {error: string, _fixHint: string}}
+ * @returns {Builder.Result<{ key: string, note?: string }>}
  *   A non-string or blank name comes back untouched — presence and type are
  *   the validator's call, not this helper's.
  * @param {string} name
@@ -470,14 +471,8 @@ function mapColumnName(name, columns, { allowSystem = false, what = 'matchColumn
 }
 
 module.exports = {
-    normaliseKey,
-    lookupTable,
-    DATATABLE_OP_ALIASES,
-    resolveDatatableOp,
-    translateDatatableVocabulary,
-    resolveDatatableRef,
-    mapColumnKeys,
-    mapColumnName,
+    normaliseKey, lookupTable, DATATABLE_OP_ALIASES, resolveDatatableOp, translateDatatableVocabulary,
+    resolveDatatableRef, mapColumnKeys, mapColumnName,
 };
 
 /** @typedef {import('./pendingDatatables').DatatableCatalogEntry} DatatableCatalogEntry */

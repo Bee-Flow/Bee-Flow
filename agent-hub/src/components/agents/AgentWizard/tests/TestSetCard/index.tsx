@@ -1,11 +1,11 @@
 import { AlertTriangle, Ban, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, FlaskConical, Play, Plus, XCircle, type LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
 import { RUN_STATE, firstProblem, justRanScore, problemFor, summariseRun, type RunProgress, type RunSummary, type TestItem, type TestRun } from '../testSetFacts';
-import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { EmptyRow, UnreadableNotice } from '../../canUse/CanUseCard';
 import { READ } from '../../canUse/canUseFacts';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import type { RelativeTimeInput } from '../../../../../hooks/useRelativeTime';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type { StatusDotProps, RefusalNoticeProps, FailLineProps, TestRowProps, TestSetCardProps } from '../TestSetCard.types';
 import { problemSentence, refusalSentence, aiWrote } from './TestSetCard.helpers';
 import { ScoreLine } from './ScoreLine';

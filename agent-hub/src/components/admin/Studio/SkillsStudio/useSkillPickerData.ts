@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
-import { useSkillPickerListsQuery } from '../../../../api/queries/adminConfigReads';
+import { useSkillPickerListsQuery } from '@/api/queries/adminConfigReads';
 import { isAgentCallable } from './skillModel';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 import type { CallableAutomation } from './skillModel.types';
 
 /** An automation row as the picker reads it. */

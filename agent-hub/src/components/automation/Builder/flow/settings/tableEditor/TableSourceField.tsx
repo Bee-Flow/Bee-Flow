@@ -1,8 +1,8 @@
 import { useState, type ComponentType } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import BindingFieldJs from '../../../mapping/BindingField';
-import { seg } from '../../../mapping/upstream/sampleFields';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import BindingFieldJs from '@/components/automation/Builder/mapping/BindingField';
+import { seg } from '@/components/automation/Builder/mapping/upstream/sampleFields';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import { rowInputClass } from '../formStyles';
 import { pathOf, refBinding, TABLE_STEP_TYPES, type Binding } from './tableOpModel';
 

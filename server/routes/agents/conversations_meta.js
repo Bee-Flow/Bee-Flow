@@ -64,7 +64,7 @@ router.get('/conversations/all', async (req, res) => {
 // Search all conversations (agent + direct)
 const SEARCH_MAX_LIMIT = 200;
 const SEARCH_DEFAULT_LIMIT = 50;
-router.get('/conversations/search', validate({ query: SearchQuery }), async (req, res) => {
+router.get('/conversations/search', validate({ query: SearchQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof SearchQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { q, agentId, startDate, endDate, source } = req.query;
 

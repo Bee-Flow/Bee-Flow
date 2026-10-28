@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import TransferOwnerDialog from './TransferOwnerDialog';
 import { EDITOR_ID, makeFakeApi, makeMembers, OWNER_ID, reply } from './workspaceTestApi';
 
 const { fetchMock, toastMock } = vi.hoisted(() => ({ fetchMock: vi.fn(), toastMock: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

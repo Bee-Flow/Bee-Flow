@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState , useLayoutEffect, SetStateAction, RefObject, Dispatch } from 'react';
-import useCmsBuilderStream, { UseCmsBuilderStreamReturn } from '../../../../hooks/useCmsBuilderStream';
-import useModelTierSelection from '../../../../hooks/useModelTierSelection';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { MessageBubble } from '../../../automation/Builder/chat/index';
-import AppIcon from '../../../icons/AppIcon';
-import ModelTierSelector from '../../../licensing/ModelTierSelector';
+import useCmsBuilderStream, { UseCmsBuilderStreamReturn } from '@/hooks/useCmsBuilderStream';
+import useModelTierSelection from '@/hooks/useModelTierSelection';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { MessageBubble } from '@/components/automation/Builder/chat/index';
+import AppIcon from '@/components/icons/AppIcon';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
 import { HEADER_VIRTUAL_ID, DESIGN_VIRTUAL_ID } from '../sentinels';
-import type { BuilderMessage } from '../../../../hooks/builderStream';
+import type { BuilderMessage } from '@/hooks/builderStream';
 import type useCmsBuilderBridge from '../panel/useCmsBuilderBridge';
 import type { BuilderDraftEvent, BuilderTurnInfo } from '../panel/useCmsBuilderBridge';
 

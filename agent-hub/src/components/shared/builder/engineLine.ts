@@ -15,7 +15,7 @@
  *   turn    state.turn    { phase: 'reading' | 'writing' | null, progress: { total, cache, processed } | null, … } | null
  */
 
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface EngineInfo {
     modelId?: string | null;

@@ -3,8 +3,8 @@ import React from 'react';
 import CanUseCard, { CanUseRow, EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard';
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ReadState } from '../agentEditor.types';
 import type { skillRows } from './canUseFacts';
 

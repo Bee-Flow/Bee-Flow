@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The four steps from an uploaded recording to a transcript. */
 export default function TranscriptionHowItWorks() {

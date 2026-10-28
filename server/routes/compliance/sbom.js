@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — CRA Annex I Part II(1): download the software bill of materials
  * that ships with this build (located by compliance/lib/sbomLocator). The
@@ -90,8 +91,6 @@ router.get('/sbom/meta', requireAuth, requirePermission('admin_compliance'), asy
     });
 });
 
-module.exports = router;
-module.exports.contentTypeFor = contentTypeFor;
-module.exports.filenameFor = filenameFor;
+module.exports = Object.assign(router, { contentTypeFor, filenameFor });
 
 /** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

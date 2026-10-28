@@ -1,4 +1,4 @@
-import type { RepeatingSuggestion } from '../../../../api/queries/automation/repeating';
+import type { RepeatingSuggestion } from '@/api/queries/automation/repeating';
 import RepeatingWorkPanel from './repeating/RepeatingWorkPanel';
 
 interface FindRepeatingWorkTabProps {

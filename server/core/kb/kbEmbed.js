@@ -1,3 +1,4 @@
+// @typecheck
 const crypto = require('crypto');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');

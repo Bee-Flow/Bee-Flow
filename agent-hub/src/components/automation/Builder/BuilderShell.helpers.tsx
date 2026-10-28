@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import AppRefBreadcrumb from './AppRefBreadcrumb';
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
-import { lazyWithI18n } from '../../../utils/lazyWithReload';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import { type BreadcrumbSlotArgs, type HistorySlotArgs } from './BuilderShell.types';
 

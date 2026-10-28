@@ -1,15 +1,15 @@
 import { Plus, Save } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useStudioSlaPoliciesQuery } from '../../../../api/queries/supportPanels';
-import useDraftOverServer from '../../../../hooks/useDraftOverServer';
+import { useStudioSlaPoliciesQuery } from '@/api/queries/supportPanels';
+import useDraftOverServer from '@/hooks/useDraftOverServer';
 import type { SupportInbox, SupportKb } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import ConfigToggle from '../../../shared/ConfigToggle';
-import FormField from '../../../shared/FormField';
-import Section from '../../../shared/Section';
-import { mutate, errorBody, RefusedError, request } from '../../../../api/mutate';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import ConfigToggle from '@/components/shared/ConfigToggle';
+import FormField from '@/components/shared/FormField';
+import Section from '@/components/shared/Section';
+import { mutate, errorBody, RefusedError, request } from '@/api/mutate';
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const SLA_DEFAULTS: Record<string, number[]> = { low: [480, 2880], normal: [240, 1440], high: [60, 480], urgent: [30, 240] };

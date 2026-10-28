@@ -9,10 +9,10 @@
 // course a learner can see is never a course the map hides. The learner's own
 // path is drawn first — "jouw pad staat vooraan".
 
-import { LEARNING_PATHS } from '../../../components/onboarding/learningPaths';
-import { defaultLayoutForSteps, LAYOUTS } from '../../../components/onboarding/player/playerLayout';
-import { stepType, STEP_TYPES } from '../../../components/onboarding/stepTypes';
-import type { LessonStep, StepState } from '../../../api/lessons.types';
+import { LEARNING_PATHS } from '@/components/onboarding/learningPaths';
+import { defaultLayoutForSteps, LAYOUTS } from '@/components/onboarding/player/playerLayout';
+import { stepType, STEP_TYPES } from '@/components/onboarding/stepTypes';
+import type { LessonStep, StepState } from '@/api/lessons.types';
 
 interface HasId {
     id: string;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /** Forms: settings PATCH split, public share link, no half-built question. */
 const test = require('node:test');
 const assert = require('node:assert/strict');

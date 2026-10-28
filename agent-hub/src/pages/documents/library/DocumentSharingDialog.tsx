@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
 import { documentRequest } from '../documentsApi';
 import { docKeys, type LibraryRow } from '../documentQueries';
 import { isNotebookRow } from './useLibrary';

@@ -1,15 +1,15 @@
 import { Upload, Trash2, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
-import { API_BASE } from '../../../../../utils/helpers';
-import WallpaperPresets from '../../../WallpaperPresets';
-import Slider from '../../../../shared/Slider';
-import { toast } from '../../../../shared/Toast';
-import useConfirm from '../../../../shared/useConfirm';
-import { useTheme } from '../../../ThemeContext';
+import { API_BASE } from '@/utils/helpers';
+import WallpaperPresets from '@/components/appearance/WallpaperPresets';
+import Slider from '@/components/shared/Slider';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
+import { useTheme } from '@/components/appearance/ThemeContext';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { messageOf } from '../../../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 

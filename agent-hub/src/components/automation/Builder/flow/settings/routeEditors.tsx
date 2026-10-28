@@ -1,7 +1,7 @@
 // The unified Condition editor (If / Switch / Filter), extracted verbatim
 // from SettingsForm.jsx.
 import type { ComponentProps } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';

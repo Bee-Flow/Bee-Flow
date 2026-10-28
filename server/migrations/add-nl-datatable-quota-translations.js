@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the refusals of the datatable storage envelope
  * (core/dataEngine/datatableLimits, datatables.quota_*): each says which limit

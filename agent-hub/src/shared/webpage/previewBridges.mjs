@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The platform bridges of a webpage PREVIEW document: one source for the web
  * editor's preview (agent-hub/src/utils/composeWebpageDocument.js and

@@ -1,8 +1,8 @@
 import { AlertTriangle, Check, Loader2, Send, Sparkles } from 'lucide-react';
 import React from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { TONES } from '../../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { ASK_EXAMPLES } from '../accessView';
 import type { ScreenPlan } from './accessScreenTypes';
 

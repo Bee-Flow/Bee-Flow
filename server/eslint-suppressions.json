@@ -1,0 +1,10317 @@
+{
+  "agents/agentAccess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "agents/memory/extractor.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "agents/memory/memoryWriter.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "agents/notebooks/notebookAiShield.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "agents/notebooks/notebookRebase.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "agents/notebooks/sourceIngestion.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "agents/publishableConfig.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "agents/webpages/sourceIngestion.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/aiSteps.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/approvalStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/automationBridge.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/dispatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/documentStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/emailStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/fileStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/presentationStep.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/redactStep.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/shared.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/aiRuntime.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "appStudio/appAudience.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/appContentInstall.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/appDesignSpec.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/appDryRun.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/appPortability.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/appRefLookup.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/archive.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/automationRefs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/automationUsageSync.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/browseStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderPrompt.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderPrompt/catalogRender.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderRunSummary.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/builderTools/actionNormalise.js": {
+    "complexity": {
+      "count": 7
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/bindingGuard.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/componentNormalise.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/dataTools.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/builderTools/dataToolsRoles.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/dataToolsShared.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/dataToolsTables.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/actions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/builderTools/definitionTools/addComponents.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/addComponentsPhases.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/componentEntries.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/componentNodes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/metaTheme.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/nodeEditing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/publicAccess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/definitionTools/screens.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/findNodesTool.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/inspectionTools.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/builderTools/linkTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/persistence.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/planTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/queryDataArgs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/schemasCore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/templateTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "appStudio/canonicalize/actions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/aiFields.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/approvals.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/canonicalize/bindings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/definition.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/mappings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/nodes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/props.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/references.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/screens.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/steps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/canonicalize/style.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/connectorSchema.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/connectorSync.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/connectors/chain.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/connectors/dispatch.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/connectors/runners.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/connectors/session.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/dataModel/canonicalize.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/dataModel/connectorValidate.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 13
+    },
+    "max-lines-per-function": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/dataModel/modelValidate.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/dataModel/retentionPlan.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/dataReadRunner.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/datasetCache.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/datasetQueryStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/datatableSource.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/archives.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/attachmentRows.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/orderDocuments.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/pairing.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/redeem.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/result.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/fileIntake/writePairs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/linkedTables.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/mailboxAttachments.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/mailboxConnector.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/mailboxIdentity.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/mcpBuilder.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/publicAccess.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/rlsGateway.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/sheetScan.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/stepDataSource.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/templateCapture.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/templateInstall.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/templatePortability.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/templates/appBiReports.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/actions.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "appStudio/validate/bindings.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/designChecks.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/validate/nodes.js": {
+    "complexity": {
+      "count": 6
+    },
+    "max-lines-per-function": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/refs.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/stepDataChecks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/stepKindChecks.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/accountProvisioning.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/admin/appPasswordRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/admin/featureAccessRoutes.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/admin/groupRoleRoutes.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "auth/admin/invitationRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/admin/orgAdminGuards.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/admin/orgRoutes.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "auth/admin/userRoutes.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "auth/connector/bootstrapBranches.js": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "auth/connector/ncVerify.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/connectorBootstrap.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/connectorJwt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/connectorSig.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/datatableAccess.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/encryptionSsoDek.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/login/currentUserRoutes.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/login/finalizeLogin.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/login/myPermissionsRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/login/passwordLoginRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/login/setupRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/login/signupIntakeRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/login/signupRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/loginThrottle.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/mcpAccess/gate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/mcpAccess/ipMatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/mcpAccess/scopes.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/microsoftIdentity.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/microsoftSessionHydration.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/oauth/nextcloudLegacyRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/oauth/providerCallbackRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/oauth/providerLoginRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/oauth/ssoConfigRoutes.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "auth/oauth/ssoSessionSetup.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/oauth/ssoUserProvisioning.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/orgEscrow.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/orgScope.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/passwordPolicy.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "auth/permissionsCache.js": {
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "auth/permissionsOrgGates.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "auth/permissionsRequireAuth.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "auth/permissionsResolve.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/routeWalk.cli.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/securityKeys/managementRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "auth/securityKeys/testApp.testkit.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "auth/signupCaptcha.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "auth/transcriptEscrow.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/agentBinding.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/agentCallContract.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/agentCallableTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/agentPickerRows.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/aiActAuto.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/aiActCheck.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/aiActClassify.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/aiActDetect.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/approvalDecision.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/approvalDelivery.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/approvalHooks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/approvalNotify.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/approvalReactionIngest.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/approvalRemind.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/approvalRulebook.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/approvalService.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/approvalVotes.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "automation/builderCatalog.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderDatatableCatalog.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/catalogRender.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderPrompt/fewShots/attachmentToDriveExample.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/fewShots/batchedExample.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/fewShots/createTableExample.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/fewShots/invoiceTableExample.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/rankApps.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/builderPrompt/triggerBlock.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/builderTools/addSteps.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/addStepsSupport.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/aiPaths.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/approval.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/bindings.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/bindings.loopVars.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/datatableApproval.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/datatableCreate.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/datatableCreateAccess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/datatableRefs.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/draftGraph.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/builderTools/dryRun.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/dryRunTrigger.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/inlineLayer.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/inspection.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/layers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/modelPayload.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/builderTools/outputFields.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/builderTools/pendingDatatables.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/persistence.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/refCheck.js": {
+    "complexity": {
+      "count": 7
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/schemaProjection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/shapeTree.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/builderTools/stepBuilders/actionStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepBuilders/aiStep.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/stepBuilders/dataExtractionStep.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/builderTools/stepBuilders/dataSteps.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/builderTools/stepBuilders/datatableStep.js": {
+    "complexity": {
+      "count": 6
+    }
+  },
+  "automation/builderTools/stepBuilders/documentSteps.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/builderTools/stepBuilders/flowSteps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepBuilders/inputBindings.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepBuilders/outboundSteps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepBuilders/toolResolution.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/stepBuilders/triggerApply.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/builderTools/stepEditing/normalizePatchField.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/patchGuards/dataExtraction.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/patchGuards/datatable.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/stepEditing/patchGuards/position.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/patchGuards/tables.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/removeStep.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/replaceStep.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/stepEditing/typeChange.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/builderTools/stepEditing/updateStep.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/suggestedPatch.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/builderTools/tempRefs.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/triggerAdvice.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/builderTools/triggers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/codeSandbox.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/customNode.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/customNodePromote.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/customNodeRepair.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/datatableUsage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/diffSummary.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/evolution.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/fieldDiff.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "automation/flowletAgent.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/formAnswers/derive.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/formAnswers/provision.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/formAnswers/summary.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/formCoerce.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/formDraft.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/formDynamicFields.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/formFieldRules.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/formPickRecord.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/formPickSources.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/formQueue.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/formQueueRecovery.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/formTriggerContract.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/formUploadText.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/goLive.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/liveSideEffects.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/mcpBuilder.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/mcpRunNow.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "automation/mcpRunReadHandlers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/mcpRunReadShape.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/orgStepUsage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/builderMapping.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/patterns/events.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/evidenceCard.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/explain.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/patterns/ideation.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/patterns/miner.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/patterns/periodicity.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/pipeline.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/patterns/score.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/sequences.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/patterns/sources/index.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/suppress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/patterns/templating.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/portability.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/repairBuiltinToolSteps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/runListRows.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/runOutcome.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/shapeCache.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/stepIdRewrite.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 4
+    }
+  },
+  "automation/subscriptionSync.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/suggestions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/summarise.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/templateMeta.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/assertions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/testing/codeTestRun.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/fileSummary.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/formAnswers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/jsonDiff.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/runCompare.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "automation/testing/testCases.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/dispatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/filters.js": {
+    "complexity": {
+      "count": 6
+    }
+  },
+  "automation/triggerBus/filtersTables.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/latestMatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/pollers/gmail.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/pollers/googleCalendar.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/pollers/googleDrive.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerBus/pollers/nextcloud.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/triggerSources/autoDerive.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/triggerSources/pollDiff.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/triggerSources/validate.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "automation/validate/callBlock.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/validate/callLayer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/validate/definition.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/graph.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/validate/graphEdges.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/validate/graphNodes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/validate/graphTrigger.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/validate/graphWalk.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/validate/setOperations.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/aiStepReliabilityRules.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/approvalRules.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/branchingRules.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "automation/validate/stepRules/complianceRules.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "automation/validate/stepRules/dataShapingRules.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 5
+    }
+  },
+  "automation/validate/stepRules/documentRules.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/validate/stepRules/integrationRules.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "automation/validate/stepRules/iterationRules.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "automation/validate/stepRules/modelStepRules.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/persistenceRules.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/pinnedOutput.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/refSurfaces.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/referenceScoping.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "automation/validate/stepRules/runFlowRules.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "boot-init.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "boot/lifecycle.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "boot/startupJobs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cms/mcp/accessCheck.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cms/mcp/analytics.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cms/mcp/blog.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cms/mcp/blogPostWarnings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cms/mcp/dispatch.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cms/mcp/mediaHandlers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cms/mcp/screenshot.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cms/mcp/siteHandlers.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cms/mcp/uploadReceiver.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "cms/mcp/uploadTickets.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/blockStyle.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/builderPrompt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/builderToolsBlocks.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "cmsBuilder/builderToolsDesign.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/builderToolsNav.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/experiments.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "cmsBuilder/validate.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "compliance/__tests__/smoke/gdpr-data-lifecycle.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/gdpr-safeguards.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/iso-cloud-infrastructure.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/iso-github-repos.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/iso-governance.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/iso-platform-controls.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/__tests__/smoke/iso-workplace-connectors.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/a11y/htmlLint.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/aiAct/attest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/aiAct/signals.js": {
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "compliance/attention.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/checks/aia/art13-transparency.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/aia/art50-ai-disclosure.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/aia/art53-model-inventory.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/cra/annexI-II1-sbom.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/cra/annexI-II5-disclosure-policy.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/cra/art13-8-support-period.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/cra/art14-vuln-reporting-clocks.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/data-act/art25-exit-procedure.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/data-act/art25-notice-period.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/data-act/art30-export-coverage.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/dora/art28-3-register-of-information.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/dora/art30-incident-reporting-path.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/eaa/art13-accessibility-statement.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/eaa/art4-product-surfaces-conformance.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art30-datatable-registrations.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/checks/gdpr/art32-chat-shield-coverage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art32-dlp-efficacy.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art32-dlp-enabled.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art35-chat-monitoring-safeguards.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art35-project-ai-participation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/gdpr/art5-1-e-storage-limitation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a5-14-mail-security.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a5-16-identity-hygiene.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/checks/iso27001/a5-24-incident-mgmt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a5-9-asset-inventory.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-10-deletion.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-12-dlp.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-13-backups.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-16-monitoring.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-24-cryptography.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-32-change-management.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-5-secure-auth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/iso27001/a8-8-vuln-mgmt.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/machinery/art18-safety-component-assessment.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/board-approval.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/cyber-hygiene-training.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/early-warning-path.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/policy-coverage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/questionnaire-pack.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/nis2/risk-analysis.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/checks/pld/art9-release-record.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "compliance/connectors/afas.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/connectors/github.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "compliance/connectors/google-workspace.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/connectors/microsoft-entra.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/connectors/nextcloud.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/connectors/openobserve.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/connectors/scaleway.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/connectors/youtrack.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/coverage.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/custom/runner.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/deadlines.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "compliance/detectors/industrialIntegrations.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/dsr/discovery.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/dsr/verifyToken.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/events.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "compliance/evidence/chain.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/frameworkPolicy.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "compliance/lib/sbomLocator.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/lib/transferAssessment.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/lib/urlProbe.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "compliance/projectHints.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/projects/personalDataSignals.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "compliance/ropa/chatMonitoringActivity.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/ropa/datatableActivities.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/ropa/projectActivities.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "compliance/runner.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "compliance/scheduler.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/agentTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/agentTurn.testkit.js": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/assistantMessageExtras.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/attachmentIntake.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/attachmentProcessor.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/adapterRoundSetup.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/nativeAdapterStream.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/rawSseParts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/roundRequest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/skillActivation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/turnHistory.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/turnLoop.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/turnPreflight.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatStream/turnSetup.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatWithAgent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/chatWithAgentPrep.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/contextEnrichment.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "core/agentRuntime/finalizeTurn.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/guardrailsRunner.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/agentRuntime/historyHydrator.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/agentRuntime/inputPiiGate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/knowledgeRetrieval.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/agentRuntime/knowledgeSearch.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/agentRuntime/modelResolver.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/personaPrompt.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/agentRuntime/ruleAttribution.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/streamRetry.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/streamUntokeniser.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/testAs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/testSandbox.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/agentRuntime/toolCallDedupe.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolPolicy/appIndex.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolPolicy/confirmation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolPolicy/connectionLending.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolPolicy/normalisation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolPolicy/turnPolicy.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/agentRuntime/toolRound/piiPolicy.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolRound/results.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolRound/sideChannels.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolRound/toolContent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolRoundExecutor.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/agentRuntime/toolStackAssembly.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationModel/agentCatalog.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/aiStepReliabilityProblems.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/appTriggerContract.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/approvalStages.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationModel/automationCallDepth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/bind.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "core/automationModel/builderModelProfiles.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/codeOutput.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/codeSafety/detect.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/automationModel/codeSafety/fold.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationModel/codeSafety/jsdoc.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationModel/codeSafety/paramValues.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/automationModel/codeSafety/parse.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/automationModel/dslFilters.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/notificationDefaults.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/notificationRecipients.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/refPaths.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationModel/runLogRedaction.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/stepEffect.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/tableOps/planColumns.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationModel/tableOps/readTableSpec.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationModel/tableOps/rules.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner.partial.testkit.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/aiOutputInference.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "core/automationRunner/aiStepAgent.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/automationRunner/aiStepAnswer.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/aiStepChecks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/aiStepGrounding.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/aiStepNumbers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/aiStepSkills.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/automationRunner/approvalLifecycle.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/approvalSeats.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/automationErrors.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/bindingMisses.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/callerRequirements.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/datatableCells.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/datatableResolve.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/dateTimeTz.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execApproval.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execCode.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execControl.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execData.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execDataExtraction.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/automationRunner/execDateTime.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execDocument.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/execFillDocument.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execFlow.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execHttpRequest.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/execIntegrationAction.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execKnowledgeWrite.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execNotification.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execPresentation.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execPrivacy.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/execTable.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/execution.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/forEachScope.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/httpAuth.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/httpCache.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/httpQuery.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/integrationActionMemo.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/layerParams.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/partialRuns.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/replaySeeding.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/resume.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runContext.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runDag.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runDagRecord.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/runDeadline.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runFinalize.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runNotifications.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/runPolicy.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/safety.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/safetyGuard.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/safetyScan.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/scheduler/holidaySkip.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/scheduler/reapers.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/scheduler/ticks.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/sessionResolution.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/shared.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/stageVars.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/stepAsTool.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/stepDispatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/stepLeaf.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/ops/describe.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/tables/ops/group.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/tables/ops/index.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/ops/pivot.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/tables/ops/segments.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/sourceFile.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/tableReader.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/workbookColumns.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/tables/workbookSheet.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/automationRunner/triggerState.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cad/cadMetadata.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cad/cadRender.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "core/cad/dxfRender.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/classify/classifierClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/classify/classifierEndpoint.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cms/blogMarkdown.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cms/legacyContent.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/cms/linkCheck.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/cms/umamiClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/collab/collab.testkit.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/convert.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/docHub.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/index.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/lifecycle.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/collab/lifecycleDetach.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/lifecycleEdits.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/collab/lifecycleVersions.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/resources.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/conversation/historyMerge.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cowork/agentScheduleRun.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/cowork/coworkCompose.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/cowork/coworkShield.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/customIntegrations/customMcpClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/customIntegrations/mcpLibrary/members.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/customIntegrations/mcpLibrary/service.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/customIntegrations/validateCustomIntegration.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/customIntegrations/validateRestTool.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 7
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/customIntegrations/validateShared.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/accessFilter.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/createStudioDatatable.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/dataModel/datatableDraft.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/dataModel/datatableFields.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/dataModel/retainedColumns.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/dataModel/tolerantDdl.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/datatableLimits.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/datatableRuntime.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/queryCompiler.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerBase.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerWrite.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/sources/mirror/linking.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/mirror/relations.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/sources/mirror/rows.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/mirror/syncPass.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/columns.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/events.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/link.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/linkRelations.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/linkerAuth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/ncApi.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/nextcloudTable/values.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/adapter.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/cells.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/columns.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/errors.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/formats/csv.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/formats/sheetjs.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/infer.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkBrowse.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkPlan.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkRelations.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkRelink.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkSettings.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/linkerAuth.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/googleDriveFormat.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/googleSheetsCells.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/nextcloudFiles.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/oneDrive.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/oneDriveFormat.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/providers/oneDriveWorkbook.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/reading.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/writeThrough.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/writeThroughFile.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/dataEngine/sources/spreadsheetFile/writeThroughMove.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/datasets/bgzf.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/datasets/ingest.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/datasets/query.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/datasets/vcfParser.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dlp/attachmentScanner.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dlp/composeScan.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dlp/contentSignals.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dlp/customTerms.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dlp/dlpPreflight.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dlp/dlpRunner.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dlp/dlpTokenMaps.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/dlp/scanLedger.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/dlp/segmentText.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dlp/toolResultRedact.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dlp/untokeniseStream.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/documents/aiDocumentScope.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/documents/attachmentExtractor.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/documents/azureDocIntelligence.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/deckBase.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/deckChart.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "core/documents/deckChartSvg.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/deckClamp.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/deckCollect.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/deckDocument.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/deckJson.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/documents/deckModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/deckParse.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/documents/deckThemeOptions.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/documents/documentAssistant.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/documentContract.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "core/documents/documentDiscovery.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/documents/documentParser.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/documentSections.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/documentTemplate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/docxHouseStyle.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/imageDownscale.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/office/officegen.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/office/officegenPptxBase.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/documents/office/officegenPptxSlides.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/office/rowsMatrix.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/documents/office/xlsxCharts.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/documents/pdfRedaction/contentLexer.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/documents/pdfRedaction/detectMarks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/pdfRedaction/pageModel.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/documents/pdfRedaction/pdfFonts.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/documents/pdfRedaction/redactPdf.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/pptxExtractor.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/pptxTemplate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/render/deckHtml.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/documents/render/deckThemeCss.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/documents/render/documentPdf.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/documents/render/documentRenderer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/renderFilledDocument.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/sectionMerge.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/documents/sheetAssist/sheetAssistant.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 3
+    }
+  },
+  "core/documents/sheetAssist/sheetDigest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/sheetCells.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/documents/sheetChartFields.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/sheetChartSpec.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/sheetImport.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/documents/sheetOutline.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/suggestions/apply.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/embed/dispatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/entitlements/betaFeatures.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/entitlements/capabilityRegistry.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/entitlements/entitlements.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "core/entitlements/limits.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/entitlements/userTiers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/executionEngine.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/findings/finding.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/cursorStream.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/http/egressCapture.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/http/geo/geoDb.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/geo/geoDbFetch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/geo/locate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/httpRange.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/httpResponseLimits.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/http/ipClass.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/sseHelpers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/http/ssrfGuard.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/http/terminalErrorHandler.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/integrations/externalToolInjection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/integrations/integrationLogging.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/integrations/integrationToolFeatures.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/integrations/integrationToolGroups.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/integrations/integrationToolMap.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/integrations/ncScope.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/integrations/ncScopeFilter.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/integrations/ncScopeGuard.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/integrations/runtimeAppGate.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/integrations/toolHint.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/integrations/userAppGate.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/askerContext.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/kb/automationKbCheck.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/chunking.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/citation.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/kb/embeddingMigration.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/ingestPrivacy.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/kbChunksSchema.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/kbDocumentFacts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/kbFileExtract.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/kbIngestionHelpers.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/kb/kbReingest.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/kb/kbSelection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/kbSourceSync.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/kbUrlFetch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/kbVisibility.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/kb/kbWriteAccess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/localIngest.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/localRerank.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/n8nWorkflowConverter.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/notebookKnowledgeSearch.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/purgeSourceDocuments.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/relationHop.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/kb/sources/datatable.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/sources/index.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/kb/sources/webpage.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/llm/compaction.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/llm/embeddings.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/llm/leakedToolCalls.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/llm/llmClient.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/llm/modelCache.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/llm/modelCosts.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 3
+    }
+  },
+  "core/llm/modelResolver.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "core/llm/partialJsonScan.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/llm/promptClassifier.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/llm/providerConfig.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/llm/providerLimiter.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/llm/resolveTurnModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/llm/screenConstraints.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/llm/tierClassifierService.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/llm/toolCallHygiene.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/llm/unknownModelRate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/llm/unknownModelRegistry.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/llm/webSearchInferenceResolver.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/mcpManager.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/actionItems.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/meetingNotes/gmeetArtifacts.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/meetingNotes/gmeetAutoImport.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/gmeetCalendar.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/importJobKit.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/ingestGmeetRecording.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/meetingNotes/ingestNextcloudRecording.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/ingestRecordingCore.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/ingestTeamsRecording.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/ingestTranscription.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/meetingUsage.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/meetingNotes/savedAudioStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/speakerEvidence.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/speakerNaming.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/summaryLlm.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/talkAutoIngest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/talkAutoRecord.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/talkCalendar.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/teamsArtifacts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/teamsAutoImport.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/transcribeScaleway.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/meetingNotes/transcriptArtifacts.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/memory/scrubMemoryContext.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/packaging/manifest.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/packaging/pointers.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/packaging/scrub.js": {
+    "complexity": {
+      "count": 6
+    }
+  },
+  "core/privacy/chatSignals.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customData/assist.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/customData/bench.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/customData/patternTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customData/testsStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/customData/tune.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/customTypes/compile.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/legacyRunner.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/migrate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/customTypes/nodeMatch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/probe.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/registry.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/resolve.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/scan.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 7
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/shieldDoc.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/privacy/customTypes/spec.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/privacy/disclosureClassifier.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/errorSanitizer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/orgShield.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "core/privacy/personalColumns.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/privacy/piiDetection/cellSplit.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/piiDetection/guardClient.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/privacy/piiDetection/nameSweep.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/piiDetection/tokenizer.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 5
+    }
+  },
+  "core/privacy/piiDetection/validate.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/privacy/piiDetection/validateOutput.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/privacy/piiDetection/windowing.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/privacy/toolPiiGate.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/providers/azure.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/base.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/claude.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 6
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/claude/messageRepair.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/claude/params.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/claude/promptCache.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/providers/claudeModels.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/providers/eugpt.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/providers/google.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-depth": {
+      "count": 11
+    },
+    "max-lines-per-function": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/googleVertex.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/local.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/localModels.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/providers/mistral.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-depth": {
+      "count": 5
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/mistralModels.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/openai.js": {
+    "complexity": {
+      "count": 6
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/providers/openaiContent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/openaiModelCaps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/openaiModels.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/providers/thinkTagStream.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/providers/usageNormalizer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/releaseNotesFormat.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/scheduling/cron.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/scheduling/nextRun.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/seo/blog.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/seo/head.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/seo/ogText.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/seo/renderBlocks.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/seo/searchIndex.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/seo/siteRedirect.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/seo/sitemap.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/skills/skillDraft.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/skills/skillTest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/swarms/swarmRuntime.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "core/swarms/swarmWorkerRound.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/text/houseStyleExtractor.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/text/safePattern.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/datatableRows.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/datatableToolDefs.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/tools/datatableTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/tools/directChatToolStack.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/elevenLabsTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/imageGenTool.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/sessionSkillRuntime.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/tools/skillInjection.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/tools/toolDisclosure.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/toolEgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/tools/toolExecution.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/tools/videoGenTool.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/versioning/retention.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/versioning/stats.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/voice/azureSpeech.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/voice/azureWhisperBatch.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/voice/localWhisper.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/voice/npuWhisper.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/voice/pyannoteApi.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/voice/pyannoteClient.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/voice/voiceprintClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/voice/voiceprintMatching.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/voice/voxtralStt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/sidePanelWebpageContext.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageAiMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageBfScan.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/webpages/webpageBindings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageBridgeAuth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageCodeScan.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "core/webpages/webpageDataCards.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "core/webpages/webpageEgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageKnowledgeSearch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpagePageCode.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpagePublicAudience.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/webpages/webpageUsageSync.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/afasTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/agentSearchTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/automationEvolutionTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/azureGroupSync.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 11
+    },
+    "max-lines-per-function": {
+      "count": 3
+    }
+  },
+  "integrations/browserFetchTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/calendarTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "integrations/contactsTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/customIntegrationRunner.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/docsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/documentBuilderTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/driveHelpers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/driveTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "integrations/firefliesTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/gammaTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/githubTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/gmail/toolHandlers.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/gmailTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/googleBatch.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/googleClient.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "integrations/googleGroupsTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/kbIngestTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "integrations/kbSearchTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/keepTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/mapsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/mcpRegistryClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/memoryTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/msCalendarTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "integrations/msContactsTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/msGraphClient.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "integrations/n8nTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/n8nWorkflowHelpers.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "integrations/n8nWorkflowTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/nextcloudActivityTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudAdminNotify.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudCalendarIcs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudCalendarTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudClient.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/nextcloudContactsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudDeckHandlers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/nextcloudFiles/comments.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/fileOperations.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/officeDocuments.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/search.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/sharing.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/tags.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/trash.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/versions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFiles/webdav.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFormsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudFormsWrites.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/nextcloudHttpError.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudMailTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudNotesAppend.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudNotesTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudNotificationsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudStatusTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTablesTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTablesValues.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTalkBot.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTalkTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTasksTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTeamsDelete.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/nextcloudTeamsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nmbrsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/nodeSearchTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/notebookDocTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/notebookReadModes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/notebookTextEdits.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 9
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/officeFileDelivery.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/oneDriveTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/outlookTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/presentationTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/readUrlTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/regexGeneratorTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/scalewayBillingTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/shared/apiClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/shared/idList.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/sheetDocumentTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/sheetsTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/signrequestTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/slidesTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/spreadsheetTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/supportTools.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "integrations/transcriptionTools.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/vplanTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/webpageApiRuntime.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/webpageAutomationTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/webpageBridgeTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/webpageBuilderTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/webpageDbTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/webpageDocTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/webpageGrants.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/webpageMultiFileTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/withingsTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/wordDocumentTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/workspaceTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "integrations/youtrackClient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/youtrackTools.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "jobs/aiParticipation.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "jobs/automationDigest.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "jobs/complianceDeadlineNotifier.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "jobs/datasetIngest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/isoEvidenceCollector.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/kbSourceRefresh.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/learningNudge.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/memoryConsolidation.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "jobs/memoryEmbeddingBackfill.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "jobs/monitoringRetention.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/ncOnboardingReminder.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "jobs/usageOpenObservePush.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "learning/learnMediaSync.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "learning/practiceValidation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "learning/progressValidation.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "license/adminIssuance.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "license/index.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "license/issuance.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "license/middleware.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "license/refresh.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "license/store.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "license/verify.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "mcpServers/soverin/index.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "mcpServers/tuya/index.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "middleware/uploadGuard.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "migrateDb.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "migrations/automation-builder-2026-05-init.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "migrations/automation-handoff5-2026-09.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "migrations/automation-inline-layers-2026-06.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "migrations/drop-retired-features-2026-08.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "migrations/kb-sources-backfill.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "migrations/microsoft-sso-hardening-2026-10.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "migrations/project-kind-backfill-2026-09.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "migrations/project-org-backfill-2026-09.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "migrations/publish-kbs-linked-to-org-agents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "migrations/routine-to-automation-2026-10.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "migrations/skills-structured-fields.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "modules/entitlementRefresh.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "modules/entitlements.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "modules/hostApi.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "modules/hubClient.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "modules/packageActivation.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "modules/packageEntitlement.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "modules/packageInstall.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "modules/packageReconciler.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 4
+    }
+  },
+  "modules/packageRuntime.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "modules/packageStaging.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "modules/packageVerify.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "modules/remoteCatalog.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "playbooks/accessPlan.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "playbooks/composeRecipe.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "playbooks/lifecycle.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "playbooks/phases/complianceFacts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "playbooks/phases/compliancePhase.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "playbooks/phases/designPhase.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "playbooks/phases/fillPhase.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "playbooks/recipeDoc.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "playbooks/recipes/invoiceTracker.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "playbooks/resolvePlan.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "projects/catalogue.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/changeFeed.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "projects/changeTitles.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/chatAnswerSteps.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/chatAssistant.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "projects/chatAssistantSearchProjectKnowledge.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/chatAudience.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/chatModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/chatShield.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/chatTaggedItems.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/chatTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "projects/collabNotify.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/comments/commentAssistant.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "projects/comments/passage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/comments/surface.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/completeness.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/graph.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "projects/graphForProject.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/knowledgeBaseMembership.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/membership.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/capture.js": {
+    "complexity": {
+      "count": 6
+    }
+  },
+  "projects/packaging/install.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/install/context.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/install/grants.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/packaging/install/parts/agents.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "projects/packaging/install/parts/datatables.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "projects/packaging/install/parts/skills.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/install/patch.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/install/provenance.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/packaging/releaseNotes.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/packaging/resolutions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/packaging/upgrade.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "projects/participation/answerWriter.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "projects/participation/engine.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "projects/participation/preGate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/participation/relevanceGate.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/projectFiles.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/projectFilesKb.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/projectFilesProcess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/relatedParts.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "projects/stages/applyBindings.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "projects/stages/approvalGate.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "projects/stages/commit.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/stages/compensate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/converge.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/knowledgeContent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/model.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/stages/plan.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/stages/prepare.js": {
+    "complexity": {
+      "count": 6
+    }
+  },
+  "projects/stages/readiness.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/referenceRows.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/stages/release.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "projects/stages/releaseChecks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/removeStage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/stages/runner.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/stages/stageAuth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "projects/summary.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "projects/taskAssistant.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/admin/connectorHealth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/admin/languageRoutes.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/admin/modules.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "routes/admin/ncSync.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/adminLicense.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/agentPersonaWrite.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/chat.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/agents/chat.testkit.js": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/agents/conversations_meta.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/crud.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/agents/persona.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/publishVersion.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/published.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/sharedThreadRead.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/testsRun.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/agents/toolCatalog.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/agents/usage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/agents/wizard.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/buildRound.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/buildTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/chatStream.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/inboundImages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/modelSelection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/modelStream.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/planProgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/promptAssembly.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/appStudioBuilder/toolCallEvents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/appStudioBuilder/turnClosing.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/appStudioBuilder/turnSetup.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/applyPendingDatatables.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/buildLoop.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/chatStream.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/codeAssist.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/codeAssistPrompt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/codeAssistTurn.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/datatableTurn.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/inspectionTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/layerAgent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/layerDelegation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/mapJsonFields.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/modelSelection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/modelStream.js": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/planProgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/promptAssembly.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/roundNudges.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/routeRules.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/routeTools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/stepLabels.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/suggestMappings.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/suggestMappingsVerify.js": {
+    "complexity": {
+      "count": 7
+    }
+  },
+  "routes/ai/automationBuilder/suggestions.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/thoughtNarrator.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/toolDispatch.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/toolDraft.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/toolMenu.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/turnClosing.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/turnMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/turnSetup.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/automationBuilder/webResearch.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/automationBuilder/workMode.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/ai/builderShared.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/ai/cmsBuilder.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/ai/cmsBuilderMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/config/instanceConfig.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/ai/config/integrations.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/config/modelTiers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/config/regexGenerator.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/config/userSettings.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/attachmentFormats.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/chatOptions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/conversationRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/finalizeAftercare.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/finalizeRows.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/inputGates.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/inputRegexGate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/memoryProtection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/promptHistory.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/sessionSkillSetup.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/shared.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/ai/directChat/stageModelSwap.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/streamTurn.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/swarmTurn.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/toolExec.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/ai/directChat/toolLoopRounds.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/toolRefresh.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/toolResultEvents.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/toolStackAssembly.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/turnSetup.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/directChat/turnState.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/learning.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/musicGenTool.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/notebookChat.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/notebookChat/context.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 5
+    }
+  },
+  "routes/ai/notebookChat/finalize.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 4
+    }
+  },
+  "routes/ai/notebookChat/inputGates.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 9
+    }
+  },
+  "routes/ai/notebookChat/toolLoop.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/templateChat.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 10
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/voice.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat/context.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat/messages.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 10
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat/systemPrompt.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat/toolLoop.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/ai/webpageChat/tools.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/automation/actions.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/activate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/automation/agentStepCatalog.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/agentStepRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/aiAct.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/approvals.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/catalogApps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/automation/codeTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/automation/crud.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/diagnoseTrigger.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/events.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/automation/formPublic/page.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/formPublic/session.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/formPublic/submit.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/formScenarios.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/forms.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/goldens.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/importExport.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/runFiles.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/runs.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/sharing.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/tablePreview.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/automation/testCases.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/versionHistory.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/automation/versions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/automation/webhooksAndRunOps.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/clientErrors.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsAnalytics.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsAnalyticsHandlers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsAnalyticsOverview.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsAssets.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsForms.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/cmsOgImage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/cmsPublicSite.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/compliance/accessAudit.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/chatMonitoring.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/compliance/checks.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/compliance/customFrameworks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/evidence.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/findingStates.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/frameworks.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/compliance/incidents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/compliance/isoAuditPack.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/compliance/isoStatements.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/machinery.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/overview.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/compliance/projectRegistrations.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/compliance/ropa.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/compliance/shared.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/cspReport.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/datatables/answers.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/datatables/metadata.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/datatables/refusals.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/datatables/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/datatables/tables.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/datatablesAi.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/datatablesSpreadsheets.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/dictate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/dsr.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/feedback.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/integrations/connections.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/integrations/googleWorkspace.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/integrations/microsoft365.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/integrations/outlook.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/integrations/withings.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/ask.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/create.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/detail.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/ingest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/n8n.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/search.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/sitemapIngest.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/sourceCreate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/sourcePolicy.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/knowledgeBases/sourceUploads.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/knowledgeBases/sources.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/license.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/mcpAutomations.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/mcpDatatableRows.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/mcpDatatableTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/mcpServer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/mcpStudio.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/memory.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/modulesFrontend.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ncScope.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/nextcloudTaskProcessing.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/notebookExport.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/notebooks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/notebooksGenerate.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/notebooksVersions.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/orgAzureConfig.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/orgCustomData.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/orgIntegrations/builder.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/orgPrivacyShield.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/playbooks/accessPhaseRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/playbooks/complianceReview.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/playbooks/complianceRoutes.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/playbooks/phaseFlow.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/playbooks/playbookRoutes.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 8
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/playbooks/serverPhaseRoutes.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/playbooks/skipRetryRoutes.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/privacyShieldStatus.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/projects/changes.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/chatsContext.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/chatsHandlers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/projects/chatsPost.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects/chatsPresent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects/collab.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/collab.testkit.js": {
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "routes/projects/commentsContext.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/commentsHandlers.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/projects/content.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/members.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/packaging.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/projects/resources.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/sprints.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/stages/deploymentRoutes.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/stages/settingsRoutes.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/projects/stages/stageRoutes.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/tasksHandlers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects/tasksPresent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects/tasksRules.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/projects/threads.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/projects/workspace.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/publicRender.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/publicShareBridge.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/publicViewer.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "routes/reports.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/search.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/skills/ai.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/skills/examples.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/skills/test.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/storageProxy.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/stripe/checkout.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/stripe/checkoutEvents.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/stripe/customerEvents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/stripe/paymentEvents.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "routes/stripe/shared.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/stripe/subscriptionEvents.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/stripe/webhook.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studio/aiRoute.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studio/appDataAdmin.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studio/appDataQuery.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/studio/attentionChecks.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/studio/counts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioAppBrowse.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioAppConnectors.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/studioAppDatasets.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioAppFiles.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/studioAppPublic.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "routes/studioApps/appImport.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioApps/crud.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/studioApps/runtime.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioApps/templates.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/studioAppsRun.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/studioDocuments.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "routes/studioDocuments/sheet.js": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "routes/studioDocuments/versions.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/subscriptions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/subscriptions/consumerAccount.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/subscriptions/licenseReissue.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/subscriptions/lifecycle.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/subscriptions/orgSubscriptions.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/subscriptions/plans.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "routes/summaryTemplates.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/support/aiConfig.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/support/inboxSettings.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/support/inboxThreads.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/support/threadCreate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/support/threads.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/supportInbox.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/templateAi.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 8
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/templateContext.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/audio.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "routes/transcriptions/gmeet.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/nextcloud.js": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/noteActions.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/report.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/reprocess.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/speakers.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "routes/transcriptions/teams.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "routes/transcriptions/upload.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/usageMonitoringAuth.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/voiceprints.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/webVitals.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/webpages/createBrief.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/webpages/crud.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/webpages/files.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/webpages/publicShares.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/webpages/publishing.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "routes/webpages/sources.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/webpages/versionListing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/webpages/versions.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "routes/webpagesAudience.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/webpagesPreview.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/assistantInstall.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/build-iata-airports.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/cleanup-test-runs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/cleanupAzureDuplicates.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "scripts/content/ogCards.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "scripts/deleteOrgs.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/detachMisassignedFreeEmailUsers.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/drive-app-builder.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/drive-builder.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "scripts/drive-playbook.js": {
+    "complexity": {
+      "count": 7
+    }
+  },
+  "scripts/genComplianceDemoCatalog.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/migrateStudioAppsToPg.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/playbook-compliance-dry-run.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/print-model-prompt.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/rotateMasterKey.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/template-to-file.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/test-automation-e2e.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "scripts/typecheck.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/appStudioRender.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "services/bfBridgeNotices.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/browserAgentDriver.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "services/certificateTemplate.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/documentCompose.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/documentEditBridge.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/documentEditBridgeParts.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "services/email/fetch.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "services/email/parse.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "services/email/providerClients.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/githubSyncService.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 4
+    },
+    "max-params": {
+      "count": 5
+    }
+  },
+  "services/guardInstaller.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/ncUserGroupSync.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "services/orgHealth.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "services/outboundChatNotifier.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/planEntitlements.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/presentationRenderer.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "services/publicBridgeScript.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/pwtRunner.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/stripe/checkout.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/stripe/customer.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "services/stripe/invoicesPromos.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/stripe/subscriptions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/stripe/trial.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/supportAiResponder.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "services/supportClassifier.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/supportInboxScanEngine.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/supportInboxSyncEngine.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "services/supportIssueSync.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/supportMailer.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/supportTranscript.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/testGenerator.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/webpageBfTable.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/webpageDraftDocument.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/webpageRender.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "services/webpageRuntimeManager.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "services/webpageValidation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/appDefinition/definitionOps.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/appDefinition/lockstep.fixture.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/appDefinition/variables.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/expr/dates.mjs": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "shared/expr/engine.mjs": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "shared/expr/flatten.mjs": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "shared/expr/nested.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "shared/expr/path.mjs": {
+    "complexity": {
+      "count": 5
+    },
+    "max-depth": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "shared/expr/pathLabel.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/expr/routeFollow.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "shared/expr/rules.mjs": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "shared/expr/sheet.mjs": {
+    "complexity": {
+      "count": 6
+    },
+    "max-depth": {
+      "count": 7
+    },
+    "max-lines-per-function": {
+      "count": 3
+    }
+  },
+  "shared/expr/sheetFill.mjs": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "shared/looseToolArgs.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "shared/schedule/nextRun.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "shared/webpage/previewBridges.mjs": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "shared/webpage/previewInline.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/agent/agentCrud.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/agent/agentTests.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/agent/agentUsage.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "stores/agent/conversationAccess.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/agent/messageCrypto.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/agent/normalizeStoredMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/aiActAssessmentStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/aiTaskStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/appStore.js": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/authConfigStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/approvalDeliveries.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/approvals.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/automationStore/automations.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/bindingWarnings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/builderSessions.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/automationStore/evolutions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/lifecycle.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/notificationEvents.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/rowMappers.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/automationStore/runListing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/runs.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/automationStore/runsFilter.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/runsStats.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/runsSteps.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/shares.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/blueprint/gallery.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/blueprint/installs.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/blueprint/mappers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/blueprint/pipelineReleases.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/blueprint/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/brandingStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/chatSignalStore.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/cms/blogEffective.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/cms/effective.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/cms/exportImport.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/cms/importSteps.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/cms/pageRemoval.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/cms/posts.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/cms/projects.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/cms/publishing.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/cms/redirectRules.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/cms/siteDoc.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/cms/stories.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/cms/translatedOverrides.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/compliance/checks.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/compliance/evidence.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/compliance/findings.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/compliance/schema.js": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/compliance/settings.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/compliance/settingsRequest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/datasetFileStore.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/datatableStore/datatables.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/datatableStore/rowMappers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/datatableStore/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/datatableStore/usage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/document/rowMappers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/documentHistory.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/documentStore.js": {
+    "complexity": {
+      "count": 5
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/documentSuggestionStore.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/documentVersions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/encryptionBackfill.js": {
+    "complexity": {
+      "count": 4
+    }
+  },
+  "stores/feedbackStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/gmeetImportStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/guardrailEventStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/houseStyleStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/incidentClocks.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/incidentStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/initialTier.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/integrationActivitySchema.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/integrationActivityStore.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/integrationConnectionStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/integrationOverview.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/isoAuditStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/isoObligationStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/kb/access.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/kb/catalog.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/kb/documentQueries.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/kb/documents.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/kb/model.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/kb/sourcePlan.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/kb/versions.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/languageStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/learningContentStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/lib/automationTestingCases.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/chatMonitoringRules.js": {
+    "complexity": {
+      "count": 7
+    }
+  },
+  "stores/lib/chatSignalSuppression.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/lib/collabDocUpdates.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/lib/conversationSearch.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/lib/documentCrypto.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/lib/documentSharing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/lib/documentSharingCrypto.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/lib/managedParts.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/lib/pgAppEngineHelpers.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "stores/lib/priceCatalog.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/projectChatMessages.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/lib/projectCommentComments.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/sqlBuilder.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/lib/sqliteBlobFlush.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/sqliteBlobHandles.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/sqliteBlobStatements.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/lib/sqliteStatementGuard.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 3
+    }
+  },
+  "stores/meetingPrefsStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/memoryCrud.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/memoryEmbedding.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/memoryLifecycle.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/memoryPresenter.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/memoryQueries.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/memoryReads.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/memoryRecall.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/memoryRetrieval.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/memorySchema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/memorySimilarity.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/microsoftIdentityStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/notebook/cards.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/notebook/membership.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/notebook/notebooks.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/notebook/rowMappers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/notebook/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/notebook/versionModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/notebook/versions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/notificationStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/orgHealthStore.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/piiVaultStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/project/conversations.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/project/events.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/project/members.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/project/projects.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/project/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/project/stageLink.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/projectAiParticipationStore.js": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/projectChanges.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/projectSprintStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/projectTaskStore.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/projectTaskStoreMakePoker.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/riskStore.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/skill/projects.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/skill/usage.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/skillActivations.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/skillStore.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/soaStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/solutionStage/bindings.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/solutionStage/deploymentModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/solutionStage/deployments.js": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/solutionStage/stages.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/solutionStage/variables.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/storageStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/studioApp/builderSession.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/studioApp/publish.js": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/studioApp/rowMappers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/studioApp/writers.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/dataModel.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppTemplateStore.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/suggestionFeedbackStore.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/suggestionScanCache.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/supportInboxStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/supportStore/audit.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/supportStore/insights.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/supportStore/issueLinks.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/supportStore/messages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/supportStore/threads.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/terminationStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/transcription/lookups.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/transcription/reads.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/transcription/rowShape.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/transcription/writes.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/usage/filters.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/usage/logUsage.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "stores/usage/payg.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/usage/queries.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/usage/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/user/audit.js": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "stores/user/ncBindings.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/user/organizations.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/user/plans.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "stores/user/projectErasure.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/user/schema.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "stores/user/subscriptions.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "stores/user/users.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/user/usersCreate.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/user/usersDelete.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/versionStore.js": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/voiceprintStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/webpage/bridgeGrants.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/webpage/extraFiles.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/webpage/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/webpage/shared.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/webpage/versions.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "stores/webpage/webpages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/webpagePublicShareStore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "support/access.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "support/emails.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "support/issueEgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "support/notifications.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "utils/compliancePdf.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "utils/emailBilling.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "utils/emailService.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "utils/htmlToMarkdown.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "utils/nextcloudErrorClassifier.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "utils/perUserRateLimit.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "utils/routeHelpers.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "utils/skillStructure.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "utils/stepErrorInfo.js": {
+    "complexity": {
+      "count": 5
+    }
+  },
+  "utils/unicodeSanitizer.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "utils/zod.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "workers/paygDrain.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  }
+}

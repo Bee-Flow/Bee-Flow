@@ -2,15 +2,15 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, OWNER_ID } from '../content/contentTestKit';
-import type { PokerSession, ProjectTask } from '../../../../api/queries/projectTasks';
-import { setCurrentUser } from '../../../../utils/scopedStorage';
+import type { PokerSession, ProjectTask } from '@/api/queries/projectTasks';
+import { setCurrentUser } from '@/utils/scopedStorage';
 import type { ChatPeople } from '../chat/chatPeople';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
@@ -56,7 +56,7 @@ describe('PokerPanel', () => {
         renderPanel();
         await user.click(await screen.findByRole('button', { name: /Task t2/ }));
         await user.click(screen.getByRole('button', { name: /Start planning poker/ }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/start', { taskId: 't2' }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/start', { taskId: 't2' }));
     });
 
     it('shows the queued items and saves the estimate into the next one when revealed', async () => {
@@ -68,7 +68,7 @@ describe('PokerPanel', () => {
         expect(queue).toHaveTextContent('Task t3');
         await user.click(screen.getByRole('button', { name: '5' }));
         await user.click(screen.getByRole('button', { name: 'Save estimate & next item' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/next', { sessionId: 'ps1', storyPoints: 5 }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/next', { sessionId: 'ps1', storyPoints: 5 }));
     });
 
     it('shows who has voted while voting, and casts your card', async () => {
@@ -79,9 +79,9 @@ describe('PokerPanel', () => {
         expect(screen.getByRole('img', { name: 'Ready' })).toBeInTheDocument();
         expect(screen.getByRole('img', { name: 'Choosing…' })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: '8' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/vote', { sessionId: 'ps1', vote: '8' }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/vote', { sessionId: 'ps1', vote: '8' }));
         await user.click(screen.getByRole('button', { name: 'Reveal votes' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/reveal', { sessionId: 'ps1' }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/reveal', { sessionId: 'ps1' }));
     });
 
     it('folds the queue away and back', async () => {

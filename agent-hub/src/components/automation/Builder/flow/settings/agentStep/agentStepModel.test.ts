@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { AgentStepPreview } from '../../../../../../api/queries/automation/agents';
+import type { AgentStepPreview } from '@/api/queries/automation/agents';
 import { agentMetaLine, stepSkillRows, toggleDisabledSkill, toolGroupsOf, withPermission } from './agentStepModel';
 
 const t = (_k: string, fb?: unknown, p?: Record<string, unknown>) =>

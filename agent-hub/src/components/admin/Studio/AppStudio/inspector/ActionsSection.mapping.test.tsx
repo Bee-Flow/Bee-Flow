@@ -18,7 +18,7 @@ const require = createRequire(import.meta.url);
 const { canonicalizeAppDefinition } = require('../../../../../../../server/appStudio/canonicalize.js');
 const { validateAppDefinition } = require('../../../../../../../server/appStudio/validate.js');
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

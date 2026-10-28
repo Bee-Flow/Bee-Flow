@@ -144,7 +144,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a Step (draft).
-router.post('/', validate({ body: CreateBody }), async (req, res) => {
+router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { title, description } = req.body;
     // Absent means "start from the skeleton"; anything else is a definition,

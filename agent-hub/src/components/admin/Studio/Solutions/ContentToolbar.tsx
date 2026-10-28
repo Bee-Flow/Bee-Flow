@@ -2,7 +2,7 @@ import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import type { SolutionSection } from './solutionSections';
 import { kindInkClass } from './kindBar';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Search, filter pills and the way in for the Content tab. Pills exist only for

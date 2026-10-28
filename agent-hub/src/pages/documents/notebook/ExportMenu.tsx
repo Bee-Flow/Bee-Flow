@@ -6,8 +6,8 @@
  */
 import React, { useState, useRef } from 'react';
 import { Download, FileDown, Loader2, ChevronDown, PenTool, FileType2 } from 'lucide-react';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import useTranslation from '../../../hooks/useTranslation';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import useTranslation from '@/hooks/useTranslation';
 
 interface ExportMenuProps {
     onExport?: (format: 'pdf' | 'docx') => void;

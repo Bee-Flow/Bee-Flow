@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `withTransaction` for a test fake of db.js, built on the fake's own
  * `getClient`: BEGIN, the callback, COMMIT (or ROLLBACK on a throw or on

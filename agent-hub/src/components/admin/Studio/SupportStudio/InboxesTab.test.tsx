@@ -2,13 +2,13 @@ import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import InboxesTab from './InboxesTab';
-import { authFetch } from '../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 describe('InboxesTab mailbox OAuth popup', () => {
     beforeEach(() => { cleanup(); asMock(authFetch).mockReset(); vi.restoreAllMocks(); });

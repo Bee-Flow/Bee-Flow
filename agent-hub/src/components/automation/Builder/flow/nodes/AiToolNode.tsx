@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Hammer, X } from 'lucide-react';
 import IntegrationLogo from './IntegrationLogo';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * One tool hanging under an AI step — the canvas half of `ai_step.tools`.

@@ -11,7 +11,7 @@
  */
 import React from 'react';
 import { CheckCircle2, Loader2, RotateCw, Undo2, X, AlertCircle, Clock } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { PendingDelete, UploadItem } from './hooks/useSourcesPolling';
 
 interface Props {

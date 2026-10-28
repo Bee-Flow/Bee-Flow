@@ -2,7 +2,7 @@ import { render, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ExpressionInput from './ExpressionInput';
-import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 
 /**
  * The inline variant is the whole point of the extraction: a filter row has no

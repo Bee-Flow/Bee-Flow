@@ -11,8 +11,8 @@
  * the saved lesson is NOT attached to any course until a follow-up
  * saveCourse() whose lessonIds includes the returned lesson.id.
  */
-import { createJsonResource } from '../../../../api/client';
-import { API_BASE } from '../../../../utils/helpers';
+import { createJsonResource } from '@/api/client';
+import { API_BASE } from '@/utils/helpers';
 
 const root = `${API_BASE}/ai/learning/admin`;
 

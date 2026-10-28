@@ -4,8 +4,8 @@
 // waits calmly until they are ready for it.
 
 import React, { useMemo, useState } from 'react';
-import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
 import type { Conflict } from '../useDocumentAutosave';
 
 type Choice = 'mine' | 'theirs';

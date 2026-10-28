@@ -248,7 +248,7 @@ const orgIdOf = (req) => req.session?.user?.organizationId || null;
 const writer = () => require('../agents/memory/memoryWriter');
 
 // Get memory type definitions
-router.get('/types', validate({ query: NoQuery }), (req, res) => {
+router.get('/types', validate({ query: NoQuery }), (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     res.json({ types: MEMORY_TYPES });
 });
 
@@ -354,7 +354,7 @@ router.get('/', validate({ query: ListQuery }), /** @param {ListReq} req */ asyn
 // User-global memory stats (total + type distribution + importance buckets,
 // over the ACTIVE personal rows, plus the review backlog and origins).
 // Must be registered before `/:id` or Express will route "stats" as an id.
-router.get('/stats', validate({ query: NoQuery }), async (req, res) => {
+router.get('/stats', validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     res.json(await memoryQueries.getStats(getEffectiveUserId(req)));
 });
 
@@ -365,7 +365,7 @@ router.get('/recent', validate({ query: RecentQuery }), /** @param {import('expr
 });
 
 // The caller's review queue (memories waiting for a yes or a no).
-router.get('/review', validate({ query: ReviewQuery }), async (req, res) => {
+router.get('/review', validate({ query: ReviewQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ReviewQuery>>} */ req, res) => {
     res.json(await memoryQueries.listReview(getEffectiveUserId(req), req.query));
 });
 
@@ -435,7 +435,7 @@ router.get('/:id', validate({ query: NoQuery }), /** @param {import('express').R
 });
 
 // Create a memory manually
-router.post('/', validate({ body: CreateMemoryBody }), async (req, res) => {
+router.post('/', validate({ body: CreateMemoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateMemoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { agentId, projectId, content, type, summary, importance } = req.body;
 
@@ -513,7 +513,7 @@ router.put('/:id', validate({ body: UpdateMemoryBody }), /** @param {import('exp
 
 // Change the type of several memories at once. Rows the caller may not edit
 // are skipped, not failed, like bulk-delete; `updated` is what really changed.
-router.post('/bulk-update', validate({ body: BulkUpdateBody }), async (req, res) => {
+router.post('/bulk-update', validate({ body: BulkUpdateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkUpdateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { ids, type } = req.body;
     const allowed = [];
@@ -524,7 +524,7 @@ router.post('/bulk-update', validate({ body: BulkUpdateBody }), async (req, res)
 });
 
 // Bulk delete memories
-router.post('/bulk-delete', validate({ body: BulkDeleteBody }), async (req, res) => {
+router.post('/bulk-delete', validate({ body: BulkDeleteBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkDeleteBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { ids } = req.body;
 
@@ -580,7 +580,7 @@ router.delete('/:id', validate({ query: DeleteQuery }), /** @param {import('expr
 // personal memory while the project's stayed on screen. Any other narrowing
 // (`{agentId}`) is refused: it used to be ignored on the way to clearing
 // everything.
-router.post('/clear', validate({ query: NoQuery, body: ClearBody }), async (req, res) => {
+router.post('/clear', validate({ query: NoQuery, body: ClearBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ClearBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { projectId } = req.body;
 
@@ -597,7 +597,7 @@ router.post('/clear', validate({ query: NoQuery, body: ClearBody }), async (req,
 });
 
 // Export memories as JSON
-router.get('/export/all', validate({ query: NoQuery }), require('../compliance/dataPortability/stampExport')('memories'), async (req, res) => {
+router.get('/export/all', validate({ query: NoQuery }), require('../compliance/dataPortability/stampExport')('memories'), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
 
     // Every row of the person's own, any status, opened, with provenance.
@@ -619,7 +619,7 @@ function contentKey(content) {
 // Uses the fast-tier LLM to extract a typed list of memories from free-form
 // text, then writes each one through the memory writer (secrets dropped, art. 9 gated, near-duplicates confirmed) — capped
 // per paste, de-duped within the paste and against what already exists.
-router.post('/import', importLimiter, validate({ body: ImportBody }), async (req, res) => {
+router.post('/import', importLimiter, validate({ body: ImportBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ImportBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     // Trimmed and required non-blank by the schema.
     const { text } = req.body;

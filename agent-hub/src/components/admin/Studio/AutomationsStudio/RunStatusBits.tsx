@@ -1,7 +1,7 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { statusLabel, tokenFor, tokenForStep } from '../../../shared/statusTokens';
-import type { RunStepLike } from '../../../shared/statusTokens';
+import { useTranslation } from '@/hooks/useTranslation';
+import { statusLabel, tokenFor, tokenForStep } from '@/components/shared/statusTokens';
+import type { RunStepLike } from '@/components/shared/statusTokens';
 
 interface RunStatusProps {
     status?: string | null;

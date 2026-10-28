@@ -57,7 +57,7 @@ function register(router, { upload }) {
     // read the stream. This route reads nothing from it — the name, the type and the bytes all
     // come from `req.file` — and says so with an empty strict body instead of letting it pass silently.
     router.post('/:id/sources/file', requireAuth, validate({ query: NO_QUERY }), upload.single('file'),
-        validate({ body: NOTHING }), async (req, res) => {
+        validate({ body: NOTHING }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const webpageId = req.params.id;
 
@@ -81,7 +81,7 @@ function register(router, { upload }) {
         });
     });
 
-    router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UrlBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const webpageId = req.params.id;
         const { url } = req.body;
@@ -115,7 +115,7 @@ function register(router, { upload }) {
         });
     });
 
-    router.post('/:id/sources/text', requireAuth, validate({ body: TextBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/sources/text', requireAuth, validate({ body: TextBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TextBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const webpageId = req.params.id;
         const { text, name } = req.body;
@@ -162,7 +162,7 @@ function register(router, { upload }) {
 
             if (file.content) {
                 ingestDriveSource(webpageId, source.id, userId, file.content, file.name).catch(err => {
-                    log.error(`[Webpages] Drive ingestion failed for ${file.name}:`, err.message);
+                    log.error(`[Webpages] Drive ingestion failed for ${log.nameForLog(file.name)}:`, err.message);
                 });
             } else {
                 webpageStore.updateSource(source.id, { status: 'error', error: 'No content received from Drive' });
@@ -172,7 +172,7 @@ function register(router, { upload }) {
         res.json({ success: true, sources });
     });
 
-    router.get('/:id/sources', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id/sources', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -186,7 +186,7 @@ function register(router, { upload }) {
         res.json({ sources: finalSources, managed: await webpageStore.managedPayloadOf(wp) });
     });
 
-    router.post('/:id/sources/:sid/retry', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/sources/:sid/retry', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, sid: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -221,7 +221,7 @@ function register(router, { upload }) {
         })();
     });
 
-    router.post('/:id/sources/:sid/cancel', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/sources/:sid/cancel', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, sid: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -236,7 +236,7 @@ function register(router, { upload }) {
         res.json({ success: true });
     });
 
-    router.delete('/:id/sources/:sid', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.delete('/:id/sources/:sid', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, sid: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

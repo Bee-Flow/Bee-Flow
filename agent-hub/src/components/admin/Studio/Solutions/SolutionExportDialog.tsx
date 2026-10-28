@@ -1,10 +1,10 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 import ProjectBlueprintTab from './ProjectBlueprintTab';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import { Strip } from './solutionNotices';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One typed requirement from the completeness endpoint's preview. */
 interface RequirementItem {

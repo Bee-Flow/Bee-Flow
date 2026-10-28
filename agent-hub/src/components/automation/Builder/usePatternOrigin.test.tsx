@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { repeatingApi, repeatingKeys } from '../../../api/queries/automation/repeating';
-import type { RepeatingSuggestion, ScanResult } from '../../../api/queries/automation/repeating';
-import { queryWrapper, testQueryClient } from '../../../test/queryWrapper';
+import { repeatingApi, repeatingKeys } from '@/api/queries/automation/repeating';
+import type { RepeatingSuggestion, ScanResult } from '@/api/queries/automation/repeating';
+import { queryWrapper, testQueryClient } from '@/test/queryWrapper';
 import usePatternOrigin, { patternOriginOf } from './usePatternOrigin';
 
 const suggestion = (id: string, signature: string | null): RepeatingSuggestion => ({

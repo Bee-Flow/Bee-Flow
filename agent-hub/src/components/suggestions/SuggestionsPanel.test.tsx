@@ -51,14 +51,14 @@ describe('SuggestionsPanel', () => {
         setup();
         const cards = await screen.findAllByTestId('suggestion-card');
         await user.click(within(cards[0]).getByRole('button', { name: 'Accept this suggestion' }));
-        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/accept', {}, { retry: false });
+        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/accept', {});
         await user.click(within(cards[1]).getByRole('button', { name: 'Reject this suggestion' }));
-        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s2/reject', {}, { retry: false });
+        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s2/reject', {});
         const batches = screen.getAllByTestId('suggestion-batch');
         await user.click(within(batches[0]).getByRole('button', { name: 'Accept all' }));
-        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/batch/b1/accept', {}, { retry: false });
+        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/batch/b1/accept', {});
         await user.click(within(batches[1]).getByRole('button', { name: 'Reject all' }));
-        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/batch/b2/reject', {}, { retry: false });
+        expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/batch/b2/reject', {});
     });
 
     it('tells the reader when nothing could be applied (409)', async () => {
@@ -104,9 +104,9 @@ describe('SuggestionsPanel', () => {
         await user.keyboard('j');
         expect(onFocus).toHaveBeenLastCalledWith('s2');
         await user.keyboard('a');
-        await waitFor(() => expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/accept', {}, { retry: false }));
+        await waitFor(() => expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/accept', {}));
         await user.keyboard('r');
-        await waitFor(() => expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/reject', {}, { retry: false }));
+        await waitFor(() => expect(post).toHaveBeenLastCalledWith('/api/studio-documents/d1/suggestions/s1/reject', {}));
     });
 
     it('its letter keys are plain, so no editor Mod shortcut matches them', () => {

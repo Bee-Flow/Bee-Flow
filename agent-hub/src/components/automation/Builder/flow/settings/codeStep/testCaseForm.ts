@@ -15,8 +15,8 @@ import {
     type Expectation,
     type TestCase,
     type TestCaseBody,
-} from '../../../../../../api/queries/automation/testCases';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
+} from '@/api/queries/automation/testCases';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
 import { inputsFromValues, tryValuesFrom } from './CodeTryPanel';
 
 export { ASSERTION_OPS };

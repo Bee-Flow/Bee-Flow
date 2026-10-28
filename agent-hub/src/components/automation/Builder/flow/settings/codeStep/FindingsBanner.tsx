@@ -2,8 +2,8 @@
 // to the large editor where they can be fixed. Silent when there is nothing
 // to say. Only a block stops the step; a warning is worth a look, never a gate.
 import { AlertOctagon, AlertTriangle } from 'lucide-react';
-import type { CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import type { CodeAnalysis } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
 import { checksState } from './codeParams';
 
 interface FindingsBannerProps {

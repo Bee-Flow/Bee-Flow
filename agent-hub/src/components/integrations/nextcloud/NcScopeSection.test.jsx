@@ -2,11 +2,11 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import NcScopeSection from './NcScopeSection';
-import { renderWithClient as render } from '../../../test/render';
-import { authFetch } from '../../../utils/helpers';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const jsonRes = (body, status = 200) => ({
     ok: status >= 200 && status < 300,

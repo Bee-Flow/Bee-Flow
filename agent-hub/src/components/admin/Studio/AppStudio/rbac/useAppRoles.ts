@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { AuthFetchOptions } from '../../../../../utils/helpers';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import type { AuthFetchOptions } from '@/utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AccessPerm, RuleTable } from './rowRuleModel.types';
-import { errorStatus, errorBodyRecord } from '../../../../../utils/caughtError';
+import { errorStatus, errorBodyRecord } from '@/utils/caughtError';
 
 /**
  * App Studio RBAC — the authoring hooks for the per-app role model.

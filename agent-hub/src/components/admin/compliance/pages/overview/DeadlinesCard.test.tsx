@@ -11,7 +11,7 @@ import DeadlinesCardJs, { URGENT_BELOW_MS } from './DeadlinesCard';
  * identical "no open vulnerability" rows, and a subject kind printed as if it
  * were an identifier ("training · Annual refresher").
  */
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 interface DeadlineItem {
     id: string; kind: string; ref?: string; title?: string; meta?: { article?: string | null };

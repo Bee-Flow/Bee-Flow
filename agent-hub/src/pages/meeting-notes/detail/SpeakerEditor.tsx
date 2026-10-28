@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { Loader2, Merge, Undo2, Sparkles } from 'lucide-react';
-import Modal from '../../../components/shared/Modal';
+import Modal from '@/components/shared/Modal';
 import { formatSpeakerLabel } from '../lib/format';
 import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 /** A stored speaker; the roster is read defensively, so only `id` is relied on. */
 interface RosterSpeaker {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { errorInfoTitle, runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
-import { interpolate } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { interpolate } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // English t(): the fallback, with its {params} filled in.
 const t: TranslateFn = (_key, fallbackOrParams, params) => (

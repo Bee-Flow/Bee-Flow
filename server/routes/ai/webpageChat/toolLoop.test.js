@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The termination log names the webpage (routes/ai/webpageChat/toolLoop.js).
  *

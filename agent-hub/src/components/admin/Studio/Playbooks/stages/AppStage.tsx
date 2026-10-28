@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StageMessage from './StageMessage';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import BuilderChatPane from '../../AppStudio/chat/BuilderChatPane';
 import type { AppMetaUpdate } from '../../AppStudio/chat/useBuilderTurn';
 import AppEditorShell from '../../AppStudio/editor/AppEditorShell';

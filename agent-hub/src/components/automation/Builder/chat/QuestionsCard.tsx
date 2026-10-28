@@ -1,6 +1,6 @@
 import { ArrowRight, Check, MessageCircleQuestion } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import InlineMarkdown from './InlineMarkdown';
 import { answersToText, type QuestionAnswer } from './questionAnswers';
 import { stripInlineMarkdown } from './markdownText';

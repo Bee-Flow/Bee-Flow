@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * print-model-prompt — what a builder sends to the local model, in TOKENS.
  *
@@ -54,7 +55,6 @@
  */
 
 'use strict';
-
 const fs = require('fs');
 const path = require('path');
 const http = require('http');

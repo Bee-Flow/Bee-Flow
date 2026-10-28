@@ -1,5 +1,5 @@
 import CadThumb from './CadThumb';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';

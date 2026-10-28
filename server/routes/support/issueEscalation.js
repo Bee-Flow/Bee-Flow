@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ticket ↔ YouTrack issue links: the handler bodies of escalation
  * (BFSF-447), the team chat notifications (BFSF-448 / BFSF-449) and the

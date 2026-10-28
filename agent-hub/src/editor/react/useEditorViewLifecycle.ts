@@ -13,7 +13,7 @@ import type { EditorSync } from './useEditorSync';
  */
 export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditorProps, sync: EditorSync) {
   const { content, placeholder } = props;
-  const { t, hostRef, viewRef, saveTimer, lastHtmlRef, notebookIdRef, setUploadError, uploadError, onUploadImageRef } = s;
+  const { t, hostRef, viewRef, saveTimer: saveTimerRef, lastHtmlRef, notebookIdRef, setUploadError, uploadError, onUploadImageRef } = s;
   const { collab, effectiveEditable, refreshChrome } = sync;
 
   /* external content changes (e.g. switching notebooks) */
@@ -25,7 +25,7 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
     if (collab.bound) return;
     if (typeof content === 'string' && content !== lastHtmlRef.current) {
       // External content swap: cancel any save still pending for the old content.
-      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
       view.setDoc(contentToDoc(content), { emitUpdate: false });
       refreshChrome();
       // Compare future props against the raw incoming string so an identical
@@ -33,7 +33,7 @@ export default function useEditorViewLifecycle(s: EditorShared, props: BeeEditor
       // to the re-serialized HTML, which may differ from `content`).
       lastHtmlRef.current = content;
     }
-  }, [content, refreshChrome, collab.bound]);
+  }, [content, refreshChrome, collab.bound, viewRef, lastHtmlRef, saveTimerRef]);
 
   useEffect(() => { viewRef.current?.setEditable(effectiveEditable); }, [effectiveEditable, s.viewInst, viewRef]);
 

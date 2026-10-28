@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import PanelResizer from '../../../shared/PanelResizer';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import PanelResizer from '@/components/shared/PanelResizer';
 
 const WIDE_QUERY = '(min-width: 1024px)';
 

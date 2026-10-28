@@ -4,16 +4,16 @@ import { useMemo, useState } from 'react';
 import { useAutomationRows } from './automationTitles';
 import logicRows, { assignNotices, collectBoundTableIds, derivedAutomationRows } from './logicRows';
 import { toSaveNotices, type SavePayload, type SaveNotice } from './saveNotices';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import { nOf } from '../../KnowledgeStudio/plural';
 import AutomationPicker from '../inspector/AutomationPicker';
 import { setAction } from '../state/definitionOps';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { WiredAutomation } from '../inspector/useEventWiring';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LogicTableRow, RowStatus, LogicaTabProps } from './LogicaTab.types';
-import { request, RefusedError } from '../../../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 import { LogicTable } from './LogicTable';
 
 /**

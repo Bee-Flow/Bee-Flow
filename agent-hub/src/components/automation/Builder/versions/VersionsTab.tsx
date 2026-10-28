@@ -1,10 +1,10 @@
 import type React from 'react';
 import { useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import {
     useRestoreVersionMutation, useVersionsQuery, type VersionRow,
-} from '../../../../api/queries/automation/versions';
+} from '@/api/queries/automation/versions';
 import VersionList from './VersionList';
 import VersionCompare from './VersionCompare';
 import VersionOpenDialog from './VersionOpenDialog';

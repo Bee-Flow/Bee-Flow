@@ -83,14 +83,14 @@ function makeCodeToolsRouter(overrides = {}) {
         return acc ? a : false;
     }
 
-    router.post('/code/analyze', analyzeLimiter, validate({ body: AnalyzeBody }), async (req, res) => {
+    router.post('/code/analyze', analyzeLimiter, validate({ body: AnalyzeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof AnalyzeBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await automationFor(req, res, 'view');
         if (a === false) return;
         const { code, allowedTools = [], allowedHosts = [] } = req.body;
         res.json(analyzeCode(code, { allowedTools, allowedHosts }));
     });
 
-    router.post('/code/test', testLimiter, validate({ body: TestBody }), async (req, res) => {
+    router.post('/code/test', testLimiter, validate({ body: TestBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await automationFor(req, res, 'edit');
         if (a === false) return;
         const { code, inputs = {}, allowedTools = [], allowedHosts = [], limits = {} } = req.body;

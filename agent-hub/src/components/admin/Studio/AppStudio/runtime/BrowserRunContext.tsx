@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 /**
@@ -66,21 +66,17 @@ const FOLD_BY_TYPE: Record<string, (cur: BrowserPreview, evt: BrowseEvent) => Br
  * that action's preview and triggers a render.
  */
 export function useBrowserRunStore() {
-    const ref = useRef<Record<string, BrowserPreview>>({});
-    const [, bump] = useState(0);
-    const rerender = useCallback(() => bump((n) => (n + 1) % 1_000_000), []);
+    const [previews, setPreviews] = useState<Record<string, BrowserPreview>>({});
 
     const publish = useCallback((actionId: string, evt: BrowseEvent) => {
         if (!actionId || !evt || typeof evt.type !== 'string') return;
-        const cur = ref.current[actionId] || {};
         const fold = Object.hasOwn(FOLD_BY_TYPE, evt.type) ? FOLD_BY_TYPE[evt.type] : null;
         if (!fold) return;
-        const next = fold(cur, evt);
-        ref.current = { ...ref.current, [actionId]: next };
-        rerender();
-    }, [rerender]);
+        // Folded in order: each queued update starts from the one before it.
+        setPreviews((prev) => ({ ...prev, [actionId]: fold(prev[actionId] || {}, evt) }));
+    }, []);
 
-    return useMemo(() => ({ previews: ref.current, publish }), [publish, ref.current]);
+    return useMemo(() => ({ previews, publish }), [publish, previews]);
 }
 
 export function BrowserRunProvider({ value, children }: { value: BrowserRunStore; children?: ReactNode }) {

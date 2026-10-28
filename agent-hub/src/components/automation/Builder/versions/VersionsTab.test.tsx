@@ -2,13 +2,13 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { BuilderConfirmProvider } from '../BuilderConfirmContext';
 
 const { client } = vi.hoisted(() => ({
     client: { get: vi.fn(), put: vi.fn(), post: vi.fn() },
 }));
-vi.mock('../../../../api/client', () => ({ apiClient: client, default: client }));
+vi.mock('@/api/client', () => ({ apiClient: client, default: client }));
 vi.mock('../DiagramPane', () => ({
     default: ({ definition }: { definition: { steps?: unknown[] } }) => <div data-testid="readonly-canvas">{definition.steps?.length ?? 0} steps</div>,
 }));

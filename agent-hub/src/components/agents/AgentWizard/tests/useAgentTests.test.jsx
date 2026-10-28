@@ -15,12 +15,12 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { authFetch } from '@/utils/helpers';
 import { PROGRESS, REFUSAL } from './testSetFacts';
 import useAgentTests from './useAgentTests';
-import { authFetch } from '../../../../utils/helpers';
 import { READ } from '../canUse/canUseFacts';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));

@@ -5,13 +5,14 @@
  * handler comes from BeeEditor's hooks.
  */
 import { ChevronDown, ChevronRight, Loader2, BarChart3 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import AtomRenderer from './AtomRenderer';
 import AskPortal from './bubbles/AskPortal';
 import FormatBubble from './bubbles/FormatBubble';
 import ImageBubble from './bubbles/ImageBubble';
 import type { BeeEditorProps, EditorShared } from './beeEditorTypes';
+import { makeFacade } from './editorFacade';
 import ChartConfigModal from './ChartConfigModal';
 import ChromeBoundary from './ChromeBoundary';
 import { selectionRect, selectionText } from './editorDom';
@@ -45,8 +46,8 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
     onAIAction, onAIFill, onImportClick, saving, generating, aiFilling, askAiEnabled = true, collab: collabHandle = null,
   } = props;
   const {
-    t, hostRef, viewRef, viewInst, setWrapEl, wrapEl, tick, linkEdit, findOpen, setFindOpen, findFocus, setFindFocus,
-    shortcutsOpen, setShortcutsOpen, uploadError, facadeRef, imageInputRef, atoms, wordCount, ask, setAsk,
+    t, hostRef, viewInst, setWrapEl, wrapEl, tick, linkEdit, findOpen, setFindOpen, findFocus, setFindFocus,
+    shortcutsOpen, setShortcutsOpen, uploadError, imageInputRef, atoms, wordCount, ask, setAsk,
     askQuery, setAskQuery, chartConfig, setChartConfig, collapsed, hiddenHeaders,
   } = s;
   const { chrome, collab, effectiveEditable, anchors } = sync;
@@ -54,13 +55,16 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
   const { toggleCollapseFocused, openChartModal, createChart } = tableView;
 
   const tt = mkTt(t);
-  const editor = facadeRef.current;
-  const selectedAtomNode = viewRef.current?.getSelectedNode?.() || null;
+  // The view and its facade come from state (set together with viewRef when the
+  // view mounts), so render never reads a ref. The facade is stateless: one per view.
+  const view = viewInst;
+  const editor = useMemo(() => (view ? makeFacade(view) : null), [view]);
+  const selectedAtomNode = view?.getSelectedNode?.() || null;
   // Re-evaluated each render; BeeEditor re-renders on selection changes (chrome),
   // so the toolbar's AI items enable/disable as the selection changes.
-  const hasSelection = !!(viewRef.current && selectionText(viewRef.current).trim());
+  const hasSelection = !!(view && selectionText(view).trim());
   // The table the caret sits in (for the on-edit add-row/add-column controls).
-  const tableInfo = editor && effectiveEditable ? (viewRef.current?.tableInfo?.() || null) : null;
+  const tableInfo = editor && effectiveEditable ? (view?.tableInfo?.() || null) : null;
   const tableCollapsed = tableInfo ? collapsed.has(tableInfo.ordinal) : false;
   const headersHidden = tableInfo ? hiddenHeaders.has(tableInfo.ordinal) : false;
 
@@ -137,7 +141,7 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
       {editor && effectiveEditable && (
         <FormatBubble
           onLink={openLinkEditor}
-          view={viewRef.current}
+          view={view}
           editor={editor}
           t={t}
           askAiEnabled={askAiEnabled}
@@ -161,13 +165,13 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
       {/* table add-row / add-column + collapse controls (caret inside a table) */}
       {editor && effectiveEditable && tableInfo && (
         <ChromeBoundary label="table controls">
-          <TableControls view={viewRef.current} info={tableInfo} t={t} collapsed={tableCollapsed} onToggleCollapse={toggleCollapseFocused} headersHidden={headersHidden} />
+          <TableControls view={view} info={tableInfo} t={t} collapsed={tableCollapsed} onToggleCollapse={toggleCollapseFocused} headersHidden={headersHidden} />
         </ChromeBoundary>
       )}
 
       {/* image bubble */}
       {editor && effectiveEditable && selectedAtomNode?.type === 'image' && (
-        <ImageBubble view={viewRef.current} node={selectedAtomNode} />
+        <ImageBubble view={view} node={selectedAtomNode} />
       )}
 
       {/* link bubble (caret inside a link) and the inline link editor */}
@@ -206,7 +210,7 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
       {atoms.map((a) => createPortal(
         <AtomRenderer
           node={a.node}
-          view={viewRef.current}
+          view={view}
           selected={selectedAtomNode === a.node}
           editable={effectiveEditable}
           brokenLabel={t('notebooks.atom_render_failed', 'Could not display this block')}

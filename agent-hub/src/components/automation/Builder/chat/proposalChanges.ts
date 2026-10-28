@@ -1,4 +1,4 @@
-import { deepEqual } from '../../../../utils/deepEqual';
+import { deepEqual } from '@/utils/deepEqual';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 
 export interface ProposalChange {

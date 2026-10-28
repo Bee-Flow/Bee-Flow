@@ -6,8 +6,8 @@
  * React caller it passes the `en` through t() with the paired key; pure
  * callers (tests, tooltips) read the English directly.
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { tokenFor } from '../../../shared/statusTokens';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { tokenFor } from '@/components/shared/statusTokens';
 
 /** The fields of a run row the sentences below read. */
 export interface RunLanguageRow {

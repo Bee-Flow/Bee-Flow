@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsFormJs from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 // A JS component: its props type from their defaults, looser than what it takes.
 const SettingsForm = SettingsFormJs as unknown as React.FC<Record<string, unknown>>;

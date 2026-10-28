@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 import StageMessage from './StageMessage';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
-import type { AppUserLike } from '../../../../projects/workspace/types';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import BuilderShell from '../../../../automation/Builder/BuilderShell';
-import { logger } from '../../../../../utils/logger';
+import type { AppUserLike } from '@/components/projects/workspace/types';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import BuilderShell from '@/components/automation/Builder/BuilderShell';
+import { logger } from '@/utils/logger';
 
 /**
  * Phase 2 — the automation builder, unchanged, mounted as the stage. The page

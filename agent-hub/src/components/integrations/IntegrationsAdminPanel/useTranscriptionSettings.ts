@@ -1,9 +1,9 @@
 // Meeting-transcription settings writers of the IntegrationsAdminPanel —
 // the pyannoteAI speech-model and voiceprint persistence, moved verbatim
 // from IntegrationsAdminPanel.jsx.
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminMessage, VoiceprintPatch } from './IntegrationsAdminPanel.types';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 interface UseTranscriptionSettingsParams {
     pyannoteTranscriptionModel: string;

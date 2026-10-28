@@ -3,7 +3,7 @@
 // all bindings are threaded in as props from the panel.
 import { Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { GlobalDefaultsSectionProps } from './adminPanel.types';
 
 export default function GlobalDefaultsSection({

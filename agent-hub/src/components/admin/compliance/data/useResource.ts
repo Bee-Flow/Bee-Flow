@@ -22,7 +22,7 @@
  */
 import { useCallback, useId } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchJson } from '../../../../api/complianceApi';
+import { fetchJson } from '@/api/complianceApi';
 
 interface UseResourceOptions<T> {
     enabled?: boolean;

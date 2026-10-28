@@ -1,8 +1,8 @@
 import React from 'react';
 import { FileText } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { FileCompare } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { FileCompare } from '@/api/queries/automation/runChecks';
 import { formatBytes, partChanges } from './runCompareText';
 
 function changeText(t: TranslateFn, change: FileCompare['change']): string {

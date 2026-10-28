@@ -4,7 +4,7 @@ import { intervalLabel, planCurrencySymbol, useLicenseText } from './licenseShar
 import type { BillingPlan, OrgSubscription, PlanLimits } from './licenseShared';
 import { PlanCaps } from './PlanOffers';
 import type { OrgSubscriptionState } from './useOrgSubscription';
-import { hasPaidBillingRelationship } from '../../../../../utils/billing';
+import { hasPaidBillingRelationship } from '@/utils/billing';
 
 type PickerState = Pick<OrgSubscriptionState, 'handleSelectChange' | 'previewLoading' | 'changeTarget'>;
 

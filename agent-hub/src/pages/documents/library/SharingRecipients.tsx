@@ -1,6 +1,6 @@
 import React, { useId, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search, UserRound, UsersRound, X } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface Principal { id: string; name: string }
 export interface SharingDirectory { users: Principal[]; groups: Principal[] }

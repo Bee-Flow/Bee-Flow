@@ -2,9 +2,9 @@ import { Check, LayoutGrid } from 'lucide-react';
 import React, { useMemo } from 'react';
 import useAppRoles from './useAppRoles';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import EmptyState from '../../../../shared/EmptyState';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { getVisibleToRoles, setVisibleToRoles } from '../state/definitionOps';
 

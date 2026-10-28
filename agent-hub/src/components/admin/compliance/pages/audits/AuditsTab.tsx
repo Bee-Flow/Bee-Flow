@@ -6,17 +6,17 @@ import {
 } from './auditForms';
 import { notRaisedCount } from './isoProcessHelpers';
 import useHeaderPrimary from './useHeaderPrimary';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
-import EmptyState from '../../../../shared/EmptyState';
-import FindingRow from '../../../../shared/FindingRow';
-import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
+import FindingRow from '@/components/shared/FindingRow';
+import SideDrawer, { DrawerSection, DrawerFooter } from '@/components/shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import StatusPill from '../../shared/StatusPill';
 import useDrawerMode from '../../shared/useDrawerMode';
 import type { OrgUser } from '../accessAuditLabels';
 import type { SetHeaderActions } from './useHeaderPrimary';
-import type { RowLike, TableColumn } from '../../../../shared/DataTable';
+import type { RowLike, TableColumn } from '@/components/shared/DataTable';
 
 /**
  * AuditsTab — internal audits (clause 9.2): planned → in progress → closed,

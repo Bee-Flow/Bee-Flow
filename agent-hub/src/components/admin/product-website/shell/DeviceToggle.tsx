@@ -1,9 +1,9 @@
 import React, { useSyncExternalStore } from 'react';
 import Dropdown from './Dropdown';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import AppIcon from '../../../icons/AppIcon';
-import Tooltip from '../../../shared/Tooltip';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import AppIcon from '@/components/icons/AppIcon';
+import Tooltip from '@/components/shared/Tooltip';
 
 // Preview device presets — a pure max-width on the stage's iframe wrapper.
 // No postMessage / renderer change: the marketing site is responsive, so

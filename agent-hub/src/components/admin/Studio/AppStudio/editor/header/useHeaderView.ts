@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { PANEL_VIEWS } from './headerModel';
 import type { HeaderView, PanelView } from './headerModel';
@@ -54,13 +54,11 @@ export function useHeaderView(
     // A mode change from OUTSIDE the segments (⌘K, a hotkey, an AI turn) means
     // "show me the canvas" — an open view would otherwise hide what the
     // person just asked for.
-    const prevModeRef = useRef(mode);
-    useEffect(() => {
-        if (prevModeRef.current !== mode) {
-            prevModeRef.current = mode;
-            setPanelView(null);
-        }
-    }, [mode]);
+    const [prevMode, setPrevMode] = useState(mode);
+    if (prevMode !== mode) {
+        setPrevMode(mode);
+        setPanelView(null);
+    }
 
     const applyView = useCallback((next: HeaderView, opts: ViewOpts = {}) => {
         if (next === 'edit' || next === 'preview') {
@@ -76,9 +74,13 @@ export function useHeaderView(
     // Roles and row rules live in each panel's local draft until its own Save
     // button runs, so leaving the Roles view mid-edit is a silent discard.
     const rolesDirtyRef = useRef(rolesDirty);
-    rolesDirtyRef.current = rolesDirty;
+    useLayoutEffect(() => {
+        rolesDirtyRef.current = rolesDirty;
+    });
     const viewRef = useRef(view);
-    viewRef.current = view;
+    useLayoutEffect(() => {
+        viewRef.current = view;
+    });
     const selectView = useCallback((next: HeaderView, opts: ViewOpts = {}) => {
         if (next === viewRef.current && !opts.tab) return;
         const dirty = rolesDirtyRef.current;

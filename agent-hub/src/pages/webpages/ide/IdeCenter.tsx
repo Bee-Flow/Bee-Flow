@@ -1,5 +1,5 @@
 import { useMemo, useRef, type RefObject } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import EditorTabs from '../EditorTabs';
 import WebpageCodeStrip, { fileDecorations, type MarksState } from '../WebpageCodeStrip';
 import WebpageEditor from '../WebpageEditor';

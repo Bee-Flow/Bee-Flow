@@ -143,7 +143,7 @@ async function executeAgentSearchTool(toolName, args) {
     // Resolve detail_level (only meaningful for web mode)
     const detailLevel = ['basic', 'detailed', 'highly_detailed'].includes(detail_level) ? detail_level : (modeDefaults.detail_level || 'detailed');
 
-    log.info(`[AgentSearch] Searching: "${query}" (mode=${searchMode}, max=${maxResults}, fetch=${fetchTopN}, detail=${detailLevel})`);
+    log.info(`[AgentSearch] Searching: query ${String(query || '').length} chars (mode=${searchMode}, max=${maxResults}, fetch=${fetchTopN}, detail=${detailLevel})`);
     log.info(`[AgentSearch] Config — includeCitations=${includeCitations}, maxTokens=${maxTokens}`);
 
     const apiUrl = searchUrl.replace(/\/$/, '');
@@ -170,7 +170,6 @@ async function executeAgentSearchTool(toolName, args) {
 
         const fetchUrl = `${apiUrl}/tools/search`;
         log.info(`[AgentSearch] POST ${fetchUrl}`);
-        log.info(`[AgentSearch] Payload:`, JSON.stringify(payload));
 
         const startTime = Date.now();
         const response = await fetch(fetchUrl, {
@@ -185,7 +184,7 @@ async function executeAgentSearchTool(toolName, args) {
         if (!response.ok) {
             const text = await response.text();
             log.error(`[AgentSearch] ERROR: HTTP ${response.status} from ${fetchUrl}`);
-            log.error(`[AgentSearch] Response body: ${text.substring(0, 500)}`);
+            log.error(`[AgentSearch] Response body: ${text.length} chars`);
             throw new Error(`Agent Search API error (${response.status}): ${text}`);
         }
 

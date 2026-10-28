@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, ChevronDown, FlaskConical, Search } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunFacetCounts, RunListFilters, RunPeriod, RunStatusFilter } from '../../../../api/queries/automation/runs';
-import { useRunFacets } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunFacetCounts, RunListFilters, RunPeriod, RunStatusFilter } from '@/api/queries/automation/runs';
+import { useRunFacets } from '@/api/queries/automation/runs';
 
 /** A pasted run link (`?run=<id>`) or a bare run uuid; null for search text. */
 function runLinkId(text: string): string | null {

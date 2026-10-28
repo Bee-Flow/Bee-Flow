@@ -137,7 +137,7 @@ function makeNextcloudRouter({ publicTable }) {
     const router = express.Router();
 
     // What could be linked, and which mirrors in the scope already copy it.
-    router.get('/linkable', validate({ query: ScopeQuery }), async (req, res) => {
+    router.get('/linkable', validate({ query: ScopeQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ScopeQuery>>} */ req, res) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             const scope = await resolveScope(req, res, principal, req.query.scope);
@@ -172,7 +172,7 @@ function makeNextcloudRouter({ publicTable }) {
     // Link one or several tables/views. The first refresh runs in the
     // background; the answer says `sync.status: 'running'` and the client
     // polls GET /:id.
-    router.post('/link', validate({ body: LinkBody }), async (req, res) => {
+    router.post('/link', validate({ body: LinkBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof LinkBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             const body = req.body;

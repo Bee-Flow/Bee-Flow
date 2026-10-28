@@ -13,10 +13,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  */
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: (...a) => fetchMock(...a) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: (...a) => fetchMock(...a) }));
 // The form trigger comes from the builder chunk; it need not really load here
 // to prove that createFormAutomation is called.
-vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
+vi.mock('@/components/automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ pages: [] }),
 }));
 

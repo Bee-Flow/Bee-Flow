@@ -1,6 +1,6 @@
 import { IconField } from './basicFields';
 import { ImageField } from './ImageField';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Mirrors the renderer's IconGlyph rule (marketing/components/IconGlyph.tsx):
 // an uploaded asset of this site, never another origin.

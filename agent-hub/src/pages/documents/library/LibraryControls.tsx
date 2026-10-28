@@ -5,8 +5,8 @@
 
 import { Archive, Search } from 'lucide-react';
 import React, { useState } from 'react';
-import FilterPillsJs from '../../../components/shared/FilterPills';
-import useTranslation from '../../../hooks/useTranslation';
+import FilterPillsJs from '@/components/shared/FilterPills';
+import useTranslation from '@/hooks/useTranslation';
 import type { Folder } from '../documentQueries';
 import { formatApplies, type LibraryFormat, type LibraryKind, type useLibraryFilters } from './useLibrary';
 

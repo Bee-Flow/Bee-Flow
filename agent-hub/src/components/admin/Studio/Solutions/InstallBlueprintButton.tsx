@@ -4,8 +4,8 @@ import type { ChangeEvent } from 'react';
 import InstallBlueprintModal from './InstallBlueprintModal';
 import useRemote from './useRemote';
 import type { RemoteStatus } from './useRemote';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 
 /**
  * Install a Blueprint as a new Solution — the entry point, not the install.

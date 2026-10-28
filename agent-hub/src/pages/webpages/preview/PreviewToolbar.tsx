@@ -1,5 +1,5 @@
 import { ExternalLink, Monitor, RefreshCw, Shield, Smartphone, type LucideIcon } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export type PreviewDevice = 'desktop' | 'mobile';
 

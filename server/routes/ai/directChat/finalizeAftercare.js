@@ -17,6 +17,11 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 /**
  * @typedef {Object} ResolveTitleModelArgs
  * @property {string} [modelId]
+ * @property {unknown} titleAgent
+ * @property {unknown} tiers
+ * @property {unknown} adapter
+ * @property {unknown} apiKey
+ * @property {unknown} apiUrl
  */
 /**
  * The title model is the dedicated admin model if set, else the system title

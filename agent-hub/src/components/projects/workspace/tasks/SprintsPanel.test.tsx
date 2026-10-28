@@ -2,15 +2,15 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, OWNER_ID } from '../content/contentTestKit';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import type { Sprint } from '../../../../api/queries/projectSprints';
-import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import type { Sprint } from '@/api/queries/projectSprints';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
@@ -106,7 +106,7 @@ describe('SprintsPanel actions', () => {
         await user.click(await screen.findByTestId('sprint-delete'));
         const dialog = await screen.findByRole('dialog');
         await user.click(within(dialog).getByRole('button', { name: 'Delete sprint' }));
-        await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/sprints/s1', expect.anything()));
+        await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/sprints/s1'));
     });
 
 });
@@ -120,7 +120,7 @@ describe('SprintsPanel editing', () => {
         const input = screen.getByLabelText('Sprint name');
         await user.clear(input);
         await user.type(input, 'Sprint renamed{Enter}');
-        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/sprints/s1', { name: 'Sprint renamed' }, expect.anything()));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/sprints/s1', { name: 'Sprint renamed' }));
     });
 
     it('carries the legacy sprint label of its items along with a rename', async () => {
@@ -135,7 +135,7 @@ describe('SprintsPanel editing', () => {
         await user.clear(input);
         await user.type(input, 'Sprint renamed{Enter}');
         await waitFor(() => expect(client.patch).toHaveBeenCalledWith(expect.stringContaining('/tasks/t1'),
-            expect.objectContaining({ labels: expect.arrayContaining(['bf:sprint:Sprint renamed']) }), expect.anything()));
+            expect.objectContaining({ labels: expect.arrayContaining(['bf:sprint:Sprint renamed']) })));
     });
 
     it('shows the done count of an open sprint as text in its row', async () => {
@@ -172,7 +172,7 @@ describe('SprintsPanel editing', () => {
         const { fireEvent } = await import('@testing-library/react');
         fireEvent.change(within(form).getByLabelText('Start date'), { target: { value: '2026-10-05' } });
         await user.click(within(form).getByRole('button', { name: 'Create sprint' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Sprint 9', startDate: '2026-10-05', endDate: '2026-10-18' }), expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Sprint 9', startDate: '2026-10-05', endDate: '2026-10-18' })));
     });
 
     it('adds a backlog item to the sprint and mirrors the membership into its labels', async () => {
@@ -181,9 +181,9 @@ describe('SprintsPanel editing', () => {
         const detail = await screen.findByTestId('sprint-detail');
         expect(within(detail).getByText('Task t1')).toBeInTheDocument();
         await user.click(within(detail).getByRole('button', { name: 'Add' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s1/items', { taskIds: ['t2'] }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s1/items', { taskIds: ['t2'] }));
         expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/t2',
-            { labels: ['bf:sprint:Sprint s1', 'bf:sprint-start:2026-10-05', 'bf:sprint-end:2026-10-18'] }, expect.anything());
+            { labels: ['bf:sprint:Sprint s1', 'bf:sprint-start:2026-10-05', 'bf:sprint-end:2026-10-18'] });
     });
 
     it('starts a sprint only after the person confirms', async () => {
@@ -191,9 +191,9 @@ describe('SprintsPanel editing', () => {
         renderPanel();
         await user.click(await screen.findByTestId('sprint-start'));
         const dialog = await screen.findByRole('dialog');
-        expect(client.post).not.toHaveBeenCalledWith('/api/projects/p1/sprints/s1/start', {}, expect.anything());
+        expect(client.post).not.toHaveBeenCalledWith('/api/projects/p1/sprints/s1/start', {});
         await user.click(within(dialog).getByRole('button', { name: 'Start sprint' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s1/start', {}, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s1/start', {}));
     });
 
     it('offers to import locally saved sprints only when the server has none', async () => {
@@ -208,7 +208,7 @@ describe('SprintsPanel editing', () => {
         renderPanel();
         const user = userEvent.setup();
         await user.click(await screen.findByRole('button', { name: 'Import my locally saved sprints' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Local sprint', startDate: '2026-09-01', endDate: '2026-09-14' }), expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Local sprint', startDate: '2026-09-01', endDate: '2026-09-14' })));
         await waitFor(() => expect(scopedStorage.getItem('project-sprints:p1')).toBeNull());
     });
 });

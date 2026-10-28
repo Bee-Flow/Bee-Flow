@@ -7,7 +7,7 @@
  *   isEmptyDocument     nothing but empty paragraphs
  */
 import { useEffect, useRef } from 'react';
-import { useMarkItemSeen } from '../../../../api/queries/projectChanges';
+import { useMarkItemSeen } from '@/api/queries/projectChanges';
 
 const SEEN_AFTER_MS = 3000;
 

@@ -1,9 +1,9 @@
 // The CMS panel's screen when the organisation has no sites yet: the shared
 // placard, with the one thing to do here — naming the first site — inline.
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
+import EmptyState from '@/components/shared/EmptyState';
 
 export default function CreateFirstSite({ onCreate }: { onCreate: (name: string) => Promise<unknown> | unknown }) {
     const { t } = useTranslation();

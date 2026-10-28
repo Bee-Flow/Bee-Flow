@@ -1,12 +1,12 @@
 import { Bold, Italic, Link2, List, ListOrdered, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * App Studio runtime — 'input_richtext'. Spec: server/appStudio/componentSpecs.js.
@@ -138,6 +138,22 @@ interface InputRichtextProps {
     valueFrom?: BindingInput;
 }
 
+/** One toolbar button. Mousedown, not click: by click time the selection is
+ *  already gone, so Bold would have nothing to embolden. */
+function ToolbarButton({ icon: Icon, onPress, title }: { icon: LucideIcon; onPress: () => void; title: string }) {
+    return (
+        <button
+            type="button"
+            title={title}
+            aria-label={title}
+            onMouseDown={(e) => { e.preventDefault(); onPress(); }}
+            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)]"
+        >
+            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+    );
+}
+
 export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>) {
     const { t } = useTranslation();
     const { name, label = t('studio_apps_runtime.rich_text.content', 'Content'), required = false, defaultValue = null, placeholder = null } = node.props || {};
@@ -183,21 +199,6 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
         commit();
     };
 
-    const btn = (key: string, Icon: LucideIcon, onClick: () => void, title: string) => (
-        <button
-            key={key}
-            type="button"
-            title={title}
-            aria-label={title}
-            // Mousedown, not click: by click time the selection is already gone,
-            // so Bold would have nothing to embolden.
-            onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)]"
-        >
-            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-        </button>
-    );
-
     return (
         <Field id={id} label={label} required={required} error={error}>
             <div
@@ -209,11 +210,11 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
                     role="toolbar"
                     aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
                 >
-                    {btn('bold', Bold, () => exec('bold'), t('studio_apps_runtime.rich_text.bold', 'Bold'))}
-                    {btn('italic', Italic, () => exec('italic'), t('studio_apps_runtime.rich_text.italic', 'Italic'))}
-                    {btn('ul', List, () => exec('insertUnorderedList'), t('studio_apps_runtime.rich_text.bullets', 'Bulleted list'))}
-                    {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
-                    {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
+                    <ToolbarButton icon={Bold} onPress={() => exec('bold')} title={t('studio_apps_runtime.rich_text.bold', 'Bold')} />
+                    <ToolbarButton icon={Italic} onPress={() => exec('italic')} title={t('studio_apps_runtime.rich_text.italic', 'Italic')} />
+                    <ToolbarButton icon={List} onPress={() => exec('insertUnorderedList')} title={t('studio_apps_runtime.rich_text.bullets', 'Bulleted list')} />
+                    <ToolbarButton icon={ListOrdered} onPress={() => exec('insertOrderedList')} title={t('studio_apps_runtime.rich_text.numbered', 'Numbered list')} />
+                    <ToolbarButton icon={Link2} onPress={() => setLinking((v) => !v)} title={t('studio_apps_runtime.rich_text.link', 'Link')} />
                 </div>
 
                 {/* An inline field rather than window.prompt: a prompt is blocked

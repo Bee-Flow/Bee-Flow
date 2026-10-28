@@ -16,7 +16,7 @@
  * Shares only
  * the low-level provider helpers in services/email/.
  */
-
+// @typecheck
 const supportInboxStore = require('../stores/supportInboxStore');
 const supportStore = require('../stores/supportStore');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
@@ -25,7 +25,6 @@ const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
-
 const TICK_INTERVAL_MS = parseInt(process.env.SUPPORT_INBOX_TICK_MS || '90000', 10);
 const MAX_CONCURRENT = parseInt(process.env.SUPPORT_INBOX_MAX_CONCURRENT || '3', 10);
 const MAX_PER_TICK = parseInt(process.env.SUPPORT_INBOX_MAX_PER_TICK || '25', 10);
@@ -57,6 +56,7 @@ function _emit(event, inboxId, data = {}) {
  * removing Support in the admin Modules panel stops mailbox polling on a pod
  * that is already running (BFSF-438); boot only reads the deploy-time flag.
  * `gate` is a test seam; the exported tickOnce stays ungated for manual syncs.
+ * @param {{ gate?: typeof import('../modules').moduleGatedTick }} [opts]
  */
 function startSupportInboxSync({ gate } = {}) {
     if (_timer) return;

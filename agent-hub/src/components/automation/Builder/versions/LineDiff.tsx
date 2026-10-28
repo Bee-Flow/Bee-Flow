@@ -3,7 +3,7 @@
 // stretches are folded ("Show 12 unchanged lines"). Long lines wrap; the box
 // scrolls on its own if it must, never the page.
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { lineDiff, lineDiffStats, type LineRow } from './lineDiff';
 
 const ROW = 'grid grid-cols-[2.75rem_2.75rem_1.25rem_minmax(0,1fr)] items-start';

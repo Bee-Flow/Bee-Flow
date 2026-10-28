@@ -8,11 +8,11 @@
 // whose contents could become an identifier.
 import { Table2 } from 'lucide-react';
 import { useMemo } from 'react';
+import { columnTypeKind, opTakesList, opTakesNoValue } from '@/components/admin/Studio/Datatables/datatableDisplay';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ForEachSection, retryIsSet } from './collectionEditors';
 import { RetrySection } from './collectionEditors/RetrySection';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
 import { isScalarKind } from '../../mapping/fieldKinds';
 import useForEachRequest from '../../mapping/useForEachRequest';

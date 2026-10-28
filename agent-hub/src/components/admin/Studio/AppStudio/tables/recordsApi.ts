@@ -1,6 +1,6 @@
-import { createJsonResource } from '../../../../../api/client';
-import type { JsonResourceError, JsonResourceInit } from '../../../../../api/client';
-import { API_BASE } from '../../../../../utils/helpers';
+import { createJsonResource } from '@/api/client';
+import type { JsonResourceError, JsonResourceInit } from '@/api/client';
+import { API_BASE } from '@/utils/helpers';
 
 /**
  * App Studio — record CRUD for the owner's row editor.

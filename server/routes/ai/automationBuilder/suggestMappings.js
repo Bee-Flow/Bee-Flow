@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — POST /suggest-mappings: the AI fallback of Auto-map.
  *
@@ -56,7 +57,6 @@
  */
 
 'use strict';
-
 const express = require('express');
 const { z, typeError } = require('../../../utils/zod');
 const { worded } = require('../../../core/http/schemaParts');
@@ -608,7 +608,7 @@ function makeSuggestMappingsRouter(deps = {}) {
         .resolveModelForTierName('fast', { ...opts, fallback: 'gemini-2.0-flash-lite' }));
     const chatForcedTool = deps.chatForcedTool || ((/** @type {Parameters<typeof import('../../../core/llm/llmClient').chatForcedTool>} */ ...args) => require('../../../core/llm/llmClient').chatForcedTool(...args));
 
-    router.post('/suggest-mappings', requireAuth, rateLimit, requireBeta, validate({ body: SuggestMappingsBody }), async (req, res) => {
+    router.post('/suggest-mappings', requireAuth, rateLimit, requireBeta, validate({ body: SuggestMappingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SuggestMappingsBody>, import('qs').ParsedQs>} */ req, res) => {
         const input = normaliseSuggestRequest(req.body);
         const userId = req.session.user.id;
         const userOrgId = req.session?.user?.organizationId || null;

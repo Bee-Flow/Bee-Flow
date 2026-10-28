@@ -3,7 +3,7 @@ import type { PanelView } from './panelView';
 import { StageEmptyOverlay } from './PanelSlots';
 import type useCmsPagesTemplates from './useCmsPagesTemplates';
 import type useCmsPanelState from './useCmsPanelState';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { SaveTemplateDialog } from '../PageList';
 import { isVirtualPageId } from '../sentinels';
 import SitemapView from '../SitemapView';
@@ -17,7 +17,7 @@ interface PanelStageProps {
 }
 
 /** The centre stage: the preview iframe (or the sitemap) with its status line and empty states. */
-export default function PanelStage({ ps, view, onCreateFirstPage, onSitemapMutated }: PanelStageProps) {
+export default function PanelStage({ ps: { iframeRef, ...ps }, view, onCreateFirstPage, onSitemapMutated }: PanelStageProps) {
     const { t } = useTranslation();
     const { rightView, device, activeLocale, activePageId, setActivePageId, setRightView } = ps;
     // The iframe node is built HERE so the container keeps owning iframeRef
@@ -25,7 +25,7 @@ export default function PanelStage({ ps, view, onCreateFirstPage, onSitemapMutat
     // re-handshake); PreviewStage only decides visibility.
     const iframe = (
         <iframe
-            ref={ps.iframeRef}
+            ref={iframeRef}
             title={t('cms_site.site.panel.preview_title', 'Product website preview')}
             src={view.iframeSrc}
             className="flex-1 w-full bg-white"

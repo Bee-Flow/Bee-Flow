@@ -7,8 +7,8 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
-import { withQueryClient } from '../../../../../../test/queryWrapper';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
+import { withQueryClient } from '@/test/queryWrapper';
 import CodeTestsPanel from './CodeTestsPanel';
 
 interface Call { url: string; method: string; body: any }

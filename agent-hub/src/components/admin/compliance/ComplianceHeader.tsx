@@ -36,7 +36,7 @@ import { REGISTER_SPECS, type HeaderCtx, type HeaderSpec, type Translate } from 
 import { formatClock, railScore } from './railMeta';
 import { tabLabelKey, frameworkOf, type Section } from './sections';
 import StatusPill from './shared/StatusPill';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toneOfScore, headlineKeyOfScore, HEADLINE_FALLBACK } from '../../shared/statusTone';
 import StudioSectionHeader from '../../shared/StudioSectionHeader';
 

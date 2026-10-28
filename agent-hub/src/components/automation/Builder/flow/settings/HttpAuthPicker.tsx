@@ -1,11 +1,11 @@
 import { Loader2, Plus } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { inputClass, FormRow } from './formPrimitives';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import type { HttpConnection } from '../../../../../hooks/useAutomationApi.types';
-import { HTTP_AUTH_TYPES, HTTP_AUTH_TYPE_BY_ID, httpKindName, splitHttpAuthValues, missingHttpAuthFields } from '../../../../../utils/httpCredentialTypes';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { messageOf } from '../../../../../utils/caughtError';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import type { HttpConnection } from '@/hooks/useAutomationApi.types';
+import { HTTP_AUTH_TYPES, HTTP_AUTH_TYPE_BY_ID, httpKindName, splitHttpAuthValues, missingHttpAuthFields } from '@/utils/httpCredentialTypes';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 
 interface HttpAuthPickerProps {
     value?: string;

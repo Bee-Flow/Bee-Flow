@@ -207,7 +207,7 @@ router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (/** @ty
     if (user.status !== 'waitlist') return res.status(400).json({ error: 'User is not on the waitlist' });
 
     await userStore.updateUser(user.id, { status: 'active' });
-    log.info(`[Auth] Waitlist approved: ${user.id} (${user.email || 'no email'})`);
+    log.info(`[Auth] Waitlist approved: ${user.id}`);
 
     // Send approval email if user has an email
     if (user.email) {

@@ -7,9 +7,9 @@ import { Card, StepKindIcon, stepKindLabel, PrimaryButton, SecondaryButton, shor
 import CourseIcon from './courseIcons';
 import { lessonStepKinds, lessonPlays, nextLessonIn, lessonsMinutes } from './curriculum';
 import LearningHeader, { HeaderTile } from './LearningHeader';
-import { filterAvailableSteps, hasVideoSteps, useLearnManifest } from '../../../components/onboarding/learnMedia';
-import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
-import type { Course, LessonDoc, LessonProgressEntry, ProgressMap } from '../../../api/lessons.types';
+import { filterAvailableSteps, hasVideoSteps, useLearnManifest } from '@/components/onboarding/learnMedia';
+import { STEP_TYPES } from '@/components/onboarding/stepTypes';
+import type { Course, LessonDoc, LessonProgressEntry, ProgressMap } from '@/api/lessons.types';
 
 /**
  * CourseView — artboard 3b.

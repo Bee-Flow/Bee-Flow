@@ -1,9 +1,9 @@
 import { Check, Info } from 'lucide-react';
 import { useId, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { useOrgDefaultLanguage } from '../../../../api/queries/orgAdminReads';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useOrgDefaultLanguage } from '@/api/queries/orgAdminReads';
+import { mutate, ApiError } from '@/api/mutate';
 
 // ── Org Default Language ───────────────────────────────────────────────────
 const OrgDefaultLanguage = () => {

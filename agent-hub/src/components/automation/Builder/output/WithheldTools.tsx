@@ -1,5 +1,5 @@
 import { ShieldOff } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { withheldReasonText } from '../flow/settings/agentStep/agentStepModel';
 
 /** One tool the run did not offer this AI step (run-step row `toolsWithheld`). */

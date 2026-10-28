@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ComponentType, ReactNode } from 'react';
 import SettingsFormJs from '../SettingsForm';
 import { VariablePickerProvider as VariablePickerProviderJs } from '../../mapping/VariablePickerContext';
-import scopedStorage from '../../../../../utils/scopedStorage';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { runStepProblem } from './runProblem';
 import { renderWithClient as render } from '@/test/render';
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import composeWebpageDocument, { type PreviewExtraFile } from '../../../utils/composeWebpageDocument';
-import type { ExtraContents, ExtraFileMeta, PrimaryContent } from '../../../api/webpageEditorTypes';
-import { errorMessage, describeError } from '../../../utils/caughtError';
+import composeWebpageDocument, { type PreviewExtraFile } from '@/utils/composeWebpageDocument';
+import type { ExtraContents, ExtraFileMeta, PrimaryContent } from '@/api/webpageEditorTypes';
+import { errorMessage, describeError } from '@/utils/caughtError';
 
 /** Friendly placeholder for a React project stranded in vanilla (plain-HTML) mode. */
 function strandedReactDoc(): string {
@@ -58,7 +58,7 @@ function useReactBuild(enabled: boolean, inputs: PreviewDocumentInputs, extras: 
         const delay = isStreaming ? 600 : 200;
         const timer = setTimeout(async () => {
             try {
-                const mod = await import('../../../utils/buildWebpagePreview');
+                const mod = await import('@/utils/buildWebpagePreview');
                 const doc = await mod.composeReactPreview(
                     { html, css, js },
                     { selectionBridge: bridgeOn, extraFiles: extras, dbToken, dbApiBase, dbWebpageId: webpageId, runtime, isStreaming },

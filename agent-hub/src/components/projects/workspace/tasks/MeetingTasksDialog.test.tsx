@@ -2,13 +2,13 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID } from '../content/contentTestKit';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
@@ -80,7 +80,7 @@ describe('MeetingTasksDialog', () => {
         await user.type(title, 'Send the offer to Acme');
         await user.selectOptions(within(first).getByLabelText('Priority'), 'high');
         await user.click(screen.getByRole('button', { name: 'Make 1 tasks' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.anything(), expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.anything()));
         const [, body] = client.post.mock.calls.find(c => c[0] === '/api/projects/p1/tasks/batch')!;
         expect(body.items).toEqual([{
             title: 'Send the offer to Acme',
@@ -144,7 +144,7 @@ describe('MeetingTasksDialog: the AI expands the items', () => {
         const second = screen.getByTestId('suggestion-ai-2');
         await waitFor(() => expect(within(second).getByLabelText('Assigned to')).toHaveValue(OWNER_ID));
         expect(screen.getByTestId('ai-assignee-ai-2')).toBeInTheDocument();
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/meetings/mt-1/task-suggestions/improve', {}, expect.anything());
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/meetings/mt-1/task-suggestions/improve', {});
     });
 
     it('asks once when opened, and again only when the person asks', async () => {
@@ -167,7 +167,7 @@ describe('MeetingTasksDialog: the AI expands the items', () => {
         renderDialog();
         expect(await screen.findByTestId('ai-improve-failed')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Make 2 tasks' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.anything(), expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.anything()));
     });
 
     it('leaves out the AI part of a row that was unticked', async () => {

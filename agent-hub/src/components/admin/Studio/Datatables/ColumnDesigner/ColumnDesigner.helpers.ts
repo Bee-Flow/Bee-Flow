@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceMirror } from '../useSourceMirror';
 import type { Field, UsageReader } from '../ColumnDesigner.types';
 

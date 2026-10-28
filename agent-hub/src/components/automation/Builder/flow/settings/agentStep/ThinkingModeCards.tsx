@@ -1,7 +1,7 @@
 // "Who does the thinking": two radio cards, a loose instruction or an agent.
 import { Bot, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export type ThinkingMode = 'instruction' | 'agent';
 

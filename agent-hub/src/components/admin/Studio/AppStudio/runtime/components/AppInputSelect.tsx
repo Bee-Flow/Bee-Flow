@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { OptionPair } from '../../tables/rowValues';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';

@@ -106,7 +106,7 @@ async function loadStats(previous) {
     return { data, releaseUnknown };
 }
 
-router.get('/github-stats', validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/github-stats', validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     if (cache.data && Date.now() - cache.at < TTL_MS) {
         res.set('Cache-Control', cache.releaseUnknown ? 'public, max-age=600' : 'public, max-age=3600');
         return res.json(cache.data);

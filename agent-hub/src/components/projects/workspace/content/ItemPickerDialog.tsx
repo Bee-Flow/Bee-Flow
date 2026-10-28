@@ -6,9 +6,9 @@
 
 import { AlertTriangle, Check, Loader2, Plus, Search } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import Modal from '../../../shared/Modal';
+import Modal from '@/components/shared/Modal';
 import { GhostButton, Notice } from '../workspaceUi';
 
 export interface PickerItem {

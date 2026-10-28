@@ -14,18 +14,18 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const run = vi.fn();
 const listAutomations = vi.fn();
-vi.mock('../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: (...a: Parameters<typeof listAutomations>) => listAutomations(...a), run: (...a: Parameters<typeof run>) => run(...a) }),
 }));
 
 const tableList = vi.fn();
 const getSchema = vi.fn();
 const addRow = vi.fn();
-vi.mock('../../../components/admin/Studio/Datatables/datatablesApi', () => ({
+vi.mock('@/components/admin/Studio/Datatables/datatablesApi', () => ({
     datatablesApi: {
         list: (...a: Parameters<typeof tableList>) => tableList(...a),
         getSchema: (...a: Parameters<typeof getSchema>) => getSchema(...a),
@@ -35,7 +35,7 @@ vi.mock('../../../components/admin/Studio/Datatables/datatablesApi', () => ({
 
 const kbList = vi.fn();
 const createSource = vi.fn();
-vi.mock('../../../components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
+vi.mock('@/components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
     const api = { list: (...a: Parameters<typeof kbList>) => kbList(...a), createSource: (...a: Parameters<typeof createSource>) => createSource(...a) };
     return { default: api, knowledgeApi: api };
 });

@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrgHealthDrawer from './OrgHealthDrawer';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 // The timeline fetches on mount and has its own colocated test.
 vi.mock('./OrgEventTimeline', () => ({
     default: ({ orgId }: { orgId?: string }) => <div data-testid="event-timeline" data-org={orgId} />,

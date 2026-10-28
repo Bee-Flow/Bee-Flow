@@ -1,9 +1,9 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
 import { Send, Loader, X } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import type { DraftStatusMap } from '../../../hooks/useDraftAction';
-import useTranslation from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import type { DraftStatusMap } from '@/hooks/useDraftAction';
+import useTranslation from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 interface LinkedInDraft {
     text?: string;

@@ -4,7 +4,7 @@ import { InlineHint, BackgroundCard } from '../primitives';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set, SectionHeaderFields, CtaButtonField } from './shared';
 import type { SectionHeaderData, CtaButtonValue } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { TABS_MIN, TABS_MAX } from './blockData.generated.mjs';
 
 // ── Tabs ──────────────────────────────────────────────────────────────

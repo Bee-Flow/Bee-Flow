@@ -10,14 +10,14 @@
  * them, so the effects fire in the same order.
  */
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { saveAgent, adoptedPromptAfterSave } from '../../../../api/agentSaveApi';
+import { API_BASE } from '@/utils/helpers';
+import { saveAgent, adoptedPromptAfterSave } from '@/api/agentSaveApi';
 import useAgentAutosave from '../state/useAgentAutosave';
 import { conflictHandlers, usePublishVersion, useSaveDraft } from './agentSaveFlows';
-import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from '../../../../api/agentSaveTypes';
-import { logger } from '../../../../utils/logger';
+import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from '@/api/agentSaveTypes';
+import { logger } from '@/utils/logger';
 
-export type { AgentSaveDeps, EditorSnapshot } from '../../../../api/agentSaveTypes';
+export type { AgentSaveDeps, EditorSnapshot } from '@/api/agentSaveTypes';
 
 /** The autosave hook's callbacks: what happens after a save lands, conflicts or is refused. */
 function autosaveCallbacks(d: AgentSaveDeps, { sentPersonaRef, sentSystemPromptRef }: SentRefs, setConflict: Setter<Conflict | null>) {
@@ -161,14 +161,15 @@ function useEditorAutosave(d: AgentSaveDeps, getSnapshot: () => Loose, sent: Sen
 
     // Public save helpers used by the ~20 edit handlers. queueSave also
     // marks the local dirty flag for the parent's unsaved-changes guard.
+    const { roRef, dirtyRef, setDirty } = d;
     const queueSave = useCallback((immediate = false) => {
         // Read-only: belt-and-braces so any edit handler that slipped through
         // the disabled UI can never mark dirty or fire a save.
-        if (d.roRef.current) return;
-        d.dirtyRef.current = true;
-        d.setDirty(true);
+        if (roRef.current) return;
+        dirtyRef.current = true;
+        setDirty(true);
         hookQueueSave(immediate);
-    }, [hookQueueSave]);
+    }, [hookQueueSave, roRef, dirtyRef, setDirty]);
     const flush = useCallback(() => hookFlush(), [hookFlush]);
     return { queueSave, flush, hookMarkSaved };
 }

@@ -1,6 +1,6 @@
 import { act } from '@testing-library/react';
 import { vi } from 'vitest';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 
 // Shared fixtures of the useVoiceSession tests. jsdom has neither
 // MediaRecorder, getUserMedia nor WebAudio, and the hook drives all three: the

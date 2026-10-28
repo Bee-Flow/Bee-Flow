@@ -43,7 +43,7 @@ vi.mock('./useExecutions', () => ({
 vi.mock('./useRunStream', () => ({
     default: (opts) => { streamCalls.current.push(opts); return { state: opts?.enabled ? 'open' : 'paused' }; },
 }));
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiMock }));
 // Records its props: the automation picker's OPTIONS are the surface one of
 // the tests below is about, and they are not otherwise visible from the DOM.
 const filterBarProps = vi.hoisted(() => ({ current: [] }));

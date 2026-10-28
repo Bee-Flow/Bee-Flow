@@ -1,8 +1,8 @@
 // Assertions and their results in plain language. The server sends codes and
 // parameters, never sentences; the words live here, in the viewer's language.
 
-import type { Assertion, AssertionOp, AssertionResult, TestStatus } from '../../../../../../api/queries/automation/testCases';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { Assertion, AssertionOp, AssertionResult, TestStatus } from '@/api/queries/automation/testCases';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 

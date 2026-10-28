@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { EmptyState, MetricRow, Sparkline, StackedAirtime, TabHeading } from './primitives';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DeadAirGap, InsightsModel, SeekFn } from './insights.types';
 
 interface FlowTabProps { model: InsightsModel; colorFor: (speakerId: string) => string; onSeek?: SeekFn; t: TranslateFn }

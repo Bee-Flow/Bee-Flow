@@ -3,7 +3,7 @@
  * ("Edit data", single + list modes with whole-table operations) and
  * parse_json (deterministic paths mode + opt-in AI extraction).
  */
-
+// @typecheck
 const { resolveValue, resolveInputs } = require('../automationModel/bind');
 const { evaluate, parseExpr } = require('./expr');
 const safety = require('./safety');

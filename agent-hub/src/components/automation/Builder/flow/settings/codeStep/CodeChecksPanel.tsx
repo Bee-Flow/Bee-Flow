@@ -6,8 +6,8 @@
 // still saves); a warning is shown, never enforced; info is a fact.
 import { AlertTriangle, Ban, Info, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
-import type { CodeAnalysis, CodeFinding } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import type { CodeAnalysis, CodeFinding } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
 import CapabilityLine from './CapabilityLine';
 
 const HOST_RE = /^(\*\.)?(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;

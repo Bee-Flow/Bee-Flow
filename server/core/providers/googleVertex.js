@@ -54,7 +54,7 @@ class GoogleVertexProvider extends GoogleProvider {
                     : options.serviceAccountKey;
 
                 clientConfig.googleAuthOptions = { credentials };
-                log.info(`[GoogleVertex] Using service account: ${credentials.client_email || 'unknown'}`);
+                log.info(`[GoogleVertex] Using service account ${log.textForLog(credentials.client_email)}`);
             } catch (e) {
                 log.error('[GoogleVertex] Failed to parse service account key:', e.message);
                 throw new Error('Invalid service account JSON key. Please check the format.');

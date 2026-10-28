@@ -1,10 +1,10 @@
 import { KeyRound, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { connectorState, statusLabel, toneOfConnector, type ConnectorConfig } from './connectorStatus';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import FindingRow from '../../../../shared/FindingRow';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
-import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import FindingRow from '@/components/shared/FindingRow';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
+import SideDrawer, { DrawerSection, DrawerFooter } from '@/components/shared/SideDrawer';
 import ArticleRef from '../../shared/ArticleRef';
 import StatusPill from '../../shared/StatusPill';
 import { Select, Toggle, ActionButton, INPUT_CLASS, Fact, fmtStamp } from '../audits/auditForms';

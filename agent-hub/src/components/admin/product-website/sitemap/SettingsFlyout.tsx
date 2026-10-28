@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { ensureOk } from './sitemapGraph';
 import type { SitemapPage, SitemapSite } from './sitemapGraph';
-import useAsyncAction from '../../../../hooks/useAsyncAction';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { slugIssues as slugIssuesJs } from '../../../../utils/cmsPublicRouting';
-import { authFetch } from '../../../../utils/helpers';
-import { errorMessage } from '../../../../utils/caughtError';
-import useConfirm from '../../../shared/useConfirm';
+import useAsyncAction from '@/hooks/useAsyncAction';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import { useTranslation } from '@/hooks/useTranslation';
+import { slugIssues as slugIssuesJs } from '@/utils/cmsPublicRouting';
+import { authFetch } from '@/utils/helpers';
+import { errorMessage } from '@/utils/caughtError';
+import useConfirm from '@/components/shared/useConfirm';
 import { AppIcon } from '../blog/jsComponents';
 import { cmsApi } from '../cmsApi';
 

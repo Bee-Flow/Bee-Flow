@@ -4,7 +4,7 @@
  * replied to, recipients, outbound DLP screening, the send itself, the
  * outbound-mail ledger and recording the reply back into the thread.
  */
-
+// @typecheck
 'use strict';
 
 const queryCompiler = require('../queryCompiler');

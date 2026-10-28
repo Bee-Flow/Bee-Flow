@@ -164,12 +164,12 @@ function ComposerActions({ props, empty, submit }: { props: CommentComposerProps
 
 export default function CommentComposer(props: CommentComposerProps) {
     const menuId = useId();
-    const c = useComposer(props);
+    const { box, ...c } = useComposer(props);
     return (
         <div className="flex flex-col gap-1.5" data-testid={props.testId}>
             <div className="relative">
                 <textarea
-                    ref={c.box}
+                    ref={box}
                     value={c.text}
                     autoFocus={props.autoFocus}
                     onChange={c.onChange}

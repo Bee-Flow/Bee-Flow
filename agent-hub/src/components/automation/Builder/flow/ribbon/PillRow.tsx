@@ -2,7 +2,7 @@ import { Fragment, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import useFitClusters from '../useFitClusters';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { DropdownPill } from './MenuPanel';
 import type { MenuSection } from './menuRows';
 import type { OpenState } from './AppCommands';

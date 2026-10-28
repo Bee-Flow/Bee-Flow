@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalendarDays, ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import RegulatoryCalendar, { type CalendarItem } from '../../shared/RegulatoryCalendar';
 import { formatCalDate } from '../../shared/calendarMath';
 

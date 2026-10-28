@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /import: an app archive file into a live app (routes/studioApps/).
  *

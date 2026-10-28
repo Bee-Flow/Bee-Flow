@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import type { RefObject } from 'react';
 import { readUsage } from '../stepUsage';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { useOrgStepUsageQuery } from '../../../../../api/queries/automation/usage';
-import { useSkillsQuery } from '../../../../../api/queries/skills';
+import useTranslation from '@/hooks/useTranslation';
+import { useOrgStepUsageQuery } from '@/api/queries/automation/usage';
+import { useSkillsQuery } from '@/api/queries/skills';
 import { ribbonSections, availableCategories, SUGGESTED_TAB_ENABLED } from './ribbonCategories';
 import { fitsAfterCards, mergeFrequentKeys, resolveFrequent } from './fitsAfter';
 import type { AgentRow, SkillRow } from './ribbonSearch';

@@ -1,8 +1,8 @@
 import React from 'react';
-import ColorPicker from '../../../../shared/ColorPicker';
+import ColorPicker from '@/components/shared/ColorPicker';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Accent presets — deliberately avoid purple/violet (banned brand-wide).
 export const ACCENT_PRESETS: string[] = [

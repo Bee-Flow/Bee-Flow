@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AccordionSection from '../AccordionSection';
 import { FormRow, inputClass } from './formPrimitives';
 

@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch: (...a: unknown[]) => unknown }).__authFetch(...args),
 }));
-vi.mock('../../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => (globalThis as unknown as { __lic: unknown }).__lic,
 }));
 // The members dialog belongs to the project workspace and has its own tests; here it only has to receive the STAGE's project.
@@ -17,7 +17,7 @@ vi.mock('../../SolutionAccessDialog', () => ({
 
 import StageSettingsTab from './StageSettingsTab';
 import VariablesDeclarations from './VariablesDeclarations';
-import type { PipelineStage, StageKey } from '../../../../../../api/stagesApi';
+import type { PipelineStage, StageKey } from '@/api/stagesApi';
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };
 type Handler = (c: Call) => unknown;

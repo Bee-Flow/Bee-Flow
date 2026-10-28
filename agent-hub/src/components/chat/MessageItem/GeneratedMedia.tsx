@@ -1,8 +1,8 @@
-import useNow from '../../../hooks/useNow';
+import useNow from '@/hooks/useNow';
 import AudioPlayerInline from './AudioPlayer';
 import { resolveUrl } from './messageItemHelpers';
 import { openLibraryDocument } from './openLibraryDocument';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 
 interface GeneratedImage { url?: string; data?: string; mimeType?: string }

@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { OrgUser } from '../accessAuditLabels';
 import type { Contact, SettingsGroupDef, SettingsFieldDef } from './settingsFields.types';
 import type { SettingsForm, SettingsSection } from './settingsLayout';

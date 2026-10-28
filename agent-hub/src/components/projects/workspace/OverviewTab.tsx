@@ -5,10 +5,10 @@ import { ProjectPins, MyProjectTasks } from './ProjectDiscovery';
 
 import { BookOpen, FileText, House, Mic, NotebookPen, Sparkles, Users } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { useProjectChatsQuery } from '../../../api/queries/projectChats';
-import { useProjectResourcesQuery, useProjectThreadsQuery } from '../../../api/queries/projects';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
+import { useProjectChatsQuery } from '@/api/queries/projectChats';
+import { useProjectResourcesQuery, useProjectThreadsQuery } from '@/api/queries/projects';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import { InstructionsCard, KnowledgeCard, MembersCard, QuickActions, type OpenTab } from './OverviewCards';
 import { mergeRecent, type RecentEntry, type RecentKind } from './overviewRecent';

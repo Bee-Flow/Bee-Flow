@@ -2,8 +2,8 @@ import { ChevronDown, X } from 'lucide-react';
 import React from 'react';
 import { SECTION_HDR, SECTION_LBL } from './sidebarTokens';
 import type { SidebarAgent } from './sidebarConversations';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { isImageAvatar, resolveAvatarSrc } from '../../../utils/agentAvatar';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { isImageAvatar, resolveAvatarSrc } from '@/utils/agentAvatar';
 
 interface MyAgentsSectionProps {
     t: TranslateFn;

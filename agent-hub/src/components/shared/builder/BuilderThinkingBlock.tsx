@@ -1,9 +1,9 @@
 import { Brain, ChevronRight } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { currentThought, renderThinking } from './thinkingMarkdown';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { BuilderMessage, ThinkingPart } from '../../../hooks/builderStream';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { BuilderMessage, ThinkingPart } from '@/hooks/builderStream';
 
 type ThinkingMessage = BuilderMessage & { thinkingSummary?: { text?: string } };
 

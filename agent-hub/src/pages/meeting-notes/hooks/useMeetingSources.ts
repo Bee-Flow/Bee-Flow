@@ -1,4 +1,4 @@
-import { useMeetingSourcesQuery } from '../../../api/queries/meetingNotesConnections';
+import { useMeetingSourcesQuery } from '@/api/queries/meetingNotesConnections';
 
 /**
  * useMeetingSources — which live-meeting sources can actually feed Meeting

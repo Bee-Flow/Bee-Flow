@@ -7,8 +7,8 @@
 // keeps the code as it was before, so Undo puts it back. Keep just closes the
 // question: the draft autosaves like any other edit.
 import { useCallback, useRef, useState } from 'react';
-import { streamCodeAssist, type AssistMessage } from '../../../../../../api/queries/automation/codeStep';
-import { messageOf } from '../../../../../../utils/caughtError';
+import { streamCodeAssist, type AssistMessage } from '@/api/queries/automation/codeStep';
+import { messageOf } from '@/utils/caughtError';
 
 type TurnStatus = 'streaming' | 'done' | 'failed' | 'stopped';
 

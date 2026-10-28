@@ -21,12 +21,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 const authFetch = vi.fn();
-vi.mock('../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...a: Parameters<typeof authFetch>) => authFetch(...a),
     parseSaveError: vi.fn(async () => ({ message: 'save failed' })),
 }));
-vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 // The editor panes are irrelevant here and drag half the builder in.
 vi.mock('../AgentWizard/index', () => ({ default: () => <div data-testid="wizard" /> }));
 vi.mock('../AgentWizard/BuilderSplit', () => ({ default: () => <div data-testid="split" /> }));
@@ -41,7 +41,7 @@ vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({
 
 import AgentStudio from './index';
 import type { ReactNode } from 'react';
-import { renderWithClient } from '../../../test/render';
+import { renderWithClient } from '@/test/render';
 
 // `can_edit: true` is not decoration: since A5 part C the card shows the bin only on an
 // EXPLICIT true (`/agents/all` always sets it; `/agents/system` does not, and such a row

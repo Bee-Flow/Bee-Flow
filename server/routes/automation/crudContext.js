@@ -1,3 +1,4 @@
+// @typecheck
 // What the automation CRUD routes share with the route groups split out of
 // them (routes/automation/folders.js, forms.js, importExport.js): the caller's
 // organisation, the knowledge-base findings, the ONE access answer and the

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowUp, MessageCircle, Calendar, Tag } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import useTranslation from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
 import ModelTierSelector from '../../licensing/ModelTierSelector';
-import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
 import BuilderSplit from './BuilderSplit';
 import type { EditorAgent } from './builderSplit/editorTypes';
-import type { ModelTierMap } from '../../../hooks/useModelTierSelection';
-import { useConfigTiersForUser } from '../../../api/queries/configModels';
+import type { ModelTierMap } from '@/hooks/useModelTierSelection';
+import { useConfigTiersForUser } from '@/api/queries/configModels';
 
 // Landing-only wizard. The legacy "review/plan card" stage has been removed:
 // the landing flow now creates a placeholder agent and hands the first prompt

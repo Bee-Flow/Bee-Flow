@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Pattern, RepeatingSuggestion } from '../../../../../api/queries/automation/repeating';
+import type { Pattern, RepeatingSuggestion } from '@/api/queries/automation/repeating';
 import PatternCard from './PatternCard';
 
 const labelFor = (id: string) => ({ gmail: 'Gmail', google_sheets: 'Google Sheets' } as Record<string, string>)[id] || id;

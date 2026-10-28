@@ -1,9 +1,9 @@
 import { Plus, ArrowLeft, ArrowUp, ArrowDown, Trash2, BookOpen, Globe, GlobeLock, Save } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { academyApi } from './academyApi';
-import MarkdownRenderer from '../../../../components/renderers/MarkdownRenderer';
-import useConfirm from '../../../../components/shared/useConfirm';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import useConfirm from '@/components/shared/useConfirm';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import type { TFn, Choice, SlideStep, QuizStep, ExerciseStep, Step, StepPatch, Lesson, Course, CourseEntry, ServerChoice, ServerStep, ServerLesson, FieldProps, ErrorTextProps, IconBtnProps, EmojiRowProps, StatusChipProps, SlideFormProps, QuizFormProps, ExerciseFormProps, StepEditorProps, LessonEditorProps } from './AcademyContentEditor.types';
 /**
  * AcademyContentEditor — org-admin authoring surface for custom Academy

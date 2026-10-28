@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '../../../api/queries/orgAdminReads';
+import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '@/api/queries/orgAdminReads';
 import type { KeyboardEvent } from 'react';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 interface DomainMessage {
     type: 'success' | 'error';

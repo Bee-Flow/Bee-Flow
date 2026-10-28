@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import scopedStorage from '../../../../utils/scopedStorage';
-import { logger } from '../../../../utils/logger';
+import scopedStorage from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 /**
  * Whether the canvas legend (north-east) is open.

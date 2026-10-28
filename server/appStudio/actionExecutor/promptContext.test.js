@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * promptContext serialisation — the cut that must never land mid-JSON.
  *

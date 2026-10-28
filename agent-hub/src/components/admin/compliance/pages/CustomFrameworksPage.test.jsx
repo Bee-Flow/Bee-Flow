@@ -2,14 +2,14 @@ import { screen, fireEvent, cleanup, waitFor, act, within } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 import { evidenceRef, attestErrorText } from './custom/AttestDrawer';
 import { indexResults, joinChecks, statusPill, groupBuiltinChecks } from './custom/CustomChecksTable';
 import { toBody, validate, CODE_RE, editorErrorText } from './custom/FrameworkEditorDrawer';
 import { parseQuestionnaire, splitLine, detectDelimiter } from './custom/QuestionnaireImport';
 import CustomFrameworksPage, { normaliseFramework, normaliseList, expiringCount, OUTCOMES } from './CustomFrameworksPage';
-import { renderWithClient } from '../../../../test/render';
 
-vi.mock('../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     // The built-in check titles the "Satisfied by" picker translates.
     const DICT = {
         'compliance.test_check_records': 'Principles of processing',
@@ -30,7 +30,7 @@ vi.mock('../../../../hooks/useTranslation', () => {
 });
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

@@ -5,7 +5,7 @@
  * allowing the AI to list, search, create, update, and delete calendar events.
  * Create/update/delete actions require user approval before executing.
  */
-
+// @typecheck
 require('googleapis');
 require('../auth/permissions');
 const log = require('../telemetry/log');

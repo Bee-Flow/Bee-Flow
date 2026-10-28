@@ -10,8 +10,8 @@ import {
     nextRowId, rowDraft, rowText, safeJsonText, typedValue,
 } from './outputDrafts';
 import type { OutputRecord, OutputRow, OutputShape } from './outputDrafts';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface OutputFieldsEditorProps {
     shape: OutputShape;

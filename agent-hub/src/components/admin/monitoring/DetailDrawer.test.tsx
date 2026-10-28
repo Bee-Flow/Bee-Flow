@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DetailDrawer } from './DetailDrawer';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const recent = [
     { model: 'gpt-x', agent_name: 'Helper', prompt_tokens: 1000, completion_tokens: 500, duration_ms: 1500 },

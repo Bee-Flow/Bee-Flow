@@ -218,7 +218,7 @@ function createUploadReceiver(deps) {
         //    policy, IPs, scope, CMS admin). The reason goes to the log only.
         const access = await deps.checkAccess(bound, ip);
         if (!access.ok) {
-            log.warn(`[CmsMcp] upload refused: access ${access.reason} (ticket=${seen.id} ip=${ip})`);
+            log.warn(`[CmsMcp] upload refused: access ${access.reason} (ticket=${seen.id} ip=${log.textForLog(ip)})`);
             return { status: 403, body: { error: INVALID_TICKET }, closeConnection: true };
         }
         if (!deps.storage.isAvailable()) {

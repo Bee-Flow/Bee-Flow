@@ -24,10 +24,10 @@ const { api } = vi.hoisted(() => ({
         listFormPages: vi.fn().mockResolvedValue({ forms: [] }),
     },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 const NodeDetailView = (await import('./NodeDetailView')).default;

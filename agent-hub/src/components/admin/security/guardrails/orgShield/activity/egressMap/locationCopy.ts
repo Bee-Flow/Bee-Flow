@@ -8,7 +8,7 @@
  * an auditor reads first.
  */
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MapDestination, UnplacedReason } from './mapModel';
 
 type Loc = Pick<MapDestination, 'state' | 'basis' | 'city' | 'countryCode' | 'countryName' | 'network' | 'edgePop' | 'peerIp'>;

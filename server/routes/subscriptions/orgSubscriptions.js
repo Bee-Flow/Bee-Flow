@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Org subscriptions — listing every org's subscription, one org's subscription
  * with its billing/usage view and plan pickers, the admin assign/update write,

@@ -1,16 +1,16 @@
 import { Check, Pencil, Search, Download, AlertCircle, Loader2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useId, useMemo } from 'react';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { loadSettings } from '../../../chat/NanoBananaSettings';
-import IconPickerModal from '../../../icons/IconPickerModal';
-import Modal from '../../../shared/Modal';
-import useConfirm from '../../../shared/useConfirm';
-import type { CustomIcon } from '../../../../hooks/useIconPack';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { loadSettings } from '@/components/chat/NanoBananaSettings';
+import IconPickerModal from '@/components/icons/IconPickerModal';
+import Modal from '@/components/shared/Modal';
+import useConfirm from '@/components/shared/useConfirm';
+import type { CustomIcon } from '@/hooks/useIconPack';
 import type { BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, IconCellProps, IconEntry, IconPack, PackEditorProps } from './IconsEditor.types';
-import { errorMessage } from '../../../../utils/caughtError';
-import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError } from '@/api/mutate';
 
 export const API = `${API_BASE}/api/icons`;
 

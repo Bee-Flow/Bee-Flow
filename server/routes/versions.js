@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Version History API Routes
  * Endpoints for viewing and restoring agent version history.
@@ -115,7 +116,7 @@ router.get('/:agentId', async (req, res) => {
  * and have its undo button say that there is nothing to restore; a silent "ok" would
  * produce a button that later restores something DIFFERENT.
  */
-router.post('/:agentId/pre-refine', validate({ body: PreRefineBody }), async (req, res) => {
+router.post('/:agentId/pre-refine', validate({ body: PreRefineBody }), async (/** @type {import('express').Request<{ agentId: string }, any, import('zod').infer<typeof PreRefineBody>, import('qs').ParsedQs>} */ req, res) => {
     const agent = await requireEditableAgent(req, res);
     if (!agent) return;
     // The snapshot reads the RAW agent row (persona column included) — see
@@ -137,7 +138,7 @@ router.get('/:agentId/:versionId', async (req, res) => {
 });
 
 // POST /versions/:agentId/:versionId/restore — Restore agent to a specific version
-router.post('/:agentId/:versionId/restore', validate({ body: RestoreBody }), async (req, res, next) => {
+router.post('/:agentId/:versionId/restore', validate({ body: RestoreBody }), async (/** @type {import('express').Request<{ agentId: string, versionId: string }, any, import('zod').infer<typeof RestoreBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const agent = await requireEditableAgent(req, res);
     if (!agent) return;
     const version = await versionStore.getVersion(req.params.versionId);
@@ -222,7 +223,7 @@ router.post('/:agentId/:versionId/restore', validate({ body: RestoreBody }), asy
 
 
 // DELETE /versions/:agentId/:versionId — Delete a specific version
-router.delete('/:agentId/:versionId', validate({ body: DeleteBody }), async (req, res) => {
+router.delete('/:agentId/:versionId', validate({ body: DeleteBody }), async (/** @type {import('express').Request<{ agentId: string, versionId: string }, any, import('zod').infer<typeof DeleteBody>, import('qs').ParsedQs>} */ req, res) => {
     if (!(await requireEditableAgent(req, res))) return;
     // Bind the version to :agentId BEFORE deleting (same check as the GET
     // and restore routes). Without it the per-agent gate above is hollow:

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FieldRow, inputClass } from './basicFields';
 import { AssetPickerDialog } from './jsDeps';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import { uploadCmsFile } from '../cmsUpload';
-import { errorMessage } from '../../../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * Resolve a stored image value to a displayable URL: full http(s) URLs and

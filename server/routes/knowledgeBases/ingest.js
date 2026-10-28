@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — text, file and URL ingestion.
  *
@@ -55,7 +56,7 @@ const upload = multer({
 /**
  * Ingest text content into a KB
  */
-router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestTextBody }), async (req, res, next) => {
+router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestTextBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestTextBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
@@ -159,7 +160,7 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
 /**
  * Ingest URL into a KB
  */
-router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestUrlBody }), async (req, res, next) => {
+router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestUrlBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestUrlBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });

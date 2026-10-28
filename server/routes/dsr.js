@@ -331,7 +331,7 @@ async function sendAck(orgId, created, email, requestType) {
 
 // ───────────────── Public ─────────────────
 
-router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody }), async (req, res) => {
+router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PublicIntakeBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const body = req.body || {};
         if (!body.subject_email || typeof body.subject_email !== 'string') {
@@ -373,7 +373,7 @@ router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody 
 
 // Public status check (no auth, only by id + email match — does not leak the
 // request body). Minimal shape.
-router.get('/requests/:id/public', publicReadLimiter, validate({ query: PublicStatusQuery }), async (req, res) => {
+router.get('/requests/:id/public', publicReadLimiter, validate({ query: PublicStatusQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof PublicStatusQuery>>} */ req, res) => {
     const email = (req.query.email || '').toString().trim().toLowerCase();
     if (!email) return res.status(400).json({ error: 'email query param required' });
     const id = parseId(req);
@@ -513,7 +513,7 @@ router.post('/requests/:id/verify', publicReadLimiter, requireVerifyToken, stamp
 // deliberately ungated: the intake must reach a data subject without an
 // account, GDPR Art. 12.)
 
-router.post('/requests/manual', requireAuth, requirePermission('admin_compliance'), validate({ body: ManualIntakeBody }), async (req, res) => {
+router.post('/requests/manual', requireAuth, requirePermission('admin_compliance'), validate({ body: ManualIntakeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManualIntakeBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveAdminOrgId(req);
     try {
         const actorId = req.session?.user?.id || null;
@@ -585,7 +585,7 @@ router.post('/requests/:id/start', requireAuth, requirePermission('admin_complia
     }
 });
 
-router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compliance'), validate({ body: ExtendBody }), async (req, res) => {
+router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compliance'), validate({ body: ExtendBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ExtendBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
@@ -640,7 +640,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
     }
 });
 
-router.post('/requests/:id/verify-identity', requireAuth, requirePermission('admin_compliance'), validate({ body: VerifyIdentityBody }), async (req, res) => {
+router.post('/requests/:id/verify-identity', requireAuth, requirePermission('admin_compliance'), validate({ body: VerifyIdentityBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof VerifyIdentityBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
@@ -662,7 +662,7 @@ router.get('/requests/:id/timeline', requireAuth, requirePermission('admin_compl
     res.json({ id: ctx.row.id, timeline: maskTimeline(ctx.row.timeline) });
 });
 
-router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_compliance'), validate({ query: DiscoveryQuery }), async (req, res) => {
+router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_compliance'), validate({ query: DiscoveryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DiscoveryQuery>>} */ req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(403).json({ error: 'forbidden' });
     const ctx = await loadOrgRow(req, res);
@@ -672,7 +672,7 @@ router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_comp
     res.json(result);
 });
 
-router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compliance'), validate({ body: FulfilBody }), async (req, res) => {
+router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compliance'), validate({ body: FulfilBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FulfilBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;

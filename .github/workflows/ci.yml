@@ -253,6 +253,8 @@ jobs:
               - 'server/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{gen-api-reference.mjs,api-reference-walk.cjs}'
+              - 'docs/static/openapi.json'
               - 'scripts/eslint/**'
               - 'docs/docs/**'
               - 'components/**'
@@ -281,7 +283,10 @@ jobs:
             frontend:
               - 'agent-hub/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,entry-budget,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,deep-imports,coverage-ratchet,bundle-ratchet,entry-budget,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              # the deep-imports ratchet reads these two
+              - 'scripts/deep-imports.exclude.json'
+              - 'scripts/shared-mirror.manifest.json'
               - 'server/scripts/testShards.mjs'
               - '.claude/handoff/compliance/keys/**'
               - '.claude/handoff/curriculum/lessons/**'
@@ -570,9 +575,9 @@ jobs:
       - uses: ./.github/actions/npm-install
         with:
           directory: server
-      # Correctness floor only (see server/eslint.config.js); errors fail, and
-      # the warning count may not rise above server/.eslint-budget.json.
-      - name: Lint (errors fail, warnings budgeted)
+      # Correctness floor plus size/complexity limits (see server/eslint.config.js);
+      # every rule is an error, old violations sit in server/eslint-suppressions.json.
+      - name: Lint (errors fail, old violations suppressed)
         run: node ../scripts/eslint-budget.mjs server
       # The mobile job does not fire on server/package.json (see the filter
       # above), so the invariants that make that safe — server/ stays
@@ -602,6 +607,13 @@ jobs:
       # tsc, and the number of such files may only rise (phase 6.4).
       - name: Typecheck (files marked // @typecheck)
         run: npm run typecheck
+      # The API reference in docs/ is read from the running app's router (every
+      # route, its gates, its zod request schemas). It needs this job's server
+      # install, so check:fast leaves it out. Stale after a route change?
+      # `npm run gen:api-reference` and commit.
+      - name: API reference is current
+        working-directory: .
+        run: node scripts/gen-api-reference.mjs --check
       # A merge in which "the second wins" drops keys without a conflict git
       # shows. Every key the PR base has must still exist, or be listed in
       # server/i18n/defaults/removed-keys.txt. The checkout is shallow, so the

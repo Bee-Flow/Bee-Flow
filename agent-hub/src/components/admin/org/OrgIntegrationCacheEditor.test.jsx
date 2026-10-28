@@ -2,12 +2,12 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
+import { authFetch } from '@/utils/helpers';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
-import { authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const envelope = (over = {}) => ({
     enabled: true,

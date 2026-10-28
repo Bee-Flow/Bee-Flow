@@ -2,7 +2,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TruncatedOutput from './TruncatedOutput';
-import { fetchRunFullOutput } from '../../../api/queries/runFullOutput';
+import { fetchRunFullOutput } from '@/api/queries/runFullOutput';
 
 /**
  * The truncation notice and its full copy (BFSF-402).
@@ -15,8 +15,8 @@ import { fetchRunFullOutput } from '../../../api/queries/runFullOutput';
  */
 
 // Only the network call is replaced; fullOutputRefOf stays the real reader.
-vi.mock('../../../api/queries/runFullOutput', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../api/queries/runFullOutput')>()),
+vi.mock('@/api/queries/runFullOutput', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/queries/runFullOutput')>()),
     fetchRunFullOutput: vi.fn(),
 }));
 

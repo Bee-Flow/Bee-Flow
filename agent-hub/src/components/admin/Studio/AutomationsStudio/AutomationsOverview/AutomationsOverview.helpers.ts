@@ -1,5 +1,5 @@
-import scopedStorage from '../../../../../utils/scopedStorage';
-import { logger } from '../../../../../utils/logger';
+import scopedStorage from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 export const VIEW_KEY = 'automationsOverviewView';
 

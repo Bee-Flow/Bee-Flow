@@ -11,7 +11,7 @@
 import { ChartColumnStacked } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { OUTCOME_SHORT_WORDS, wordFor } from '../activityLabels';
 import { OUTCOME_ORDER, type Outcome } from '../outcomes';
 import { dayKey, formatDay } from '../shieldDates';

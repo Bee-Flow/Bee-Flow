@@ -8,8 +8,8 @@
 
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../../../shared/SegmentedControl';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 export type RangePreset = '7d' | '30d' | '90d';
 

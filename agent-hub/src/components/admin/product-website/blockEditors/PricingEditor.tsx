@@ -1,12 +1,12 @@
 import React from 'react';
 import { TextField, Toggle } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
-import type { PublicPlan } from '../../../../marketing/sections/PricingSection';
-import { messageOf } from '../../../../utils/caughtError';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { PublicPlan } from '@/marketing/sections/PricingSection';
+import { messageOf } from '@/utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Pricing ───────────────────────────────────────────────────────────
 //

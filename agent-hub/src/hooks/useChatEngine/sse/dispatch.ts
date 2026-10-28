@@ -11,7 +11,7 @@ import { toolHandlers } from './handlers/tools';
 import { webpageHandlers } from './handlers/webpage';
 import type { SseHandler, SseHandlerMap } from './handlerTypes';
 import type { SseDispatchContext, SseDispatchIds, SseEventData } from '../types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Merges the family maps into one lookup. A Map (not a plain object), so an

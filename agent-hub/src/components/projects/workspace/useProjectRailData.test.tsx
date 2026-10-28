@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { hiddenTabsFor, useRailGroups } from './useProjectRailData';
 
-vi.mock('../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     default: () => ({ t: (_k: string, f: string) => f, locale: 'en' }),
     useTranslation: () => ({ t: (_k: string, f: string) => f, locale: 'en' }),
 }));

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * supportStore.updateThread — where the column names come from.
  *

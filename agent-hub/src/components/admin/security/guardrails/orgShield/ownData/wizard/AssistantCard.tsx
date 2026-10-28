@@ -1,10 +1,10 @@
 import { Bot, Lock, PenLine, Sparkles } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
-import Button from '../../../../../../shared/Button';
-import type { AssistInput, CustomDataError, PersonalDataFinding } from '../../../../../../../api/queries/customData';
-import { customDataErrorCode, useAssistMutation, useAssistPreviewQuery } from '../../../../../../../api/queries/customData';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Button from '@/components/shared/Button';
+import type { AssistInput, CustomDataError, PersonalDataFinding } from '@/api/queries/customData';
+import { customDataErrorCode, useAssistMutation, useAssistPreviewQuery } from '@/api/queries/customData';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorLine } from '../ownDataCopy';
 import type { Method } from '../ownDataModel';
 import { assistExamples } from '../useTypeWizard';

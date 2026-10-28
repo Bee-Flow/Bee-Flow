@@ -3,7 +3,7 @@ import React from 'react';
 import type { CSSProperties } from 'react';
 import { describeLiveRun, describeToolCall, detailPayload } from './toolCallDisplay';
 import type { LiveRunFocus, ToolCall, ToolCallRow, Translator } from './toolCallDisplay';
-import { StepBadge, TimelineRail } from '../../../chat/MessageItem/timelineParts';
+import { StepBadge, TimelineRail } from '@/components/chat/MessageItem/timelineParts';
 import { typeColorVar, typeTileStyle } from '../flow/nodeTypeColors';
 import { StepIcon } from '../flow/stepIcons';
 

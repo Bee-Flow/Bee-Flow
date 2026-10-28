@@ -2,8 +2,8 @@ import { render, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import ExpressionInput from './ExpressionInput';
-import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
 
 /**
  * Inline autocomplete is what catches the typo the picker never would.

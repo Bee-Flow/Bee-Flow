@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The decision-auth matrix — WHO may decide an approval. Pure: canDecide
  * reads only the row and what the route proved about the caller, so the

@@ -1,7 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import Button from '../../../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import Button from '@/components/shared/Button';
 import { confirmMatches, type RemoveMode } from './stageSettingsModel';
 
 /**

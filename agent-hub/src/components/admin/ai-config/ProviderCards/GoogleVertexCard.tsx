@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
-import useProviderConfig from '../../../../hooks/useProviderConfig';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import useProviderConfig from '@/hooks/useProviderConfig';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 
 const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {

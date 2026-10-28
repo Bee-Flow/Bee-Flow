@@ -7,7 +7,7 @@ import AuditsPage, { AUDIT_TABS, resolveTab } from './AuditsPage';
 import type { Mock } from 'vitest';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

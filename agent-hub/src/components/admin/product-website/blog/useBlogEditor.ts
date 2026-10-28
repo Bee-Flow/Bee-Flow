@@ -5,9 +5,9 @@
 // REST routes, so a post edit can never be clobbered by — or clobber — a
 // SiteDoc/PageDoc save. Same behaviour as the page editor though: edits are
 // debounced (~700 ms) into one PUT, and `flush()` lets Publish wait for them.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AuthFetchOptions } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AuthFetchOptions } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import {
     blogApi, EDITABLE_POST_FIELDS, postSummary,
     type AdminPost, type AdminPostSummary, type PostTranslation,
@@ -64,7 +64,11 @@ function useBlogState(siteId: string | null, onSaved?: () => void) {
         translationsRef.current = tr;
         setTranslationsState(tr);
     }, []);
-    const refs = { post: postRef, translations: translationsRef, dirtyPost, dirtyLocales, editVersion, timer, inFlight, site, onSaved: onSavedRef };
+    // One stable bag of refs for the hooks below (the refs never change, so neither does the bag).
+    const refs = useMemo(() => ({
+        postRef, translationsRef, dirtyPostRef: dirtyPost, dirtyLocalesRef: dirtyLocales, editVersionRef: editVersion,
+        timerRef: timer, inFlightRef: inFlight, siteRef: site, onSavedRef,
+    }), []);
     return {
         posts, setPosts, loaded, setLoaded, error, setError, activePostId, setActivePostId,
         post, setPost, translations, setTranslations, saveStatus, setSaveStatus, refs,
@@ -87,9 +91,9 @@ async function sendChanges(st: BlogState, { site, current, sendPost, locales, ve
         // The server owns slug uniqueness and the date of a freshly published
         // post: take its copy back — but only when nothing was typed meanwhile,
         // or it would overwrite the keystrokes in flight.
-        const latest = refs.post.current;
+        const latest = refs.postRef.current;
         if (latest && latest.id === saved.id) {
-            st.setPost(refs.editVersion.current === versionAtSend
+            st.setPost(refs.editVersionRef.current === versionAtSend
                 ? saved
                 : { ...latest, publishedAt: latest.publishedAt ?? saved.publishedAt, updatedAt: saved.updatedAt });
         }
@@ -98,7 +102,7 @@ async function sendChanges(st: BlogState, { site, current, sendPost, locales, ve
     for (const locale of locales) {
         await readJson(blogApi.postLocale(site, current.id, locale), {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ override: refs.translations.current[locale] || {} }),
+            body: JSON.stringify({ override: refs.translationsRef.current[locale] || {} }),
         });
         st.setPosts(list => list.map(p => (p.id === current.id && !p.translatedLocales.includes(locale)
             ? { ...p, translatedLocales: [...p.translatedLocales, locale] } : p)));
@@ -107,68 +111,71 @@ async function sendChanges(st: BlogState, { site, current, sendPost, locales, ve
 
 function useBlogSaver(st: BlogState) {
     const { refs, setSaveStatus, setError } = st;
+    const { timerRef, inFlightRef, siteRef, postRef, dirtyPostRef, dirtyLocalesRef, editVersionRef, onSavedRef } = refs;
     const stRef = useRef(st);
     useEffect(() => { stRef.current = st; });
     const saveNow = useCallback(async (): Promise<void> => {
-        if (refs.timer.current) { clearTimeout(refs.timer.current); refs.timer.current = null; }
-        if (refs.inFlight.current) await refs.inFlight.current;
-        const site = refs.site.current;
-        const current = refs.post.current;
-        if (!site || !current || (!refs.dirtyPost.current && refs.dirtyLocales.current.size === 0)) return;
-        const sendPost = refs.dirtyPost.current;
-        const locales = [...refs.dirtyLocales.current];
-        refs.dirtyPost.current = false;
-        refs.dirtyLocales.current = new Set();
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        if (inFlightRef.current) await inFlightRef.current;
+        const site = siteRef.current;
+        const current = postRef.current;
+        if (!site || !current || (!dirtyPostRef.current && dirtyLocalesRef.current.size === 0)) return;
+        const sendPost = dirtyPostRef.current;
+        const locales = [...dirtyLocalesRef.current];
+        dirtyPostRef.current = false;
+        dirtyLocalesRef.current = new Set();
         setSaveStatus('saving');
-        const run = sendChanges(stRef.current, { site, current, sendPost, locales, versionAtSend: refs.editVersion.current })
-            .then(() => { setSaveStatus('saved'); setError(null); refs.onSaved.current?.(); })
+        const run = sendChanges(stRef.current, { site, current, sendPost, locales, versionAtSend: editVersionRef.current })
+            .then(() => { setSaveStatus('saved'); setError(null); onSavedRef.current?.(); })
             .catch((e: unknown) => {
                 // Put the work back so the next edit sends it again.
-                if (sendPost) refs.dirtyPost.current = true;
-                for (const l of locales) refs.dirtyLocales.current.add(l);
+                if (sendPost) dirtyPostRef.current = true;
+                for (const l of locales) dirtyLocalesRef.current.add(l);
                 setSaveStatus('error');
                 setError(message(e));
             });
-        refs.inFlight.current = run;
+        inFlightRef.current = run;
         await run;
-        refs.inFlight.current = null;
-    }, [setSaveStatus, setError]);
+        inFlightRef.current = null;
+    }, [timerRef, inFlightRef, siteRef, postRef, dirtyPostRef, dirtyLocalesRef, setSaveStatus, editVersionRef, setError, onSavedRef]);
     const schedule = useCallback(() => {
-        if (refs.timer.current) clearTimeout(refs.timer.current);
-        refs.timer.current = setTimeout(() => { void saveNow(); }, SAVE_DELAY_MS);
-    }, [saveNow]);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => { void saveNow(); }, SAVE_DELAY_MS);
+    }, [saveNow, timerRef]);
     return { saveNow, schedule };
 }
 
 function useBlogEdits(st: BlogState, schedule: () => void) {
     const { refs, setPost, setPosts, setTranslations } = st;
+    const { postRef, editVersionRef, dirtyPostRef, translationsRef, dirtyLocalesRef } = refs;
     const updatePost = useCallback((patch: Partial<AdminPost>) => {
-        const current = refs.post.current;
+        const current = postRef.current;
         if (!current) return;
         const next = { ...current, ...patch, seo: { ...current.seo, ...(patch.seo || {}) } };
-        refs.editVersion.current += 1;
-        refs.dirtyPost.current = true;
+        editVersionRef.current += 1;
+        dirtyPostRef.current = true;
         setPost(next);
         setPosts(list => list.map(p => (p.id === next.id ? postSummary(next, p.translatedLocales) : p)));
         schedule();
-    }, [schedule, setPost, setPosts]);
+    }, [dirtyPostRef, editVersionRef, postRef, schedule, setPost, setPosts]);
     const updateTranslation = useCallback((locale: string, patch: PostTranslation) => {
-        const prev = refs.translations.current[locale] || {};
+        const prev = translationsRef.current[locale] || {};
         const merged: PostTranslation = { ...prev, ...patch, ...(patch.seo ? { seo: { ...(prev.seo || {}), ...patch.seo } } : {}) };
-        setTranslations({ ...refs.translations.current, [locale]: merged });
-        refs.dirtyLocales.current.add(locale);
+        setTranslations({ ...translationsRef.current, [locale]: merged });
+        dirtyLocalesRef.current.add(locale);
         schedule();
-    }, [schedule, setTranslations]);
+    }, [dirtyLocalesRef, schedule, setTranslations, translationsRef]);
     return { updatePost, updateTranslation };
 }
 
 function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
     const { refs, setPost, setPosts, setTranslations, setActivePostId, setError } = st;
+    const { siteRef, onSavedRef, postRef, dirtyPostRef, dirtyLocalesRef } = refs;
     const selectPost = useCallback(async (postId: string | null) => {
         await saveNow();
         setActivePostId(postId);
         if (!postId) { setPost(null); setTranslations({}); return; }
-        const site = refs.site.current;
+        const site = siteRef.current;
         if (!site) return;
         try {
             const data = await readJson<{ post: AdminPost; translations: Record<string, PostTranslation> }>(blogApi.post(site, postId));
@@ -176,10 +183,10 @@ function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
             setPost(data.post);
             setError(null);
         } catch (e) { setError(message(e)); }
-    }, [saveNow, setActivePostId, setPost, setTranslations, setError]);
+    }, [saveNow, setActivePostId, siteRef, setPost, setTranslations, setError]);
 
     const createPost = useCallback(async (title: string): Promise<AdminPost | null> => {
-        const site = refs.site.current;
+        const site = siteRef.current;
         if (!site) return null;
         await saveNow();
         try {
@@ -190,49 +197,50 @@ function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
             setTranslations({});
             setPost(created);
             setActivePostId(created.id);
-            refs.onSaved.current?.();
+            onSavedRef.current?.();
             return created;
         } catch (e) { setError(message(e)); return null; }
-    }, [saveNow, setPosts, setTranslations, setPost, setActivePostId, setError]);
+    }, [siteRef, saveNow, setPosts, setTranslations, setPost, setActivePostId, onSavedRef, setError]);
 
     const deletePost = useCallback(async (postId: string): Promise<boolean> => {
-        const site = refs.site.current;
+        const site = siteRef.current;
         if (!site) return false;
-        const isOpen = refs.post.current?.id === postId;
-        if (isOpen) { refs.dirtyPost.current = false; refs.dirtyLocales.current = new Set(); }
+        const isOpen = postRef.current?.id === postId;
+        if (isOpen) { dirtyPostRef.current = false; dirtyLocalesRef.current = new Set(); }
         try {
             await readJson(blogApi.post(site, postId), { method: 'DELETE' });
             setPosts(list => list.filter(p => p.id !== postId));
             if (isOpen) { setPost(null); setActivePostId(null); }
-            refs.onSaved.current?.();
+            onSavedRef.current?.();
             return true;
         } catch (e) { setError(message(e)); return false; }
-    }, [setPosts, setPost, setActivePostId, setError]);
+    }, [siteRef, postRef, dirtyPostRef, dirtyLocalesRef, setPosts, onSavedRef, setPost, setActivePostId, setError]);
     return { selectPost, createPost, deletePost };
 }
 
 /** The post list: loaded when the Blog view first opens, reset on a site switch. */
 function useBlogList(st: BlogState, siteId: string | null, enabled: boolean, saveNow: () => Promise<void>) {
     const { refs, setPosts, setLoaded, setError, setPost, setActivePostId, loaded } = st;
+    const { siteRef } = refs;
     useEffect(() => {
-        if (refs.site.current === siteId) return;
-        const previous = refs.site.current;
+        if (siteRef.current === siteId) return;
+        const previous = siteRef.current;
         void (async () => {
             if (previous) await saveNow();   // flush to the OLD site first
-            refs.site.current = siteId;
+            siteRef.current = siteId;
             setPost(null);
             setActivePostId(null);
             setPosts([]);
             setLoaded(false);
         })();
-    }, [siteId, saveNow, setPost, setActivePostId, setPosts, setLoaded]);
+    }, [siteId, saveNow, setPost, setActivePostId, setPosts, setLoaded, siteRef]);
 
     const reload = useCallback(async () => {
-        const site = refs.site.current;
+        const site = siteRef.current;
         if (!site) return;
         try {
             const data = await readJson<{ posts: AdminPostSummary[] }>(blogApi.posts(site));
-            if (refs.site.current !== site) return;
+            if (siteRef.current !== site) return;
             setPosts(Array.isArray(data.posts) ? data.posts : []);
             setError(null);
         } catch (e) {
@@ -240,7 +248,7 @@ function useBlogList(st: BlogState, siteId: string | null, enabled: boolean, sav
         } finally {
             setLoaded(true);
         }
-    }, [setPosts, setError, setLoaded]);
+    }, [siteRef, setPosts, setError, setLoaded]);
 
     useEffect(() => {
         if (enabled && siteId && !loaded) void reload();

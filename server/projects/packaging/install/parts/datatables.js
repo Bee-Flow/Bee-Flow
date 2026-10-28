@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the TABLES (schema only), the empty tables the installer asked for,
  * and the list a `datatableKey` may be re-linked to.

@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
 import { useUndoCapture } from '../undoTestKit';
@@ -19,14 +19,14 @@ const { client, capture, recorder } = vi.hoisted(() => ({
         consumeLastResult: (() => ({ id: null, meta: null })) as () => { id: string | null; meta: unknown },
     },
 }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
-vi.mock('../../../../pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () => capture }));
-vi.mock('../../../../pages/meeting-notes/hooks/RecorderContext', () => ({ useRecorder: () => recorder }));
-vi.mock('../../../../pages/meeting-notes/detail/MeetingDetail', () => ({
+vi.mock('@/pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () => capture }));
+vi.mock('@/pages/meeting-notes/hooks/RecorderContext', () => ({ useRecorder: () => recorder }));
+vi.mock('@/pages/meeting-notes/detail/MeetingDetail', () => ({
     default: ({ id, onBack, onDeleted }: { id: string; onBack: () => void; onDeleted: () => void }) => (
         <div data-testid="meeting-detail">
             meeting {id}
@@ -127,7 +127,7 @@ describe('MeetingsTab: add and remove', () => {
         expect(within(dialog).queryByText('All hands')).not.toBeInTheDocument();
         await user.click(within(dialog).getByRole('button', { name: 'Add Design review' }));
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-mine', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-mine', attach: true },
         ));
         expect(await within(dialog).findByText('Added')).toBeInTheDocument();
     });
@@ -141,7 +141,7 @@ describe('MeetingsTab: add and remove', () => {
         act(() => undo.last().onExpire());
         await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
         expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-1', attach: false }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-1', attach: false },
         );
     });
 
@@ -164,7 +164,7 @@ describe('MeetingsTab: record or upload', () => {
         Object.assign(recorder, { version: 1, lastResultId: 'm-new' });
         view.rerender();
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-new', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-new', attach: true },
         ));
         await waitFor(() => expect(view.onOpenSub).toHaveBeenCalledWith('m-new'));
     });
@@ -200,7 +200,7 @@ describe('MeetingsTab: record or upload', () => {
         Object.assign(recorder, { version: 1, lastResultId: 'm-new' });
         view.rerender({ sub: 'm-1' });
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-new', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'meeting', id: 'm-new', attach: true },
         ));
         expect(view.onOpenSub).not.toHaveBeenCalled();
     });
@@ -298,7 +298,7 @@ describe('MeetingsTab: one meeting', () => {
             await user.click(await screen.findByRole('button', { name: 'Make 1 tasks' }));
             await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/batch', expect.objectContaining({
                 items: [expect.objectContaining({ title: 'Send the offer', source: { kind: 'meeting', id: 'm-1', itemId: 'ai-1' } })],
-            }), expect.anything()));
+            })));
             await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('tasks'));
         });
 

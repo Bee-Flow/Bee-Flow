@@ -13,14 +13,14 @@
 // mounts and hands us no editor ('stalled'), or the CDN runtime never arrives
 // on an offline install (the deadline, 'stalled' too).
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import type { CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import scopedStorage from '../../../../../../utils/scopedStorage';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
+import type { CodeAnalysis } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import { SectionNote, hintTextClass, textareaClass } from '../formPrimitives';
 import { lineRange, markersFor } from './codeMarkers';
 import { EDITOR_PREF_KEY, MONACO_MOUNT_DEADLINE_MS, MonacoEditor, monacoOptions, monacoTheme } from './monaco';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export interface CodeEditorHandle {
     revealLine: (line: number, column?: number) => void;

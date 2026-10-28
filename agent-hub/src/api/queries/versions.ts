@@ -247,7 +247,7 @@ export function useNameCurrentVersion(baseUrl: string) {
     return useMutation<VersionMeta, Error, string>({
         mutationFn: async (name) => {
             try {
-                const body = await apiClient.post<{ version?: unknown }>(`${baseUrl}/versions`, { name }, { retry: false });
+                const body = await apiClient.post<{ version?: unknown }>(`${baseUrl}/versions`, { name });
                 const version = toVersionMeta(body?.version);
                 if (!version) throw new Error('Could not name this version');
                 return version;
@@ -265,7 +265,7 @@ export function useRenameVersion(baseUrl: string) {
     return useMutation<VersionMeta, Error, { ref: string; name: string | null }>({
         mutationFn: async ({ ref, name }) => {
             try {
-                const body = await apiClient.put<{ version?: unknown }>(`${baseUrl}/versions/${enc(ref)}/name`, { name }, { retry: false });
+                const body = await apiClient.put<{ version?: unknown }>(`${baseUrl}/versions/${enc(ref)}/name`, { name });
                 const version = toVersionMeta(body?.version);
                 if (!version) throw new Error('Could not rename this version');
                 return version;
@@ -295,7 +295,6 @@ export function useRestoreVersion(baseUrl: string) {
                 const body = await apiClient.post<{ version?: unknown; current?: unknown }>(
                     `${baseUrl}/versions/${enc(ref)}/restore`,
                     expectedVersion === undefined || expectedVersion === null ? {} : { expectedVersion },
-                    { retry: false },
                 );
                 return { version: toVersionMeta(body?.version), current: body?.current ?? null };
             } catch (e) {

@@ -1,4 +1,4 @@
-import { slugIssues as slugIssuesJs } from '../../../../utils/cmsPublicRouting';
+import { slugIssues as slugIssuesJs } from '@/utils/cmsPublicRouting';
 import ModalShellJs from '../dialogs/ModalShell';
 
 /** One entry of the site's page index, as the page list shows it. */

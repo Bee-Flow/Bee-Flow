@@ -1,7 +1,7 @@
 import { type LucideIcon } from 'lucide-react';
-import { type PermissionUser } from '../../../../hooks/usePermissionCheck';
+import { type PermissionUser } from '@/hooks/usePermissionCheck';
 import type { TableColumn } from '../AppStudio/inspector/aiFieldMatching';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ConnectionOption } from '../Solutions/pipeline/settings/stageSettingsApi';
 
 /**

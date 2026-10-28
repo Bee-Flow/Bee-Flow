@@ -2,8 +2,8 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ComponentType, ReactNode } from 'react';
 import SettingsFormJs from '../../SettingsForm';
-import { VariablePickerProvider as VariablePickerProviderJs } from '../../../mapping/VariablePickerContext';
-import scopedStorage from '../../../../../../utils/scopedStorage';
+import { VariablePickerProvider as VariablePickerProviderJs } from '@/components/automation/Builder/mapping/VariablePickerContext';
+import scopedStorage from '@/utils/scopedStorage';
 
 const SettingsForm = SettingsFormJs as unknown as ComponentType<Record<string, unknown>>;
 const VariablePickerProvider = VariablePickerProviderJs as unknown as ComponentType<Record<string, unknown> & { children: ReactNode }>;

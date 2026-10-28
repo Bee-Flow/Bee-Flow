@@ -3,7 +3,7 @@ import React from 'react';
 import AppIcon from './appIcon';
 import { accentTile, CARD_STYLE } from './cardStyle';
 import type { StudioTemplate } from './types';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 // ── Template gallery (inside the New-app modal) ─────────────────────
 

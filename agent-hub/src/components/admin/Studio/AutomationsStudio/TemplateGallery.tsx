@@ -1,9 +1,9 @@
 import { Bookmark, CloudOff, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useAutomationTemplates } from '../../../../api/queries/automation/templates';
-import type { TemplateCard } from '../../../../api/queries/automation/templates';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useAutomationTemplates } from '@/api/queries/automation/templates';
+import type { TemplateCard } from '@/api/queries/automation/templates';
+import { useTranslation } from '@/hooks/useTranslation';
 import TemplateTile from './TemplateTile';
 
 export interface TemplateGalleryProps {

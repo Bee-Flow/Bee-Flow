@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { OnFocusField } from '../../../mapping/focusField.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import AccordionSection from '../../AccordionSection';
 import FieldHint from '../../FieldHint';
 import { hintTextClass } from '../formPrimitives';

@@ -5,10 +5,10 @@
 import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate } from '../../../../api/mutate';
-import Modal from '../../../shared/Modal';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
+import Modal from '@/components/shared/Modal';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { Schedule } from '../builderSplit/useAgentSchedules';
 import type { EditorAgent } from '../builderSplit/editorTypes';
 import type { ScheduleModalProps } from './SchedulePickers.types';

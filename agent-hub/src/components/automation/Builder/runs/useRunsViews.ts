@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { GoldenItem } from '../../../../api/queries/automation/runChecks';
+import type { GoldenItem } from '@/api/queries/automation/runChecks';
 import type { RunsSection } from './RunsTesting';
 
 /** Two runs shown side by side, and the fields the golden's verdict leaves out. */

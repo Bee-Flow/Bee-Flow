@@ -164,7 +164,7 @@ router.get('/agent-search/defaults', requireAuth, async (req, res) => {
 
 // Installation-wide: every agent's search reads these. It used to take
 // requireAuth only, so any signed-in user could rewrite them for everyone.
-router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefaultsBody }), async (req, res) => {
+router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefaultsBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof SearchDefaultsBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
     const { mode, include_citations, web, web_fast } = req.body;
     await configStore.setConfig('agent_search_defaults', {
@@ -186,7 +186,7 @@ router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefault
 });
 
 // PUT /ai/n8n/config — save org's n8n URL + API key (org admin only)
-router.put('/n8n/config', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), async (req, res) => {
+router.put('/n8n/config', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nConfigBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { n8nUrl, apiKey } = req.body;
     const orgId = req.orgId;
 
@@ -215,7 +215,7 @@ router.get('/n8n/workflows', requireOrgAdminForN8n, async (req, res) => {
 });
 
 // PUT /ai/n8n/workflows — save selected workflows + input/output config (org admin only)
-router.put('/n8n/workflows', requireOrgAdminForN8n, validate({ body: N8nWorkflowsBody }), async (req, res) => {
+router.put('/n8n/workflows', requireOrgAdminForN8n, validate({ body: N8nWorkflowsBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nWorkflowsBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { workflows } = req.body;
     const orgId = req.orgId;
 
@@ -239,7 +239,7 @@ router.get('/n8n/workflow/:workflowId', requireOrgAdminForN8n, async (req, res) 
 
 // POST /ai/n8n/test — verify that the stored creds can reach n8n and count workflows.
 // Accepts optional { n8nUrl, apiKey } to test unsaved values from the config form.
-router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), async (req, res) => {
+router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nConfigBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { n8nFetch } = require('../../../integrations/n8nHttp');
     try {
         const orgId = req.orgId;
@@ -486,7 +486,7 @@ router.get('/n8n/permissions', requireOrgAdminForN8n, async (req, res) => {
 
 // PUT /ai/n8n/permissions — grant or revoke an n8n permission for a specific group.
 // Body: { permission: 'use_n8n_tools' | 'modify_n8n_workflows', groupId, action: 'add' | 'remove' }
-router.put('/n8n/permissions', requireOrgAdminForN8n, validate({ body: N8nPermissionBody }), async (req, res) => {
+router.put('/n8n/permissions', requireOrgAdminForN8n, validate({ body: N8nPermissionBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nPermissionBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { permission, groupId, action } = req.body || {};
     if (!N8N_PERMISSION_IDS.includes(permission)) {
         return res.status(400).json({ error: `permission must be one of: ${N8N_PERMISSION_IDS.join(', ')}` });
@@ -577,7 +577,7 @@ router.get('/mcp-servers', requireAuth, requireMcp, async (req, res) => {
 });
 
 // POST /ai/mcp-servers — add a new MCP server definition (admin)
-router.post('/mcp-servers', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpServerBody }), async (req, res) => {
+router.post('/mcp-servers', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpServerBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof McpServerBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { name, command, args = [], required_credentials = [], transport = 'stdio', url, category, description, icon, source = 'manual' } = req.body;
     if (!name) {
         return res.status(400).json({ error: 'name is required' });
@@ -594,7 +594,7 @@ router.post('/mcp-servers', requireAuth, requireSuperAdmin, requireMcp, validate
 });
 
 // POST /ai/mcp-servers/test — test an MCP server command
-router.post('/mcp-servers/test', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpTestBody }), async (req, res) => {
+router.post('/mcp-servers/test', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpTestBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof McpTestBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { command, args = [], transport = 'stdio', url } = req.body;
     if (transport === 'stdio' && !command) return res.status(400).json({ error: 'command is required for stdio' });
     if (transport === 'http' && !url) return res.status(400).json({ error: 'url is required for HTTP' });
@@ -603,7 +603,7 @@ router.post('/mcp-servers/test', requireAuth, requireSuperAdmin, requireMcp, val
 });
 
 // PUT /ai/mcp-servers/:id — update an MCP server config (admin)
-router.put('/mcp-servers/:id', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpUpdateBody }), async (req, res) => {
+router.put('/mcp-servers/:id', requireAuth, requireSuperAdmin, requireMcp, validate({ body: McpUpdateBody }), /** @param {import('express').Request<{ id: string }, any, import('zod').infer<typeof McpUpdateBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { id } = req.params;
     const { name, command, args, required_credentials, enabled, transport, url, category, description, icon } = req.body;
     const mcpStore = require('../../../stores/mcpStore');
@@ -649,7 +649,7 @@ router.get('/mcp-servers/user-credentials', requireAuth, requireMcp, async (req,
 // credential for a server an admin already defined (`req.session.user.id` is the
 // only subject it can touch). The admin gate above is about who may define what
 // gets executed; this is about who may supply their own key to it.
-router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({ body: McpCredentialBody }), async (req, res) => {
+router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({ body: McpCredentialBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof McpCredentialBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const { serverId, credKey, value } = req.body;
     if (!serverId || !credKey) {
@@ -671,7 +671,7 @@ const { fallback } = require('../../../utils/bestEffort');
 const mcpRegistryCache = createTtlCache({ ttlMs: 5 * 60 * 1000, max: 200 });
 
 // GET /ai/mcp-registry/search?q=&cursor=&verifiedOnly=1
-router.get('/mcp-registry/search', requireAuth, requireMcp, validate({ query: RegistryQuery }), async (req, res) => {
+router.get('/mcp-registry/search', requireAuth, requireMcp, validate({ query: RegistryQuery }), /** @param {import('express').Request<{}, any, any, import('zod').infer<typeof RegistryQuery>>} req */ async (req, res) => {
     try {
         const q = (req.query.q || '').toString().slice(0, 200).trim();
         const cursor = (req.query.cursor || '').toString();

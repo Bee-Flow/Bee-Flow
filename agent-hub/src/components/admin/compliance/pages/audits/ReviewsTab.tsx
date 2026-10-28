@@ -6,10 +6,10 @@ import {
 import { mrInputLabel, mrInputValue } from './isoProcessHelpers';
 import useHeaderPrimary from './useHeaderPrimary';
 import type { SetHeaderActions } from './useHeaderPrimary';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
-import EmptyState from '../../../../shared/EmptyState';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
+import SideDrawer, { DrawerSection } from '@/components/shared/SideDrawer';
 import useDrawerMode from '../../shared/useDrawerMode';
 import type { OrgUser } from '../accessAuditLabels';
 

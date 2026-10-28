@@ -1,10 +1,10 @@
 import { ArrowUpRight, Lock, Plus, Sparkles } from 'lucide-react';
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { frameworkIcon } from './frameworkIcons';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { TONES, type Tone } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TONES, type Tone } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { daysUntil, formatCalDate, parseDay, SOON_DAYS } from '../../shared/calendarMath';
 
 /**

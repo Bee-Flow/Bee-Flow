@@ -8,11 +8,12 @@ import {
     fmt, fmtDuration, fmtTime, shortModel, COLORS,
     Card, Empty, MetricCard
 } from './shared';
-import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '@/utils/terminationsModel';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
 import { API, TYPE_META, typeLabel, fetchJson, rangeQuery, fmtBytes, filterSelectWrapper, filterSelectStyle } from './TerminationsPage.helpers';
 import { StackedBarChart } from './StackedBarChart';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the
 // no-store handling that exists because the Nextcloud proxy path was replaying
 // stale per-user API responses from the browser cache — and usage figures are
@@ -62,9 +63,9 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
     const [filterAgent, setFilterAgent] = useState('');
     const [search, setSearch] = useState('');
     const [expanded, setExpanded] = useState<string | number | null>(null);
+    useAdjustOnChange([range, customStart, customEnd], () => setLoading(true));
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
         const q = rangeQuery(range, customStart, customEnd);
         const interval = (range === 'today' || (range === 'custom' && customStart && customEnd && (new Date(customEnd).getTime() - new Date(customStart).getTime()) <= 86400000))
             ? 'hour' : 'day';

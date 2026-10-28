@@ -2,22 +2,22 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { projectKeys } from '../../../api/queries/projects';
-import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
+import { projectKeys } from '@/api/queries/projects';
+import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import { ProjectLiveProvider } from './ProjectLiveContext';
 import ProjectWorkspacePage from './ProjectWorkspacePage';
-import { mayNavigate } from '../../../utils/unsavedNavigation';
+import { mayNavigate } from '@/utils/unsavedNavigation';
 import type { ProjectWorkspacePageProps } from './types';
 import { EDITOR_ID, makeFakeApi, makeMembers, makeProject, OWNER_ID, reply } from './workspaceTestApi';
 
 const { fetchMock, sectionProps } = vi.hoisted(() => ({ fetchMock: vi.fn(), sectionProps: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,
 }));
 // No live stream in a unit test; the provider's cache wiring is tested with it.
-vi.mock('../../../hooks/useProjectStream', () => ({ default: () => undefined }));
+vi.mock('@/hooks/useProjectStream', () => ({ default: () => undefined }));
 
 /** The hub provides the live feed around the page; do the same here. */
 function PageInHub(props: ProjectWorkspacePageProps) {

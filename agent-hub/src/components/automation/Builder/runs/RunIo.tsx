@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Braces, Hash, Table2, ToggleLeft, Type, Circle } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
 import OutputView from '../OutputView';
 import type { IoField, IoKind } from './runIo';
 import { configFields, humanKey, ioFields, mainList } from './runIo';

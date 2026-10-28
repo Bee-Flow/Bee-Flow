@@ -2,10 +2,10 @@
 // "take this out of the project" action with Undo.
 
 import { useCallback, useState } from 'react';
-import { useAttachResource, useProjectMembersQuery } from '../../../../api/queries/projects';
-import useTranslation from '../../../../hooks/useTranslation';
+import { useAttachResource, useProjectMembersQuery } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 
 /**
  * A display name for a user id, from the project's member list. The caller

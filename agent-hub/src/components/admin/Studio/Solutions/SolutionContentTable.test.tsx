@@ -2,7 +2,7 @@ import { render, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch?: (...a: unknown[]) => unknown }).__authFetch?.(...args) ?? Promise.resolve({ ok: false, json: async () => ({}) }),
 }));

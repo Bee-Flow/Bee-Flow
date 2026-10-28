@@ -1,9 +1,9 @@
 import React from 'react';
 import { Mic, Upload, MessageSquare, Video, Users, ArrowLeft, X } from 'lucide-react';
-import Modal from '../../../components/shared/Modal';
-import IconButton from '../../../components/shared/IconButton';
-import useConfirm from '../../../components/shared/useConfirm';
-import useTranslation from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import IconButton from '@/components/shared/IconButton';
+import useConfirm from '@/components/shared/useConfirm';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureTile from './CaptureTile';
 import RecordPanel from './RecordPanel';
 import UploadPanel from './UploadPanel';
@@ -15,10 +15,10 @@ import { useRecorder } from '../hooks/RecorderContext';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useNextcloudConnected from '../hooks/useNextcloudConnected';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
-import { useTeamsNotesUserSettings } from '../../../api/queries/teamsMeetingNotes';
+import { useTeamsNotesUserSettings } from '@/api/queries/teamsMeetingNotes';
 import type { ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CaptureMode } from './CaptureContext';
 
 interface CaptureText {

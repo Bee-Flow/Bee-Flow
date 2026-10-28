@@ -53,7 +53,7 @@ function makeKindRouter(deps = {}) {
             `This is already ${what}. A project's kind is set once.`, { kind });
     }
 
-    router.put('/:id/kind', requireRole('owner'), validate({ body: S.KindBody }), async (req, res) => {
+    router.put('/:id/kind', requireRole('owner'), validate({ body: S.KindBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.KindBody>, import('qs').ParsedQs>} */ req, res) => {
         const { kind } = req.body;
         const project = await store().getProject(req.params.id);
         if (!project) throw notFound();

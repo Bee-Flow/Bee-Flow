@@ -53,7 +53,7 @@ async function persistExtractionOntoSidecar(att, fullText, persistedByLive, user
         record.extractedText = tiered.extractedText;
         if (tiered.extractionKey) record.extractionKey = tiered.extractionKey;
     } catch (err) {
-        log.warn(`[AttachmentProcessor] Failed to persist extracted text for ${att.name}: ${/** @type {Error} */ (err).message}`);
+        log.warn(`[AttachmentProcessor] Failed to persist extracted text for ${log.nameForLog(att.name)}: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -122,7 +122,7 @@ function appendTextPart(lastMsg, text) {
 async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persistedByLive, userId, attachmentExtractor }) {
     const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = attachmentExtractor();
     const result = /** @type {ExtractedAttachment} */ (await extractAttachment(/** @type {import('../documents/attachmentExtractor').Attachment} */ (att), { modelSupportsVision }));
-    log.info(`[AttachmentProcessor] PDF ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
+    log.info(`[AttachmentProcessor] PDF ${log.nameForLog(att.name)} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
 
     const textBlock = lastMsg.content.find((/** @type {{ type: string; }} */ c) => c.type === 'text');
     if (result.kind === 'text') {
@@ -166,14 +166,14 @@ async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persist
  */
 async function appendImage(att, lastMsg, { userId }) {
     const sizeKB = Math.round((att.content?.length || 0) / 1024);
-    log.info(`[AttachmentProcessor] Processing image ${att.name || 'unnamed'} (${sizeKB} KB base64)`);
+    log.info(`[AttachmentProcessor] Processing image ${log.nameForLog(att.name)} (${sizeKB} KB base64)`);
 
     /** @type {string | null} */
     let imageUrl = null;
     if (userId) {
         imageUrl = await uploadImageForInference(att.content, att.type, userId, att.name);
         if (imageUrl) {
-            log.info(`[AttachmentProcessor] Image uploaded to RustFS → using URL for inference (${att.name})`);
+            log.info(`[AttachmentProcessor] Image uploaded to RustFS → using URL for inference (${log.nameForLog(att.name)})`);
         }
     }
 
@@ -186,7 +186,7 @@ async function appendImage(att, lastMsg, { userId }) {
     });
 
     if (!imageUrl) {
-        log.info(`[AttachmentProcessor] RustFS unavailable — using base64 for ${att.name || 'unnamed'}`);
+        log.info(`[AttachmentProcessor] RustFS unavailable — using base64 for ${log.nameForLog(att.name)}`);
     }
 }
 
@@ -228,7 +228,7 @@ async function appendParsedDocument(att, lastMsg, { maybeScan, persistedByLive, 
             ? att.content.split(',')[1]
             : att.content;
         if (!base64Data) {
-            log.warn(`[AttachmentProcessor] Skipping ${att.name}: no content payload`);
+            log.warn(`[AttachmentProcessor] Skipping ${log.nameForLog(att.name)}: no content payload`);
             return;
         }
         // Reject oversized base64 before we allocate the buffer. 50 MB raw
@@ -236,7 +236,7 @@ async function appendParsedDocument(att, lastMsg, { maybeScan, persistedByLive, 
         // malicious or buggy uploader.
         const MAX_BASE64_LEN = 80 * 1024 * 1024;
         if (typeof base64Data === 'string' && base64Data.length > MAX_BASE64_LEN) {
-            log.warn(`[AttachmentProcessor] Skipping ${att.name}: base64 payload too large (${base64Data.length} chars)`);
+            log.warn(`[AttachmentProcessor] Skipping ${log.nameForLog(att.name)}: base64 payload too large (${base64Data.length} chars)`);
             appendTextPart(lastMsg, `\n\n[Attachment: ${att.name} — skipped, payload exceeded ${MAX_BASE64_LEN} chars]\n`);
             return;
         }
@@ -249,7 +249,7 @@ async function appendParsedDocument(att, lastMsg, { maybeScan, persistedByLive, 
         await persistExtractionOntoSidecar(att, safeText, persistedByLive, userId);
     } catch (e) {
         if (e && e.code === 'ATTACHMENT_PII_BLOCKED') throw e;
-        log.error(`[AttachmentProcessor] Failed to parse document ${att.name}`, e);
+        log.error(`[AttachmentProcessor] Failed to parse document ${log.nameForLog(att.name)}`, e);
     }
 }
 

@@ -40,7 +40,8 @@ export function useNavigateToPage({
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
 }: UseNavigateToPageArgs) {
-    const navigateToPage = useCallback((page: string, { replace = false }: { replace?: boolean } = {}) => whenMayNavigate(() => {
+    // Named so the redirects inside it can call it again.
+    const navigateToPage = useCallback(function navigateTo(page: string, { replace = false }: { replace?: boolean } = {}) { return whenMayNavigate(() => {
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close
@@ -187,7 +188,7 @@ export function useNavigateToPage({
         // The old standalone automations page key: Automations live in Studio.
         if (page === 'aiTasks' || page.startsWith('aiTasks:')) {
             const id = page.includes(':') ? page.split(':')[1] : null;
-            navigateToPage(id ? `studio/automations/${id}` : 'studio/automations');
+            navigateTo(id ? `studio/automations/${id}` : 'studio/automations');
             return;
         }
         // /app/billing is a stable, account-type-agnostic entry point for the
@@ -199,7 +200,7 @@ export function useNavigateToPage({
             const target = user?.isConsumerAccount
                 ? 'settings/account/license'
                 : 'settings/organisation/license';
-            navigateToPage(target);
+            navigateTo(target);
             return;
         }
         // Settings renders inline in conversation area
@@ -275,7 +276,7 @@ export function useNavigateToPage({
         // that notebook (`studio/documents/notebook/<id>`).
         if (page === 'notebooks' || page.startsWith('notebooks/')) {
             const notebookId = page.startsWith('notebooks/') ? page.slice('notebooks/'.length) : null;
-            navigateToPage(notebookId ? `studio/documents/notebook/${notebookId}` : 'studio/documents', { replace });
+            navigateTo(notebookId ? `studio/documents/notebook/${notebookId}` : 'studio/documents', { replace });
             return;
         }
         // Cowork — a top-level page with a selectable detail pane. Bare
@@ -370,7 +371,7 @@ export function useNavigateToPage({
         setShowSkillsPanel(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
-    }), [isMobileRef, setAdminPath, setAppRunId, setCurrentPage, setFormViewToken, setInitialCoworkId, setInitialDesignerAgentId, setInitialDocumentId, setInitialProjectRoute, setOrgSettingsPath, setShowAgentDesigner, setShowAgentWizard, setShowProfileMenu, setShowProjects, setShowSettings, setShowSkillsPanel, setShowStudio, setStudioRoute, user?.isConsumerAccount]);
+    }); }, [isMobileRef, setAdminPath, setAppRunId, setCurrentPage, setFormViewToken, setInitialCoworkId, setInitialDesignerAgentId, setInitialDocumentId, setInitialProjectRoute, setOrgSettingsPath, setShowAgentDesigner, setShowAgentWizard, setShowProfileMenu, setShowProjects, setShowSettings, setShowSkillsPanel, setShowStudio, setStudioRoute, user?.isConsumerAccount]);
 
     return navigateToPage;
 }

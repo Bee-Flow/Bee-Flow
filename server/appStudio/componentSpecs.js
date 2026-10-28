@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — component catalog & schema contract (single source of truth).
  *

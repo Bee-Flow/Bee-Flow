@@ -1,12 +1,12 @@
 import { QueryClientContext } from '@tanstack/react-query';
 import { MessagesSquare } from 'lucide-react';
 import React, { useContext, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import useConfirm from '../../../../../shared/useConfirm';
+import { useTranslation } from '@/hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
 import {
     refusalOf, useChatMonitoringConfig, useDeleteChatMonitoringCounts, type ChatMonitoringConfig,
-} from '../../../data/useChatMonitoring';
-import { useDateFormat } from '../../../shared/formatDates';
+} from '@/components/admin/compliance/data/useChatMonitoring';
+import { useDateFormat } from '@/components/admin/compliance/shared/formatDates';
 import { ActionButton, StatusPill } from './formAtoms';
 import ChatMonitoringIntro from './ChatMonitoringIntro';
 import ChatMonitoringSetup from './ChatMonitoringSetup';

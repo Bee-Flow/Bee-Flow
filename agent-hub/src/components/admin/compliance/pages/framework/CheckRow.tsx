@@ -7,10 +7,10 @@ import {
     type CheckRecord,
 } from './checkSort';
 import { FindingStateChip, type FindingStateView } from './FindingDecision';
-import useNow from '../../../../../hooks/useNow';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TableRow, TableCell, type TableColumn } from '../../../../shared/DataTable';
-import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
+import useNow from '@/hooks/useNow';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { TableRow, TableCell, type TableColumn } from '@/components/shared/DataTable';
+import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '@/components/shared/statusTone';
 import { sectionById } from '../../sections';
 import ArticleRef, { formatArticleRef, formatRef } from '../../shared/ArticleRef';
 import type { DateLike } from '../../shared/formatDates';

@@ -4,7 +4,7 @@ import { InlineHint, CollapsibleCard, BackgroundCard } from '../primitives';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set, CtaButtonField } from './shared';
 import type { CtaButtonValue } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── CTA ───────────────────────────────────────────────────────────────
 

@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * PUT does, so the shell sees a realistic round-trip).
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 // Heavy leaves the shell only needs for their exports / rendering.
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d) => d }));
@@ -30,9 +30,9 @@ vi.mock('./BuilderHeader', () => ({ default: (p) => { header = p; return null; }
 vi.mock('./BuildTab', () => ({ default: (p) => { buildTab = p; header = p.headerProps; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: (p) => { settings = p; return null; } }));
 
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import BuilderShell from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

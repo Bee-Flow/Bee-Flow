@@ -21,8 +21,8 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 
-import useTranslation from '../../../hooks/useTranslation';
-import scopedStorage from '../../../utils/scopedStorage';
+import useTranslation from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
 import ElevenLabsSettings from '../ElevenLabsSettings';
 import ImageGenSettings, { loadSettings } from '../ImageGenSettings';
 import MusicGenSettings from '../MusicGenSettings';

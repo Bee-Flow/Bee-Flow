@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FormRow, denseInputClass, inputClass } from '../formPrimitives';
 import { AI_STEP_DEFAULT_TEMPERATURE, AI_STEP_TEMPERATURE_MAX, AI_STEP_TEMPERATURE_MIN } from './reliabilityModel';
 

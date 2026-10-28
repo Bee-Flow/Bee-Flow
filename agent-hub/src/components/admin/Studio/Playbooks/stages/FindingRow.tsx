@@ -1,9 +1,9 @@
 import { AlertTriangle, Check, Database, ExternalLink, Loader2, Sparkles, Workflow, X, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { isResolvable, linkFor, severityTone, severityWord, targetWords } from './complianceView';
 import type { ComplianceFacts, Finding, ResolvePlan } from './compliance.types';
 
@@ -50,7 +50,7 @@ export default function FindingRow({
     const isHigh = finding.severity === 'high';
     const target = targetWords(finding, t);
     const to = linkFor(finding, facts);
-    const TargetIcon = (target && KIND_ICON[String(target.kind)]) || null;
+    const TargetIcon = target ? KIND_ICON[String(target.kind)] ?? null : null;
     const canResolve = !!onResolve && isResolvable(finding);
     const [open, setOpen] = useState(false);
 

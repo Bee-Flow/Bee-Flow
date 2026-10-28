@@ -1,16 +1,16 @@
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Check, ChevronRight, Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import SetupStepBody, {
     LEGAL_BASES, SETUP_STEPS, SETUP_STEP_COUNT,
     applyAutoDetect, canProceed, firstOpenStep, initialSetupData, setupBody, stepIsComplete,
 } from '../../setup/SetupSteps';
 import type { SetupBody, SetupData, SetupSettings } from '../../setup/SetupSteps';
 import type { OrgUser } from '../../shared/UserPicker';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { logger } from '../../../../../utils/logger';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 interface SetupCardProps {
     settings?: SetupSettings | null;

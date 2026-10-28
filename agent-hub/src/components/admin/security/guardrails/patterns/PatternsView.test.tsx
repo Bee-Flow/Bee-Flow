@@ -11,8 +11,8 @@ vi.mock('../api/guardrailsApi', () => ({
     saveRegexGuardrails: vi.fn(async () => ({})),
     generateRegexWithAi: vi.fn(),
 }));
-vi.mock('../../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 let latest: { rules: RegexRule[]; collections: RuleCollection[] } = { rules: [], collections: [] };
 

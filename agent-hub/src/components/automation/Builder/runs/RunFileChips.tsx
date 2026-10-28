@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Download, Eye, FileImage, FileText } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { formatBytes } from '../../../../utils/dateFormatters';
-import { downloadRunFile, generatedFilesOf, previewKindOf } from '../../../../api/queries/automation/runFiles';
-import type { RunFileRef } from '../../../../api/queries/automation/runFiles';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatBytes } from '@/utils/dateFormatters';
+import { downloadRunFile, generatedFilesOf, previewKindOf } from '@/api/queries/automation/runFiles';
+import type { RunFileRef } from '@/api/queries/automation/runFiles';
 import RunFilePreview from './RunFilePreview';
 
 const CHIP_BTN = 'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50';

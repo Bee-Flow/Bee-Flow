@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 import { addDays, dependencyEdges, buildWorkTree, monday, moveDates, rangePlacement, rollup, taskRange, timelineRelations, TIMELINE_ROW } from './taskPlanning';
 
 describe('Gantt calendar math', () => {

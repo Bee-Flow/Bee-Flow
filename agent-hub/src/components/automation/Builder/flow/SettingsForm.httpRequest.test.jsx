@@ -1,10 +1,10 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import scopedStorage from '@/utils/scopedStorage';
 import { extractFormState, buildPatch } from './settings/formState';
 import SettingsForm from './SettingsForm';
 import { INTEGRATION_ITEMS } from './stepPalette';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { buildStepFromPayload } from '../DiagramPane';
 import { computeUpstreamGroups } from '../mapping/upstream';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -22,7 +22,7 @@ const api = {
         connection: { id: 'c-new', label: body.label, provider: 'http', kind: body.kind },
     })),
 };
-vi.mock('../../../../hooks/useAutomationApi', async (importOriginal) => {
+vi.mock('@/hooks/useAutomationApi', async (importOriginal) => {
     const mod = await importOriginal();
     return { ...mod, default: () => api };
 });

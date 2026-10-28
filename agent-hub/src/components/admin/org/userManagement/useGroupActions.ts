@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminGroup, AdminMessage, AskConfirm, GroupFormData } from './types';
 
 const EMPTY_GROUP: GroupFormData = {

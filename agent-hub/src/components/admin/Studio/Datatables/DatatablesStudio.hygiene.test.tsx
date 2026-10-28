@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MANAGED_COLUMNS } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import DatatablesStudio from './DatatablesStudio';
-import { readAppCss } from '../../../../test/appStylesheets';
+import { readAppCss } from '@/test/appStylesheets';
 import { asMock } from '@/test/mocks';
 
 /**
@@ -29,7 +29,7 @@ import { asMock } from '@/test/mocks';
  *  - and three separate components each fetched the same usage list.
  */
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url) => ({
         ok: true,

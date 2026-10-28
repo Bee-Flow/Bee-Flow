@@ -1,10 +1,10 @@
 import { Calendar, Pencil, Trash2, MapPin, Users, Clock, AlignLeft, type LucideIcon } from 'lucide-react';
 import React from 'react';
 import DraftCardShell from './DraftCardShell';
-import useDraftAction from '../../../hooks/useDraftAction';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { DraftLike } from '../../../hooks/useDraftAction';
+import useDraftAction from '@/hooks/useDraftAction';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { DraftLike } from '@/hooks/useDraftAction';
 import type { ChatMessage } from './messageTypes';
 
 interface CalendarDraft extends DraftLike {

@@ -12,12 +12,12 @@ const { api } = vi.hoisted(() => ({
         rotateFormPage: vi.fn(),
     },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 // A switchable dictionary over the REAL useTranslation, null by default so the
 // tests below keep reading the shipped English.
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 const NodeDetailView = (await import('./NodeDetailView')).default;

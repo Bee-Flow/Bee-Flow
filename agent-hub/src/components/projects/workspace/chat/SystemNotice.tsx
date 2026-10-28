@@ -5,8 +5,8 @@
 
 import { Sparkles } from 'lucide-react';
 import React from 'react';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 /** The notice as one line, for the chat list's excerpt. */
 export function noticeExcerpt(notice: string | null | undefined, t: TranslateFn): string {

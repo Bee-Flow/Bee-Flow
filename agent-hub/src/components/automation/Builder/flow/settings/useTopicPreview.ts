@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import { matchCounts } from './routeIntents';
 import { hostFromPreview, planTopicPreview } from './topicPreview';
 import type { PreviewRule, TopicPreviewResponse } from './topicPreview';
-import { errorStatus } from '../../../../../utils/caughtError';
+import { errorStatus } from '@/utils/caughtError';
 
 /**
  * "Check the sample rows" for "is about" rules: ask the topic classifier to

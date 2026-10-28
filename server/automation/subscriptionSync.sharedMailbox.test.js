@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Activating an Outlook "New email" trigger: the own inbox gets a Graph
  * subscription (webhook) when the install has a public URL; a SHARED mailbox

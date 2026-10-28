@@ -1,8 +1,8 @@
 import { Search, X, Check } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
-import { getIntegrationIcon } from '../../../../config/integrationIcons';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import React, { useMemo, useState } from 'react';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** One app that can start an automation, with the events it can trigger on. */
 interface TriggerProvider {
@@ -55,9 +55,8 @@ export default function TriggerProviderPicker({ providers = [], selected = null,
         );
     }, [providers, search]);
 
-    useEffect(() => {
-        if (filtered.length && !filtered.some(p => p.id === focusedId)) setFocusedId(filtered[0].id);
-    }, [filtered, focusedId]);
+    // Keep the focus on a row that is still listed (during render: no extra pass).
+    if (filtered.length && !filtered.some(p => p.id === focusedId)) setFocusedId(filtered[0].id);
 
     const focused = providers.find(p => p.id === focusedId) || filtered[0] || null;
     const focusedEvents = focused?.events || [];

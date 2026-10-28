@@ -1,8 +1,8 @@
 import { X } from 'lucide-react';
 import React from 'react';
 import AddPartsPanel, { type AddPartsPanelProps } from './AddPartsPanel';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * "Add to this Solution" as a right-hand sheet. Modal owns the focus trap, Escape,

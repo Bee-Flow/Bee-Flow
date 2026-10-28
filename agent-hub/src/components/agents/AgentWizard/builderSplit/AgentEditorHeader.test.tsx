@@ -14,11 +14,11 @@
 import { render, screen, cleanup, within } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: false, json: async () => ({}), text: async () => '' })),
 }));
-vi.mock('../../../../hooks/useTranslation', () => import('../../../../test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 import AgentEditorHeader, { AGENT_TAB_IDS, buildAgentTabs, countOrNothing, publishedVersionOf } from './AgentEditorHeader';
 import { stub } from '@/test/mocks';

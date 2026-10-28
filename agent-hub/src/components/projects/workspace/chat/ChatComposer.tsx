@@ -4,10 +4,10 @@
 
 import { Bot, BookOpen, CheckSquare, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
-import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import TierSlider from '../../../licensing/TierSlider';
-import { ComposerShell } from '../../../shared/ComposerBox';
+import type { TeamChatRef } from '@/api/queries/projectChatTypes';
+import { useTranslation } from '@/hooks/useTranslation';
+import TierSlider from '@/components/licensing/TierSlider';
+import { ComposerShell } from '@/components/shared/ComposerBox';
 import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { readDraft, writeDraft } from './drafts';
 import { isImeEnter, isImeKey } from './ime';
@@ -212,7 +212,7 @@ function useComposerState(props: ChatComposerProps) {
 export default function ChatComposer(props: ChatComposerProps) {
     const { t } = useTranslation();
     const menuId = useId();
-    const s = useComposerState(props);
+    const { inputRef, ...s } = useComposerState(props);
     const empty = !s.text.trim();
     return (
         <div className="flex-shrink-0 px-4 pb-4">
@@ -220,7 +220,7 @@ export default function ChatComposer(props: ChatComposerProps) {
                 {props.reply && <ReplyChip reply={props.reply} onCancel={props.onCancelReply} />}
                 {s.menu.open && <MentionMenu id={menuId} menu={s.menu} onPick={s.pick} />}
                 <textarea
-                    ref={s.inputRef}
+                    ref={inputRef}
                     value={s.text}
                     onChange={s.onChange}
                     onKeyDown={s.onKeyDown}

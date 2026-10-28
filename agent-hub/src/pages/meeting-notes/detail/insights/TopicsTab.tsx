@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { BarRow, EmptyState, MetricRow, TabHeading } from './primitives';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { InsightsModel, SeekFn } from './insights.types';
 
 interface TopicsTabProps {

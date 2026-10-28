@@ -1,5 +1,5 @@
 import { GitBranch, Settings, Unlink, ExternalLink } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { GitHubSyncConfig, GitHubSyncOverview } from './githubSync.types';
 
 interface GitHubRepoCardProps {

@@ -3,9 +3,9 @@
 // editor (AiActWizard): the questions, Bee's evidence lines, the outcomes.
 // English fallbacks here; the catalogue keys are automations.aiact.*.
 
-import type { useTranslation } from '../../../../hooks/useTranslation';
-import type { AnnexDomainId, Tri } from '../../../../api/queries/automation/readiness';
-import type { AiActCheckQuestion } from '../../../../api/queries/automation/aiActCheck';
+import type { useTranslation } from '@/hooks/useTranslation';
+import type { AnnexDomainId, Tri } from '@/api/queries/automation/readiness';
+import type { AiActCheckQuestion } from '@/api/queries/automation/aiActCheck';
 
 type T = ReturnType<typeof useTranslation>['t'];
 

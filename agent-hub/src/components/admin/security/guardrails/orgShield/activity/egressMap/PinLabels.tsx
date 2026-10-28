@@ -8,7 +8,7 @@
 
 import React, { useMemo } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_TEXT_FILL } from '../../shieldPalette';
 import { clusterRadius, isMuted, type KindFocus } from './MapLayers';
 import {

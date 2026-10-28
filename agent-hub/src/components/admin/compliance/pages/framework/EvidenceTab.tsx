@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { useComplianceRead } from '../../../../../api/queries/complianceReads';
+import { useComplianceRead } from '@/api/queries/complianceReads';
 import { FileJson, Fingerprint } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, type TableColumn } from '../../../../shared/DataTable';
-import Pager from '../../../../shared/Pager';
-import EmptyState from '../../../../shared/EmptyState';
-import { TONES } from '../../../../shared/statusTone';
-import { API, fetchJson, asArray, asObject } from '../../../../../api/complianceApi';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, type TableColumn } from '@/components/shared/DataTable';
+import Pager from '@/components/shared/Pager';
+import EmptyState from '@/components/shared/EmptyState';
+import { TONES } from '@/components/shared/statusTone';
+import { API, fetchJson, asArray, asObject } from '@/api/complianceApi';
 import { rowKeyOf, shortHash, subjectLabel, toMs, type CheckRecord } from './checkSort';
 import type { RowCheck } from './CheckRow';
 

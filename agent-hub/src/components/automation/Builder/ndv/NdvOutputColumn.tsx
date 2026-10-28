@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import RunTabContainer from '../debug/RunTabContainer';
 import type { DataSummary } from '../flow/types';
 import { continuesSummary } from './ndvModel';

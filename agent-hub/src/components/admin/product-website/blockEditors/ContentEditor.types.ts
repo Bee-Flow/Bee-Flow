@@ -1,5 +1,5 @@
 import type { StyleBlob } from '../primitives.types';
-import type { ContentElement, ContentData, LegacyContent, ContentColumn } from '../../../../marketing/sections/contentMigration';
+import type { ContentElement, ContentData, LegacyContent, ContentColumn } from '@/marketing/sections/contentMigration';
 import type { CmsPageOption } from '../fields';
 import type { BlockData } from './shared';
 

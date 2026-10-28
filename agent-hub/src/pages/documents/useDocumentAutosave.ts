@@ -235,26 +235,27 @@ function useCtx(options: AutosaveOptions) {
     const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
     const [error, setError] = useState<Error | null>(null);
     const [conflict, setConflict] = useState<Conflict | null>(null);
-    const ctx = useRef<Ctx>(null as unknown as Ctx);
-    if (!ctx.current) {
-        ctx.current = {
-            documentId: options.documentId, docRef: options.docRef,
-            pending: { current: null }, reported: { current: 0 }, base: { current: null }, inFlight: { current: null }, queue: { current: Promise.resolve() },
-            cb: { current: options },
-            set: { state: setSaveState, error: setError, conflict: setConflict, savedAt: setLastSavedAt },
-        };
-    }
-    useEffect(() => { ctx.current.cb.current = options; ctx.current.documentId = options.documentId; });
-    return { ctx: ctx.current, saveState, lastSavedAt, error, conflict, setSaveState, setError };
+    // The save machinery is mutable and lives in a ref; it is only read in
+    // callbacks and effects. The argument is the first render's value (later
+    // renders build one that useRef ignores: a few small objects).
+    const ctxRef = useRef<Ctx>({
+        documentId: options.documentId, docRef: options.docRef,
+        pending: { current: null }, reported: { current: 0 }, base: { current: null }, inFlight: { current: null }, queue: { current: Promise.resolve() },
+        cb: { current: options },
+        set: { state: setSaveState, error: setError, conflict: setConflict, savedAt: setLastSavedAt },
+    });
+    useEffect(() => { ctxRef.current.cb.current = options; ctxRef.current.documentId = options.documentId; });
+    return { ctxRef, saveState, lastSavedAt, error, conflict, setSaveState, setError };
 }
 
 export default function useDocumentAutosave(options: AutosaveOptions) {
-    const { ctx, saveState, lastSavedAt, error, conflict, setSaveState, setError } = useCtx(options);
+    const { ctxRef, saveState, lastSavedAt, error, conflict, setSaveState, setError } = useCtx(options);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const stopTimer = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
-    const flush = useCallback(async () => { stopTimer(); await flushNow(ctx); }, [ctx]);
+    const flush = useCallback(async () => { stopTimer(); await flushNow(ctxRef.current); }, [ctxRef]);
 
     const markDirty = useCallback((html: string) => {
+        const ctx = ctxRef.current;
         if (ctx.docRef.current?.editable === false) return;
         ctx.reported.current += 1;
         if (html === ctx.docRef.current?.bodyHtml && ctx.pending.current == null) return;
@@ -264,28 +265,33 @@ export default function useDocumentAutosave(options: AutosaveOptions) {
         setSaveState((s) => (s === 'conflict' ? s : 'unsaved'));
         stopTimer();
         timer.current = setTimeout(() => { flush().catch(() => undefined); }, AUTOSAVE_MS);
-    }, [ctx, flush, setSaveState]);
+    }, [ctxRef, flush, setSaveState]);
 
     // Leaving the editor saves what is pending (the common way out is Back,
     // well inside the autosave window); a failure keeps the draft.
-    useEffect(() => () => { stopTimer(); if (ctx.pending.current != null) flushNow(ctx).catch(() => undefined); }, [ctx]);
+    useEffect(() => () => {
+        stopTimer();
+        const ctx = ctxRef.current;
+        if (ctx.pending.current != null) flushNow(ctx).catch(() => undefined);
+    }, [ctxRef]);
     useEffect(() => {
         const onBeforeUnload = (e: BeforeUnloadEvent) => {
+            const ctx = ctxRef.current;
             if (ctx.pending.current == null && !ctx.inFlight.current) return;
             e.preventDefault();
             e.returnValue = '';
         };
         window.addEventListener('beforeunload', onBeforeUnload);
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, [ctx]);
+    }, [ctxRef]);
 
     return {
         saveState, lastSavedAt, error, conflict, markDirty, flush,
-        enqueue: <T,>(fn: () => Promise<T>) => enqueue(ctx, fn),
+        enqueue: <T,>(fn: () => Promise<T>) => enqueue(ctxRef.current, fn),
         /** The frame now shows exactly this revision. */
-        syncedTo: (doc: StudioDocument) => { ctx.base.current = doc.versionId; },
-        resolveConflict: (choices: Record<string, 'mine' | 'theirs'>) => (conflict ? resolveWith(ctx, conflict, choices) : Promise.resolve(null)),
-        discardMine: () => { stopTimer(); return discard(ctx); },
+        syncedTo: (doc: StudioDocument) => { ctxRef.current.base.current = doc.versionId; },
+        resolveConflict: (choices: Record<string, 'mine' | 'theirs'>) => (conflict ? resolveWith(ctxRef.current, conflict, choices) : Promise.resolve(null)),
+        discardMine: () => { stopTimer(); return discard(ctxRef.current); },
         /**
          * The server state changed under the editor for a reason the editor
          * chose (a restore): what was typed before it is dropped, and the
@@ -293,6 +299,7 @@ export default function useDocumentAutosave(options: AutosaveOptions) {
          */
         replaceWith: (doc: StudioDocument) => {
             stopTimer();
+            const ctx = ctxRef.current;
             ctx.pending.current = null;
             ctx.base.current = doc.versionId;
             writeDraft(ctx.documentId, null);
@@ -302,10 +309,15 @@ export default function useDocumentAutosave(options: AutosaveOptions) {
             adopt(ctx, doc);
         },
         /** Forget the kept draft (the person discarded it). */
-        dropDraft: () => writeDraft(ctx.documentId, null),
+        dropDraft: () => writeDraft(ctxRef.current.documentId, null),
         /** Put a recovered draft back: saved like a late save, merged against its base. */
-        restoreDraft: (draft: Draft) => { ctx.base.current = draft.base || ctx.docRef.current?.versionId || null; ctx.pending.current = draft.html; return flush(); },
-        hasPending: () => ctx.pending.current != null || !!ctx.inFlight.current,
+        restoreDraft: (draft: Draft) => {
+            const ctx = ctxRef.current;
+            ctx.base.current = draft.base || ctx.docRef.current?.versionId || null;
+            ctx.pending.current = draft.html;
+            return flush();
+        },
+        hasPending: () => ctxRef.current.pending.current != null || !!ctxRef.current.inFlight.current,
         clearError: () => setError(null),
     };
 }

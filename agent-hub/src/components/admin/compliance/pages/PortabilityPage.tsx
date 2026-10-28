@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { ArrowLeftRight, Check, TriangleAlert, X } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { DataTableContext, RowLike, TableColumn } from '../../../shared/DataTable';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
-import type { Tone } from '../../../shared/statusTone';
-import { TONES } from '../../../shared/statusTone';
-import { API, asArray } from '../../../../api/complianceApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext, RowLike, TableColumn } from '@/components/shared/DataTable';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import type { Tone } from '@/components/shared/statusTone';
+import { TONES } from '@/components/shared/statusTone';
+import { API, asArray } from '@/api/complianceApi';
 import useResource from '../data/useResource';
 import type { SetHeaderActions } from './audits/useHeaderPrimary';
 

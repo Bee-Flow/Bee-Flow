@@ -21,10 +21,10 @@ import ChecksTab from './tabs/ChecksTab';
 import DetectionTab from './tabs/DetectionTab';
 import OverviewTab from './tabs/OverviewTab';
 import useOrgShield from './useOrgShield';
-import { TranslateParams, useTranslation } from '../../../../../hooks/useTranslation';
-import { useUrlQueryParam } from '../../../../../hooks/useUrlTab';
-import { useLicenseContext } from '../../../../licensing/LicenseContext';
-import { toast } from '../../../../shared/Toast';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { useUrlQueryParam } from '@/hooks/useUrlTab';
+import { useLicenseContext } from '@/components/licensing/LicenseContext';
+import { toast } from '@/components/shared/Toast';
 import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
 
 /**

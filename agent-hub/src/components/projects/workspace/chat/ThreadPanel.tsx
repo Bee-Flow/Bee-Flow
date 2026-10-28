@@ -4,7 +4,7 @@
 
 import { CheckSquare, X } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import ChatComposer, { type ChatComposerProps } from './ChatComposer';
 import type { BaseMessageContext } from './ChatMessageList';
 import ChatMessageList from './ChatMessageList';

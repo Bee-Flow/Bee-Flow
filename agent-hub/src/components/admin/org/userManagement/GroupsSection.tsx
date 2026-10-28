@@ -1,6 +1,6 @@
 import { Edit2, Shield, Trash2 } from 'lucide-react';
 import type { AdminGroup, AdminOrganization, AdminUser } from './types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface GroupsSectionProps {
     groups: AdminGroup[];

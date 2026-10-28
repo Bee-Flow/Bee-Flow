@@ -20,8 +20,9 @@
  * what visitors actually saw, not the current draft.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const PREVIEW_SRC = '/__cms_preview__?preview=1';
 
@@ -65,7 +66,7 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
     const { t } = useTranslation();
     const tRef = useRef(t);
     useEffect(() => { tRef.current = t; }, [t]);
-    const [status, setStatus] = useState('idle');
+    const [status, setStatus] = useState(() => (enabled && urlPath ? 'loading' : 'idle'));
     const [error, setError] = useState<string | null>(null);
     const [pageHeight, setPageHeight] = useState<number | null>(null);
     const [blocks, setBlocks] = useState<PreviewBlock[]>([]);
@@ -77,14 +78,18 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
 
     // Content fetch + handshake + push. Split from measurement so a width
     // change re-measures without re-fetching and re-mounting the frame.
-    useEffect(() => {
-        if (!enabled || !urlPath) { setStatus('idle'); return undefined; }
-        let cancelled = false;
-        let readyTimer: string|number|NodeJS.Timeout|null|undefined = null;
+    // A new page (or a retry) starts over: reset during render, before the fetch.
+    useAdjustOnChange([urlPath, locale, enabled, attempt], () => {
+        if (!enabled || !urlPath) { setStatus('idle'); return; }
         setStatus('loading');
         setError(null);
         setBlocks([]);
         setPageHeight(null);
+    });
+    useEffect(() => {
+        if (!enabled || !urlPath) return undefined;
+        let cancelled = false;
+        let readyTimer: string|number|NodeJS.Timeout|null|undefined = null;
 
         const slug = pathToSlug(urlPath);
         const qs = `locale=${encodeURIComponent(locale)}${slug ? `&slug=${encodeURIComponent(slug)}` : ''}`;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { useDateFormat } from '../../../shared/formatDates';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useDateFormat } from '@/components/admin/compliance/shared/formatDates';
 import { ActionButton, DateInput, Field, Select, TextInput, Toggle } from './formAtoms';
 import { DPIA_RISK_LEVELS, utcDay, type RiskLevel } from './chatMonitoringForm';
 import { riskLabel } from './chatMonitoringLabels';

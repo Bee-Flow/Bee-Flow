@@ -1,7 +1,7 @@
 import { parsePath } from '@shared/expr/path.mjs';
 import { listNounKey } from '@shared/expr/flatten.mjs';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DataSummary } from '../flow/types';
 import { flattenSentence } from './flattenNote';
 import { isPlainObject, type PlainObject } from './valueHelpers';

@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { ModulePermissionEntry } from '../../../api/queries/modules.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { ModulePermissionEntry } from '@/api/queries/modules.types';
 
 // Canonical operator-facing copy for module permission ids (mv2 manifests).
 // Pure helpers shared by PermissionList / PermissionConsentDialog and unit-

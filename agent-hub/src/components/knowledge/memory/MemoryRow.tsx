@@ -1,8 +1,8 @@
 import { Pencil, Trash2, ExternalLink, Folder, Bot, ShieldAlert } from 'lucide-react';
 import React from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
-import { formatRelativeTime } from '../../../utils/dateFormatters';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatRelativeTime } from '@/utils/dateFormatters';
 import IconButton from '../../shared/IconButton';
 import MemoryEditor, { type MemoryDraft } from './MemoryEditor';
 import {

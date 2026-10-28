@@ -2,8 +2,8 @@ import { AlertCircle, Building2, ScrollText, UserRound } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import NowRunningStrip from './NowRunningStrip';
 import type { NowRunningFacets } from './nowRunning';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import ExecutionsPanel from '../Executions/ExecutionsPanel';
 import { normaliseRunScope } from '../Executions/runScope';
 

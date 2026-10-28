@@ -5,8 +5,8 @@ import { CollapsibleCard, InlineHint, SegmentedControl, mintId } from '../primit
 import { Toggle } from '../fields';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import type { BlockData } from './shared';
-import { AB_KEYS, DEFAULT_GOAL, diffAlternative, stripExperiment } from '../../../../marketing/experiments/experiment';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { AB_KEYS, DEFAULT_GOAL, diffAlternative, stripExperiment } from '@/marketing/experiments/experiment';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type EditorProps = BlockEditorWithPagesProps;
 type Side = 'original' | 'alternative';

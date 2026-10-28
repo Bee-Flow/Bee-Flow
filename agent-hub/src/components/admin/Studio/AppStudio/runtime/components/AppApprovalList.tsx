@@ -1,17 +1,17 @@
 import { ChevronDown, ChevronRight, Clock, Download, FileText, Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../../utils/helpers';
-import { FormRichText } from '../../../../../forms/PublicFormRenderer';
-import ApprovalDecisionControls, { type ApprovalField } from '../../../Approvals/ApprovalDecisionControls';
-import { approvalStatusChip, formatWhen, stageChainInfo, type ApprovalRowLike, type ApprovalStageInfo } from '../../../Approvals/approvalDisplay';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { FormRichText } from '@/components/forms/PublicFormRenderer';
+import ApprovalDecisionControls, { type ApprovalField } from '@/components/admin/Studio/Approvals/ApprovalDecisionControls';
+import { approvalStatusChip, formatWhen, stageChainInfo, type ApprovalRowLike, type ApprovalStageInfo } from '@/components/admin/Studio/Approvals/approvalDisplay';
 import { useDataContext } from '../DataContext';
 import { hoverable } from '../hoverable';
 import { useRuntime } from '../RuntimeContext';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type React from 'react';
 import type { NodeProps } from './appNode.types';
-import { mutate, request, errorBody, RefusedError } from '../../../../../../api/mutate';
+import { mutate, request, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * App Studio runtime — 'approval_list'. Spec: server/appStudio/componentSpecs.js.

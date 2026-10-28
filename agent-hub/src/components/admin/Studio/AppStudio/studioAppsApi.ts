@@ -5,12 +5,12 @@
  * EXCEPT saveDefinition, whose 409/422 are expected flows returned as values.
  */
 
-import { createJsonResource } from '../../../../api/client';
-import type { JsonResourceError } from '../../../../api/client';
-import { errorBodyRecord, errorMessage, errorStatus } from '../../../../utils/caughtError';
-import { API_BASE } from '../../../../utils/helpers';
-import { managedRefusalOf } from '../../../../utils/managedPart';
-import { fromError } from '../../../shared/managedPart';
+import { createJsonResource } from '@/api/client';
+import type { JsonResourceError } from '@/api/client';
+import { errorBodyRecord, errorMessage, errorStatus } from '@/utils/caughtError';
+import { API_BASE } from '@/utils/helpers';
+import { managedRefusalOf } from '@/utils/managedPart';
+import { fromError } from '@/components/shared/managedPart';
 import type { AppDefinition } from './inspector/appDefinition';
 
 /** The fields a new app can start with. */

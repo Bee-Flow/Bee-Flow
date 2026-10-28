@@ -1,8 +1,8 @@
 import type { Skill, SkillDraft, StepRef } from './skillModel.types';
 import type { RefOptions } from './SkillStepEditor.types';
 import type { PickerData } from './useSkillPickerData';
-import type { UsageRow } from '../../../../hooks/useUsage';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { UsageRow } from '@/hooks/useUsage';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * One skill (Skills artboards 1a and 1b).

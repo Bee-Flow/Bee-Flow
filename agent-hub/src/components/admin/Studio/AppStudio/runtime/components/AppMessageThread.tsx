@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type JSX } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import EmailHtmlBody from '../../../../../support/EmailHtmlBody';
+import useTranslation from '@/hooks/useTranslation';
+import EmailHtmlBody from '@/components/support/EmailHtmlBody';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

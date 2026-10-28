@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import useConfirm from '../../../../../shared/useConfirm';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
 import {
     useDeleteChatMonitoringCounts, useSaveChatMonitoring, type ChatMonitoringConfig, type PausedSurface,
-} from '../../../data/useChatMonitoring';
-import { useDateFormat } from '../../../shared/formatDates';
+} from '@/components/admin/compliance/data/useChatMonitoring';
+import { useDateFormat } from '@/components/admin/compliance/shared/formatDates';
 import { ActionButton, Toggle } from './formAtoms';
 import { buildPutBody, formFromSettings } from './chatMonitoringForm';
 import { missingLabel, signalLabel, surfaceLabel } from './chatMonitoringLabels';

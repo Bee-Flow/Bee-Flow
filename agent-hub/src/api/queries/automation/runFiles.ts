@@ -3,7 +3,7 @@
 // (server/routes/automation/runFiles.js). The bytes need the session, so they
 // are fetched with it and handed to the browser as a blob, never linked.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { failure } from './http';
 
 /** One kept file, as a step's output describes it. */

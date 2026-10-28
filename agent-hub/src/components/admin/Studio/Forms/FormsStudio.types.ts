@@ -1,5 +1,5 @@
 import type { FormDetail, FormAnswers } from './form/useFormDetail';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A form as the directory lists it: the form page's detail, plus what only a list row carries. */
 export interface FormListRow extends FormDetail {

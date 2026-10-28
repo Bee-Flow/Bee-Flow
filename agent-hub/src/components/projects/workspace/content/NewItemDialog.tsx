@@ -4,8 +4,8 @@
 // document is not a choice to make from a bare word); otherwise a select.
 
 import React, { useId, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import { SelectField } from '../workspaceUi';
 
 const MAX_ITEM_NAME = 200;

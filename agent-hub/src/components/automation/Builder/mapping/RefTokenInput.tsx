@@ -189,7 +189,7 @@ const RefTokenInput = forwardRef<Partial<RefTokenInputHandle>, RefTokenInputProp
             return textBeforeCaret(hostRef.current);
         },
         get element() { return hostRef.current; },
-    }), [emit, mode, stepLabelById, stepTypeById]);
+    }), [emit, mode, spaced, stepLabelById, stepTypeById]);
 
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!onPillClick) return;

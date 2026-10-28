@@ -1,8 +1,8 @@
 import { Search } from 'lucide-react';
-import { ORG_ROLES } from '../../../config/orgRoles';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { ORG_NONE } from '../../../hooks/useUserFilters';
-import type { UserFilters, UseUserFiltersReturn } from '../../../hooks/useUserFilters';
+import { ORG_ROLES } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
+import { ORG_NONE } from '@/hooks/useUserFilters';
+import type { UserFilters, UseUserFiltersReturn } from '@/hooks/useUserFilters';
 
 /**
  * The people filter bar — search + role + group + status, and optionally

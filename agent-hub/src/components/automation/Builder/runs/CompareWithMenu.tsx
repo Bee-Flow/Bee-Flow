@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { GitCompare } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunListFilters, RunRowData } from '../../../../api/queries/automation/runs';
-import { useRunList } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunListFilters, RunRowData } from '@/api/queries/automation/runs';
+import { useRunList } from '@/api/queries/automation/runs';
 import RunAction from './RunAction';
 import { runTone } from './runOutcome';
 import { POPOVER_PANEL, PRIMARY_BTN } from './runChecksStyles';

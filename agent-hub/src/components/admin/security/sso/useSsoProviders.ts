@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useServerUrlQuery, useSsoProvidersQuery } from '../../../../api/queries/adminConfigReads';
+import { useServerUrlQuery, useSsoProvidersQuery } from '@/api/queries/adminConfigReads';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 

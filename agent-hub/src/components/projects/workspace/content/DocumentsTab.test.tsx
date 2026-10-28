@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, pending, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
 import { useUndoCapture } from '../undoTestKit';
@@ -10,12 +10,12 @@ import { useUndoCapture } from '../undoTestKit';
 // Fresh spies per test (assigned in beforeEach) rather than reset ones: the
 // module mock hands out this object, and the code reads its methods per call.
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
-vi.mock('../../../../pages/documents/DocumentEditor', () => ({
+vi.mock('@/pages/documents/DocumentEditor', () => ({
     default: ({ documentId, onBack }: { documentId: string; onBack: () => void }) => (
         <div data-testid="document-editor">
             editing {documentId}
@@ -25,8 +25,8 @@ vi.mock('../../../../pages/documents/DocumentEditor', () => ({
 }));
 
 // The starters come from the document service (authFetch), not apiClient.
-vi.mock('../../../../pages/documents/documentQueries', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../pages/documents/documentQueries')>()),
+vi.mock('@/pages/documents/documentQueries', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/pages/documents/documentQueries')>()),
     useStarters: () => ({ data: [], isPending: false, isError: false }),
 }));
 
@@ -136,7 +136,7 @@ describe('DocumentsTab: list', () => {
         act(() => undo.last().onExpire());
         await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
         expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'document', id: 'd-theirs', attach: false }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'document', id: 'd-theirs', attach: false },
         );
         expect(client.delete).not.toHaveBeenCalled();
     });
@@ -163,7 +163,7 @@ describe('DocumentsTab: list', () => {
 describe('DocumentsTab: create failure and add', () => {
     it('keeps the gallery open with the server message when creating fails', async () => {
         const user = userEvent.setup();
-        const { ApiError } = await import('../../../../api/client');
+        const { ApiError } = await import('@/api/client');
         client.post.mockImplementation(async () => { throw new ApiError('nope', { status: 403, body: { error: 'Editors only.' } }); });
         const { onOpenSub } = renderTab('editor');
         client.get.mockImplementation(routes(DOCS, { '/api/studio-documents': { documents: [], spreadsheets: false } }));
@@ -187,7 +187,7 @@ describe('DocumentsTab: create failure and add', () => {
         expect(within(dialog).queryByRole('button', { name: 'Add Budget 2027' })).not.toBeInTheDocument();
         await user.click(within(dialog).getByRole('button', { name: 'Add Draft letter' }));
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'document', id: 'd-other', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'document', id: 'd-other', attach: true },
         ));
     });
 });
@@ -223,7 +223,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-page'));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled page', docType: 'page' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled page', docType: 'page' });
     });
 
     it('creates a presentation and a spreadsheet when chosen', async () => {
@@ -233,10 +233,10 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-presentation'));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' });
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-spreadsheet'));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }, { retry: false }));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }));
     });
 
     it('copies one of my own templates', async () => {
@@ -246,7 +246,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByRole('button', { name: 'Welcome letter' }));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Welcome letter', templateId: 't-letter' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Welcome letter', templateId: 't-letter' });
     });
 
     it('makes a project notebook and opens it in the notebooks tab', async () => {
@@ -258,7 +258,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-notebook'));
         await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('notebooks', 'nb-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Untitled notebook' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Untitled notebook' });
         expect(onOpenSub).not.toHaveBeenCalled();
     });
 

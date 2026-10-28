@@ -1,9 +1,9 @@
 import { MessageSquarePlus, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { newLocalId } from './skillModel';
 import type { Rule, Example } from './skillModel.types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ExamplesTabProps, ExampleCardProps, FieldProps } from './ExamplesTab.types';
 import { FromConversationPicker } from './FromConversationPicker';
 

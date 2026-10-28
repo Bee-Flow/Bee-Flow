@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Card } from '../AsyncCard';
 import { ACCENT } from '../BarList';
 import type { TrackerSettings, FieldProps, ToggleProps } from './SettingsSection.types';

@@ -2,7 +2,7 @@ import { MessageCircle } from 'lucide-react';
 import React from 'react';
 import { PERSONA_LIMITS, toneChipRows, toneChipsFull, toneLanguageClash, type Persona } from './personaFacts';
 import RoleCard, { RoleCounter, RoleEmpty, RoleNote, RoleTextArea } from './RoleCard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "How it speaks": tone and form (Agents artboard 1c).

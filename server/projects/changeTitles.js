@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The titles of the items in a project's change feed, resolved when the feed
  * is READ and with the reader's access.
@@ -25,6 +25,7 @@
 const MISSING_SCHEMA = new Set(['42P01', '42703']);
 
 /** Per item type: the lookup, by project and ids. An allow-list: nothing else is ever queried. */
+/** @type {Readonly<Record<string, string>>} */
 const LOOKUPS = Object.freeze({
     notebook: `SELECT id, name AS title FROM notebooks
                 WHERE project_id = $1 AND id = ANY($2::text[])`,

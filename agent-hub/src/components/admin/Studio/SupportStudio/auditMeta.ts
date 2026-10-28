@@ -8,8 +8,8 @@
 // staff=blue, requester=green, system=neutral.
 
 import { Sparkles, Workflow, Settings as SettingsIcon, User, Mail, type LucideIcon } from 'lucide-react';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { SupportEvent } from '@/components/support/SupportInboxPanel.types';
 
 /** How one audit category is drawn. */
 interface CategoryMeta {

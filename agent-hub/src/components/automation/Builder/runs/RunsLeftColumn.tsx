@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { GoldenItem } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { GoldenItem } from '@/api/queries/automation/runChecks';
 import RunsTesting, { RunsSectionTabs } from './RunsTesting';
 import type { RunsSection } from './RunsTesting';
 

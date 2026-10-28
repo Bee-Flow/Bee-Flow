@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import PoliciesPage, { isReviewOverdue } from './PoliciesPage';
 import { partial, stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 afterEach(cleanup);
 
 const USERS = [{ id: 'u1', displayName: 'T. Smit', email: 't@example.com' }, { id: 'u2', displayName: 'R. Bakker', email: 'r@example.com' }];

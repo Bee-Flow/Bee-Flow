@@ -6,8 +6,8 @@
 // callers render a failure as a sentence, and the tests mock `authFetch`.
 
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { logger } from '../../../utils/logger';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
 
 /** One card in the gallery (no definition: picking a template fetches it). */
 export interface TemplateCard {

@@ -1,13 +1,13 @@
 import { Package, Plus, Trash2, Star, Download, Upload, AlertCircle, X } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useId } from 'react';
-import { useIconPack } from '../../../../hooks/useIconPack';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { EMOJI_CATEGORIES as FALLBACK_CATEGORIES } from '../../../../utils/emojiCatalog';
-import { authFetch } from '../../../../utils/helpers';
-import Modal from '../../../shared/Modal';
-import useConfirm from '../../../shared/useConfirm';
+import { useIconPack } from '@/hooks/useIconPack';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { EMOJI_CATEGORIES as FALLBACK_CATEGORIES } from '@/utils/emojiCatalog';
+import { authFetch } from '@/utils/helpers';
+import Modal from '@/components/shared/Modal';
+import useConfirm from '@/components/shared/useConfirm';
 import type { AddPackModalProps, IconCategory, IconPack, PackListItemProps } from './IconsEditor.types';
-import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
 import { API, PackEditor } from './PackEditor';
 
 /**

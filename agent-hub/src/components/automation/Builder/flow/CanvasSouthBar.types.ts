@@ -2,7 +2,7 @@ import React from 'react';
 import { type RunFocus } from './runFocus';
 import type { BuildTodo } from './useBuildChoreography.types';
 import type { ToolCallRow } from '../chat/toolCallDisplay';
-import type { BuilderEngine, BuilderTurn } from '../../../../hooks/builderStream';
+import type { BuilderEngine, BuilderTurn } from '@/hooks/builderStream';
 import type { RunIdentity } from './useFailedRunBanner';
 
 /** Plan progress, only when the model published a plan — "Plan 0/0" is a number the banner invented. */

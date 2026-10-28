@@ -4,8 +4,8 @@
 
 import { UserPlus, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { useProjectMembersQuery, type ProjectMembers } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useProjectMembersQuery, type ProjectMembers } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import ProjectMembersPanel from './ProjectMembersPanel';
 import TransferOwnerDialog from './TransferOwnerDialog';
 import { StudioSectionHeader } from './studioParts';

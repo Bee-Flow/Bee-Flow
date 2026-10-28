@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import OrgEventTimeline from './OrgEventTimeline';
-import { renderWithClient as render } from '../../../test/render';
-import { authFetch } from '../../../utils/helpers';
+import { renderWithClient as render } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const EVENTS = [
     {

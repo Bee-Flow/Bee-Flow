@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import GroupAllowedTiers from './GroupAllowedTiers';
-import { ORG_ROLES } from '../../../../config/orgRoles';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { ORG_ROLES } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CustomTierMeta, OrgGroupRow } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 

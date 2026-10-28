@@ -1,3 +1,4 @@
+// @typecheck
 const { resolveDeckTheme, slideVariant } = require('../deckThemeOptions');
 
 const NEUTRAL_DECK_THEME = Object.freeze(resolveDeckTheme(null));

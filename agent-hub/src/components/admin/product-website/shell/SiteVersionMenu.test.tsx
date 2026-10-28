@@ -25,7 +25,7 @@ import { cmsApi } from '../cmsApi';
 // down to nothing so this test stays about the IO row.
 vi.mock('../SiteSwitcher', () => ({ default: () => <div data-testid="site-switcher" /> }));
 vi.mock('../VersionSwitcher', () => ({ default: () => <div data-testid="version-switcher" /> }));
-vi.mock('../../../icons/AppIcon', () => ({
+vi.mock('@/components/icons/AppIcon', () => ({
     default: ({ name }: { name?: string }) => <span data-icon={name} />,
     AppIcon: ({ name }: { name?: string }) => <span data-icon={name} />,
 }));

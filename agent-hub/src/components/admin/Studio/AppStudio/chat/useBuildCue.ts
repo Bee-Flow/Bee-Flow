@@ -4,7 +4,7 @@ import { describeAppToolCall } from './appToolCallDisplay';
 import { countComponents } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
 import type { DoneInfo, RevealCue } from './useBuilderTurn';
-import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
+import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '@/hooks/builderStream';
 import type { ToolDraft } from '../editor/ghostCellDraft';
 import type { BuildCueValue, BuildPhaseInfo } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';
@@ -88,7 +88,7 @@ export function useBuildCue({
         };
     // Keyed on the toolCalls array identity, the todos list and the turn
     // milestones — deliberately not the streaming text.
-    }, [running, lastToolCalls, todos, currentPhase, engine, turn, toolDraft, reveal, buildStart.at]);
+    }, [running, doneInfoRef, lastToolCalls, definitionRef, buildStart.at, todos, currentPhase, engine, turn, toolDraft, reveal]);
     useEffect(() => { chromeRef.current?.publishBuildCue?.(cue); }, [cue, chromeRef]);
     return { waitingForFirstToken };
 }

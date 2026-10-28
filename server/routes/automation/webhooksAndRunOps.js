@@ -13,7 +13,7 @@ const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../autom
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
 const { assertCanReadRunData, redactRunForViewer, redactStepsForViewer, redactChainStepsForViewer } = require('../../core/automationModel/callerRunVisibility');
 const automationAccess = makeAutomationAccess({ store: automationStore });
-
+// @typecheck
 // The caller's access to the automation behind a RUN, or null after a 403
 // (see runGuard in automation/access.js for the 'read' / 'act' / 'edit' rules).
 /**
@@ -33,7 +33,7 @@ const {
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 
-router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res) => {
+router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TriggerStepBody>, import('qs').ParsedQs>} */ req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -113,7 +113,7 @@ async function resolveFormTrigger(a, requestedId) {
     return { ok: true, id: match.id };
 }
 
-router.post('/:id/form', validate({ body: TriggerStepBody }), async (req, res) => {
+router.post('/:id/form', validate({ body: TriggerStepBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TriggerStepBody>, import('qs').ParsedQs>} */ req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -225,7 +225,7 @@ router.get('/runs/:id/steps', async (req, res) => {
  * root. Same owner check as the steps above; the copy is the already-redacted
  * value, exactly what the row would have held without the cap.
  */
-router.get('/runs/:id/steps/:stepId/full-output', validate({ query: FullOutputQuery }), async (req, res) => {
+router.get('/runs/:id/steps/:stepId/full-output', validate({ query: FullOutputQuery }), async (/** @type {import('express').Request<{ id: string, stepId: string }, any, any, { attempts?: number }>} */ req, res) => {
     const run = await automationStore.getRun(req.params.id);
     if (!run) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, run, 'read')) return;
@@ -341,7 +341,7 @@ async function resolveActionableRun(runId) {
     return (leg && leg.userId === addressed.userId) ? leg : addressed;
 }
 
-router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), async (req, res) => {
+router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof ApproveStepBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     // Address the JOURNEY, not the row. The history collapses a run and
     // everything that continued it into one line, so the id arriving here
@@ -461,7 +461,7 @@ router.get('/runs/:runId/form', async (req, res) => {
  * Returns the CHILD run, linked to the parent — the same lineage the approval
  * resume produces.
  */
-router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody }), async (req, res) => {
+router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof RunFormBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const run = await resolveActionableRun(req.params.runId);
     if (!run) return res.status(404).json({ error: 'Not found' });
@@ -557,7 +557,7 @@ async function formPickCaller(req) {
  * latency is bounded by step duration. Acknowledges immediately; the UI
  * polls run status to confirm the cancellation took effect.
  */
-router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req, res) => {
+router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof CancelRunBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     // Same as approve-step: stop the leg that is actually running, not the
     // journey head that finished when it handed off.
@@ -618,7 +618,7 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req
  * default is never WIDER than an explicit approval — it IS one. An
  * unreadable or unknown decision is a 400, never a silent approve.
  */
-router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req, res) => {
+router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ApproveRunBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const run = await automationStore.getRun(req.params.id);
     if (!run) return res.status(404).json({ error: 'Not found' });
@@ -680,7 +680,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
  * person may do. Runs as the owner; the person is recorded in startedByUserId.
  * Body: { args }. Returns the final step output verbatim.
  */
-router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (req, res) => {
+router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof AgentInvokeBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     // The LIVE definition decides whether the automation is agent-callable, and
     // is what runs (handoff 5).

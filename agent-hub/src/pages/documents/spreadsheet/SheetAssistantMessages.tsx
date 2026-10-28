@@ -3,10 +3,10 @@
 
 import { Loader2, Sparkles, Undo2 } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
-import type { ModelTierMap } from '../../../api/queries/modelTiers';
-import { tierI18nKey, tierLabel } from '../../../components/licensing/tierMeta';
-import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import { tierI18nKey, tierLabel } from '@/components/licensing/tierMeta';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import type { AssistantMessage } from './useSheetAssistant';
 
 const CHIP = 'px-3 py-1.5 rounded-full text-[12px] text-left border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';

@@ -4,7 +4,7 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { cardClass, rowInputClass, subLabelClass } from './formPrimitives';
 import { OUTPUT_FIELD_TYPES, COLUMN_TYPES } from './formState';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ColumnRow { key: string; type: string }
 export interface OutputFieldRow { key: string; type: string; description?: string; columns?: ColumnRow[] }

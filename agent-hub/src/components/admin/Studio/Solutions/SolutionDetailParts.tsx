@@ -1,7 +1,7 @@
 import { Package, Upload, Users } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { OBJHEAD_FOLD } from '../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { OBJHEAD_FOLD } from '@/components/shared/StudioSectionHeader';
 
 /**
  * The header buttons of a Dev Solution: Publish (the one primary action),

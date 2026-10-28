@@ -1,13 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { state } = vi.hoisted(() => ({
     state: { check: null as unknown, answered: null as unknown, calls: [] as Array<{ url: string; method: string; body: unknown }> },
 }));
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url: string, opts: { method?: string; body?: string } = {}) => {
         const method = opts.method || 'GET';

@@ -67,6 +67,8 @@ async function findActiveByHash(kbId, hash) {
  * @param {string}  [options.mime]
  * @param {number}  [options.pageCount]
  * @param {number}  [options.sheetCount]
+ * @param {ExtractedPage[] | null} [options.pages] - the extractor's pages, so each chunk carries the page it starts on
+ * @param {{ orgId?: string | null, userId?: string | null, pages?: ExtractedPage[] | null } | null} [options.privacy] - the Privacy Shield at ingest (K4); null opts out
  * @param {string}  [options.createdBy]      - user id (null for engine-driven ingests)
  * @param {'processed'|'redacted'} [options.status='processed'] - K4 passes 'redacted'
  * @param {string}  [options.piiStatus]      - 'none'|'found'|'redacted'|'unscanned'

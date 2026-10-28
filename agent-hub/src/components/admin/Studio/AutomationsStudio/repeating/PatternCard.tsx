@@ -1,9 +1,9 @@
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
-import type { ReasonCode, RepeatingSuggestion } from '../../../../../api/queries/automation/repeating';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { CANVAS_BUTTON_PRIMARY, EYEBROW, familyClasses } from '../../../../automation/Builder/flow/canvasClasses';
+import type { ReasonCode, RepeatingSuggestion } from '@/api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import { CANVAS_BUTTON_PRIMARY, EYEBROW, familyClasses } from '@/components/automation/Builder/flow/canvasClasses';
 import CadenceStrip from './CadenceStrip';
 import EvidencePills from './EvidencePills';
 import PatternStepPreview from './PatternStepPreview';

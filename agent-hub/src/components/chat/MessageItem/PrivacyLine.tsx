@@ -1,6 +1,6 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
-import { interpolate } from '../../../hooks/useTranslation';
+import { interpolate } from '@/hooks/useTranslation';
 import { describePrivacyLine } from './privacyLine';
 
 type PrivacyLineT = (key: string, en: string, params?: Record<string, unknown>) => string;

@@ -1,6 +1,6 @@
 import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { useCallback } from 'react';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { decomposeInlineGraph as decomposeInlineGraphJs, parseInlineId, prefixAddedStep } from '../flow/inlineFlowlets';
 import { applyDeleteNodes as applyDeleteNodesJs, applyDuplicateNode } from '../flow/nodeOps';
 import { renameFormField as renameFormFieldJs } from '../flow/renameFormField';
@@ -8,7 +8,7 @@ import { followedMessages } from '../flow/routeFollowNotes';
 import type { Rebound } from '../flow/routeFollowNotes';
 import { insertStepBefore } from '../flow/settings/routeHandoff';
 import type { FlowDefinition, FlowStep } from '../flow/types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // The JavaScript graph transforms, with the definition type this folder speaks.
 const renameFormField = renameFormFieldJs as (

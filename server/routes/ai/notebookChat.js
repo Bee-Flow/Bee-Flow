@@ -1,4 +1,4 @@
-/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
+/** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Notebook Chat — AI chat with full tool support
  *
@@ -80,7 +80,7 @@ const seams = {
 
 // ─── Streaming Notebook Chat ─────────────────────────────────────
 
-router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnBody }), async (req, res) => {
+router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NotebookTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const { message, notebookId, history, modelTier, timezone, attachments, notebookSelection, docVersion } = req.body;
     const userId = req.session.user.id;
 
@@ -352,8 +352,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     }
 });
 
-module.exports = router;
-module.exports.seams = seams;
+module.exports = Object.assign(router, { seams });
 
 /**
  * @typedef {import('express').Router & { seams: typeof seams }} RouterExports

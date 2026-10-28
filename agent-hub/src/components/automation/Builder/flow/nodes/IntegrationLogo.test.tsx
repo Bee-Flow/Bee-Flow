@@ -5,7 +5,7 @@ import IntegrationLogo from './IntegrationLogo';
 // The icon pack is a context with a provider-less default of "no overrides";
 // one test needs an override, so the hook is mockable per test.
 const custom = vi.fn((_key: string): unknown => null);
-vi.mock('../../../../../hooks/useIconPack', () => ({
+vi.mock('@/hooks/useIconPack', () => ({
     useIconPack: () => ({ getCustomIcon: (key: string) => custom(key), activePackId: null, setIconPack: async () => {}, isLoading: false, reload: () => {} }),
 }));
 

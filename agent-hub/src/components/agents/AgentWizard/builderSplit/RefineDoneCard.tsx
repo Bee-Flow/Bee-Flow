@@ -1,6 +1,6 @@
 import { FlaskConical, Undo2 } from 'lucide-react';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { RefineChange as MergedRefineChange } from '../state/refineMerge.types';
 
 /** One field the refine touched, from `state/refineMerge.diffRefinedPlan`; read defensively. */

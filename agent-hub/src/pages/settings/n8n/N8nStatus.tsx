@@ -1,5 +1,5 @@
 import { CircleCheck, CircleX, Info, Loader2, RefreshCw, type LucideIcon } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { N8nDiagnostics, TestResult } from './n8nModel';
 
 /** The live connection pill above the tabs. */

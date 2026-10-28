@@ -1,7 +1,7 @@
 import type { RecipeInput, RecipePhase } from './recipeForm';
-import type { PermissionUser } from '../../../../hooks/usePermissionCheck';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
 import type { PlaybookListItem } from './PlaybookCard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * Start a playbook. Two doors: a built-in recipe (the server lists them as

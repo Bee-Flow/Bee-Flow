@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { MessageSquare, Loader2, FileAudio, Video, RefreshCw, Download } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
-import { listNextcloudTalkRecordings } from '../../../api/transcriptionsApi';
-import { errorMessage } from '../../../utils/caughtError';
+import { listNextcloudTalkRecordings } from '@/api/transcriptionsApi';
+import { errorMessage } from '@/utils/caughtError';
 
 interface TalkRecording {
     path: string;

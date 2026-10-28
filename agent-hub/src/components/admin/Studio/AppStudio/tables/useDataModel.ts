@@ -7,11 +7,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { emptyModel, fillersOf, newTableId, uniqueTableKey, withProposedTables } from './tablesManagerModel';
 import type { DataModel, ModelConnector, ModelTable } from './tablesManagerModel';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import toast from '../../../../shared/Toast';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 import { connectorProblem as connectorProblemJs } from '../bi/ConnectorsManager';
 import { studioAppsApi } from '../studioAppsApi';
-import { errorStatus, messageOf } from '../../../../../utils/caughtError';
+import { errorStatus, messageOf } from '@/utils/caughtError';
 
 /** 'tables' | 'rows' | 'connectors' | 'relations' | 'people' */
 export type ManagerTab = 'tables' | 'rows' | 'connectors' | 'relations' | 'people';

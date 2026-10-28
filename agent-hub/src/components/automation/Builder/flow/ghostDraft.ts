@@ -1,6 +1,6 @@
 import { nodeTypeLabel } from './nodeDefs';
 import { originKeysFor } from './ribbonOrigin';
-import { INTEGRATION_META, resolveIntegrationFromTool } from '../../../../utils/integrationIcons';
+import { INTEGRATION_META, resolveIntegrationFromTool } from '@/utils/integrationIcons';
 import type { CatalogApp, PaletteCatalog, TranslateFn } from './stepPalette.types';
 
 /**

@@ -14,10 +14,10 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { hasUnread, useProjectChatsQuery } from '../../../api/queries/projectChats';
+import { hasUnread, useProjectChatsQuery } from '@/api/queries/projectChats';
 import {
     changeKeys, useMarkItemSeen, useProjectChangesQuery, type ChangeGroup, type ChangeItemType,
-} from '../../../api/queries/projectChanges';
+} from '@/api/queries/projectChanges';
 import { useProjectLive } from './ProjectLiveContext';
 import type { WorkspaceTabId } from './types';
 

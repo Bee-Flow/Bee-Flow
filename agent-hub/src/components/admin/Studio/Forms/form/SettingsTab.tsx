@@ -1,11 +1,11 @@
 import { Table2, Timer } from 'lucide-react';
 import { useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DangerZone from '../../../../shared/DangerZone';
-import DashCard from '../../../../shared/dashboard/DashCard';
-import Toggle from '../../../../shared/Toggle';
-import useConfirm from '../../../../shared/useConfirm';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import DangerZone from '@/components/shared/DangerZone';
+import DashCard from '@/components/shared/dashboard/DashCard';
+import Toggle from '@/components/shared/Toggle';
+import useConfirm from '@/components/shared/useConfirm';
 import type { FormDetail, FormDraft } from './useFormDetail';
 
 const LINK_BTN = 'inline-flex items-center gap-1.5 text-xs underline-offset-2 hover:underline';

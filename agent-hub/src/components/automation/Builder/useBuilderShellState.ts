@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BuilderTab } from './useBuilderTabUrl';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const WORK_MODES: readonly string[] = ['discuss', 'approve', 'plan', 'build'];
 
@@ -86,9 +87,7 @@ export function useAssistantAsk({ readOnlyRef, ndvStepId, setTab, setAssistantOp
  */
 export function useSettingsSection(tab: string, setTab: (tab: BuilderTab) => void) {
     const [settingsSection, setSettingsSection] = useState<string | null>(null);
-    useEffect(() => {
-        if (tab !== 'settings') setSettingsSection(null);
-    }, [tab]);
+    useAdjustOnChange([tab], () => { if (tab !== 'settings') setSettingsSection(null); });
     // Open Settings at one section: the AI Act refusal below, and the
     // canvas's "Not in Files yet · add" tip (Start, with the Files dialog open).
     const openSettingsAt = useCallback((section?: string | null) => {

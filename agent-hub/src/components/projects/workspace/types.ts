@@ -6,8 +6,8 @@
 // (AgentHub) owns everything outside the page: opening a chat, the URL, the
 // project list.
 
-import type { Project, ProjectRole } from '../../../api/queries/projects';
-import { isOrgAdminLike } from '../../../utils/orgAdmin';
+import type { Project, ProjectRole } from '@/api/queries/projects';
+import { isOrgAdminLike } from '@/utils/orgAdmin';
 
 export type WorkspaceTabId =
     | 'overview'

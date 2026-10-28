@@ -1,6 +1,6 @@
-import AppActionPicker from '../../../shared/AppActionPicker';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { ToolApp } from '../../../agents/AgentWizard/canUse/toolCatalogTypes';
+import AppActionPicker from '@/components/shared/AppActionPicker';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { ToolApp } from '@/components/agents/AgentWizard/canUse/toolCatalogTypes';
 
 /**
  * Tool picker for the AI step — which functions the step may call.

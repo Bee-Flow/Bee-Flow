@@ -3,7 +3,7 @@
 // that knows the wire contract of GET /:id/caller-notice and
 // POST /:id/caller-notice/seen.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { AutomationRequestError, getAutomationJson } from './http';
 
 export interface CallerNotice {

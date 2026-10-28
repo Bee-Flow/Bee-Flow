@@ -17,8 +17,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// workflow-policy job runs these tests without npm ci, so the parser tests skip there.
+let hasTs = false;
+for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
+    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
+}
+const tsTest = hasTs ? test : test.skip;
 const SCRIPT = path.join(HERE, 'count-ratchet.mjs');
 
 function sandbox({ files = {}, metric = 'inline-style', budget = null, pkg = 'pkg', src = true } = {}) {
@@ -203,6 +212,26 @@ test('module-mock also counts a test that mocks through a testUtils helper, and 
     });
     assert.strictEqual(run(dir, 'module-mock').code, 0);
     assert.strictEqual(budgetOf(dir, 'module-mock'), 5);
+});
+
+test('module-mock counts a test file that swaps a module through vitest or jest, once, and nothing else', () => {
+    const dir = sandbox({
+        files: {
+            'a.test.tsx': "vi.mock('../api/client', () => ({ apiClient: {} }));\nvi.mock('../utils/helpers');\n",
+            'b.test.ts': "beforeEach(() => { vi.doMock('./x', () => ({})); });\n",
+            'c.test.tsx': "jest.mock('expo-router', () => ({}));\n",
+            'd.test.ts': "jest.doMock('@/core/api/client', () => ({}));\n",
+            // A typed view of a mocked value, a spy, a fake function, and the
+            // words in a comment or a string are not a module swap.
+            'clean1.test.ts': "const m = vi.mocked(fn);\nvi.spyOn(api, 'get');\nconst f = vi.fn();\njest.fn();\n",
+            'clean2.test.tsx': "// no vi.mock( here\nconst s = 'jest.mock(x)';\n",
+            // Source that helps tests build a mock is not itself a test.
+            'test/mocks.ts': "vi.mock('../i18n');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'module-mock').code, 0);
+    assert.strictEqual(budgetOf(dir, 'module-mock'), 4);
+    assert.match(run(dir, 'module-mock', ['--list']).stdout, /1\s+src\/a\.test\.tsx/);
 });
 
 test('module-mock lists every export of a testUtils helper that writes require.cache or hooks the resolver', () => {
@@ -421,6 +450,56 @@ test('log-user-content counts log calls carrying a prompt, file name, e-mail or 
     });
     assert.strictEqual(run(dir, 'log-user-content').code, 0);
     assert.strictEqual(budgetOf(dir, 'log-user-content'), 2);
+});
+
+test('log-user-content counts every log call that hands a personal value to the log, once per call', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'personal.js': [
+                "log.info(`[Auth] approved ${user.id} (${user.email || 'no email'})`);",
+                "console.warn('signup blocked for', requesterEmail);",
+                "log.info(`[Proxy] UA=${req.get('User-Agent')}`);",
+                'log.info(`[Proxy] from ${req.ip}`);',
+                'log.info(`[SignRequest] to ${signers.map(s => s.email).join(", ")}`);',
+                'log.info(`[Mail] subject "${subject}"`);',
+                "log.error('[Webhook] got', req.body);",
+                'log.info(`[Contacts] ${action.firstName} ${action.lastName}`);',
+                'log.info(`[OAuth] user ${user.id} (${user.displayName}) phone ${phone}`);',
+                'log.info(`[Upload] ${att.name}`);',
+                'log.info(`[Whisper] Transcribing ${audioFileName}`);',
+                'bestEffort(`mail:${toEmail}`, e);',
+                // Multi-line call, with the value on a later line.
+                "log.warn(\n    '[x] failed',\n    { who: email },\n);",
+            ].join('\n') + '\n',
+            'safe.js': [
+                'log.info(`[Auth] approved ${user.id}`);',
+                'log.info(`[Mail] sent to ${log.textForLog(user.email)}`);',
+                'log.info(`[Upload] ${log.nameForLog(att.name)} (${prompt.length} chars)`);',
+                'log.info(`[Mail] subject ${subject?.length ?? 0} chars`);',
+                'log.info(`[Mail] address set=${!!address} name set=${!!displayName}`);',
+                "log.info(`[Rule] ${subject ? 'with' : 'without'} a subject`);",
+                // Another property of a holder is another value; a key is not a value.
+                'log.warn(`[License] ${resp.status} ${body.status}`);',
+                "log.info('[x]', JSON.stringify({ email: 1 }).length);",
+                // A tool's or a model's name is not a person's.
+                'log.info(`[Tool] ${tool.name} ${bestWhisper.displayName}`);',
+                // A header named in an explanation is not a header read.
+                "log.warn('check that the proxy forwards X-Forwarded-For');",
+                // The words in strings and comments are not values.
+                "log.info('email sent'); // user.email",
+                'isValidEmail(email);',
+            ].join('\n') + '\n',
+            'a.test.js': 'log.info(`${user.email}`);\n',
+            // An operator CLI prints to the operator's terminal, not to the server log.
+            'scripts/listUsers.js': 'console.log(`${u.email}`);\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'log-user-content').code, 0);
+    assert.strictEqual(budgetOf(dir, 'log-user-content'), 13);
+    const list = run(dir, 'log-user-content', ['--list']).stdout;
+    assert.match(list, /\b13\s+personal\.js/);
+    assert.doesNotMatch(list, /safe\.js|listUsers|a\.test/);
 });
 
 test('--list on a package without a budget lists and writes no budget file', () => {
@@ -707,4 +786,47 @@ test('long-function --list names the files, and --update only lowers', () => {
     run(dir, 'long-function', ['--update']);
     assert.strictEqual(budgetOf(dir, 'long-function'), 3, 'an --update must not raise the budget');
     assert.strictEqual(run(dir, 'long-function').code, 1);
+});
+
+// deep-imports: the parser module and the real root node_modules (for the TypeScript
+// compiler API) are linked into the sandbox, plus an empty mirror manifest.
+function deepSandbox(files, { budget = null, exclude = [], manifest = { entries: [] } } = {}) {
+    const dir = sandbox({ files, pkg: 'agent-hub', metric: 'deep-imports', budget });
+    fs.copyFileSync(path.join(HERE, 'deep-imports.mjs'), path.join(dir, 'scripts/deep-imports.mjs'));
+    fs.writeFileSync(path.join(dir, 'scripts/shared-mirror.manifest.json'), JSON.stringify(manifest));
+    fs.writeFileSync(path.join(dir, 'scripts/deep-imports.exclude.json'), JSON.stringify({ files: exclude }));
+    fs.writeFileSync(path.join(dir, 'package.json'), '{}');
+    fs.symlinkSync(path.join(HERE, '..', 'node_modules'), path.join(dir, 'node_modules'));
+    return dir;
+}
+
+tsTest('deep-imports counts specifiers the alias can spell, in every import form, and nothing else', () => {
+    const dir = deepSandbox({
+        // Counted: two static, a dynamic import, a mock, an export-from (a file may count many).
+        'components/a/b/c/Deep.tsx': "import { x } from '../../../../utils/x';\nimport y from '../../../y';\nconst Z = lazy(() => import('../../../z'));\nexport { w } from '../../../../w';\n",
+        'components/a/b/c/Deep.test.tsx': "vi.mock('../../../../utils/helpers', () => ({}));\n",
+        // Not counted: shallow, the alias, a package, a path that leaves src, a path that is no specifier.
+        'components/a/b/c/Ok.tsx': "import a from '../../a';\nimport b from '@/b';\nimport c from 'react';\nimport s from '../../../../../server/s.js';\n// import d from '../../../d'\nconst p = '../../../../utils';\n",
+        // Not counted: the file mobile runs, and a mirror source.
+        'components/a/b/c/mobile.ts': "import { x } from '../../../../utils/x';\n",
+        'components/a/b/c/mirrored.ts': "import { x } from '../../../../utils/x';\n",
+    }, {
+        exclude: ['components/a/b/c/mobile.ts'],
+        manifest: { entries: [{ source: 'agent-hub/src/components/a/b/c/mirrored.ts', target: 'mobile/src/m/mirrored.ts' }] },
+    });
+    run(dir, 'deep-imports', [], 'agent-hub'); // records the first budget
+    const r = run(dir, 'deep-imports', ['--list'], 'agent-hub');
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.strictEqual(budgetOf(dir, 'deep-imports', 'agent-hub'), 5);
+    assert.match(r.stdout, /4 {2}src\/components\/a\/b\/c\/Deep\.tsx/);
+    assert.match(r.stdout, /1 {2}src\/components\/a\/b\/c\/Deep\.test\.tsx/);
+    assert.doesNotMatch(r.stdout, /Ok\.tsx|mobile\.ts|mirrored\.ts/);
+});
+
+tsTest('deep-imports fails a new deep import over the budget and names the alias', () => {
+    const dir = deepSandbox({ 'components/a/b/c/New.tsx': "import { x } from '../../../utils/x';\n" }, { budget: 0 });
+    const r = run(dir, 'deep-imports', [], 'agent-hub');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 import specifiers climbing three or more levels .* budget is 0/);
+    assert.match(r.stderr, /@\/<path from src>/);
 });

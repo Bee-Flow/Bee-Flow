@@ -5,7 +5,7 @@ import { ProviderStatus } from './sso/SsoFormParts';
 import { GoogleSsoTab, NextcloudSsoTab } from './sso/SsoProviderTabs';
 import useSsoProviders from './sso/useSsoProviders';
 import type { SsoProviderId, SsoProvidersState } from './sso/useSsoProviders';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 
 interface NavItem {

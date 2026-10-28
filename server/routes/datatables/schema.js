@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The column list: reading it, and saving it against an optimistic lock.
  *

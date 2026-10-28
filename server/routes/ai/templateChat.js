@@ -1,4 +1,4 @@
-/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
+/** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Template Chat Routes — AI-powered chat for filling Word templates.
  *
@@ -115,7 +115,7 @@ const { fallback } = require('../../utils/bestEffort');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
-router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (req, res) => {
+router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TemplateTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const { message, templateId, conversationId, history, meetingNoteIds, modelTier, timezone, attachments } = req.body;
     const userId = req.session.user.id;
 
@@ -166,10 +166,6 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     }
 
     // Resolve provider
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
     /** @type {BaseProvider} */
     let config, adapter;
 
@@ -313,7 +309,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                                 const { extractTextFromPDF } = require('../../core/documents/pdfExtractor');
                                 pdfText = await extractTextFromPDF(pdfBuffer, att.name);
                             } catch (e) {
-                                log.warn(`[TemplateChat] PDF extraction failed for ${att.name}:`, /** @type {Error} */ (e).message);
+                                log.warn(`[TemplateChat] PDF extraction failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
                             }
                             if (pdfText) {
                                 const safe = await _scanExtracted(pdfText, att.name);
@@ -332,7 +328,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                                 }
                             } catch (e) {
                                 if (e?.code === 'ATTACHMENT_PII_BLOCKED') throw e;
-                                log.warn(`[TemplateChat] Word extraction failed for ${att.name}:`, /** @type {Error} */ (e).message);
+                                log.warn(`[TemplateChat] Word extraction failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
                             }
                         } else if (att.content && typeof att.content === 'string') {
                             // Plain text or other text-based files
@@ -344,7 +340,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                         }
                     } catch (e) {
                         if (e?.code === 'ATTACHMENT_PII_BLOCKED') throw e;
-                        log.warn(`[TemplateChat] Attachment processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+                        log.warn(`[TemplateChat] Attachment processing failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
                     }
                 }
             } catch (e) {

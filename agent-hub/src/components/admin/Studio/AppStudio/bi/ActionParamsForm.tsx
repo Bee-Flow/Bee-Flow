@@ -2,7 +2,7 @@ import { AlertTriangle, Link2, Lock, User } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { tRich } from './tRich';
 import type { CatalogAction, Connector } from './connectors/connectorModel';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * App Studio — an action's parameters, as a real form.

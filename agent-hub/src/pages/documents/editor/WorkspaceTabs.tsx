@@ -2,7 +2,7 @@
 // (or a deck's look), the customer preview and the assistant.
 
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export type WorkspaceTab = 'parameters' | 'sections' | 'design' | 'preview' | 'assistant';
 

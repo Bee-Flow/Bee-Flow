@@ -6,14 +6,14 @@ import { useCallback, useState } from 'react';
 import type { CmsSiteListEntry } from './cmsPanelTypes';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { authFetch } from '../../../../utils/helpers';
-import type { AuthFetchOptions } from '../../../../utils/helpers.types';
-import { toast } from '../../../shared/Toast';
+import { errorMessage, messageOf } from '@/utils/caughtError';
+import { authFetch } from '@/utils/helpers';
+import type { AuthFetchOptions } from '@/utils/helpers.types';
+import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
-import { logger } from '../../../../utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 

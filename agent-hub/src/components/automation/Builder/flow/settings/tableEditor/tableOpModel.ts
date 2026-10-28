@@ -5,8 +5,8 @@
  * from one operation to the next and where a finding lands in the form.
  * No React, no I/O.
  */
-import type { TableColumn } from '../../../../../../api/queries/automation/runTables';
-import type { Finding, OpResult } from '../../../../../../api/queries/automation/tablePreview';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import type { Finding, OpResult } from '@/api/queries/automation/tablePreview';
 
 export type Binding = { kind: string; value?: unknown; path?: string };
 

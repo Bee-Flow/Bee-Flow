@@ -4,13 +4,13 @@ import { formatLabel, providerLogoId, providerName, ssErrorMessage } from '../da
 import { datatablesApi } from '../datatablesApi';
 import { CARD, INPUT, INPUT_STYLE } from '../linkWizardShared';
 import { fileKeyOf, filesSelectedIn, isProviderError, ssReasonText, type WizardError, type WizardFile } from './wizardState';
-import useDebouncedValue from '../../../../../hooks/useDebouncedValue';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
-import Tabs from '../../../../shared/Tabs';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
+import Tabs from '@/components/shared/Tabs';
 import type { StorageProbe } from '../newDatatable/useLinkSources';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import type { RelativeTimeInput } from '../../../../../hooks/useRelativeTime';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 
 /**
  * Step 1 of the link-spreadsheet wizard: which files?

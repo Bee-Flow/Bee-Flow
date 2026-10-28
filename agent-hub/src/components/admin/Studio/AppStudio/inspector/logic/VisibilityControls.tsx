@@ -2,8 +2,8 @@ import { Eye } from 'lucide-react';
 import React from 'react';
 import FormulaField from './FormulaField';
 import StudioScopeProvider from './StudioScopeProvider';
-import Toggle from '../../../../../shared/Toggle';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode, BoolOrFormula, FormulaRef, ValidationRule } from '../appDefinition';
 
 /** A partial change to a node's logic; null clears the key. */

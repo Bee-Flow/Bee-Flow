@@ -1,6 +1,6 @@
 import { ImageField, TextField, Toggle } from '../fields';
 import { CollapsibleCard, FieldSelect, InlineHint } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { DEFAULT_CAPTIONS_LANG } from './ClipFields';
 
 // ── Motion and rich media (issue 244) ─────────────────────────────────

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { mutate } from '../../../../api/mutate';
-import { logger } from '../../../../utils/logger';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
+import { logger } from '@/utils/logger';
 import type useAgentState from './useAgentState';
 
 /**

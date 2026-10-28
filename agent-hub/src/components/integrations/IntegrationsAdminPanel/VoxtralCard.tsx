@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { TranscriptionSectionProps } from './adminPanel.types';
 
 /** Provider 1: Voxtral (Mistral cloud). Nothing to configure here; it reuses the Mistral API key. */

@@ -1,16 +1,16 @@
 import { Info, Loader2, Workflow } from 'lucide-react';
 import React, { Suspense, lazy, useState } from 'react';
 import AiDraftPanel from './AiDraftPanel';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DashCard from '../../../../shared/dashboard/DashCard';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import DashCard from '@/components/shared/dashboard/DashCard';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { takeSeed } from '../../studioAi/handoff';
 import type { FormDetail, FormDraft } from './useFormDetail';
 
 // The builder's own form editor — title, intro, questions, button text,
 // thank-you message, theme, preview. Lazy: it drags the builder chunk.
-const FormBuilderFields = lazy(() => import('../../../../automation/Builder/flow/settings/FormBuilderFields'));
+const FormBuilderFields = lazy(() => import('@/components/automation/Builder/flow/settings/FormBuilderFields'));
 
 const BTN = 'px-3 py-2 rounded-[10px] text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-50';
 

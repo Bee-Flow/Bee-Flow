@@ -1,10 +1,10 @@
 import { Building2, Search, UserPlus, Users as UsersIcon } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { ORG_NONE, useUserFilters } from '../../../../hooks/useUserFilters';
-import EmptyState from '../../../shared/EmptyState';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import UserListSkeleton from '../../../shared/UserListSkeleton';
+import { useTranslation } from '@/hooks/useTranslation';
+import { ORG_NONE, useUserFilters } from '@/hooks/useUserFilters';
+import EmptyState from '@/components/shared/EmptyState';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import UserListSkeleton from '@/components/shared/UserListSkeleton';
 import UserFilterBar from '../../shared/UserFilterBar';
 import type { AdminGroup, AdminOrganization } from '../userManagement/types';
 import { membershipFor } from './orgMembership';

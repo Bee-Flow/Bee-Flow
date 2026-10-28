@@ -1,11 +1,11 @@
 import { ExternalLink, FileSpreadsheet, KeyRound, Loader2, ListOrdered, RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
 import { formatLabel, providerLogoId, sourceErrorMessage, sourceNameOf, sourceWritable, writeReasonText } from './datatableDisplay';
-import { getIntegrationLogo } from '../../../../utils/integrationLogos';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceError } from './sourceMirrors';
 import type { MirrorHookTable, SourceMirror } from './useSourceMirror';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 
 /**
  * The three cards only a SPREADSHEET mirror has (the status and relations

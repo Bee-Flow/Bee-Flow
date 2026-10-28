@@ -9,7 +9,7 @@ import RecordTable from './RecordTable';
 import { ClipWarning, Empty, Scalar } from './ScalarValue';
 import { MAX_ROWS, humanize, isPlainObject, type PlainObject } from './valueHelpers';
 import { jsonTextValue, pairKeysOf, readableValue, sameName, textHidesKey } from '../mapping/upstream/fieldTree';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const isTruncatedOutput = isTruncatedOutputJs as (v: unknown) => boolean;
 type Sentinel = Parameters<typeof TruncatedOutput>[0]['sentinel'];

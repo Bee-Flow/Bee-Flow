@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { READ, datatableGrantsOf } from './canUseFacts';
-import { useAgentDatatableNames, useSkillUsageSummary } from '../../../../api/queries/agentWizardFacts';
+import { useAgentDatatableNames, useSkillUsageSummary } from '@/api/queries/agentWizardFacts';
 import type { ReadState } from '../agentEditor.types';
 
 const NO_TABLES: Array<{ id?: string; name?: string }> = [];

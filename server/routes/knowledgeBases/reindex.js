@@ -56,7 +56,7 @@ const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.o
 
 // ── Re-index ────────────────────────────────────────────────────────
 
-router.post('/:id/reindex', requireAuth, requirePermission('manage_knowledge'), validate({ body: NoBody }), async (req, res) => {
+router.post('/:id/reindex', requireAuth, requirePermission('manage_knowledge'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });

@@ -1,8 +1,8 @@
 import { Building2 } from 'lucide-react';
 import { type KnowledgeBase } from './knowledgeApi';
-import AudienceRows from '../../../shared/AudienceRows';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import AudienceRows from '@/components/shared/AudienceRows';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 import type { PersonalNoticeProps } from './SettingsTab.types';
 
 export function SettingsTabSection({ isPersonal, t, canManage, orgId, moveToOrg, saving, kb, view, orgGroups, setAudience }: { isPersonal: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; canManage: boolean; orgId: string | null; moveToOrg: () => Promise<void>; saving: boolean; kb: KnowledgeBase | null; view: { orgId: string | null; isPublished: boolean; sharedGroups: string[]; categoryId: string | null; }; orgGroups: readonly OrgGroup[]; setAudience: (body: { isPublished: boolean; sharedGroups: string[]; }) => Promise<void>; }) {

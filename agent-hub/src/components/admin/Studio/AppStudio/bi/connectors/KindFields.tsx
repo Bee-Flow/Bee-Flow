@@ -7,9 +7,9 @@ import { JsonObjectField, TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { CatalogAction, ChainSuggestion, Connector } from './connectorModel';
 import type { SetOpt } from './MailboxFields';
-import { getIntegrationIcon } from '../../../../../../config/integrationIcons';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Disclosure from '../../../../../shared/Disclosure';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import useTranslation from '@/hooks/useTranslation';
+import Disclosure from '@/components/shared/Disclosure';
 import ActionParamsFormJs from '../ActionParamsForm';
 import ConnectorChainEditorJs from '../ConnectorChainEditor';
 

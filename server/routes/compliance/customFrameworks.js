@@ -226,7 +226,7 @@ function computeExpiresAt(attestedAt, months) {
 
 // ───────────────── Frameworks ─────────────────
 
-router.get('/custom/frameworks', ...guard, validate({ query: ListQuery }), async (req, res) => {
+router.get('/custom/frameworks', ...guard, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const includeArchived = req.query.include_archived === '1' || req.query.include_archived === 'true';
     res.json(await customFrameworkStore.listFrameworks(orgId, { includeArchived }));
@@ -261,7 +261,7 @@ router.get('/custom/frameworks/:id', ...guard, async (req, res) => {
     res.json({ ...fw, checks });
 });
 
-router.put('/custom/frameworks/:id', ...guard, validate({ body: FrameworkPatch }), async (req, res) => {
+router.put('/custom/frameworks/:id', ...guard, validate({ body: FrameworkPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FrameworkPatch>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
@@ -293,7 +293,7 @@ router.delete('/custom/frameworks/:id', ...guard, async (req, res) => {
 // ───────────────── Checks ─────────────────
 
 // Bulk upsert by ref. Accepts { checks: [...] } or a bare JSON array.
-router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBody }), async (req, res) => {
+router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ChecksBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
@@ -357,7 +357,7 @@ router.post('/custom/checks/:id/attest', ...guard, validate({ body: AttestBody }
     }
 });
 
-router.get('/custom/checks/:id/attestations', ...guard, validate({ query: AttestationsQuery }), async (req, res) => {
+router.get('/custom/checks/:id/attestations', ...guard, validate({ query: AttestationsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof AttestationsQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
     const check = await customFrameworkStore.getCheck(orgId, req.params.id);
@@ -412,7 +412,6 @@ router.get('/custom/frameworks/:id/export.json', ...guard, async (req, res) => {
     res.send(JSON.stringify(payload, null, 2));
 });
 
-module.exports = router;
-module.exports.computeExpiresAt = computeExpiresAt;
+module.exports = Object.assign(router, { computeExpiresAt });
 
 /** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

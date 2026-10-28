@@ -1,5 +1,5 @@
 /** Types of the persona facts (role/personaFacts.ts). */
-import type { CallableAutomation } from '../../../admin/Studio/SkillsStudio/skillModel.types';
+import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 
 /** The full persona as the editor holds it (`agents.persona`, after `personaShape`). */
 export interface Persona {

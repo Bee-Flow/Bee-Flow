@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { ent, calls, list } = vi.hoisted(() => ({
     ent: { current: { loading: false, error: null as string | null, lockReason: (_id: string): string | null => null } },
@@ -18,8 +18,8 @@ const SHARES = {
     ],
 };
 
-vi.mock('../../../licensing/EntitlementsContext', () => ({ useEntitlements: () => ent.current }));
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/components/licensing/EntitlementsContext', () => ({ useEntitlements: () => ent.current }));
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url: string, opts: { method?: string; body?: string } = {}) => {
         const method = opts.method || 'GET';

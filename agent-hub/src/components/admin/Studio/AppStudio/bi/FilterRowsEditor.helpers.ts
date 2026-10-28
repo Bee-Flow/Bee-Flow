@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { FormulaValue, FilterValue, FilterField } from './FilterRowsEditor.types';
 
 const filterOps = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [

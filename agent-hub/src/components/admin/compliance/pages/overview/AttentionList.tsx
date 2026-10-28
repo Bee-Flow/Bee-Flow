@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react';
 import { ArrowUpRight, ChevronDown, CircleAlert, Loader2 } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '@/components/shared/statusTone';
 import StatusPill from '../../shared/StatusPill';
 import ArticleRef from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';

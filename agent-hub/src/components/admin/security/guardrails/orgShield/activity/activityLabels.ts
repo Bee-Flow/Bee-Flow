@@ -25,8 +25,8 @@
 
 import { useMemo } from 'react';
 
-import { piiCategoriesLocalized } from '../../../../../../config/piiCategories';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import { piiCategoriesLocalized } from '@/config/piiCategories';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A stored value's dictionary key and the English it defaults to. */
 interface Words {

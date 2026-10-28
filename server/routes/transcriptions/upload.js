@@ -66,7 +66,7 @@ const UploadBody = bodyOf({
 
 // ── Upload & transcribe ──────────────────────────────────
 
-router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBody }), async (req, res) => {
+router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
 
@@ -118,7 +118,7 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
         if (chosen.refusal) return res.status(403).json(chosen.refusal);
         const provider = chosen.provider;
 
-        log.info(`[Transcriptions] Transcribing "${log.nameForLog(fileName)}" (${(uploadBytes / (1024 * 1024)).toFixed(1)} MB) via ${provider} for user ${userId} (${userName || 'unknown'})`);
+        log.info(`[Transcriptions] Transcribing "${log.nameForLog(fileName)}" (${(uploadBytes / (1024 * 1024)).toFixed(1)} MB) via ${provider} for user ${userId}`);
 
         // ── Go async: save the audio up front (so a crashed/timed-out job can
         // still be reprocessed), create a 'processing' note, and respond 202

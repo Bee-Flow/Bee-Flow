@@ -1,7 +1,7 @@
 import React from 'react';
 import { Globe } from 'lucide-react';
-import type { BrowserPreview } from '../../../hooks/useChatEngine/types';
-import useTranslation from '../../../hooks/useTranslation';
+import type { BrowserPreview } from '@/hooks/useChatEngine/types';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * Live thumbnail of a browse_web tool call, mirroring Tests Studio's agent-mode

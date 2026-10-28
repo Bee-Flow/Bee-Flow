@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SkillDraft } from './skillModel.types';
 import type { ListStatus, PickerAutomation, PickerKnowledgeBase } from './useSkillPickerData';
 

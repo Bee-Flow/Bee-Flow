@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { FieldChange } from '../../../../api/queries/automation/versions';
+import useTranslation from '@/hooks/useTranslation';
+import type { FieldChange } from '@/api/queries/automation/versions';
 import LineDiff from './LineDiff';
 import { formatValue, settingName } from './versionText';
 

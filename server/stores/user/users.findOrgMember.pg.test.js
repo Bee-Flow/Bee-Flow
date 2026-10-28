@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * users.findOrgMemberIdByEmail, the subject lookup of the DSR discovery scan
  * (compliance/dsr/discovery.js), against a real Postgres (pglite).

@@ -1,7 +1,7 @@
 import { useId, useState, type ComponentType } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { OnFocusField } from '../../../mapping/focusField.types';
-import TemplateFieldJs from '../../../mapping/TemplateField';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
+import TemplateFieldJs from '@/components/automation/Builder/mapping/TemplateField';
 import { FormRow, hintTextClass } from '../formPrimitives';
 import { ProblemRing } from '../runProblem';
 import { bindingFromText, textFromBinding, type Binding, type Fallback } from './reliabilityModel';

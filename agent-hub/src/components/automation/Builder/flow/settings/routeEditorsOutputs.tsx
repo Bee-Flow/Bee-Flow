@@ -6,8 +6,8 @@
  * instead of dropping it (BFSF-485 F2). RouteFields owns the state; this only
  * shows it and reports the clicks.
  */
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FormRow } from './formPrimitives';
 
 type Count = 'one' | 'several';

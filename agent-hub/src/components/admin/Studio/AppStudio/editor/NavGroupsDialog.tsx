@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useState } from 'react';
-import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { IconField } from '../inspector/panels/kit';
 import type { NavDefinition, NavScreen } from '../runtime/shell/navModel';

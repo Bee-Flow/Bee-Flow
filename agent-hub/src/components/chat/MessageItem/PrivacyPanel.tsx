@@ -1,9 +1,9 @@
 import React from 'react';
 import type { ChatMessage, MessageT } from './messageTypes';
 import { describePrivacyLine, messageTextOf } from './privacyLine';
-import type { TokenisationInfo } from '../../../hooks/useChatEngine/types';
+import type { TokenisationInfo } from '@/hooks/useChatEngine/types';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Color from index.css, never from this file (C7). The chip was a fixed

@@ -2,7 +2,7 @@ import { AlertTriangle, AppWindow, ArrowRight, Globe, HeartPulse, Info, Network,
 import { kindInkClass } from './kindBar';
 import { Strip, sectionNames } from './solutionNotices';
 import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * How the pieces of this Solution are wired to each other.

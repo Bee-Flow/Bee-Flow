@@ -241,7 +241,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
             req.session.oauthTokenSource = 'connector';
         }
 
-        log.info(`[GoogleConnector] Connected for user ${userId}${email ? ` (${email})` : ''}`);
+        log.info(`[GoogleConnector] Connected for user ${userId}`);
         res.send(callbackHTML(email ? `Connected as ${email}!` : 'Google Workspace connected!', true));
     } catch (err) {
         log.error('[GoogleConnector] Token exchange error:', err.message);

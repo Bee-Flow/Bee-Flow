@@ -1,9 +1,9 @@
 import { Loader2, Layers, Sparkles, Settings, Lock, Info } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { getIntegrationIcon } from '../../../../config/integrationIcons';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { useGroupAccessRead } from '../../../../api/queries/orgAdminReads';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useGroupAccessRead } from '@/api/queries/orgAdminReads';
 import type { AccessCapability, AccessData, AccessKindSection } from './accessTypes';
 
 /**

@@ -119,7 +119,7 @@ export function useProjectVisitQuery(projectId: string | null | undefined) {
         refetchOnWindowFocus: false,
         retry: false,
         queryFn: async () => {
-            const body = await apiClient.post<Partial<ProjectVisit>>(`/api/projects/${enc(projectId!)}/visit`, {}, { retry: false });
+            const body = await apiClient.post<Partial<ProjectVisit>>(`/api/projects/${enc(projectId!)}/visit`, {});
             return { prevVisitAt: str(body?.prevVisitAt), visitStartedAt: str(body?.visitStartedAt) };
         },
     });
@@ -181,7 +181,7 @@ export function useMarkItemSeen(projectId: string) {
     return useMutation<void, Error, { type: ChangeItemType; id: string; versionId?: string | null }>({
         mutationFn: async ({ type, id, versionId }) => {
             await apiClient.post(`/api/projects/${enc(projectId)}/items/${enc(type)}/${enc(id)}/seen`,
-                versionId ? { versionId } : {}, { retry: false });
+                versionId ? { versionId } : {});
         },
         onMutate: ({ type, id }) => dropUnread(qc, projectId, type, id),
         onSettled: () => qc.invalidateQueries({ queryKey: changeKeys.all(projectId) }),
@@ -193,7 +193,7 @@ export function useMarkAllSeen(projectId: string) {
     const qc = useQueryClient();
     return useMutation<void, Error, void>({
         mutationFn: async () => {
-            await apiClient.post(`/api/projects/${enc(projectId)}/seen`, {}, { retry: false });
+            await apiClient.post(`/api/projects/${enc(projectId)}/seen`, {});
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: changeKeys.all(projectId) }),
     });

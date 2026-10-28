@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, FolderInput, FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { AutomationFolder } from '../../../automation/useAutomationLibrary';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { AutomationFolder } from '@/components/automation/useAutomationLibrary';
 
 /** The hover buttons share one look. */
 const ICON_BUTTON = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-0.5 rounded text-[var(--text-tertiary)]';

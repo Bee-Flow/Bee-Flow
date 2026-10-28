@@ -1,8 +1,8 @@
 import { AlertTriangle, Check, Globe, Loader2, X } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 interface AccessGateCardProps {
     changes: { kind: string; words: string }[];

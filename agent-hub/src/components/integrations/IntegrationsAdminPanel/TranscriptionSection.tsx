@@ -2,7 +2,7 @@
 // provider picker + per-provider configuration). Subtree moved verbatim from
 // IntegrationsAdminPanel.jsx; all bindings are threaded in as props.
 import { Cloud } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AzureSpeechCard from './AzureSpeechCard';
 import PyannoteCard from './PyannoteCard';
 import ScalewayCard from './ScalewayCard';

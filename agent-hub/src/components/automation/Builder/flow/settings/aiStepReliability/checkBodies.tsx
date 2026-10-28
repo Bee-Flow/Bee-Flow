@@ -1,11 +1,11 @@
 // The form inside each kind of check card. Each body edits one entry and hands
 // back the whole next entry; the section decides which list it lives in.
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FormRow, denseInputClass } from '../formPrimitives';
 import { FieldSelect, ListSourceField, NumberBox, PathField, TickRow, type PickerProps } from './checkFields';
 import type { AllowedFromCheck, ItemsCheck, NumbersFromCheck, ScriptCheck, FieldPathOption } from './reliabilityModel';
 import { SCRIPTS } from './reliabilityModel';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 
 interface BodyProps<T> extends PickerProps {
     entry: T;

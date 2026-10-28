@@ -9,7 +9,7 @@ import { hopPath } from './edgeHops';
 import type { EdgeIdentity, LabelledEdgeProps, ToolLinkEdgeProps } from './edges.types';
 import { useNodeRuntime } from './NodeRuntimeContext';
 import { PresenterContext } from './PresenterContext';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * Custom edge that renders `then` / `else` / loop labels as a small

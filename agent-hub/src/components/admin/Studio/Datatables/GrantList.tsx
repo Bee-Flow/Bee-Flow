@@ -2,8 +2,8 @@ import { Loader2, Plus, User, UserPlus, Users, X } from 'lucide-react';
 import { useState } from 'react';
 import { datatablesApi } from './datatablesApi';
 import { type DatatableGrant } from './grants';
-import useTranslation from '../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { RequestError, GrantListProps, AvatarProps } from './DatatableSharing.types';
 
 export const CARD = {

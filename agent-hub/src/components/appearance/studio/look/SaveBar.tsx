@@ -1,6 +1,6 @@
 import { Check, Save, Loader2, AlertCircle } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * SaveBar — sticky bottom action bar for the Look editor. Status pill on the

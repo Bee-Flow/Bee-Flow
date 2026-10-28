@@ -1,6 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import { isAbortError, messageOf } from '../../../utils/caughtError';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { isAbortError, messageOf } from '@/utils/caughtError';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { VOICE_STATES } from './voiceSessionAudio';
 import type {
     ConnectOptions,
@@ -12,8 +12,8 @@ import type {
     VoiceState,
     VoiceTool,
 } from './useVoiceSession.types';
-import { logger } from '../../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 /** What one voice turn reads and writes: the hook's refs, setters and TTS player. */
 export interface VoiceTurnCtx {

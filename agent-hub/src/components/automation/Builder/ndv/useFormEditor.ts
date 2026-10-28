@@ -1,7 +1,7 @@
 // What the node drawer hands a form page so it can open the full-screen form
 // editor: every form page of the automation, a way to save ANOTHER page than the
 // open one, and (on the form trigger) the shell's own "run this form" path.
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { normalizeDefinitionShape } from '../flow/normalizeDefinition';
 import { mergeStepPatchIntoDefinition } from '../flow/switchCaseOps';
 import { collectFormPages } from '../flow/settings/formPages';
@@ -26,7 +26,9 @@ export default function useFormEditor({ definition, step, onSaveStep, onTest }: 
     // first yet, so every in-flight form is applied again on top of it.
     const inFlight = useRef(new Map<string, Form>());
     const latest = useRef({ definition, onSaveStep });
-    latest.current = { definition, onSaveStep };
+    useLayoutEffect(() => {
+        latest.current = { definition, onSaveStep };
+    });
 
     const savePage = useCallback((id: string, form: Form) => {
         const { definition: def, onSaveStep: save } = latest.current;

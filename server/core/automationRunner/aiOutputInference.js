@@ -164,12 +164,12 @@ function scanLoose(text, report) {
 }
 
 /**
- * @param {boolean} listCtx
+ * @param {boolean | 'weak'} listCtx
  */
 function scanAst(node, report, listCtx) {
     if (!node || typeof node !== 'object') return;
     /**
-     * @param {boolean} l
+     * @param {boolean | 'weak'} l
      */
     const visit = (n, l) => scanAst(n, report, l);
     if (node.kind === 'path') {
@@ -363,9 +363,10 @@ function addRead(root, tokens, list) {
     else cur.whole = true;
 }
 
+/** @type {(n: Inference.ReadNode) => Inference.Schema} */
 function toSchema(n) {
     if (n.list || n.items || (n.weakList && !n.whole && !n.props.size)) {
-        /** @type {{ type: string; items?: { type: string; } | { type: string; properties: {}; } }} */
+        /** @type {Inference.Schema} */
         const s = { type: 'array' };
         if (n.items) s.items = toSchema(n.items);
         // A field looped over AND read straight off (`people.name`): the
@@ -374,7 +375,7 @@ function toSchema(n) {
         return s;
     }
     if (n.props.size) {
-        const properties = {};
+        const properties = /** @type {Record<string, Inference.Schema>} */ ({});
         for (const [k, child] of n.props) properties[k] = toSchema(child);
         return { type: 'object', properties };
     }
@@ -384,7 +385,7 @@ function toSchema(n) {
 /**
  * The schema to ask a schemaless AI step for.
  *
- * @returns {{ schema: object|null, fields: string[], textField: string|null }}
+ * @returns {{ schema: Inference.Schema|null, fields: string[], textField: string|null }}
  *   `schema` a JSON Schema object (null when nothing reads a field),
  *   `fields` the top-level field names in first-seen order, `textField` the
  *   first of them that is text: where a prose answer is wrapped.
@@ -401,10 +402,7 @@ function inferAiStepOutputSchema(definition, stepId) {
 
 module.exports = { collectAiStepOutputReads, inferAiStepOutputSchema };
 
-/**
- * A path token in path.mjs's shape.
- * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
- */
+/** @typedef {Expr.PathToken} PathToken  a path token in path.mjs's shape */
 
 /**
  * An expression AST node from the shared parser (only the fields read here).

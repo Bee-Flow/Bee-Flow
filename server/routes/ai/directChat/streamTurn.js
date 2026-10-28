@@ -196,7 +196,7 @@ async function releaseTurn(turn) {
 
 // ─── Streaming Direct Chat ───────────────────────────────────────
 
-router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody }), async (req, res) => {
+router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DirectTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, sidePanelDocument, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
     const userId = sessionUser(req).id;
 

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Which organisation a project belongs to, and who belongs to it.

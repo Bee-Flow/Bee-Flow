@@ -1,7 +1,7 @@
 import { Lock, Users } from 'lucide-react';
 import React from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { TONES } from '../../../../../shared/statusTone';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
 
 interface AccessNowCardProps {
     now: { tone: string; who: string; namedLine: string };

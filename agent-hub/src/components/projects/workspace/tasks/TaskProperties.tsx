@@ -4,8 +4,8 @@
 
 import { Check } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { TASK_PRIORITIES, TASK_STATUSES, type ProjectTask, type TaskLink, type TaskPriority, type TaskStatus } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TASK_PRIORITIES, TASK_STATUSES, type ProjectTask, type TaskLink, type TaskPriority, type TaskStatus } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Avatar, ErrorText, SelectField } from '../workspaceUi';
 import { LabelsInput, PriorityIcon, TypeIcon, typeLabel } from './TaskFields';
 import { workItemType, WORK_ITEM_TYPES, type WorkItemType } from './taskPlanning';

@@ -1,5 +1,5 @@
 import { Check, Minus } from 'lucide-react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { hoverable } from '../hoverable';
 import { roleTextColor } from '../styleResolver';
@@ -8,9 +8,9 @@ import CadThumb from './CadThumb';
 import { EM_DASH, displayValue } from '../uiBits';
 import type { GridColumn } from './grid/useGridColumns';
 import type React from 'react';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { CellColumn, ToneForCellArgs, LabelForCellArgs, PillProps, CellFlagProps, MonogramProps, RenderMainValueArgs, CellValueProps } from './cellValue.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 export type { CellColumn } from './cellValue.types';
 
 /**

@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../../telemetry/log');
 const { collectStringLeaves, collectStringLeafKeys, _isIdentifierKey, _isHandleValue, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _scanText, _degradationIsRelevant, _regexHits, _scanFailedMessage } = require('./safetyScan');

@@ -12,8 +12,8 @@
 //  3. THE FALLBACK LIVES IN ADVANCED, WITH A SAFE DEFAULT. "Stay where you are" is the narrowing
 //     answer if the return is not executable; the error screen is the deliberate choice.
 import { FormRow, inputClass } from './formPrimitives';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import { useTranslation } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
 import type { StepEditorProps } from './collectionEditors';

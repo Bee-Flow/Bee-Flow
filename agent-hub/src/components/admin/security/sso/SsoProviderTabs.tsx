@@ -3,7 +3,7 @@ import {
     ClientIdField, ClientSecretField, ProviderActions, ProviderHeader, SetupInstructions,
 } from './SsoFormParts';
 import type { SsoProvidersState } from './useSsoProviders';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface TabProps {
     sso: SsoProvidersState;

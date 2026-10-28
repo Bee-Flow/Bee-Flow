@@ -46,6 +46,9 @@ const OPTIONAL_CONSENTS_DEFAULT = [
     },
 ];
 
+/** @typedef {{ id: string, version: number, category: string, enabled: boolean, labelKey: string }} OptionalConsent */
+
+/** @returns {OptionalConsent[]} */
 function optionalConsents() {
     let ov = null;
     try {
@@ -53,6 +56,7 @@ function optionalConsents() {
         if (legalStore.isLoaded()) ov = legalStore.getOptionalOverride();
     } catch (err) { fallback('legal/documentRegistry:optionalConsents', err); /* fall back to defaults */ }
     if (!Array.isArray(ov) || !ov.length) return OPTIONAL_CONSENTS_DEFAULT.map(c => ({ ...c }));
+    /** @type {Record<string, OptionalConsent>} */
     const byId = {};
     for (const d of OPTIONAL_CONSENTS_DEFAULT) byId[d.id] = { ...d };
     for (const o of ov) { if (o && o.id) byId[o.id] = { ...(byId[o.id] || {}), ...o }; }
@@ -61,6 +65,7 @@ function optionalConsents() {
     return Object.values(byId).map(c => ({ ...c, version: Number(c.version) || 1 }));
 }
 
+/** @param {string} id */
 function getOptionalConsent(id) {
     return optionalConsents().find(c => c.id === id) || null;
 }

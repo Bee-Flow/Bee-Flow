@@ -3,9 +3,9 @@
 
 import { Archive, ArchiveRestore, ArrowRightLeft } from 'lucide-react';
 import React, { useState } from 'react';
-import { useSetProjectMute } from '../../../api/queries/notificationPrefs';
-import { useArchiveProject, useRestoreProject, type Project } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useSetProjectMute } from '@/api/queries/notificationPrefs';
+import { useArchiveProject, useRestoreProject, type Project } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import Toggle from '../../shared/Toggle';
 import toast from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';

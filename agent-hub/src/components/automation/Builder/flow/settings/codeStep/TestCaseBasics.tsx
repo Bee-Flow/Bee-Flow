@@ -1,6 +1,6 @@
 // The name of a test and what the code is expected to do.
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import RadioRow from './RadioRow';
 import { NAME_MAX, type CaseDraft, type CaseProblems } from './testCaseForm';
 

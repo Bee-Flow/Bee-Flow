@@ -1,7 +1,7 @@
 import { FieldRow } from '../fields';
 import { SectionDivider, SegmentedControl } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { DesignComponents } from '../../../../marketing/ProductWebsite.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DesignComponents } from '@/marketing/ProductWebsite.types';
 
 type TileKey = 'tileShape' | 'tileFill' | 'tileSize' | 'tileIconColor';
 

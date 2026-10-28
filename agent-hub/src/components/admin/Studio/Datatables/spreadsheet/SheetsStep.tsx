@@ -3,8 +3,8 @@ import React from 'react';
 import { formatLabel, providerLogoId, providerName, ssErrorMessage, writeCaveatText } from '../datatableDisplay';
 import SheetSection, { type SheetPatch } from './SheetSection';
 import { describeKeyOf, fileKeyOf, sheetKeyOf, sheetLabelOf, type Describe, type FileDescribe, type FileSheet, type SheetDescribe, type SheetSelection, type WizardFile } from './wizardState';
-import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * Step 2 of the link-spreadsheet wizard: which sheets, and what their

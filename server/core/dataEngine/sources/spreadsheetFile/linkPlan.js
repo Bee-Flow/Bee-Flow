@@ -1,3 +1,4 @@
+// @typecheck
 const { KEY_RE } = require('../../dataModel/vocabulary');
 const columns = require('./columns');
 const identity = require('./identity');

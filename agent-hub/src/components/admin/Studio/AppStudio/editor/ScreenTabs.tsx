@@ -3,12 +3,12 @@ import { Home, MoreHorizontal, PanelsTopLeft, Pencil, Plus, Trash2, type LucideI
 import { useEffect, useRef, useState, type AnimationEventHandler } from 'react';
 import { screenTabDroppableId } from './dnd';
 import NavGroupsDialog from './NavGroupsDialog';
-import AppIcon from '../../../../icons/AppIcon';
-import AnchoredMenu from '../../../../shared/AnchoredMenu';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
+import AppIcon from '@/components/icons/AppIcon';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { useAppEditor } from '../state/AppEditorContext';
 import { addScreen, removeScreen, updateScreen } from '../state/definitionOps';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { AppDefinition, AppScreen } from '../inspector/appDefinition';
 import type { NavDefinition } from '../runtime/shell/navModel';

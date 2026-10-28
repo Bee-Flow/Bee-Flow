@@ -1,7 +1,7 @@
 import { AppWindow, ChevronRight, ExternalLink } from 'lucide-react';
 import React from 'react';
 import { appRefDisplay, useAppRefLabel } from './flow/appRefLabel';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { segmentForSection } from '../../admin/Studio/studioRoutes';
 import type { AppRef } from '../../admin/Studio/AppStudio/inspector/appDefinition';
 

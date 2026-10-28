@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import UserPicker from '../shared/UserPicker';
 import type { OrgUser } from '../shared/UserPicker';
 import type { ReactNode } from 'react';

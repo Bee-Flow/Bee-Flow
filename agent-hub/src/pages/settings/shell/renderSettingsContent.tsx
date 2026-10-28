@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import OrgAzureConfigPanel from '../../../components/integrations/azure/index';
-import { RequireTier } from '../../../components/licensing/LicenseContext';
+import OrgAzureConfigPanel from '@/components/integrations/azure/index';
+import { RequireTier } from '@/components/licensing/LicenseContext';
 import AppearanceSection from '../AppearanceSection';
 import ConsumerBetaFeaturesSection from '../ConsumerBetaFeaturesSection';
 import ConsumerIntegrationsSection from '../ConsumerIntegrationsSection';
@@ -15,7 +15,7 @@ import MemorySection from '../MemorySection';
 import NotificationsSection from '../NotificationsSection';
 import OrganisationSection from '../OrganisationSection';
 import PreferencesSection from '../PreferencesSection';
-import type { MemoryStats } from '../../../components/knowledge/memory/memoryTypes';
+import type { MemoryStats } from '@/components/knowledge/memory/memoryTypes';
 import type { PreferencesAgent } from '../PreferencesSection.types';
 import SecuritySection from '../SecuritySection';
 import { MOBILE_VISIBLE_TAB_SET } from './settingsShellData';

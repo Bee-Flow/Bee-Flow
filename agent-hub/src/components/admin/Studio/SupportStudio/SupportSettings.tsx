@@ -7,9 +7,9 @@ import InboxesTab from './InboxesTab';
 import RepliesTab from './RepliesTab';
 import type { SupportAgent, SupportInbox, SupportUser } from './supportStudio.types';
 import TemplatesTab from './TemplatesTab';
-import useTranslation from '../../../../hooks/useTranslation';
-import { useSupportAgents, useSupportKbs, useSupportTeammates } from '../../../../api/queries/studioSupport';
-import EmptyState from '../../../shared/EmptyState';
+import useTranslation from '@/hooks/useTranslation';
+import { useSupportAgents, useSupportKbs, useSupportTeammates } from '@/api/queries/studioSupport';
+import EmptyState from '@/components/shared/EmptyState';
 
 // Tab set — mirrors Organisation Settings' top pill bar. Per-inbox tabs act on
 // the inbox chosen in the in-panel selector; org-wide tabs ignore it.

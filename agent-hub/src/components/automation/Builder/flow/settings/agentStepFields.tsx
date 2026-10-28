@@ -17,8 +17,8 @@
 // run does (api/queries/automation/agents.ts).
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AgentPermissionsPanel from './agentStep/AgentPermissionsPanel';
 import AgentPicker, { agentRowsOf } from './agentStep/AgentPicker';
 import ContinuesAs from './agentStep/ContinuesAs';

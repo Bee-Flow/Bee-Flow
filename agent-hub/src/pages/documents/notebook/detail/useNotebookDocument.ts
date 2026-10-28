@@ -18,8 +18,8 @@
  * live session (useSessionJoin); saving waits until that join has answered.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiClient } from '../../../../api/client';
-import useTranslation from '../../../../hooks/useTranslation';
+import { apiClient } from '@/api/client';
+import useTranslation from '@/hooks/useTranslation';
 import useDocumentAutosave, { keepUnsavedCopy, type ConflictInfo } from '../hooks/useDocumentAutosave';
 import type { NotebookDetailData } from '../notebookQueries';
 import { editorHtml, type NotebookEditorHandle } from './editorHandle';
@@ -27,7 +27,7 @@ import type { NotebookSaveMode } from './NotebookSaveStatus';
 import type { NoticeWithAction } from './NotebookNotice';
 import useNotebookCollab from './useNotebookCollab';
 import useSessionJoin from './useSessionJoin';
-import { errorMessage } from '../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 interface Options {
     data: NotebookDetailData;

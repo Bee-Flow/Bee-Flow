@@ -12,14 +12,14 @@ import type {
 } from './appDefinition';
 import { automationHref } from './AutomationTile';
 import { alwaysSkipped, buildTestPayload } from './testPayload';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
-import toast from '../../../../shared/Toast';
-import useTranslation from '../../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import toast from '@/components/shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
-import { logger } from '../../../../../utils/logger';
-import { runStartRefusal } from '../../../../../api/queries/automation/runAccess';
+import { logger } from '@/utils/logger';
+import { runStartRefusal } from '@/api/queries/automation/runAccess';
 
 /** One automation the picker has resolved, as far as this hook reads it. */
 export interface WiredAutomation {
@@ -192,7 +192,7 @@ export default function useEventWiring({
     event, node, definition, onCommit, onTestActionResult, automations, setAutomations, titleFor, appId = null,
 }: UseEventWiringOptions): EventWiring {
     const { t } = useTranslation();
-    const actions = definition?.actions || {};
+    const actions = useMemo(() => definition?.actions || {}, [definition?.actions]);
     const actionId = typeof node?.[event] === 'string' ? node[event] as string : null;
     const action = actionId ? actions[actionId] : null;
 

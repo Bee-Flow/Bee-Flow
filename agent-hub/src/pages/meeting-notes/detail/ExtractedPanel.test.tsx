@@ -24,7 +24,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import ExtractedPanel, { speakerGapText } from './ExtractedPanel';
 import { SPEAKER_CHECK } from '../lib/transcriptOutputs';

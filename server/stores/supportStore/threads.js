@@ -49,7 +49,7 @@ async function createThread({
             inboxId, rfc822MessageId, providerThreadId]
     );
     const row = rows[0];
-    log.info(`[SupportStore] Thread created ${row.id} (${source}${inboxId ? `, inbox ${inboxId}` : ''}) for ${requesterEmail}`);
+    log.info(`[SupportStore] Thread created ${row.id} (${source}${inboxId ? `, inbox ${inboxId}` : ''})`);
     return row;
 }
 

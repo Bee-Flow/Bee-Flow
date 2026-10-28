@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "This needs the saved model" — said once, in one place.

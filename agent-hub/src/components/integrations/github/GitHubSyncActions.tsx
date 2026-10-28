@@ -1,5 +1,5 @@
 import { RefreshCw, Upload, Clock, Loader2, ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { GitHubSyncOverview } from './githubSync.types';
 
 interface GitHubSyncActionsProps {

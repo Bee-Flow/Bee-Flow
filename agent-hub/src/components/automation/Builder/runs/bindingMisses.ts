@@ -13,7 +13,7 @@ import { isValidPath } from '@shared/expr/path.mjs';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { listPathLabel } from '../mapping/listPathLabel';
 import { buildRunStepMap } from '../flow/runStepLabels';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 type BindingMissReason = 'missing' | 'not_run' | 'syntax' | 'error';
 /** `rule`: a Condition's rule read a field none of the items have (binding log entry kind 'rule'). */

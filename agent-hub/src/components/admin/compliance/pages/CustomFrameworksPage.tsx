@@ -1,8 +1,8 @@
 import { ArrowLeft, FileJson, FolderKanban, Pencil } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useComplianceRead } from '../../../../api/queries/complianceReads';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API, asArray, asObject, fetchJson, jsonInit, json } from '../../../../api/complianceApi';
+import { useComplianceRead } from '@/api/queries/complianceReads';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API, asArray, asObject, fetchJson, jsonInit, json } from '@/api/complianceApi';
 import useResource from '../data/useResource';
 import ScoreRing from '../shared/ScoreRing';
 import StatusPill from '../shared/StatusPill';

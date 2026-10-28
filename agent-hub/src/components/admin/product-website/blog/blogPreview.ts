@@ -2,7 +2,7 @@
 // entry is open — the same shape server/stores/cms/blogEffective.js sends the
 // public site, so the canvas shows the real public renderer (BlogView) with
 // the unsaved editor state, in the language being edited.
-import { DEFAULT_LABELS, type BlogLabels, type BlogPayload, type BlogPostSummary } from '../../../../marketing/blog/blogFormat';
+import { DEFAULT_LABELS, type BlogLabels, type BlogPayload, type BlogPostSummary } from '@/marketing/blog/blogFormat';
 import { normalizePostSlug, visibility, type AdminPost, type AdminPostSummary, type PostTranslation } from './blogApi';
 import { wordCount } from './markdownCommands';
 

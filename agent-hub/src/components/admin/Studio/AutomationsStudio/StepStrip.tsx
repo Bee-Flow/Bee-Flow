@@ -2,13 +2,13 @@ import {
     ChevronRight, Database, Flag, GitBranch, Pause, Plug, Repeat, ShieldCheck, Sparkles, Zap,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import IntegrationLogo from '../../../automation/Builder/flow/nodes/IntegrationLogo';
-import { StepIcon } from '../../../automation/Builder/flow/stepIcons';
-import { FAMILY_TILE } from '../../../automation/Builder/flow/ribbon/ribbonCategories';
+import { useTranslation } from '@/hooks/useTranslation';
+import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
+import { StepIcon } from '@/components/automation/Builder/flow/stepIcons';
+import { FAMILY_TILE } from '@/components/automation/Builder/flow/ribbon/ribbonCategories';
 import { flowSummaryOf, stripModelOf, type AutomationRecord } from './overviewModel';
 import { TONE_CLASSES, triggerGlyphKeyOf, triggerToneOf } from './triggerTone';
-import { TRIGGER_ICONS } from '../../../automation/Builder/flow/triggerIcons';
+import { TRIGGER_ICONS } from '@/components/automation/Builder/flow/triggerIcons';
 
 const Logo = IntegrationLogo;
 const Icon = StepIcon;

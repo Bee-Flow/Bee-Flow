@@ -1,6 +1,6 @@
 // A document's type, and a person, as the library and the project tables say them.
 
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { People } from '../documentQueries';
 
 export function useDocTypeLabel() {

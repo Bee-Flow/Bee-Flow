@@ -1,8 +1,8 @@
 import { Calculator, Database, Pencil, Play, Plug, Sigma, Table2 } from 'lucide-react';
 import React from 'react';
-import type { TranslateParams } from '../../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { BindingDraft } from '../BindingField.types';
-import { logger } from '../../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // The four everyday sources, in the order they are offered.
 export const sourceChoices = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [

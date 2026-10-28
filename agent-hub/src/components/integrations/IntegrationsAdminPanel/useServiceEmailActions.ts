@@ -1,10 +1,10 @@
 // Service Email (Gmail API via OAuth) actions of the IntegrationsAdminPanel —
 // connect popup, disconnect and display-name save, moved verbatim from
 // IntegrationsAdminPanel.jsx.
-import { isTrustedOAuthOrigin } from '../../../lib/oauthMessageOrigin';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { isTrustedOAuthOrigin } from '@/lib/oauthMessageOrigin';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminMessage } from './IntegrationsAdminPanel.types';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 interface UseServiceEmailActionsParams {
     setConnectingServiceEmail: (value: boolean) => void;

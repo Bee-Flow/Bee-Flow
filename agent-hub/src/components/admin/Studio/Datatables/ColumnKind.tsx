@@ -1,9 +1,9 @@
 import { CircleDot, Link2 } from 'lucide-react';
 import React from 'react';
 import { columnTypeKind } from './datatableDisplay';
-import FieldKindIcon from '../../../automation/Builder/mapping/FieldKindIcon';
-import { KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import FieldKindIcon from '@/components/automation/Builder/mapping/FieldKindIcon';
+import { KIND_WORD } from '@/components/automation/Builder/mapping/fieldKinds';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * A column's SOORT as the artboard draws it (Datatables 1d): the mapping

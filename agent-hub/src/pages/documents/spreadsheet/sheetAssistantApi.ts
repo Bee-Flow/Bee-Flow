@@ -1,11 +1,11 @@
 // Client for POST /api/studio-documents/:id/sheet/assistant. The server runs
 // the model (5 to 60 s) and SAVES the cell changes before it answers.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { SheetApiError } from '../../../api/sheetApi';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { SheetApiError } from '@/api/sheetApi';
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartConfig } from './sheetCharts';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export interface AssistantTurn { role: 'user' | 'assistant'; content: string }
 

@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { AppAction, AppDefinition, AppNode, AppScreen } from '../appDefinition';
 import type { StudioFieldGroup, StudioScopeField } from './studioFieldOptions';
-import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import { coerceVariableDefault, seedVariableDefaults } from '../../runtime/appVariables';
 import APP_COMPONENT_TYPES from '../../runtime/componentRegistry';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // Stand-in for t() when a caller has none (tests, non-UI callers): the English text.
 const plainEnglish = (_key: string | undefined, en: string): string => en;

@@ -9,7 +9,7 @@ import {
 import { comingAlong, useRelatedParts, type RelatedRef } from './relatedParts';
 import RelatedPartsNotice from './RelatedPartsNotice';
 import { useAddFiling } from './useAddFiling';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * "Add to this Solution": file things you already made into it.

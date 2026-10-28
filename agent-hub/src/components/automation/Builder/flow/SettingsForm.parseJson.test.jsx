@@ -1,12 +1,12 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { editorWithValue } from '@/test/refEditor';
+import scopedStorage from '@/utils/scopedStorage';
 import { extractFormState, buildPatch } from './settings/formState';
 import SettingsForm from './SettingsForm';
 import { buildStepFromPayload } from '../DiagramPane';
 import { DATA_ITEMS } from './stepPalette';
-import { editorWithValue } from '../../../../test/refEditor';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 const api = {
@@ -18,7 +18,7 @@ const api = {
         ],
     })),
 };
-vi.mock('../../../../hooks/useAutomationApi', async (importOriginal) => {
+vi.mock('@/hooks/useAutomationApi', async (importOriginal) => {
     const mod = await importOriginal();
     return { ...mod, default: () => api };
 });

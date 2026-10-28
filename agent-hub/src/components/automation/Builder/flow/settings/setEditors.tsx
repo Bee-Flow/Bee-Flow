@@ -2,10 +2,10 @@
 // verbatim from SettingsForm.jsx.
 import { appendKey } from '@shared/expr/path.mjs';
 import { useMemo, useState, type JSX } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { walkPath } from '../../../../../utils/bindingHelpers';
-import { skipGroupOfStep } from '../../../../shared/statusTokens/statusTokens.helpers';
-import { type RunStepLike } from '../../../../shared/statusTokens/statusTokens.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import { walkPath } from '@/utils/bindingHelpers';
+import { skipGroupOfStep } from '@/components/shared/statusTokens/statusTokens.helpers';
+import { type RunStepLike } from '@/components/shared/statusTokens/statusTokens.types';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { sampleToFields } from '../../mapping/upstream';
@@ -263,6 +263,9 @@ interface JsonExtractSectionProps {
     previewSample: unknown;
 }
 
+/** Field names that most likely hold the JSON a step should parse. */
+const PREFERRED_KEY = /body|content|text|json|payload|raw/i;
+
 function JsonExtractSection({ draft, set, listMode, elementSample, previewSample }: JsonExtractSectionProps) {
     const { t } = useTranslation();
     const pickerCtx = useVariablePickerContext();
@@ -270,7 +273,6 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
     const [changing, setChanging] = useState(false);
     const [customSource, setCustomSource] = useState<string | null>(null);
 
-    const PREFERRED = /body|content|text|json|payload|raw/i;
     const jsonish = (v: unknown) => {
         if (typeof v !== 'string') return false;
         const parsed = parseSampleSource(v);
@@ -284,7 +286,7 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
                 for (const [k, v] of Object.entries(elementSample)) {
                     // The row's key written canonically: `item["raw-json"]`, not
                     // `item.raw-json`, which a formula reads as a subtraction.
-                    if (jsonish(v)) found.push({ path: appendKey('item', k), label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) });
+                    if (jsonish(v)) found.push({ path: appendKey('item', k), label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED_KEY.test(k) });
                 }
             }
         } else {
@@ -293,9 +295,9 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
             for (let i = gs.length - 1; i >= 0; i--) {
                 const g = gs[i];
                 for (const f of (g.fields || [])) {
-                    if (jsonish(f.sample)) found.push({ path: f.path, label: `${g.label} · ${humanizeFieldKey(f.key)}`, preferred: PREFERRED.test(f.key) });
+                    if (jsonish(f.sample)) found.push({ path: f.path, label: `${g.label} · ${humanizeFieldKey(f.key)}`, preferred: PREFERRED_KEY.test(f.key) });
                     for (const c of (f.children || [])) {
-                        if (jsonish(c.sample)) found.push({ path: c.path, label: `${g.label} · ${humanizeFieldKey(c.key)}`, preferred: PREFERRED.test(c.key) });
+                        if (jsonish(c.sample)) found.push({ path: c.path, label: `${g.label} · ${humanizeFieldKey(c.key)}`, preferred: PREFERRED_KEY.test(c.key) });
                     }
                 }
             }

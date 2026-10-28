@@ -6,7 +6,7 @@ import {
     PRESENTER_KEY, PRESENTER_LOD_BREAKS, readPresenter, writePresenter, presenterLod, presenterShots, applyPresenterShots,
 } from './presenterMode';
 import { LOD_FAR, LOD_MID, LOD_NEAR } from './useZoomLod';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { partial, stub } from '@/test/mocks';
 
 /**

@@ -322,7 +322,7 @@ router.post('/house-style/preview-theme', requireAuth, async (req, res) => {
 // Any signed-in user may READ a template: the result is data the caller
 // stores on its own document (settings.deck.template) or, as an org admin,
 // on the house style — the PUT below is where the admin gate lives.
-router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.deckTemplate }), async (req, res) => {
+router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.deckTemplate }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof bodies.deckTemplate>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const raw = String((req.body && req.body.dataUrl) || '');
         const m = /^data:[a-z0-9.+/-]+;base64,([A-Za-z0-9+/=\s]+)$/i.exec(raw);
@@ -368,7 +368,7 @@ router.put('/house-style', requireAuth, requirePermission('org_admin'), async (r
  * document picker and an app action's inspector list, and what both AI
  * builders read so they bind the names a template actually has.
  */
-router.get('/templates', requireAuth, validate({ query: TemplatesQuery }), async (req, res) => {
+router.get('/templates', requireAuth, validate({ query: TemplatesQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof TemplatesQuery>>} */ req, res) => {
     try {
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
         const templates = await documentStore.listTemplates(req.session.user.id, { ...req.query, limit });
@@ -380,7 +380,7 @@ router.get('/templates', requireAuth, validate({ query: TemplatesQuery }), async
 
 // ── List / create ────────────────────────────────────────────────────
 
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     try {
         const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
         const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
@@ -416,12 +416,12 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // Library routes precede /:id so literal names are never treated as document IDs.
-router.get('/starters', requireAuth, validate({ query: StartersQuery }), (req, res) => res.json({ starters: require('../core/documents/documentStarters').starters(req.query.locale) }));
+router.get('/starters', requireAuth, validate({ query: StartersQuery }), (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof StartersQuery>>} */ req, res) => res.json({ starters: require('../core/documents/documentStarters').starters(req.query.locale) }));
 router.get('/folders', requireAuth, async (req, res) => {
     try { res.json({ folders: await documentStore.listFolders(req.session.user.id) }); }
     catch (e) { sendStoreError(res,e,'Failed to load folders'); }
 });
-router.post('/folders', requireAuth, validate({ body: bodies.folder }), async (req, res) => {
+router.post('/folders', requireAuth, validate({ body: bodies.folder }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof bodies.folder>, import('qs').ParsedQs>} */ req, res) => {
     try { res.status(201).json({ folder: await documentStore.createFolder(req.session.user.id,req.body?.name,req.body?.parentId) }); }
     catch (e) { sendStoreError(res,e,'Failed to create folder'); }
 });
@@ -429,7 +429,7 @@ router.delete('/folders/:folderId', requireAuth, async (req,res) => {
     try { await documentStore.deleteFolder(req.session.user.id,req.params.folderId); res.json({ ok:true }); }
     catch (e) { sendStoreError(res,e,'Failed to delete folder'); }
 });
-router.get('/:id/contract', requireAuth, validate({ query: VersionQuery }), async (req,res) => {
+router.get('/:id/contract', requireAuth, validate({ query: VersionQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof VersionQuery>>} */ req,res) => {
     try {
         const doc = req.query.versionId ? await documentStore.getDocumentVersion(req.params.id,req.session.user.id,req.query.versionId === 'baseline' ? undefined : req.query.versionId) : await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
@@ -459,7 +459,7 @@ router.get('/:id/updates', requireAuth, async (req,res) => {
         res.json({updates});
     }catch(e){sendStoreError(res,e,'Could not check updates');}
 });
-router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpdate }), async(req,res)=>{
+router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpdate }), async(/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.reviewUpdate>, import('qs').ParsedQs>} */ req,res)=>{
     try {
         const doc=await documentStore.getDocument(req.params.id,req.session.user.id);
         if(!doc) return res.status(404).json({error:'Document not found'});
@@ -480,7 +480,7 @@ router.post('/:id/review-update', requireAuth, validate({ body: bodies.reviewUpd
             validation:prepareDocument(next,next.settings.sampleValues || {},next.settings.sectionOverrides || {})});
     }catch(e){sendStoreError(res,e,'Could not prepare update');}
 });
-router.post('/:id/preview-changes',requireAuth,validate({ body: bodies.previewChanges }),async(req,res)=>{
+router.post('/:id/preview-changes',requireAuth,validate({ body: bodies.previewChanges }),async(/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.previewChanges>, import('qs').ParsedQs>} */ req,res)=>{
     try {
         const doc=await documentStore.getDocument(req.params.id,req.session.user.id);
         if(!doc)return res.status(404).json({error:'Document not found'});
@@ -499,7 +499,7 @@ router.post('/:id/sections/:sectionId/save',requireAuth,async(req,res)=>{
         res.status(201).json({document});
     }catch(e){sendStoreError(res,e,'Could not save reusable section');}
 });
-router.post('/:id/ai-proposal', requireAuth, require('express-rate-limit').rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}), validate({ body: bodies.aiProposal }), async (req,res) => {
+router.post('/:id/ai-proposal', requireAuth, require('express-rate-limit').rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}), validate({ body: bodies.aiProposal }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.aiProposal>, import('qs').ParsedQs>} */ req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({error:'Document not found'});
@@ -513,7 +513,7 @@ router.post('/:id/ai-proposal', requireAuth, require('express-rate-limit').rateL
         res.json({...proposal,html:await previewHtmlFor(req,proposed)});
     } catch(e) { sendStoreError(res,e,'Could not prepare document changes'); }
 });
-router.post('/:id/validate', requireAuth, validate({ body: bodies.check }), async (req,res) => {
+router.post('/:id/validate', requireAuth, validate({ body: bodies.check }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.check>, import('qs').ParsedQs>} */ req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
@@ -524,7 +524,7 @@ router.post('/:id/validate', requireAuth, validate({ body: bodies.check }), asyn
         res.json({ ...fill, html });
     } catch(e) { sendStoreError(res,e,'Failed to validate document'); }
 });
-router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }), async (req,res) => {
+router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.duplicate>, import('qs').ParsedQs>} */ req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         if (!doc) return res.status(404).json({ error:'Document not found' });
@@ -544,7 +544,7 @@ router.post('/:id/duplicate', requireAuth, validate({ body: bodies.duplicate }),
             categories: doc.projectRole ? [] : doc.categories }) });
     } catch(e) { sendStoreError(res,e,'Failed to copy document'); }
 });
-router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSection }), async (req,res) => {
+router.post('/:id/insert-section', requireAuth, validate({ body: bodies.insertSection }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.insertSection>, import('qs').ParsedQs>} */ req,res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id,req.session.user.id);
         const source = await documentStore.getDocument(req.body?.sourceId,req.session.user.id);
@@ -684,7 +684,7 @@ function sendPreview(res, html) {
     res.send(html);
 }
 
-router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async (req, res) => {
+router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof PreviewQuery>>} */ req, res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
         if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -704,7 +704,7 @@ router.get('/:id/preview', requireAuth, validate({ query: PreviewQuery }), async
  * what the editor draws while a person is still typing or choosing, before
  * anything is saved. Nothing is stored; the same CSP as the saved preview.
  */
-router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), async (req, res) => {
+router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof bodies.deckDraft>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const doc = await documentStore.getDocument(req.params.id, req.session.user.id);
         if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -731,7 +731,7 @@ function emptyDeckHtml() {
  * same deck on paper; both go through renderFilledDocument, as an automation's
  * fill_document does, so the download and the run cannot disagree.
  */
-router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (req, res) => {
+router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof VersionQuery>>} */ req, res) => {
     try {
         const doc = req.query.versionId
             ? await documentStore.getDocumentVersion(req.params.id, req.session.user.id, req.query.versionId)
@@ -765,7 +765,7 @@ async function markingFor(req) {
     }
 }
 
-router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (req, res) => {
+router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof VersionQuery>>} */ req, res) => {
     try {
         // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a rendered document buffer with its own Content-Type as an attachment, not HTML built from the request
         const doc = req.query.versionId

@@ -1,7 +1,7 @@
 import { Activity, BarChart3, ChevronDown, ListChecks, Tags, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Tabs from '../../../components/shared/Tabs';
-import useTranslation from '../../../hooks/useTranslation';
+import Tabs from '@/components/shared/Tabs';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration } from '../lib/format';
 import { matchViewerSpeaker } from '../lib/insightsData';
 import { buildInsightsModel } from '../lib/insightsMetrics';
@@ -14,8 +14,8 @@ import PeopleTab from './insights/PeopleTab';
 import { StatChip } from './insights/primitives';
 import TopicsTab from './insights/TopicsTab';
 import type { MeetingNote } from './meetingDetailTypes';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import { logger } from '../../../utils/logger';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /**
  * Meeting dynamics, at the top of the note: the three headline numbers are

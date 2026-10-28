@@ -209,7 +209,6 @@ const suggestLimiter = perUserRateLimit({ windowMs: 60_000, max: 12 });
 
 const MAX_SUGGEST_TOKENS = 300;
 
-
 // ── The questions ────────────────────────────────────────────────────
 
 router.get('/:id/tests', requirePermission('manage_agents'), editLimiter, async (req, res) => {
@@ -256,7 +255,7 @@ router.get('/:id/tests', requirePermission('manage_agents'), editLimiter, async 
  * "I could not read what happened" are different sentences, and only the first
  * one is safe to render as a clean slate.
  */
-router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, validate({ query: RunsQuery }), async (req, res) => {
+router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, validate({ query: RunsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
     const gate = await requireEditableAgent(req, res);
     if (!gate) return;
     const asked = req.query.limit;
@@ -327,7 +326,7 @@ router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, valid
     res.status(201).json({ test: created });
 });
 
-router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, validate({ body: PatchBody }), async (req, res) => {
+router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, validate({ body: PatchBody }), async (/** @type {import('express').Request<{ id: string, testId: string }, any, import('zod').infer<typeof PatchBody>, import('qs').ParsedQs>} */ req, res) => {
     const gate = await requireEditableAgent(req, res);
     if (!gate) return;
 
@@ -430,11 +429,12 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
 
 router.post('/:id/tests/run', requirePermission('manage_agents'), runLimiter, validate({ body: RunBody }), runTests);
 
-module.exports = router;
 // Exported for the colocated test.
-module.exports.requireEditableAgent = requireEditableAgent;
-module.exports.versionInfo = versionInfo;
-module.exports.runOneTest = runOneTest;
-module.exports.buildTestResultRecord = buildTestResultRecord;
+module.exports = Object.assign(router, {
+    requireEditableAgent,
+    versionInfo,
+    runOneTest,
+    buildTestResultRecord,
+});
 
 /** @typedef {import('express').Router & { requireEditableAgent: typeof requireEditableAgent, versionInfo: typeof versionInfo, runOneTest: typeof runOneTest, buildTestResultRecord: typeof buildTestResultRecord }} TestsRouter */

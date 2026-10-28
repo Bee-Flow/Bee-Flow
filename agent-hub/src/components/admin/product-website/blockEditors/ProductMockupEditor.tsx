@@ -3,7 +3,7 @@ import { BackgroundCard, FieldSelect, InlineHint } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
 import type { SectionHeaderData } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Product mockup ────────────────────────────────────────────────────
 //

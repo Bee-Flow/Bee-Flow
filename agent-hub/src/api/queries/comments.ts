@@ -283,7 +283,7 @@ export function useEditComment(target: CommentTarget) {
     return useMutation<ProjectComment, Error, { threadId: string; commentId: string; content: string; mentions: string[] }>({
         mutationFn: async ({ threadId, commentId, content, mentions }) => {
             const body = await write('Could not save the comment', () => apiClient.patch<{ comment?: ProjectComment }>(
-                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}`, { content, mentions }, { retry: false }));
+                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}`, { content, mentions }));
             if (!body?.comment) throw new Error('Could not save the comment');
             return body.comment;
         },
@@ -296,7 +296,7 @@ export function useDeleteComment(target: CommentTarget) {
     return useMutation<void, Error, { threadId: string; commentId: string }>({
         mutationFn: async ({ threadId, commentId }) => {
             await write('Could not delete the comment', () => apiClient.delete(
-                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}`, { retry: false }));
+                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}`));
         },
         onSuccess: (_r, { threadId, commentId }) => {
             cache.set(data => patchThread(data, threadId, t => ({
@@ -315,7 +315,7 @@ export function useSetThreadStatus(target: CommentTarget) {
         mutationFn: async ({ threadId, status }) => {
             const action = status === 'resolved' ? 'resolve' : 'reopen';
             const body = await write(status === 'resolved' ? 'Could not resolve the thread' : 'Could not reopen the thread',
-                () => apiClient.post<{ thread?: CommentThread }>(`${threadPath(target.projectId, threadId)}/${action}`, {}, { retry: false }));
+                () => apiClient.post<{ thread?: CommentThread }>(`${threadPath(target.projectId, threadId)}/${action}`, {}));
             if (!body?.thread) throw new Error('Could not update the thread');
             return body.thread;
         },
@@ -335,7 +335,7 @@ export function useSetThreadAiMode(target: CommentTarget) {
     return useMutation<CommentThread, Error, { threadId: string; aiMode: CommentAiMode }, { previous?: CommentThreadsData }>({
         mutationFn: async ({ threadId, aiMode }) => {
             const body = await write('Could not change when the AI answers',
-                () => apiClient.patch<{ thread?: CommentThread }>(threadPath(target.projectId, threadId), { aiMode }, { retry: false }));
+                () => apiClient.patch<{ thread?: CommentThread }>(threadPath(target.projectId, threadId), { aiMode }));
             if (!body?.thread) throw new Error('Could not change when the AI answers');
             return body.thread;
         },
@@ -356,7 +356,7 @@ export function useCommentFeedback(target: CommentTarget) {
     return useMutation<{ helpful: boolean; autoPausedUntil: string | null }, Error, { threadId: string; commentId: string; helpful: boolean }>({
         mutationFn: async ({ threadId, commentId, helpful }) => {
             const body = await write('Could not save the feedback', () => apiClient.post<{ helpful?: boolean; autoPausedUntil?: string | null }>(
-                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}/feedback`, { helpful }, { retry: false }));
+                `${threadPath(target.projectId, threadId)}/replies/${enc(commentId)}/feedback`, { helpful }));
             return { helpful: body?.helpful === true, autoPausedUntil: body?.autoPausedUntil ?? null };
         },
         onSuccess: ({ helpful, autoPausedUntil }, { threadId, commentId }) => {
@@ -373,7 +373,7 @@ export function useDeleteCommentThread(target: CommentTarget) {
     const cache = useTargetCache(target);
     return useMutation<void, Error, string>({
         mutationFn: async (threadId) => {
-            await write('Could not delete the thread', () => apiClient.delete(threadPath(target.projectId, threadId), { retry: false }));
+            await write('Could not delete the thread', () => apiClient.delete(threadPath(target.projectId, threadId)));
         },
         onSuccess: (_r, threadId) => {
             cache.set(data => (data ? { ...data, threads: data.threads.filter(t => t.id !== threadId) } : data));

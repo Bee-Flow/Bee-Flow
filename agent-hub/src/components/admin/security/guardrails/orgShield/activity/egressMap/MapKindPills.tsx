@@ -11,8 +11,8 @@
 
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { fNum } from '../../../../../../../pages/settings/usage/format';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { fNum } from '@/pages/settings/usage/format';
 import type { EgressMapFilters, KindCount } from './egressMapContract';
 
 const TOP = 4;

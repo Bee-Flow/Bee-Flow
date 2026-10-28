@@ -1,6 +1,6 @@
 // Which backlog items a sprint of a given capacity should take. Pure.
 
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 import { storyPoints } from './taskPlanning';
 import { priorityRank } from './taskText';
 

@@ -3,8 +3,8 @@ import { Check, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy,
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { summariseData } from '../flow/dataSummary';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
+import { useTranslation } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /**
  * Collapsible, searchable JSON tree with hover-revealed "copy path"

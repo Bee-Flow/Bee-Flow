@@ -12,7 +12,7 @@ import type { CmsLink } from '../fields';
 import type { StyleBlob } from '../primitives.types';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Footer ────────────────────────────────────────────────────────────
 

@@ -1,10 +1,11 @@
 import { ChevronRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import WebhookPanel from '../WebhookPanel';
 import { Choice, FieldGrid, ReadOnlyFieldset, SELECT, useDebouncedSave, withDefinition } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** `definition.runPolicy` (server: core/automationRunner/runPolicy.js). */
 export interface RunPolicy {
@@ -49,11 +50,11 @@ export default function AdvancedSection({ automation, onSave, defaultOpen = fals
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
     // A deep link to #advanced while the page is already open unfolds it too.
-    useEffect(() => { if (defaultOpen) setOpen(true); }, [defaultOpen]);
+    useAdjustOnChange([defaultOpen], () => { if (defaultOpen) setOpen(true); });
     const policy = readRunPolicy(automation);
     const [duration, setDuration] = useState(policy.maxDurationMin ? String(policy.maxDurationMin) : '');
     const [error, setError] = useState<string | null>(null);
-    useEffect(() => { setDuration(policy.maxDurationMin ? String(policy.maxDurationMin) : ''); }, [policy.maxDurationMin]);
+    useAdjustOnChange([policy.maxDurationMin], () => setDuration(policy.maxDurationMin ? String(policy.maxDurationMin) : ''));
 
     const savePolicy = async (patch: Partial<RunPolicy>) => {
         setError(null);

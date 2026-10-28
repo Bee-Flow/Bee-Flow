@@ -4,10 +4,10 @@
 // custom tiers are kinds of work, and one answer in a chat is not that.
 
 import { useCallback, useMemo, useState } from 'react';
-import { useModelTiersQuery, type ModelTierMap } from '../../../../api/queries/modelTiers';
-import scopedStorage from '../../../../utils/scopedStorage';
-import { DEPTH_TIER_KEYS } from '../../../licensing/tierMeta';
-import { logger } from '../../../../utils/logger';
+import { useModelTiersQuery, type ModelTierMap } from '@/api/queries/modelTiers';
+import scopedStorage from '@/utils/scopedStorage';
+import { DEPTH_TIER_KEYS } from '@/components/licensing/tierMeta';
+import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'projectChatTier';
 

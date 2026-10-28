@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { MEMORY_TYPE_IDS, isMemoryType, typeSingularLabel, type MemoryType } from './memoryTypes';
 
 export interface MemoryDraft {

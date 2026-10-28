@@ -7,7 +7,7 @@ import { INPUT, LABEL, incrementalCopy, intervalsFor, relative } from './syncMod
 import type { Incremental, SyncBlock } from './syncModel';
 import { SyncError } from './SyncSetup';
 import type { RunResult, SyncActions, SyncConnector, SyncStatus } from './useSyncActions';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { saveFirstReason } from '../saveGate';
 
 type PatchSync = (patch: Partial<SyncBlock>) => void;

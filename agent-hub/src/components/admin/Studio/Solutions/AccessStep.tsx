@@ -1,6 +1,6 @@
 import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { ListStatusProps, AccessPerson, AccessAdderProps, AccessStepProps } from './installWizardSteps.types';
 
 export function ListStatus({ status, testId }: ListStatusProps) {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Custom-node contract helpers.
  *

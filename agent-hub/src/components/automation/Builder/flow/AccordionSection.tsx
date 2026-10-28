@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { hiddenInSimple, resolveMode, useFormDensity } from './settings/formDensity';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface AccordionSectionProps {
     stepType: string;
@@ -75,11 +76,7 @@ export default function AccordionSection({
 
     // Force open only on the false→true transition, so the user can still
     // collapse the section afterwards while the error persists.
-    const prevForce = useRef(forceOpen);
-    useEffect(() => {
-        if (forceOpen && !prevForce.current) setOpen(true);
-        prevForce.current = forceOpen;
-    }, [forceOpen]);
+    useAdjustOnChange([forceOpen], ([wasForced]) => { if (forceOpen && !wasForced) setOpen(true); });
 
     const ctx = useFormDensity();
     const mode = resolveMode(ctx);
@@ -103,14 +100,10 @@ export default function AccordionSection({
     // nothing. Only that: a section that appears because it now HOLDS
     // something (the builder set a forEach after a connect) stays closed, and
     // Advanced never opens this way. Never written to the persisted preference.
-    const prevHidden = useRef(hidden);
-    const prevMode = useRef(mode);
-    useEffect(() => {
-        const switchedToAll = prevMode.current === 'simple' && mode !== 'simple';
-        if (prevHidden.current && !hidden && !forceOpen && switchedToAll && !isAdvanced) setOpen(true);
-        prevHidden.current = hidden;
-        prevMode.current = mode;
-    }, [hidden, forceOpen, mode, isAdvanced]);
+    useAdjustOnChange([hidden, mode] as const, ([wasHidden, prevMode]) => {
+        const switchedToAll = prevMode === 'simple' && mode !== 'simple';
+        if (wasHidden && !hidden && !forceOpen && switchedToAll && !isAdvanced) setOpen(true);
+    });
 
     if (hidden) return null;
     // No band, no toggle: the Simple / Advanced switch in the header already

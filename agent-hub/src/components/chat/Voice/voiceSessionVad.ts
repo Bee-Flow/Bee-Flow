@@ -9,7 +9,7 @@ import {
     VOICE_STATES,
     readRms,
 } from './voiceSessionAudio';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** What one VAD poll reads and writes: the hook's refs plus its recording callbacks. */
 export interface VadCtx {

@@ -3,9 +3,9 @@
 
 import { ArrowLeft, Download, History, ListTree, Loader2, Maximize2, MessageSquare, Printer, Search, Sparkles, X } from 'lucide-react';
 import React from 'react';
-import CollabPresence from '../../../editor/react/CollabPresence';
-import type { CollabHandle } from '../../../editor/collab/useCollab';
-import useTranslation from '../../../hooks/useTranslation';
+import CollabPresence from '@/editor/react/CollabPresence';
+import type { CollabHandle } from '@/editor/collab/useCollab';
+import useTranslation from '@/hooks/useTranslation';
 import type { StudioDocument } from '../documentQueries';
 import type { SaveState } from '../useDocumentAutosave';
 import type { SidePanel } from './DesignedToolbar';

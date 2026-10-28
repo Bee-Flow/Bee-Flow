@@ -5,7 +5,7 @@ import {
     parseCveIds, createBodyOf, URGENT_BELOW,
     isClosedUnfiled, filedCount, reportingRowsOf, stepsOf, localToIso, localInputValue,
 } from './incidentClocks';
-import { HOUR_MS, DAY_MS } from '../../../../shared/deadlineMath';
+import { HOUR_MS, DAY_MS } from '@/components/shared/deadlineMath';
 import { partial, stub } from '@/test/mocks';
 
 const T0 = '2026-09-14T08:00:00.000Z';

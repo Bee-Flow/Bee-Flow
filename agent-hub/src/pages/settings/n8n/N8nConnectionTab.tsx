@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AccessCheckCard } from './N8nStatus';
 import type { N8nConnection } from './useN8nState';
 

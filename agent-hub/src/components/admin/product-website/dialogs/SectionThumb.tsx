@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { SECTION_REGISTRY } from '../../../../marketing/ProductWebsite';
+import { SECTION_REGISTRY } from '@/marketing/ProductWebsite';
 import BlockThumb from '../blockEditors/blockThumbs';
 import { demoContentFor, WIREFRAME_ONLY } from './thumbDemoContent';
 

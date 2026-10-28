@@ -1,10 +1,10 @@
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { flowSummaryOf, triggerTextOf } from '../overviewModel';
 import { OutcomeBit, StatusBadge, TriggerTile, titleOf, useRowMenu } from '../OverviewBits';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { formatNextRun } from '../../../../automation/taskFormatters';
-import { STATUS_TOKENS } from '../../../../shared/statusTokens';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatNextRun } from '@/components/automation/taskFormatters';
+import { STATUS_TOKENS } from '@/components/shared/statusTokens';
 import type { SortHeadProps, ListViewProps, NameCellProps, ListRowProps } from '../AutomationsOverview.types';
 import { COLUMN, LIST_GRID, WITH_TRIGGER, WITH_NEXT_RUN, WITH_UPDATED, COL_SORT, ASC_SORTS } from './AutomationsOverview.helpers';
 

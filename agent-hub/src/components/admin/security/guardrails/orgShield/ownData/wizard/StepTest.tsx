@@ -1,10 +1,10 @@
 import { FlaskConical, TriangleAlert, Wand2 } from 'lucide-react';
 import React from 'react';
 
-import Button from '../../../../../../shared/Button';
-import type { TestResult } from '../../../../../../../api/queries/customData';
-import { customDataErrorCode, useTestMutation, useTuneMutation } from '../../../../../../../api/queries/customData';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Button from '@/components/shared/Button';
+import type { TestResult } from '@/api/queries/customData';
+import { customDataErrorCode, useTestMutation, useTuneMutation } from '@/api/queries/customData';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorLine } from '../ownDataCopy';
 import type { CustomDataType } from '../ownDataModel';
 import { configFingerprint, resolveType } from '../ownDataModel';
@@ -22,7 +22,7 @@ import type { StepProps } from './stepTypes';
 import { DegradedNote } from './TestSentence';
 import TryOwnText from './TryOwnText';
 import TuneResult from './TuneResult';
-import { logger } from '../../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Step 2: write or collect test sentences, mark what should be hidden, run

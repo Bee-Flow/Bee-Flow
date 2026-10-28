@@ -1,13 +1,13 @@
 // The notification editor: the message a run sends while it is going, and the
 // channels it goes out on.
-import ChannelPills from '../../../ChannelPills';
-import TemplateField from '../../../mapping/TemplateField';
-import useForEachRequest from '../../../mapping/useForEachRequest';
-import { normalizeChannels, stepChannelsToUi } from '../../../notificationDefaults';
+import ChannelPills from '@/components/automation/Builder/ChannelPills';
+import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
+import useForEachRequest from '@/components/automation/Builder/mapping/useForEachRequest';
+import { normalizeChannels, stepChannelsToUi } from '@/components/automation/Builder/notificationDefaults';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '../collectionEditors';
 import { FormRow } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type NotificationFieldsProps = StepEditorProps;
 

@@ -13,9 +13,9 @@
 
 import { BookOpen, Clock, FileText, User } from 'lucide-react';
 import React from 'react';
-import type { ProjectNotebook } from '../../../../api/queries/projectContent';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
+import type { ProjectNotebook } from '@/api/queries/projectContent';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import ItemViewers from '../ItemViewers';
 import { RemoveButton } from '../workspaceUi';
 

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { ToolDraft } from './ghostCellDraft';
 import type { RevealCue } from '../chat/useBuilderTurn';
-import type { BuilderEngine, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
+import type { BuilderEngine, BuilderTodo, BuilderTurn } from '@/hooks/builderStream';
 
 /** The words of the last activity row. */
 export interface BuildCueCall {

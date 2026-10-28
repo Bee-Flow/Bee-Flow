@@ -1,9 +1,9 @@
 import { SetStateAction, Dispatch, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { AlertTriangle, FileUp, Loader2, Plug, Search } from 'lucide-react';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
-import { useConnectHub, useDisconnectHub, useMarketplace, useModulesHealth } from '../../../api/queries/modules';
-import { type MarketplaceModuleDetail } from '../../../api/queries/modules.types';
+import { useConnectHub, useDisconnectHub, useMarketplace, useModulesHealth } from '@/api/queries/modules';
+import { type MarketplaceModuleDetail } from '@/api/queries/modules.types';
 import MarketplaceModuleCard from './MarketplaceModuleCard';
 import ConnectHubBanner from './ConnectHubBanner';
 import ConnectHubDialog from './ConnectHubDialog';

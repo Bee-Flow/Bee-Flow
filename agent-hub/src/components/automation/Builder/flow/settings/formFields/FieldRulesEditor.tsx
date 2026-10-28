@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { denseInputClass } from '../formPrimitives';
 import type { EditorField } from './fieldEditor.types';
 import { RULE_TYPES, hasRules } from './fieldKinds';

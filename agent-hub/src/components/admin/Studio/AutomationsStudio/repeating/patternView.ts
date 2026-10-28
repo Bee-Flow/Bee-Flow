@@ -1,6 +1,6 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { INTEGRATION_META } from '../../../../../utils/integrationIcons';
-import type { Pattern, ReasonCode, RepeatingSuggestion, ScanSourceGroup, FeedbackBody } from '../../../../../api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { INTEGRATION_META } from '@/utils/integrationIcons';
+import type { Pattern, ReasonCode, RepeatingSuggestion, ScanSourceGroup, FeedbackBody } from '@/api/queries/automation/repeating';
 
 /**
  * Pure formatters for the "Find repeating work" page: how a pattern the

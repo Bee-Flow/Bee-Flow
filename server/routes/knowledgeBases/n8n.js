@@ -52,7 +52,7 @@ router.get('/n8n/ingestible', requireAuth, async (req, res) => {
  * Fetches the workflow from the connected n8n instance, converts it
  * to structured Markdown, and ingests it as a KB document.
  */
-router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestN8nBody }), async (req, res, next) => {
+router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestN8nBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestN8nBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
@@ -184,7 +184,7 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
                 ingestedDocs++;
                 lastResult = result;
             } catch (err) {
-                log.error(`[KB] Failed to ingest item ${doc.title}:`, err.message);
+                log.error(`[KB] Failed to ingest item ${log.textForLog(doc.title)}:`, err.message);
                 if (documentsToIngest.length === 1) throw err; // Throw if it's the only one
             }
         }

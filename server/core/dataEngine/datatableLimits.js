@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The storage envelope for ONE datatable tenant, and the single check that
  * enforces it.

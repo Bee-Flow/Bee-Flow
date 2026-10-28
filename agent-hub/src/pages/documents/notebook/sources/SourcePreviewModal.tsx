@@ -6,8 +6,8 @@
  */
 import React, { useId } from 'react';
 import { Loader2, X } from 'lucide-react';
-import Modal from '../../../../components/shared/Modal';
-import useTranslation from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
 
 export interface SourcePreview { name: string; loading: boolean; content: string; failed?: boolean }
 

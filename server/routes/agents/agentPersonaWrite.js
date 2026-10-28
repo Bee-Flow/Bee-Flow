@@ -99,7 +99,7 @@ async function ensureHandoffBinding(agent, automation, { actorId = null, session
  * config keys.
  *
  * @param {object} agent   the agent being written (needs `owner_id`)
- * @param {*} rawPersona   whatever the client sent
+ * @param {unknown} rawPersona   whatever the client sent
  * @param {object|undefined} config  the config the SAME request is writing, or
  *   undefined when it is not writing one
  * @param {object} [opts]

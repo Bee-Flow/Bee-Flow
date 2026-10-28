@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import ComparePanes from './ComparePanes';
 import { useChanges, useElementWidth } from './hooks';
 import { clampPage, nextChange, pageCssWidth } from './pdfCompareMath';

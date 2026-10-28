@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ComponentType, CSSProperties, ReactElement, ReactNode } from 'react';
-import { TONES, type Tone } from '../../../shared/statusTone';
+import { TONES, type Tone } from '@/components/shared/statusTone';
 
 type PillIcon = ComponentType<{ style?: CSSProperties; 'aria-hidden'?: 'true' }> | ReactElement;
 

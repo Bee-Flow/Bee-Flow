@@ -1,6 +1,6 @@
 import type { Example, Rule } from './skillModel.types';
 import type React from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "Examples" — what a good answer looks like (Skills artboard 1b).

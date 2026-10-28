@@ -1,8 +1,8 @@
 import React from 'react';
 import { AlertTriangle, Bug, Check, Download, Globe, Inbox, Loader2, Mic, Package, Shield, Target, Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { AdminModule, ModuleCapability, ModuleRequirement } from '../../../api/queries/modules.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { AdminModule, ModuleCapability, ModuleRequirement } from '@/api/queries/modules.types';
 
 interface ModuleCardProps {
     module: AdminModule;

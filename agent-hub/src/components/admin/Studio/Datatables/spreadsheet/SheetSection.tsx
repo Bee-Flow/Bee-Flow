@@ -4,8 +4,8 @@ import { ColumnKindIcon } from '../ColumnKind';
 import { columnTypeKind, ssErrorMessage } from '../datatableDisplay';
 import { TypeSelect } from '../NewDatatableDialog';
 import { HEADER_ROW_MAX, HEADER_ROW_MIN, INFERABLE_TYPES, keyColumnEligible, sheetLabelOf, type Describe, type SheetDescribe, type SheetSelection, type WizardColumn } from './wizardState';
-import useDebouncedValue from '../../../../../hooks/useDebouncedValue';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** What a sheet edit changes in the selection entry. */
 export type SheetPatch = { columns?: WizardColumn[]; keyColumn?: number | null; headerRow?: number };

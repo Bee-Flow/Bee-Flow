@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useAutomationApi from '@/hooks/useAutomationApi';
 import { STAGE_RULES, stageSeats, newStageKey } from './formState';
 import { seatFromSelectValue } from './approvalTypes';
 import type { ApprovalDirectory, ApprovalDraft, SeatSlot, SetDraft } from './approvalTypes';

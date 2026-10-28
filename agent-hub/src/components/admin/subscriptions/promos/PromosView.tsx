@@ -1,11 +1,11 @@
 import { Tag, Plus, Percent, Euro, Hash, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { PromoEditor } from './PromoEditor';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
-import { Button } from '../../../shared/Button';
-import EmptyState from '../../../shared/EmptyState';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import { Button } from '@/components/shared/Button';
+import EmptyState from '@/components/shared/EmptyState';
+import { toast } from '@/components/shared/Toast';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';

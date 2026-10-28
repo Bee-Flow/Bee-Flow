@@ -3,13 +3,13 @@
 // CommentsPanel). One at a time, beside the document, never over it.
 
 import React from 'react';
-import type { CommentAnchor } from '../../../api/queries/comments';
-import type { ProjectRole } from '../../../api/queries/projects';
-import CommentsPanel from '../../../components/comments/CommentsPanel';
-import SuggestionsPanel, { type SuggestionsPanelProps } from '../../../components/suggestions/SuggestionsPanel';
-import VersionHistoryPanel from '../../../components/versions/VersionHistoryPanel';
-import type { WorkspaceUser } from '../../../components/projects/workspace/types';
-import useTranslation from '../../../hooks/useTranslation';
+import type { CommentAnchor } from '@/api/queries/comments';
+import type { ProjectRole } from '@/api/queries/projects';
+import CommentsPanel from '@/components/comments/CommentsPanel';
+import SuggestionsPanel, { type SuggestionsPanelProps } from '@/components/suggestions/SuggestionsPanel';
+import VersionHistoryPanel from '@/components/versions/VersionHistoryPanel';
+import type { WorkspaceUser } from '@/components/projects/workspace/types';
+import useTranslation from '@/hooks/useTranslation';
 import type { OutlineItem } from '../canvasBridge';
 import type { People, StudioDocument } from '../documentQueries';
 import OutlinePanel from './OutlinePanel';

@@ -2,9 +2,9 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import { CARD_COPY, KIND_OPTIONS, PRIMARY_KINDS, kindLabel } from './actionKindCatalog';
 import { INPUT_CLS } from './panels/kit';
-import useTranslation from '../../../../../hooks/useTranslation';
-import ChoiceCards from '../../../../shared/ChoiceCards';
-import Disclosure from '../../../../shared/Disclosure';
+import useTranslation from '@/hooks/useTranslation';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import Disclosure from '@/components/shared/Disclosure';
 
 export interface ActionChoiceCardsProps {
     /** The action's own kind; any string, since a newer build may write one this one lacks. */

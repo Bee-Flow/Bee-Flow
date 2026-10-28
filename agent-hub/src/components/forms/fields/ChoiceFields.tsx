@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { normaliseOptions, type FormOption } from '../formOptions';
 import type { FormFieldDef, FormValue } from '../PublicFormRenderer.types';
 

@@ -84,7 +84,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     res.json({ ...config, connection });
 });
 
-router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
+router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SettingsBody>, import('qs').ParsedQs>} */ req, res) => {
     const config = await gmeetNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });

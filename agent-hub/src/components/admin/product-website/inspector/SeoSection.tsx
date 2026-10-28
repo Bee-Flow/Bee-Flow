@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ImageField, resolveCmsAssetUrl } from '../fields';
 import type { CmsActivePage } from '../panel/cmsPanelTypes';
 

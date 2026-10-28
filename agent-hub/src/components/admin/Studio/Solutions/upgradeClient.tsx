@@ -1,11 +1,11 @@
 import { ArrowUpCircle, HelpCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Strip } from './solutionNotices';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { IsNewerArgs, UpdateAvailabilityArgs, PlanItem, PlanManifest, PlanRow, PlanRows, UpgradeBody, UpgradeReport, ReadReport, PlanOutcome, UpgradeOutcome, FetchUpgradePlanArgs, RunUpgradeArgs, UpdateBannerProps, PlanState, DialogFooterProps, UpgradeDialogProps } from './upgradeClient.types';
 import { DialogBody } from './DialogBody';
 export { PlanBody } from './DialogBody';

@@ -1,8 +1,8 @@
 import { Menu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import AppIcon from '../../../../../icons/AppIcon';
-import Modal from '../../../../../shared/Modal';
+import AppIcon from '@/components/icons/AppIcon';
+import Modal from '@/components/shared/Modal';
 import type { NavModel, NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
 

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import LookPreviewIframe from './LookPreviewIframe';
 import LookPreviewToolbar from './LookPreviewToolbar';
 import { PREVIEW_SURFACES } from './previewSurfaces';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DraftPayload } from '../useLookForm';
 import type { PreviewSurface } from './previewSurfaces';
 

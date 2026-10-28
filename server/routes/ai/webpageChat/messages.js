@@ -29,7 +29,7 @@ async function buildTurnMessages({
     const _scanExtracted = async (text, filename) => {
         if (!_dlpActive || !text) return text;
         const r = await _scanAttText({ text, filename, orgShield: _psShield, conversationId: _dlpConvId });
-        if (r.action === 'block') { const e = new Error('attachment blocked'); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
+        if (r.action === 'block') { /** @type {Error & { filename?: string, summary?: unknown }} */ const e = new Error('attachment blocked'); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
         // Prefer whatever the scanner returned: on an incomplete scan that is
         // the TRUNCATED document, and falling back to `text` would put the
         // unchecked tail straight back into the prompt.
@@ -86,7 +86,7 @@ async function buildTurnMessages({
 
                 if (looksLikePdf || looksLikeOfficeDoc) {
                     const result = await extractAttachment(att, { modelSupportsVision });
-                    log.info(`[WebpageChat] Attachment ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
+                    log.info(`[WebpageChat] Attachment ${log.nameForLog(att.name)} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
                     if (result.kind === 'text') {
                         const safe = await _scanExtracted(result.text, att.name);
                         const docText = `${formatTextHeader(att, result)}\n---\n${safe}\n---`;
@@ -123,7 +123,7 @@ async function buildTurnMessages({
                 }
             } catch (err) {
                 if (err?.code === 'ATTACHMENT_PII_BLOCKED') throw err;
-                log.warn(`[WebpageChat] Attachment processing failed for ${att?.name}: ${err.message}`);
+                log.warn(`[WebpageChat] Attachment processing failed for ${log.nameForLog(att?.name)}: ${err.message}`);
                 contentParts.push({ type: 'text', text: `[${att?.name || 'attachment'} — failed to read: ${err.message}]` });
             }
         }

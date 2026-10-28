@@ -11,7 +11,7 @@ import type useCmsPreviewBridge from './useCmsPreviewBridge';
 import type useCmsPublishing from './useCmsPublishing';
 import RedirectsInspector from '../inspector/RedirectsInspector';
 import { COOKIE_VIRTUAL_ID } from '../sentinels';
-import type { EditableDesign } from '../../../../marketing/ProductWebsite.types';
+import type { EditableDesign } from '@/marketing/ProductWebsite.types';
 import type { FieldPath } from '../translatable';
 
 interface PanelInspectorProps {

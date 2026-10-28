@@ -43,9 +43,9 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 // The ids are the catalogue's own, so an unknown one is named back.
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {{ enabled?: import("zod").ZodArray<import("zod").ZodString>; disabledIntegrations?: import("zod").ZodArray<import("zod").ZodString>; }} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const idList = (name) => {
+const idList = (/** @type {string} */ name) => {
     const text = `${name} is a list of Nextcloud integration ids.`;
     return z.array(
         worded(text).refine(isNcIntegrationId, { error: (iss) => `"${iss.input}" is not a Nextcloud integration. Known ids: ${NC_INTEGRATION_IDS.join(', ')}.` }),
@@ -109,7 +109,7 @@ router.get('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
     });
 });
 
-router.put('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'), requireNcOrg, express.json(), validate({ body: OrgIntegrationsBody }), async (req, res) => {
+router.put('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'), requireNcOrg, express.json(), validate({ body: OrgIntegrationsBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof OrgIntegrationsBody>, import('qs').ParsedQs>} */ req, res) => {
     const o = req.org;
     const requested = req.body.enabled;
     // Merge: keep any non-NC entries that may already be on the org (those
@@ -172,7 +172,7 @@ router.get('/admin/:orgId/nc-integrations/groups', requireAuth, requireOrgAdmin(
     });
 });
 
-router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, requireOrgAdmin('orgId'), requireNcOrg, express.json(), validate({ body: GroupIntegrationsBody }), async (req, res) => {
+router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, requireOrgAdmin('orgId'), requireNcOrg, express.json(), validate({ body: GroupIntegrationsBody }), async (/** @type {import('express').Request<{ orgId: string, groupId: string }, any, import('zod').infer<typeof GroupIntegrationsBody>, import('qs').ParsedQs>} */ req, res) => {
     const { orgId, groupId } = req.params;
     const groups = await userStore.getAllGroups();
     const group = groups.find(g => g.id === groupId);

@@ -2,8 +2,8 @@
 // not used in this step), the step's extra skills, the leading pill, and
 // "Add a skill for this step".
 import { Plus, X, Zap } from 'lucide-react';
-import type { SkillRow } from '../../../../../../api/queries/automation/agents';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { SkillRow } from '@/api/queries/automation/agents';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { EmptySectionNote, SectionNote, hintTextClass } from '../formPrimitives';
 import type { StepSkillRow } from './agentStepModel';
 

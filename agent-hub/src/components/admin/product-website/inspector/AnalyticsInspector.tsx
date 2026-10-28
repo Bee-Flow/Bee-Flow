@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import type { CmsSiteDoc } from '../panel/cmsPanelTypes';
 
 // Also enforced server-side (cmsStore sanitizeAnalytics) and again in the

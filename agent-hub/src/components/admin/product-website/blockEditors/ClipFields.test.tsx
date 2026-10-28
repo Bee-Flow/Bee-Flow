@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...await importOriginal(),
     authFetch: vi.fn(async () => new Response(JSON.stringify({ assets: [], unavailable: true }), { status: 200 })),
 }));

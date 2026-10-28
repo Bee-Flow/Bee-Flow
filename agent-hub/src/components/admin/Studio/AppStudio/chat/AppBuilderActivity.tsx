@@ -3,8 +3,8 @@ import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { appDetailPayload, describeAppToolCall, landedIcon } from './appToolCallDisplay';
 import type { AppToolCall, AppToolCallRow } from './appToolCallDisplay';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { StepBadge, TimelineRail } from '../../../../chat/MessageItem/timelineParts';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { StepBadge, TimelineRail } from '@/components/chat/MessageItem/timelineParts';
 
 /**
  * What the AI did to the app, while it is doing it — the App Studio sibling

@@ -113,8 +113,8 @@ function makeActionsRouter(overrides = {}) {
         || (async (req) => (await require('../../auth/datatableAccess').resolveDatatablePrincipal(req)).orgId);
     const provisionForm = overrides.provisionForm || ((a, def) => require('./versions').provisionForm(a, def));
     const syncUsage = overrides.syncDatatableUsage
-        || ((...args) => require('../../automation/datatableUsageSync').syncDatatableUsage(...args));
-    const syncKb = overrides.syncKbSources || ((...args) => require('../../core/kb/kbSourceSync').syncKbSources(...args));
+        || ((/** @type {Parameters<typeof import('../../automation/datatableUsageSync').syncDatatableUsage>} */ ...args) => require('../../automation/datatableUsageSync').syncDatatableUsage(...args));
+    const syncKb = overrides.syncKbSources || ((/** @type {Parameters<typeof import('../../core/kb/kbSourceSync').syncKbSources>} */ ...args) => require('../../core/kb/kbSourceSync').syncKbSources(...args));
     const validateAssignees = overrides.validateApprovalAssignees
         || ((def, ownerId) => require('../../automation/approvalService').validateApprovalAssignees(def, ownerId));
     const chat = overrides.chat || ((modelId, messages, opts) => require('../../core/llm/llmClient').chat(modelId, messages, opts));
@@ -125,7 +125,7 @@ function makeActionsRouter(overrides = {}) {
 
     const load = makeGuardedLoad(store, access);
 
-    router.post('/:id/duplicate', validate({ body: NoBody, query: NoQuery }), async (req, res) => {
+    router.post('/:id/duplicate', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
         const loaded = await load(req, res, 'view');
         if (!loaded) return;
         const { a } = loaded;
@@ -173,7 +173,7 @@ function makeActionsRouter(overrides = {}) {
         });
     });
 
-    router.post('/:id/save-as-template', validate({ body: SaveAsTemplateBody, query: NoQuery }), async (req, res) => {
+    router.post('/:id/save-as-template', validate({ body: SaveAsTemplateBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SaveAsTemplateBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a } = loaded;
@@ -194,7 +194,7 @@ function makeActionsRouter(overrides = {}) {
         res.json({ template: orgTemplateCard(row), warnings });
     });
 
-    router.post('/:id/suggest-description', limiter, validate({ body: SuggestBody, query: NoQuery }), async (req, res) => {
+    router.post('/:id/suggest-description', limiter, validate({ body: SuggestBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SuggestBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a } = loaded;
@@ -225,7 +225,7 @@ function makeActionsRouter(overrides = {}) {
         res.json({ description });
     });
 
-    router.get('/:id/counts', validate({ query: NoQuery }), async (req, res) => {
+    router.get('/:id/counts', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
         const loaded = await load(req, res, 'run');
         if (!loaded) return;
         const { a, acc } = loaded;

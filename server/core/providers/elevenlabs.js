@@ -91,7 +91,7 @@ class ElevenLabsProvider {
         const voiceId = options.voice_id || 'JBFqnCBsd6RMkjVDRZzb'; // Default: George
         const model = options.model || 'eleven_flash_v2_5';
 
-        log.info(`[ElevenLabs] TTS: "${text.substring(0, 80)}" (voice: ${voiceId}, model: ${model})`);
+        log.info(`[ElevenLabs] TTS: ${text.length} chars (voice: ${voiceId}, model: ${model})`);
 
         /** @type {import('@elevenlabs/elevenlabs-js').ElevenLabs.BodyTextToSpeechFull} */
         const convertReq = {

@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { CatalogEntry } from './useLanguages';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 const FIELD_STYLE = { borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' };

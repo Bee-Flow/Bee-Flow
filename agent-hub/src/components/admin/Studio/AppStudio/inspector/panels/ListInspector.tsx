@@ -2,14 +2,14 @@ import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, NumberField, IconField, SelectField, usePatch } from './kit';
 import { SpecListField } from './SpecPanel';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import ExpressionInput from '../logic/ExpressionInput';
 import { registerInspector } from '../registry';
-import FormField from '../../../../../shared/FormField';
-import Toggle from '../../../../../shared/Toggle';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import FormField from '@/components/shared/FormField';
+import Toggle from '@/components/shared/Toggle';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import type { CommonNodeProps, PanelProps } from '../appDefinition';
-import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { FieldKeyFieldProps } from './kit';
 
 /** The props that name one field of a source row, each picked with a FieldKeyField. */

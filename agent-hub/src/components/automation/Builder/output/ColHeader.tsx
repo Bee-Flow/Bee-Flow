@@ -2,7 +2,7 @@ import { ChevronRight, List } from 'lucide-react';
 import { appendWildcard } from '@shared/expr/path.mjs';
 import { joinPath, mapAttrs, type MapCtx } from './mapAttrs';
 import { COL_MAX_PX } from './valueHelpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ColHeaderProps {
     /** The column's path RELATIVE to one row (`subject`, `from.emailAddress`, `["Story Points"]`). */

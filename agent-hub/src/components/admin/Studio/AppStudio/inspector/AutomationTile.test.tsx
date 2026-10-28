@@ -3,10 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import AutomationTile, { automationHref, AutomationTileProps, stepCountOf } from './AutomationTile';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock, malformed } from '@/test/mocks';
 
 import type { AppRef } from './appDefinition';

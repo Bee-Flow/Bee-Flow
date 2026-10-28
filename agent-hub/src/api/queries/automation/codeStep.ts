@@ -8,10 +8,10 @@
 // as a crash, so an older server simply shows less.
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { readEventStream } from '../../../utils/sseStream';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { readEventStream } from '@/utils/sseStream';
 import { apiClient, ApiError } from '../../client';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type CodeParamType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
@@ -198,7 +198,7 @@ export function useCodeAnalysis(req: AnalyzeRequest, enabled = true) {
             allowedHosts: req.allowedHosts,
             ...(req.automationId ? { automationId: req.automationId } : {}),
             ...(req.stepId ? { stepId: req.stepId } : {}),
-        }, { signal, retry: false })),
+        }, { signal })),
         enabled: enabled && req.code.trim().length > 0,
         placeholderData: keepPreviousData,
         staleTime: 60_000,
@@ -256,7 +256,7 @@ export function useCodeTest() {
                 return parseCodeTest(await apiClient.post('/api/automation/code/test', {
                     code: req.code, inputs: req.inputs, allowedTools: req.allowedTools, allowedHosts: req.allowedHosts,
                     ...(req.automationId ? { automationId: req.automationId } : {}),
-                }, { retry: false }));
+                }));
             } catch (err) {
                 // A refusal (a BLOCK finding, the rate limit) is an answer, not a crash.
                 if (err instanceof ApiError && err.status && err.status < 500) {

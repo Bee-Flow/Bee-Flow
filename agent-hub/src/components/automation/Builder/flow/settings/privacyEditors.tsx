@@ -1,9 +1,9 @@
 // The Privacy Shield step editor (one node, four modes), extracted verbatim
 // from SettingsForm.jsx.
 import { useMemo, useState } from 'react';
-import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { useGuardHealthStatus } from '../../../../../api/queries/builderLookups';
+import { piiCategoriesLocalized } from '@/config/piiCategories';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useGuardHealthStatus } from '@/api/queries/builderLookups';
 import PathField from '../../mapping/PathField';
 import AccordionSection from '../AccordionSection';
 import { readPrivacy, PRIVACY_MODES, modeScans, modeBranches, modeHides, droppedEdgesOnModeChange, type PrivacyModel } from '../privacyModel';

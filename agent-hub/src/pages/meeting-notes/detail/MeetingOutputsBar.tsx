@@ -31,11 +31,11 @@
  */
 import { AlertTriangle, ArrowUpRight, Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { kindColorVar, kindIcon } from '../../../components/shared/kindColors';
-import { isForeignRow, kindLabelFor, usageHref, usageKind } from '../../../components/shared/UsedByTab';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { UsageRow } from '../../../hooks/useUsage';
+import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
+import { isForeignRow, kindLabelFor, usageHref, usageKind } from '@/components/shared/UsedByTab';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { UsageRow } from '@/hooks/useUsage';
 
 interface MeetingOutputsBarProps {
     rows?: UsageRow[] | null;

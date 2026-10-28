@@ -1,4 +1,4 @@
-import { readJson, useRemoteAnswer } from '../../../../api/queries/studioRemote';
+import { readJson, useRemoteAnswer } from '@/api/queries/studioRemote';
 
 export type RemoteStatus = 'idle' | 'loading' | 'ok' | 'error';
 

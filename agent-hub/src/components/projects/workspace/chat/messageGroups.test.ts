@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
 import { groupMessages, repliesToPrevious } from './messageGroups';
 
 const msg = (id: string, minute: number, extra: Partial<TeamChatMessage> = {}): TeamChatMessage => ({

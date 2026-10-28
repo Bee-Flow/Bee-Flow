@@ -1,3 +1,4 @@
+// @typecheck
 const { slideStyle } = require('./deckChart');
 const { SLIDE_LAYOUTS, MAX_CARDS, DeckError, clampText, inferLayout } = require('./deckBase');
 

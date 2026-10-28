@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { methodLine, statusLine } from './ownDataCopy';
 import type { CustomDataType, SwitchCol } from './ownDataModel';
 import { statusFor } from './ownDataModel';

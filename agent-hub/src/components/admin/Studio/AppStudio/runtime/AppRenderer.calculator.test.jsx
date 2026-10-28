@@ -32,17 +32,17 @@ import { describe, expect, it, vi } from 'vitest';
 // useActionRunner reaches for these at module scope. The calculator is a pure
 // CLIENT sequence (set_variable/switch only), so nothing here is ever called —
 // an assertion at the bottom proves it.
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
+import { authFetch } from '@/utils/helpers';
 import AppRenderer from './AppRenderer';
 import { mergeFormValues } from './formValues';
 import { EM_DASH } from './uiBits';
 import useActionRunner from './useActionRunner';
-import { authFetch } from '../../../../../utils/helpers';
 
 const nodeRequire = createRequire(import.meta.url);
 const DEFINITION = nodeRequire('../../../../../../../server/appStudio/fixtures/calculatorApp.json');

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Run a piece of code once in the sandbox, in TEST mode.
  *

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import type { AdminMessage, AdminOrganization, AskConfirm, OrgFormData } from './types';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 const EMPTY_ORG: OrgFormData = {
     id: '', name: '', description: '', tagline: '', address: '', email: '', phone: '', website: '',

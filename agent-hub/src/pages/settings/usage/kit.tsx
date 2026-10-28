@@ -13,7 +13,7 @@
 
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type {
     AlertBannerProps, CardProps, CollapsibleSectionProps, DrillChipProps, EmptyInlineProps, FilterChipBarProps,
     ListRowProps, MetricCardProps, MetricGridProps, MonitorHeroProps, SectionTitleProps, ShowMoreProps, SparklineProps,

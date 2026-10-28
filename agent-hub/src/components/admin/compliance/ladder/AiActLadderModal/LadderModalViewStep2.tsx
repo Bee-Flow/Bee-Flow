@@ -1,8 +1,8 @@
 import { Wrench, MessageSquare, FileText } from 'lucide-react';
 import React from 'react';
 import { daysUntilMarkingDeadline, MARKING_DEADLINE, ART50_IN_FORCE } from '../ladderOutcome';
-import { type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TONES } from '../../../../shared/statusTone';
+import { type TranslateParams } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
 import { formatCalDate } from '../../shared/calendarMath';
 import type { LadderAssessment, LadderSignals } from '../useAiActAssessment';
 import type { StepProps, SubCardProps, DisclosureCardProps, MarkingCardProps } from '../AiActLadderModal.types';

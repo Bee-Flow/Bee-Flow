@@ -4,13 +4,13 @@ import NewPlaybookDialog from './NewPlaybookDialog';
 import PlaybookCard from './PlaybookCard';
 import PlaybookRun from './PlaybookRun';
 import { playbooksApi } from './playbooksApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import EmptyState from '../../../shared/EmptyState';
-import { kindTileStyle } from '../../../shared/kindColors';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import { kindTileStyle } from '@/components/shared/kindColors';
+import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { PlaybookListItem } from './PlaybookCard';
-import type { PermissionUser } from '../../../../hooks/usePermissionCheck';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * Studio → Playbooks. A playbook is a phased AI build the person watches as

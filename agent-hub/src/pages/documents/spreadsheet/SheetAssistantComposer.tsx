@@ -3,8 +3,8 @@
 
 import { SendHorizontal } from 'lucide-react';
 import React, { useState } from 'react';
-import TierSlider from '../../../components/licensing/TierSlider';
-import useTranslation from '../../../hooks/useTranslation';
+import TierSlider from '@/components/licensing/TierSlider';
+import useTranslation from '@/hooks/useTranslation';
 import type { AssistantTier } from './useAssistantTier';
 
 export interface SheetAssistantComposerProps {

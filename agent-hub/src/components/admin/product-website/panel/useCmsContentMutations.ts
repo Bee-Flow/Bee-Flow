@@ -2,14 +2,14 @@
 // + AI translate of the ProductWebsitePanel container — moved verbatim from
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
 import { useCallback, useEffect } from 'react';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { setLocalePath } from '../localeMerge';
 import type useCmsPanelState from './useCmsPanelState';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
 import type { CmsPageDoc, CmsBlock } from './cmsPanelTypes';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;

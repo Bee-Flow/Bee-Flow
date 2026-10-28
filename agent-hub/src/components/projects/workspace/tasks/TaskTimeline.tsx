@@ -5,8 +5,8 @@
 import React, { useId, useRef, useState } from 'react';
 import { CalendarDays, ChevronRight, Info } from 'lucide-react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type KeyboardCoordinateGetter } from '@dnd-kit/core';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { GhostButton } from '../workspaceUi';
 import { dayNumber, moveDates, taskRange, timelineRelations, TIMELINE_ROW, type DateMove } from './taskPlanning';

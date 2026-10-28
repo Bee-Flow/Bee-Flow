@@ -103,7 +103,7 @@ const ChunksQuery = orEmpty(z.object({
 /**
  * List documents for a KB
  */
-router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), async (req, res) => {
+router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DocumentsQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -134,7 +134,7 @@ router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), a
 /**
  * Bulk-delete documents (up to 200 per call).
  */
-router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage_knowledge'), validate({ body: BulkDeleteBody }), async (req, res) => {
+router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage_knowledge'), validate({ body: BulkDeleteBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof BulkDeleteBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -166,7 +166,7 @@ router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage
 /**
  * List unique thread IDs for the KB (for the thread explorer).
  */
-router.get('/:id/threads', requireAuth, validate({ query: ThreadsQuery }), async (req, res) => {
+router.get('/:id/threads', requireAuth, validate({ query: ThreadsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ThreadsQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -179,7 +179,7 @@ router.get('/:id/threads', requireAuth, validate({ query: ThreadsQuery }), async
 /**
  * List documents in a specific thread, sorted by date.
  */
-router.get('/:id/threads/:threadId/documents', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/threads/:threadId/documents', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, threadId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -193,7 +193,7 @@ router.get('/:id/threads/:threadId/documents', requireAuth, validate({ query: No
  * stored only in the remote search-service won't appear here, so we
  * surface that as a soft empty state in the UI.
  */
-router.get('/:id/documents/:docId/chunks', requireAuth, validate({ query: ChunksQuery }), async (req, res) => {
+router.get('/:id/documents/:docId/chunks', requireAuth, validate({ query: ChunksQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof ChunksQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -245,7 +245,7 @@ router.get('/:id/documents/:docId/chunks', requireAuth, validate({ query: Chunks
  * search-service, we cannot show the text from here" so the UI can explain the
  * empty state instead of implying the document is empty.
  */
-router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -278,7 +278,7 @@ router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQue
 /**
  * Delete a document (and its chunks)
  */
-router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_knowledge'), validate({ query: NoQuery, body: NoBody }), async (req, res) => {
+router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_knowledge'), validate({ query: NoQuery, body: NoBody }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });

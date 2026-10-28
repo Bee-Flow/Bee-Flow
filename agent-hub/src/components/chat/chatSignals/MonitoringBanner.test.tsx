@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage, { setCurrentUser } from '../../../utils/scopedStorage';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 import type { NoticeModel } from './chatSignalsModel';
 import MonitoringBanner, { BANNER_SEEN_KEY } from './MonitoringBanner';
 

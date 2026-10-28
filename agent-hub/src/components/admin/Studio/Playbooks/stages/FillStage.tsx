@@ -5,14 +5,14 @@ import { StageHeader } from './StageShell';
 import { stagePadding, stageType } from './stageChrome';
 import useCountUp from './useCountUp';
 import useRunFilm from './useRunFilm';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { kindColorVar } from '../../../../shared/kindColors';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { kindColorVar } from '@/components/shared/kindColors';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
-import type { DiagramDefinition } from '../../../../automation/Builder/flow/diagramPaneTypes';
+import type { DiagramDefinition } from '@/components/automation/Builder/flow/diagramPaneTypes';
 import type { StepRecord } from './runFilm';
-import RunExecutionView from '../../../../automation/Builder/RunExecutionView';
-import { logger } from '../../../../../utils/logger';
+import RunExecutionView from '@/components/automation/Builder/RunExecutionView';
+import { logger } from '@/utils/logger';
 
 const STEPS_POLL_MS = 1500;
 /**

@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Plus, Repeat, Workflow } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../utils/helpers';
-import { cardRadius, kindColorVar, kindTileStyle } from '../../../../shared/kindColors';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { cardRadius, kindColorVar, kindTileStyle } from '@/components/shared/kindColors';
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';
 import type { AutomationRow } from '../editor/automationTitles';
 import type { AppRef } from './appDefinition';
-import { request, RefusedError } from '../../../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * "Which automation" — the run_automation target, as a tile instead of a button.

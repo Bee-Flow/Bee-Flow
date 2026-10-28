@@ -1,10 +1,10 @@
 import { Loader2, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { datatablesApi } from './datatablesApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { errorCode, errorMessage, errorStatus } from '../../../../utils/caughtError';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { errorCode, errorMessage, errorStatus } from '@/utils/caughtError';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /** What the model changed, as the server counts it (only the lengths are read). */
 interface AiTableChanges {

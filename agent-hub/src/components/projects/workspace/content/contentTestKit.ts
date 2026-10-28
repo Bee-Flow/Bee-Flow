@@ -3,7 +3,7 @@
 //
 // Imported by *.test.tsx files only.
 
-import type { Project, ProjectMembers, ProjectRole } from '../../../../api/queries/projects';
+import type { Project, ProjectMembers, ProjectRole } from '@/api/queries/projects';
 import type { ContentTabProps } from './types';
 
 export const OWNER_ID = 'u-owner';

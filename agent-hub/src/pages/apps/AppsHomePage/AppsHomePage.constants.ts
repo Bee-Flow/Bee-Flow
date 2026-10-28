@@ -1,4 +1,4 @@
-import { kindTileStyle } from '../../../components/shared/kindColors';
+import { kindTileStyle } from '@/components/shared/kindColors';
 import type { TFn } from '../AppsHomePage.types';
 
 // Matches AppList / APP_COLOR_PRESETS[0] (teal).

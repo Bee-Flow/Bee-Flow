@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { DEFAULT_AGENT_EMOJI } from '../../../utils/agentAvatar';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
 
 /**
  * A local-only draft agent: it is not persisted until the user hits Save in

@@ -1,7 +1,7 @@
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { KIND_KEYS } from '../../../shared/kindColors';
-import { isAbortError } from '../../../../utils/caughtError';
-import { logger } from '../../../../utils/logger';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { KIND_KEYS } from '@/components/shared/kindColors';
+import { isAbortError } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 /** The answer of the endpoint: untrusted input, so every field is still `unknown`. */
 interface PayloadBody {

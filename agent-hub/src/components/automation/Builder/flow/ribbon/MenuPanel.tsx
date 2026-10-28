@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { denseInputClass, FOCUS_RING_INSET } from '../settings/formStyles';
 import { stepDragProps } from '../stepDrag';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { RibbonDropdown } from './jsComponents';
 import { actionRows } from './menuRows';
 import type { MenuSection, RowSpec } from './menuRows';

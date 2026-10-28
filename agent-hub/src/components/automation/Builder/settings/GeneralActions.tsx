@@ -1,13 +1,13 @@
 import { Copy, Download, Package, Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { duplicateAutomationOnServer, invalidateAutomationTrash, restoreAutomation } from '../../../../api/queries/automation/library';
-import { downloadAutomationExport, saveAsTemplate, trashAutomation } from '../../../../api/queries/automation/settings';
+import { useTranslation } from '@/hooks/useTranslation';
+import { duplicateAutomationOnServer, invalidateAutomationTrash, restoreAutomation } from '@/api/queries/automation/library';
+import { downloadAutomationExport, saveAsTemplate, trashAutomation } from '@/api/queries/automation/settings';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { LINK_BTN, SECONDARY_BTN } from './settingsUi';
 import type { SettingsAutomation } from './settingsUi';
-import { errorMessage } from '../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 type ActionKey = 'duplicate' | 'export' | 'template' | 'delete';
 

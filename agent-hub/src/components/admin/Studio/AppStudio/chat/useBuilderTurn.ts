@@ -23,11 +23,11 @@ import { DATA_QUERY_KEY_FAMILIES, friendlyBuilderError } from './builderPaneMode
 import type { EditorChrome } from './builderPaneModel';
 import { diffDefinitions } from './draftDiff';
 import type { DraftDiff, TurnChange } from './WhatChanged';
-import useAppBuilderStream from '../../../../../hooks/useAppBuilderStream';
-import type { AppBuilderDoneInfo } from '../../../../../hooks/useAppBuilderStream';
-import { useReducedMotion } from '../../../../../hooks/useReducedMotion';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import toast from '../../../../shared/Toast';
+import useAppBuilderStream from '@/hooks/useAppBuilderStream';
+import type { AppBuilderDoneInfo } from '@/hooks/useAppBuilderStream';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 import { planReveal as planRevealJs } from '../editor/revealQueue';
 import type { AppDefinition, AppMeta } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';

@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ProposalTables from './ProposalTables';
 
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     default: () => ({ t: (_k: string, d: string) => d }),
     useTranslation: () => ({ t: (_k: string, d: string) => d }),
 }));

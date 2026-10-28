@@ -1,6 +1,6 @@
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { falseAlarmsLine, findsLine, verdictLine } from '../ownDataCopy';
 import type { Summary } from '../ownDataModel';
 import { verdictFor } from '../ownDataModel';

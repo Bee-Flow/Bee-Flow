@@ -4,7 +4,7 @@
 // anywhere.
 import { FlaskConical, Loader2, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
 import {
     useDeleteTestCase,
     useRunTestCases,
@@ -13,8 +13,8 @@ import {
     type TestRunResponse,
     type TestRunResult,
     type TestStatus,
-} from '../../../../../../api/queries/automation/testCases';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+} from '@/api/queries/automation/testCases';
+import { useTranslation } from '@/hooks/useTranslation';
 import { STATUS_LABEL } from './assertionText';
 import TestCaseEditor from './TestCaseEditor';
 import TestCaseResult from './TestCaseResult';

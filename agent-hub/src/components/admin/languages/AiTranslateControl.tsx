@@ -17,8 +17,8 @@
 
 import { AlertCircle, Check } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { AiTranslateResult as AiTranslateResultData } from '../../../hooks/useAiTranslate';
-import { useTranslation } from '../../../hooks/useTranslation';
+import type { AiTranslateResult as AiTranslateResultData } from '@/hooks/useAiTranslate';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const TIER_OPTIONS = [
     { value: 'fast', label: '⚡ Fast' },

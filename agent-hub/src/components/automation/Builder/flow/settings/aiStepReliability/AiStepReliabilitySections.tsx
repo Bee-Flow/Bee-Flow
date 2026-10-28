@@ -1,7 +1,7 @@
 // The AI step's reliability settings, in the two places the editor shows them:
 // the Advanced rows (temperature, reuse of the answer) and the Answer checks
 // section. aiStepEditors.jsx renders these and nothing else of this folder.
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AskOnceRow } from '../actionEditors/askOnceRow';
 import type { FormRecord } from '../formState/types';
 import { TemperatureField } from './TemperatureField';

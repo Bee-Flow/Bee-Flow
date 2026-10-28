@@ -2,10 +2,10 @@ import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { skillsApi } from '@/api/skillsApi';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import SkillsStudio from './index';
-import { skillsApi } from '../../../../api/skillsApi';
-import { queryWrapper } from '../../../../test/queryWrapper';
-import { authFetch } from '../../../../utils/helpers';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.
@@ -28,7 +28,7 @@ const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...opti
  *     all not "nothing depends on this" in the delete dialog.
  */
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url) => {
         const u = String(url);
@@ -46,7 +46,7 @@ vi.mock('../../../../utils/helpers', () => ({
 // The AI-step editor drags the whole builder settings chain (tool picker,
 // accordions, its own fetches) into a unit test. Only its output-field rows
 // are used here, so it is stubbed down to the contract this card relies on.
-vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
+vi.mock('@/components/automation/Builder/flow/settings/aiStepEditors', () => ({
     StructuredOutputFields: ({ fields, onChange }) => (
         <button type="button" data-testid="stub-output-rows" onClick={() => onChange([...fields, { key: 'total', type: 'number' }])}>
             add output field ({fields.length})
@@ -54,7 +54,7 @@ vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
     ),
 }));
 
-vi.mock('../../../../api/skillsApi', () => {
+vi.mock('@/api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),

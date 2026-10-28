@@ -20,13 +20,13 @@ vi.mock('./studioAppsApi', () => {
     return { studioAppsApi, default: studioAppsApi };
 });
 
-vi.mock('../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
 import { studioAppsApi } from './studioAppsApi';
-import toast from '../../../shared/Toast';
+import toast from '@/components/shared/Toast';
 import { asMock } from '@/test/mocks';
 
 const OWNED_APP = {

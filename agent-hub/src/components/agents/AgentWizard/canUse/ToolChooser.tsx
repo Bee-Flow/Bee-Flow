@@ -3,11 +3,11 @@ import { READ } from './canUseFacts';
 import { chooserInitialSelection, commitSelection, foldSharedApps, selectionDelta } from './toolChooserModel';
 import { type SelectionMap, type ToolsConfig } from './toolGrants';
 import { hasCuratedGrants } from './toolGrants.helpers';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import AppActionPicker from '../../../shared/AppActionPicker';
-import Modal from '../../../shared/Modal';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import AppActionPicker from '@/components/shared/AppActionPicker';
+import Modal from '@/components/shared/Modal';
 import type { ToolApp } from './toolCatalogTypes';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * The TOOL PICKER of the agent editor (Agents artboard 1f, A2 step 4).

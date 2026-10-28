@@ -1,6 +1,6 @@
 // Which tasks the list and the board show, and in what order. Pure.
 
-import type { ProjectTask, TaskPriority } from '../../../../api/queries/projectTasks';
+import type { ProjectTask, TaskPriority } from '@/api/queries/projectTasks';
 import { isOverdue, priorityRank } from './taskText';
 
 type TaskWho = 'all' | 'me' | 'unassigned' | string;

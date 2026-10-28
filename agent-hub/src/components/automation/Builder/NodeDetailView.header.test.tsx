@@ -12,7 +12,7 @@ const { api } = vi.hoisted(() => ({
         listFormPages: vi.fn().mockResolvedValue({ forms: [] }),
     },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 const NodeDetailView = (await import('./NodeDetailView')).default;
 

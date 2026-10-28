@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { StatusMessage } from './tierTypes';
-import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
+import { getAiConfig, postAiConfig } from '@/api/aiConfig';
 
 /**
  * One single-model setting (classifier, title, memory extraction, AI step,

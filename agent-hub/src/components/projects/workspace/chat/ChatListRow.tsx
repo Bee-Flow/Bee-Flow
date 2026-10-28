@@ -4,9 +4,9 @@
 
 import { Bot, Loader2, Lock, Share2, Sparkles, Users } from 'lucide-react';
 import React from 'react';
-import { hasUnread } from '../../../../api/queries/projectChats';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { hasUnread } from '@/api/queries/projectChats';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { GhostButton } from '../workspaceUi';
 import { aiModeBadge, effectiveMode } from './AiModeSelector';
 import { noticeExcerpt } from './SystemNotice';

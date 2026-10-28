@@ -23,10 +23,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // default-only mock takes the whole Used-by table down inside a `waitFor` and
 // reads as a missing element rather than as a broken mock. The factory is
 // hoisted above every `const` in this file, so it defines its own translator.
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const usageState = { usage: [], unchecked: [], error: null, loading: false };
-vi.mock('../../../hooks/useUsage', () => ({
+vi.mock('@/hooks/useUsage', () => ({
     default: () => ({ ...usageState, refetch: () => {}, setUsage: () => {} }),
     USAGE_KIND_PATH: {},
 }));
@@ -41,7 +41,7 @@ vi.mock('../hooks/useTranscription', () => ({
 }));
 
 const deleteTranscription = vi.fn(async () => ({ success: true }));
-vi.mock('../../../api/transcriptionsApi', () => ({
+vi.mock('@/api/transcriptionsApi', () => ({
     deleteTranscription: (...a) => deleteTranscription(...a),
     patchTranscription: vi.fn(async () => ({})),
     reprocessTranscription: vi.fn(async () => ({})),
@@ -59,7 +59,7 @@ vi.mock('./SpeakerEditor', () => ({ default: () => null }));
 vi.mock('./TemplateEditor', () => ({ default: () => null }));
 vi.mock('./SummaryActionsLayout', () => ({ default: () => <div data-testid="body" /> }));
 vi.mock('./MeetingVisibility', () => ({ default: () => null }));
-vi.mock('../../../components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock('@/components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import MeetingDetail from './MeetingDetail';
 

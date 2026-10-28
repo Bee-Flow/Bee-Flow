@@ -54,15 +54,15 @@ export function useCmsRedirectActions(siteId: string | null, onSaved?: () => voi
         onSaved?.();
     };
     const add = useMutation<unknown, Error, CmsRedirectInput>({
-        mutationFn: (input) => apiClient.post(base(siteId || ''), input, { retry: false }),
+        mutationFn: (input) => apiClient.post(base(siteId || ''), input),
         onSuccess: done,
     });
     const remove = useMutation<unknown, Error, string>({
-        mutationFn: (id) => apiClient.delete(`${base(siteId || '')}/${encodeURIComponent(id)}`, { retry: false }),
+        mutationFn: (id) => apiClient.delete(`${base(siteId || '')}/${encodeURIComponent(id)}`),
         onSuccess: done,
     });
     const saveHosts = useMutation<unknown, Error, string[]>({
-        mutationFn: (hosts) => apiClient.put(`${base(siteId || '')}/hosts`, { hosts }, { retry: false }),
+        mutationFn: (hosts) => apiClient.put(`${base(siteId || '')}/hosts`, { hosts }),
         onSuccess: done,
     });
     return { add, remove, saveHosts };

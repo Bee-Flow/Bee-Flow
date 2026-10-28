@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import Button from '../../../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import Button from '@/components/shared/Button';
 import { getDevVariables, putDevVariables, type DeclBody } from './stageSettingsApi';
 import {
     VARIABLE_TYPES, settingsError, variableNameProblem,

@@ -399,7 +399,7 @@ async function readInto(into, key) {
  *
  * @param {object} plan          the lookup plan
  * @param {object} out           the PRE-guard response — what decides eligibility
- * @param {object} storedValue   the POST-guard response — what is actually written
+ * @param {unknown} storedValue   the POST-guard response — what is actually written
  * @param {object} [opts]
  * @param {string[]} [opts.secretValues]  every secret this run can see
  * @returns {Promise<{stored: boolean, reason?: string, errorClass?: string, message?: string}|null>}

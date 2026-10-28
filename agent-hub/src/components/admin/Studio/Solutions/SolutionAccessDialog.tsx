@@ -1,8 +1,8 @@
 import { Loader2 } from 'lucide-react';
 import React, { Suspense } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { lazy } from '../../../../utils/lazyWithReload';
-import Modal from '../../../shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import { lazy } from '@/utils/lazyWithReload';
+import Modal from '@/components/shared/Modal';
 
 /**
  * Who can open this Solution, and with which role.
@@ -17,7 +17,7 @@ import Modal from '../../../shared/Modal';
  * Loaded lazily: the dialog is opened rarely, and the panel pulls in the
  * people and group pickers.
  */
-const ProjectMembersPanel = lazy(() => import('../../../projects/workspace/ProjectMembersPanel'));
+const ProjectMembersPanel = lazy(() => import('@/components/projects/workspace/ProjectMembersPanel'));
 
 export type SolutionRole = 'owner' | 'editor' | 'viewer';
 

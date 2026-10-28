@@ -1,5 +1,5 @@
 import type { CmsActivePage, CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc, CmsSiteListEntry } from './cmsPanelTypes';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { LocaleCoverage } from '../shell/LocaleMenu';
 import {
     ANALYTICS_VIRTUAL_ID, DESIGN_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID,

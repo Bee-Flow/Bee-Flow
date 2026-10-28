@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { errorInfoTitle } from './runLogSentence';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { buildRunStepLabelMap, runStepLabel } from '../../../automation/Builder/flow/displayHelpers';
-import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
+import { useTranslation } from '@/hooks/useTranslation';
+import { buildRunStepLabelMap, runStepLabel } from '@/components/automation/Builder/flow/displayHelpers';
+import { statusLabel, tokenForStep } from '@/components/shared/statusTokens';
 import { formatDuration } from '../AutomationsStudio/historyUtils';
 import type { ErrorInfoLike } from './runLogSentence';
 

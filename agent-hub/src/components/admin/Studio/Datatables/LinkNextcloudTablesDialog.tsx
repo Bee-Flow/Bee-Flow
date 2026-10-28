@@ -5,11 +5,11 @@ import { columnTypeKind, keyFromName, ncErrorMessage } from './datatableDisplay'
 import { datatablesApi } from './datatablesApi';
 import { AudienceLine, BTN, CARD, INPUT, INPUT_STYLE, RelationsStep, ReviewRelations, StepStrip, messageFor, relKeyOf, suggestRelations, type LockedRelation, type RelColumn, type RelTable, type Relation } from './linkWizardShared';
 import { TitleRow } from './NewDatatableDialog';
-import useTranslation from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { Linkable } from './newDatatable/useLinkSources';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceError } from './sourceMirrors';
 import type { WizardError } from './spreadsheet/wizardState';
 import type { NcId, NcView, NcTableEntry, NcColumn, NcSelection, NcDescribe, NcRelColumn, NcRelation, LinkError, LinkNextcloudTablesDialogProps, TablesStepProps, TableRowProps, NamesStepProps, ReviewStepProps } from './LinkNextcloudTablesDialog.types';

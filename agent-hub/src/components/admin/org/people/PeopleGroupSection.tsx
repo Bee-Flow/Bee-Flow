@@ -1,6 +1,6 @@
 import { Building2, ChevronDown, ChevronRight, Users as UsersIcon } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import PeopleRow from './PeopleRow';
 import type { PeopleRowProps, PeopleUser } from './PeopleRow';
 

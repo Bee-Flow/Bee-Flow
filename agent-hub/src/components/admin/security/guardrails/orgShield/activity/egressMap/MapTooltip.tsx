@@ -15,8 +15,8 @@
 
 import React, { useLayoutEffect, useRef } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { fNum } from '../../../../../../../pages/settings/usage/format';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { fNum } from '@/pages/settings/usage/format';
 import { howWeKnow, placeLabel, relativeAgo } from './locationCopy';
 import type { HostKinds } from './mapLabels';
 import { tooltipPosition, type Pt, type Size } from './mapGeometry';

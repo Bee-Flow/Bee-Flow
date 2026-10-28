@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The six rules behind GET /api/studio/attention, each on its own.
  *

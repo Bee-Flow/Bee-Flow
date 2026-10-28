@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ApprovalRowLike } from './approvalDisplay';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { logger } from '../../../../utils/logger';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { logger } from '@/utils/logger';
 
 /**
  * List + facets state for the Approvals section, modeled on Executions'

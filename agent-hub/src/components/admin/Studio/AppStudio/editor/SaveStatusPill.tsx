@@ -1,8 +1,8 @@
 import { AlertTriangle, Check, Loader2, X } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { SaveNotice } from './saveNotices';
-import AnchoredMenu from '../../../../shared/AnchoredMenu';
-import useTranslation from '../../../../../hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * App Studio editor — what autosave has to say, in two pieces (Studio

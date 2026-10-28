@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { githubSyncApi } from '../../../api/githubSyncApi';
-import { errorMessage } from '../../../utils/caughtError';
+import { githubSyncApi } from '@/api/githubSyncApi';
+import { errorMessage } from '@/utils/caughtError';
 import useConfirm from '../../shared/useConfirm';
 import type { GitHubSyncDetail, GitHubSyncMessage, GitHubSyncStatus } from './githubSync.types';
 

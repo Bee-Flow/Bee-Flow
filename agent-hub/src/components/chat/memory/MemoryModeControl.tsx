@@ -1,7 +1,7 @@
 import { Ban, BookOpen, Brain } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { nextMemoryMode, type MemoryLock, type MemoryMode } from '../../../utils/memoryMode';
+import { useTranslation } from '@/hooks/useTranslation';
+import { nextMemoryMode, type MemoryLock, type MemoryMode } from '@/utils/memoryMode';
 import { memoryHint, memoryStateLabel } from './memoryModeCopy';
 
 const ICONS = { on: Brain, read: BookOpen, off: Ban } as const;

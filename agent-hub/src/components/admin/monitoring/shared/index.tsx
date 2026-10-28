@@ -4,7 +4,7 @@ import {
     Users, Bot, Cpu, Activity,
     type LucideIcon,
 } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
 import type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, CardProps, MetricCardProps, InOutLabelProps, DonutItem, FilterOption, FilterSelectProps, FilterState, FilterBarProps, SortableColumn, SortableTableProps, SkeletonProps, SkeletonGridProps } from '../shared.types';
 import { fmt, COLORS, Empty } from './SvgAreaChart';

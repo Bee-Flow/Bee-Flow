@@ -17,7 +17,7 @@
  * and the european-warmth preset), and every diagram uses `currentColor`-free
  * explicit fills so it renders identically in light and dark bands.
  */
-
+// @typecheck
 const AMBER = '#F5A623';
 const AMBER_DEEP = '#E0941A';
 const INK = '#1C1917';

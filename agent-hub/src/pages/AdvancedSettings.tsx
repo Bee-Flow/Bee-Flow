@@ -22,6 +22,7 @@ import { useSettingsData } from './settings/shell/useSettingsData';
 import { useSettingsTab } from './settings/shell/useSettingsTab';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 import type { MemoryView } from '../components/knowledge/memory/memoryTypes';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export { AvatarDisplay } from './settings/shell/AvatarDisplay';
 
@@ -108,7 +109,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     // keep that one reachable on mobile so they can still subscribe.
     const { hasActiveSub } = useSubscriptionContext();
     const { activeTab, setActiveTab, setActiveTabState, orgDeepSegs, setOrgDeepSegs } = useSettingsTab();
-    const [orgExpanded, setOrgExpanded] = useState(() => ALL_ORG_IDS.includes(settingsTabFromPath()));
+    const [orgExpanded, setOrgExpanded] = useState(() => ALL_ORG_IDS.includes(settingsTabFromPath()) || ALL_ORG_IDS.includes(activeTab));
 
     const {
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
@@ -138,9 +139,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     });
 
     // If user navigates to an org sub-tab, keep org expanded
-    useEffect(() => {
-        if (isOrgSubTab) setOrgExpanded(true);
-    }, [isOrgSubTab]);
+    useAdjustOnChange([isOrgSubTab], () => { if (isOrgSubTab) setOrgExpanded(true); });
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
     // 'review' when the pending-review row of Settings → Memory opened the panel.

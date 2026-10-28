@@ -1,5 +1,5 @@
 import { RUN_STATE } from '../testSetFacts';
-import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import type { AboutLineProps } from '../TestSetCard.types';
 
 export function AboutLine({ t, summary, justRan = null }: AboutLineProps) {

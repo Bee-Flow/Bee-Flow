@@ -4,9 +4,9 @@
 // "Anna is also editing Pricing" line.
 
 import { useMemo, useRef, useState } from 'react';
-import type { CommentAnchor } from '../../../api/queries/comments';
-import { peerColor } from '../../../editor/collab/colors';
-import useTranslation from '../../../hooks/useTranslation';
+import type { CommentAnchor } from '@/api/queries/comments';
+import { peerColor } from '@/editor/collab/colors';
+import useTranslation from '@/hooks/useTranslation';
 import type { FramePeer, FrameStats, OutlineItem } from '../canvasBridge';
 import type { People, StudioDocument } from '../documentQueries';
 import useSectionPresence from '../useSectionPresence';

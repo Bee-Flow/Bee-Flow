@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import BlockList from '../BlockList';
 import PageList from '../PageList';
 import {

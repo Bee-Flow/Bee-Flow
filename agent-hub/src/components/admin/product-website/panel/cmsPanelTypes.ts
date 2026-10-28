@@ -1,4 +1,4 @@
-import type { CmsSeo } from '../../../../marketing/useCmsHead';
+import type { CmsSeo } from '@/marketing/useCmsHead';
 
 /**
  * The CMS documents as the panel container reads them. Only the fields the

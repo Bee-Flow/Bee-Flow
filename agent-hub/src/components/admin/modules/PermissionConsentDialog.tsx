@@ -3,7 +3,7 @@ import React from 'react';
 import { normalizePermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
 import PermissionList from './PermissionList';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 interface PermissionConsentDialogProps {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Design v2 — the OPTIONAL `definition.design` and `definition.nav`
  * vocabularies that turn a Studio app from "themed" into "designed".
@@ -43,7 +44,9 @@ const FONT_FAMILIES = Object.freeze({
     poppins: 'Poppins',
 });
 
-const DESIGN_SPEC = Object.freeze({
+/** @typedef {{ type: 'enum', values: string[], default: string } | { type: 'url', default: string | null, maxLen: number }} DesignSpecEntry */
+
+const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry>} */ ({
     // Provenance only: applying a preset MATERIALIZES its values into theme /
     // design / nav (themePresets.js precedent) — this field just remembers
     // which gallery card the owner started from, so the editor can show it as
@@ -67,7 +70,7 @@ const DESIGN_SPEC = Object.freeze({
     // should not have to keep them.
     accentEdge: { type: 'enum', values: ['bar', 'none'], default: 'bar' },
     logoUrl: { type: 'url', default: null, maxLen: 500 },
-});
+}));
 
 // Four ways to move around an app, so the shape can follow the work:
 //   tabs    — identity. A top row of screens; groups flatten into it.
@@ -84,6 +87,7 @@ const MAX_NAV_GROUPS = 10;
 const MAX_NAV_GROUP_LABEL = 40;
 const NAV_GROUP_ID_RE = /^nvg_[a-z0-9]{4,12}$/;
 
+/** @param {unknown} v */
 function isObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }

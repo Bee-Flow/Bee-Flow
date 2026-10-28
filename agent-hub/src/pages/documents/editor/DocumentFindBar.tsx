@@ -3,7 +3,7 @@
 
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { ICON_BUTTON } from './ui';
 
 export interface DocumentFindBarProps {

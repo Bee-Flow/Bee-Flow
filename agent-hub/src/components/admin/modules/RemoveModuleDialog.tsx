@@ -1,6 +1,6 @@
 import { Loader2, Trash2, X } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 interface RemoveModuleDialogProps {

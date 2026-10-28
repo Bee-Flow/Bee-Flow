@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useEffectEvent } from 'react';
 import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle, Users } from 'lucide-react';
-import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
-import useTranslation from '../../../hooks/useTranslation';
-import { openGoogleConsentPopup, openMicrosoftConsentPopup } from '../../../api/oauthPopupLaunchers';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import useTranslation from '@/hooks/useTranslation';
+import { openGoogleConsentPopup, openMicrosoftConsentPopup } from '@/api/oauthPopupLaunchers';
 import TagRow from '../detail/TagRow';
-import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../../../api/transcriptionsApi';
+import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '@/api/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
 import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
-import { messageOf, errorCode, errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { messageOf, errorCode, errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 /**
  * "Upcoming" (Scheduled): the calendar meetings with a Talk room or a Meet link, each with a record/skip toggle. Colours are theme tokens only — the Nextcloud blue and Meet green that used to be hard-coded here are gone (repo-wide token hygiene): a provider tile is the meeting kind's tint, a live toggle is the accent, and the status chips read --success / --warning with their -ink twins for text.

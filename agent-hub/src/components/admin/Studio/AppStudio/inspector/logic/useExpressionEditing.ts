@@ -3,13 +3,13 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import {
     getAutocompleteToken, insertAtCursor, previewValue, replaceRange,
-} from '../../../../../../utils/bindingHelpers';
-import { onBindingDragOver, getBindingDropPath } from '../../../../../automation/Builder/mapping/bindingDnd';
-import useVariablePicker from '../../../../../automation/Builder/mapping/useVariablePicker';
-import { useVariablePickerContext } from '../../../../../automation/Builder/mapping/VariablePickerContext';
-import { parseExprToRows } from '../../../../../automation/Builder/utils/conditionModel';
-import type { TextControl } from '../../../../../../utils/bindingHelpers.types';
-import { messageOf } from '../../../../../../utils/caughtError';
+} from '@/utils/bindingHelpers';
+import { onBindingDragOver, getBindingDropPath } from '@/components/automation/Builder/mapping/bindingDnd';
+import useVariablePicker from '@/components/automation/Builder/mapping/useVariablePicker';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
+import { parseExprToRows } from '@/components/automation/Builder/utils/conditionModel';
+import type { TextControl } from '@/utils/bindingHelpers.types';
+import { messageOf } from '@/utils/caughtError';
 
 export interface ExpressionEditingOptions {
     /** The raw expression string. */

@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The status of an automation in the words the builder header uses, so a row in

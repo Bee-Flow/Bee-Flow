@@ -11,9 +11,9 @@
  * runLanguage.whatHappened, except for failures, which get the reason from
  * the failed step's errorInfo or from the typed error class.
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
-import { runSentence, runTone } from '../../../automation/Builder/runs/runOutcome';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RunRowData } from '@/api/queries/automation/runs';
+import { runSentence, runTone } from '@/components/automation/Builder/runs/runOutcome';
 import { whatHappened } from './runLanguage';
 
 /** A row of the organisation-wide log: the Runs tab row plus the log's own fields. */

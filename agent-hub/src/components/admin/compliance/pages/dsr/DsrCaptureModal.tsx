@@ -6,9 +6,9 @@
 import React, { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Plus } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { CAPTURE_CHANNELS, CHANNEL_WIRE, DSR_TYPES, articleOf } from './dsrArticles';
 import { channelLabel, typeLabel } from './DsrTable';
 

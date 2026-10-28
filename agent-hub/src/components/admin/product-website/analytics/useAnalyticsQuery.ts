@@ -8,7 +8,7 @@
  * React Query on a single surface.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { analyticsApi, analyticsFetch, analyticsPost, reportBody, type AnalyticsResponse, type AnalyticsScope } from '../analyticsApi';
 
 /**

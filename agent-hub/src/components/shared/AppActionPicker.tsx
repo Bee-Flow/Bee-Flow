@@ -1,10 +1,11 @@
 import { Check, Search, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Modal from './Modal';
 import { getIntegrationIcon } from '../../config/integrationIcons';
 import useTranslation from '../../hooks/useTranslation';
 import type { ToolApp } from '../agents/AgentWizard/canUse/toolCatalogTypes';
 import type { PickerAction, PickerApp, PickerText, EffectBadgeProps, EffectFiltersProps, ActionRowProps, AppActionPickerProps } from './AppActionPicker.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** De Engelse standaardteksten van de schil. Een surface met `t()` overschrijft ze. */
 const PICKER_TEXT = Object.freeze({
@@ -208,9 +209,9 @@ export default function AppActionPicker({
 
     // The ↗ on a tool row opens the picker on THAT app. If the request changes, the
     // focus moves along with it.
-    useEffect(() => {
+    useAdjustOnChange([focusAppId, apps], () => {
         if (focusAppId && apps.some((app) => app.id === focusAppId)) setFocusedId(focusAppId);
-    }, [focusAppId, apps]);
+    });
 
     const focused = apps.find((app) => app.id === focusedId) || filtered[0] || null;
     // When a search is active the right pane shows only the matching actions —

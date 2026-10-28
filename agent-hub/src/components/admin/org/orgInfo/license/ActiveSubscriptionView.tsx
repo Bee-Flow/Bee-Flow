@@ -6,9 +6,9 @@ import { UpgradeToPaidOffers } from './PlanOffers';
 import { BillingCard, PlanLimitsCard, UsageCard } from './SubscriptionCards';
 import { HighestPlanNotice, ScheduledCancelBanner, ScheduledDowngradeBanner, UsageUpgradeCta } from './SubscriptionNotices';
 import type { OrgSubscriptionState } from './useOrgSubscription';
-import { cloudFetch } from '../../../../../api/cloudFetch';
-import { API_BASE } from '../../../../../utils/helpers';
-import InvoicesPanel from '../../../../billing/InvoicesPanel';
+import { cloudFetch } from '@/api/cloudFetch';
+import { API_BASE } from '@/utils/helpers';
+import InvoicesPanel from '@/components/billing/InvoicesPanel';
 
 interface ActiveSubscriptionViewProps {
     sub: OrgSubscription;

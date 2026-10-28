@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
 import ProjectsSection, { type ProjectsSectionProps } from './ProjectsSection';
-import type { Project } from '../../../api/queries/projects';
+import type { Project } from '@/api/queries/projects';
 
 /**
  * The projects group in the sidebar.

@@ -4,8 +4,8 @@
 
 import { CalendarDays, Link2, ListChecks } from 'lucide-react';
 import React from 'react';
-import type { ProjectTask, TaskStatus } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask, TaskStatus } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { Avatar } from '../workspaceUi';
 import DeleteTaskButton from './DeleteTaskButton';

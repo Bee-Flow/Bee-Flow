@@ -1,7 +1,7 @@
 import { Copy as CopyIcon, MoreHorizontal, Pin, PinOff, Power, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
 
 /**
  * The header's ⋯ menu (round 4): Pin / Duplicate / Disable / Delete. They are

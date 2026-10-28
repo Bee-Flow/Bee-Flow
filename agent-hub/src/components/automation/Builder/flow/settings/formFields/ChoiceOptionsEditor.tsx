@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { denseInputClass, textareaClass } from '../formPrimitives';
 import { hasDetails, joinOptions, mergeLines, setDetail, splitOptions, visibleRows } from './choiceOptionsModel';
 import type { FieldEditorProps } from './fieldEditor.types';

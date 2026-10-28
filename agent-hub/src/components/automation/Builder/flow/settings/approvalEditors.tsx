@@ -1,5 +1,5 @@
 // The approval step editor, extracted verbatim from SettingsForm.jsx.
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
 import { ApprovalClockFields } from './approvalClocks';

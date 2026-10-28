@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { reportAppVersion } from './appVersionSignal';
-import { NOT_BATCHED, queueRead, unwrapReadResult } from '../../../../../api/dataBatchClient';
+import { NOT_BATCHED, queueRead, unwrapReadResult } from '@/api/dataBatchClient';
 import { useDataContext } from './DataContext';
-import { dataErrorFromResponse, isRateLimited, type DataError } from '../../../../../api/dataErrors';
+import { dataErrorFromResponse, isRateLimited, type DataError } from '@/api/dataErrors';
 import { dataCacheKey } from './resolveBinding';
-import { API_BASE } from '../../../../../utils/helpers';
-import { studioAppFetch } from '../../../../../api/queries/studioApps';
+import { API_BASE } from '@/utils/helpers';
+import { studioAppFetch } from '@/api/queries/studioApps';
 import type { ConnectorBinding, DataBinding } from './resolveBinding.types';
 
 /** The bindings this hook fetches: a data read, or a connector run. */

@@ -1,7 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { TABS } from '../orgShieldTabs';
 import { SHIELD_ROW } from '../shieldLayout';
 

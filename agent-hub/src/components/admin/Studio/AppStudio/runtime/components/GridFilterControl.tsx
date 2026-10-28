@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { FILTER_KIND } from './gridColumnFilters';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { OptionPair } from '../../tables/rowValues';
 
 /**

@@ -1,9 +1,9 @@
 // §WS5 — trigger/event filter editors extracted verbatim from SettingsForm.jsx.
 // FilterShell is an internal helper.
 import React, { useState, useEffect } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
 import type { FilterFieldsProps } from './triggerFilters.types';
 export function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {

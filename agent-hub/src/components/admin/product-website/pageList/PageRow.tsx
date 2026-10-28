@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from '../fieldKit/jsDeps';
 import PageMenu from './PageMenu';
 import { normalizeSlugForInput, slugIssues } from './pageListShared';
@@ -178,7 +178,8 @@ export default function PageRow({ page, allSlugs, isActive, onClick, onSetHomepa
     const [menuOpen, setMenuOpen]       = useState(false);
     const [renaming, setRenaming]       = useState(false);
     const [editingSlug, setEditingSlug] = useState(false);
-    const menuBtnRef = useRef<HTMLButtonElement>(null);
+    // The menu anchors to the button: kept in state (a callback ref) so render never reads a ref.
+    const [menuBtn, setMenuBtn] = useState<HTMLButtonElement | null>(null);
 
     // Row is in some inline-edit mode whenever either field is open.
     // While editing we suppress the row's click-to-select and hide the
@@ -247,7 +248,7 @@ export default function PageRow({ page, allSlugs, isActive, onClick, onSetHomepa
             {!isEditing && (
                 <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                     <button
-                        ref={menuBtnRef}
+                        ref={setMenuBtn}
                         type="button"
                         className={`w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)]
                             text-[var(--text-muted)] hover:text-[var(--text-secondary)]
@@ -259,7 +260,7 @@ export default function PageRow({ page, allSlugs, isActive, onClick, onSetHomepa
                     </button>
                     {menuOpen && (
                         <PageMenu
-                            anchorEl={menuBtnRef.current}
+                            anchorEl={menuBtn}
                             page={page}
                             onClose={() => setMenuOpen(false)}
                             onSetHomepage={()    => { onSetHomepage(page.id); setMenuOpen(false); }}

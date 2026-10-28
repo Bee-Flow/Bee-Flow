@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isEnvPermission, normalizePermissions, permissionCopy, splitEnvPermissions } from './permissionCopy';
-import EN_DEFAULTS from '../../../i18n/en-defaults';
+import EN_DEFAULTS from '@/i18n/en-defaults';
 
 // t() stub that resolves through the real EN dict so the canonical copy is
 // asserted, with {param} interpolation like the real hook.

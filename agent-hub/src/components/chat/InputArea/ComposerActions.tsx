@@ -20,10 +20,10 @@
 import { ArrowUp, Loader2, Mic, ShieldAlert, ShieldCheck, Square, StopCircle } from 'lucide-react';
 import React from 'react';
 
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import TierSlider from '../../licensing/TierSlider';
-import type { ModelTierMap } from '../../../api/queries/modelTiers';
-import type { MemoryLock, MemoryMode } from '../../../utils/memoryMode';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { MemoryLock, MemoryMode } from '@/utils/memoryMode';
 import type { ShieldLine } from '../composerClaims';
 import type useDictation from '../useDictation';
 

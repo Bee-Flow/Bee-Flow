@@ -1,7 +1,7 @@
 import { TextField, TextArea, IconField, RepeatableList, LinkField, Toggle, type CmsLink } from '../fields';
 import { InlineHint, BackgroundCard, FieldSelect, SectionDivider, mintId } from '../primitives';
 import { set, SectionHeaderFields, type BlockData, type SectionHeaderData } from './shared';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 
 // ── Roadmap ───────────────────────────────────────────────────────────
 //

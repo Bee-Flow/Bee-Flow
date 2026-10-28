@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { effectiveRunScope } from './runScope';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import scopedStorage from '../../../../utils/scopedStorage';
-import type { RunQuery } from '../../../../hooks/useAutomationApi';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import scopedStorage from '@/utils/scopedStorage';
+import type { RunQuery } from '@/hooks/useAutomationApi';
 import type { NowRunningFacets } from '../Runs/nowRunning';
 import type { RunLogRow } from './runLogSentence';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // Date-range chip → hours (0 = all time).
 const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 168, '30d': 720, all: 0 };

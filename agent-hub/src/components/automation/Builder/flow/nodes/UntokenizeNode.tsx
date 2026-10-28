@@ -3,7 +3,7 @@ import { Eye } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { HumanizeExpression, StepNodeProps } from './nodeProps';
 
 /**

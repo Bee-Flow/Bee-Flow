@@ -1,11 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { authFetch } from '@/utils/helpers';
 import useVoiceSession from './useVoiceSession';
 import { installVoiceStubs, removeVoiceStubs, speakOneTurn } from './voiceTestKit';
-import { authFetch } from '../../../utils/helpers';
 
 // The hook's only network seam.
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 // Browser stubs and the VAD helpers live in voiceTestKit.ts.
 

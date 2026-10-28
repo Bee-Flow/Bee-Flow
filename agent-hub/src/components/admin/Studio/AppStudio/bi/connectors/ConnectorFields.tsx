@@ -7,10 +7,10 @@ import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { INPUT, LABEL, PARAM_TYPES, kinds } from './connectorModel';
 import type { Connector, ConnectorParam } from './connectorModel';
-import useAutomationApi from '../../../../../../hooks/useAutomationApi';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import ChoiceCards from '../../../../../shared/ChoiceCards';
-import Disclosure from '../../../../../shared/Disclosure';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useTranslation from '@/hooks/useTranslation';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import Disclosure from '@/components/shared/Disclosure';
 import AutomationPickerJs from '../../inspector/AutomationPicker';
 
 // AutomationPicker.jsx defaults `appRef` to null and `formFields` to [].

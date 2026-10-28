@@ -32,7 +32,7 @@ import { CardCarouselEditor } from './CardCarouselEditor';
 import { ScrollStoryEditor } from './ScrollStoryEditor';
 import { TourEditor } from './TourEditor';
 import { withExperiment } from './ExperimentCard';
-import { supportsExperiment } from '../../../../marketing/experiments/altPolicy';
+import { supportsExperiment } from '@/marketing/experiments/altPolicy';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //

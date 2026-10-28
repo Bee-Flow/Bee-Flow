@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../telemetry/log');
 const templateStore = require('../stores/templateStore');
 const configStore = require('../stores/configStore');
@@ -56,6 +57,7 @@ First write the description, then the separator line, then the instructions. Do 
         }
     ];
 
+    /** @type {{ choices?: { message?: { content?: string } }[], content?: unknown } | null} */
     const response = await adapter.chat(config.apiKey, apiUrl, modelId, messages, {
         maxTokens: 1000,
         temperature: 0.3,
@@ -73,7 +75,7 @@ First write the description, then the separator line, then the instructions. Do 
     raw = raw.trim();
     if (!raw) return;
 
-    log.info(`[Templates] AI response (${raw.length} chars): ${raw.slice(0, 200)}...`);
+    log.info(`[Templates] AI response (${raw.length} chars)`);
 
     // Split on the separator
     const updates = {};

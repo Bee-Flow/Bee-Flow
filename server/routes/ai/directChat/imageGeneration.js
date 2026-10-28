@@ -35,7 +35,7 @@ const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {
 
 // ─── Image Generation (Google Nano Banana 2) ──────────────────────
 
-router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageBody }), async (req, res) => {
+router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateImageBody>, import('qs').ParsedQs>} */ req, res) => {
     const { prompt, aspectRatio, conversationId } = req.body;
     const userId = sessionUser(req).id;
 

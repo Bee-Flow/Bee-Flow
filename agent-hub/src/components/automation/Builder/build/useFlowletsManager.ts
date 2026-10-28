@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import {
     countLayerRefs, createLayerInDefinition, deleteLayerAndCalls, deleteLayerFromDefinition,
     isLayerEmpty, renameLayer, setLayerDescription,
 } from '../flow/flowletScope';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 
 export interface UseFlowletsManagerOptions {

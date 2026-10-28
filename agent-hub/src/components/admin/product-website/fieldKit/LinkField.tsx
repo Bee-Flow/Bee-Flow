@@ -1,8 +1,8 @@
 import { createContext, useContext, useRef, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { FieldRow, inputClass } from './basicFields';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 
 /** A link value object, by kind. */
 export interface CmsLink {

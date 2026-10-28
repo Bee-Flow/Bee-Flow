@@ -2,10 +2,10 @@ import { useEffect, useEffectEvent } from 'react';
 import type { MutableRefObject } from 'react';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc, CmsSiteListEntry } from './cmsPanelTypes';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
-import { settled } from '../../../../api/settled';
+import { settled } from '@/api/settled';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
-import { errorMessage } from '../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 type Setter<T> = (value: T) => void;
 

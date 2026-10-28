@@ -1,7 +1,7 @@
 import { ChevronDown, LogOut, Settings, Shield, User } from 'lucide-react';
 import React from 'react';
-import { PAGE_ROUTES } from '../../../authedApp/appRoutes';
-import { API_BASE } from '../../../utils/helpers';
+import { PAGE_ROUTES } from '@/authedApp/appRoutes';
+import { API_BASE } from '@/utils/helpers';
 import NavLink from '../NavLink';
 import { ACCENT_BAR, ICON_ACTIVE, ICON_IDLE, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 

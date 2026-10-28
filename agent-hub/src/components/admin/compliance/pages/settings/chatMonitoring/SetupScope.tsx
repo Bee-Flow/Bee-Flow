@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { Field, TextInput, Toggle } from './formAtoms';
 import { LEGAL_BASES, SURFACES, isEmployeeSurface, type LegalBasis, type Surface } from './chatMonitoringForm';
 import { bandLabel, legalBasisLabel, populationLabel, surfaceHint, surfaceLabel } from './chatMonitoringLabels';

@@ -1,4 +1,4 @@
-import { lazy } from '../../../utils/lazyWithReload';
+import { lazy } from '@/utils/lazyWithReload';
 import { STUDIO_START_SECTION, isStudioStart, type StudioStartDescriptor } from './studioSections';
 
 /**

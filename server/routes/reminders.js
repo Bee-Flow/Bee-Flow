@@ -73,7 +73,7 @@ function requireSignedIn(req, res, next) {
 router.use(requireSignedIn);
 
 // GET / — list reminders
-router.get('/', validate({ query: ListQuery }), async (req, res) => {
+router.get('/', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const includeCompleted = req.query.completed === 'true' || req.query.completed === '1';
     const reminders = await _deps.reminderStore.getReminders(userId, { includeCompleted });
@@ -81,7 +81,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
 });
 
 // POST / — create reminder
-router.post('/', validate({ body: CreateBody }), async (req, res) => {
+router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { title, message, remindAt, repeatInterval } = req.body;
     const reminder = await _deps.reminderStore.createReminder({

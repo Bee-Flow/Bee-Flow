@@ -122,8 +122,8 @@ async function siteLocales() {
     try {
         const available = await languageStore.getAvailableLocales();
         extra = (available || [])
-            .map(l => String(l.code).toLowerCase())
-            .filter(code => code !== defaultLocale && LOCALE_PREFIXES.has(code));
+            .map((/** @type {{ code: unknown; }} */ l) => String(l.code).toLowerCase())
+            .filter((/** @type {string} */ code) => code !== defaultLocale && LOCALE_PREFIXES.has(code));
     } catch (err) { fallback('routes/publicRender:siteLocales', err); /* a single-locale site is a fine fallback */ }
     return { defaultLocale, locales: [defaultLocale, ...extra] };
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Loader2, Search, X } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
-import { messageOf } from '../../../utils/caughtError';
+import useTranslation from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 import { INPUT_CLASS, inputStyle } from '../../admin/Studio/AppStudio/runtime/uiBits';
 import type { AppPick, AppPickFieldProps, AppPickRow } from '../PublicFormRenderer.types';
 

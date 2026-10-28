@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnSelect } from '../TableColumnSelect';
 import type { PivotOp } from '../tableOpModel';
 import { Check, Choice, NumberInput, TextInput } from './inputs';

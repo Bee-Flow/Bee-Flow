@@ -4,7 +4,7 @@
  * exactly which settings it owns.
  */
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldFields } from '../../orgShieldDoc';
 
 type Setter<T> = (next: T) => void;

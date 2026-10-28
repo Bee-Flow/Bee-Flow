@@ -1,11 +1,11 @@
 import { SetStateAction, RefObject, Dispatch, useState as useLocalState } from 'react';
-import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
-import ModelTierSelector from '../../../licensing/ModelTierSelector';
-import { toast } from '../../../shared/Toast';
+import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
+import { toast } from '@/components/shared/Toast';
 import VersionHistory from '../../VersionHistory';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 export const IdentitySection = ({
   selectedAgent, name, setName, description, setDescription,

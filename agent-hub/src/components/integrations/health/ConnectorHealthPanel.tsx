@@ -3,9 +3,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { STATUS_META, STATUS_IDS, statusRank, orgIsBlocked } from './healthMeta';
 import type { FleetOrg } from './healthMeta';
 import OrgHealthDrawer from './OrgHealthDrawer';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { request, RefusedError } from '../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * ConnectorHealthPanel — super-admin fleet overview of every Nextcloud-connected

@@ -10,7 +10,7 @@
  *   the same rule as the sidebar and the folder filter.
  * - The rows keep the order they arrive in (the chosen sort).
  */
-import { buildFolderTree, flattenFolderTree, folderPath, type TreeFolder } from '../../../automation/folderTree';
+import { buildFolderTree, flattenFolderTree, folderPath, type TreeFolder } from '@/components/automation/folderTree';
 import { NO_FOLDER, type AutomationRecord } from './overviewModel';
 
 export interface FolderSection {

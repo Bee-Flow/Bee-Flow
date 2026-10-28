@@ -1,7 +1,7 @@
 // What the content tabs share: the props the shell hands every content tab
 // (defined once, in the workspace contract ../types.ts) and who may do what.
 
-import type { ProjectRole } from '../../../../api/queries/projects';
+import type { ProjectRole } from '@/api/queries/projects';
 
 export type {  ContentTabProps } from '../types';
 

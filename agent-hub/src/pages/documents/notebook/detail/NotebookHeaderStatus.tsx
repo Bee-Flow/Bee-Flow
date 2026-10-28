@@ -7,8 +7,8 @@
  */
 import React from 'react';
 import { Eye, FolderKanban } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { projectRoutePath } from '../../../../utils/projectRoutes';
+import useTranslation from '@/hooks/useTranslation';
+import { projectRoutePath } from '@/utils/projectRoutes';
 import type { NotebookProjectSummary } from '../notebookQueries';
 
 interface Props {

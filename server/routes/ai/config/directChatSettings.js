@@ -72,7 +72,7 @@ router.get('/config/direct-chat', requireAuth, async (req, res) => {
     res.json({ systemPrompt: prompt });
 });
 
-router.post('/config/direct-chat', requireAuth, requireAdmin, validate({ body: SystemPromptBody }), async (req, res) => {
+router.post('/config/direct-chat', requireAuth, requireAdmin, validate({ body: SystemPromptBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SystemPromptBody>, import('qs').ParsedQs>} */ req, res) => {
     await configStore.setConfig('direct_chat_system_prompt', req.body.systemPrompt);
     res.json({ success: true });
 });
@@ -84,7 +84,7 @@ router.get('/config/direct-chat-tools', requireAuth, async (req, res) => {
     res.json(tierTools);
 });
 
-router.post('/config/direct-chat-tools', requireAuth, requireAdmin, validate({ body: TierToolsBody }), async (req, res) => {
+router.post('/config/direct-chat-tools', requireAuth, requireAdmin, validate({ body: TierToolsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TierToolsBody>, import('qs').ParsedQs>} */ req, res) => {
     await configStore.setConfig('direct_chat_tier_tools', req.body);
     res.json({ success: true });
 });
@@ -96,7 +96,7 @@ router.get('/config/direct-chat-tool-params', requireAuth, requireAdmin, async (
     res.json(params);
 });
 
-router.post('/config/direct-chat-tool-params', requireAuth, requireAdmin, validate({ body: TierToolParamsBody }), async (req, res) => {
+router.post('/config/direct-chat-tool-params', requireAuth, requireAdmin, validate({ body: TierToolParamsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TierToolParamsBody>, import('qs').ParsedQs>} */ req, res) => {
     await configStore.setConfig('direct_chat_tier_tool_params', req.body);
     res.json({ success: true });
 });

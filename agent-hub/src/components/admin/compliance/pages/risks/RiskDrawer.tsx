@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
 import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId, DrawerFooter } from '../../../../shared/SideDrawer';
-import { TONES } from '../../../../shared/statusTone';
+import { useTranslation } from '@/hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerId, DrawerFooter } from '@/components/shared/SideDrawer';
+import { TONES } from '@/components/shared/statusTone';
 import { useDateFormat } from '../../shared/formatDates';
 import { CATEGORIES, OPTIONS, SCALE, RISK_STATUSES, ScorePill, RiskStatusPill, riskRef, ownerName } from './RisksTable';
 import type { Member, RiskDraft, RiskPatch, TreatmentDraft } from './riskDraft';

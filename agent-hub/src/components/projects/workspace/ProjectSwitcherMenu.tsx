@@ -3,9 +3,9 @@
 // instead of a trip through the list.
 import { Bell, BellOff, ChevronDown, FolderOpen } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
-import { useSetProjectMute } from '../../../api/queries/notificationPrefs';
-import type { Project } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useSetProjectMute } from '@/api/queries/notificationPrefs';
+import type { Project } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import toast from '../../shared/Toast';
 import { AnchoredMenu } from './tasks/sprintUi';
 import { projectIcon, projectTileStyle } from './projectVisuals';

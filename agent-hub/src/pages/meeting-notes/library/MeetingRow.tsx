@@ -1,10 +1,10 @@
 import React from 'react';
 import { AudioLines, Loader2, Share2, TriangleAlert } from 'lucide-react';
-import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
-import useTranslation from '../../../hooks/useTranslation';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration, formatRelativeDate } from '../lib/format';
 import { getSourceMeta } from '../lib/sourceMeta';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * One row of the library rail (Meeting Notes artboard 1a, lines 33-37):

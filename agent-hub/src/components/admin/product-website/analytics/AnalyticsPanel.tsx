@@ -31,9 +31,9 @@ import SourcesSection from './sections/SourcesSection';
 import { AnalyticsStyles } from './ui';
 import { ErrorNote } from './AsyncCard';
 import { ACCENT } from './BarList';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useUrlQueryParam } from '../../../../hooks/useUrlTab';
-import RangeControl, { defaultRange, UsageRange } from '../../../../pages/settings/usage/RangeControl';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useUrlQueryParam } from '@/hooks/useUrlTab';
+import RangeControl, { defaultRange, UsageRange } from '@/pages/settings/usage/RangeControl';
 
 const TZ = (() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }

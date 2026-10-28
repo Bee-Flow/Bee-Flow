@@ -5,12 +5,12 @@ import { ConnectStep, ResultStep, type InstallChoices, type InstallPayload, type
 import { ContentsStep } from './ContentsStep';
 import { AccessStep } from './AccessStep';
 import useRemote, { readJson } from './useRemote';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { Catalog } from '../../../automation/Builder/mapping/upstream/upstream.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { Catalog } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
-import Modal from '../../../shared/Modal';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import Modal from '@/components/shared/Modal';
 
 /**
  * Installing a Blueprint, as three questions instead of one button.

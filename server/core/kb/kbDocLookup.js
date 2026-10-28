@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 const kbStore = require('../../stores/knowledgeBases');
 
 function docColumns() {

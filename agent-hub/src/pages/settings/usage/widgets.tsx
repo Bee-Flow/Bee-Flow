@@ -4,7 +4,7 @@
 
 import { Bot, MessageSquare, BookOpen, Search, LayoutTemplate, Code, Globe, Cpu, type LucideIcon } from 'lucide-react';
 import { shortModel } from './format';
-import { getIntegrationIcon, hasIntegrationIcon } from '../../../config/integrationIcons';
+import { getIntegrationIcon, hasIntegrationIcon } from '@/config/integrationIcons';
 
 // ── Source map ───────────────────────────────────────────────────────────────
 const SOURCE_MAP: Record<string, { label: string; icon: LucideIcon; color: string }> = {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Capability-registry remote-beta shadowing guard.
  *

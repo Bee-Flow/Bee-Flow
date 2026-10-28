@@ -13,14 +13,14 @@ import { screen, fireEvent, cleanup, waitFor, within, act } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: false, json: async () => ({}), text: async () => '' })),
     parseSaveError: vi.fn(async () => ({ message: 'save failed' })),
 }));
 // The links between this agent and automations come from a react-query hook; this
 // file renders without a provider, and ToolsCard.test.jsx covers what the rows say.
-vi.mock('../../../api/queries/automation/agentBindings', () => ({
+vi.mock('@/api/queries/automation/agentBindings', () => ({
     useLinkedAutomationIds: () => ({ data: undefined }),
 }));
 // Keep the smoke test light: the markdown pipeline is irrelevant here.
@@ -34,11 +34,11 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
  * reads ("42 documents"). Same rule as the real t(): a string as the second argument is the fallback,
  * otherwise they are the params.
  */
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { renderWithClient as render } from '@/test/render';
 import BuilderSplit from './BuilderSplit';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock, stub } from '@/test/mocks';
 
 // The default mock answers everywhere with ok:false. A test that needs a successful reading sets

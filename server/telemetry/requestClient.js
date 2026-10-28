@@ -46,7 +46,10 @@ const UNKNOWN = 'unknown';
 
 const store = new AsyncLocalStorage();
 
-/** Narrow a header value to the enum. */
+/**
+ * Narrow a header value to the enum.
+ * @param {string | string[]} value
+ */
 function normalizeClient(value) {
     if (typeof value !== 'string') return UNKNOWN;
     const trimmed = value.trim().toLowerCase();

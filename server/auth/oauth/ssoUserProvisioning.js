@@ -63,7 +63,7 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
     if (!pendingSignup) {
         const gate = await checkWebSignupAllowed(req);
         if (!gate.ok) {
-            log.info(`[OAuth/${provider}] Signup blocked (${gate.code}) for ${user.email || 'unknown'}`);
+            log.info(`[OAuth/${provider}] Signup blocked (${gate.code}) for ${log.textForLog(user.email)}`);
             const reason = gate.code === 'CONNECTOR_ONLY' ? 'signup_connector_only' : 'signup_geo_blocked';
             return { error: reason };
         }
@@ -168,7 +168,7 @@ async function createSsoUser({ provider, user, localId, placement }) {
                 createOk = true;
             } else {
                 if (existing) {
-                    log.error(`[OAuth/${provider}] sso_id_collision — id=${localId} email=${log.textForLog(user.email)} collides with existing email=${existing.email || 'unknown'}; aborting login`);
+                    log.error(`[OAuth/${provider}] sso_id_collision — id=${localId} email=${log.textForLog(user.email)} collides with an existing account whose email=${log.textForLog(existing.email)}; aborting login`);
                 } else {
                     log.error('[OAuth] auto-provision failed:', r.reason, r.error || '');
                 }

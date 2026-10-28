@@ -8,8 +8,8 @@
 
 import { BellOff, CheckCheck, ChevronDown, RotateCcw, ShieldQuestion } from 'lucide-react';
 import React, { useId, useRef, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../../shared/AnchoredMenu';
+import useTranslation from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 
 const AnchoredMenu = AnchoredMenuJs;
 

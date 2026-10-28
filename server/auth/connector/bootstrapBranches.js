@@ -384,7 +384,7 @@ async function createFreshOrg(ctx) {
         });
     }
     const org = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-    log.info(`[ConnectorBootstrap] fresh_org org=${orgId} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl} adminEmail=${ncAdminEmail}`);
+    log.info(`[ConnectorBootstrap] fresh_org org=${orgId} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl} adminEmail=${log.textForLog(ncAdminEmail)}`);
     orgHealth.event('bootstrap.org_created', {
         orgId: org.id, actorKind: 'connector', req, meta: { ncInstanceId, ncBaseUrl },
     });

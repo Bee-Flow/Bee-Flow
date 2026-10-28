@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2, Tag, X } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface TagRowProps {
     tags?: string[];

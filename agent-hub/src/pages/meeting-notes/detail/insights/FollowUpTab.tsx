@@ -1,7 +1,7 @@
 import { formatDuration } from '../../lib/format';
 import { EmptyState, FLAG_AMBER, MetricRow, TabHeading } from './primitives';
 import type { InsightsModel, SeekFn } from './insights.types';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * What the meeting actually produced, and how much of it is real work someone

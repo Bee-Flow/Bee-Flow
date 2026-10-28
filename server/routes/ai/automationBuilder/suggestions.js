@@ -243,7 +243,7 @@ function createSuggestionsRouter(deps = null) {
      * suggestion {suggestion}; ideas: scan_step; then done {suggestions,
      * summary, reason?, cached, scannedAt, mode} or error {error}.
      */
-    router.post('/suggest', d.requireAuth, d.suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (req, res) => {
+    router.post('/suggest', d.requireAuth, d.suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SuggestBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = req.session.user.id;
         const orgId = req.session?.user?.organizationId || null;
         const mode = req.body.mode || 'patterns';
@@ -352,7 +352,7 @@ function createSuggestionsRouter(deps = null) {
      * is none, the beta is off, or the store is unavailable: the page then
      * simply starts empty.
      */
-    router.get('/suggest/last', d.requireAuth, validate({ query: LastQuery }), async (req, res) => {
+    router.get('/suggest/last', d.requireAuth, validate({ query: LastQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof LastQuery>>} */ req, res) => {
         const userId = req.session.user.id;
         const mode = req.query.mode || 'patterns';
         let last = null;

@@ -15,7 +15,7 @@ import { BlockData, set } from './shared';
 import VariantPicker from './VariantPicker';
 import { BackgroundVideoCard, TourCard, MediaMotionSelect } from './MotionFields';
 import type { BackgroundVideoValue, TourValue } from './MotionFields';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 
 // ── Hero ──────────────────────────────────────────────────────────────
 

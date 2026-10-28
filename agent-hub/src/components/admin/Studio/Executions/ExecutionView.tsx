@@ -3,14 +3,14 @@ import ExecutionBar, { type ExecutionRun } from './ExecutionBar';
 import RunProblemBanner from './RunProblemBanner';
 import RunStepTimeline from './RunStepTimeline';
 import useRunStream from './useRunStream';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import ApprovalActionBar from '../../../automation/Builder/approvals/ApprovalActionBar';
-import RunExecutionView from '../../../automation/Builder/RunExecutionView';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import ApprovalActionBar from '@/components/automation/Builder/approvals/ApprovalActionBar';
+import RunExecutionView from '@/components/automation/Builder/RunExecutionView';
 import type { ApprovalField } from '../Approvals/ApprovalDecisionControls';
-import type { DiagramDefinition, DiagramStep } from '../../../automation/Builder/flow/diagramPaneTypes';
+import type { DiagramDefinition, DiagramStep } from '@/components/automation/Builder/flow/diagramPaneTypes';
 import type { ErrorInfoLike } from './runLogSentence';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** The definition snapshot the run ran: its triggers, and the steps whose approval asks questions. */
 interface RunDefinition extends DiagramDefinition {

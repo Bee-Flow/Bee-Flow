@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { AGENT_TAB_IDS } from './AgentEditorHeader';
 import type { ChatMessage } from '../agentEditor.types';
-import type { LimitWarning } from '../../../../api/agentSaveTypes';
+import type { LimitWarning } from '@/api/agentSaveTypes';
 import type { EditorAgent, EditorPlan } from './editorTypes';
 import type { ScheduleDeleteTarget } from './ScheduleDeleteModal';
 import type { Schedule } from './useAgentSchedules';
-import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The JSON array a column may hold as an array or as a JSON string. */
 function jsonListOf(raw: unknown): string[] {

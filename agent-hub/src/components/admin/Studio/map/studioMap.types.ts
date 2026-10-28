@@ -1,8 +1,8 @@
 import type { studioAppForKind } from '../studioNav';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
 import type { Translate } from '../studioGates';
-import type { StudioCounts } from '../../../../hooks/useStudioCounts';
+import type { StudioCounts } from '@/hooks/useStudioCounts';
 
 type StudioApp = NonNullable<ReturnType<typeof studioAppForKind>>;
 

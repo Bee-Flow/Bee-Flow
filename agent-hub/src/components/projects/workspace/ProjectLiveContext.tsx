@@ -1,4 +1,4 @@
-import { discoveryKeys } from '../../../api/queries/projectDiscovery';
+import { discoveryKeys } from '@/api/queries/projectDiscovery';
 // One live connection per open project, shared by every panel on the page.
 //
 // The project workspace shows several lists that other people change while you
@@ -10,11 +10,11 @@ import { discoveryKeys } from '../../../api/queries/projectDiscovery';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '../../../hooks/useProjectStream';
-import { apiClient } from '../../../api/client';
-import { changeKeys } from '../../../api/queries/projectChanges';
-import { projectKeys } from '../../../api/queries/projects';
-import { logger } from '../../../utils/logger';
+import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '@/hooks/useProjectStream';
+import { apiClient } from '@/api/client';
+import { changeKeys } from '@/api/queries/projectChanges';
+import { projectKeys } from '@/api/queries/projects';
+import { logger } from '@/utils/logger';
 
 export type ProjectLiveHandler = (kind: string, event: ProjectLiveEvent) => void;
 
@@ -209,7 +209,7 @@ function usePresenceHeartbeat(projectId: string | null | undefined, enabled: boo
     useEffect(() => {
         if (!enabled || !projectId) return undefined;
         const beat = () => {
-            apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, target.current ? { target: target.current } : {}, { retry: false }).catch(() => {});
+            apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, target.current ? { target: target.current } : {}).catch(() => {});
         };
         // A hidden tab is not "here": it must not beat when the open item changes either.
         beatNow.current = () => { if (!document.hidden) beat(); };
@@ -351,7 +351,7 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         const now = Date.now();
         if (now - lastTypingSent.current < TYPING_THROTTLE_MS) return;
         lastTypingSent.current = now;
-        apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/typing`, { conversationId }, { retry: false }).catch(() => {});
+        apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/typing`, { conversationId }).catch(() => {});
     }, [projectId]);
 
     const value = useMemo<ProjectLiveValue>(

@@ -1,9 +1,9 @@
 import React from 'react';
-import Slider from '../../../../shared/Slider';
+import Slider from '@/components/shared/Slider';
 import RadiusChip from '../../shared/RadiusChip';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function RadiusSection({ form, setForm, saving }: LookSectionProps) {
     const { t } = useTranslation();

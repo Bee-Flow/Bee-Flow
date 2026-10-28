@@ -14,9 +14,9 @@ import { Info, X } from 'lucide-react';
 import React from 'react';
 import {
     useDecideProjectComplianceHint, useProjectComplianceHint, type HintDecision,
-} from '../../../api/queries/projectComplianceHints';
-import type { ProjectRole } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projectComplianceHints';
+import type { ProjectRole } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 
 const FALLBACK: Record<string, string> = {
     project_foreign_members: 'Members from outside your organisation ({count})',

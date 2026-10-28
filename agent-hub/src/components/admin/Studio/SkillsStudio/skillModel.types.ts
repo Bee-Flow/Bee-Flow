@@ -1,4 +1,4 @@
-import type { SchemaProp } from '../../../automation/Builder/mapping/toolInput/toolInputHelpers';
+import type { SchemaProp } from '@/components/automation/Builder/mapping/toolInput/toolInputHelpers';
 
 /** One field of an output schema; `x-unit` is the unit a field is measured in. */
 export type OutputSchemaProp = SchemaProp & { 'x-unit'?: string };

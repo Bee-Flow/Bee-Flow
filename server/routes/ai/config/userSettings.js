@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * AI Config — per-user settings: integration credentials (Fireflies,
  * YouTrack, AFAS, NMBRS, vPlan, …), app enablement, EU-mode flags, Simple
@@ -101,7 +102,6 @@ const AFAS_NUMBER_TEXT = 'AFAS member number must be digits only.';
 const AFAS_TOKEN_TEXT = 'AFAS token is not a valid AppConnector token. Paste the token XML or its hex data.';
 const YOUTRACK_URL_TEXT = 'The YouTrack URL is the address of your YouTrack, like https://yourcompany.youtrack.cloud.';
 const APPS_TEXT = 'enabledApps is a list of app ids, or null for all apps.';
-
 const UserSettingsBody = z.object({
     firefliesApiKey: credential('The Fireflies API key'),
     gammaApiKey: credential('The Gamma API key'),
@@ -364,7 +364,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
 
     // The last refusal, and it too runs before anything is written: the
     // Learning Center blob is size-checked by its own sanitizer.
-    /** @type {{ map: ProgressMap | null; dropped: string[]; error: string | null; }} */
+    /** @type {ReturnType<typeof sanitizeLearningProgress> | null} */
     let learning = null;
     if (learningProgressReset !== true && learningProgress) {
         learning = sanitizeLearningProgress(learningProgress);

@@ -1,4 +1,4 @@
-import type { OnFocusField } from '../../../mapping/focusField.types';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 
 /** A question as the editor holds it: only the keys the editors read are named, the rest passes through. */
 export interface EditorField {

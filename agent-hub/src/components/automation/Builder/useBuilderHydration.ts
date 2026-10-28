@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { FlowDefinition } from './flow/types';
 import type { RowAnswer } from './unwrapRow';
-import type { BuilderSnapshot } from '../../../hooks/builderStream';
-import type { AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
-import { fetchBuilderSessionSnapshot } from '../../../api/queries/automationBuilderReads';
-import { logger } from '../../../utils/logger';
+import type { BuilderSnapshot } from '@/hooks/builderStream';
+import type { AutomationBuilderState } from '@/hooks/useAutomationBuilderStream';
+import { fetchBuilderSessionSnapshot } from '@/api/queries/automationBuilderReads';
+import { logger } from '@/utils/logger';
 
 /**
  * The persisted row behind the builder — an automation, or a reusable Step.
@@ -80,11 +80,12 @@ export default function useBuilderHydration({
     // One-shot snapshot rehydration. On mount with an existing automation
     // id, fetch the latest builder-session snapshot and hydrate so the
     // chat panel + draft + summary survive a refresh or SSE drop.
+    // Steps have no AI-chat builder session to rehydrate (v1 visual build):
+    // they count as hydrated at once (during render, no extra pass).
+    if (isStep && (state.automationId || automationId) && !hasHydrated) setHasHydrated(true);
     useEffect(() => {
         const aid = state.automationId || automationId;
-        if (!aid || hasHydrated) return;
-        // Steps have no AI-chat builder session to rehydrate (v1 visual build).
-        if (isStep) { setHasHydrated(true); return; }
+        if (!aid || hasHydrated || isStep) return;
         let alive = true;
         (async () => {
             try {
@@ -95,7 +96,7 @@ export default function useBuilderHydration({
             if (alive) setHasHydrated(true);
         })();
         return () => { alive = false; };
-    }, [state.automationId, automationId, hasHydrated, hydrate]);
+    }, [state.automationId, automationId, hasHydrated, hydrate, isStep]);
 
     // Run data lives only in memory; the snapshot deliberately excludes it
     // (step outputs can be 256 KB each and the server already stores them).

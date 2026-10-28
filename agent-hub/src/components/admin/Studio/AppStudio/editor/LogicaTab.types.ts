@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { SavePayload, SaveNotice } from './saveNotices';
 

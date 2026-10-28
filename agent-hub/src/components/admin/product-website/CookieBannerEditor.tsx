@@ -1,9 +1,9 @@
 import React from 'react';
 import { Toggle, TextField, FieldRow } from './fields';
 import { CollapsibleCard, SegmentedControl } from './primitives';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { COOKIE_BANNER_LAYOUTS } from './blockEditors/blockData.generated.mjs';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { BlockEditorProps } from './blockEditors/editorProps';
 
 /**

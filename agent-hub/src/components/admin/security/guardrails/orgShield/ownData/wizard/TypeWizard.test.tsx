@@ -2,10 +2,10 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import { renderableTab } from '../testKit';
-import { authFetch } from '../../../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 
 /**
  * The whole wizard, against a fake test-bench server: describe a fixed

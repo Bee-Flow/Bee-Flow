@@ -34,7 +34,7 @@ import MobileRailList from './mobile/MobileRailList';
 import { formatClock } from './railMeta';
 import { sectionById, type Section } from './sections';
 import { formatDay } from './shared/formatDates';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import SegmentedControl from '../../shared/SegmentedControl';
 
 export const MOBILE_VIEWS = Object.freeze(['overview', 'frameworks', 'registers']);

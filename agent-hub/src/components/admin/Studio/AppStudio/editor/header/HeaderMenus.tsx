@@ -8,9 +8,9 @@ import { ChevronDown, Command, Eye, History, MoreHorizontal } from 'lucide-react
 import type { LucideIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { DefinitionRole } from './useCommandActions';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { isMac, modKeyLabel } from '../../../../../../utils/platform';
-import AnchoredMenu from '../../../../../shared/AnchoredMenu';
+import useTranslation from '@/hooks/useTranslation';
+import { isMac, modKeyLabel } from '@/utils/platform';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
 
 interface MoreMenuItemProps {
     icon: LucideIcon;

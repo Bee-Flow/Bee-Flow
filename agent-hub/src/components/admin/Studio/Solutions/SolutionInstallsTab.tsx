@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { readInstalls } from './releaseModel';
 import type { InstallsBody } from './releaseModel';
 import { Strip } from './solutionNotices';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**

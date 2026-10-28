@@ -1,4 +1,4 @@
-import { walkRelativePath as walkRelativePathJs } from '../../../../utils/bindingHelpers.helpers';
+import { walkRelativePath as walkRelativePathJs } from '@/utils/bindingHelpers.helpers';
 
 /**
  * Small, pure helpers the output views share: shape tests, scalar text,

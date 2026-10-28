@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Check, Hourglass, Loader2, Minus, RotateCcw, SearchX, Workflow, X } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunRowData, RunStepRecord } from '@/api/queries/automation/runs';
 import { buildRunStepLabelMap, runStepLabel } from '../flow/displayHelpers';
 import { clockTime, formatSeconds, howStartedText } from './runOutcome';
 import { latestSteps, stepDuration, stepResult } from './runIo';

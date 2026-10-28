@@ -4,10 +4,10 @@
 
 import { BookOpen, FileText, Layers3, MessageSquare, MessageSquareReply, Mic } from 'lucide-react';
 import { useMemo } from 'react';
-import { useProjectChatsQuery } from '../../../../api/queries/projectChats';
-import { linkKey, type TaskLink } from '../../../../api/queries/projectTasks';
-import { useProjectResourcesQuery } from '../../../../api/queries/projects';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useProjectChatsQuery } from '@/api/queries/projectChats';
+import { linkKey, type TaskLink } from '@/api/queries/projectTasks';
+import { useProjectResourcesQuery } from '@/api/queries/projects';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const LINK_ICON = { document: FileText, notebook: BookOpen, meeting: Mic, chat: MessageSquare, thread: MessageSquareReply, task: Layers3 } as const;
 

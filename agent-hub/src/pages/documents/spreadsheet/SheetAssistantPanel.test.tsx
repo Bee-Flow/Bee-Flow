@@ -2,8 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
-import scopedStorage from '../../../utils/scopedStorage';
+import { withQueryClient } from '@/test/queryWrapper';
+import scopedStorage from '@/utils/scopedStorage';
 import type { StudioDocument } from '../documentQueries';
 import SpreadsheetEditor from './SpreadsheetEditor';
 import { SAVE_DEBOUNCE_MS } from './useSheet';
@@ -13,11 +13,11 @@ const { sheetApi, assistantApi, tiers } = vi.hoisted(() => ({
     assistantApi: { askSheetAssistant: vi.fn() },
     tiers: { data: { fast: { modelId: 'm1' }, thinking: { modelId: 'm2' }, deep_thinking: { modelId: 'm3' } } as Record<string, unknown> },
 }));
-vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
+vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), ...sheetApi }));
 vi.mock('./sheetAssistantApi', () => assistantApi);
 vi.mock('../documentsApi', () => ({ getDocument: vi.fn(), updateDocument: vi.fn() }));
-vi.mock('../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: tiers.data }) }));
-vi.mock('../../../components/renderers/MarkdownRenderer', () => ({
+vi.mock('@/api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: tiers.data }) }));
+vi.mock('@/components/renderers/MarkdownRenderer', () => ({
     default: ({ content }: { content: string }) => <div data-testid="markdown">{content}</div>,
 }));
 

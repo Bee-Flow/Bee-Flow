@@ -138,7 +138,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         delete req.session.linkedinRedirectUri;
         req.session.save?.();
 
-        log.info(`[LinkedIn] Connected for user ${userId} (${name})`);
+        log.info(`[LinkedIn] Connected for user ${userId}`);
         res.send(callbackHTML(`Connected as ${name}!`, true));
     } catch (err) {
         log.error('[LinkedIn] Token exchange error:', err.message);
@@ -162,7 +162,7 @@ const PostBody = z.object({
 
 
 // ─── Post to LinkedIn ────────────────────────────────────────────
-router.post('/post', requireSessionUser, validate({ body: PostBody }), async (req, res) => {
+router.post('/post', requireSessionUser, validate({ body: PostBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PostBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
 
     const accessToken = await configStore.getSecret(`linkedin_access_token_user_${userId}`);

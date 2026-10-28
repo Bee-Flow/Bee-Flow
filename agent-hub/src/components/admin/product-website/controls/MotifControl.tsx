@@ -1,7 +1,7 @@
 import { FieldRow, Toggle } from '../fields';
 import { SegmentedControl } from '../primitives';
 import type { SegmentedOption } from '../primitives.types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The motif keys of block.style (a missing key = no motif). */
 interface BlockMotif {

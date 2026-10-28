@@ -16,7 +16,7 @@
  */
 
 import type { AppDefinition } from '../inspector/appDefinition';
-import { orderAdded, revealSchedule } from '../../../../shared/builder/revealSchedule';
+import { orderAdded, revealSchedule } from '@/components/shared/builder/revealSchedule';
 
 interface RevealInputs {
     diff?: { addedIds?: Set<string> } | null;

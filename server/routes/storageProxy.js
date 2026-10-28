@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Storage Proxy — Auth-protected file streaming from RustFS
  *
@@ -37,13 +38,13 @@ const storageStore = require('../stores/storageStore');
 const { hasTraversal, verifyTempSignature } = require('../utils/tempDownloadUrl');
 
 // GET /api/storage/tmp/:token — unauthenticated, HMAC-verified temp download
-router.get('/tmp/:token', async (req, res) => {
+router.get('/tmp/:token', async (/** @type {import('express').Request<{ token: string }, any, any, { key?: string, expires?: string }>} */ req, res) => {
     try {
         const { token } = req.params;
         const key = req.query.key;
         const expires = parseInt(req.query.expires, 10);
 
-        log.info(`[StorageProxy] Temp download request: key=${key}, UA=${req.get('User-Agent')?.substring(0, 80)}, IP=${req.ip}`);
+        log.info(`[StorageProxy] Temp download request: key=${key}`);
 
         const verdict = verifyTempSignature(key, expires, token);
         if (verdict === 'missing') {

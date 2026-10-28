@@ -1,5 +1,5 @@
 import type { SupportUser } from './supportStudio.types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One ticket, as the list and the open conversation read it. */
 export interface SupportThread {

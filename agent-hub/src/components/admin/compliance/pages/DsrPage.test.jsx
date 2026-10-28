@@ -2,9 +2,9 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DAY_MS } from '@/components/shared/deadlineMath';
 import { capturePayload, validateCapture } from './dsr/DsrCaptureModal';
 import DsrPage, { dsrHeaderSpec } from './DsrPage';
-import { DAY_MS } from '../../../shared/deadlineMath';
 
 /**
  * The register page against the hub's props object. Pinned here:
@@ -15,13 +15,13 @@ import { DAY_MS } from '../../../shared/deadlineMath';
  *     the modal validates before it posts an allow-listed body.
  */
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('../../../shared/Toast', () => ({ toast }));
+vi.mock('@/components/shared/Toast', () => ({ toast }));
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const real = await importOriginal();
     return { ...real, fetchJson: (...a) => fetchJson(...a) };
 });

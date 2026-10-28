@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo } from 'react';
 import { BookOpen, Check, Copy, Gavel, ListChecks, Loader2, Table, type LucideIcon } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import useTranslation from '../../../hooks/useTranslation';
-import useCopyToClipboard from '../../../hooks/useCopyToClipboard';
-import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
-import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import useTranslation from '@/hooks/useTranslation';
+import useCopyToClipboard from '@/hooks/useCopyToClipboard';
+import { datatablesApi } from '@/components/admin/Studio/Datatables/datatablesApi';
+import knowledgeApi from '@/components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { buildRowValues, type DatatableField } from '../lib/actionDestinations';
 import {
     anchorOf,

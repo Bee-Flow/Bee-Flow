@@ -1,3 +1,4 @@
+// @typecheck
 const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 const configStore = require('../stores/configStore');
 const cmsStore = require('../stores/cmsStore');

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import Disclosure from '../../../shared/Disclosure';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import Disclosure from '@/components/shared/Disclosure';
 import { sectionById, type Section } from '../sections';
 import { splitByToday } from '../shared/calendarMath';
 import RegulatoryCalendar from '../shared/RegulatoryCalendar';

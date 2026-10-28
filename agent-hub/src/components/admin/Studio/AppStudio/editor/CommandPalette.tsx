@@ -1,7 +1,7 @@
 import { Command, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import type { CommandAction } from './header/useCommandActions';
 
 interface CommandPaletteProps {

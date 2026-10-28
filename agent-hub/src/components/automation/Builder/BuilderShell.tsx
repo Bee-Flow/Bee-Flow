@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { buildHeaderProps, secondaryTriggerOptions } from './builderHeaderState';
 import { makeBuilderSend } from './builderSend';
 import BuilderShellView from './BuilderShellView';
@@ -22,10 +22,10 @@ import useManagedPart from './useManagedPart';
 import useNdvState from './useNdvState';
 import usePatternOrigin from './usePatternOrigin';
 import VersionsTab from './versions/VersionsTab';
-import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
-import useAutomationApi from '../../../hooks/useAutomationApi';
-import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
-import useTranslation from '../../../hooks/useTranslation';
+import { useOrgGroupsQuery } from '@/api/queries/orgGroups';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
+import useTranslation from '@/hooks/useTranslation';
 import useConfirm from '../../shared/useConfirm';
 import type { FlowDefinition, FlowStep } from './flow/types';
 import { type CanAutoSendArgs, type BuilderShellProps } from './BuilderShell.types';
@@ -95,7 +95,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const { workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge } = useWorkModePrefs({
         automationId, streamAutomationId: state.automationId, startInBuild: !!(autoSendInput || forcedTier),
     });
-    const { assistantContext, setAssistantContext, askAssistant, stepByIdForAssistant } = useAssistantAsk({
+    const { assistantContext, setAssistantContext, askAssistant, stepByIdForAssistant: stepByIdForAssistantRef } = useAssistantAsk({
         readOnlyRef, ndvStepId, setTab, setAssistantOpen, setChatInput, t,
     });
 
@@ -152,7 +152,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const stepById = useCallback((id: string | null | undefined) => allSteps.find(s => s.id === id) || null, [allSteps]);
     const runStepById = useCallback((id: string) => (state.steps || []).find(s => s.stepId === id && !s.parentStepId) || null, [state.steps]);
 
-    stepByIdForAssistant.current = stepById;
+    useLayoutEffect(() => { stepByIdForAssistantRef.current = stepById; });
 
     const turnBaseRef = useRef(null);
 

@@ -2,9 +2,9 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DAY_MS } from '@/components/shared/deadlineMath';
 import DsrDrawer, { discoveryChips, readDiscovery } from './DsrDrawer';
 import { actorName, fallbackTimeline, normaliseTimelineRow } from './dsrTimeline';
-import { DAY_MS } from '../../../../shared/deadlineMath';
 
 /**
  * Artboard 1c's drawer: the actions post the right bodies, the address stays
@@ -12,7 +12,7 @@ import { DAY_MS } from '../../../../shared/deadlineMath';
  * (timeline / found in Bee Flow) degrade when the routes are not there.
  */
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const NOW = new Date('2026-09-14T09:12:00Z').getTime();
 const iso = (ms) => new Date(ms).toISOString();

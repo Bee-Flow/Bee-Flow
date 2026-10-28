@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — live "tool draft" scanner.
  *
@@ -60,7 +61,7 @@ function stepFrom(primary, nested, typeOverride) {
 
 /**
  * Loop bodies: raw engine step objects (`{type, tool?, label?}`), flattened after their loop.
- * @param {{ capped: boolean; }} [hit]
+ * @param {{ capped?: boolean }} [hit]
  */
 function bodySteps(primary, nested, out, hit = {}) {
     const arr = childArray(primary, 'body') || (nested && childArray(nested, 'body'));
@@ -85,7 +86,7 @@ function inferredType(name) {
 /**
  * @param {string} name        tool name, e.g. builder_add_steps
  * @param {string} partialJson the arguments JSON streamed so far (any prefix)
- * @returns {{ steps: Array<{type:string|null, tool:string|null, label:string|null, partial:boolean}>, count: number, inspect: string[] }}
+ * @returns {{ steps: Array<{type:string|null, tool:string|null, label:string|null, partial:boolean}>, count: number, capped: boolean, inspect: string[] }}
  */
 function scanToolDraft(name, partialJson) {
     try {

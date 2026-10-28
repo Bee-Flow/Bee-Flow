@@ -1,8 +1,8 @@
 import { Search } from 'lucide-react';
 import { useId, useState } from 'react';
 
-import useDebouncedCallback from '../../../hooks/useDebouncedCallback';
-import { useTranslation } from '../../../hooks/useTranslation';
+import useDebouncedCallback from '@/hooks/useDebouncedCallback';
+import { useTranslation } from '@/hooks/useTranslation';
 import FilterPillsJs from '../../shared/FilterPills';
 import SegmentedControl from '../../shared/SegmentedControl';
 import {

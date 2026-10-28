@@ -17,7 +17,7 @@ import UserModal from './userManagement/UserModal';
 import useRoleActions from './userManagement/useRoleActions';
 import useUserActions from './userManagement/useUserActions';
 import useUserManagementData from './userManagement/useUserManagementData';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 

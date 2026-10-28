@@ -3,8 +3,8 @@
 // queued behind it, a failed patch kept for the chip's retry, and a queued
 // patch flushed on unmount (close within the autosave debounce).
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useSavingState from '../../../../hooks/useSavingState';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useSavingState from '@/hooks/useSavingState';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { normalizeDefinitionShape } from '../flow/normalizeDefinition';
 import { mergeStepPatchIntoDefinition } from '../flow/switchCaseOps';
 import type { FlowStep } from '../flow/types';

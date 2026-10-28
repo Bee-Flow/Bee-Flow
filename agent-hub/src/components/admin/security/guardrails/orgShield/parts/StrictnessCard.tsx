@@ -1,10 +1,10 @@
 import { Gauge } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import {
     AdvancedThresholdSlider, PII_SENSITIVITY_PRESETS, presetFor,
-} from '../../../../../privacy/PiiSensitivityPicker';
+} from '@/components/privacy/PiiSensitivityPicker';
 import ThresholdWarning from './ThresholdWarning';
 
 /**

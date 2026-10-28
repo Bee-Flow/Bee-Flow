@@ -1,6 +1,6 @@
 import ColorRolesControls from './ColorRolesControls';
 import IconTileControls from './IconTileControls';
-import type { DesignColors, DesignComponents } from '../../../../marketing/ProductWebsite.types';
+import type { DesignColors, DesignComponents } from '@/marketing/ProductWebsite.types';
 
 /** The Design tab's colour roles, label style and icon tiles, in one block. */
 export default function DesignRoleControls({ colors, components, onColor, onComponent }: {

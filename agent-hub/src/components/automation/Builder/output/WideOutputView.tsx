@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import {
     PAGE_SIZE, crumbsOf, drill, jumpTo, levelPattern, openStack, pageView, patchTop, resolveLevels, returnOf, rootStack, up,
     type Level, type PageView, type Return,
@@ -122,12 +122,12 @@ function tryFocus(target: HTMLElement): boolean {
  * level must never leave focus on <body>, where the step drawer's own
  * document-level Esc would close everything.
  */
-function useDialogFocus(ref: RefObject<HTMLDivElement | null>, intent: RefObject<FocusIntent | null>) {
+function useDialogFocus(ref: RefObject<HTMLDivElement | null>, intentRef: RefObject<FocusIntent | null>) {
     useLayoutEffect(() => {
         const el = ref.current;
         if (!el) return;
-        const want = intent.current;
-        intent.current = null;
+        const want = intentRef.current;
+        intentRef.current = null;
         const placed = want ? focusTargets(el, want).some(target => tryFocus(target)) : false;
         if (!placed && !el.contains(document.activeElement)) el.focus();
     });

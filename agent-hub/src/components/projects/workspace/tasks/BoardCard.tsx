@@ -6,9 +6,9 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { ArrowUpRight, GripVertical, MoreHorizontal } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { BoardColumn } from '../../../../api/queries/projectBoard';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { BoardColumn } from '@/api/queries/projectBoard';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import DeleteTaskButton from './DeleteTaskButton';
 import { LabelChip, PriorityIcon, TypeChip } from './TaskFields';
@@ -87,20 +87,20 @@ export default function BoardCard({ task, canEdit, people, columns, columnId, on
     onOpen: () => void; onMove: (columnId: string) => void; onDelete?: (task: ProjectTask) => void;
 }) {
     const { t } = useTranslation();
-    const drag = useDraggable({ id: task.id, disabled: !canEdit });
-    const drop = useDroppable({ id: `card:${task.id}` });
+    const { setNodeRef: setDragNode, setActivatorNodeRef, attributes, listeners, isDragging } = useDraggable({ id: task.id, disabled: !canEdit });
+    const { setNodeRef: setDropNode, isOver } = useDroppable({ id: `card:${task.id}` });
     const done = task.status === 'done';
     const facts = !!(task.dueDate || checklistProgress(task.checklist) || task.links.length || storyPoints(task) || task.assigneeIds.length);
     const startDrag = (e: React.MouseEvent | React.TouchEvent, kind: 'onMouseDown' | 'onTouchStart') => {
-        if (!(e.target as HTMLElement).closest(NO_DRAG)) (drag.listeners?.[kind] as ((ev: typeof e) => void) | undefined)?.(e);
+        if (!(e.target as HTMLElement).closest(NO_DRAG)) (listeners?.[kind] as ((ev: typeof e) => void) | undefined)?.(e);
     };
     return (
-        <li ref={drop.setNodeRef} className="relative">
+        <li ref={setDropNode} className="relative">
             {/* Dropping on a card puts the task before it: the accent line shows where. */}
-            {drop.isOver && <span aria-hidden="true" className="absolute -top-[5px] inset-x-1 h-0.5 rounded-full bg-[var(--accent-primary)]" />}
-            <div ref={drag.setNodeRef} onMouseDown={e => startDrag(e, 'onMouseDown')} onTouchStart={e => startDrag(e, 'onTouchStart')}
+            {isOver && <span aria-hidden="true" className="absolute -top-[5px] inset-x-1 h-0.5 rounded-full bg-[var(--accent-primary)]" />}
+            <div ref={setDragNode} onMouseDown={e => startDrag(e, 'onMouseDown')} onTouchStart={e => startDrag(e, 'onTouchStart')}
                 data-testid={`board-task-${task.id}`}
-                className={`group/card relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2.5 space-y-2 hover:border-[var(--border-default)] transition-colors ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${drag.isDragging ? 'opacity-40' : ''}`}>
+                className={`group/card relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] p-2.5 space-y-2 hover:border-[var(--border-default)] transition-colors ${canEdit ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-40' : ''}`}>
                 {/* The title is the open button, so opening, dragging and the menu stay separate keyboard stops. */}
                 <button type="button" data-card-title onClick={onOpen}
                     className={`block w-full text-left bg-transparent p-0 border-0 cursor-[inherit] rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-primary)] ${canEdit ? '[@media(hover:none)]:pr-14' : ''}`}>
@@ -118,7 +118,7 @@ export default function BoardCard({ task, canEdit, people, columns, columnId, on
                 ) : <span className="sr-only" data-testid="task-unassigned">{t('project_tasks.not_assigned', 'Not assigned')}</span>}
                 {canEdit && (
                     <div className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-md bg-[var(--bg-card)] ${CARD_REVEAL}`}>
-                        <button type="button" data-drag-handle ref={drag.setActivatorNodeRef} {...drag.attributes} {...drag.listeners}
+                        <button type="button" data-drag-handle ref={setActivatorNodeRef} {...attributes} {...listeners}
                             aria-label={t('project_tasks.drag_task', 'Drag task: {title}', { title: task.title })} title={t('project_tasks.drag_task', 'Drag task: {title}', { title: task.title })}
                             className={`${ICON_BUTTON_CLASS} !w-6 !h-6 cursor-grab active:cursor-grabbing touch-none`}>
                             <GripVertical className="w-3.5 h-3.5" aria-hidden="true" />

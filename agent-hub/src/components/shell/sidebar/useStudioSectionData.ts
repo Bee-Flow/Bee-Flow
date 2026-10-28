@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { SECTION_TTL_MS, readNavHas, writeNavHas } from './sidebarTokens';
-import { useStudioCounts } from '../../../hooks/useStudioCounts';
-import { useRuntimeStudioApps } from '../../../moduleRuntime/registry';
-import { API_BASE } from '../../../utils/helpers';
-import { rankStudioItems } from '../../../utils/studioRecents';
-import { STUDIO_RECENT_SOURCES, normaliseRecentItems } from '../../../utils/studioRecentSources';
+import { useStudioCounts } from '@/hooks/useStudioCounts';
+import { useRuntimeStudioApps } from '@/moduleRuntime/registry';
+import { API_BASE } from '@/utils/helpers';
+import { rankStudioItems } from '@/utils/studioRecents';
+import { STUDIO_RECENT_SOURCES, normaliseRecentItems } from '@/utils/studioRecentSources';
 import { studioAppsApi } from '../../admin/Studio/AppStudio/studioAppsApi';
 import { makeCanUse } from '../../admin/Studio/studioApps';
-import type { RecentItem } from '../../../utils/studioRecentSources.types';
+import type { RecentItem } from '@/utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
-import { logger } from '../../../utils/logger';
-import { request, RefusedError } from '../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, RefusedError } from '@/api/mutate';
 
 type Check = (id: string) => boolean;
 

@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { authFetch } = vi.hoisted(() => ({ authFetch: vi.fn() }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch }));
 vi.mock('../BuilderConfirmContext', () => ({ useBuilderConfirm: () => async () => true }));
 
 import GeneralSection from './GeneralSection';

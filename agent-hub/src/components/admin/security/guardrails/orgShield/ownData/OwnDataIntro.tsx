@@ -1,6 +1,6 @@
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The heading every state of "Your own data" opens with (the starters, the

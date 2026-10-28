@@ -1,7 +1,7 @@
 import { Loader2, Sparkles } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { REFUSAL } from './testSetFacts';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface SuggestionExpect {
     mustMention?: string[];

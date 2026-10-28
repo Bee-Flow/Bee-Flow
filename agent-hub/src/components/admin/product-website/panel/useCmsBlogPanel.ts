@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { CmsSiteDoc } from './cmsPanelTypes';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BlogSettings } from '../blog/BlogInspector';
 import { buildBlogPreview } from '../blog/blogPreview';
 import useBlogEditor from '../blog/useBlogEditor';

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { logger } from '../../../../utils/logger';
+import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** How the updates are arriving: SSE, the 5 s polling fallback, or not at all. */
 export type RunStreamState = 'live' | 'polling' | 'paused';
@@ -44,15 +45,20 @@ interface UseRunStreamOptions {
 export default function useRunStream({ enabled = true, automationId = null, onEvent }: UseRunStreamOptions) {
     const api = useAutomationApi();
     const onEventRef = useRef(onEvent);
-    onEventRef.current = onEvent;
+    useLayoutEffect(() => {
+        onEventRef.current = onEvent;
+    });
     // How the updates are actually arriving right now — the filter bar's
     // indicator reads this instead of showing a hard-coded green dot.
     // 'live' = SSE, 'polling' = 5s fallback, 'paused' = hidden tab / disabled.
     const [state, setState] = useState<RunStreamState>(enabled ? 'live' : 'paused');
+    // A new stream (another automation, switched on or off) starts from 'live'
+    // or 'paused': reset during render, before the effect below reconnects.
+    // (The api object is memoised for the session, so it is not part of the key.)
+    useAdjustOnChange([enabled, automationId], () => setState(enabled ? 'live' : 'paused'));
 
     useEffect(() => {
-        if (!enabled) { setState('paused'); return undefined; }
-        setState('live');
+        if (!enabled) return undefined;
         let stopped = false;
         let controller: AbortController | null = null;
         let timer: ReturnType<typeof setTimeout> | null = null;

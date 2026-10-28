@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { repeatingApi, repeatingKeys, useScanFeedback } from '../../../../../api/queries/automation/repeating';
-import type { FeedbackBody, ReasonCode, RepeatingSuggestion, ScanResult } from '../../../../../api/queries/automation/repeating';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { toast } from '../../../../shared/Toast';
+import { repeatingApi, repeatingKeys, useScanFeedback } from '@/api/queries/automation/repeating';
+import type { FeedbackBody, ReasonCode, RepeatingSuggestion, ScanResult } from '@/api/queries/automation/repeating';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import { feedbackSuggestion, suggestionKey } from './patternView';
 
 /** How long "Undo" stays offered before the choice is sent. */

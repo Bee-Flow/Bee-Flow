@@ -1,4 +1,4 @@
-import AppIconJs from '../../../../icons/AppIcon';
+import AppIconJs from '@/components/icons/AppIcon';
 
 /**
  * The app icon the gallery renders. AppIcon is TypeScript now; the alias

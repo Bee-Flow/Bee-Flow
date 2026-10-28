@@ -1,5 +1,5 @@
 import type { SseHandlerMap } from '../handlerTypes';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * The webpage builder: file and source callbacks, DOM broadcasts for the DB

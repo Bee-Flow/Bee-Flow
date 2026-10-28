@@ -4,8 +4,8 @@
  * verbatim from BuilderSplit; every value comes in as a prop.
  */
 import { FlaskConical, Sparkles, X } from 'lucide-react';
-import EmptyState from '../../../shared/EmptyState';
-import UsedByTab from '../../../shared/UsedByTab';
+import EmptyState from '@/components/shared/EmptyState';
+import UsedByTab from '@/components/shared/UsedByTab';
 import { READ } from '../canUse/canUseFacts';
 import KnowledgeCard from '../canUse/KnowledgeCard';
 import SkillsCard from '../canUse/SkillsCard';

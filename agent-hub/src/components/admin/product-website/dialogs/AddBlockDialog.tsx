@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ModalShell from './ModalShell';
 import SectionThumb from './SectionThumb';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import { BLOCK_VARIANTS } from '../blockEditors/catalogue';
 import { BLOCK_CATALOGUE } from '../editors';
 import type { ThumbDesign } from './SectionThumb';

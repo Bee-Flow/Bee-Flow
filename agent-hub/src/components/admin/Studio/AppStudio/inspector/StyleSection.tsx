@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { SelectField, NumberField } from './panels/kit';
 import {
     STYLE_KNOBS,
@@ -13,14 +13,14 @@ import {
     valueLabel,
 } from './styleKnobMeta';
 import TokenColorField from './TokenColorField';
-import Disclosure from '../../../../shared/Disclosure';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Slider from '../../../../shared/Slider';
+import Disclosure from '@/components/shared/Disclosure';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Slider from '@/components/shared/Slider';
 import { updateNodeStyle } from '../state/definitionOps';
 import type { AppDefinition, AppNode } from './appDefinition';
 import type { KnobSpec } from './styleKnobMeta.types';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 type EnumSpec = Extract<KnobSpec, { type: 'enum' }>;
 type UnitIntSpec = Extract<KnobSpec, { type: 'unitInt' }>;
 

@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import type { OrgSubscription } from '../admin/org/orgInfo/license/licenseShared';
 import { API_BASE } from '../../utils/helpers';
 import { cloudFetch } from '../../api/cloudFetch';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface Subscription extends OrgSubscription {
     status: string;
@@ -49,16 +50,18 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
 
 export function SubscriptionProvider({ children, user }: SubscriptionProviderProps) {
     const [sub, setSub] = useState<Subscription | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !!(user?.organizationId || user?.orgId));
     const [version, setVersion] = useState(0);
 
+    // Consumer accounts (no org) and the platform-operator user fall
+    // through with no subscription state — the gate ignores them.
+    useAdjustOnChange([user?.organizationId, user?.orgId, user?.featureFlags?.deploymentMode, version], () => {
+        if (!(user?.organizationId || user?.orgId)) { setSub(null); setLoading(false); } else setLoading(true);
+    });
     useEffect(() => {
         let cancelled = false;
         const orgId = user?.organizationId || user?.orgId;
-        // Consumer accounts (no org) and the platform-operator user fall
-        // through with no subscription state — the gate ignores them.
-        if (!orgId) { setSub(null); setLoading(false); return; }
-        setLoading(true);
+        if (!orgId) return;
         const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
         cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}`)
             .then(r => (r?.ok ? r.json() : null))

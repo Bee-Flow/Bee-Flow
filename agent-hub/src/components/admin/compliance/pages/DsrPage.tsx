@@ -21,11 +21,11 @@
  */
 import { ArrowUpRight, Plus, RefreshCw, Search, Timer } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { useNow } from '../../../shared/DeadlineClock';
-import FilterPills from '../../../shared/FilterPills';
-import { toast } from '../../../shared/Toast';
-import { API_DSR, asArray, downloadUrl, fetchJson, json } from '../../../../api/complianceApi';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useNow } from '@/components/shared/DeadlineClock';
+import FilterPills from '@/components/shared/FilterPills';
+import { toast } from '@/components/shared/Toast';
+import { API_DSR, asArray, downloadUrl, fetchJson, json } from '@/api/complianceApi';
 import useDrawerMode from '../shared/useDrawerMode';
 import { PAGE_FRAME, RegisterLayout } from './audits/auditForms';
 import { FILTERS, countByFilter, matchesFilter, matchesQuery, sortByDeadline } from './dsr/dsrArticles';
@@ -37,7 +37,7 @@ import type { DsrRow } from './dsr/dsr.types';
 import type { VerifyIdentityBody } from './dsr/DsrIdentity';
 import type { DiscoveryBody, FulfilBody } from './dsr/DsrDrawer';
 import type { OrgUser } from './dsr/dsrTimeline';
-import type { PillTone } from '../../../shared/FilterPills';
+import type { PillTone } from '@/components/shared/FilterPills';
 
 type RequestId = DsrRow['id'];
 

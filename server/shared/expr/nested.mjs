@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Lists inside lists: the walks that keep the element each item came from.
  *

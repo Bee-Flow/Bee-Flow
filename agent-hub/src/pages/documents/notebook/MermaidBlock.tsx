@@ -13,7 +13,7 @@ import React, { useState, useRef, useEffect, useCallback, useEffectEvent } from 
 import mermaid from 'mermaid';
 import type { RenderResult } from 'mermaid';
 import { Code, Eye, Maximize2, X, Download, Copy, Check, Loader2 } from 'lucide-react';
-import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import type { MermaidBlockProps, ToolbarBtnProps } from './MermaidBlock.types';
 import { MERMAID_CONFIG } from './MermaidBlock.constants';
 import { postProcessSVG } from './MermaidBlock.helpers';

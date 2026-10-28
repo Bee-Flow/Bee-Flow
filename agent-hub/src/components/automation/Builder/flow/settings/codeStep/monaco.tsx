@@ -2,8 +2,8 @@
 // codeFields.jsx unchanged in behaviour; see CodeEditorField for the three
 // ways it can fail and what the author gets instead.
 import { useEffect, type ComponentType } from 'react';
-import { lazy } from '../../../../../../utils/lazyWithReload';
-import { logger } from '../../../../../../utils/logger';
+import { lazy } from '@/utils/lazyWithReload';
+import { logger } from '@/utils/logger';
 
 /** What we hand Monaco; the real component takes more, we pass only these. */
 export interface MonacoProps {

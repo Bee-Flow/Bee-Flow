@@ -1,9 +1,9 @@
 import { ScrollText, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import EmptyState from '@/components/shared/EmptyState';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Dot } from '../ui/Badge';
 import type { BadgeTone } from '../ui/Badge';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FieldRow, ImageField } from '../fields';
 import ColorControl from './ColorControl';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface BackgroundControlProps {
     image?: string | null;

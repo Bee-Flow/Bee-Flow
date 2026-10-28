@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { Edge, Node } from '@xyflow/react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DiagramDefinition, Rf } from './diagramPaneTypes';
 
 /** A card's layout rect, absolute (parents added back on). */

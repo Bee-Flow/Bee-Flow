@@ -9,9 +9,9 @@ beforeEach(() => { vi.mocked(apiClient.get).mockReset(); vi.mocked(apiClient.del
 describe('memoryApi', () => {
     it('Undo deletes with ?undo=1, an ordinary delete does not', async () => {
         await deleteMemory('a/b', { undo: true });
-        expect(apiClient.delete).toHaveBeenLastCalledWith('/agents/memory/a%2Fb', { retry: false, query: { undo: '1' } });
+        expect(apiClient.delete).toHaveBeenLastCalledWith('/agents/memory/a%2Fb', { query: { undo: '1' } });
         await deleteMemory('m1');
-        expect(apiClient.delete).toHaveBeenLastCalledWith('/agents/memory/m1', { retry: false });
+        expect(apiClient.delete).toHaveBeenLastCalledWith('/agents/memory/m1', undefined);
     });
 
     it('loads previews by comma-separated ids, at most 50, and skips the call for none', async () => {

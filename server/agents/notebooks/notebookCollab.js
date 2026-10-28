@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notebooks and the co-editing engine, in one place.
  *
@@ -122,6 +122,7 @@ async function readLive(notebookId, collab) {
  * @returns {Promise<{ html: string, markdown: string|null, live: boolean, active: boolean, seq: number|null }>}
  */
 async function readCurrentContent(notebook, collab = defaultFacade()) {
+    /** @type {{ html: string, markdown: string|null, live: boolean, active: boolean, seq: number|null }} */
     const stored = { html: notebook.documentContent || '', markdown: notebook.documentMd ?? null, live: false, active: false, seq: null };
     if (!(await isCollabActive(notebook.id, collab)) || !collab) return stored;
     try {

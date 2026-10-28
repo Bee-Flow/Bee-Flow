@@ -1,5 +1,5 @@
 import Modal from '../../shared/Modal';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface AgentConflictModalProps {
     t: TranslateFn;

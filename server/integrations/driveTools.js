@@ -5,7 +5,7 @@
  * allowing the AI to search files, list folder contents, get file details,
  * move files, and create folders.
  */
-
+// @typecheck
 require('googleapis');
 const { Readable } = require('stream');
 require('../auth/permissions');

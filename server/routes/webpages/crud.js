@@ -73,6 +73,7 @@ const UpdateBody = bodyOf({
     js: worded(SLOT_TEXT).optional(),
 });
 
+/** @type {(router: import('express').Router, deps?: unknown) => void}  deps is passed to every part; this one does not read it */
 function register(router) {
     router.post('/', requireAuth, validate({ body: CreateBody, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = sessionUser(req).id;
@@ -237,7 +238,7 @@ function register(router) {
         });
     });
 
-    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const id = req.params.id;
         const {

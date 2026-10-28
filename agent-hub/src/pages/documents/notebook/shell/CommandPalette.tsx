@@ -10,8 +10,9 @@
  */
 import { Search, CornerDownLeft } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Modal from '../../../../components/shared/Modal';
+import Modal from '@/components/shared/Modal';
 import type { PaletteCommand } from './buildCommands';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface CommandPaletteProps {
     open?: boolean;
@@ -26,10 +27,9 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
     const [activeIdx, setActiveIdx] = useState<number>(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    useAdjustOnChange([open], () => { if (open) { setQuery(''); setActiveIdx(0); } });
     useEffect(() => {
         if (open) {
-            setQuery('');
-            setActiveIdx(0);
             const id = setTimeout(() => inputRef.current?.focus(), 0);
             return () => clearTimeout(id);
         }

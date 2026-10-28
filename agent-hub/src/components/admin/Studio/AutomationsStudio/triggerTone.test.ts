@@ -1,11 +1,11 @@
 import { Clock, ClipboardList, FilePlus, Mail, MousePointer2, Webhook } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 import { TONE_CLASSES, TRIGGER_TONES, toneLabelOf, triggerGlyphKeyOf, triggerToneOf } from './triggerTone';
-import { TRIGGER_ICONS } from '../../../automation/Builder/flow/triggerIcons';
+import { TRIGGER_ICONS } from '@/components/automation/Builder/flow/triggerIcons';
 import type { AutomationRecord } from './overviewModel';
 
 const triggerGlyphOf = (a: AutomationRecord) => TRIGGER_ICONS[triggerGlyphKeyOf(a)];
-import { readAppCss } from '../../../../test/appStylesheets';
+import { readAppCss } from '@/test/appStylesheets';
 
 const appEvent = (provider: string, event: string) => ({ id: 'a', triggerType: 'app_event', definition: { trigger: { kind: 'app_event', appEvent: { provider, event } } } });
 

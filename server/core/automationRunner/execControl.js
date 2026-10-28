@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Control-flow steps (extracted verbatim from engine.js): condition, the switch family
  * (scalar/collection/list modes), wait and stop_error — plus return_to_app, the second
@@ -527,8 +528,6 @@ module.exports = { execCondition, execWait, execStopError, execReturnToApp, exec
 /** @typedef {Awaited<ReturnType<typeof prepareTopics>>['host']} TopicHost */
 
 /** @typedef {(msg: string) => void} OnEvalError */
-
-/** @typedef {import('../../shared/expr/engine.mjs').ExprOptions} ExprOptions  prepareTopics' host is the topic HostTable */
 
 /**
  * The config fields the control-flow steps read.

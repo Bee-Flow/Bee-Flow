@@ -1,7 +1,7 @@
 import type { DtTable } from './rowBrowser/rowBrowserModel';
 import type { DirectoryEntry } from '../AppStudio/rbac/useAppRoles';
 import type React from 'react';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { DatatableGrant } from './grants';
 
 /**

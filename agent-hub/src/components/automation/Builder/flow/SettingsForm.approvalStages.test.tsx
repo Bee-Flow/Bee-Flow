@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import type { Mock } from 'vitest';
 import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
@@ -23,7 +23,7 @@ import { partial } from '@/test/mocks';
  * are in the chain and never be asked, so the editor must never emit both.
  */
 
-vi.mock('../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({
         approvalDirectory: async () => ({
             members: [{ id: 'u1', name: 'Ada' }, { id: 'u2', name: 'Bo' }, { id: 'u3', name: 'Cy' }],

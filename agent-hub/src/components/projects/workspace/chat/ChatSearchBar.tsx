@@ -5,7 +5,7 @@
 
 import { ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { ChatSearch } from './useChatSearch';
 
 const NAV_CLASS = 'grid place-items-center w-7 h-7 rounded-md text-[var(--text-secondary)] '

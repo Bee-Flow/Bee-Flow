@@ -10,7 +10,7 @@ import { asMock } from '@/test/mocks';
 // The sharing panel reuses App Studio's useOrgDirectory, which is a react-query
 // hook — so the section has a hard QueryClientProvider dependency. main.jsx
 // supplies one app-wide; the tests must too, or the tab throws on mount.
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url) => ({
         ok: true,

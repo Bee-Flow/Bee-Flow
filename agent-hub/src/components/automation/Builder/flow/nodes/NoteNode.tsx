@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import type { NodeStep, StepNodeData } from './nodeProps';
 import { renderNoteText } from './noteRichText';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * A free-floating canvas annotation (BFSF-411) — sticky-note text tied to a

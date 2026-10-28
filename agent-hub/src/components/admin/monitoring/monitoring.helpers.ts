@@ -1,4 +1,4 @@
-import { request, RefusedError } from '../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 export function rangeToFilter(rangeId: string, customStart: string, customEnd: string): Record<string, string> {
     if (rangeId === 'all') return {};

@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import { derivePosture as derivePostureJs } from '../orgShieldPosture';
 import type { GuardStatus, Posture } from '../overview/types';

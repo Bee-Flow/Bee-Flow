@@ -37,7 +37,7 @@ export function useSaveOrgCollab(orgId: string) {
     const qc = useQueryClient();
     return useMutation<OrgCollabSettings, Error, boolean>({
         mutationFn: async (collabEnabled) => {
-            const body = await apiClient.put<OrgCollabSettings>(`${BASE}/${encodeURIComponent(orgId)}`, { collabEnabled }, { retry: false });
+            const body = await apiClient.put<OrgCollabSettings>(`${BASE}/${encodeURIComponent(orgId)}`, { collabEnabled });
             if (!body || typeof body.collabEnabled !== 'boolean') throw new Error('Could not save the co-editing setting');
             return body;
         },

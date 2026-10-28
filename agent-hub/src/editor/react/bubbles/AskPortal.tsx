@@ -1,7 +1,7 @@
 /** AskPortal — the floating "Ask AI" box anchored on the selected text. */
 import { Wand2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { mkTt } from '../toolbarPrimitives.jsx';
 
 /** The selection the question is about, and where on screen to anchor the box. */

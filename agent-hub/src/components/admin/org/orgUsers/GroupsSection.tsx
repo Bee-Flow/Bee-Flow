@@ -1,6 +1,6 @@
 import { Plus, Shield } from 'lucide-react';
 import GroupCard from './GroupCard';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CustomTierMeta, OrgGroupRow, OrgMember, Organization } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 

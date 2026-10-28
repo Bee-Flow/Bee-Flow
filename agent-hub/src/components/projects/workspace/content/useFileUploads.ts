@@ -3,10 +3,10 @@
 // disappears from this list: from then on it is in the project's file list.
 
 import { useRef, useState } from 'react';
-import { MAX_PROJECT_FILE_BYTES, useUploadProjectFile } from '../../../../api/queries/projectContent';
-import useTranslation from '../../../../hooks/useTranslation';
+import { MAX_PROJECT_FILE_BYTES, useUploadProjectFile } from '@/api/queries/projectContent';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import { errorStatus } from '../../../../utils/caughtError';
+import { errorStatus } from '@/utils/caughtError';
 
 /** True for any object, which is where a `serverMessage` can be read; a primitive has none. */
 function hasServerMessage(v: unknown): v is { serverMessage?: unknown } {

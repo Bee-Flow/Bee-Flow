@@ -1,10 +1,10 @@
 import { RotateCcw, Loader2, Sparkles, Play, ListChecks, Puzzle, Clock } from 'lucide-react';
 import { useMemo } from 'react';
 import { Card, Eyebrow, EmojiTile, PrimaryButton, SecondaryButton, shortDate, tOpt } from './bits';
-import { getLesson } from '../../../components/onboarding/lessons';
-import { deriveMistakes, deriveStaleReviewLessons, REVIEW_SESSION_SIZE, REVIEW_STALE_DAYS } from '../../../components/onboarding/reviewEngine';
-import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import { getLesson } from '@/components/onboarding/lessons';
+import { deriveMistakes, deriveStaleReviewLessons, REVIEW_SESSION_SIZE, REVIEW_STALE_DAYS } from '@/components/onboarding/reviewEngine';
+import { STEP_TYPES } from '@/components/onboarding/stepTypes';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * ReviewView — the "Herhalen" tab. The handoff gives it a tab and a rail row

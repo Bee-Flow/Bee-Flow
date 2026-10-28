@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { authFetchMock, countsSpy } = vi.hoisted(() => ({ authFetchMock: vi.fn(), countsSpy: vi.fn() }));
 
-vi.mock('../../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     API_BASE: '',
     authFetch: (...args) => authFetchMock(...args),
@@ -28,7 +28,7 @@ vi.mock('../../../../utils/helpers', async (importOriginal) => ({
 // The real hook, with a spy on the OPTIONS. `poll: false` is the whole reason that
 // this card places no second poller next to the rail's, and without this pin that
 // choice disappears at the first refactor without a single red test.
-vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
+vi.mock('@/hooks/useStudioCounts', async (importOriginal) => {
     const actual = await importOriginal();
     return {
         ...actual,
@@ -36,12 +36,12 @@ vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
     };
 });
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
+import { queryWrapper } from '@/test/queryWrapper';
 import { MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
 import StudioMap from './StudioMap';
 import { MAP_BLOCKS } from './studioMap.constants';
-import { queryWrapper } from '../../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

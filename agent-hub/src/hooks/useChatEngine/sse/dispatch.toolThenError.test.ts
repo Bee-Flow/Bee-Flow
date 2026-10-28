@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createContentFlusher } from '../contentFlusher';
 import { dispatchSSEEvent } from './dispatch';
 import type { ChatMessage, SseDispatchContext, SseDispatchIds, SseEventData } from '../types';
-import EN_DEFAULTS from '../../../i18n/en-defaults';
+import EN_DEFAULTS from '@/i18n/en-defaults';
 import { interpolate } from '../../useTranslation';
 import type { TranslateFn } from '../../useTranslation';
 

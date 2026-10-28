@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 
 /**
  * Shared chrome of the automation Settings page (handoff 5, artboards 5b/5e):
@@ -93,7 +93,9 @@ export function useDebouncedSave<T>(save: (value: T) => void, delayMs = 700) {
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pending = useRef<{ value: T } | null>(null);
     const saveRef = useRef(save);
-    saveRef.current = save;
+    useLayoutEffect(() => {
+        saveRef.current = save;
+    });
 
     const flush = useCallback(() => {
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }

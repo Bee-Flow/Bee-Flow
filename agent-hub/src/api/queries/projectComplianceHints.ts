@@ -62,7 +62,7 @@ export function useDecideProjectComplianceHint(projectId: string) {
     return useMutation({
         mutationFn: async ({ hintKey, decision }: { hintKey: ProjectComplianceHintKey; decision: HintDecision }) => {
             const url = `${base(projectId)}/${encodeURIComponent(hintKey)}/${decision.kind}`;
-            return apiClient.post(url, decision.kind === 'snooze' ? { days: decision.days } : {}, { retry: false });
+            return apiClient.post(url, decision.kind === 'snooze' ? { days: decision.days } : {});
         },
         onMutate: async () => {
             await client.cancelQueries({ queryKey: key });

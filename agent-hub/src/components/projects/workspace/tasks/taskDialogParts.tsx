@@ -3,7 +3,7 @@
 // the property sidebar. Shared by TaskDialog, its sections and the meeting dialog.
 
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { MENU_ITEM_CLASS, MENU_PANEL_CLASS } from './tasksMenu';
 
 const AnchoredMenu = AnchoredMenuJs;

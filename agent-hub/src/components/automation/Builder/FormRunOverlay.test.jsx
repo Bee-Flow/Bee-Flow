@@ -15,10 +15,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const get = vi.fn();
 const post = vi.fn();
-vi.mock('../../../api/client', () => ({ default: { get: (...a) => get(...a), post: (...a) => post(...a) } }));
+vi.mock('@/api/client', () => ({ default: { get: (...a) => get(...a), post: (...a) => post(...a) } }));
 
+import { withQueryClient } from '@/test/queryWrapper';
 import FormRunOverlay from './FormRunOverlay';
-import { withQueryClient } from '../../../test/queryWrapper';
 
 const PAGE_ONE = {
     title: 'Vraag het',

@@ -15,7 +15,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { getComponentEntry } from '../runtime/componentRegistry';
 
 interface Verb {

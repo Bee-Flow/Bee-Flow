@@ -3,12 +3,12 @@ import { knowledgeApi, type KbSource, type KbSuggestion, type KbUsageSummary } f
 import KnowledgeDetail, { TABS } from './KnowledgeDetail';
 import KnowledgeOverview from './KnowledgeOverview';
 import SourceDetail from './SourceDetail';
-import { readOrgGroups, type OrgGroup } from '../../../../api/queries/orgGroups';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import scopedStorage from '../../../../utils/scopedStorage';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
+import { readOrgGroups, type OrgGroup } from '@/api/queries/orgGroups';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import scopedStorage from '@/utils/scopedStorage';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
 
 /**
  * Studio → Knowledge. Three screens behind one route

@@ -34,8 +34,8 @@ const MIN_FAILURES_FOR_ROLLBACK = 3;
 function defaultDeps() {
     return {
         store: require('../stores/automationStore'),
-        applyToolCall: (...a) => require('./builderTools').applyToolCall(...a),
-        validateDefinition: (...a) => require('./validate').validateDefinition(...a),
+        applyToolCall: (/** @type {Parameters<typeof import('./builderTools').applyToolCall>} */ ...a) => require('./builderTools').applyToolCall(...a),
+        validateDefinition: (/** @type {Parameters<typeof import('./validate').validateDefinition>} */ ...a) => require('./validate').validateDefinition(...a),
         getDeliverableEvents: () => { try { return require('./deliverableEvents').getDeliverableEvents(); } catch { return []; } },
         notify: async (n) => { try { await require('../stores/notificationStore').createNotification(n); } catch (e) { log.warn(`[evolution] notify failed: ${e.message}`); } },
         now: () => new Date(),

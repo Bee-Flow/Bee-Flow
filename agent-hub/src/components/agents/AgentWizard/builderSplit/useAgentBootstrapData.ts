@@ -10,12 +10,12 @@
  * BuilderSplit fiber through this hook.
  */
 import { useEffect, useState } from 'react';
-import { fetchAgentEditorBootstrap } from '../../../../api/agentEditor';
+import { fetchAgentEditorBootstrap } from '@/api/agentEditor';
 import { useAgentEditorBootstrap } from '../AgentEditorBootstrapContext';
 import { READ } from '../canUse/canUseFacts';
 import type { AutomationRow, CategoryRow, ReadState } from '../agentEditor.types';
-import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import type { Skill } from '../../../../api/queries/skills';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { Skill } from '@/api/queries/skills';
 import type { IntegrationStatus } from '../../AgentDesigner/DesignerPanels';
 import type { OrgGroup } from '../../AgentDesigner/PublishMenu';
 

@@ -1,14 +1,14 @@
 import { AlertTriangle, ExternalLink, RotateCcw, SkipForward, X } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { canRetry, canSkip, kindOf } from './phaseMachine';
 import type { Phase } from './phaseMachine';
 import { errorText, phaseDuration, phaseFacts, phaseLinks } from './playbookView';
 import { phaseLabel } from './recipes';
 import { STAGE_BUTTON, STAGE_BUTTON_GHOST } from './stages/stageChrome';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 
 /**
  * Click a phase in the rail and this panel says what that phase did: its

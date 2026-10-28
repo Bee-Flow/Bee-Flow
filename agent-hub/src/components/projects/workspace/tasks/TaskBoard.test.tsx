@@ -3,8 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { BoardColumn } from '../../../../api/queries/projectBoard';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { BoardColumn } from '@/api/queries/projectBoard';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 const dnd = vi.hoisted(() => ({ end: null as null | ((e: DragEndEvent) => void) }));
 vi.mock('@dnd-kit/core', async original => ({
     ...await original<typeof import('@dnd-kit/core')>(),

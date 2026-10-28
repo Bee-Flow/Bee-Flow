@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const { _stringify } = require('./safetyLeaves');
 const { PII_SCAN_WINDOW, _detectPii, _scanText } = require('./safetyScan');
@@ -218,8 +219,9 @@ function buildPiiSummary(entries, { source = 'guard', degraded = false } = {}) {
  * `entities: []` with `degraded: true` means "we could not look", which is not
  * the same answer as "there is nothing here" and must never be collapsed into it.
  *
- * @returns {{ entities, degraded, degradedReason, degradedCategories, overflow }}
  * @param {string} text
+ * @param {Parameters<typeof _scanText>[1]} [policy]
+ * @returns {ReturnType<typeof _scanText>}
  */
 async function scanTextForPii(text, policy) {
     return _scanText(String(text ?? ''), policy || {});

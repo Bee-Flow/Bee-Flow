@@ -35,7 +35,7 @@
  * carries its own `READ` state: a failed read of `/api/automation` is not "this user
  * has no automations".
  */
-import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
+import { isAgentCallable } from '@/components/admin/Studio/SkillsStudio/skillModel';
 import { READ } from '../canUse/canUseFacts';
 import type { AutomationSummary, BulletRejection, HandoffRow, HandoffSelection, Persona } from './personaFacts.types';
 

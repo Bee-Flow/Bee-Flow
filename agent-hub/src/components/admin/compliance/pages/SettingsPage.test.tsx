@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { SETTINGS_GROUPS, SETTINGS_FIELD_NAMES, buildSettingsBody, normaliseSettings } from './settings/settingsFields';
 import SettingsPage from './SettingsPage';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

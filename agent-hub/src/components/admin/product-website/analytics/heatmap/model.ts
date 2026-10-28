@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 /**
  * Pure folds for the heatmap. Kept out of the components so the part that
  * carries the actual insight — "which block earns the clicks" — is testable

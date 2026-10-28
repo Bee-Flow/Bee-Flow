@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fail, ok } from '@/test/http';
 
 const { authFetch } = vi.hoisted(() => ({ authFetch: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
 
 import SearchSection from './SearchSection';
 

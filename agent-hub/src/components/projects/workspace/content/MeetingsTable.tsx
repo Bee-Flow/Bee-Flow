@@ -1,11 +1,11 @@
-import { useViewport } from '../../../../hooks/useViewport';
+import { useViewport } from '@/hooks/useViewport';
 // The meetings filed in a project, as a table: title, date, length, action
 // items, owner. No transcript text travels in this list.
 
 import { Mic } from 'lucide-react';
 import React from 'react';
-import type { ProjectMeeting } from '../../../../api/queries/projectContent';
-import useTranslation from '../../../../hooks/useTranslation';
+import type { ProjectMeeting } from '@/api/queries/projectContent';
+import useTranslation from '@/hooks/useTranslation';
 import { RemoveButton } from '../workspaceUi';
 import { formatMeetingDuration, meetingStatusLabel } from './labels';
 import { DataTable, TableCell, TableRow, type TableColumn } from './typedShared';

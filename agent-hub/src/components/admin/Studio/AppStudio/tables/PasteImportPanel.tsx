@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 import type { RowRecord } from './recordsApi';
 import { buildImportRows, importableFields, parsePasted, suggestMapping } from './spreadsheetPaste';
 import type { ImportRow, ImportTable } from './spreadsheetPaste';
-import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
-import { errorStatus, messageOf } from '../../../../../utils/caughtError';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import { errorStatus, messageOf } from '@/utils/caughtError';
 
 /**
  * App Studio — "paste from a spreadsheet": a block copied out of Excel or

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
-import { RunsRequestError, retriedRunId, useFindFailedStep, useRemindApproval, useRetryRun } from '../../../../api/queries/automation/runs';
-import { runStartRefusal } from '../../../../api/queries/automation/runAccess';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RunRowData } from '@/api/queries/automation/runs';
+import { RunsRequestError, retriedRunId, useFindFailedStep, useRemindApproval, useRetryRun } from '@/api/queries/automation/runs';
+import { runStartRefusal } from '@/api/queries/automation/runAccess';
+import { toast } from '@/components/shared/Toast';
 import { groupRunsByDay } from './runOutcome';
 import RunRow from './RunRow';
 

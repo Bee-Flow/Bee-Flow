@@ -26,8 +26,8 @@ vi.mock('./SkillsStudio', () => ({ default: () => <div data-testid="app-skills" 
 vi.mock('./KnowledgeStudio', () => ({ default: () => <div data-testid="app-knowledge" /> }));
 vi.mock('../../automation/index', () => ({ default: () => <div data-testid="app-aiTasks" /> }));
 vi.mock('./Approvals/ApprovalsStudio', () => ({ default: () => <div data-testid="app-approvals" /> }));
-vi.mock('../../../pages/WebpagesPage', () => ({ default: () => <div data-testid="app-webpages" /> }));
-vi.mock('../../../pages/meeting-notes/MeetingNotesPage', () => ({ default: () => <div data-testid="app-meetingNotes" /> }));
+vi.mock('@/pages/WebpagesPage', () => ({ default: () => <div data-testid="app-webpages" /> }));
+vi.mock('@/pages/meeting-notes/MeetingNotesPage', () => ({ default: () => <div data-testid="app-meetingNotes" /> }));
 vi.mock('./Forms/FormsStudio', () => ({ default: () => <div data-testid="app-forms" /> }));
 vi.mock('./Runs/RunsStudio', () => ({ default: () => <div data-testid="app-runs" /> }));
 vi.mock('./Playbooks/PlaybooksStudio', () => ({ default: (p) => <div data-testid="app-playbooks" data-initial={p.initialPlaybookId || ''} /> }));

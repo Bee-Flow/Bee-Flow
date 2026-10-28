@@ -3,8 +3,8 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { STUDIO_APPS } from './studioApps';
 import { studioGateContext, studioNavSections, studioSectionAccess, type StudioNavUser } from './studioNav';
 import { STUDIO_START } from './studioStart';
-import useTranslation from '../../../hooks/useTranslation';
-import { useRuntimeStudioApps } from '../../../moduleRuntime/registry';
+import useTranslation from '@/hooks/useTranslation';
+import { useRuntimeStudioApps } from '@/moduleRuntime/registry';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 

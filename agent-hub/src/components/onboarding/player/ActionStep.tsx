@@ -1,9 +1,9 @@
 import { Circle, CircleCheck, ExternalLink, Loader2, RefreshCw, ShieldCheck, Radio, LoaderCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../actionChecks';
-import type { LessonUser, StepState } from '../../../api/lessons.types';
+import type { LessonUser, StepState } from '@/api/lessons.types';
 
 /**
  * ActionStep — a verified do-it-for-real challenge (the Trailhead pattern).

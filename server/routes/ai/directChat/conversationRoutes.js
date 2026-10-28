@@ -5,7 +5,7 @@
  *
  * Moved verbatim out of routes/ai/directChat.js when the router was split.
  */
-
+// @typecheck
 const express = require('express');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
@@ -138,7 +138,7 @@ router.get('/direct/conversations/:id/session-skills', requireAuth, async (req, 
 // Body: { message? }   — optional refining prompt. If absent, re-uses the
 //                          first user message from the conversation.
 // Resets `activatedSessionSkillIds` since the new ids won't match the old ones.
-router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, validate({ body: RegenerateBody }), async (req, res) => {
+router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, validate({ body: RegenerateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RegenerateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
     if (!conv) return res.status(404).json({ error: 'Conversation not found' });
@@ -242,7 +242,7 @@ router.delete('/direct/conversations/:id/session-skills/:skillId', requireAuth, 
     res.json({ success: true, skills: nextSkills, activatedSkillIds: nextActivated, completedSkillIds: nextCompleted });
 });
 
-router.post('/direct/conversations/:id/session-skills/:skillId/import', requireAuth, validate({ body: ImportSkillBody }), async (req, res) => {
+router.post('/direct/conversations/:id/session-skills/:skillId/import', requireAuth, validate({ body: ImportSkillBody }), async (/** @type {import('express').Request<{ id: string, skillId: string }, any, import('zod').infer<typeof ImportSkillBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
     if (!conv) return res.status(404).json({ error: 'Conversation not found' });
@@ -275,7 +275,7 @@ router.post('/direct/conversations/:id/session-skills/:skillId/import', requireA
 });
 
 // Rename / pin / label / attach knowledge bases to a direct conversation
-router.patch('/direct/conversations/:id', requireAuth, validate({ body: ConversationPatch }), async (req, res) => {
+router.patch('/direct/conversations/:id', requireAuth, validate({ body: ConversationPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ConversationPatch>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = req.session.user.id;
         const { title, pinned, labels, knowledgeBaseIds } = req.body;
@@ -338,13 +338,13 @@ router.get('/labels', requireAuth, async (req, res) => {
     res.json(labels);
 });
 
-router.post('/labels', requireAuth, validate({ body: LabelBody }), async (req, res) => {
+router.post('/labels', requireAuth, validate({ body: LabelBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof LabelBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, color } = req.body;
     const label = await agentStore.createLabel(req.session.user.id, name, color);
     res.json(label);
 });
 
-router.patch('/labels/:id', requireAuth, validate({ body: LabelPatch }), async (req, res) => {
+router.patch('/labels/:id', requireAuth, validate({ body: LabelPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof LabelPatch>, import('qs').ParsedQs>} */ req, res) => {
     const { name, color } = req.body;
     await agentStore.updateLabel(req.params.id, req.session.user.id, { name, color });
     res.json({ success: true });
@@ -390,7 +390,7 @@ router.get('/direct/conversations/:id/workspace', requireAuth, async (req, res) 
 });
 
 // Update workspace content for a direct conversation
-router.put('/direct/conversations/:id/workspace', requireAuth, validate({ body: WorkspaceBody }), async (req, res) => {
+router.put('/direct/conversations/:id/workspace', requireAuth, validate({ body: WorkspaceBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof WorkspaceBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = req.session.user.id;
         const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MetaFor, TierSliderProps } from '../TierSlider.types';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS, TierMeta } from '../tierMeta';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import MemoryModeControl from '../../chat/memory/MemoryModeControl';
 import AppEmoji from '../../icons/AppEmoji';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { LEGACY_EFFORT_KEY, THUMB_PAD } from './TierSlider.constants';
 import { TierTrack } from './TierTrack';
 import { TierGauge } from './TierGauge';

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyCaseColor, applyPiiGroupColor, caseColorOf, resolvePiiGroupColors } from './edgeColorOps';
 import { PII_GROUP_COLORS } from './edgeColors';
-import { STATUS_COLORS } from '../../../../constants/palette';
+import { STATUS_COLORS } from '@/constants/palette';
 
 const DEF = {
     trigger: { id: 'trg', kind: 'manual' },

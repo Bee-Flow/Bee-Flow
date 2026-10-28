@@ -84,6 +84,10 @@ async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {any
 /**
  * @typedef {Object} TitleForArgs
  * @property {boolean} [deleteData]
+ * @property {unknown} kind
+ * @property {unknown} releaseSeq
+ * @property {unknown} solutionName
+ * @property {unknown} stage
  */
 /**
  * @param {TitleForArgs} param0

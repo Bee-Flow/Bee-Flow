@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Wire-shape guarantees for the message helpers.
  *

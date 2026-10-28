@@ -5,7 +5,7 @@ import { humanizeFieldKey } from '../displayHelpers';
 import StepNodeBase from './StepNodeBase';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { STEP_NODE_DEFAULT } from '../stepMeta';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepNodeProps } from './nodeProps';
 import type { NodeRuntime } from './StepNodeBase.types';
 

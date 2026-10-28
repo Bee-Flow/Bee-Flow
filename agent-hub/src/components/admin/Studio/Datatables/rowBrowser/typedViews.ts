@@ -6,7 +6,7 @@
  */
 import type { ComponentType } from 'react';
 import type { DtColumn, DtTable, RowFilter } from './rowBrowserModel';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import RowCellEditorJs from '../../AppStudio/tables/RowCellEditor';
 import { filterDescriptor as filterDescriptorJs, sourceErrorMessage as sourceErrorMessageJs } from '../datatableDisplay';
 

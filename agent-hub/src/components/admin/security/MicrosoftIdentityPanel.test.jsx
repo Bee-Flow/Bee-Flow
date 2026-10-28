@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MicrosoftIdentityPanel from './MicrosoftIdentityPanel';
 
 const { authFetch, t } = vi.hoisted(() => ({ authFetch: vi.fn(), t: (key) => key }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '/api', authFetch }));
-vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t }) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '/api', authFetch }));
+vi.mock('@/hooks/useTranslation', () => ({ useTranslation: () => ({ t }) }));
 const pending = { id: 'request-1', email: 'existing@example.test', tenant_id: 'tenant', object_id: 'object' };
 let requests, mutations, conflict, user;
 beforeEach(() => {

@@ -4,8 +4,8 @@
 
 import { Loader2, Sparkles } from 'lucide-react';
 import React, { useRef, useState , useLayoutEffect } from 'react';
-import { useImproveTask, type ChecklistItem, type ProjectTask, type TaskPriority } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useImproveTask, type ChecklistItem, type ProjectTask, type TaskPriority } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import { SecondaryButton } from '../workspaceUi';
 import { GHOST_ACTION, useAutoGrow } from './taskDialogParts';
 

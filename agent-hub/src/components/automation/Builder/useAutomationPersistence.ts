@@ -6,8 +6,8 @@ import useAutomationDraftHistory from './flow/useAutomationDraftHistory';
 import useVisualSave from './useVisualSave';
 import type { SavingState } from './header/LiveActions';
 import type { unwrapRow } from './unwrapRow';
-import type useAutomationApi from '../../../hooks/useAutomationApi';
-import type useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
+import type useAutomationApi from '@/hooks/useAutomationApi';
+import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
 import type useBuilderHydration from './useBuilderHydration';
 import type { AutomationRow } from './useBuilderHydration';
 import type { RowAnswer } from './unwrapRow';
@@ -273,7 +273,7 @@ export default function useAutomationPersistence({
         // A wholesale replacement may have removed the flowlet we were
         // looking at — exit to root rather than risk a dead scope.
         setScopeKey(null);
-    }, [adoptPersistedDefinition, draftHistory]);
+    }, [adoptPersistedDefinition, draftHistory, setScopeKey, setServerAutomation]);
 
     /**
      * Save automation-level fields (title / description / definition).

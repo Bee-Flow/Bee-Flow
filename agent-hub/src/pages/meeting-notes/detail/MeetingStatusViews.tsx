@@ -1,6 +1,6 @@
 import { AlertTriangle, Loader2, X } from 'lucide-react';
-import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ApiError } from './meetingDetailTypes';
 
 /** Placeholder while the first load of a note is in flight. */

@@ -75,7 +75,7 @@ function composeInlinedHtml({ html, css, js }) {
 const browserProvider = require('../services/browserProvider');
 const { sessionUser } = require('../core/http/sessionUser');
 
-router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (req, res) => {
+router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const id = /** @type {string} */ (req.params.id);
 

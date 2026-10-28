@@ -1,8 +1,8 @@
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import Modal from '../../../shared/Modal';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import Modal from '@/components/shared/Modal';
 import type { RefObject } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /** The schedule the delete dialog is about. */
 export interface ScheduleDeleteTarget { id: string; title?: string }

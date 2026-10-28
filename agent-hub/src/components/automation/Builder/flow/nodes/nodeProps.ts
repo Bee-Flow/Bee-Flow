@@ -7,7 +7,7 @@
  * the rest of a step through untouched — the server owns the full schema.
  */
 import type { FlowStep } from '../types';
-import type { BindingInput } from '../../../../../utils/bindingHelpers.types';
+import type { BindingInput } from '@/utils/bindingHelpers.types';
 import type { SidecarEntry } from '../diagramPaneTypes';
 import type { TriggerFilterValues } from '../settings/triggerFilters.types';
 

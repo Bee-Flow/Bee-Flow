@@ -1,5 +1,5 @@
 import React, { Suspense, useMemo, useState } from 'react';
-import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import FormBuilderFields from './FormBuilderFields';
 import type { FormPageEntry } from './formPages';
 

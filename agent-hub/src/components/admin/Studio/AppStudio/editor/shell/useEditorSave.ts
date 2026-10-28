@@ -5,13 +5,13 @@
  */
 import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, RefObject } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import toast from '../../../../../shared/Toast';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { AppEditorAction } from '../../state/appEditorState';
 import useAppAutosaveJs from '../../state/useAppAutosave';
 import { studioAppsApi } from '../../studioAppsApi';
-import { messageOf } from '../../../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 /** The server's newer definition, when a save lost the race. */
 export interface SaveConflict {

@@ -1,8 +1,8 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { walkPath } from '../../../../../../utils/bindingHelpers';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { walkPath } from '@/utils/bindingHelpers';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import AccordionSection from '../../AccordionSection';
 import { hintTextClass, inputClass, rowInputClass } from '../formPrimitives';
 import StepField from './StepField';

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which paths under `data/uploads` may be served without authentication.
  *
@@ -49,6 +49,8 @@ function isPublicUploadPath(urlPath) {
 /**
  * Express middleware: 404 anything the allowlist does not cover.
  * @param {() => void} next
+ * @param {{ path: string; }} req
+ * @param {{ sendStatus: (arg0: number) => unknown; }} res
  */
 function publicUploadsOnly(req, res, next) {
     if (!isPublicUploadPath(req.path)) return res.sendStatus(404);

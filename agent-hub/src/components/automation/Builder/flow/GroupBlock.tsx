@@ -6,7 +6,7 @@ import { stepDragProps } from './stepDrag';
 import type { AddFn } from './AddStepMenu.types';
 import type { StepGroup } from './stepPalette.types';
 import type { AppCategory, PaletteItem, RibbonApp } from './ribbon/ribbonCategories';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export function GroupBlock({ group, singleGroup, onAdd }: { group: StepGroup; singleGroup: boolean; onAdd: AddFn }) {
     const { t } = useTranslation();

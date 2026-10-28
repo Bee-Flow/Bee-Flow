@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectMembers } from '../../../../api/queries/projects';
+import type { ProjectMembers } from '@/api/queries/projects';
 import { AI_TONE, aiToneFor, hueOf } from '../projectVisuals';
 import { buildChatPeople } from './chatPeople';
 

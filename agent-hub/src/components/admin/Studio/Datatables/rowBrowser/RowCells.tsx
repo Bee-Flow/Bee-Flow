@@ -2,7 +2,7 @@ import { Link2 } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { DtColumn, DtMirror, DtRow, RowSort } from './rowBrowserModel';
 import { ColumnKindIcon } from './typedViews';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { cellText } from '../../AppStudio/tables/rowValues';
 import { MANAGED_COLUMNS, columnLabel, rowExpiry } from '../datatableDisplay';
 

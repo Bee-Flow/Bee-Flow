@@ -1,11 +1,11 @@
 import { AlertTriangle, Loader2, Lock } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { useLicenseContext } from '../../../../../licensing/LicenseContext';
-import Button from '../../../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useLicenseContext } from '@/components/licensing/LicenseContext';
+import Button from '@/components/shared/Button';
 import DeployDialog from '../DeployDialog';
 import { useStageLabel } from '../StageSwitcher';
-import type { ApiResult, PipelineStage, StageKey } from '../../../../../../api/stagesApi';
+import type { ApiResult, PipelineStage, StageKey } from '@/api/stagesApi';
 import AccessSection from './AccessSection';
 import AddressesSection from './AddressesSection';
 import BindingsSection from './BindingsSection';

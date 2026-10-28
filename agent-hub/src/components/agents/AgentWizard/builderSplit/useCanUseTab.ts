@@ -8,7 +8,7 @@
  */
 import { useCallback, useMemo } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import { useLinkedAutomationIds } from '../../../../api/queries/automation/agentBindings';
+import { useLinkedAutomationIds } from '@/api/queries/automation/agentBindings';
 import { INTEGRATION_CATALOG } from '../../AgentDesigner/integrations';
 import type { ReadState } from '../canUse/canUseFacts';
 import { READ, datatableGrantsOf, datatableRows, knowledgeBaseRows, skillRows } from '../canUse/canUseFacts';

@@ -1,4 +1,3 @@
-// @typecheck noImplicitAny
 /**
  * Mirror Nextcloud users + groups into Bee Flow.
  *
@@ -23,7 +22,7 @@
  * controls whether mirrored users land 'active' or 'pending' for admin
  * approval — set to 'pending' for high-trust enterprise orgs.
  */
-
+// @typecheck noImplicitAny
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
@@ -307,8 +306,8 @@ async function applyUserDeleted(org, ncUid) {
 }
 
 /**
- * @param {NcOrg} org
- * @param {string} ncUid
+ * The event names the group; the whole user is re-read, so it is not used.
+ * @type {(org: NcOrg, ncUid: string, groupId?: string | null) => ReturnType<typeof _applyGroupMemberChange>}
  */
 async function applyGroupMemberChange(org, ncUid /* , groupId */) {
     return await _withSyncingUid(org, ncUid, () => _applyGroupMemberChange(org, ncUid));

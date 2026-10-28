@@ -3,13 +3,13 @@ import React from 'react';
 import AgentCardFooter from './AgentCardFooter';
 import { CATEGORY, EDIT, categoryOf, countsOf, editVerdict } from './agentCardFacts';
 import type { AgentListRow, CategoryLike } from './agentCardFacts';
-import { DEFAULT_AGENT_EMOJI, isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../../../utils/agentAvatar';
+import { DEFAULT_AGENT_EMOJI, isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '@/utils/agentAvatar';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { kindTileStyle } from '../../shared/kindColors';
 import StatusActionPill from '../../shared/StatusActionPill';
 import { audienceLabel, audienceModeOf, makeGroupNamer } from '../../shared/VisibilityCapsule';
 import { publishedVersionOf } from '../AgentWizard/builderSplit/AgentEditorHeader';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 
 export interface AgentCardProps<T extends AgentListRow> {

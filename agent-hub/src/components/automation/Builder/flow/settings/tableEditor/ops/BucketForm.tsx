@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnSelect } from '../TableColumnSelect';
 import type { Band, BucketOp } from '../tableOpModel';
 import { AddButton, ListInput, NumberInput, Radios, Row, TextInput } from './inputs';

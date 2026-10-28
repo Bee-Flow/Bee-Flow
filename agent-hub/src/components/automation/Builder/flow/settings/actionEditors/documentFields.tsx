@@ -1,12 +1,12 @@
 // The two document steps: make a PDF or Word file out of an upstream step's
 // text, and fill a document designed in Studio placeholder by placeholder.
 import { useEffect, useMemo, useState } from 'react';
-import { listTemplates, documentRequest } from '../../../../../../pages/documents/documentsApi';
-import TemplateField from '../../../mapping/TemplateField';
-import useForEachRequest from '../../../mapping/useForEachRequest';
+import { listTemplates, documentRequest } from '@/pages/documents/documentsApi';
+import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
+import useForEachRequest from '@/components/automation/Builder/mapping/useForEachRequest';
 import AccordionSection from '../../AccordionSection';
 import { AMBER_NOTE, cardClass, FormRow, hintTextClass, inputClass } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepEditorProps } from '../collectionEditors';
 
 /**

@@ -7,11 +7,11 @@
  * instead of quietly doing nothing.
  */
 import { useCallback, useState, type MutableRefObject } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import useTranslation from '../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
 import { editorHtml } from './editorHandle';
-import { errorMessage } from '../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 interface Options {
     notebookId: string;

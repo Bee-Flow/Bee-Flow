@@ -1,6 +1,6 @@
-import { INTEGRATION_CATALOG as CANONICAL_CATALOG, orderCategories } from '../../../config/integrationCatalog';
-import type { IntegrationEntry } from '../../../config/integrationCatalog';
-import { getIntegrationIcon } from '../../../config/integrationIcons';
+import { INTEGRATION_CATALOG as CANONICAL_CATALOG, orderCategories } from '@/config/integrationCatalog';
+import type { IntegrationEntry } from '@/config/integrationCatalog';
+import { getIntegrationIcon } from '@/config/integrationIcons';
 
 /**
  * The app catalogue of the agent surfaces — DERIVED, not kept separately.

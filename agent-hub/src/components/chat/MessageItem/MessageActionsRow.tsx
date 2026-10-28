@@ -1,7 +1,7 @@
 import { Copy, Check, ChevronDown, ThumbsUp, ThumbsDown, RefreshCw, Download, FileText, type LucideIcon } from 'lucide-react';
 import type { RefObject } from 'react';
 import ReactDOM from 'react-dom';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { TIER_META } from '../../licensing/tierMeta';
 import type { ChatMessage } from './messageTypes';

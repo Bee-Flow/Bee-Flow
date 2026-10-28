@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { Computed } from './sheetEngine';
 import SheetChartKpi from './SheetChartKpi';
 import SheetChartPlot from './SheetChartPlot';

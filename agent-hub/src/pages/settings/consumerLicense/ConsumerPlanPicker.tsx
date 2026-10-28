@@ -1,7 +1,7 @@
 import { ArrowUpRight, Check, CreditCard, Loader2 } from 'lucide-react';
 import type { RefObject } from 'react';
-import { BILLING_ACTION } from '../../../components/billing/billingTheme';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { BILLING_ACTION } from '@/components/billing/billingTheme';
+import { useTranslation } from '@/hooks/useTranslation';
 import { currencySymbol, isPaidPlan, type ConsumerPlan } from './consumerBilling';
 import type { ConsumerBilling } from './useConsumerBilling';
 

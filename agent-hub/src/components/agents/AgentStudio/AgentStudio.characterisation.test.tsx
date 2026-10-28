@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderWithClient } from '../../../test/render';
+import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentStudio from './index';
@@ -29,8 +29,8 @@ const { authFetch } = vi.hoisted(() => ({
     authFetch: vi.fn<(url: string, init?: RequestInit) => Promise<FakeResponse>>(),
 }));
 
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../utils/helpers')>()),
+vi.mock('@/utils/helpers', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/utils/helpers')>()),
     API_BASE: '',
     authFetch,
 }));

@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { integrationsAdminKeys, useNcScopeQuery } from '../../../api/queries/integrationsAdmin';
-import { mutate } from '../../../api/mutate';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { integrationsAdminKeys, useNcScopeQuery } from '@/api/queries/integrationsAdmin';
+import { mutate } from '@/api/mutate';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import type { DesignElement } from '../../admin/Studio/Playbooks/phaseMachine';
 import type { ScopeMap, ScopeBody } from './NcScopeSection.types';
 import { MODE_ALL, MODE_SELECTED, MODE_OFF, ScopeRow } from './ScopeRow';

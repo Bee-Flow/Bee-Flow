@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getModelMeta, isReasoningCapable } from './modelMeta';
 import type { CatalogModel } from './tierTypes';
-import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
+import { getAiConfig, postAiConfig } from '@/api/aiConfig';
 
 const NON_CHAT_CATEGORIES = ['Embedding', 'OCR', 'Moderation', 'Audio'];
 

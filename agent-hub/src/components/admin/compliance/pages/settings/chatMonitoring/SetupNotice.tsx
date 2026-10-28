@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { DateInput, Field, TextInput, Toggle } from './formAtoms';
 import { defaultStartDate } from './chatMonitoringForm';
 import RopaPreview from './RopaPreview';

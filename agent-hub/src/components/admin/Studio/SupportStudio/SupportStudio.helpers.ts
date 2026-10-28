@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SupportThread } from './index.types';
 
 export const NOT_SUPPORT_TAG = 'not-support';

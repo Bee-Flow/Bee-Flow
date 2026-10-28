@@ -3,16 +3,16 @@ import userEvent, { UserEvent } from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import DpiaPage, { dpiaRows, defaultExpiry, DPIA_CHECK_ID } from './DpiaPage';
-import { renderWithClient } from '../../../../test/render';
-import { TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
+import { renderWithClient } from '@/test/render';
+import { TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 // The drawer reads the full record (answers included): the register list
 // carries none (dpiaStore.listForOrg).
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
     return { ...actual, fetchJson: (...args: Parameters<typeof fetchJson>) => fetchJson(...args) };
 });

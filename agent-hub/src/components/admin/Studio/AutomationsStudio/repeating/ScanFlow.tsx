@@ -1,11 +1,11 @@
 import { ChevronDown, ChevronRight, Loader2, ShieldAlert, ShieldCheck, Square } from 'lucide-react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { CANVAS_CHIP } from '../../../../automation/Builder/flow/canvasClasses';
-import type { MiniStatus } from '../../../../automation/Builder/flow/canvasClasses';
-import CanvasPill from '../../../../automation/Builder/flow/CanvasPill';
-import MiniFlow from '../../../../automation/Builder/flow/MiniFlow';
-import type { MiniNodeProps } from '../../../../automation/Builder/flow/MiniNode';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import { CANVAS_CHIP } from '@/components/automation/Builder/flow/canvasClasses';
+import type { MiniStatus } from '@/components/automation/Builder/flow/canvasClasses';
+import CanvasPill from '@/components/automation/Builder/flow/CanvasPill';
+import MiniFlow from '@/components/automation/Builder/flow/MiniFlow';
+import type { MiniNodeProps } from '@/components/automation/Builder/flow/MiniNode';
 import { eventsText } from './patternView';
 import type { RunState, SourceStep } from './useRepeatingScan';
 

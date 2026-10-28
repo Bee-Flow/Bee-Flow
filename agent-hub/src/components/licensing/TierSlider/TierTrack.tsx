@@ -1,5 +1,5 @@
 import type { TierTrackProps } from '../TierSlider.types';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { THUMB_PAD, THUMB_RADIUS, FILL_START_PCT, FILL_MIN_END_PCT, FILL_MAX_END_PCT } from './TierSlider.constants';
 
 /** Horizontal centre of stop `i`, as a CSS length usable by both rows. */

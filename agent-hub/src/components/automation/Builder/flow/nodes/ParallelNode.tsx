@@ -2,7 +2,7 @@ import React from 'react';
 import { GitFork } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { NodeStep, StepNodeProps, SummaryText } from './nodeProps';
 
 /**

@@ -2,8 +2,8 @@
  * How a step's input and output read in one line each: the timeline card's
  * result, the "Got in / Passed on" rows, and which list gets the table.
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
 import { stepPayload } from '../flow/stepPayload';
 import { humanizeExpression as humanizeExpressionJs, humanizeTemplate, humanizeToolName } from '../flow/displayHelpers';
 

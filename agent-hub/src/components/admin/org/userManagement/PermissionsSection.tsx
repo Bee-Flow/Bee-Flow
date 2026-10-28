@@ -1,6 +1,6 @@
 import { Key } from 'lucide-react';
 import type { AdminPermission } from './types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface PermissionsSectionProps {
     permissions: AdminPermission[];

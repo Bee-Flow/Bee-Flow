@@ -1,6 +1,6 @@
 import { ArrowUpRight, CircleCheck, Scale, TriangleAlert } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "Linked to Compliance" — the two framework checks this document drives.

@@ -6,10 +6,10 @@ import PermissionList from './PermissionList';
 import UpdatePolicySelector from './UpdatePolicySelector';
 import type { PolicyChange } from './UpdatePolicySelector';
 import VersionHistory from './VersionHistory';
-import { useMarketplaceModuleDetail, useModuleVersions } from '../../../api/queries/modules';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useMarketplaceModuleDetail, useModuleVersions } from '@/api/queries/modules';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
-import type { MarketplaceModuleDetail, ModuleHealthRow } from '../../../api/queries/modules.types';
+import type { MarketplaceModuleDetail, ModuleHealthRow } from '@/api/queries/modules.types';
 
 /** What the drawer calls on the shared useModuleActions hook (moduleActions.js). */
 interface ModuleDetailActions {

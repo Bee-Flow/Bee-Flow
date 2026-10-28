@@ -5,7 +5,7 @@ const t = (key: string, a: string, b: TranslateParams) => {
     const params = (a && typeof a === 'object') ? a : (b && typeof b === 'object' ? b : null);
     return params ? `${key} ${Object.values(params).join(' ')}` : key;
 };
-vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
+vi.mock('@/hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
 
 import VersionHistory, { canRollback, mergeVersionRows } from './VersionHistory';
 import type { TranslateParams } from '@/hooks/useTranslation';

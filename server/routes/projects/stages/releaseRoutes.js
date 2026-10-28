@@ -38,7 +38,7 @@ function makeReleaseRouter(d) {
     const packaging = gate(d, 'blueprint_packaging');
 
     /** POST /:id/releases */
-    router.post('/:id/releases', packaging, authMw(d, { dev: 'owner' }), validate({ body: S.CutReleaseBody }), async (req, res) => {
+    router.post('/:id/releases', packaging, authMw(d, { dev: 'owner' }), validate({ body: S.CutReleaseBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.CutReleaseBody>, import('qs').ParsedQs>} */ req, res) => {
         const { dev, userId } = req.stageCtx;
         const out = await d.cutRelease({ devProject: dev, actorId: userId, requestKey: req.body.requestKey || null, notes: req.body.notes || null }, d.cutDeps);
         const stages = await d.stageStore.listStages(dev.id);
@@ -72,7 +72,7 @@ function makeReleaseRouter(d) {
     });
 
     /** POST /:id/stages/:stage/plan */
-    router.post('/:id/stages/:stage/plan', packaging, authMw(d, { stage: 'owner' }), validate({ body: S.PlanBody }), async (req, res) => {
+    router.post('/:id/stages/:stage/plan', packaging, authMw(d, { stage: 'owner' }), validate({ body: S.PlanBody }), async (/** @type {import('express').Request<{ id: string, stage: string }, any, import('zod').infer<typeof S.PlanBody>, import('qs').ParsedQs>} */ req, res) => {
         const { stage } = req.stageCtx;
         const kind = req.body.kind || 'deploy';
         if (kind !== 'redeploy' && !req.body.releaseId) throw new HttpError(400, 'release_required', 'Choose the release to plan.');
@@ -80,7 +80,7 @@ function makeReleaseRouter(d) {
     });
 
     /** POST /:id/release-and-deploy: cut, plan, and deploy to UAT when nothing blocks. */
-    router.post('/:id/release-and-deploy', packaging, authMw(d, { dev: 'owner' }), validate({ body: S.ReleaseAndDeployBody }), async (req, res) => {
+    router.post('/:id/release-and-deploy', packaging, authMw(d, { dev: 'owner' }), validate({ body: S.ReleaseAndDeployBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ReleaseAndDeployBody>, import('qs').ParsedQs>} */ req, res) => {
         const { dev, userId } = req.stageCtx;
         const uat = await d.stageStore.getStageFor(dev.id, 'uat');
         if (!uat) throw notFound('stage_not_found', 'This Solution has no UAT stage yet.');

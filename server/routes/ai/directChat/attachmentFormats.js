@@ -65,11 +65,11 @@ async function extractOfficeText(buffer, mime, name, kindLabel) {
             if (await isAzureDocIntelligenceConfigured()) {
                 text = await extractWithAzure(buffer, name);
                 if (text) {
-                    log.info(`[DirectChat] ${kindLabel.extracted} extracted via Azure Document Intelligence: ${name} (${text.length} chars)`);
+                    log.info(`[DirectChat] ${kindLabel.extracted} extracted via Azure Document Intelligence: ${log.nameForLog(name)} (${text.length} chars)`);
                 }
             }
         } catch (azureErr) {
-            log.warn(`[DirectChat] Azure Document Intelligence failed for ${kindLabel.failed} ${name}:`, /** @type {Error} */ (azureErr).message);
+            log.warn(`[DirectChat] Azure Document Intelligence failed for ${kindLabel.failed} ${log.nameForLog(name)}:`, /** @type {Error} */ (azureErr).message);
         }
     }
     if (!text) {
@@ -104,7 +104,7 @@ async function handleImage(att, ctx) {
             // provider may fetch it.
             const { generateTempDownloadUrl } = require('../../../utils/tempDownloadUrl');
             inferenceUrl = generateTempDownloadUrl(stored.key, 900);
-            log.info(`[DirectChat] Image uploaded to RustFS → using URL for inference (${att.name})`);
+            log.info(`[DirectChat] Image uploaded to RustFS → using URL for inference (${log.nameForLog(att.name)})`);
         } catch (e) {
             log.warn(`[DirectChat] Failed to upload image to RustFS: ${/** @type {Error} */ (e).message}`);
         }
@@ -116,7 +116,7 @@ async function handleImage(att, ctx) {
         if (typeof att.content === 'string' && att.content.length <= IMAGE_FALLBACK_MAX_BASE64) {
             persistedAttachments.push({ name: att.name, type: att.type, content: att.content });
         } else {
-            log.warn(`[DirectChat] Storage unavailable and image too large to inline-persist (${att.name || 'unnamed'})`);
+            log.warn(`[DirectChat] Storage unavailable and image too large to inline-persist (${log.nameForLog(att.name)})`);
         }
     }
     // Send as image data only if the current model supports vision
@@ -124,7 +124,7 @@ async function handleImage(att, ctx) {
         const imageDataUrl = inferenceUrl || att.content;
         contentParts.push({ type: 'image_url', image_url: { url: imageDataUrl, detail: 'auto' } });
         if (!inferenceUrl) {
-            log.info(`[DirectChat] RustFS unavailable — using base64 for ${att.name || 'unnamed'}`);
+            log.info(`[DirectChat] RustFS unavailable — using base64 for ${log.nameForLog(att.name)}`);
         }
     } else {
         // Non-vision model: add a descriptive text note instead of a broken image reference
@@ -163,7 +163,7 @@ async function handlePdf(att, ctx) {
         const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = require('../../../core/documents/attachmentExtractor');
         const { nativePdfPart, isShieldActive } = require('../../../core/documents/nativePdf');
         const result = await extractAttachment(att, { modelSupportsVision: adapter.supportsVision(modelId) });
-        log.info(`[DirectChat] PDF ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
+        log.info(`[DirectChat] PDF ${log.nameForLog(att.name)} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
 
         if (result.kind === 'text') {
             // Privacy Shield: tokenise / block before the text is inlined into
@@ -210,7 +210,7 @@ async function handlePdf(att, ctx) {
             await pushAttachment({ name: att.name, type: att.type, url: pdfProxyUrl }, failureNote);
         }
     } catch (e) {
-        log.error(`[DirectChat] PDF processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        log.error(`[DirectChat] PDF processing failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
         contentParts.push({ type: 'text', text: `[PDF: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }
@@ -247,7 +247,7 @@ async function handleOffice(att, ctx) {
             const docText = `[${officeLabel}: ${att.name}]\n---\n${safeDocxText}\n---`;
             contentParts.push({ type: 'text', text: docText });
             await pushAttachment({ name: att.name, type: att.type, url: docxProxyUrl }, docText);
-            log.info(`[DirectChat] Extracted ${docxText.length} chars from DOCX: ${att.name}`);
+            log.info(`[DirectChat] Extracted ${docxText.length} chars from DOCX: ${log.nameForLog(att.name)}`);
         } else {
             // extraction returned empty/error: fall back to container
             const note = `[${officeLabel}: ${att.name} — no extractable text, may contain only images]`;
@@ -255,7 +255,7 @@ async function handleOffice(att, ctx) {
             await pushAttachment({ name: att.name, type: att.type, url: docxProxyUrl }, note);
         }
     } catch (e) {
-        log.error(`[DirectChat] ${isDeck ? 'PPTX' : 'DOCX'} processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        log.error(`[DirectChat] ${isDeck ? 'PPTX' : 'DOCX'} processing failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
         contentParts.push({ type: 'text', text: `[${isDeck ? 'PPTX' : 'DOCX'}: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }
@@ -283,14 +283,14 @@ async function handleSpreadsheet(att, ctx) {
             const docText = `[Spreadsheet: ${att.name}]\n---\n${safeSheetText}\n---${importedNote}`;
             contentParts.push({ type: 'text', text: docText });
             await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, docText);
-            log.info(`[DirectChat] Extracted ${sheetText.length} chars from spreadsheet: ${att.name}`);
+            log.info(`[DirectChat] Extracted ${sheetText.length} chars from spreadsheet: ${log.nameForLog(att.name)}`);
         } else {
             const note = (sheetText || `[Spreadsheet: ${att.name} — no data found]`) + importedNote;
             contentParts.push({ type: 'text', text: note });
             await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, note);
         }
     } catch (e) {
-        log.error(`[DirectChat] Spreadsheet processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        log.error(`[DirectChat] Spreadsheet processing failed for ${log.nameForLog(att.name)}:`, /** @type {Error} */ (e).message);
         contentParts.push({ type: 'text', text: `[Spreadsheet: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }

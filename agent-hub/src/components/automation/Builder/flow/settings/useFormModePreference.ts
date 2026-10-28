@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FORM_MODES } from './formDensity';
-import scopedStorage from '../../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 const KEY = 'ndvFormMode';
 

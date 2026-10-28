@@ -29,7 +29,7 @@ const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).s
 
 // ── List transcriptions ──────────────────────────────────
 
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const limit = Math.min(/** @type {{limit?: number}} */ (/** @type {unknown} */ (req.query)).limit ?? 50, 100);
     const offset = Math.max(/** @type {{offset?: number}} */ (/** @type {unknown} */ (req.query)).offset ?? 0, 0);
@@ -57,7 +57,7 @@ const RESERVED_GET_PATHS = new Set(['nextcloud-audio-files', 'nextcloud-talk-rec
 router.get('/:id', requireAuth,
     (req, res, next) => (RESERVED_GET_PATHS.has(/** @type {string} */ (req.params.id)) ? next('route') : next()),
     validate({ query: NO_QUERY }),
-    async (req, res) => {
+    async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, { orgIds, userGroupIds, isSuperAdmin });
@@ -70,7 +70,7 @@ router.get('/:id', requireAuth,
 // "Previously in this series": the most recent earlier note recorded from the
 // same Google Meet code / Talk room, ACL-checked twice (this note + the
 // previous one). Notes without a series link answer { previous: null }.
-router.get('/:id/series-previous', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/:id/series-previous', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const ctx = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, ctx);

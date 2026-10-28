@@ -21,7 +21,7 @@ vi.mock('./knowledgeApi', () => {
 
 // useUsage's default transport goes through authFetch; K5 lands the endpoint,
 // so until then a 404 is the honest answer and the tab must survive it.
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: false, status: 404, json: async () => ({ error: 'not found' }) })),
 }));

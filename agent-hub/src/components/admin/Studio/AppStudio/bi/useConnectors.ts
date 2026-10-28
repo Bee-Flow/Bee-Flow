@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { Connector, ConnectorParam } from './connectors/connectorModel';
 
 /**

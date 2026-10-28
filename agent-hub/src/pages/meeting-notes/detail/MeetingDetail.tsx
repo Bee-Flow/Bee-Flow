@@ -14,19 +14,19 @@ import useMeetingCommands from './useMeetingCommands';
 import useMeetingEdits from './useMeetingEdits';
 import useMeetingPaneState from './useMeetingPaneState';
 import WaveformPlayer from './WaveformPlayer';
-import DangerZone from '../../../components/shared/DangerZone';
-import Modal from '../../../components/shared/Modal';
-import { toast } from '../../../components/shared/Toast';
-import useConfirm from '../../../components/shared/useConfirm';
-import { kindLabelFor } from '../../../components/shared/UsedByTab';
-import useTranslation from '../../../hooks/useTranslation';
-import useUsage from '../../../hooks/useUsage';
+import DangerZone from '@/components/shared/DangerZone';
+import Modal from '@/components/shared/Modal';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
+import { kindLabelFor } from '@/components/shared/UsedByTab';
+import useTranslation from '@/hooks/useTranslation';
+import useUsage from '@/hooks/useUsage';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useTranscription from '../hooks/useTranscription';
-import * as api from '../../../api/transcriptionsApi';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import * as api from '@/api/transcriptionsApi';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ApiError, MeetingNote, MeetingRowPatch } from './meetingDetailTypes';
-import type { UsageRow } from '../../../hooks/useUsage';
+import type { UsageRow } from '@/hooks/useUsage';
 
 /**
  * "Used by n" — ONE fetch for the tab badge, the tab body, the outputs bar

@@ -1,8 +1,8 @@
 import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAutomationTrashQuery, useRestoreAutomationMutation } from '../../../../api/queries/automation/library';
-import type { TrashedAutomation } from '../../../../api/queries/automation/library';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAutomationTrashQuery, useRestoreAutomationMutation } from '@/api/queries/automation/library';
+import type { TrashedAutomation } from '@/api/queries/automation/library';
 
 const DAY_MS = 86_400_000;
 

@@ -435,7 +435,7 @@ describe('a column is called what a person would call it, not what the database 
         // the person reading them. Two humanisers would eventually call
         // `from_email` different things on two screens — which is exactly the
         // argument ColumnKind.jsx already makes for borrowing FieldKindIcon.
-        const { humanizeFieldKey } = await import('../../../automation/Builder/flow/displayHelpers');
+        const { humanizeFieldKey } = await import('@/components/automation/Builder/flow/displayHelpers');
         for (const key of ['from_email', 'htmlUrl', 'messageId', 'pdf_url', 'created_at']) {
             expect(columnLabel({ key })).toBe(humanizeFieldKey(key));
         }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { COL_MAX, COL_MIN, INPUT_DEFAULT, OUTPUT_DEFAULT, type NdvNarrowSide, type NdvSide } from './ndv/ndvLayout';
 
 /** What the step editor's chrome reads off this hook. */

@@ -6,8 +6,8 @@
  */
 import React, { useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Check, Copy, Globe, Settings2, ShieldCheck, Timer } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { logger } from '../../../../../utils/logger';
+import { useTranslation } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /** The public route App.jsx mounts before any auth handling. */
 const PUBLIC_DSR_PATH = '/privacy/requests';

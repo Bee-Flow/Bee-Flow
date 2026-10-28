@@ -2,8 +2,8 @@ import { AlertTriangle, Building2, ChevronRight, Loader2, Lock, Timer, User, Use
 import React from 'react';
 import { audienceOf, GRADE_LABEL, GROUPS, ORG, isSourceMirror, sourceNameOf, tableKindOf } from './datatableDisplay';
 import { sourceGlyphOf } from './sourceGlyphs';
-import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { kindIcon, kindTileStyle } from '@/components/shared/kindColors';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface DatatableSync {
     status?: string;

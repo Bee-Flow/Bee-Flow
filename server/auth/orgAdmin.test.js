@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit — _evalOrgAdmin pure org-admin predicate (H4). DB-free: a recording
  * pool answers whatever permissions.js's module-load dependencies ask, then

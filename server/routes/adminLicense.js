@@ -169,7 +169,7 @@ router.get('/', validate({ query: ListQuery }), async (/** @type {import('expres
 });
 
 // ── POST /grant ────────────────────────────────────────────────────────
-router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
+router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GrantBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const {
             scope, organizationId, tier, expiresAt,
@@ -202,7 +202,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
             }).catch(e => ({ success: false, error: e.message }));
             result.emailDelivery = delivery;
             if (!delivery?.success) {
-                log.warn(`[Admin License] email.delivery_failed to=${deliverEmail} reason=${delivery?.error || 'unknown'}`);
+                log.warn(`[Admin License] email.delivery_failed to=${log.textForLog(deliverEmail)} reason=${delivery?.error || 'unknown'}`);
                 try {
                     const userStore = require('../stores/userStore');
                     await userStore.logSubscriptionAudit('email_send_failed', 'license', result.license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });
@@ -282,7 +282,7 @@ router.post('/:id/extend', validate({ body: ExtendBody }), async (/** @type {imp
 });
 
 // ── POST /import ───────────────────────────────────────────────────────
-router.post('/import', validate({ body: ImportBody }), async (req, res) => {
+router.post('/import', validate({ body: ImportBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ImportBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const { blob, organizationId } = req.body;
         const result = await adminIssuance.importAdminLicense(blob, {

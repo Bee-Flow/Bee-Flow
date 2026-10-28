@@ -1,9 +1,9 @@
 import { PlugZap } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { MS_PER_MINUTE } from '../../../../../../constants/units';
-import useRelativeTime from '../../../../../../hooks/useRelativeTime';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import { MS_PER_MINUTE } from '@/constants/units';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface GuardStatus { configured?: boolean; reachable?: boolean }
 

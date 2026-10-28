@@ -3,7 +3,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 // patch them. Self-gated: a no-op unless OTEL is enabled (see telemetry/otel).
 const otel = require('./telemetry/otel');
 const express = require('express');
-
+// @typecheck
 // Core modules
 const componentManager = require('./core/cms/componentManager');
 require('./core/executionEngine');

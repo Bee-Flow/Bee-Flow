@@ -8,8 +8,8 @@ import React, { useState } from 'react';
 import {
     ORG_MEMORY_MAX_PER_USER, ORG_MEMORY_MIN_PER_USER,
     useClearOrgMemory, useOrgMemory, useSaveOrgMemory, type OrgMemoryState,
-} from '../../../api/queries/orgMemory';
-import { useTranslation } from '../../../hooks/useTranslation';
+} from '@/api/queries/orgMemory';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nOf } from '../Studio/KnowledgeStudio/plural';
 import Button from '../../shared/Button';
 import FormField from '../../shared/FormField';
@@ -18,7 +18,7 @@ import Section from '../../shared/Section';
 import { toast } from '../../shared/Toast';
 import Toggle from '../../shared/Toggle';
 import useConfirm from '../../shared/useConfirm';
-import { errorStatus } from '../../../utils/caughtError';
+import { errorStatus } from '@/utils/caughtError';
 
 const CONFIRM_WORD = 'DELETE';
 

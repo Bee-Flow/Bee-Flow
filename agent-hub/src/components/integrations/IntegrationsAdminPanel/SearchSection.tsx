@@ -3,10 +3,10 @@
 // IntegrationsAdminPanel.jsx; all bindings are threaded in as props.
 import { Check, Loader2, Settings } from 'lucide-react';
 import React from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { SearchSectionProps } from './adminPanel.types';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 export default function SearchSection({
     searchProvider, setSearchProvider,

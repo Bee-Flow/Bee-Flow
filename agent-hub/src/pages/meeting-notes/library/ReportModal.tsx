@@ -1,12 +1,12 @@
 import { Copy, Loader2, Sparkles } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import Modal from '../../../components/shared/Modal';
-import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
-import useTranslation from '../../../hooks/useTranslation';
-import { reportMeetings } from '../../../api/transcriptionsApi';
+import Modal from '@/components/shared/Modal';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import useTranslation from '@/hooks/useTranslation';
+import { reportMeetings } from '@/api/transcriptionsApi';
 import type { LibraryMeeting } from './MeetingRow';
-import { errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 interface ReportResult {
     report: string;

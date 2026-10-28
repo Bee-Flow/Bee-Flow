@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useSupportSlaPoliciesQuery } from '../../../api/queries/supportPanels';
+import { useSupportSlaPoliciesQuery } from '@/api/queries/supportPanels';
 import { Save } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { RefusedError, mutate, errorBody } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { RefusedError, mutate, errorBody } from '@/api/mutate';
 
 interface SlaPolicy {
     priority: string;

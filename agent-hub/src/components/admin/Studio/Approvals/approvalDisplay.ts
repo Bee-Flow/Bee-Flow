@@ -4,8 +4,8 @@
  * timestamp reads.
  */
 
-import { hrefOf, pipelineTarget } from '../../../shared/managedPart';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { hrefOf, pipelineTarget } from '@/components/shared/managedPart';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface ApprovalStageInfo {
     key?: string;

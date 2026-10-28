@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Streaming agent chat — per-turn tool stack assembly.
  *
@@ -189,7 +189,8 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         const toolName = tc.componentId.replace(/-/g, '_');
         toolParamsMap[toolName] = tc.params;
     }
-    log.info('[AgentRuntime] Tool params map:', JSON.stringify(toolParamsMap, null, 2));
+    // The fixed values themselves can be an address or a name an admin pinned: only their keys go to the log.
+    log.info('[AgentRuntime] Tool params map:', JSON.stringify(Object.fromEntries(Object.entries(toolParamsMap).map(([k, v]) => [k, Object.keys(v && typeof v === 'object' ? v : {})]))));
 
     const unattended = isUnattended(messageMetadata);
     const narrowed = narrowToolsForTurn({ tools, agent, agentId, messageMetadata });

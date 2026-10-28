@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch: (...a: unknown[]) => unknown }).__authFetch(...args),
 }));
 
 import DeployDialog, { type DeployRequest } from './DeployDialog';
-import type { Plan } from '../../../../../api/stagesApi';
+import type { Plan } from '@/api/stagesApi';
 
 /**
  * The deploy dialog: an acknowledgement is required, a stale plan is re-planned

@@ -34,8 +34,10 @@ function unreadableConnector(connectorId, e) {
 
 /**
  * Read one connector's config and, when it is enabled, its latest snapshots.
- * @returns {Promise<{config: any, snaps: any[]} | {failed: object}>}
+ * @param {{ getConfig: (orgId: unknown, connector: string) => Promise<ConnectorConfig | null>; listLatestSnapshots: (orgId: unknown, connector: string) => Promise<Array<Partial<DbRow.IsoEvidenceSnapshots>>>; }} store
+ * @param {unknown} orgId
  * @param {string} connectorId
+ * @returns {Promise<{ config: ConnectorConfig | null, snaps: Array<Partial<DbRow.IsoEvidenceSnapshots>>, failed?: undefined } | { failed: ReturnType<typeof unreadableConnector>, config?: undefined, snaps?: undefined }>}
  */
 async function readConnector(store, orgId, connectorId) {
     try {
@@ -50,6 +52,7 @@ async function readConnector(store, orgId, connectorId) {
 
 /**
  * The latest snapshot of the configured subject among listLatestSnapshots' rows, or null.
+ * @param {Array<Partial<DbRow.IsoEvidenceSnapshots>> | null | undefined} snaps
  * @param {string} subjectId
  */
 function snapshotFor(snaps, subjectId) {
@@ -58,3 +61,6 @@ function snapshotFor(snaps, subjectId) {
 }
 
 module.exports = { unreadableConnector, readConnector, snapshotFor };
+
+/** @typedef {Partial<DbRow.IsoConnectorConfigs>} ConnectorConfig  one connector's stored settings */
+/** @typedef {{ status: string, evidence: Record<string, unknown>, details: string }} CheckOutcome  what a check's evaluate() answers */

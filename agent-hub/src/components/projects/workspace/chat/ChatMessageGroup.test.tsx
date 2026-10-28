@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
 import ChatMessageGroup from './ChatMessageGroup';
 import type { MessageContext } from './ChatMessageBubble';
 import type { MessageGroup } from './messageGroups';

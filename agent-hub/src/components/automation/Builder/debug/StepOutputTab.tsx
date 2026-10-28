@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Copy as CopyIcon } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import OutputView from '../OutputView';
 import ErrorCard, { type ErrorFix, type StepErrorInfo } from '../output/ErrorCard';
 import ExpectedFields from '../output/ExpectedFields';

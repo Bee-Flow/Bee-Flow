@@ -9,12 +9,12 @@ import ObjectiveDrawer from './ObjectiveDrawer';
 import type { SetHeaderActions } from './useHeaderPrimary';
 import useHeaderPrimary from './useHeaderPrimary';
 import type { OrgUser } from '../accessAuditLabels';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { DataTableContext } from '../../../../shared/DataTable';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
-import DeadlineClock from '../../../../shared/DeadlineClock';
-import EmptyState from '../../../../shared/EmptyState';
-import SideDrawer from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext } from '@/components/shared/DataTable';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import EmptyState from '@/components/shared/EmptyState';
+import SideDrawer from '@/components/shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import useDrawerMode from '../../shared/useDrawerMode';
 

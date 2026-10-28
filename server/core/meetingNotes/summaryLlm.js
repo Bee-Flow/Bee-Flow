@@ -488,7 +488,7 @@ Chapters must be in chronological order and cover the whole meeting; the first s
                     log.warn(`[Transcriptions] chapter timestamps unusable — distributed ${chapters.length} titled chapters evenly across ${formatTime(clocks.lastEnd)}`);
                 }
             }
-            log.info(`[Transcriptions] Chapters: ${chapters.map(c => `${c.start} ${c.title}`).join(' | ')}`);
+            log.info(`[Transcriptions] Chapters: ${chapters.length}`);
             return chapters;
         }
     } catch (err) {

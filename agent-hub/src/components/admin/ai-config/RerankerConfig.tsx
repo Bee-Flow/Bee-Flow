@@ -3,10 +3,10 @@ import type { ProviderCardProps } from './ProviderCards/ProviderApiKeyCard';
 import DeleteConfirmButtons from './ProviderCards/shared/DeleteConfirmButtons';
 import SecretInput from './ProviderCards/shared/SecretInput';
 import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
-import useProviderConfig from '../../../hooks/useProviderConfig';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
+import useProviderConfig from '@/hooks/useProviderConfig';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 const hasChanges = (endpoint: string, apiKey: string, model: string, savedModel: string): boolean => !!endpoint.trim() || !!apiKey.trim() || model !== savedModel;
 

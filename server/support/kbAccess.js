@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Request-level knowledge-base access checks.
  *
@@ -106,7 +107,7 @@ async function partitionAccessibleKBIds(req, ids) {
  * Fails CLOSED: a caller whose orgs/groups cannot be resolved gets an empty
  * list, never an unfiltered one.
  *
- * @param {object} req
+ * @param {import('express').Request} req
  * @param {string[]} ids
  * @param {{surface?: string}} [opts]
  * @returns {Promise<string[]>} the ids that survive, in the order given

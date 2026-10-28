@@ -4,7 +4,7 @@
 
 import { Sparkles, X } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { ICON_BUTTON } from '../editor/ui';
 import SheetAssistantComposer from './SheetAssistantComposer';
 import SheetAssistantMessages, { Suggestions } from './SheetAssistantMessages';

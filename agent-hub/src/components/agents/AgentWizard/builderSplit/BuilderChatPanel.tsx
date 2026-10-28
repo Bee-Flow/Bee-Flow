@@ -1,14 +1,14 @@
 import { ArrowUp, Loader2 } from 'lucide-react';
 import type { RefObject, Dispatch, SetStateAction } from 'react';
-import beeFlowIcon from '../../../../assets/BeeFlow-logo-Icon-2026.svg';
-import ModelTierSelector from '../../../licensing/ModelTierSelector';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import PlanCard from '../PlanCard';
 import RefineDoneCard from './RefineDoneCard';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ChatMessage } from '../agentEditor.types';
 import type { createHandleRefine } from './refineActions';
-import type { ModelTierMap } from '../../../../hooks/useModelTierSelection';
+import type { ModelTierMap } from '@/hooks/useModelTierSelection';
 import type { AgentPlan } from '../PlanCard';
 
 // The refine rail ("refine this agent") of the builder split. Since A2 step 1

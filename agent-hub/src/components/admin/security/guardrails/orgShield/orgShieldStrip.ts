@@ -4,8 +4,8 @@ import { ACTIVITY_TAB, PIPELINE_TAB_IDS, TABS } from './orgShieldTabs';
 import { ownDataSummary } from './ownData/ownDataCopy';
 import { builtInOnly } from './ownData/ownDataModel';
 import type { CustomDataType } from './ownData/ownDataModel';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { presetFor } from '../../../../privacy/PiiSensitivityPicker';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { presetFor } from '@/components/privacy/PiiSensitivityPicker';
 
 /**
  * The path strip's items, each carrying its own read-out.

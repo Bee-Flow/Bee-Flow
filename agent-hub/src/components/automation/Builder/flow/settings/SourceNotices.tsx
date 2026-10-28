@@ -11,7 +11,7 @@
  * stays mounted and says what was done (never focus dropped on <body>).
  */
 import { useCallback, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { INLINE_LINK } from './formStyles';
 
 export interface RouteFollow {
@@ -44,8 +44,8 @@ export function useNoticeFix(): NoticeFix {
 }
 
 /** Always mounted next to the notices: takes focus after a fix and announces it. */
-export function NoticeFixAnchor({ fix }: { fix: NoticeFix }) {
-    return <div ref={fix.ref} tabIndex={-1} role="status" className="sr-only">{fix.message}</div>;
+export function NoticeFixAnchor({ fix: { ref, message } }: { fix: NoticeFix }) {
+    return <div ref={ref} tabIndex={-1} role="status" className="sr-only">{message}</div>;
 }
 
 type OnFixed = ((message: string) => void) | null | undefined;

@@ -82,6 +82,12 @@ and `npm run lint:secrets`.
   `editorCollab.cjs` are generated from `agent-hub/src/editor/` (`cd server && npm run
   build:editor-md` / `build:editor-collab`, with the esbuild the server locks). Each carries a
   sha256 of its inputs in its banner; the check recomputes it and fails on a stale bundle.
+- `npm run lint:api-reference`: `docs/static/openapi.json`, `docs/docs/api/reference.md` and
+  `docs/docs/api/reference/*.md` are GENERATED from the running app's router (every route, the gates
+  on its middleware chain, the zod schemas of its `validate({ body, query, params })`) by
+  `scripts/gen-api-reference.mjs`. A route or schema change makes them stale: run
+  `npm run gen:api-reference` and commit. It loads the server app, so it needs `server/node_modules`;
+  `check:fast` leaves it out and ci.yml's `server-checks` job runs it. Do not hand-edit those files.
 - `npm run lint:compose-drift`: the same third-party image has the same tag in every
   `docker-compose*.yml`, and the profiles used there match `ALL_PROFILES` in `selfhost.sh`.
 - Local images = CI images: `scripts/stage-server-context.sh` stages the server image's
@@ -89,12 +95,14 @@ and `npm run lint:secrets`.
   `build-images.ps1` all use it, and `build-images.test.mjs` asserts their service lists
   match the workflow.
 - `npm run lint:budget`: the eslint gate for `agent-hub` and `server`
-  (`scripts/eslint-budget.mjs`). The server keeps a warning ratchet (budget in
-  `server/.eslint-budget.json`; `--update` only lowers it), at 0. `agent-hub` has no warnings:
-  every rule is an error and the old violations sit in `agent-hub/eslint-suppressions.json`
-  (eslint bulk suppressions, a count per file and rule). A new violation fails; after fixing
-  some, `cd agent-hub && npm run lint:suppress:prune` drops the stale entries (eslint fails on
-  them until then). Never run `--suppress-all` to get green. `lint:eslint-disable-ratchet`
+  (`scripts/eslint-budget.mjs`). Both run in suppressions mode: no warnings, every rule is an
+  error, and the old violations sit in `agent-hub/eslint-suppressions.json` and
+  `server/eslint-suppressions.json` (eslint bulk suppressions, a count per file and rule). The
+  server's size rules (`complexity` 15, `max-lines-per-function` 80, `max-depth` 4,
+  `max-params` 5, the agent-hub thresholds; tests exempt) are suppressed that way. A new
+  violation fails; after fixing some, `cd agent-hub && npm run lint:suppress:prune` (or the
+  same in `server`) drops the stale entries (eslint fails on them until then). Never run
+  `--suppress-all` to get green. `lint:eslint-disable-ratchet`
   counts the `eslint-disable` comments in agent-hub (may only go down), and unused disable
   directives are errors.
 - `npm run lint:ts-ratchet`: the number of `.js`/`.jsx` files under `agent-hub/src` may only
@@ -131,7 +139,10 @@ and `npm run lint:secrets`.
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
   `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`
   (use `db.withTransaction`), `lint:db-in-routes-ratchet` (routes go through a store) and
-  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub).
+  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub) and
+  `lint:deep-imports-ratchet` (agent-hub imports climbing 3+ `../`: write `@/<path from src>`;
+  `node scripts/deep-imports.mjs [files]` rewrites them. Files mobile executes or mirrors keep
+  relative imports, see `scripts/deep-imports.exclude.json` and `mobile/jest.resolver.js`).
 - `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
   internal import graph, lazy `require`s included, `import type` excluded) in `server`,
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in

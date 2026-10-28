@@ -155,6 +155,18 @@ init-multi-db.sh
 
 # ── Coverage reports ──────────────────────────────────────────
 **/coverage/
+# The Python coverage reports ci.yml writes (classify at the root, guard in its
+# directory); the coverage ratchet reads them in the job that wrote them, never
+# from git. (The server shard outputs are in server/.gitignore.)
+/coverage-classify.json
+/coverage-classify.xml
+/guard-service/coverage-guard.json
+/guard-service/coverage-guard.xml
+
+# ── CI artifacts downloaded by hand (gh run download) ──────────
+# ci.yml's checks-passed job downloads the shard artifacts into this directory
+# at run time; a local copy is a snapshot of one old run.
+/server-shard-files/
 
 # ── Local buildx layer cache (scripts/build-images.sh) ─────────
 .buildx-cache/

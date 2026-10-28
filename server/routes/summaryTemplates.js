@@ -147,7 +147,7 @@ router.get('/org', requireAuth, async (req, res) => {
 });
 
 // ── Create ─────────────────────────────────────────────────────────
-router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
+router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const ctx = await resolveCtx(req);
     const { scope, name, prompt } = req.body;
     const isDefault = req.body.isDefault === true;

@@ -1,6 +1,6 @@
 import { Loader2, ShieldAlert, Video } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { analyticsApi, analyticsFetch, type AnalyticsSite } from '../../analyticsApi';
 import { rich } from '../rich';
 import { Card, ErrorNote } from '../AsyncCard';

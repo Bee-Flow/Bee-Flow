@@ -19,7 +19,7 @@ import type { ComponentProps } from 'react';
  */
 
 const getApproval = vi.fn();
-vi.mock('../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({
         getApproval: (id: string) => getApproval(id),
         approvalFileUrl: (id: string, fileId: string) => `/files/${id}/${fileId}`,

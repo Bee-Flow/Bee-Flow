@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import useConfirm from '../../../../shared/useConfirm';
+import useTranslation from '@/hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
 
 interface ConfirmStep {
     title?: string;

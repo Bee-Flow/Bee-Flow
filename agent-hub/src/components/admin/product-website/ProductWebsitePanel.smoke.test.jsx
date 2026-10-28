@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 // Stub the AI assistant pane so tests can flip the builder stream lock via
 // the real bridge (beginTurn) without dragging the streaming UI + its
@@ -22,8 +22,8 @@ vi.mock('./assistant/CmsAssistantPane', () => ({
     },
 }));
 
+import { authFetch } from '@/utils/helpers';
 import ProductWebsitePanel from './ProductWebsitePanel';
-import { authFetch } from '../../../utils/helpers';
 import { Toaster } from '../../shared/Toast';
 
 const SITE_ID = 'pj_abc1';

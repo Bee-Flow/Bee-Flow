@@ -1,11 +1,11 @@
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState , useLayoutEffect } from 'react';
 import { Plus, Search, Sprout } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import FilterPills, { type PillTone } from '../../../shared/FilterPills';
-import EmptyState from '../../../shared/EmptyState';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import { API, fetchJson, jsonInit } from '../../../../api/complianceApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import FilterPills, { type PillTone } from '@/components/shared/FilterPills';
+import EmptyState from '@/components/shared/EmptyState';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import { API, fetchJson, jsonInit } from '@/api/complianceApi';
 import RisksTable, { CATEGORIES, SCALE, RISK_STATUSES, scoreOf, isReviewOverdue, ownerName, RiskRecord } from './risks/RisksTable';
 import RiskDrawer, { type RiskTreatment } from './risks/RiskDrawer';
 import useDrawerMode from '../shared/useDrawerMode';

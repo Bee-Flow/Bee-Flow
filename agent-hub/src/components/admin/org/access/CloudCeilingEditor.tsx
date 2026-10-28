@@ -1,8 +1,8 @@
 import { Loader2, Check, AlertTriangle, Crown, Pencil, Info } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CeilingReadOnly from './CeilingReadOnly';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useEntitlements } from '../../../licensing/EntitlementsContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useResource, apiJson } from '../../subscriptions/hooks/useApi';
 import { PlanEditor } from '../../subscriptions/plans/PlanEditor';
 import type { PlanForm, PlanRecord } from '../../subscriptions/plans/usePlanForm';

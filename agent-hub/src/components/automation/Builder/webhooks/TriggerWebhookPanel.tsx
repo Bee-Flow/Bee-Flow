@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import useWebhooks from './useWebhooks';
 import type { AutomationLike } from './useWebhooks';
 import { WebhookRow } from '../WebhookPanel';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Props {
     automation: AutomationLike | null | undefined;

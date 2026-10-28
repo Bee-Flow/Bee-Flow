@@ -5,10 +5,10 @@ import CallContractFields from '../../CallContractFields';
 import { getLayerContract } from '../../flowletScope';
 import useInputMapping from '../../useInputMapping';
 import { FieldsSection, type StepEditorProps } from '../collectionEditors';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { Inputs, GroupLike } from '../../../mapping/aiAutoMap';
-import type { OnFocusField } from '../../../mapping/focusField.types';
-import type { UpstreamDefinition, UpstreamNode } from '../../../mapping/upstream/upstream.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { Inputs, GroupLike } from '@/components/automation/Builder/mapping/aiAutoMap';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
+import type { UpstreamDefinition, UpstreamNode } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { ContractParam } from '../../useInputMapping';
 import type { FormRecord } from '../formState/types';
 

@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import type { CustomDataErrorCode } from '../../../../../../api/queries/customData';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { CustomDataErrorCode } from '@/api/queries/customData';
 import type { CustomDataType, TokenKeyProblem, TypeStatus, Verdict } from './ownDataModel';
 import type { DescribeProblem, TuneInfo } from './useTypeWizard';
 

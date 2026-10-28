@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 require('../../core/agentRuntime');
@@ -106,7 +107,7 @@ router.get('/:id/conversations', async (req, res) => {
 });
 
 // Create a new conversation
-router.post('/:id/conversations', validate({ body: NewConversationBody }), async (req, res) => {
+router.post('/:id/conversations', validate({ body: NewConversationBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NewConversationBody>, import('qs').ParsedQs>} */ req, res) => {
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) {
         return res.status(404).json({ error: 'Agent not found' });
@@ -128,7 +129,7 @@ router.get('/:id/conversations/:convId', makeReadAgentConversation({
 }));
 
 // Update conversation title / pin / labels
-router.patch('/:id/conversations/:convId', validate({ body: ConversationPatch }), async (req, res) => {
+router.patch('/:id/conversations/:convId', validate({ body: ConversationPatch }), async (/** @type {import('express').Request<{ id: string, convId: string }, any, import('zod').infer<typeof ConversationPatch>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const conversation = await agentStore.getConversationById(req.params.convId, req.session?.encryptionKey);
 
@@ -157,7 +158,7 @@ router.delete('/:id/conversations/:convId', async (req, res) => {
 });
 
 // Update thread titles for a conversation
-router.patch('/:id/conversations/:convId/thread-titles', validate({ body: ThreadTitlesBody }), async (req, res) => {
+router.patch('/:id/conversations/:convId/thread-titles', validate({ body: ThreadTitlesBody }), async (/** @type {import('express').Request<{ id: string, convId: string }, any, import('zod').infer<typeof ThreadTitlesBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const conversation = await agentStore.getConversationById(req.params.convId, req.session?.encryptionKey);
     if (!conversation || conversation.user_id !== userId) {
@@ -194,7 +195,7 @@ router.get('/:id/conversations/:convId/workspace', async (req, res) => {
 });
 
 // Update workspace content for a conversation
-router.put('/:id/conversations/:convId/workspace', validate({ body: WorkspaceBody }), async (req, res) => {
+router.put('/:id/conversations/:convId/workspace', validate({ body: WorkspaceBody }), async (/** @type {import('express').Request<{ id: string, convId: string }, any, import('zod').infer<typeof WorkspaceBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const conversation = await agentStore.getConversationById(req.params.convId, req.session?.encryptionKey);
     if (!conversation || conversation.user_id !== userId) {

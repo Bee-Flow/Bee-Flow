@@ -11,10 +11,10 @@
 //     the real app" lessons — defaults to docked, everything else to modal;
 //   • mobile (<768px) is always modal: there is no "beside" on a phone.
 
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { stepType, STEP_TYPES } from '../stepTypes';
-import type { LessonUser, StepLike } from '../../../api/lessons.types';
-import { logger } from '../../../utils/logger';
+import type { LessonUser, StepLike } from '@/api/lessons.types';
+import { logger } from '@/utils/logger';
 
 const DOCK_PREF_KEY = 'learnPlayerLayout';
 export const LAYOUTS = { MODAL: 'modal', DOCKED: 'docked' };

@@ -1,6 +1,6 @@
 import { S } from './drawerTypes';
 import type { DetailType, ModelRate, UsageRow } from './drawerTypes';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { fmt, fmtCost, fmtDuration, fmtTime, rowCost, COLORS, getAgentStyle } from '../shared';
 
 interface StatsProps {

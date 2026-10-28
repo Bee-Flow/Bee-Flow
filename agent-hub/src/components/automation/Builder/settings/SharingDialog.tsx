@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { KeyRound, X } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     ROLES, useAutomationShares, useSaveShares, useTransferOwner,
     type Principal, type Share, type ShareRole, type TransferResult,
-} from '../../../../api/queries/automation/people';
+} from '@/api/queries/automation/people';
 import PrincipalPicker, { PrincipalAvatar, principalDetail } from './PrincipalPicker';
 import { PRIMARY_BTN, SECONDARY_BTN, SELECT } from './settingsUi';
 

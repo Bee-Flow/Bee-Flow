@@ -1,7 +1,7 @@
 import { File, FileImage, FileSpreadsheet, FileText, PencilRuler, Presentation, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { studioAppFetch } from '../../../../../../api/queries/studioApps';
+import useTranslation from '@/hooks/useTranslation';
+import { studioAppFetch } from '@/api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -11,7 +11,7 @@ import { firstDescriptor } from './AppFilePreview';
 import { entryHref, entryIsImage } from './AppInputFile';
 import type { NodeProps } from './appNode.types';
 import type { BindingInput } from '../resolveBinding.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * App Studio runtime — 'file_gallery'. Spec: server/appStudio/componentSpecs.js.

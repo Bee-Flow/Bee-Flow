@@ -1,7 +1,7 @@
 import { Building2, Users, Star, Pencil, Trash2, CreditCard, TrendingUp, Loader2, Cloud } from 'lucide-react';
 import type { PlanRecord } from './usePlanForm';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
 import { CURRENCY_SYMBOL } from '../constants';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';

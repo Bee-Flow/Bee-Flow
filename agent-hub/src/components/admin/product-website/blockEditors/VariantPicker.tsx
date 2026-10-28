@@ -1,7 +1,7 @@
 import React from 'react';
 import { BLOCK_VARIANTS } from './blockData.generated.mjs';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // Human labels for variant slugs; unknown slugs fall back to the slug.
 function variantLabels(t: TranslateFn): Record<string, string> {

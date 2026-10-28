@@ -5,7 +5,7 @@ import React from 'react';
 import type { ClaudeSettingsState } from './useClaudeSettings';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER, TIERS } from './constants';
 import { getModelMeta } from './modelMeta';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type ClaudeSettingsSectionProps = Pick<ClaudeSettingsState,
     'claudeAutoRetry' | 'setClaudeAutoRetry' | 'claudeSaving' | 'claudeMessage' | 'claudeRecAppliedTier'

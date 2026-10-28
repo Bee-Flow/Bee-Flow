@@ -7,7 +7,7 @@
  * on drag-end (not per-move, to avoid hammering storage during a drag).
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface UseResizableWidthArgs {
     initial?: number;

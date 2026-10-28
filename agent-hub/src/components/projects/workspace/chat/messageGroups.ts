@@ -3,7 +3,7 @@
 // messages still on their way to the server trail after the confirmed ones.
 // A system notice always stands alone.
 
-import type { PendingTeamChatMessage, TeamChatAuthorKind, TeamChatMessage } from '../../../../api/queries/projectChats';
+import type { PendingTeamChatMessage, TeamChatAuthorKind, TeamChatMessage } from '@/api/queries/projectChats';
 
 const GROUP_WINDOW_MS = 5 * 60_000;
 

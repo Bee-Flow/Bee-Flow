@@ -2,9 +2,9 @@ import { ChevronDown, Link2, ListFilter, Search, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { triggerLabel } from './runLanguage';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 
 const AnchoredMenu = AnchoredMenuJs;
 

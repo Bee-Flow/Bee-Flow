@@ -1,2 +1,2 @@
 // Moved to src/hooks (generic).
-export * from '../../../../hooks/useReducedMotion';
+export * from '@/hooks/useReducedMotion';

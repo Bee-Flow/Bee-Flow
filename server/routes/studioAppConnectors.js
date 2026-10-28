@@ -177,7 +177,7 @@ router.get('/:id/data/connectors', requireAuth, async (req, res) => {
 });
 
 // ── POST /:id/data/connectors/:connectorId/run ──────────────────────
-router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (/** @type {import('express').Request<{ id: string, connectorId: string }, any, import('zod').infer<typeof ParamsBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const userId = req.session.user.id;
         const app = await loadVisibleApp(req, res);
@@ -269,7 +269,7 @@ function describeToolFamily(toolName) {
 // a table, a row identity and an incremental strategy the owner just confirms.
 // This is the single authority for detection: the picker, the table proposal and
 // the sync engine all read this one answer, so they cannot drift.
-router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (/** @type {import('express').Request<{ id: string, connectorId: string }, any, import('zod').infer<typeof ParamsBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -507,9 +507,9 @@ async function probeConnected(app, connector, viewerId) {
             userId,
             orgId: app.organizationId || null,
             deps: {
-                buildUserSession: (...a) => require('../appStudio/connectors')._defaultBuildUserSession(...a),
-                getIntegrationTools: /** @param {Parameters<typeof import('../core/integrations/integrationTools').getIntegrationTools>} a */ (...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
-                resolveIntegration: /** @param {Parameters<typeof import('../core/integrations/integrationToolMap').resolveIntegration>} a */ (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
+                buildUserSession: (/** @type {Parameters<typeof import('../appStudio/connectors')._defaultBuildUserSession>} */ ...a) => require('../appStudio/connectors')._defaultBuildUserSession(...a),
+                getIntegrationTools: /** @param {Parameters<typeof import('../core/integrations/integrationTools').getIntegrationTools>} a */ (/** @type {Parameters<typeof import('../core/integrations/integrationTools').getIntegrationTools>} */ ...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
+                resolveIntegration: /** @param {Parameters<typeof import('../core/integrations/integrationToolMap').resolveIntegration>} a */ (/** @type {Parameters<typeof import('../core/integrations/integrationToolMap').resolveIntegration>} */ ...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
             },
         });
         return await Promise.race([probe, timeout]);

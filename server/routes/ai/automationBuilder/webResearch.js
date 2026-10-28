@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Web research for the Automation Builder's own chat: agent_search and read_url,
@@ -51,7 +52,7 @@ const _deps = {
     getShield: (ids) => require('../../../core/privacy/orgShield').resolveShieldFor(ids),
     tools: () => require('../../../integrations/agentSearchTools').AGENT_SEARCH_TOOLS,
     run: (name, args, egress) => require('../../../integrations/agentSearchEgress').runAgentSearchWithEgress(name, args, egress),
-    detectPii: (...a) => require('../../../core/privacy/piiDetection').detectPii(...a),
+    detectPii: (/** @type {Parameters<typeof import('../../../core/privacy/piiDetection').detectPii>} */ ...a) => require('../../../core/privacy/piiDetection').detectPii(...a),
     logGuardrailEvent: (row) => require('../../../stores/guardrailEventStore').logGuardrailEvent(row),
 };
 
@@ -101,7 +102,7 @@ function outboundText(name, args) {
  * @param {string} name   agent_search | read_url
  * @param {object} args
  * @param {object} ctx
- * @param {object} ctx.research  resolveWebResearch's answer for this turn
+ * @param {Awaited<ReturnType<typeof resolveWebResearch>>} ctx.research  resolveWebResearch's answer for this turn
  * @param {{ refuse: Function }} ctx.gate  the turn's Privacy Shield toolLoopGate
  * @param {{ userId: string, orgId: string|null, automationId: string|null, modelId: string|null }} ctx.ids
  * @returns {Promise<{ result: object, modelText: string|null }>}

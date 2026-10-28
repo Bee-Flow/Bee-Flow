@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import RowsPreview from './RowsPreview';
 import { heroCard, isBusy, stageType } from './stageChrome';
 import StageShell from './StageShell';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { revealSchedule } from '../../../../shared/builder/revealSchedule';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { revealSchedule } from '@/components/shared/builder/revealSchedule';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
 
 const COL_STAGGER_MS = 350;

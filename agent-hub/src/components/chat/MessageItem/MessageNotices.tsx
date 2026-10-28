@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The two "this is not a normal bubble" states MessageItem can short-circuit

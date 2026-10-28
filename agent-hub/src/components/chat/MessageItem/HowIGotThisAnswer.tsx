@@ -1,7 +1,7 @@
 import { tierLabel } from '../../licensing/tierMeta';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
-import type { KbSource, TokenisationInfo } from '../../../hooks/useChatEngine/types';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import type { KbSource, TokenisationInfo } from '@/hooks/useChatEngine/types';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { documentCountOf } from './citationGroups';
 import type { ToolEntry } from './chatToolCallDisplay';
 import KbSourcesPanel from './KbSourcesPanel';

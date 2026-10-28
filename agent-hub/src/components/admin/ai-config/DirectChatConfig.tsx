@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { useDirectChatPrompt } from '../../../api/queries/orgAdminReads';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useDirectChatPrompt } from '@/api/queries/orgAdminReads';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 const DirectChatConfig = () => {
     const { t } = useTranslation();

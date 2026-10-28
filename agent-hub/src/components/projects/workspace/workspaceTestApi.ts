@@ -2,7 +2,7 @@
 // `authFetch`, so tests exercise the real query hooks and apiClient instead
 // of mocking each hook. Imported only by *.test.tsx files.
 
-import type { Project, ProjectMembers } from '../../../api/queries/projects';
+import type { Project, ProjectMembers } from '@/api/queries/projects';
 
 interface FakeCall {
     method: string;

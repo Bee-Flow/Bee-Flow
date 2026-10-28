@@ -5,12 +5,12 @@ import { NO_FOLDER, isFailing, triggerTextOf, type AutomationRecord, type RunIdS
 import { OutcomeBit, StatusBadge, TriggerTile, titleOf, useRowMenu } from './OverviewBits';
 import StepStrip from './StepStrip';
 import { TONE_CLASSES, triggerToneOf } from './triggerTone';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { formatNextRun } from '../../../automation/taskFormatters';
-import { STATUS_TOKENS } from '../../../shared/statusTokens';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatNextRun } from '@/components/automation/taskFormatters';
+import { STATUS_TOKENS } from '@/components/shared/statusTokens';
 import type { CardProps, RowPropsFn } from './AutomationsOverview.types';
-import type { TreeFolder } from '../../../automation/folderTree';
+import type { TreeFolder } from '@/components/automation/folderTree';
 
 /**
  * The cards view of "All automations": a gallery, grouped into the sidebar's

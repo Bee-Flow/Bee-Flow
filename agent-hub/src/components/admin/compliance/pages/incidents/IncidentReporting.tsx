@@ -1,7 +1,7 @@
 import { Building2, FileText, Landmark, Siren, Users, type LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer';
+import useTranslation from '@/hooks/useTranslation';
+import { DrawerSection as DrawerSectionJs } from '@/components/shared/SideDrawer';
 import { useDateFormat } from '../../shared/formatDates';
 import { reportingRowsOf } from './incidentClocks';
 import type { IncidentRecord } from './IncidentsTable';

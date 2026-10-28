@@ -1,11 +1,10 @@
-// @typecheck
 /**
  * Organization Privacy Shield — resolve org-level regex guardrail rules
  * 
  * Used by agentRuntime.js and directChat.js to enforce org-wide guardrails
  * before agent-specific or direct-chat-specific guardrails.
  */
-
+// @typecheck
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
@@ -593,6 +592,7 @@ async function resolveUserShield(userId, { allowImplicitDefault = true } = {}) {
  * consumer accounts) and a userId. Returns the org shield when it exists,
  * otherwise falls back to the user shield, otherwise null. Keeps callers
  * from having to branch on "do I have an org?" themselves.
+ * @param {{ orgId?: string | null, userId?: string | null }} who
  */
 async function resolveShieldFor({ orgId, userId }) {
     const org = orgId ? await resolveOrgShield(orgId) : null;

@@ -19,19 +19,20 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import useNow from '../../../../../hooks/useNow';
+import useNow from '@/hooks/useNow';
 import { articleOf, channelOf, clockPropsOf, dueAtOf, isClosed, receivedAtOf, stateOf } from './dsrArticles';
 import DsrIdentity from './DsrIdentity';
 import { channelLabel, formatDateTime, shownEmailOf, typeLabel } from './DsrTable';
 import { fallbackTimeline, normaliseTimelineRow, type OrgUser, type TimelineRow } from './dsrTimeline';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import DeadlineClock from '../../../../shared/DeadlineClock';
-import Modal from '../../../../shared/Modal';
-import SideDrawer, { DrawerId, DrawerSection, type SideDrawerMode } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import Modal from '@/components/shared/Modal';
+import SideDrawer, { DrawerId, DrawerSection, type SideDrawerMode } from '@/components/shared/SideDrawer';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { DsrRow } from './dsr.types';
 import type { VerifyIdentityBody } from './DsrIdentity';
 import type { Translate, RequestId, FulfilBody, DiscoverySource, DiscoveryBody, DiscoveryKey, DiscoveryFacts, DrawerBodyProps, DrawerHeaderProps, DsrDrawerProps } from './DsrDrawer.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 export type { FulfilBody, DiscoveryBody } from './DsrDrawer.types';
 
 const SECONDARY = 'flex-1 inline-flex items-center justify-center gap-1.5 h-[30px] px-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50';
@@ -111,10 +112,10 @@ export function discoveryChips(t: Translate, discovery: DiscoveryBody | null | u
 
 function useLazy<T>(loader: ((id: RequestId) => Promise<T>) | undefined, id: RequestId | undefined) {
     const [value, setValue] = useState<T | null | undefined>(undefined);
+    useAdjustOnChange([loader, id], () => setValue(undefined));
     useEffect(() => {
-        if (!loader || id === null || id === undefined) { setValue(undefined); return undefined; }
+        if (!loader || id === null || id === undefined) return undefined;
         let alive = true;
-        setValue(undefined);
         Promise.resolve()
             .then(() => loader(id))
             .then(v => { if (alive) setValue(v ?? null); })

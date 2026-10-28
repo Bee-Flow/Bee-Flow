@@ -8,79 +8,77 @@ Chat responses stream over Server-Sent Events. The connection stays open until t
 
 ## Request
 
+Authentication is the same as for any other call: the session cookie, or a bridge token in
+`X-Session-Token` (see [Authentication](auth.md)). The browser's `EventSource` cannot send a body,
+so chat is a `POST` read with `fetch`. An agent that has embedding switched on also answers without a session.
+
 ```http
-POST /ai/chat
+POST /agents/asst_default/chat/stream
 Accept: text/event-stream
-Authorization: Bearer <jwt>
 Content-Type: application/json
 
 {
-  "agentId": "asst_default",
-  "messages": [
-    { "role": "user", "content": "Summarise yesterday's emails." }
-  ],
-  "conversationId": "conv_abc",
-  "stream": true
+  "message": "Summarise yesterday's emails.",
+  "conversationId": "conv_abc"
 }
 ```
 
-For direct (no-agent) chat, POST to `/ai/chat/direct/stream` with the same payload shape (minus `agentId`).
+The agent id is in the path. `message` is the new user message and is required; `conversationId`
+continues an existing conversation (leave it out to start one). The schema of every field the route
+accepts is in the [endpoint reference](reference/agents.md).
+
+For direct (no-agent) chat, `POST /ai/chat/direct/stream` with the same kind of body. The
+[endpoint reference](reference/ai.md) lists the other streaming chat routes (notebooks, web pages,
+templates).
 
 ## Event types
 
-The full set of events the chat stream can emit:
+Events the chat streams emit, by their `event:` name. The set differs a little per chat surface, and
+a client should ignore names it does not know.
 
 | Event | Payload | When |
 |-------|---------|------|
-| `token` | `{"text": "..."}` | A model token (or chunk) for the visible reply. |
-| `tool_call` | `{"id": "tc_1", "name": "...", "args": {...}}` | The model decides to call a tool. |
-| `tool_result` | `{"id": "tc_1", "result": ...}` | The tool returned. |
-| `tool_error` | `{"id": "tc_1", "error": "..."}` | The tool errored (timeout, 4xx, etc.). |
-| `progress` | `{"label": "Reading file...", "percent": 33}` | Long-running tool gives progress. |
+| `content` | `{"text": "..."}` | A chunk of the visible reply. Append them in order. |
+| `thinking` | `{"text": "..."}` | A chunk of the model's reasoning, when the model shows it. |
+| `tool_start` | `{"name": "...", "args": {...}}` | The model calls a tool. |
+| `tool_end` | `{"name": "...", "result": ...}` | The tool returned (or was blocked by a privacy rule; the result then says so). |
+| `conversation_created` | `{"conversationId": "..."}` | Direct chat: a new conversation was started for this turn. |
+| `title_generated` | `{"title": "..."}` | Agent chat: a title was generated for the conversation. |
 | `dlp_preview` | `{"decisionId":"dlp_...", "findings":[...], "redactedText":"...", "provider":{...}}` | Privacy Shield paused the stream and wants the user to confirm `redact`/`block`/`allow` for sensitive content. |
 | `dlp_resolved` | `{"appliedChoice":"redact","redactedCount": 3, "categories":["email","phone"]}` | Privacy Shield applied a decision (either user-supplied or `auto_redact`). |
 | `dlp_blocked` | `{"reason":"policy_block", "findings":[...]}` | Privacy Shield rejected the prompt — stream ends. |
 | `privacy_token_map` | `{"tokenMap":{"[email_1]":"alice@..."}, "source":"dlp"}` | Token-to-original map for the redacted prompt (debug; only when `showRawPayload=true`). |
-| `citation` | `{"sourceId": "...", "title": "...", "snippet": "..."}` | KB citation for the answer (when `includeSourceReferences=true`). |
-| `done` | `{"messageId": "msg_abc", "usage": {"input": 1234, "output": 567}, "model": "claude-..."}` | Turn complete. |
-| `error` | `{"code": "...", "message": "..."}` | Fatal error; stream closes. |
+| `done` | the finished turn (the exact fields differ per chat surface) | Turn complete. |
+| `error` | `{"error": "...", "code": "..."}` | Fatal error; stream closes. |
 
-The connection always closes after `done` or `error`.
+The connection closes after `done` or `error`.
 
 ## Example transcript
 
 ```
-event: token
+event: content
 data: {"text": "Looking"}
 
-event: token
+event: content
 data: {"text": " for"}
 
-event: tool_call
-data: {"id": "tc_1", "name": "nc_files_search", "args": {"query": "Q3 report"}}
+event: tool_start
+data: {"name": "nc_files_search", "args": {"query": "Q3 report"}}
 
-event: progress
-data: {"label": "Searching files...", "percent": 50}
+event: tool_end
+data: {"name": "nc_files_search", "result": [{"path":"/Reports/Q3.pdf"}]}
 
-event: tool_result
-data: {"id": "tc_1", "result": [{"path":"/Reports/Q3.pdf"}]}
-
-event: token
-data: {"text": " I found"}
-
-event: token
-data: {"text": " the Q3 report."}
-
-event: citation
-data: {"sourceId": "doc_123", "title": "Q3-2025-Report.pdf", "snippet": "..."}
+event: content
+data: {"text": " I found the Q3 report."}
 
 event: done
-data: {"messageId": "msg_abc", "usage": {"input": 1234, "output": 567}}
+data: {...}
 ```
 
 ## Cancelling
 
-Close the EventSource client-side — the browser sends a TCP FIN, and the server tears down the stream.
+Abort the request on the client (`AbortController.abort()` on the `fetch`, or closing the
+connection). The server notices the closed connection and stops the turn.
 
 ## Privacy Shield interactive flow
 
@@ -95,7 +93,6 @@ The client must resolve the decision:
 
 ```http
 POST /api/chat/dlp-decision
-Authorization: Bearer <jwt>
 Content-Type: application/json
 
 { "decisionId": "dlp_lq3xz0_a1b2c3", "choice": "redact", "rememberForConversation": true }
@@ -105,71 +102,75 @@ Content-Type: application/json
 
 ## Reconnection
 
-The client should reconnect with `Last-Event-ID` to resume a turn:
-
-```http
-POST /ai/chat HTTP/1.1
-Last-Event-ID: msg_abc:42
-```
-
-The server replays missed events from event 42 onward. Reconnects are best-effort — the model can't always re-emit identical tokens, but tool calls and citations are deterministic and replay perfectly.
+The chat streams do not resume. If the connection drops mid-turn, the turn is lost on the client:
+fetch the conversation again (`GET /agents/:id/conversations/:convId`) to see what was saved, and
+send the message again if needed. (Some other streams, such as the project activity feed, do
+accept `Last-Event-ID` and replay what you missed.)
 
 ## JavaScript client
 
+`EventSource` only does `GET`, so read the response of a `fetch` and split it into SSE frames yourself:
+
 ```js
-const eventSource = new EventSource('/ai/chat?token=' + jwt);
-
-eventSource.addEventListener('token', e => {
-  const { text } = JSON.parse(e.data);
-  appendToOutput(text);
+const res = await fetch('/agents/asst_default/chat/stream', {
+  method: 'POST',
+  credentials: 'include', // the session cookie
+  headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+  body: JSON.stringify({ message: 'Summarise yesterday’s emails.' }),
 });
 
-eventSource.addEventListener('tool_call', e => {
-  const tc = JSON.parse(e.data);
-  console.log('🛠', tc.name, tc.args);
-});
-
-eventSource.addEventListener('citation', e => {
-  const cit = JSON.parse(e.data);
-  showCitationCard(cit);
-});
-
-eventSource.addEventListener('done', e => {
-  console.log('done', JSON.parse(e.data));
-  eventSource.close();
-});
-
-eventSource.addEventListener('error', e => {
-  console.error('stream error', e);
-});
+const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+let buffer = '';
+for (;;) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buffer += value;
+  let end;
+  while ((end = buffer.indexOf('\n\n')) !== -1) {
+    const frame = buffer.slice(0, end);
+    buffer = buffer.slice(end + 2);
+    const event = /^event: (.*)$/m.exec(frame)?.[1];
+    const data = JSON.parse(/^data: (.*)$/m.exec(frame)?.[1] ?? 'null');
+    if (event === 'content') appendToOutput(data.text);
+    else if (event === 'tool_start') console.log('tool', data.name, data.args);
+    else if (event === 'error') throw new Error(data.error);
+  }
+}
 ```
-
-For non-EventSource clients (Node, fetch), use `fetch` with `Response.body.getReader()` and parse SSE chunks manually.
 
 ## Python client
 
+A script has no browser session. Sign in with `POST /auth/admin-login` (the session cookie is kept
+by `requests.Session`), or use the connector's signed JWT as described in
+[Authentication](auth.md#scripted--server-to-server-access).
+
 ```python
 import requests, json
-from sseclient import SSEClient
 
-r = requests.post(
-    "https://beeflow.example.com/ai/chat",
-    headers={"Authorization": f"Bearer {token}", "Accept": "text/event-stream"},
-    json={"agentId": "asst_default", "messages": [...]},
+s = requests.Session()
+s.post("https://beeflow.example.com/auth/admin-login",
+       json={"username": "alice@example.com", "password": "..."}).raise_for_status()
+
+r = s.post(
+    "https://beeflow.example.com/agents/asst_default/chat/stream",
+    headers={"Accept": "text/event-stream"},
+    json={"message": "Summarise yesterday's emails."},
     stream=True,
 )
 
-for event in SSEClient(r).events():
-    if event.event == "token":
-        print(json.loads(event.data)["text"], end="", flush=True)
-    elif event.event == "tool_call":
-        print(f"\n[tool_call] {json.loads(event.data)}")
-    elif event.event == "done":
-        print("\n[done]", json.loads(event.data))
-        break
-    elif event.event == "error":
-        print("\n[error]", json.loads(event.data))
-        break
+event = None
+for line in r.iter_lines(decode_unicode=True):
+    if line.startswith("event: "):
+        event = line[len("event: "):]
+    elif line.startswith("data: "):
+        data = json.loads(line[len("data: "):])
+        if event == "content":
+            print(data["text"], end="", flush=True)
+        elif event == "tool_start":
+            print(f"\n[tool] {data['name']}")
+        elif event in ("done", "error"):
+            print(f"\n[{event}]", data)
+            break
 ```
 
 ## Buffering caveat
@@ -183,13 +184,12 @@ Reverse proxies often buffer SSE by default, which kills first-token latency. Co
 | Traefik | `--providers.docker.network=traefik` and disable buffering middleware |
 | Cloudflare | Not always SSE-friendly — prefer non-buffering tier or self-hosted reverse proxy |
 
-## Tokens vs text vs words
+## Chunks, not words
 
-- `token` events carry **whatever the model streamed** — usually a few characters per event for fast models, longer chunks for slower models.
-- The client should accumulate tokens into the visible reply as they arrive. Don't apply Markdown rendering until all tokens have arrived (or use a streaming-safe Markdown renderer).
-- The total `usage.input` / `usage.output` counts in `done` are **token counts** as the provider counts them (per-model conventions vary).
+- `content` events carry **whatever the model streamed** — usually a few characters per event for fast models, longer chunks for slower models.
+- The client should accumulate the chunks into the visible reply as they arrive. Don't apply Markdown rendering until all chunks have arrived (or use a streaming-safe Markdown renderer).
 
 ## Where to next
 
 - [REST reference](rest.md) — the non-streaming endpoints.
-- [Authentication](auth.md) — token handling.
+- [Authentication](auth.md) — sessions and tokens.

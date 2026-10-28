@@ -13,7 +13,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 
 // The shared params mock fills in `{count}`, so the assertions below see real interpolation.
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import AgentCardFooter from './AgentCardFooter';
 

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useSupportCannedResponsesQuery } from '../../../api/queries/supportPanels';
+import { useSupportCannedResponsesQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
-import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 

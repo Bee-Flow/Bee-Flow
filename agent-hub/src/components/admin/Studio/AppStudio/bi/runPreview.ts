@@ -1,6 +1,6 @@
-import { API_BASE } from '../../../../../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../../../../../api/mutate';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 export async function runPreview(appId: string | null | undefined, payload: { tableId: string; descriptor: unknown }, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     let body = null;

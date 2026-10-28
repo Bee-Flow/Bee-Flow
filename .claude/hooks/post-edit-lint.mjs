@@ -7,9 +7,9 @@
 //
 //   agent-hub/  *.{ts,tsx,js,jsx,mjs,cjs}  eslint --fix, then report what is left
 //   server/     *.{js,cjs,mjs}              report errors AND warnings, no --fix:
-//                                           server's warning budget is 0
-//                                           (server/.eslint-budget.json), so one
-//                                           warning fails CI as surely as an error
+//                                           every server rule is an error, the old
+//                                           size/complexity violations sit in
+//                                           server/eslint-suppressions.json
 //   mobile/     *.{ts,tsx,js,jsx}           report errors, no --fix: `npm run lint`
 //                                           has no --max-warnings, so CI passes
 //                                           warnings

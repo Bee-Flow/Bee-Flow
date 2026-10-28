@@ -1,5 +1,5 @@
 import { ChevronLeft, Columns3, Minimize2, Rows3, Search } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import ColumnPicker from './ColumnPicker';
 import Crumbs from './Crumbs';
 import type { Crumb } from './levels';

@@ -4,12 +4,12 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { literalTableId, readValuesMap, withoutValuesInput } from './tablesRowValues';
 import TablesRowValuesEditor from './TablesRowValuesEditor';
-import { editor, typeInEditor } from '../../../../../test/refEditor';
-import { authFetch } from '../../../../../utils/helpers';
+import { editor, typeInEditor } from '@/test/refEditor';
+import { authFetch } from '@/utils/helpers';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import { asMock, partial, stub } from '@/test/mocks';
 
-vi.mock('../../../../../utils/helpers', async (orig) => ({
+vi.mock('@/utils/helpers', async (orig) => ({
     ...(await orig()),
     API_BASE: '',
     authFetch: vi.fn(),

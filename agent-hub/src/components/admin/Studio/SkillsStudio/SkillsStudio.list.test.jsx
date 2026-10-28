@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { skillsApi } from '@/api/skillsApi';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import SkillsStudio from './index';
-import { skillsApi } from '../../../../api/skillsApi';
-import { queryWrapper } from '../../../../test/queryWrapper';
-import { authFetch } from '../../../../utils/helpers';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.
@@ -41,7 +41,7 @@ const TABLES = { datatables: [{ id: 't1', name: 'Pricelist' }] };
 // and a partial answer (`unchecked`).
 let usageReply = { ok: true, body: { usage: [] } };
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url) => {
         const u = String(url);
@@ -60,7 +60,7 @@ vi.mock('../../../../utils/helpers', () => ({
 
 // As in SkillsStudio.test.jsx: the AI step editor drags the whole
 // builder settings chain along; only its row contract is used here.
-vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
+vi.mock('@/components/automation/Builder/flow/settings/aiStepEditors', () => ({
     StructuredOutputFields: ({ fields, onChange }) => (
         <button type="button" data-testid="stub-output-rows" onClick={() => onChange([...fields, { key: 'total', type: 'number' }])}>
             add output field ({fields.length})
@@ -68,7 +68,7 @@ vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
     ),
 }));
 
-vi.mock('../../../../api/skillsApi', () => {
+vi.mock('@/api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),

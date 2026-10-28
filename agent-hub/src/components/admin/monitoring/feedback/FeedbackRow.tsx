@@ -2,7 +2,7 @@ import { Bot, ChevronRight, Cpu, ExternalLink, MessageSquare } from 'lucide-reac
 import { ConversationReplay, NoConversation } from './ConversationReplay';
 import { chipStyle, parseSnapshot } from './feedbackModel';
 import type { FeedbackItem, SnapshotMessage } from './feedbackModel';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { COLORS, fmtTime, shortModel } from '../shared';
 
 const MUTED_CHIP_BG = 'var(--bg-tertiary, rgba(255,255,255,0.04))';

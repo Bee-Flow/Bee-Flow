@@ -65,7 +65,7 @@ const ListQuery = z.object({
 /**
  * List all KBs accessible to the current user (personal + org-scoped)
  */
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const userId = getUserId(req);
     const orgIds = await resolveUserOrgIds(req);
     const isOrgAdmin = await resolveIsOrgAdmin(req);
@@ -84,7 +84,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
 /**
  * List org-published KBs (mirrors /api/agents/published). Drafts are excluded.
  */
-router.get('/published', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/published', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const userId = getUserId(req);
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(req);

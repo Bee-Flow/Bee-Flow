@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The writer of `automation_usage` for one STUDIO APP (P4 part C).
  *
@@ -93,7 +93,7 @@ const REASONS = Object.freeze({
  * Wat draait deze app NU aan automatiseringen?
  *
  * @returns {Promise<{ok:boolean, reason:string, ownerId?:string|null,
- *                    entries?:Array, unset?:number, error?:string, which?:string}>}
+ *                    entries?:Parameters<typeof import('../stores/automationUsageStore').reconcileAutomationUsage>[3], unset?:number, error?:string, which?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
  * @param {string} appId

@@ -5,8 +5,8 @@
 
 import { AlertTriangle, GitMerge, Info, Users } from 'lucide-react';
 import React from 'react';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import type { Draft } from '../useDocumentAutosave';
 import { LINK_BUTTON, NOTICE } from './ui';
 

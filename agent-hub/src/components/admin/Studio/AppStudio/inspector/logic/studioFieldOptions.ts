@@ -1,4 +1,4 @@
-import { humanizeFieldKey } from '../../../../../automation/Builder/flow/displayHelpers';
+import { humanizeFieldKey } from '@/components/automation/Builder/flow/displayHelpers';
 
 /** One variable in a group: `path` is what an expression writes. */
 export interface StudioScopeField {

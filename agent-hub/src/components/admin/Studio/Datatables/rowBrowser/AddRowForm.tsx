@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { DtColumn } from './rowBrowserModel';
 import { RowCellEditor } from './typedViews';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { columnKeyTitle, columnLabel } from '../datatableDisplay';
 
 interface AddRowFormProps {

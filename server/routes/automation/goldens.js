@@ -144,7 +144,7 @@ function makeGoldensRouter(overrides = {}) {
         return describeRun(root, latest);
     }
 
-    router.post('/runs/:runId/golden', validate({ body: MarkBody }), async (req, res) => {
+    router.post('/runs/:runId/golden', validate({ body: MarkBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof MarkBody>, import('qs').ParsedQs>} */ req, res) => {
         const found = await runData.readableRun(req, res, req.params.runId, 'save it as a golden run');
         if (!found) return undefined;
         const a = await store().getAutomation(found.run.automationId);
@@ -198,7 +198,7 @@ function makeGoldensRouter(overrides = {}) {
         return res.json({ goldens, limits: { max: maxGoldens() } });
     });
 
-    router.post('/:id/goldens/replay', limiter, validate({ body: ReplayBody }), async (req, res) => {
+    router.post('/:id/goldens/replay', limiter, validate({ body: ReplayBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ReplayBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         await runData.assertTestDataAllowed(a);

@@ -11,8 +11,8 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import GroupAccessMatrix from './GroupAccessMatrix';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
-vi.mock('../../../config/integrationIcons', () => ({ getIntegrationIcon: () => null }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/config/integrationIcons', () => ({ getIntegrationIcon: () => null }));
 
 const respond = (status: number, body: unknown) => ({
     ok: status < 400, status, headers: { get: () => 'application/json' }, json: async () => body,

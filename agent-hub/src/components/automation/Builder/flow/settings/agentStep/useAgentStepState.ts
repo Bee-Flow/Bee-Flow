@@ -8,10 +8,10 @@
 // for) and calls no hooks at all. A plain AI step therefore needs no query
 // client, and nothing is fetched for a step that does not use any of this.
 import { useMemo } from 'react';
-import type { AgentPermissions, AgentStepPreview, SkillOutputField, SkillRow } from '../../../../../../api/queries/automation/agents';
+import type { AgentPermissions, AgentStepPreview, SkillOutputField, SkillRow } from '@/api/queries/automation/agents';
 import {
     useAgentStepPreviewQuery, useCatalogSkillQuery, useStepSkillsQuery,
-} from '../../../../../../api/queries/automation/agents';
+} from '@/api/queries/automation/agents';
 import { MAX_AI_STEP_SKILL_IDS, readAgentPermissions, readSkillIds } from '../formState';
 import { allPermissionsOff, stepSkillRows, toggleDisabledSkill, withPermission } from './agentStepModel';
 import type { StepSkillRow } from './agentStepModel';

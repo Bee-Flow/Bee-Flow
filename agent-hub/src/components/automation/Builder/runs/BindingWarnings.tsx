@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SearchX } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { allRuleMisses, bindingWarningLine, type BindingWarning, type StepTypeLookup } from './bindingMisses';
 
 // Most steps miss one or two; a loop body with a bad mapping can list many.

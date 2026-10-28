@@ -2,10 +2,10 @@ import { cleanup, render as rtlRender, screen, waitFor, within } from '@testing-
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { skillsApi } from '@/api/skillsApi';
+import { queryWrapper } from '@/test/queryWrapper';
 import CanUseCard from './CanUseCard';
 import ExamplesTab from './ExamplesTab';
-import { skillsApi } from '../../../../api/skillsApi';
-import { queryWrapper } from '../../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.
@@ -25,12 +25,12 @@ const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...opti
  * dispatches nothing else.
  */
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
 }));
 
-vi.mock('../../../../api/skillsApi', () => {
+vi.mock('@/api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),

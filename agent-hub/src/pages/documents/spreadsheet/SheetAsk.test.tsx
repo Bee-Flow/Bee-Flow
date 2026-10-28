@@ -14,11 +14,11 @@ const { sheetApi, assistantApi } = vi.hoisted(() => ({
     sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn() },
     assistantApi: { askSheetAssistant: vi.fn() },
 }));
-vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
+vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), ...sheetApi }));
 vi.mock('./sheetAssistantApi', () => assistantApi);
 vi.mock('../documentsApi', () => ({ getDocument: vi.fn(), updateDocument: vi.fn() }));
-vi.mock('../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
-vi.mock('../../../components/renderers/MarkdownRenderer', () => ({
+vi.mock('@/api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
+vi.mock('@/components/renderers/MarkdownRenderer', () => ({
     default: ({ content }: { content: string }) => <div data-testid="markdown">{content}</div>,
 }));
 

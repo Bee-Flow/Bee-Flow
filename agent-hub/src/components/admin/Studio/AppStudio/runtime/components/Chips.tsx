@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { walkPath } from '../resolveBinding';
 import { displayValue } from '../uiBits';
 import type { ChipsProps } from './AppMessageThread.types';

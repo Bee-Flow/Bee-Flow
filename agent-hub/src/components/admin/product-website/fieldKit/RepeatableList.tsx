@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface RepeatableListProps<T> {
     items?: T[];
@@ -28,31 +29,33 @@ const keyFor = (item: unknown, idx: number) => {
     return id ? `id:${id}` : `idx:${idx}`;
 };
 
+/** The collapse map for these rows: a new row starts collapsed, a gone row is dropped (the same map when nothing changed). */
+function syncCollapsed(prev: Record<string, boolean>, items: unknown[]): Record<string, boolean> {
+    const next = { ...prev };
+    let changed = false;
+    const seenKeys = new Set<string>();
+    items.forEach((item, idx) => {
+        const k = keyFor(item, idx);
+        seenKeys.add(k);
+        if (!(k in next)) { next[k] = true; changed = true; }
+    });
+    for (const k of Object.keys(next)) {
+        if (!seenKeys.has(k)) { delete next[k]; changed = true; }
+    }
+    return changed ? next : prev;
+}
+
 /**
  * Collapse state — UI-only, NOT persisted. Rows default to collapsed; a key
- * is added the first time it is seen (in an effect, so state is never mutated
- * during render) and dropped once its row is gone, so the map never grows
- * forever.
+ * is added the first time it is seen (during render, through a state update
+ * React applies before painting, never by mutating state) and dropped once
+ * its row is gone, so the map never grows forever.
  */
 function useCollapsedRows(items: unknown[], collapsible: boolean) {
-    const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
-    useEffect(() => {
-        if (!collapsible) return;
-        setCollapsedMap(prev => {
-            const next = { ...prev };
-            let changed = false;
-            const seenKeys = new Set<string>();
-            items.forEach((item, idx) => {
-                const k = keyFor(item, idx);
-                seenKeys.add(k);
-                if (!(k in next)) { next[k] = true; changed = true; }
-            });
-            for (const k of Object.keys(next)) {
-                if (!seenKeys.has(k)) { delete next[k]; changed = true; }
-            }
-            return changed ? next : prev;
-        });
-    }, [items, collapsible]);
+    const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>(() => (collapsible ? syncCollapsed({}, items) : {}));
+    useAdjustOnChange([items, collapsible], () => {
+        if (collapsible) setCollapsedMap(prev => syncCollapsed(prev, items));
+    });
     const toggleCollapsed = (key: string) => setCollapsedMap(prev => ({ ...prev, [key]: !prev[key] }));
     const expand = (key: string) => setCollapsedMap(prev => ({ ...prev, [key]: false }));
     return { collapsedMap, toggleCollapsed, expand };

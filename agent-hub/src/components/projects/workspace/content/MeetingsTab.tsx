@@ -6,13 +6,13 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckSquare, Loader2, Mic, Plus } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useProjectSection, type ProjectMeeting } from '../../../../api/queries/projectContent';
-import { projectKeys } from '../../../../api/queries/projects';
-import useTranslation from '../../../../hooks/useTranslation';
-import { lazy } from '../../../../utils/lazyWithReload';
+import { useProjectSection, type ProjectMeeting } from '@/api/queries/projectContent';
+import { projectKeys } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
+import { lazy } from '@/utils/lazyWithReload';
 import MeetingTasksDialog from '../tasks/MeetingTasksDialog';
-import EmptyState from '../../../shared/EmptyState';
-import { toast } from '../../../shared/Toast';
+import EmptyState from '@/components/shared/EmptyState';
+import { toast } from '@/components/shared/Toast';
 import { GhostButton, LoadingRow, Notice, PrimaryButton, ViewerNote, SecondaryButton, WorkspaceColumn } from '../workspaceUi';
 import SectionToolbar from '../SectionToolbar';
 import MeetingsTable, { type MeetingsTableProps } from './MeetingsTable';
@@ -21,7 +21,7 @@ import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 import useProjectMeetingCapture, { type ProjectMeetingCapture } from './useProjectMeetingCapture';
 
-const MeetingDetail = lazy(() => import('../../../../pages/meeting-notes/detail/MeetingDetail'));
+const MeetingDetail = lazy(() => import('@/pages/meeting-notes/detail/MeetingDetail'));
 
 function MeetingPane({ projectId, meetingId, currentUser, onOpenSub, onNavigate, canMakeTasks, onOpenTab }: {
     projectId: string; meetingId: string; currentUser: ContentTabProps['currentUser'];

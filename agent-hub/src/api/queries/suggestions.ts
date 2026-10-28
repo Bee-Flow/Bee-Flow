@@ -118,7 +118,7 @@ export function useResolveSuggestions(documentId: string, { onAccepted }: { onAc
     const qc = useQueryClient();
     return useMutation<ResolveResult, Error, ResolveVars>({
         mutationFn: async (vars) => {
-            const body = await apiClient.post<Partial<ResolveResult>>(pathOf(documentId, vars), {}, { retry: false });
+            const body = await apiClient.post<Partial<ResolveResult>>(pathOf(documentId, vars), {});
             return {
                 accepted: body?.accepted || [], rejected: body?.rejected || [], stale: body?.stale || [],
                 versionId: body?.versionId ?? null,

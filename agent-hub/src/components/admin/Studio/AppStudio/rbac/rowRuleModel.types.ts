@@ -1,5 +1,5 @@
 import type { RowFilterTable } from './rowFilterSubset';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** What one access action (read / create / update / delete) allows: a scope, or a yes/no for adding. */
 export type AccessPerm = boolean | string;

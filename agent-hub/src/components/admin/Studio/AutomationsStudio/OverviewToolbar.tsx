@@ -1,10 +1,10 @@
 import { Check, ChevronDown, Columns3, LayoutGrid, LayoutList, ListFilter, Workflow, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
-import FilterPillsJs from '../../../shared/FilterPills';
-import type { PillTone } from '../../../shared/FilterPills';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
+import FilterPillsJs from '@/components/shared/FilterPills';
+import type { PillTone } from '@/components/shared/FilterPills';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import CreateMenuButton from './CreateMenuButton';
 import { GROUPS, SORTS } from './overviewModel';
 

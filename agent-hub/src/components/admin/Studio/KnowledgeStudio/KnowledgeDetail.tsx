@@ -5,14 +5,14 @@ import { knowledgeApi, type KbSource, type KbSourceTotals, type KnowledgeBase } 
 import SettingsTab from './SettingsTab';
 import SourcesTab from './SourcesTab';
 import TestQuestionCard from './TestQuestionCard';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import useUsage from '../../../../hooks/useUsage';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import useConfirm from '../../../shared/useConfirm';
-import UsedByTab from '../../../shared/UsedByTab';
-import VisibilityCapsule from '../../../shared/VisibilityCapsule';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import useUsage from '@/hooks/useUsage';
+import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useConfirm from '@/components/shared/useConfirm';
+import UsedByTab from '@/components/shared/UsedByTab';
+import VisibilityCapsule from '@/components/shared/VisibilityCapsule';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 import type { NewSource } from './AddSourcePanel.types';
 import type { ScheduleChange } from './ScheduleMenu';
 

@@ -104,7 +104,7 @@ router.get('/status', requireAuth, async (req, res) => {
 
 // ─── List / Search Messages ──────────────────────────────────────
 
-router.get('/messages', validate({ query: MessagesQuery }), async (req, res, next) => {
+router.get('/messages', validate({ query: MessagesQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof MessagesQuery>>} */ req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { query, pageToken, pageSize = 20, label = 'INBOX' } = req.query;
@@ -215,7 +215,7 @@ router.get('/messages/:messageId', validate({ params: MessageParams }), async (r
 
 // ─── Send Email (User Approved) ──────────────────────────────────
 
-router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
+router.post('/send', validate({ body: EmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof EmailBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { to, cc, bcc, subject, body, threadId, inReplyTo, references } = req.body;
@@ -247,7 +247,7 @@ router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
 
         const result = await gmail.users.messages.send(sendParams);
 
-        log.info(`[Gmail] Email sent successfully: ${result.data.id} to ${to}`);
+        log.info(`[Gmail] Email sent successfully: ${result.data.id} to ${String(to || '').split(',').filter(Boolean).length} recipient(s)`);
         res.json({
             success: true,
             messageId: result.data.id,
@@ -264,7 +264,7 @@ router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
 
 // ─── Save as Gmail Draft ─────────────────────────────────────────
 
-router.post('/draft', validate({ body: EmailBody }), async (req, res, next) => {
+router.post('/draft', validate({ body: EmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof EmailBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { to, cc, bcc, subject, body, threadId, inReplyTo, references } = req.body;
@@ -298,7 +298,7 @@ router.post('/draft', validate({ body: EmailBody }), async (req, res, next) => {
 
         const result = await gmail.users.drafts.create(draftParams);
 
-        log.info(`[Gmail] Draft saved successfully: ${result.data.id} for ${to}`);
+        log.info(`[Gmail] Draft saved successfully: ${result.data.id} for ${String(to || '').split(',').filter(Boolean).length} recipient(s)`);
         res.json({
             success: true,
             draftId: result.data.id,

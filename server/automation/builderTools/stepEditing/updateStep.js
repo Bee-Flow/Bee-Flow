@@ -4,7 +4,7 @@
  * derived fields, plus the all-or-nothing batch. Moved out of stepEditing.js;
  * the per-type guards live in patchGuards/, the allow-list in patchFields.js.
  */
-
+// @typecheck
 const crypto = require('crypto');
 const { isSideEffect } = require('../../sideEffectMap');
 const { listStepIds, findStepAnywhere } = require('../draftGraph');

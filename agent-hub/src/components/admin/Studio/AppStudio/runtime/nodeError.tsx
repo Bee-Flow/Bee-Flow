@@ -1,6 +1,6 @@
 import { TriangleAlert } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 function NodeFailedText() {
     const { t } = useTranslation();

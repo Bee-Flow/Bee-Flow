@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The mailbox of an Outlook step and of the Outlook "New email" trigger, at
  * save time: "me"/absent or a shared mailbox's address. Half-typed addresses

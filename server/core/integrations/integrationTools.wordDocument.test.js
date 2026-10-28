@@ -56,7 +56,7 @@ const run = async () => {
     assert.ok(toolNames(res).includes('create_presentation'), 'the deck tool is there');
     assert.ok(toolNames(res).includes('create_word_document'), 'the Word tool sits next to it');
     const word = res.tools.find((t) => t.function.name === 'create_word_document');
-    assert.deepStrictEqual(word.function.parameters.required, ['title', 'markdown']);
+    assert.deepStrictEqual(/** @type {{ required?: string[] }} */ (word?.function?.parameters).required, ['title', 'markdown']);
     console.log('✓ create_word_document is offered next to create_presentation');
 
     const hint = await buildToolHint(res.tools, 'u1');

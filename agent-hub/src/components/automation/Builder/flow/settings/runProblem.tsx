@@ -4,7 +4,7 @@
 // rings that setting red and says what went wrong with it, and the error
 // card's "Open the setting" scrolls to the ring (`data-problem`).
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { ProblemNote } from '../../mapping/toolInput/ParamExtras';
 
 /** A failed row, whether or not an error branch caught it afterwards. */

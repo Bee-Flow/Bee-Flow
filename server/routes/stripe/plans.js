@@ -46,7 +46,7 @@ router.get('/status', requireCloud, requireAuth, async (req, res) => {
 // ── GET /plans — List public plans with pricing info ─────────────────────────
 // Accepts ?type=organization|consumer (default: organization)
 
-router.get('/plans', requireCloud, requireAuth, validate({ query: PlansQuery }), async (req, res) => {
+router.get('/plans', requireCloud, requireAuth, validate({ query: PlansQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof PlansQuery>>} */ req, res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.json([]);
 

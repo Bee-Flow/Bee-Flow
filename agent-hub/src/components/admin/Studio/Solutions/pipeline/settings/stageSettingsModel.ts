@@ -1,4 +1,4 @@
-import type { ApiResult, StageKey } from '../../../../../../api/stagesApi';
+import type { ApiResult, StageKey } from '@/api/stagesApi';
 import { seatOf, seatShapeHasSeat } from './seatShapes';
 
 /**

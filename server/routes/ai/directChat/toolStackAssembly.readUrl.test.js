@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * read_url in the direct-chat tool stack: offered wherever agent_search is,
  * removed together with it when the user turned web search off or the

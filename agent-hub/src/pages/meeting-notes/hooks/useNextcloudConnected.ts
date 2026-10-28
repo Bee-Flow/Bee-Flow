@@ -1,4 +1,4 @@
-import { useNextcloudConnectedQuery } from '../../../api/queries/meetingNotesConnections';
+import { useNextcloudConnectedQuery } from '@/api/queries/meetingNotesConnections';
 
 /**
  * useNextcloudConnected — probes whether the current user has *any* Nextcloud

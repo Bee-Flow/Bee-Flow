@@ -3,7 +3,7 @@
 // chat it opens picks the answer up here, once, so the "limit reached" or
 // "could not answer" notice and the "answering…" line are not lost.
 
-import type { TeamChatAiResult } from '../../../../api/queries/projectChatTypes';
+import type { TeamChatAiResult } from '@/api/queries/projectChatTypes';
 import { mentions } from './mentions';
 
 export interface FirstAnswer { ai: TeamChatAiResult; askedAi: boolean }

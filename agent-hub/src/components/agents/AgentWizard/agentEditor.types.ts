@@ -1,8 +1,8 @@
 // Shapes shared by the agent editor's bootstrap context, hero and category field.
 import type { READ } from './canUse/canUseFacts';
 import type { RefineChange } from './builderSplit/RefineDoneCard';
-import type { ModelTierMap } from '../../../api/queries/modelTiers';
-import type { Skill } from '../../../api/queries/skills';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { Skill } from '@/api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 

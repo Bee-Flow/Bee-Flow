@@ -1,6 +1,6 @@
 import { useApprovalsNav } from './useApprovalsNav';
 import { useStudioSectionData } from './useStudioSectionData';
-import { isOrgAdminLike as isOrgAdminUser } from '../../../utils/orgAdmin';
+import { isOrgAdminLike as isOrgAdminUser } from '@/utils/orgAdmin';
 import { STUDIO_APPS } from '../../admin/Studio/studioApps';
 import { canSeeStudio as canSeeStudioFor, studioGateContext, studioNavSections } from '../../admin/Studio/studioNav';
 import type { StudioNavUser } from '../../admin/Studio/studioNav';

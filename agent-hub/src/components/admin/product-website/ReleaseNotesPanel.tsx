@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Eye, EyeOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { settled } from '../../../api/settled';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { messageOf } from '../../../utils/caughtError';
-import { request, RefusedError } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * Release notes review queue — the human gate.

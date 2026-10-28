@@ -143,6 +143,8 @@ async function resolveAssistModel({ userId, session, modelTier }) {
  * @typedef {Object} MakeShieldGateArgs
  * @property {string} userId
  * @property {string} [orgId]
+ * @property {unknown} automationId
+ * @property {unknown} modelId
  */
 /**
  * The Privacy Shield tool gate for this turn, resolved on its first use.
@@ -233,7 +235,7 @@ function makeCodeAssistRouter(overrides = {}) {
         return next();
     }
 
-    router.post('/code/assist', deps.requireAuth, deps.rateLimit, requireAutomationsBeta, validate({ body: CodeAssistBody }), async (req, res) => {
+    router.post('/code/assist', deps.requireAuth, deps.rateLimit, requireAutomationsBeta, validate({ body: CodeAssistBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CodeAssistBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = req.session.user.id;
         const body = req.body;
         const messages = body.messages;

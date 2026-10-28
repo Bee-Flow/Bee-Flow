@@ -12,7 +12,7 @@
 import { Info, ListFilter, X } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface Chip {
     key: string;

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import PageToolbar, { type PageToolbarProps } from './PageToolbar';
 
-vi.mock('../../../editor/react/CollabPresence', () => ({ default: () => null }));
+vi.mock('@/editor/react/CollabPresence', () => ({ default: () => null }));
 
 function props(over: Partial<PageToolbarProps> = {}): PageToolbarProps {
     return {

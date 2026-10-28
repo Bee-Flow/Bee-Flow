@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { STEP_ICON_NAMES } from './flow/stepIcons';
 import type { FlowDefinition, FlowStep } from './flow/types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type Labels = Record<string, { label?: string; icon?: string }>;
 

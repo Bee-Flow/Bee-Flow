@@ -1,5 +1,5 @@
 import { useState, useMemo, type CSSProperties } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     Search, ChevronRight, Cpu, Activity
 } from 'lucide-react';

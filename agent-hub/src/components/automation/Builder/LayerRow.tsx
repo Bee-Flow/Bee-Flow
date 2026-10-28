@@ -1,8 +1,9 @@
 import { Trash2, Sparkles, Loader2, ChevronRight, ChevronDown, Pencil, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DepLineProps, LayerAiComposerProps, LayerRowProps, PreviewRow } from './FlowletsPanel.types';
 import { stop } from './FlowletsPanel.helpers';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 // The two directions read as jargon on their own — say which way each points.
 const DEP_HINT: Record<string, string> = {
@@ -49,7 +50,7 @@ export function LayerRow({
     // Keep the composer mounted while its run is in flight so progress shows.
     const showRefine = refineOpen || refining;
 
-    useEffect(() => { if (!editing) setDraft(layer.title); }, [layer.title, editing]);
+    useAdjustOnChange([layer.title, editing], () => { if (!editing) setDraft(layer.title); });
     useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
 
     const commit = () => {

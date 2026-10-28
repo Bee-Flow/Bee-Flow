@@ -2,7 +2,7 @@ import React from 'react';
 import { Plus, Play, Pin, PinOff, Loader2, Copy as CopyIcon, Trash2, Unlink } from 'lucide-react';
 import type { ChromeBadge } from '../nodeTypeColors';
 import { humanizeIssueText } from '../displayHelpers';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NodeRuntime, StepIssue, StepIssues } from './StepNodeBase.types';
 
 const ACTION_BTN = 'h-6 w-6 rounded-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed';

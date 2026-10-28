@@ -1,6 +1,6 @@
 import React from 'react';
 import { Loader2, Plug } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ConnectHubBannerProps {
     licensed?: boolean;

@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 /**
@@ -15,8 +15,8 @@ import { asMock } from '@/test/mocks';
  * the swap is safe to make in a 1200-line file with no prior coverage.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const jsonRes = (body: unknown, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,

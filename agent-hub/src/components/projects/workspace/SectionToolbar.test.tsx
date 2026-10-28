@@ -4,9 +4,9 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SectionToolbar from './SectionToolbar';
 
-vi.mock('../../../hooks/useTranslation', () => ({ default: () => ({ t: (_k: string, f: string) => f, locale: 'en' }) }));
+vi.mock('@/hooks/useTranslation', () => ({ default: () => ({ t: (_k: string, f: string) => f, locale: 'en' }) }));
 const viewport = { isDesktop: true, isCompact: false, isMobile: false, width: 1920 };
-vi.mock('../../../hooks/useViewport', () => ({ default: () => viewport, useViewport: () => viewport }));
+vi.mock('@/hooks/useViewport', () => ({ default: () => viewport, useViewport: () => viewport }));
 
 describe('SectionToolbar', () => {
     afterEach(() => { viewport.isDesktop = true; });

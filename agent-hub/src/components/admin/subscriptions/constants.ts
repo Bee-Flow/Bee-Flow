@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Package, Building2, KeyRound, ShieldCheck, Tag, CreditCard, ScrollText } from 'lucide-react';
-import { FEATURE_CATALOG } from '../../../shared/featureCatalog';
+import { FEATURE_CATALOG } from '@/shared/featureCatalog';
 
 export interface SectionDef {
     id: string;

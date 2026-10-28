@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -10,7 +11,7 @@
 const { fallback } = require('../../utils/bestEffort');
 
 /**
- * @param {{ kind?: string, appEvent?: { provider?: string|null, event?: string|null, filter?: unknown } } | null | undefined} trigger
+ * @param {{ kind?: string, appEvent?: { provider?: string|null, event?: string|null, filter?: import('../../core/automationModel/dslFilters').DslFilter | null } } | null | undefined} trigger
  * @param {Record<string, unknown> | null | undefined} givenPayload
  * @returns {{ payload: Record<string, unknown> | null, source: 'declared_sample' | 'given' | 'none', filterMatched: boolean | null, warnings: string[] }}
  */

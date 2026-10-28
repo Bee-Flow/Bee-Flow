@@ -2,14 +2,14 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
+import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import { ProjectLiveProvider } from './ProjectLiveContext';
 import ProjectRail from './ProjectRail';
 
-vi.mock('../../../hooks/useTranslation', () => ({ default: () => ({ t: (_k: string, f: string, p?: Record<string, unknown>) => f.replace('{n}', String(p?.n ?? '')).replace('{name}', String(p?.name ?? '')), locale: 'en' }) }));
-vi.mock('../../../hooks/useProjectStream', () => ({ default: () => {} }));
+vi.mock('@/hooks/useTranslation', () => ({ default: () => ({ t: (_k: string, f: string, p?: Record<string, unknown>) => f.replace('{n}', String(p?.n ?? '')).replace('{name}', String(p?.name ?? '')), locale: 'en' }) }));
+vi.mock('@/hooks/useProjectStream', () => ({ default: () => {} }));
 const viewport = { isDesktop: true, isCompact: false, isMobile: false, width: 1920 };
-vi.mock('../../../hooks/useViewport', () => ({ default: () => viewport, useViewport: () => viewport }));
+vi.mock('@/hooks/useViewport', () => ({ default: () => viewport, useViewport: () => viewport }));
 
 const project = { id: 'p1', name: 'Product launch', kind: 'workspace', ownerId: 'me', color: '#f59e0b', icon: '🚀', role: 'owner' };
 function seed(client: ReturnType<typeof testQueryClient>) {

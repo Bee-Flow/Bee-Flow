@@ -139,7 +139,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
 });
 
-router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (req, res) => {
+router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ScopeBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
         orgId: callerOrgId(req),
@@ -150,7 +150,7 @@ router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: 
 });
 
 // One-click offboarding: every integration explicitly off.
-router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
     _invalidateGuardCache(userId);
@@ -158,7 +158,7 @@ router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (req, 
 });
 
 // Back to the allow-all default (delete the doc).
-router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.post('/reset', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
     _invalidateGuardCache(userId);
@@ -208,7 +208,7 @@ function cacheResource(key, data, now = Date.now()) {
     }
 }
 
-router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({ query: ResourcesQuery }), async (req, res) => {
+router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({ query: ResourcesQuery }), async (/** @type {import('express').Request<{ integrationId: string }, any, any, import('zod').infer<typeof ResourcesQuery>>} */ req, res) => {
     const { integrationId } = req.params;
     const spec = ncScope.RESOURCE_KINDS[integrationId];
     if (!spec) return res.status(404).json({ error: 'This integration has no selectable resources' });
@@ -260,5 +260,6 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
     }
 });
 
-module.exports = router;
-module.exports._test = { _resourceCache, cacheResource, RESOURCE_CACHE_MAX, RESOURCE_CACHE_TTL_MS }; // exported for tests
+module.exports = Object.assign(router, {
+    _test: { _resourceCache, cacheResource, RESOURCE_CACHE_MAX, RESOURCE_CACHE_TTL_MS }, // exported for tests
+});

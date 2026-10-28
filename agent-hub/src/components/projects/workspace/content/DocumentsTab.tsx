@@ -10,13 +10,13 @@ import { AlertTriangle, FilePlus2, FileText, Plus } from 'lucide-react';
 import React, { Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectDocument, useCreateProjectNotebook, useMyTemplatesQuery, useProjectSection, type NewDocumentVars, type ProjectDocument,
-} from '../../../../api/queries/projectContent';
-import { projectKeys } from '../../../../api/queries/projects';
-import useTranslation, { readingLocale } from '../../../../hooks/useTranslation';
-import StarterGallery, { type NewChoice } from '../../../../pages/documents/library/StarterGallery';
+} from '@/api/queries/projectContent';
+import { projectKeys } from '@/api/queries/projects';
+import useTranslation, { readingLocale } from '@/hooks/useTranslation';
+import StarterGallery, { type NewChoice } from '@/pages/documents/library/StarterGallery';
 import { projectErrorText } from '../projectErrorText';
-import { lazy } from '../../../../utils/lazyWithReload';
-import EmptyState from '../../../shared/EmptyState';
+import { lazy } from '@/utils/lazyWithReload';
+import EmptyState from '@/components/shared/EmptyState';
 import { GhostButton, LoadingRow, Notice, PrimaryButton, ViewerNote, SecondaryButton, WorkspaceColumn } from '../workspaceUi';
 import SectionToolbar from '../SectionToolbar';
 import DocumentsTable, { type DocumentsTableProps } from './DocumentsTable';
@@ -25,7 +25,7 @@ import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
 
-const DocumentEditor = lazy(() => import('../../../../pages/documents/DocumentEditor'));
+const DocumentEditor = lazy(() => import('@/pages/documents/DocumentEditor'));
 
 /** One document, full width, with its own Back; marked seen once it has been open a moment. */
 function DocumentPane({ projectId, documentId, onOpenSub, currentUser }: { projectId: string; documentId: string; onOpenSub: ContentTabProps['onOpenSub']; currentUser: ContentTabProps['currentUser'] }) {

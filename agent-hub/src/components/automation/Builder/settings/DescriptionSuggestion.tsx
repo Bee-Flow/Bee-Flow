@@ -1,7 +1,7 @@
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { readingLocale, useTranslation } from '../../../../hooks/useTranslation';
-import { useSuggestDescriptionMutation } from '../../../../api/queries/automation/settings';
+import { readingLocale, useTranslation } from '@/hooks/useTranslation';
+import { useSuggestDescriptionMutation } from '@/api/queries/automation/settings';
 import { LINK_BTN, PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 
 interface Props {

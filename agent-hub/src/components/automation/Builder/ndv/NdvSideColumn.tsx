@@ -1,5 +1,5 @@
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { NdvSide } from './ndvLayout';
 
 type PointerHandler = (e: ReactPointerEvent<HTMLElement>) => void;

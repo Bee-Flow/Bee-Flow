@@ -1,11 +1,11 @@
 import { CalendarClock } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import RegulatoryCalendar, { type CalendarItem } from '../shared/RegulatoryCalendar';
 import { PAGE_FRAME } from './audits/auditForms';
 import FrameworkCandidateCard, { OwnFrameworkCard } from './frameworks/FrameworkCandidateCard';
 import type { CandidateFramework } from './frameworks/FrameworkCandidateCard';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * FrameworksPage — "frameworks as a growing set + regulatory calendar"

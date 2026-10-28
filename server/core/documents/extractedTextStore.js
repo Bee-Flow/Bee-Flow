@@ -47,9 +47,9 @@ async function persistExtractedText(text, userId, name) {
             const key = storageStore.buildKey(userId, 'extractions', filename);
             await storageStore.uploadFile(key, Buffer.from(safe, 'utf8'), 'text/plain; charset=utf-8');
             extractionKey = key;
-            log.info(`[ExtractedTextStore] Tiered extraction → RustFS (${safe.length} chars, ${name || 'unnamed'})`);
+            log.info(`[ExtractedTextStore] Tiered extraction → RustFS (${safe.length} chars, ${log.nameForLog(name)})`);
         } catch (err) {
-            log.warn(`[ExtractedTextStore] Upload failed for ${name || 'unnamed'}: ${/** @type {Error} */ (err).message}`);
+            log.warn(`[ExtractedTextStore] Upload failed for ${log.nameForLog(name)}: ${/** @type {Error} */ (err).message}`);
         }
     }
 

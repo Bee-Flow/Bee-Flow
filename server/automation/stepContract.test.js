@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the pure Step-contract helpers.
  *

@@ -222,7 +222,7 @@ function createPublicRouter(deps) {
         res.json({ token: issueCmsFormToken(tokenScope(target.siteId, target.found.block.id, issuedAt)), issuedAt, serverNow: issuedAt });
     });
 
-    router.post('/:blockId', submitIpLimiter, submitFormLimiter, jsonOnly, browserOrigin, sizeGuard, validate({ body: SubmitBody }), async (req, res) => {
+    router.post('/:blockId', submitIpLimiter, submitFormLimiter, jsonOnly, browserOrigin, sizeGuard, validate({ body: SubmitBody }), async (/** @type {import('express').Request<{ blockId: string }, any, import('zod').infer<typeof SubmitBody>, import('qs').ParsedQs>} */ req, res) => {
         res.set('Cache-Control', 'no-store');
         const target = await resolveTarget(/** @type {string} */ (req.params.blockId));
         if (!target) throw UNAVAILABLE();

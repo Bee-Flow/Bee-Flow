@@ -10,7 +10,7 @@ import type { AssistantField } from '../useBuilderShellState';
 import {
     AssistantWelcome, InputArea, MessageBubble, ProposalCard, WorkModePicker,
 } from './jsComponents';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import BuilderWaitingCard from '../chat/BuilderWaitingCard';
 import PlanInlineCard from '../chat/PlanInlineCard';
 import QuestionsCard from '../chat/QuestionsCard';
@@ -52,7 +52,7 @@ export interface AssistantColumnProps {
 }
 
 /** The chat column. Collapses entirely when the assistant is closed. */
-export default function AssistantColumn(p: AssistantColumnProps) {
+export default function AssistantColumn({ messagesContainerRef, messagesBodyRef, messagesEndRef, ...p }: AssistantColumnProps) {
     const { t } = useTranslation();
     const { state } = p;
     const approve = (pauseAfterStep: boolean) => { p.setReviewOpen(false); p.onApprovePlan?.(pauseAfterStep); };
@@ -80,7 +80,7 @@ export default function AssistantColumn(p: AssistantColumnProps) {
                     <X size={15} />
                 </button>
             </div>
-            <div ref={p.messagesContainerRef} onScroll={p.onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
+            <div ref={messagesContainerRef} onScroll={p.onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
                 {state.messages.length === 0 && (
                     <AssistantWelcome
                         triggerKind={p.scopedDef?.trigger?.kind}
@@ -89,7 +89,7 @@ export default function AssistantColumn(p: AssistantColumnProps) {
                         onPick={(text) => p.composer.setChatInput(text)}
                     />
                 )}
-                <div ref={p.messagesBodyRef} className="flex flex-col gap-4 w-full max-w-[900px] mx-auto">
+                <div ref={messagesBodyRef} className="flex flex-col gap-4 w-full max-w-[900px] mx-auto">
                     {state.messages.map((m, i) => (
                         <MessageBubble
                             key={i}
@@ -111,7 +111,7 @@ export default function AssistantColumn(p: AssistantColumnProps) {
                     <QuestionsCard key={(state.reviewQuestions as BuilderQuestion[] | null | undefined)?.[0]?.id || 'questions'} questions={state.reviewQuestions as BuilderQuestion[] | null | undefined} onAnswer={(text, answers) => p.composer.onSend(text, [], { answers })} />
                     {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => p.setReviewOpen(true)} onApprove={approve} />}
                     <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={p.realOutputById} proposal={state.proposal} running={state.running} applying={p.applyingProposal} onApply={p.onApplyProposal} onDiscard={p.onDiscardProposal} onPreview={p.onPreviewProposal} />
-                    <div ref={p.messagesEndRef} />
+                    <div ref={messagesEndRef} />
                 </div>
             </div>
             <AssistantComposer {...p.composer} />

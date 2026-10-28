@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Loader2, Clock, CheckCircle2, XCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
-import { TranslateParams } from '../../../hooks/useTranslation';
+import { TranslateParams } from '@/hooks/useTranslation';
 import { Toggle } from './components';
 import type { GroupSyncSettings, GroupSyncStatus, SyncResult } from './SSOSection.types';
 

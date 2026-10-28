@@ -22,7 +22,7 @@
  * READ_ONLY may additionally contain chat-only tool names that are not in
  * the automation registry.
  */
-
+// @typecheck
 const READ_ONLY = new Set([
     // Gmail
     'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_list_labels', 'gmail_read_many',

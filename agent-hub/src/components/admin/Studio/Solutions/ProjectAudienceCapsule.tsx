@@ -1,7 +1,7 @@
 import { Lock, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** One `project_shares` row, as far as the audience reads it. */
 interface ProjectShare { sharedWithType?: string; sharedWithId: string }

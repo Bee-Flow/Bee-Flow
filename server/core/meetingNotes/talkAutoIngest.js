@@ -93,7 +93,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
         ownerId = orgSettings.defaultOwnerUserId || null;
     }
     if (!ownerId) {
-        log.warn('[TalkAutoIngest] Talk recording with no mappable owner — skipping', { path: ncPath, actor: payload?.actor, fileOwner: payload?.owner, orgId });
+        log.warn('[TalkAutoIngest] Talk recording with no mappable owner — skipping', { path: log.nameForLog(ncPath), actor: log.textForLog(payload?.actor), fileOwner: log.textForLog(payload?.owner), orgId });
         return;
     }
     if (!orgId) orgId = await resolveOrgIdForUser(ownerId);
@@ -130,11 +130,11 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     const triggerBus = runnerPort('triggerBus');
     const session = await triggerBus.loadSession(ownerId);
     if (!session) {
-        log.warn('[TalkAutoIngest] no Nextcloud credentials for owner — skipping', { ownerId, path: ncPath });
+        log.warn('[TalkAutoIngest] no Nextcloud credentials for owner — skipping', { ownerId, path: log.nameForLog(ncPath) });
         return;
     }
 
-    log.info(`[TalkAutoIngest] ingesting Talk recording ${ncPath} (room ${token}) for user ${ownerId}`);
+    log.info(`[TalkAutoIngest] ingesting Talk recording ${log.nameForLog(ncPath)} (room ${token}) for user ${ownerId}`);
     try {
         const out = await ingestNextcloudRecording({
             userId: ownerId, session, orgId,
@@ -146,7 +146,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
         else log.info(`[TalkAutoIngest] created Meeting Note ${out?.id} from ${sourceUri}` + (out?.writeBack ? ` (write-back: ${out.writeBack.ok ? 'ok' : out.writeBack.error})` : ''));
     } catch (err) {
         // Surface, don't swallow — but keep it out of the dispatcher's path.
-        log.error(`[TalkAutoIngest] ingest failed for ${ncPath} [${err.code || 'error'}]: ${/** @type {Error} */ (err).message}`);
+        log.error(`[TalkAutoIngest] ingest failed for ${log.nameForLog(ncPath)} [${err.code || 'error'}]: ${/** @type {Error} */ (err).message}`);
     } finally {
         // Disarmed on the FAILURE path too. The token means "the next recording
         // in this room came from auto-record"; that recording has now arrived,

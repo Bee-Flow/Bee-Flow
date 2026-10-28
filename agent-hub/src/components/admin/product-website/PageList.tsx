@@ -15,14 +15,14 @@ import {
 } from '@dnd-kit/sortable';
 import { toast } from '../../shared/Toast';
 import { BLOCK_DEFAULTS } from './editors';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from './fieldKit/jsDeps';
 import type { ImportPayload } from './pageIO';
 import PageRow from './pageList/PageRow';
 import type { PageRowCallbacks } from './pageList/PageRow';
 import { AddPageDialog, TemplatesManagerDialog } from './pageList/TemplateDialogs';
 import type { NewPageInput, PageListPage, PageTemplate } from './pageList/pageListShared';
-import { describeError } from '../../../utils/caughtError';
+import { describeError } from '@/utils/caughtError';
 
 // The dialogs moved to ./pageList/TemplateDialogs; re-exported so the
 // import path the panel uses stays stable.

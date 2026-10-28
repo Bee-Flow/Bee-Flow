@@ -1,8 +1,8 @@
 import { ChevronDown, FolderPlus, Package, Plus, Workflow } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 
 const AnchoredMenu = AnchoredMenuJs;
 

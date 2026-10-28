@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { suiteTabCount } from './ribbonCategories';
 import type { CategoryDef, RibbonCategoryId } from './ribbonCategories';
 import type { RibbonAnchor } from './ribbonAnchor';

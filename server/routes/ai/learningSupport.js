@@ -1,3 +1,4 @@
+// @typecheck
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
 const crypto = require('crypto');

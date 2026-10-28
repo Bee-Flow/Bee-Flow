@@ -1,6 +1,6 @@
 import { isSuite } from '../appsRibbonLayout';
 import { categoryGlyphFor } from '../appGlyphs';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { CategoryPill, appPill } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import PillRow from './PillRow';

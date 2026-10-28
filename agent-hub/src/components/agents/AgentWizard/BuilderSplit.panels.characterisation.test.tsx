@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BuilderSplit from './BuilderSplit';
 import EntitlementsContext from '../../licensing/EntitlementsContext';
 import type { EntitlementsValue } from '../../licensing/EntitlementsContext';
-import { withQueryClient } from '../../../test/render';
+import { withQueryClient } from '@/test/render';
 
 /**
  * BuilderSplit's panels and dialogs that BuilderSplit.test.jsx and
@@ -22,8 +22,8 @@ interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknow
 type Route = [method: string, urlPart: string, answer: (init: RequestInit) => FakeResponse];
 
 const { authFetch } = vi.hoisted(() => ({ authFetch: vi.fn<(url: string, init?: RequestInit) => Promise<FakeResponse>>() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../utils/helpers')>()), API_BASE: '', authFetch,
+vi.mock('@/utils/helpers', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/utils/helpers')>()), API_BASE: '', authFetch,
 }));
 
 const reply = (status: number, body: unknown = {}, text = ''): FakeResponse => ({ ok: status >= 200 && status < 300, status, json: async () => body, text: async () => text });

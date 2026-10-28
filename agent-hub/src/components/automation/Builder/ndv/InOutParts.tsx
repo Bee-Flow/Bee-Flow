@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DataSummary } from '../flow/types';
 
 /**

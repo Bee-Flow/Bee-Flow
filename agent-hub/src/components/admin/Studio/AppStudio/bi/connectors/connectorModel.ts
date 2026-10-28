@@ -6,7 +6,7 @@
  */
 import { AppWindow, Globe, Mail, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { missingRequiredParams as missingRequiredParamsJs } from '../ActionParamsForm';
 import type { SyncBlock } from '../sync/syncModel';
 

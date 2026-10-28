@@ -27,10 +27,10 @@
  * body is `documentContent(kbId, docId)`, one document at a time, on demand.
  */
 
-import { createJsonResource } from '../../../../api/client';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { createJsonResource } from '@/api/client';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type { SourceConfig } from './sourceKinds';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const base = `${API_BASE}/api/kb`;
 const enc = encodeURIComponent;

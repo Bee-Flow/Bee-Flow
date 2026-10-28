@@ -20,7 +20,7 @@ const { api } = vi.hoisted(() => ({
         }),
     },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 import QueryTestWrapper from './ndv/QueryTestWrapper';
 import NodeDetailViewJs from './NodeDetailView';

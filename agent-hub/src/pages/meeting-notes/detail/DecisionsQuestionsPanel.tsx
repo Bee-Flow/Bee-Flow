@@ -1,7 +1,7 @@
 import { CircleHelp, Clock, Gavel } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 // The strict parser (null for junk) — an unreadable model timestamp must lose
 // its chip, not seek to 0:00. Same rule as ActionItemsList.
 import { toSeconds } from '../lib/timelineMarkers';

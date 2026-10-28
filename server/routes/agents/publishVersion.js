@@ -67,7 +67,7 @@ function callerRefusal(e) {
 // Same write gate as the CRUD router: a suspended/archived org publishes nothing.
 router.use(requireActiveOrgForMutations());
 
-router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), async (req, res) => {
+router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });

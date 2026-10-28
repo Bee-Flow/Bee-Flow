@@ -1,4 +1,4 @@
-import { studioFilesApi } from '../../../../../../api/studioFilesApi';
+import { studioFilesApi } from '@/api/studioFilesApi';
 import { entryHref, entryName } from './AppInputFile';
 
 /**

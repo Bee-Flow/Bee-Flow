@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a code step's source allows at run time, decided before the sandbox
  * starts (execOutbound.execCode):
@@ -37,9 +38,9 @@ function analysisFor(code) {
 }
 
 /**
- * @param {object} step            the code step (code, allowedHosts)
+ * @param {{ id?: string, code?: unknown, allowedHosts?: string[] }} step  the code step
  * @param {object} resolvedInputs  values, never bindings
- * @param {{ log?: object }} [opts]
+ * @param {{ log?: { info: (message: string) => unknown } }} [opts]
  * @returns {{ refusal: string|null, inputs: object, analysis: object,
  *             refuseHost: (host: string) => string|null, manifest: { hosts: string[], enforced: boolean } }}
  */

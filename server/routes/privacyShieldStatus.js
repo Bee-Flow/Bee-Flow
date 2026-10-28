@@ -272,7 +272,7 @@ async function buildStatus(req) {
 }
 
 // GET / — the caller's own effective Privacy Shield status
-router.get('/', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     let status;
     try {
         status = await buildStatus(req);
@@ -288,17 +288,18 @@ router.get('/', requireAuth, validate({ query: NO_QUERY }), async (req, res) => 
     res.json(status);
 });
 
-module.exports = router;
-module.exports.summarizeShield = summarizeShield;
-module.exports.sanitizeChatMonitoring = sanitizeChatMonitoring;
-module.exports.isGuardReachable = isGuardReachable;
-module.exports.OFF = OFF;
-module.exports.SOURCES = SOURCES;
-module.exports.ACTIONS = ACTIONS;
-module.exports.FAIL_MODES = FAIL_MODES;
-module.exports.GUARD_PROBE_TTL_MS = GUARD_PROBE_TTL_MS;
 // Only for tests: the probe memo is module state and would leak between cases.
-module.exports._resetGuardMemo = () => { _guardMemo = null; _guardInflight = null; };
+module.exports = Object.assign(router, {
+    summarizeShield,
+    sanitizeChatMonitoring,
+    isGuardReachable,
+    OFF,
+    SOURCES,
+    ACTIONS,
+    FAIL_MODES,
+    GUARD_PROBE_TTL_MS,
+    _resetGuardMemo: () => { _guardMemo = null; _guardInflight = null; },
+});
 
 /**
  * The settings the fold reads: the global AI config, an org shield or a user shield.

@@ -1,11 +1,11 @@
 import { AlertCircle, Check, Loader2, Lock } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { editablePermissionsForRole, permissionsForRole } from '../../../config/orgRoles';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { errorMessage } from '../../../utils/caughtError';
+import { editablePermissionsForRole, permissionsForRole } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { errorMessage } from '@/utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 interface RolePermissionEditorProps {
     role: { id: string; color: string };

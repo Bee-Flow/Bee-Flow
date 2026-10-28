@@ -86,7 +86,7 @@ async function requireSolutionProject(req, res, next) {
  * A plain download is never refused by the gate; it carries the verdict in
  * `_checks` so the caller can say what an installer would run into.
  */
-router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), requireSolutionProject, require('../../compliance/dataPortability/stampExport')('solutions'), async (req, res) => {
+router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), requireSolutionProject, require('../../compliance/dataPortability/stampExport')('solutions'), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ExportBody>, import('qs').ParsedQs>} */ req, res) => {
     const projectStore = require('../../stores/projectStore');
     const project = await projectStore.getProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Not found' });
@@ -401,7 +401,7 @@ function withSourceWarnings(result, { warnings }) {
  * afterwards is not offering one. Owner, like every packaging action on a
  * project — an upgrade rewrites other members' entities.
  */
-router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
+router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.UpgradeBody>, import('qs').ParsedQs>} */ req, res) => {
     const resolved = await resolveManifest(req);
     if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
     const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
@@ -413,7 +413,7 @@ router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole(
 });
 
 /** POST /:id/package/upgrade — apply it. Replaces the untouched, keeps the rest. */
-router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
+router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.UpgradeBody>, import('qs').ParsedQs>} */ req, res) => {
     const resolved = await resolveManifest(req);
     if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
     const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
@@ -485,7 +485,7 @@ router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owne
  * route stamps (Blueprint id, exporting organisation, version), so an install
  * from it can be tied back to its gallery row.
  */
-router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjectRole('owner'), validate({ query: S.ReleaseQuery }), requireSolutionProject, async (req, res) => {
+router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjectRole('owner'), validate({ query: S.ReleaseQuery }), requireSolutionProject, async (/** @type {import('express').Request<{ id: string, releaseId: string }, any, any, import('zod').infer<typeof S.ReleaseQuery>>} */ req, res) => {
     // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the response is a JSON attachment (application/json), never HTML
     const release = await require('../../stores/blueprintStore').getRelease(req.params.id, req.params.releaseId);
     if (!release || release.channel === 'pipeline') throw new HttpError(404, 'not_found', 'Not found');
@@ -612,7 +612,7 @@ router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owne
  * on a plan without App Studio. Refusing the whole thing would make a
  * partly-usable Solution unusable.
  */
-router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBody }), async (req, res) => {
+router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.InstallBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -693,7 +693,6 @@ router.delete('/package/blueprints/:blueprintId', blueprintPackaging, async (req
     res.json({ success: true });
 });
 
-module.exports = router;
-module.exports.INSTALLER_FEATURES = INSTALLER_FEATURES;
+module.exports = Object.assign(router, { INSTALLER_FEATURES });
 
 /** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

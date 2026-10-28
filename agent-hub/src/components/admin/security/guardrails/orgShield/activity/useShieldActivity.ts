@@ -50,9 +50,9 @@
 // rather than replacing the pane with an error.
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { messageOf } from '../../../../../../utils/caughtError';
-import { API_BASE } from '../../../../../../utils/helpers';
-import { settled } from '../../../../../../api/settled';
+import { messageOf } from '@/utils/caughtError';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 
 const DETAIL_LIMIT = 200;
 const REFRESH_MS = 30_000;

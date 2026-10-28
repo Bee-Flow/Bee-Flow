@@ -21,7 +21,7 @@
  * `urgentBelowMs` is REGULATION, not presentation (deadlineMath contract):
  * GDPR/NIS2 notification 24 h, CRA early warning 6 h, CRA later stages 24 h.
  */
-import { HOUR_MS, DAY_MS } from '../../../../shared/deadlineMath';
+import { HOUR_MS, DAY_MS } from '@/components/shared/deadlineMath';
 import type { IncidentRecord } from './IncidentsTable';
 
 const INCIDENT_KINDS = Object.freeze(['breach', 'security_incident', 'vulnerability']);

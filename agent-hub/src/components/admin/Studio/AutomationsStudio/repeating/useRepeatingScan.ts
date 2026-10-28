@@ -2,10 +2,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
     parseScanResult, parseSuggestion, parseSuggestions, repeatingApi, repeatingKeys, useLastScan, useScanSources,
-} from '../../../../../api/queries/automation/repeating';
-import type { RepeatingSuggestion, ScanMode, ScanResult } from '../../../../../api/queries/automation/repeating';
-import type { AutomationApiError } from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+} from '@/api/queries/automation/repeating';
+import type { RepeatingSuggestion, ScanMode, ScanResult } from '@/api/queries/automation/repeating';
+import type { AutomationApiError } from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import { makeLabelFor, parseRetrySeconds } from './patternView';
 import { readRepeatingPrefs, writeRepeatingPrefs } from './repeatingState';
 import usePatternFeedback from './usePatternFeedback';

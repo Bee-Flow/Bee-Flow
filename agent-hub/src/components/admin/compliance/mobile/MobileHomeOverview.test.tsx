@@ -9,7 +9,7 @@ import MobileHomeOverview, { attentionTarget } from './MobileHomeOverview';
  * the client fallback hands `{ section, id }`. Both shapes must navigate, and a
  * `?tab=` that moved to another section (sections.js legacyTabs) lands there.
  */
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const DUE = new Date(Date.now() + 3 * 86_400_000).toISOString();
 const STARTED = new Date(Date.now() - 27 * 86_400_000).toISOString();

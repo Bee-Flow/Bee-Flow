@@ -88,10 +88,14 @@ function featureToolsets() {
 /**
  * Build the list of integration tools available for the current user.
  * 
- * @param {Object} options
+ * @param {object} options
  * @param {string}  options.userId       - Current user ID
- * @param {Object}  options.session      - Express session (for OAuth tokens)
+ * @param {Partial<Express.Session>} [options.session] - Express session (for OAuth tokens)
  * @param {boolean} [options.isAdmin]    - Whether user is admin
+ * @param {import('./integrationToolFeatures').AgentConfig | null} [options.agentConfig] - The agent's runtime config (its per-action grants narrow the toolbelt)
+ * @param {string | null} [options.agentId]
+ * @param {boolean} [options.automationStep] - An automation step asks: strict app gating, no skill-scoped extras
+ * @param {{ ownerUserId?: string, resourceType?: string | null, resourceId?: string | null } | null} [options.connectionPolicy] - Connection lending on a shared resource run
  * @param {string[]|null} [options.enabledAppsOverride] - Stands in for the
  *   user's workspace-wide enabled-apps preference for this call. Used by a
  *   cowork item that carries its own, narrower list: the run may only touch
@@ -103,7 +107,7 @@ function featureToolsets() {
  *   active skill (skill-scoped enablement). INVARIANT: this bypasses ONLY the
  *   per-user enabled-apps preference — it must never widen org entitlements
  *   or skip credential/session checks.
- * @returns {Object} { tools: Array, n8nOrgId: string|null }
+ * @returns {Promise<{ tools: import('../agentRuntime/chatStream/turnState').ToolDef[], n8nOrgId: string | null }>}
  */
 async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
     const tools = [];

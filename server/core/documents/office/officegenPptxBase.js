@@ -1,3 +1,4 @@
+// @typecheck
 const { resolveDeckTheme } = require('../deckThemeOptions');
 
 const NEUTRAL_DECK_THEME = Object.freeze(resolveDeckTheme(null));

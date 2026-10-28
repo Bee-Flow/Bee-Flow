@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FileSummary, StepCompare } from '../../../../api/queries/automation/runChecks';
+import type { FileSummary, StepCompare } from '@/api/queries/automation/runChecks';
 import { formatBytes, modeText, partChanges, softChipText, stepVerdictText, summaryLine, verdictText } from './runCompareText';
 
 // The fallback is the English; params fill {name} like the real t().

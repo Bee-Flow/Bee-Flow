@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import React, { useId } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import AddRow from '../../parts/AddRow';
 import { helpClass, labelClass } from './fieldStyles';
 

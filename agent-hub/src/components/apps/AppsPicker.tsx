@@ -20,6 +20,7 @@ import { ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { groupAppsByCategory } from './appCatalog';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 /** One entry of the picker, as appCatalog.jsx builds it. */
 export interface AppDef {
     id: string;
@@ -74,11 +75,11 @@ export default function AppsPicker({
     const [dropDown, setDropDown] = useState(false);
 
     const closePicker = useEffectEvent(() => setOpen(false));
+    // Also covers the controlled path, where the opener is a menu row
+    // rather than this component's own button.
+    useAdjustOnChange([open], () => { if (open) setSearch(''); });
     useEffect(() => {
         if (!open) return undefined;
-        // Also covers the controlled path, where the opener is a menu row
-        // rather than this component's own button.
-        setSearch('');
         const onDown = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) closePicker(); };
         document.addEventListener('mousedown', onDown);
         return () => document.removeEventListener('mousedown', onDown);

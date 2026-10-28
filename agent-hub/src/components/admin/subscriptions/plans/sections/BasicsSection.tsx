@@ -1,6 +1,6 @@
 import { Building2, Users } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ChoiceCards } from '../../ui/Choice';
 import { Field, Input, Textarea } from '../../ui/Input';
 import type { PlanSectionProps } from '../usePlanForm';

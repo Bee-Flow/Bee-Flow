@@ -281,7 +281,7 @@ async function executeContactsAction(action, session) {
         }
         if (action.notes) body.biographies = [{ value: action.notes, contentType: 'TEXT_PLAIN' }];
 
-        log.info(`[Contacts] Creating: "${action.firstName} ${action.lastName || ''}"`);
+        log.info('[Contacts] Creating a contact');
         const response = await people.people.createContact({ requestBody: body });
 
         return {

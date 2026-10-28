@@ -22,7 +22,7 @@ import useCmsPublishing from './panel/useCmsPublishing';
 import { useCmsSitePayload, useCmsSitesList } from './panel/useCmsSiteLoader';
 import useCmsSiteOps from './panel/useCmsSiteOps';
 import CmsBuilderShell from './shell/CmsBuilderShell';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Product Website CMS — multi-site admin panel.

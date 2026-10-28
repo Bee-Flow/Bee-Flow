@@ -1,6 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { VoiceState, VoiceStates } from './useVoiceSession.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export const VOICE_STATES: VoiceStates = {
     IDLE: 'idle',           // mic hot, waiting for speech

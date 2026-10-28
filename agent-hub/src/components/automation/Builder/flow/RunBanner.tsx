@@ -3,8 +3,8 @@ import { statusVar } from './nodeTypeColors';
 import { formatElapsed } from './runFocus';
 import type { RunFocus } from './runFocus';
 import type { RunIdentity } from './useFailedRunBanner';
-import useTranslation from '../../../../hooks/useTranslation';
-import { formatDate } from '../../../../utils/dateFormatters';
+import useTranslation from '@/hooks/useTranslation';
+import { formatDate } from '@/utils/dateFormatters';
 
 /**
  * The canvas's run banner (CanvasSouthBar's first precedence): a run in

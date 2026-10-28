@@ -7,7 +7,7 @@ import RisksTable, {
 } from './RisksTable';
 import { partial } from '@/test/mocks';
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

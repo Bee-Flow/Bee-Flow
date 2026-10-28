@@ -1,11 +1,11 @@
 import React, { useEffect, useEffectEvent, useState, useCallback, useRef } from 'react';
 import { Users, ShieldCheck, ChevronDown } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { useInboxAccess } from '../../../../api/queries/studioSupport';
-import Section from '../../../shared/Section';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useInboxAccess } from '@/api/queries/studioSupport';
+import Section from '@/components/shared/Section';
 import type { SupportInbox, SupportTeammate, SupportUser } from './supportStudio.types';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 interface AccessGroup {
     id: string;

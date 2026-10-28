@@ -6,7 +6,7 @@
  * zero — can be tested without rendering.
  */
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Finding } from '../shieldFindings';
 
 export interface FindingCopy {

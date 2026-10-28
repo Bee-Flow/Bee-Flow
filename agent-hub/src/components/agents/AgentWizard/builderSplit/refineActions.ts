@@ -1,16 +1,16 @@
 import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { configuredTierKeys } from '../../../licensing/tierMeta';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { configuredTierKeys } from '@/components/licensing/tierMeta';
 import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/refineMerge';
-import { errorMessage } from '../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 import type { ChatMessage } from '../agentEditor.types';
-import type { EditorSnapshot, Ref, Setter } from '../../../../api/agentSaveTypes';
+import type { EditorSnapshot, Ref, Setter } from '@/api/agentSaveTypes';
 import type { ConceptPersona } from './useAgentConceptFacts';
-import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import type { Skill } from '../../../../api/queries/skills';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { Skill } from '@/api/queries/skills';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError } from '@/api/mutate';
 
 export interface RefineDeps {
     chat: ChatMessage[];

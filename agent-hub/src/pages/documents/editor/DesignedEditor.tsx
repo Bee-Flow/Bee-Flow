@@ -11,7 +11,7 @@
 // back, and offers a jump to the full screen.
 
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import DocumentCanvas from '../DocumentCanvas';
 import DeckOutlineEditor from '../DeckOutlineEditor';
 import DocumentWorkspacePanelJs from '../DocumentWorkspacePanel';

@@ -1,3 +1,4 @@
+// @typecheck
 const reading = require('./reading');
 
 /**

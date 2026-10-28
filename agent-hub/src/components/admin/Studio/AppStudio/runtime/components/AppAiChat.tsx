@@ -1,15 +1,15 @@
 import { Send, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownBlocks } from './AppMarkdown';
-import useTranslation, { type TranslateFn } from '../../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
 import { parseSseStream } from '../sseStream';
-import { messageOf } from '../../../../../../utils/caughtError';
-import { logger } from '../../../../../../utils/logger';
+import { messageOf } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 /**
  * App Studio runtime — 'ai_chat'. Spec: server/appStudio/componentSpecs.js.

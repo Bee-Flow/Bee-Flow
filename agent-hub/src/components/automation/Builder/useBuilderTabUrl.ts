@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 
 /** The four things the builder can be showing. */
@@ -55,20 +55,20 @@ export default function useBuilderTabUrl({
     // Adopt a CHANGED initialTab (browser Back/Forward moving ?view=). The
     // guard ignores null on purpose: a cleared prop (URL back to the default
     // Editor view elsewhere in the tree) must never yank the user off Runs.
-    const lastInitialTabRef = useRef(initialTab);
-    useEffect(() => {
-        if (initialTab !== lastInitialTabRef.current) {
-            lastInitialTabRef.current = initialTab;
-            if (initialTab) setTab(initialTab);
-        }
-    }, [initialTab]);
+    const [lastInitialTab, setLastInitialTab] = useState(initialTab);
+    if (initialTab !== lastInitialTab) {
+        setLastInitialTab(initialTab);
+        if (initialTab) setTab(initialTab);
+    }
 
     // ── URL reporter (?view/run/step) ───────────────────────────────────
     // The shell owns the VIEW word; the runs panel reports the open run and
     // selected step through reportBuilderState. Pure navigation — no save
     // side effects (the PUT count is a test contract).
     const tabForUrlRef = useRef(tab);
-    tabForUrlRef.current = tab;
+    useLayoutEffect(() => {
+        tabForUrlRef.current = tab;
+    });
     const runUrlStateRef = useRef<{ runId: string | null; stepId: string | null }>({
         runId: initialRunId || null, stepId: initialRunStepId || null,
     });

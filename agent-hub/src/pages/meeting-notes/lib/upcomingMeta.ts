@@ -6,8 +6,8 @@
  * The same goes for participants: Talk reads them from the ICS ATTENDEE property (nextcloudCalendarTools.js:205-208), and an ad-hoc room without a calendar appointment supplies an EMPTY list; empty means "the calendar told us nothing", not "zero people". A zero that is actually unknown has been a finding in this program three times already.
  */
 
-import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange } from './upcomingWhen';
 
 // The date rules sit in an IMPORT-FREE sibling module, so that the whole-day fix

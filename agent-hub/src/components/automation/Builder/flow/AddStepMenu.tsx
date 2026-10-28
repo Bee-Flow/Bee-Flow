@@ -7,7 +7,7 @@ import type { AddFn, AddStepMenuProps, RecoGroup } from './AddStepMenu.types';
 import type { SearchCandidate } from './stepPalette.types';
 import type { StepPayload } from './ribbon/ribbonCategories';
 import { denseInputClass } from './settings/formStyles';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { GroupBlock } from './GroupBlock';
 
 /**

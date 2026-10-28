@@ -20,12 +20,12 @@
 import { CalendarDays, ChevronDown, ChevronRight, FileDown, type LucideIcon } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import { MobileCard, MOBILE_ROW_CLASS } from './MobileRailList';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DeadlineClock from '../../../shared/DeadlineClock';
-import NavCountBadge from '../../../shared/NavCountBadge';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import NavCountBadge from '@/components/shared/NavCountBadge';
 import {
     TONES, toneOfScore, toneOfCheckStatus, glyphOfCheckStatus, headlineKeyOfScore, HEADLINE_FALLBACK,
-} from '../../../shared/statusTone';
+} from '@/components/shared/statusTone';
 import { visibleSections } from '../ComplianceRail';
 import { complianceActionPath, resolveTarget } from '../data/actions';
 import { openChecksFor } from '../data/openChecks';

@@ -12,7 +12,7 @@ import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const bootstrap = { categories: [{ id: 'c1', name: 'Sales' }], orgGroups: [] };
 vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({

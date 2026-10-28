@@ -1,8 +1,8 @@
 import { CloudOff, Globe, Plus, Server } from 'lucide-react';
 import { useState } from 'react';
-import { useServerMcpQuery } from '../../../api/queries/serverMcp';
-import type { ServerMcpServer } from '../../../api/queries/serverMcp';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useServerMcpQuery } from '@/api/queries/serverMcp';
+import type { ServerMcpServer } from '@/api/queries/serverMcp';
+import { useTranslation } from '@/hooks/useTranslation';
 import { errorText, toolCount } from '../libraryText';
 import ServerLogo from '../ServerLogo';
 import { CARD_BUTTON, CHIP, DASHED, PRIMARY_BTN, SECONDARY_BTN, SECTION_TITLE } from '../ui';

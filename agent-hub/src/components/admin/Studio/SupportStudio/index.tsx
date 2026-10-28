@@ -3,13 +3,13 @@ import { useEffect, useState, useCallback } from 'react';
 import InsightsPanel from './InsightsPanel';
 import SupportSettings from './SupportSettings';
 import useSupportInboxEvents from './useSupportInboxEvents';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import StudioShell from '../../../shared/StudioShell';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import StudioShell from '@/components/shared/StudioShell';
 import type { SupportInbox, SupportUser } from './supportStudio.types';
 import type { SupportThread, DotProps, SupportStudioProps, EmptyStateProps } from './index.types';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, RefusedError } from '@/api/mutate';
 import { NOT_SUPPORT_TAG, STATUS_COLORS, FILTER_IDS, AUTO_REFRESH_STORAGE_KEY, AUTO_REFRESH_OPTIONS, autoRefreshLabel, readStoredAutoRefreshMs, statusLabel, slaBreached } from './SupportStudio.helpers';
 import { TicketDetail } from './TicketDetail';
 

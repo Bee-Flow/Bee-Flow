@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Toggle } from './Toggle';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Tri-state, org-settings-style card grid for plan-level integrations and

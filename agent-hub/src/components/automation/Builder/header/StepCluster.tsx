@@ -1,8 +1,9 @@
 import { FolderOpen, MessageSquare, Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import PublishMenuJsx from '../../../agents/AgentWizard/pickers/PublishMenu';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import { useState } from 'react';
+import useTranslation from '@/hooks/useTranslation';
+import PublishMenuJsx from '@/components/agents/AgentWizard/pickers/PublishMenu';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const PublishMenu = PublishMenuJsx;
 
@@ -29,7 +30,7 @@ export interface StepSharing { isPublished: boolean; sharedGroups: string[] }
 export function CategoryField({ value, onCommit }: { value: string; onCommit?: ((v: string) => void) | null }) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
-    useEffect(() => { setDraft(value || ''); }, [value]);
+    useAdjustOnChange([value], () => setDraft(value || ''));
     const commit = () => { if ((draft || '') !== (value || '')) onCommit?.(draft.trim()); };
     return (
         <span className="inline-flex items-center gap-1 flex-shrink-0 text-[var(--text-tertiary)]">

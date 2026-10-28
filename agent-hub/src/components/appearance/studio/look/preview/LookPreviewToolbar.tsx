@@ -2,7 +2,7 @@ import { RotateCw, ExternalLink } from 'lucide-react';
 import React from 'react';
 import { PREVIEW_SURFACES } from './previewSurfaces';
 import type { PreviewSurface } from './previewSurfaces';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Toolbar above the preview iframe — surface tabs on the left, refresh and

@@ -1,9 +1,9 @@
 import { Scale } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import { SECTION_LBL } from '../../../components/shell/sidebar/sidebarTokens';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { formatVersion, formatVersionWithDate } from '../../../utils/appVersion';
+import { SECTION_LBL } from '@/components/shell/sidebar/sidebarTokens';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatVersion, formatVersionWithDate } from '@/utils/appVersion';
 import { roleLabel } from '../roleLabel';
 import { AvatarDisplay } from './AvatarDisplay';
 import { Chevron, CONSUMER_NAV_ITEMS, NavDivider, NavItem, ORG_PARENT_ITEM, OrgSubItem } from './SettingsNav';

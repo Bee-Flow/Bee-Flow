@@ -2,7 +2,7 @@ import { singularKey } from '@shared/expr/rules.mjs';
 import { Plus } from 'lucide-react';
 import { rowInputClass } from './formPrimitives';
 import { PRIMARY_BUTTON_CLASS, useRuleLine } from './RouteAssistParts';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { HandoffOfferProps, HandoffPlanPreviewProps } from './RouteAssist.types';
 
 export function HandoffOffer({
