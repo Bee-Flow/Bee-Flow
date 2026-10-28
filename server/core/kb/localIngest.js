@@ -40,7 +40,7 @@ function wire(deps) {
  * @param {{ title?: string, sourceUri?: string, lang?: string, pages?: import('./kbIngestionHelpers').ExtractedPage[] | null }} options `lang`:
  *   defaults to 'auto'; `pages`: the extractor's pages, when it produced any. Present, each chunk gets
  *   the page its text starts on and a citation can say "p. 12". Absent — a plain-text source, a web
- *   page, anything ingested before this existed — the chunks carry no page and the chip says less.
+ *   page, an older ingest without page data — the chunks carry no page and the chip says less.
  *   Never a guess: a wrong page is misinformation somebody may act on, where a missing one is visibly
  *   less information
  * @returns {Promise<{chunks_created: number}>}

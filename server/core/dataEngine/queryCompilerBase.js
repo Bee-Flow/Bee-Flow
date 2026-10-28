@@ -160,7 +160,8 @@ function coerceValue(v, field, dialect) {
 
 /**
  * A caller-supplied record id: a bounded, non-empty string, nothing else.
- * @param {string} id
+ * @param {unknown} id  validated here
+ * @returns {string}
  */
 function assertRecordId(id) {
     if (typeof id !== 'string' || !id || id.length > 64) {
