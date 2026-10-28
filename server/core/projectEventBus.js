@@ -154,7 +154,7 @@ function subscribeProject(projectId, handler) {
  * is reporting.
  *
  * @param {string} projectId
- * @param {object} event
+ * @param {Record<string, unknown>} event
  */
 async function publishProjectEvent(projectId, event) {
     if (!projectId || !event) return;
@@ -187,7 +187,7 @@ async function publishProjectEvent(projectId, event) {
  * typing" from ten minutes ago.
  *
  * @param {string} projectId
- * @param {object} event
+ * @param {Record<string, unknown>} event
  */
 async function publishTransient(projectId, event) {
     return publishProjectEvent(projectId, { ...event, transient: true });
@@ -199,7 +199,7 @@ async function publishTransient(projectId, event) {
  * cannot collide with a project uuid. Transient only: no row, no replay.
  */
 const subscribeChannel = (/** @type {string} */ channel, /** @type {(event: object) => void} */ handler) => subscribeProject(channel, handler);
-const publishChannel = (/** @type {string} */ channel, /** @type {object} */ event) => publishTransient(channel, event);
+const publishChannel = (/** @type {string} */ channel, /** @type {Record<string, unknown>} */ event) => publishTransient(channel, event);
 
 function _isHealthy() {
     try { return typeof _redisDeps.redisHealthy === 'function' ? !!_redisDeps.redisHealthy() : true; } catch (_) { return false; }

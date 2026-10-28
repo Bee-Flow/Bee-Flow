@@ -375,9 +375,7 @@ async function refreshServerTools(serverId) {
 }
 
 /**
- * @typedef {Object} AddServerArgs
- * @property {string} [transport]
- * @property {string} [source]
+ * @typedef {{ transport?: string, source?: string }} AddServerArgs
  */
 /**
  * Add a new server definition, test it, and cache tools.
