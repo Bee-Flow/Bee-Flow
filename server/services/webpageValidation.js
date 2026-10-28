@@ -42,10 +42,14 @@ function stripHtmlComments(html) {
     return String(html || '').replace(/<!--[\s\S]*?-->/g, m => m.replace(/[^\n]/g, ' '));
 }
 
-/** Every id="..."/name="..." value in the document (legacy <a name> included). */
+/**
+ * Every id="..."/name="..." value in the document (legacy <a name> included).
+ * @param {string} html
+ */
 function collectAnchorTargets(html) {
     const targets = new Set();
     const re = /\b(?:id|name)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(html)) !== null) {
         const v = m[1] !== undefined ? m[1] : m[2];
@@ -58,10 +62,13 @@ function collectAnchorTargets(html) {
  * Every fragment href in the document → [{ fragment, offset }]. Bare
  * href="#" (the common JS-button idiom) is intentionally not matched.
  * The lookbehind keeps data-href="..." and friends out.
+ * @param {string} html
  */
 function collectFragmentHrefs(html) {
+    /** @type {{ fragment: string; offset: number; }[]} */
     const out = [];
     const re = /(?<![-\w])href\s*=\s*(?:"#([^"]+)"|'#([^']+)')/gi;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(html)) !== null) {
         out.push({ fragment: m[1] !== undefined ? m[1] : m[2], offset: m.index });
@@ -73,10 +80,13 @@ function collectFragmentHrefs(html) {
  * Every <img> reference (src + each srcset candidate) → [{ src, offset,
  * hasOnerror }]. The lookbehind on src keeps lazy-load data-src="..." (and
  * srcset, which fails on the `=` check anyway) from matching.
+ * @param {string} html
  */
 function extractImgRefs(html) {
+    /** @type {{ src: string; offset: number; hasOnerror: boolean; }[]} */
     const out = [];
     const tagRe = /<img\b[^>]*>/gi;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = tagRe.exec(html)) !== null) {
         const tag = m[0];
@@ -98,7 +108,10 @@ function extractImgRefs(html) {
     return out;
 }
 
-/** Strip leading './' and '/' plus any query/fragment for asset-set lookups. */
+/**
+ * Strip leading './' and '/' plus any query/fragment for asset-set lookups.
+ * @param {string} src
+ */
 function normalizeAssetPath(src) {
     return String(src || '').replace(/^\.\//, '').replace(/^\/+/, '').split(/[?#]/)[0];
 }
@@ -128,7 +141,11 @@ function classifyImgSrc(src, { assetPathSet, allowedHosts }) {
     return assetPathSet.has(normalized) ? 'ok' : 'missing-asset';
 }
 
-/** Cheap "did you mean" — first asset whose path/basename overlaps the src. */
+/**
+ * Cheap "did you mean" — first asset whose path/basename overlaps the src.
+ * @param {string} src
+ * @param {Set<string>} assetPathSet
+ */
 function suggestAsset(src, assetPathSet) {
     const base = (normalizeAssetPath(src).split('/').pop() || '').toLowerCase();
     if (!base) return null;
@@ -226,13 +243,18 @@ function validateReactMui({ sources, assetPathSet }) {
     const allText = entries.map(([, text]) => text || '').join('\n');
     const idLiterals = new Set();
     const idRe = /\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|\{\s*["']([^"']+)["']\s*\})/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = idRe.exec(allText)) !== null) {
         idLiterals.add(m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3]));
     }
+    /** @type {string[]} */
     const templateBodies = [];
     const tplRe = /`[\s\S]*?`/g;
     while ((m = tplRe.exec(allText)) !== null) templateBodies.push(m[0]);
+    /**
+     * @param {string} fragment
+     */
     const inTemplate = fragment => templateBodies.some(t => t.includes(fragment));
 
     for (const [path, text] of entries) {
