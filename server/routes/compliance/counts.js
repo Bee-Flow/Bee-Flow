@@ -191,10 +191,9 @@ const needs = (/** @type {Record<string, unknown>} */ ctx, /** @type {string[]} 
 // gate(ctx, d)  → boolean: may this caller see the key at all
 // count(ctx, d) → the value for the key
 /**
- * @typedef {object} CountKind
- * @property {string} key
- * @property {(ctx: Record<string, any>, d: Record<string, any>) => boolean | Promise<boolean>} gate
- * @property {(ctx: Record<string, any>, d: Record<string, any>) => unknown} count
+ * @typedef {{ key: string,
+ *   gate: (ctx: Record<string, any>, d: Record<string, any>) => boolean | Promise<boolean>,
+ *   count: (ctx: Record<string, any>, d: Record<string, any>) => unknown }} CountKind
  */
 /** @type {CountKind[]} */
 const KINDS = [
