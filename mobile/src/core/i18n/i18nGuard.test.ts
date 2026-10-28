@@ -226,9 +226,6 @@ const UNCONVERTED = new Map<string, number>([
     // drawn once (shared toasts, QueryScreen headers, content duplicates),
     // and 1655 -> 1649 where dead code went (cowork's unused WHEN_PRESETS).
     ['app/(root)', 1],
-    // 24 -> 22: the avatar picker's "Photos not allowed" dialog, gone with the
-    // media-library permission the Photo Picker never needed.
-    ['src/features/account', 22],
     // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
     // through t() when the long-press menu became the kit's ActionMenu.
     ['src/features/agents', 33],
