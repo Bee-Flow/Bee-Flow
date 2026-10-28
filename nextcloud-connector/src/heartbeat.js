@@ -10,10 +10,11 @@
  *   PUT  /enabled?...   — MUST answer 200; carries no side effect beyond a log
  *                         line. It deliberately does NOT unregister anything:
  *                         AppAPI sends no auth header here either, so wiring
- *                         `unregisterEventListeners` onto it would hand every
- *                         container on the docker network a teardown primitive
- *                         for the customer's Nextcloud registrations. Teardown
- *                         happens on SIGTERM instead (server.js gracefulShutdown).
+ *                         a teardown onto it would hand every container on the
+ *                         docker network a teardown primitive for the
+ *                         customer's Nextcloud registrations. Nothing tears down
+ *                         on SIGTERM either (shutdown.js); AppAPI cleans up on
+ *                         a real uninstall.
  *
  * Why /init returns immediately: AppAPI's `--wait-finish` polls the status
  * field and blocks until init=100 or an error appears. If /init does work
@@ -351,19 +352,6 @@ async function registerEventListeners() {
         + 'sync backstop and manual "Sync now" remain in use.');
 }
 
-async function unregisterEventListeners() {
-    const { unregisterWebhookListeners } = require('./webhookListeners');
-    const { unregisterTalkBot } = require('./talkBot');
-    const { unregisterTaskProcessing } = require('./taskProcessing');
-    const { unregisterFilesActions } = require('./filesActions');
-    await Promise.allSettled([
-        unregisterWebhookListeners(),
-        unregisterTalkBot(),
-        unregisterTaskProcessing(),
-        unregisterFilesActions(),
-    ]);
-}
-
 // Reports init progress to AppAPI. Spec: PUT /ocs/v2.php/apps/app_api/ex-app/status
 // with `{progress: 0-100, error?: string}`. AppAPI's `waitInitStepFinish`
 // polls the same field every 0.1s; reporting 100 unblocks `--wait-finish`,
@@ -390,7 +378,6 @@ async function reportInitProgress(percent, errorMessage) {
 
 module.exports = {
     registerLifecycle,
-    unregisterEventListeners,
     runInitInBackground,
     registerTopMenu,
     registerEmbedScript,
