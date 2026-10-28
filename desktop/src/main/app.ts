@@ -24,6 +24,7 @@ import { buildMenu } from './menu.ts';
 import { NextcloudBridge } from './nextcloud/bridge.ts';
 import { NextcloudActions, type NextcloudHost } from './nextcloudActions.ts';
 import type { PairingResult } from './nextcloud/pairing.ts';
+import { pageFetch } from './nextcloud/pageFetch.ts';
 import { nextcloudSummary } from './nextcloud/summary.ts';
 import { noNextcloudFolder } from './dialogs.ts';
 import { chromiumFetch } from './server/chromiumFetch.ts';
@@ -442,8 +443,7 @@ export class DesktopApp {
             savedAddress: () => this.settings.get().nextcloud.serverUrl,
             mainSessionFetch: () => {
                 if (!this.mainWindow || this.mainWindow.isDestroyed()) return null;
-                const { session: windowSession } = this.mainWindow.webContents;
-                return (url, init) => windowSession.fetch(url, init);
+                return pageFetch(this.mainWindow.webContents);
             },
             openExternal: (url) => shell.openExternal(url),
             openPath: (folder) => shell.openPath(folder),
