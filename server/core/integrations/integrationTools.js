@@ -208,7 +208,7 @@ function perActionGrantFilter(agentConfig) {
         // also must not empty it: without a `tools` map there is nothing to
         // enforce anyway, and with one the safest reachable state is the
         // pre-grant behaviour plus a loud line in the log.
-        log.warn('[IntegrationTools] tool policy unavailable — per-action grants not applied:', e.message);
+        log.warn('[IntegrationTools] tool policy unavailable — per-action grants not applied:', /** @type {Error} */ (e).message);
     }
     return null;
 }

@@ -59,6 +59,7 @@ const LOCAL_WHISPER_WASM_THREADS     = Math.max(
 );
 
 // Whisper-language hint mapping (BCP-47 → whisper langtag).
+/** @type {Record<string, string>} */
 const LANGUAGE_HINTS = {
     nl: 'dutch', en: 'english', de: 'german', fr: 'french',
     es: 'spanish', it: 'italian', pt: 'portuguese', pl: 'polish',
@@ -92,7 +93,7 @@ async function getPipeline() {
             log.info(`[LocalWhisper] Model ${LOCAL_WHISPER_MODEL_ID} ready (threads=${LOCAL_WHISPER_WASM_THREADS}, maxDuration=${LOCAL_WHISPER_MAX_DURATION_SEC}s)`);
             return transcriber;
         } catch (err) {
-            log.warn(`[LocalWhisper] Failed to load ${LOCAL_WHISPER_MODEL_ID}: ${err.message}`);
+            log.warn(`[LocalWhisper] Failed to load ${LOCAL_WHISPER_MODEL_ID}: ${/** @type {Error} */ (err).message}`);
             _loadFailed = true;
             return null;
         }
@@ -102,6 +103,9 @@ async function getPipeline() {
 
 // ── Single-flight queue ──────────────────────────────────────────────
 let _inferenceChain = Promise.resolve();
+/**
+ * @param {() => void} fn
+ */
 function runSerialized(fn) {
     const next = _inferenceChain.then(() => fn(), () => fn());
     _inferenceChain = next.catch((e) => fallback('core/voice/localWhisper:runSerialized', e));
@@ -125,6 +129,10 @@ function withTimeout(promise, ms, label) {
 // We let ffmpeg decode the input format and write it out as raw
 // 32-bit float little-endian @ 16 kHz mono. Then we read the buffer
 // and map it 1-to-1 onto a Float32Array.
+/**
+ * @param {string} audioPath
+ * @param {string} tmpRaw
+ */
 function decodeArgs(audioPath, tmpRaw) {
     return buildAudioArgs({
         input: audioPath,
@@ -136,6 +144,9 @@ function decodeArgs(audioPath, tmpRaw) {
     });
 }
 
+/**
+ * @param {string} audioPath
+ */
 async function decodeAudioToFloat32(audioPath) {
     const tmpRaw = path.join(os.tmpdir(), `whisper-${crypto.randomUUID()}.f32`);
 
@@ -150,6 +161,7 @@ async function decodeAudioToFloat32(audioPath) {
         throw err;
     }
 
+    /** @type {NonSharedBuffer} */
     let audioBuf;
     try {
         audioBuf = await fs.promises.readFile(tmpRaw);
@@ -198,17 +210,18 @@ async function transcribeLocally(audioPath, options = {}) {
         if (npu) return npu;
     } catch (err) {
         if (err?.code === 'npu_whisper_too_long') throw err;
-        log.warn('[LocalWhisper] NPU path unavailable:', err.message);
+        log.warn('[LocalWhisper] NPU path unavailable:', /** @type {Error} */ (err).message);
     }
 
     const transcriber = await getPipeline();
     if (!transcriber) return null;
 
+    /** @type {Float32Array<ArrayBuffer>} */
     let samples;
     try {
         samples = await decodeAudioToFloat32(audioPath);
     } catch (err) {
-        log.warn('[LocalWhisper] ffmpeg decode failed:', err.message);
+        log.warn('[LocalWhisper] ffmpeg decode failed:', /** @type {Error} */ (err).message);
         return null;
     }
 
@@ -235,7 +248,7 @@ async function transcribeLocally(audioPath, options = {}) {
             )
         );
     } catch (err) {
-        log.warn('[LocalWhisper] inference failed:', err.message);
+        log.warn('[LocalWhisper] inference failed:', /** @type {Error} */ (err).message);
         return null;
     }
 

@@ -23,6 +23,7 @@ const log = require('../../telemetry/log');
  * 2", "SPEAKER_00", "Sprecher"), or the id echoed back. Used to drop such
  * answers from the LLM mapping so the id falls to fillGenericSpeakerLabels
  * instead of persisting a hallucinated or raw label.
+ * @param {string} value
  */
 function looksGenericSpeakerName(value) {
     const v = String(value == null ? '' : value).trim();
@@ -61,7 +62,7 @@ Return ONLY a JSON array of first names, e.g. ["Tom","Gerard"]. No explanation, 
         if (names.length) log.info(`[Transcriptions] introduced-name extraction via ${modelId}:`, names);
         return names;
     } catch (err) {
-        log.warn('[Transcriptions] introduced-name extraction failed:', err.message);
+        log.warn('[Transcriptions] introduced-name extraction failed:', /** @type {Error} */ (err).message);
         return [];
     }
 }
@@ -84,6 +85,7 @@ async function rostersFor({ participantNames, lockedNames, evidence, excerpt, la
         ? [...new Set([...suppliedRoster, ...lockedList])]
         : [];
     const detectedRoster = evidence?.roster || [];
+    /** @type {string[]} */
     let extractedRoster = [];
     if (!callerRoster.length && !detectedRoster.length && !lockedList.length) {
         extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName);
@@ -269,7 +271,7 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
             return lockedNames ? { ...mapping, ...lockedNames } : mapping;
         }
     } catch (err) {
-        log.error('[Transcriptions] Speaker identification failed:', err.message);
+        log.error('[Transcriptions] Speaker identification failed:', /** @type {Error} */ (err).message);
     }
     // A failed/unparseable LLM reply must not throw away what the voiceprints
     // already established.

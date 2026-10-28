@@ -60,6 +60,7 @@ const FIELD_ID_RE = /^fld_[a-z0-9]{4,}$/;
 /** Options are author-supplied labels, not identifiers — bound, don't parse. */
 function normalizeOptions(raw) {
     if (!Array.isArray(raw)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const o of raw) {
         const value = (o && typeof o === 'object') ? o.value ?? o.key ?? o.label : o;
@@ -132,6 +133,7 @@ function normalizeFields(incoming, existing = []) {
 
     const usedKeys = new Set();
     const usedIds = new Set();
+    /** @type {({ id: string | null; key: string; name: string; type: string; })[]} */
     const fields = [];
 
     for (const raw of incoming) {
@@ -159,6 +161,7 @@ function normalizeFields(incoming, existing = []) {
         // already used in this list, else the stored field with the same key,
         // else a fresh one. Key-matching is what keeps a client that never
         // learned about ids from turning every save into a drop-and-recreate.
+        /** @type {string | null} */
         let id = null;
         if (typeof raw.id === 'string' && FIELD_ID_RE.test(raw.id) && byId.has(raw.id) && !usedIds.has(raw.id)) {
             id = raw.id;
@@ -173,6 +176,7 @@ function normalizeFields(incoming, existing = []) {
         }
         usedIds.add(id);
 
+        /** @type {{ id: string | null; key: string; name: string; type: string; options?: string[]; required?: boolean; unique?: boolean }} */
         const field = {
             id,
             key,
@@ -218,6 +222,7 @@ function backfillModelFieldIds(model) {
                 fields: fields.map((f) => {
                     if (!f || typeof f !== 'object') return f;
                     if (typeof f.id === 'string' && FIELD_ID_RE.test(f.id)) return f;
+                    /** @type {string} */
                     let id;
                     do { id = newFieldId(); } while (seen.has(id));
                     seen.add(id);

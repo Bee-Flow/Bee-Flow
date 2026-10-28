@@ -232,6 +232,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
     const text = String(brief || '').trim();
     if (!text) return { ...fallbackSpec(''), composed: false };
 
+    /** @type {string} */
     let nowLabel;
     try {
         nowLabel = new Date().toLocaleString('en-US', {
@@ -312,7 +313,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
         // Never block the user's work on the composer: fall back to their own
         // words as a one-off, which is exactly what they get without the
         // composer.
-        log.warn(`[CoworkCompose] falling back to the raw brief: ${err.message}`);
+        log.warn(`[CoworkCompose] falling back to the raw brief: ${/** @type {Error} */ (err).message}`);
         return { ...fallbackSpec(text), composed: false };
     }
 }

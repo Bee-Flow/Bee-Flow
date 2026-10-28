@@ -30,6 +30,7 @@ const { bestEffort, fallback } = require('../../utils/bestEffort');
  * @param {{ agent: import('./chatStream/turnState').AgentRow, messages: import('./chatStream/turnState').ChatMessage[], userMessage: string, globalConfig: import('../llm/providerConfig').AIConfig, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, source?: string, model?: string | null, isDryRun?: boolean }} opts
  */
 async function runInputGuardrails({ agent, messages, userMessage, globalConfig, onEvent, userId, conversationId, source, model, isDryRun = false }) {
+    /** @type {string | null} */
     let guardrailViolation = null;
     // What the PII gate decided on this turn (validate.js `options.report`),
     // handed back as `piiReport` for chat signals (core/privacy/chatSignals.js).
@@ -160,6 +161,7 @@ function agentLocalRegexConfig(agent, globalConfig) {
     const globalRules = globalRegexConfig.rules || [];
     const globalCollections = globalRegexConfig.collections || [];
 
+    /** @type {{ name: string; pattern: string; }[]} */
     const rulesWithNames = [];
     for (const colId of agentRegexConfig.collectionIds || []) {
         const collection = globalCollections.find(c => c.id === colId);

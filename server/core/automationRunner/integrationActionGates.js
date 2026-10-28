@@ -43,7 +43,7 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
         } catch (e) {
             // If we can't resolve the catalog, fail closed for side-effects
             // and pass-through for read-only tools.
-            log.warn(`[AutomationRunner] Permission catalog lookup failed: ${e.message}`);
+            log.warn(`[AutomationRunner] Permission catalog lookup failed: ${/** @type {Error} */ (e).message}`);
             if (sideEffect) throw new Error('Could not verify your permission for this tool. The automation has been paused — please re-open it after refreshing your permissions.');
             ctx.allowedToolNames = null; // sentinel — skip subsequent checks this run
         }
@@ -147,7 +147,7 @@ async function resolveDurableTier({ memo, memoEligible, step, stepOrgId, callIde
         } catch (e) {
             // A cache that cannot be consulted is a cache miss, never an error:
             // the only correct response is to make the call for real.
-            log.warn('[AutomationRunner] durable cache unavailable:', e.message);
+            log.warn('[AutomationRunner] durable cache unavailable:', /** @type {Error} */ (e).message);
             durable = null;
         }
     }

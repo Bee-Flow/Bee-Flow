@@ -54,7 +54,13 @@ const NAMES = Object.freeze({
     boxing_day: 'Second Day of Christmas',
 });
 
+/**
+ * @param {number} n
+ */
 const pad = (n) => String(n).padStart(2, '0');
+/**
+ * @param {number} ts
+ */
 const ymdOf = (ts) => {
     const d = new Date(ts);
     return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
@@ -63,6 +69,7 @@ const ymdOf = (ts) => {
 /**
  * Easter Sunday of a Gregorian year (the anonymous Gregorian algorithm,
  * Meeus/Jones/Butcher). Returns epoch ms of UTC midnight on that date.
+ * @param {number} year
  */
 function easterSunday(year) {
     const a = year % 19;
@@ -146,7 +153,11 @@ function localDate(ts, tz = 'Europe/Amsterdam') {
     return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 }
 
-/** The holiday an instant falls on in `tz`, or null. */
+/**
+ * The holiday an instant falls on in `tz`, or null.
+ * @param {number} ts
+ * @param {string} [tz]
+ */
 function holidayAt(ts, tz = 'Europe/Amsterdam', opts = {}) {
     return holidayOn(localDate(ts, tz), opts);
 }
@@ -155,6 +166,9 @@ function holidayAt(ts, tz = 'Europe/Amsterdam', opts = {}) {
  * cron.nextRunAt with the holiday rule applied: with `skipHolidays` the answer
  * is the first match on a day that is not a Dutch public holiday in `tz`.
  * Without it, exactly cron.nextRunAt. Same null / throw contract.
+ * @param {string} expr
+ * @param {string} [tz]
+ * @param {number} [fromTs]
  */
 function nextScheduledRunAt(expr, tz = 'Europe/Amsterdam', fromTs = Date.now(), { skipHolidays = false } = {}) {
     if (!skipHolidays) return cron.nextRunAt(expr, tz, fromTs);
@@ -189,10 +203,15 @@ function scheduleSkipsHolidays(definition, triggerStepId = null) {
  * in that window. Each date appears once, however often the cron fires on it.
  *
  * @returns {Array<{ date: string, key: string, name: string }>}
+ * @param {string} expr
+ * @param {string} tz
+ * @param {number} fromTs
+ * @param {number} untilTs
  */
 function holidaysSkippedBetween(expr, tz, fromTs, untilTs) {
     const fromDate = localDate(fromTs, tz);
     const untilDate = localDate(untilTs, tz);
+    /** @type {{ date: string; key: string; name: string; }[]} */
     const out = [];
     const firstYear = Number(fromDate.slice(0, 4));
     const lastYear = Number(untilDate.slice(0, 4));

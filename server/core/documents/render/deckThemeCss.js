@@ -46,6 +46,9 @@ function ensureResolvedTheme(theme) {
 function deckThemeCss(theme) {
     theme = ensureResolvedTheme(theme);
     const t = { ...NEUTRAL_DECK_THEME, ...(theme && typeof theme === 'object' ? theme : {}) };
+    /**
+     * @param {string} k
+     */
     const hex = (k) => cssHex(t[k], NEUTRAL_DECK_THEME[k]);
     return {
         preset: t.preset,

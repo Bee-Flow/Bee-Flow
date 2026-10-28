@@ -165,7 +165,9 @@ function literalSuffix(values) {
  * @param {string} middle
  */
 function fields(middle) {
+    /** @type {string[]} */
     const parts = [];
+    /** @type {string[]} */
     const seps = [];
     let cur = '';
     for (const ch of middle) {
@@ -281,6 +283,7 @@ function inferPatternFromExamples(examples, caseSensitive) {
     const pre = escapeLiteral(prefix);
     const post = escapeLiteral(suffix);
 
+    /** @type {string[]} */
     const variants = [];
     if (aligned) {
         const build = (/** @type {(values: string[]) => string} */ fieldFn) => {
@@ -330,6 +333,7 @@ const CLASS_WORDS = {
  */
 function describePattern(source) {
     if (typeof source !== 'string' || !source) return null;
+    /** @type {string[]} */
     const parts = [];
     let literal = '';
     const flush = () => { if (literal) { parts.push(literal); literal = ''; } };

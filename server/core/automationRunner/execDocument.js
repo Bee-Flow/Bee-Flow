@@ -70,6 +70,7 @@ async function resolveAiUpstream(step, ctx, runState) {
     automationGraph().walkSteps(def, (s) => { if (automationGraph().isAiStep(s) && s.id) aiById.set(s.id, s); });
     if (!aiById.size) return null;
 
+    /** @type {string[]} */
     const ids = [];
     // 1. Template references — the graph helper's 'reference' signal for THIS step.
     for (const g of automationGraph().generatingStepsDownstreamOfAi(def)) {
@@ -147,7 +148,7 @@ async function resolveDocumentMarking(step, ctx, runState, stepLabel) {
             provider: aiUpstream.provider,
         });
     } catch (e) {
-        log.warn(`[${stepLabel}] ${step.id}: could not resolve AI content marking, rendering unmarked: ${e.message}`);
+        log.warn(`[${stepLabel}] ${step.id}: could not resolve AI content marking, rendering unmarked: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -169,6 +170,8 @@ const DOCUMENT_TTL_DEFAULT_DAYS = 7;
  * a `Content-Disposition` value. Everything outside a conservative set goes,
  * because this string ends up in an HTTP header: a stray quote or newline there
  * is a header-injection bug, not a cosmetic one.
+ * @param {string} raw
+ * @param {string} [fallback]
  */
 function safeDocumentName(raw, fallback = 'document') {
     const cleaned = String(raw || '')

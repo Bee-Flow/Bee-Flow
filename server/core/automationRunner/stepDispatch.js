@@ -139,7 +139,7 @@ async function retryStep(deps, retry, { step, ctx_, state_, mode_, stepStartedAt
                     stepType: step.type, attempts: i + 1,
                     status: 'error', startedAt: attemptStartedAt, finishedAt: new Date().toISOString(),
                     input: inputForRecord,
-                    output: null, error: retryErr.message,
+                    output: null, error: /** @type {Error} */ (retryErr).message,
                     errorClass: retryErr.errorClass || classifyUnknownError(retryErr),
                     errorInfo: safeDescribeStepError(retryErr, { step, inputs: inputForRecord }),
                     // Retries may have pulled new secrets into state_

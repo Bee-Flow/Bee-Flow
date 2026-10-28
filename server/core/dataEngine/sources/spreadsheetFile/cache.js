@@ -84,7 +84,10 @@ function drop(key) {
     entries.delete(key);
 }
 
-/** Expire by age, then by budget (oldest first). */
+/**
+ * Expire by age, then by budget (oldest first).
+ * @param {number} [now]
+ */
 function sweep(now = Date.now()) {
     for (const [key, e] of entries) {
         if (now - e.at >= TTL_MS) drop(key);

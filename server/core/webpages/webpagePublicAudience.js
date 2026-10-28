@@ -124,6 +124,7 @@ function applyColumnChoice(tables, choice) {
         const columns = Array.isArray(t?.columns) ? t.columns : [];
         const raw = picked[t?.datatableId];
         const wanted = Array.isArray(raw) ? raw : [];
+        /** @type {string[]} */
         const publicColumns = [];
         for (const c of wanted) {
             if (typeof c !== 'string') continue;

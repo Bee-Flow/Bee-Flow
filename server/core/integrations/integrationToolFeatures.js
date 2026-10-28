@@ -87,7 +87,7 @@ async function addN8nTools({ userId, session, userSimpleMode, userOrgId, isAppOn
             }
         }
     } catch (e) {
-        log.error('[IntegrationTools] n8n tool injection error:', e.message);
+        log.error('[IntegrationTools] n8n tool injection error:', /** @type {Error} */ (e).message);
     }
     return n8nOrgId;
 }
@@ -158,7 +158,7 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
     } catch (e) {
         // One tool, not the toolbelt: an exception escaping here is caught by
         // toolStackAssembly, which drops EVERY integration tool for the turn.
-        log.warn('[IntegrationTools] datatable_query unavailable:', e.message);
+        log.warn('[IntegrationTools] datatable_query unavailable:', /** @type {Error} */ (e).message);
     }
 
     // KB Ingest — automation-only WRITE tool (Support Studio "solved tickets → KB"
@@ -290,7 +290,7 @@ async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, 
             }
         }
     } catch (e) {
-        log.warn('[IntegrationTools] Failed to load agent-callable automations:', e.message);
+        log.warn('[IntegrationTools] Failed to load agent-callable automations:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -310,7 +310,7 @@ async function addStepTools(tools, { userId, userOrgId, D }) {
             }
         }
     } catch (e) {
-        log.warn('[IntegrationTools] Failed to load Step tools:', e.message);
+        log.warn('[IntegrationTools] Failed to load Step tools:', /** @type {Error} */ (e).message);
     }
 }
 

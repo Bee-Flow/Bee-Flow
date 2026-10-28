@@ -86,6 +86,7 @@ function defaultDeps() {
  * channel; the run view's SKIP_REASONS table (agent-hub statusTokens.ts, and
  * mobile format.ts) classifies them, so a new key belongs there too.
  */
+/** @type {Record<string, string>} */
 const EMAIL_SKIP_MESSAGES = {
     no_service_email: 'Email not sent: no service mailbox is connected on this Bee Flow server. An administrator can connect one; until then use the in-app bell.',
     no_owner_email: 'Email not sent: the person this automation belongs to has no email address on file.',
@@ -206,12 +207,12 @@ async function notifyRunEvent(dep, automation, event, payload = {}, policy = nul
         }
         return report;
     } catch (e) {
-        log.warn(`[RunNotifications] ${event} notification failed for ${automation.id}: ${e.message}`);
+        log.warn(`[RunNotifications] ${event} notification failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
         return { ...report, skipped: 'error' };
     } finally {
         if (rows.length) {
             try { await dep('events').recordNotificationEvents(rows); }
-            catch (e) { log.warn(`[RunNotifications] ledger write failed for ${automation.id}: ${e.message}`); }
+            catch (e) { log.warn(`[RunNotifications] ledger write failed for ${automation.id}: ${/** @type {Error} */ (e).message}`); }
         }
     }
 }

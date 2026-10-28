@@ -32,6 +32,7 @@ async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
         tierSettings, providerAdapter, useNativeAdapter, _adapterIsLocal, _streamCallStart,
     } = req;
     const thinking = st.thinking;
+    /** @type {string | null} */
     let _roundStopReason = null;
     /** @type {Awaited<ReturnType<import('./turnLoop').RoundSteps['streamNativeAdapterRound']>>['_invalidToolCalls']} */
     let _invalidToolCalls = [];

@@ -101,6 +101,7 @@ function cleanStringList(raw, { max, maxChars, field, typeId, errors, trim = tru
         errors.push({ id: typeId, field, code: 'invalid_list', message: `${field} is a list of text.` });
         return [];
     }
+    /** @type {string[]} */
     const out = [];
     const seen = new Set();
     let dropped = 0;
@@ -221,6 +222,7 @@ function cleanEntry(raw, { typeId, method, errors }) {
         });
         if (keep.length) entry.keepFixed = keep;
     }
+    /** @type {TestSentence[]} */
     const sentences = [];
     if (raw.sentences !== undefined && raw.sentences !== null && !Array.isArray(raw.sentences)) {
         errors.push({ id: typeId, field: 'sentences', code: 'invalid_list', message: 'sentences is a list.' });

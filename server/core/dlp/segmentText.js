@@ -61,6 +61,7 @@ function segmentText(/** @type {string | null | undefined} */ text, opts = {}) {
         return [{ start: 0, end: str.length, scanStart: 0, scanText: str }];
     }
 
+    /** @type {{ start: number; end: number; scanStart: number; scanText: string; }[]} */
     const out = [];
     let start = 0;
     while (start < str.length) {

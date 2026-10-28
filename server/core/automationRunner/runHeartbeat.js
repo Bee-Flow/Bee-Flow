@@ -37,6 +37,9 @@ const { bestEffort } = require('../../utils/bestEffort');
 const CONCURRENT_WAIT_MS = Math.max(0, Number(process.env.AUTOMATION_CONCURRENT_WAIT_MS ?? 300_000) || 0);
 const CONCURRENT_POLL_MS = Math.max(50, Number(process.env.AUTOMATION_CONCURRENT_POLL_MS) || 5_000);
 const WAITS_FOR_MARKER = new Set(['app_event', 'webhook']);
+/**
+ * @param {number} ms
+ */
 const sleep = (ms) => new Promise((resolve) => {
     const t = setTimeout(resolve, ms);
     if (t.unref) t.unref();
@@ -71,6 +74,9 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
     // to the owner, and the run's values belong to the starter.
     const hideData = run.connectionsMode === 'caller';
     const DATA_KEYS = ['error', 'output', 'input', 'summary'];
+    /**
+     * @param {string | symbol} type
+     */
     const emitLifecycle = (type, rawExtra = {}) => {
         if (effectiveMode === 'dry_run') return;
         const extra = hideData ? Object.fromEntries(Object.entries(rawExtra).filter(([k]) => !DATA_KEYS.includes(k))) : rawExtra;

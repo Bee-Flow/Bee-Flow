@@ -91,7 +91,9 @@ function compileUpdate(tableMeta, id, values, accessFilter, {
         params.push(coerceValue(v, f, dialect));
     }
 
+    /** @type {string[]} */
     const guard = [];
+    /** @type {string[]} */
     const guardParams = [];
     if (expectedUpdatedAt !== null && expectedUpdatedAt !== undefined) {
         if (typeof expectedUpdatedAt !== 'string' || !expectedUpdatedAt) {

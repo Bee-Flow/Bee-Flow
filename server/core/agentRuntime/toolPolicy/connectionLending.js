@@ -16,7 +16,10 @@
 const { actionsOfApp, _index } = require('./appIndex');
 const { bestEffort } = require('../../../utils/bestEffort');
 
-/** The connection provider an app id draws credentials from (for lend grants). */
+/**
+ * The connection provider an app id draws credentials from (for lend grants).
+ * @param {string} appId
+ */
 function _providerForApp(appId) {
     const names = actionsOfApp(appId);
     if (!names.length) return appId;

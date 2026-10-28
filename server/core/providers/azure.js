@@ -289,7 +289,11 @@ class AzureProvider extends OpenAIProvider {
 
     // ─── Models ──────────────────────────────────────────────────
 
-    /** The admin-configured deployments; Azure has no deployment listing on the data plane. */
+    /**
+     * The admin-configured deployments; Azure has no deployment listing on the data plane.
+     * @param {string | undefined} [_apiKey]
+     * @param {string | null | undefined} [_baseUrl]
+     */
     async listModels(_apiKey, _baseUrl, _options = {}) {
         const list = await this._loadDeployments();
         if (!list?.length) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Where Nextcloud Talk actually puts call recordings.
  *
@@ -29,17 +29,26 @@ const DEFAULT_ATTACHMENT_FOLDER = '/Talk';
 const RECORDING_SUBFOLDER = 'Recording';
 const DEFAULT_RECORDING_FOLDER = `${DEFAULT_ATTACHMENT_FOLDER}/${RECORDING_SUBFOLDER}`;
 
-/** Collapse a path to a leading-slash, no-trailing-slash form ('/' stays '/'). */
+/**
+ * Collapse a path to a leading-slash, no-trailing-slash form ('/' stays '/').
+ * @param {string} p
+ */
 function normalizeFolder(p) {
     return '/' + String(p == null ? '' : p).split('/').filter(Boolean).join('/');
 }
 
-/** The path prefix a child of `folder` starts with (handles the root folder). */
+/**
+ * The path prefix a child of `folder` starts with (handles the root folder).
+ * @param {string} folder
+ */
 function folderPrefix(folder) {
     return folder === '/' ? '/' : `${folder}/`;
 }
 
-/** Whether `folder`'s last segment is already the Talk `Recording` subfolder. */
+/**
+ * Whether `folder`'s last segment is already the Talk `Recording` subfolder.
+ * @param {string} folder
+ */
 function isRecordingRoot(folder) {
     const last = normalizeFolder(folder).split('/').filter(Boolean).pop() || '';
     return last.toLowerCase() === RECORDING_SUBFOLDER.toLowerCase();
@@ -57,6 +66,7 @@ function isRecordingRoot(folder) {
  * Deepest-first matters: `/Talk/Recording/abc/x.ogg` must be claimed by
  * `/Talk/Recording` (token `abc`), never by `/Talk` (which would read the
  * literal folder name `Recording` as the room token).
+ * @param {string} [recordingFolder]
  */
 function talkRecordingRoots(recordingFolder = DEFAULT_RECORDING_FOLDER) {
     const folder = normalizeFolder(recordingFolder || DEFAULT_RECORDING_FOLDER);

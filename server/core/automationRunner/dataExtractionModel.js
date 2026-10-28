@@ -101,6 +101,7 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
     } catch (err) { fallback('core/automationRunner/dataExtractionModel:resolveDataExtractionModel#2', err); /* Same stance: fall through to the global default. */ }
     if (nonBlank(fastTierModelId)) return dataExtractionModelFor({ configured: null, fastTierModelId, globalModelId: null });
 
+    /** @type {string | null} */
     let globalModelId = null;
     try {
         const globalConfig = await require('../aiAgent').getAIConfig();

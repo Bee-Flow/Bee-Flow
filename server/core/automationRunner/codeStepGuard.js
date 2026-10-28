@@ -53,6 +53,9 @@ function prepareCodeRun(step, resolvedInputs, { log = defaultLog } = {}) {
         // author listed where a run-time URL may go.
         enforced: analysis.ok && (!analysis.capabilities.dynamicHosts || listed.length > 0),
     };
+    /**
+     * @param {string} host
+     */
     const refuseHost = (host) => {
         const h = normaliseHost(host);
         if (!h || hostListed(h, manifest.hosts)) return null;

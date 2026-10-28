@@ -285,7 +285,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
                         output.result.watchComponentResult = watchResult.result;
                     } catch (watchErr) {
                         log.error('Failed to execute watch component:', watchErr);
-                        output.result.watchError = watchErr.message;
+                        output.result.watchError = /** @type {Error} */ (watchErr).message;
                     }
                 }
             }
@@ -418,7 +418,7 @@ function runComponent(componentPath, inputs, limits = {}) {
                 resolve(jsonOutput);
             } catch (e) {
                 log.error("Failed to parse output:", stdoutData);
-                fail(new Error(`Invalid JSON output from component: ${e.message}`));
+                fail(new Error(`Invalid JSON output from component: ${/** @type {Error} */ (e).message}`));
             }
         });
 

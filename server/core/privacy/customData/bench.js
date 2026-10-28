@@ -140,6 +140,7 @@ async function probeAll(engine, texts, labelSet) {
     const out = [];
     for (let at = 0; at < texts.length; at += PROBE_BATCH) {
         const chunk = texts.slice(at, at + PROBE_BATCH);
+        /** @type {{ candidates: Array<{ text_idx: number; label: string; start: number; end: number; score: number; }>; }} */
         let res;
         try {
             res = await engine.probeGuard(chunk, labelSet, { priority: 'bulk' });
@@ -194,7 +195,9 @@ function decodeAi(candidates, floors, targetId, textCount) {
  */
 function aiGroup(spec, prompt, floor, orgTypes) {
     const others = otherAiTypes(orgTypes, spec.id, prompt);
+    /** @type {Record<string, string>} */
     const labelSet = { [spec.id]: prompt };
+    /** @type {Record<string, number>} */
     const floors = { [spec.id]: floor };
     for (const o of others) { labelSet[o.id] = o.prompt; floors[o.id] = o.floor; }
     return { labelSet, floors };

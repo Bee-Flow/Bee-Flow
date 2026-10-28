@@ -140,6 +140,7 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
     if (policy === 'mail') {
         const spec = MAIL_ARG_POLICIES[toolName] || {};
         const memoKey = _mailMemoKey({ userId, orgId, agentId }, entry);
+        /** @type {Record<string, string>} */
         const HOW = {
             mailbox: 'List the mailboxes of one of the shared accounts first (nextcloud_mail_list_mailboxes).',
             message: 'Search a mailbox of one of the shared accounts first (nextcloud_mail_search) — a message can only be opened once it has come back from a search Bee Flow is allowed to run.',

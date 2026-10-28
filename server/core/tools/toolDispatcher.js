@@ -132,13 +132,13 @@ async function dispatchStepTool(toolName, toolArgs, userId, automationCallCtx) {
         const stepTools = await tools.getStepToolsForUser(userId);
         match = stepTools.find(t => t?.function?.name === toolName) || null;
     } catch (e) {
-        log.warn('[ToolDispatcher] Step tool lookup failed:', e.message);
+        log.warn('[ToolDispatcher] Step tool lookup failed:', /** @type {Error} */ (e).message);
     }
     if (!match) return { handled: false };
     try {
         return { handled: true, result: await tools.dispatchStepTool(match.__step, toolArgs, automationCallCtx) };
     } catch (e) {
-        log.warn(`[ToolDispatcher] Step tool ${match.__step?.id} not started: ${e.message}`);
+        log.warn(`[ToolDispatcher] Step tool ${match.__step?.id} not started: ${/** @type {Error} */ (e).message}`);
         return { handled: true, result: require('../automationModel/automationCallDepth').toolErrorFor(e) };
     }
 }
@@ -149,6 +149,9 @@ async function dispatchStepTool(toolName, toolArgs, userId, automationCallCtx) {
 // back a recoverable hint instead of a confusing "unknown tool" so it can
 // self-correct via load_tools. (No-op for the normal Claude path, which
 // can only emit tools that were actually sent.)
+/**
+ * @param {string} toolName
+ */
 function unloadedGroupHint(toolName) {
     try {
         const { toolNameToGroupKey } = require('./toolDisclosure');

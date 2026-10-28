@@ -23,6 +23,10 @@ const DECK_LIMITS = Object.freeze({
 });
 
 class DeckError extends Error {
+    /**
+     * @param {string} message
+     * @param {string} errorClass
+     */
     constructor(message, errorClass) {
         super(message);
         this.name = 'DeckError';
@@ -55,6 +59,8 @@ function clampText(value, max, warnings, what) {
 /**
  * Classify an image reference. Only two kinds survive: inline bytes and a
  * Bee Flow storage object (as a key, or as the proxy URL the chat hands out).
+ * @param {string} src
+ * @param {string} [alt]
  */
 function classifyImageRef(src, alt = '') {
     const raw = String(src ?? '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored patterns over single character classes, no nested repeats: linear
@@ -64,6 +70,7 @@ function classifyImageRef(src, alt = '') {
     }
     const proxy = /^(?:https?:\/\/[^/]+)?\/api\/storage\/file\/(.+)$/i.exec(raw);
     if (proxy) {
+        /** @type {string} */
         let key;
         try { key = proxy[1].split('/').map(decodeURIComponent).join('/'); } catch { return { rejected: raw, alt: String(alt || '') }; }
         return key.split('/').includes('..') ? { rejected: raw, alt: String(alt || '') } : { storageKey: key.replace(/^\/+/, ''), alt: String(alt || '') };

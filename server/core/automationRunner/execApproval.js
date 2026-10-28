@@ -24,7 +24,7 @@ function conditionMet(expr, safeState) {
     try {
         return !!evaluate(expr, safeState);
     } catch (e) {
-        log.warn('form/approval condition failed; treated as met', { error: e.message });
+        log.warn('form/approval condition failed; treated as met', { error: /** @type {Error} */ (e).message });
         return true;
     }
 }

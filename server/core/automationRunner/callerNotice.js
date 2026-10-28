@@ -28,6 +28,10 @@ async function describeNoticeFor({ automation, userId, store, canEdit = false })
     if (!canEdit || !live.applies) return live;
     const work = await describeCallerNotice({ automation: automationForRun(automation, { mode: 'live', triggerKind: 'manual', isTest: true }), userId, store });
     if (!work.applies) return live;
+    /**
+     * @param {string[]} a
+     * @param {string[]} b
+     */
     const union = (a, b) => [...new Set([...a, ...b])];
     const items = union(live.items, work.items).sort();
     const ack = await store.getCallerNoticeAck(userId, automation.id);

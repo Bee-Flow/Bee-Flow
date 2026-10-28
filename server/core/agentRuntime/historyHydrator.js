@@ -36,7 +36,7 @@ function refreshTempUrl(url, storageKey) {
             if (key) return generateTempDownloadUrl(key, 900);
         }
     } catch (e) {
-        log.warn(`[HistoryHydrator] Failed to refresh temp URL: ${e.message}`);
+        log.warn(`[HistoryHydrator] Failed to refresh temp URL: ${/** @type {Error} */ (e).message}`);
     }
     return null;
 }
@@ -107,6 +107,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
         const name = att.name || 'file';
 
         if (type.startsWith('image/')) {
+            /** @type {string | null} */
             let url = null;
             if (att.storageKey) {
                 url = refreshTempUrl(null, att.storageKey);
@@ -121,7 +122,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
                     const { uploadImageForInference } = require('./attachmentKinds');
                     url = await uploadImageForInference(att.content, type, userId, name);
                 } catch (e) {
-                    log.warn(`[HistoryHydrator] Lazy upload failed for ${log.nameForLog(name)}: ${e.message}`);
+                    log.warn(`[HistoryHydrator] Lazy upload failed for ${log.nameForLog(name)}: ${/** @type {Error} */ (e).message}`);
                 }
             }
 

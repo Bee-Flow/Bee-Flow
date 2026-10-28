@@ -95,13 +95,15 @@ class ScalewayProvider extends BaseProvider {
 
     /**
      * List the models this endpoint serves.
-     *
+     * 
      * The live `/v1/models` list is authoritative — Scaleway adds and retires
      * serverless models faster than a shipped catalog can follow — and the
      * catalog only supplies the metadata the endpoint does not return. A failed
      * call returns nothing rather than the catalog: a provider whose key is
      * invalid must not appear to serve fifteen models, or model resolution
      * would route chats to it and every one of them would 401.
+     * @param {string | undefined} [apiKey]
+     * @param {string | null | undefined} [baseUrl]
      */
     async listModels(apiKey, baseUrl) {
         const headers = this.getHeaders(apiKey);

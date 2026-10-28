@@ -30,6 +30,10 @@ const TYPE_CODE = Object.freeze({
  * The declared-relation column: one id per (target, local, target field)
  * triple. `prefix` is the kind's own (`fld_ncrel`, `fld_ssrel`) so two kinds
  * cannot mint the same id for different triples.
+ * @param {string} targetDatatableId
+ * @param {string} localFieldId
+ * @param {string} targetFieldId
+ * @param {string} [prefix]
  */
 function matchFieldIdFor(targetDatatableId, localFieldId, targetFieldId, prefix = 'fld_ncrel') {
     const h = crypto.createHash('sha256').update(`${targetDatatableId}\0${localFieldId}\0${targetFieldId}`).digest('hex').slice(0, 10);

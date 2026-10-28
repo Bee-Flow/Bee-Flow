@@ -35,11 +35,17 @@ const KINDS = Object.freeze({
 
 const SOURCE_KINDS = Object.freeze(Object.keys(KINDS));
 
+/**
+ * @param {string} kind
+ */
 function isSourceKind(kind) {
     return typeof kind === 'string' && SOURCE_KINDS.includes(kind);
 }
 
-/** The adapter for a kind. Throws on an unknown kind — a caller that got here has a table row saying so. */
+/**
+ * The adapter for a kind. Throws on an unknown kind — a caller that got here has a table row saying so.
+ * @param {string} kind
+ */
 function adapterFor(kind) {
     if (!isSourceKind(kind)) throw new Error(`unknown source kind: ${String(kind)}`);
     return KINDS[kind];

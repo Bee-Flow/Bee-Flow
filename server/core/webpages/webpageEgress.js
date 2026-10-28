@@ -129,7 +129,7 @@ function makeToolBridge(session, { grantByTool, dispatch }) {
                 integMeta,
             });
         } catch (err) {
-            if (err && err.guardrailBlocked) return { error: err.message };
+            if (err && err.guardrailBlocked) return { error: /** @type {Error} */ (err).message };
             throw err;
         }
 
@@ -193,7 +193,7 @@ function makeHttpBridge(session, { rawFetch }) {
                 integMeta,
             });
         } catch (err) {
-            if (err && err.guardrailBlocked) return { error: err.message };
+            if (err && err.guardrailBlocked) return { error: /** @type {Error} */ (err).message };
             throw err;
         }
 
@@ -227,7 +227,7 @@ function makeHttpBridge(session, { rawFetch }) {
             const guarded = await safety.guardToolOutput(res, session.policy, session.auditBase, LIVE, session.ctx);
             return guarded.result;
         } catch (err) {
-            if (err && err.guardrailBlocked) return { error: err.message };
+            if (err && err.guardrailBlocked) return { error: /** @type {Error} */ (err).message };
             throw err;
         }
     };

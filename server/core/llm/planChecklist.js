@@ -38,6 +38,9 @@ function normalizePlanTodos(todos) {
 function mergePlanTodos(prev, next) {
     const before = normalizePlanTodos(prev);
     const after = normalizePlanTodos(next);
+    /**
+     * @param {{ text: string; done: boolean; }} t
+     */
     const key = (t) => String(t.text || '').trim().toLowerCase();
     const doneBefore = new Set(before.filter(t => t.done).map(key));
     const todos = after.map(t => ({ text: t.text, done: t.done || doneBefore.has(key(t)) }));
@@ -83,6 +86,9 @@ const DEFAULT_STOP = new Set([
     'een', 'het', 'van', 'voor', 'met', 'naar', 'uit', 'bij', 'maak', 'voeg', 'toe', 'zet', 'nieuwe',
 ]);
 
+/**
+ * @param {Set<string>} [stop]
+ */
 function makeTokenizer(stop = DEFAULT_STOP) {
     const tokens = (text) => new Set(
         String(text || '')

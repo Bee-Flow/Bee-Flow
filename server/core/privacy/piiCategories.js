@@ -43,6 +43,7 @@ const CANONICAL_SET = new Set(CANONICAL_IDS);
 // Every label any producer has historically written, lowercased → id.
 // GLiNER human labels (piiDetection PII_CATEGORIES[*].label) + the regex
 // scanner's old names + a few obvious variants.
+/** @type {Record<string, string>} */
 const LABEL_TO_ID = {
     'person name': 'Person',
     'person': 'Person',

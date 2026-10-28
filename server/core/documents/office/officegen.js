@@ -46,10 +46,12 @@ function ensureExt(path, ext) {
 async function buildDocx(content, title) {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
     const blocks = parseBlocks(content);
+    /** @type {Paragraph[]} */
     const children = [];
     if (title && String(title).trim()) {
         children.push(new Paragraph({ text: String(title).trim(), heading: HeadingLevel.TITLE }));
     }
+    /** @type {Record<string, string>} */
     const HEAD = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 };
     for (const b of blocks) {
         if (b.type === 'blank') children.push(new Paragraph({}));

@@ -197,7 +197,10 @@ const MANAGED_KINDS = Object.freeze({
     }),
 });
 
-/** Is this a kind the platform knows how to provision? */
+/**
+ * Is this a kind the platform knows how to provision?
+ * @param {PropertyKey} kind
+ */
 function isManagedKind(kind) {
     return typeof kind === 'string' && Object.hasOwn(MANAGED_KINDS, kind);
 }
@@ -211,6 +214,7 @@ function managedKindSpec(kind) {
  * A kind whose ENTIRE column list belongs to an external source. Such a table
  * cannot be provisioned by POST /managed (it has no columns of its own to
  * provision — they arrive with the link) and refuses every schema save.
+ * @param {PropertyKey} kind
  */
 function isSourceManagedKind(kind) {
     const spec = managedKindSpec(kind);
@@ -221,13 +225,17 @@ function isSourceManagedKind(kind) {
  * A kind whose column list is derived from a DEFINITION inside Bee Flow (a
  * form's questions): locked like a source kind, but with nothing external to
  * sync — and, unlike a mirror, aged by the ordinary retention sweeper.
+ * @param {string | null} kind
  */
 function isDefinitionManagedKind(kind) {
     const spec = managedKindSpec(kind);
     return !!(spec && spec.fieldsFromDefinition === true);
 }
 
-/** Every kind that refuses the schema route outright. */
+/**
+ * Every kind that refuses the schema route outright.
+ * @param {string} kind
+ */
 function isSchemaLockedKind(kind) {
     return isSourceManagedKind(kind) || isDefinitionManagedKind(kind);
 }

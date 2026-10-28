@@ -103,7 +103,7 @@ function createSkillActivationHandler({
                 result.unavailableApps = newApps;
             }
         } catch (err) {
-            log.warn('[AgentRuntime] Skill-app tool refresh failed:', err.message);
+            log.warn('[AgentRuntime] Skill-app tool refresh failed:', /** @type {Error} */ (err).message);
             result.unavailableApps = newApps;
         }
         return result;

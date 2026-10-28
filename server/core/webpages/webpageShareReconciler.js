@@ -56,6 +56,8 @@ const { bestEffort } = require('../../utils/bestEffort');
  *
  * Awaitable, but the callers in the routes use it fire-and-forget:
  * a save may never wait on a snapshot.
+ * @param {string} webpageId
+ * @param {string} ownerId
  */
 async function reSnapshotWebpageShares(webpageId, ownerId, deps = {}) {
     const publicShareStore = deps.publicShareStore || require('../../stores/webpagePublicShareStore');
@@ -70,16 +72,20 @@ async function reSnapshotWebpageShares(webpageId, ownerId, deps = {}) {
                 await webpageSnapshot.writeSnapshot({ shareId: sh.id, webpageId, ownerId });
                 written += 1;
             } catch (e) {
-                log.warn(`[Webpages] re-snapshot failed for share ${sh.id}: ${e.message}`);
+                log.warn(`[Webpages] re-snapshot failed for share ${sh.id}: ${/** @type {Error} */ (e).message}`);
             }
         }
     } catch (e) {
-        log.warn(`[Webpages] re-snapshot enumeration failed: ${e.message}`);
+        log.warn(`[Webpages] re-snapshot enumeration failed: ${/** @type {Error} */ (e).message}`);
     }
     return written;
 }
 
-/** Fire-and-forget-variant voor de routes: nooit awaiten, nooit gooien. */
+/**
+ * Fire-and-forget-variant voor de routes: nooit awaiten, nooit gooien.
+ * @param {string} webpageId
+ * @param {string} ownerId
+ */
 function reSnapshotWebpageSharesDetached(webpageId, ownerId, deps = {}) {
     Promise.resolve()
         .then(() => reSnapshotWebpageShares(webpageId, ownerId, deps))
@@ -107,7 +113,7 @@ async function onDatatableChanged(datatableId, deps = {}) {
         // Unknown narrows: rewrite nothing, and say so loudly. Silently
         // continuing would mean that a deleted row stays standing without
         // any trace of it anywhere.
-        log.warn(`[Webpages] could not list pages bound to datatable ${datatableId}: ${e.message}`);
+        log.warn(`[Webpages] could not list pages bound to datatable ${datatableId}: ${/** @type {Error} */ (e).message}`);
         return 0;
     }
     if (!bound || bound.length === 0) return 0;
