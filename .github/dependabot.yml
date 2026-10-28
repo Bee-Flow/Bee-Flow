@@ -65,6 +65,11 @@ updates:
       # follow the runtime major, not the newest Node (#33).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # isolated-vm 7 needs Node >= 24 (engines) and ships no prebuild for
+      # Node 22's ABI (#150). 6.2.0 carries 7.0.1's ExternalCopy fix. Lift with
+      # the move to Node 24, together with a code-sandbox test run.
+      - dependency-name: isolated-vm
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   - package-ecosystem: npm
