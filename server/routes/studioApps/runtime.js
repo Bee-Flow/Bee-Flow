@@ -172,7 +172,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
                 : { ok: false, error: (install && install.error) || 'unknown error' };
             if (!dataInstall.ok) log.warn(`[StudioApps] Template upgrade data install failed for ${app.id}: ${dataInstall.error}`);
         } catch (e) {
-            const reason = e && e.message ? e.message : String(e);
+            const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);
             log.warn(`[StudioApps] Template upgrade data install threw for ${app.id}: ${reason}`);
             dataInstall = { ok: false, error: reason };
         }

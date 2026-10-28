@@ -24,6 +24,7 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
  */
 async function listCanned(req, res) {
     const scope = await resolveOrgScope(req);
+    /** @type {DbRow.SupportCannedResponses[]} */
     const out = [];
     for (const orgId of scope) out.push(...await supportStore.listCannedResponses(orgId));
     res.json({ canned: out });
