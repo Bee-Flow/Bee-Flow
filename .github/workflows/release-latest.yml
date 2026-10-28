@@ -47,6 +47,15 @@ jobs:
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       IMAGE_PREFIX: ghcr.io/bee-flow
+      # A copy of every released image next to the Kapsule cluster. Pulls from
+      # GHCR into nl-ams run at ~1.5 MB/s (the server image takes 7 minutes, the
+      # guard image longer, and containerd pulls one image per node at a time),
+      # which is what timed out every production rollout on 2026-10-28. The
+      # same digest from this registry pulls in seconds. Written only when the
+      # SCW_REGISTRY_SECRET_KEY secret is set; deploy-prd.yml reads it through
+      # vars.PRD_IMAGE_PREFIX.
+      MIRROR_PREFIX: rg.nl-ams.scw.cloud/beeflow
+      SCW_REGISTRY_SECRET_KEY: ${{ secrets.SCW_REGISTRY_SECRET_KEY }}
     steps:
       - name: Check the tag before it reaches git or the registry
         run: |
@@ -83,6 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           SHA="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          echo "SHA=$SHA" >> "$GITHUB_ENV"
           if ! git merge-base --is-ancestor "$SHA" origin/main; then
             echo "::error::Release tag $TAG points at $SHA, which is not on main. Only main is built per commit."
             exit 1
@@ -144,4 +154,33 @@ jobs:
               crane tag "$ref" "$t"
             done
             echo "| \`${svc}\` | \`${commit:0:9}\` | \`${digest}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done < "$RUNNER_TEMP/plan.txt"
+
+      - name: Log in to the Scaleway registry
+        if: ${{ env.SCW_REGISTRY_SECRET_KEY != '' }}
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: rg.nl-ams.scw.cloud
+          username: nologin
+          password: ${{ secrets.SCW_REGISTRY_SECRET_KEY }}
+
+      - name: Copy the released images to the Scaleway registry
+        if: ${{ env.SCW_REGISTRY_SECRET_KEY != '' }}
+        run: |
+          set -euo pipefail
+          # The same digest under the same tags, plus sha-<commit> so deploy-prd.yml
+          # finds the exact release build there the way it does on GHCR. Copied
+          # by digest, so the mirror is byte-identical and a rerun is a no-op.
+          # skopeo, not crane: crane uploads a large layer in chunks and the
+          # Scaleway registry refuses the second chunk (RANGE_INVALID, seen on
+          # the first fill); skopeo sends each layer in one request. --all keeps
+          # every platform of a multi-arch manifest.
+          skopeo --version
+          echo "### Mirror ${MIRROR_PREFIX}" >> "$GITHUB_STEP_SUMMARY"
+          while read -r svc commit digest; do
+            src="docker://${IMAGE_PREFIX}/${svc}@${digest}"
+            for t in "$TAG" prod latest "sha-${SHA}"; do
+              skopeo copy --all --retry-times 3 --quiet "$src" "docker://${MIRROR_PREFIX}/${svc}:${t}"
+            done
+            echo "- \`${MIRROR_PREFIX}/${svc}\` @ \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/plan.txt"

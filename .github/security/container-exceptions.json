@@ -4,8 +4,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-76642",
@@ -35,8 +39,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78408",
@@ -66,8 +74,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78409",
@@ -97,8 +109,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78410",
@@ -128,8 +144,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "acl",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-54369",
@@ -149,8 +169,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "systemd",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-16742",
@@ -171,8 +195,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "ncurses",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2025-69720",
@@ -194,8 +222,12 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "perl",
+        "release": "trixie"
+      },
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-9538",
@@ -215,29 +247,8 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
-      "requiredUser": "node",
-      "runtimeCheck": "scripts/check-release-container.sh",
-      "id": "CVE-2026-93748",
-      "package": "http-cache-semantics",
-      "versions": [
-        "4.2.0"
-      ],
-      "pathPrefix": "usr/local/lib/node_modules/npm/",
-      "reason": "Only the global npm installer contains this package; the application HTTP stack does not use it.",
-      "reachability": "The finding is restricted to global npm, used for allowlisted component installation in core/cms/componentManager.js. npm uses a local package cache and does not serve client HTTP requests or cached application session cookies. User Cache-Control/max-stale headers are not forwarded to npm. A future application copy is excluded from this exception by its path scope.",
-      "references": [
-        "https://github.com/kornelski/http-cache-semantics/issues/56",
-        "server/core/cms/componentManager.js"
-      ]
-    },
-    {
-      "images": [
-        "server"
-      ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2026-11-28",
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-41567",
@@ -256,8 +267,8 @@
       "images": [
         "server"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2026-11-28",
       "requiredUser": "node",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-42306",
@@ -282,9 +293,9 @@
       "versions": [
         "3.0.3"
       ],
-      "reviewedAt": "2026-10-08",
-      "expires": "2026-11-08",
-      "reason": "CVE alias of the reviewed GHSA-vfj7-8cjw-p6xm transitive proxy dependency; no fixed release exists.",
+      "reviewedAt": "2026-10-28",
+      "expires": "2026-11-28",
+      "reason": "CVE alias of the reviewed GHSA-vfj7-8cjw-p6xm transitive proxy dependency; GitHub has withdrawn that advisory (checked 2026-10-28) and no fixed braces release exists, so this stays only while scanners still report the alias.",
       "reachability": "Production http-proxy-middleware uses configured fixed routes and does not pass user input into a glob pathFilter. The application does not call braces/micromatch directly. The existing npm audit review scopes the same advisory to server and connector runtime dependencies.",
       "references": [
         "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
@@ -296,8 +307,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-76642",
@@ -328,8 +343,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78408",
@@ -360,8 +379,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78409",
@@ -392,8 +415,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "util-linux",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-78410",
@@ -424,8 +451,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "acl",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-54369",
@@ -446,8 +477,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "systemd",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-16742",
@@ -469,8 +504,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "ncurses",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2025-69720",
@@ -494,8 +533,12 @@
         "classify",
         "guard"
       ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
+      "reviewedAt": "2026-10-28",
+      "expires": "2027-01-28",
+      "debianTracker": {
+        "source": "perl",
+        "release": "trixie"
+      },
       "requiredUser": "app",
       "runtimeCheck": "scripts/check-release-container.sh",
       "id": "CVE-2026-9538",
@@ -512,86 +555,6 @@
       "reachability": "All Archive/Tar module files are removed. The application does not execute Perl archive parsing. The required runtime check asserts module absence on the immutable digest.",
       "references": [
         "https://security-tracker.debian.org/tracker/CVE-2026-9538"
-      ]
-    },
-    {
-      "images": [
-        "pwt-runner"
-      ],
-      "reviewedAt": "2026-10-09",
-      "expires": "2026-11-08",
-      "id": "CVE-2025-3887",
-      "packages": [
-        "gstreamer1.0-plugins-bad",
-        "libgstreamer-plugins-bad1.0-0"
-      ],
-      "versions": [
-        "1.24.2-1ubuntu4"
-      ],
-      "reason": "Ubuntu noble has no fixed gstreamer1.0-plugins-bad build; the H.265 parser is only reached through WebKit media playback.",
-      "reachability": "Bee Flow only runs the image in serve mode, which launches Chromium (server/pwt-runner/entrypoint.js: chromium.launchServer). Chromium decodes media with its own bundled stack and never loads system GStreamer; only WebKit does, and nothing in the server starts WebKit or uses suite mode.",
-      "references": [
-        "https://ubuntu.com/security/CVE-2025-3887"
-      ]
-    },
-    {
-      "images": [
-        "server"
-      ],
-      "reviewedAt": "2026-10-11",
-      "expires": "2026-11-10",
-      "requiredUser": "node",
-      "runtimeCheck": "scripts/check-release-container.sh",
-      "id": "CVE-2026-78667",
-      "package": "stdlib",
-      "versions": [
-        "v1.26.8"
-      ],
-      "scanTarget": "usr/bin/docker",
-      "reason": "Go standard library flaw (Denial of Service via crafted HTTP Range headers (net/http file serving)) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
-      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
-      "references": [
-        "https://pkg.go.dev/vuln/list?q=CVE-2026-78667"
-      ]
-    },
-    {
-      "images": [
-        "server"
-      ],
-      "reviewedAt": "2026-10-11",
-      "expires": "2026-11-10",
-      "requiredUser": "node",
-      "runtimeCheck": "scripts/check-release-container.sh",
-      "id": "CVE-2026-78669",
-      "package": "stdlib",
-      "versions": [
-        "v1.26.8"
-      ],
-      "scanTarget": "usr/bin/docker",
-      "reason": "Go standard library flaw (Denial of Service in net/http's HTTP/2 implementation) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
-      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
-      "references": [
-        "https://pkg.go.dev/vuln/list?q=CVE-2026-78669"
-      ]
-    },
-    {
-      "images": [
-        "server"
-      ],
-      "reviewedAt": "2026-10-11",
-      "expires": "2026-11-10",
-      "requiredUser": "node",
-      "runtimeCheck": "scripts/check-release-container.sh",
-      "id": "CVE-2026-97031",
-      "package": "stdlib",
-      "versions": [
-        "v1.26.8"
-      ],
-      "scanTarget": "usr/bin/docker",
-      "reason": "Go standard library flaw (Denial of Service via multiple ECH outer extension references (crypto/tls server-side ECH)) compiled into the Debian docker-ce-cli binary; no docker-ce-cli built with Go 1.26.9 or 1.27.2 is published yet. The Buildx plugin in the same image is rebuilt with Go 1.27.2 instead of excepted.",
-      "reachability": "The server runs the Docker CLI only as a client of the local Docker socket (pwtRunner, guardInstaller, mcpRegistryClient) over a Unix socket: it serves no HTTP, terminates no TLS and handles no ECH, and its only peer is the host's own daemon. The image runs as node and contains no dockerd (runtime check). Re-review when docker-ce-cli ships a Go release with the fix.",
-      "references": [
-        "https://pkg.go.dev/vuln/list?q=CVE-2026-97031"
       ]
     }
   ]

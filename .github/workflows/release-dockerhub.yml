@@ -293,13 +293,14 @@ jobs:
           curl -sSfL -o "$RUNNER_TEMP/trivy.tar.gz" https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
           echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+          curl -fsSL --retry 3 --max-time 300 -o "$RUNNER_TEMP/debian-tracker.json" https://security-tracker.debian.org/tracker/data/json
           while IFS= read -r source; do
             [[ -z "$source" ]] && continue
             service="${source%%@*}"
             image="${SOURCE_PREFIX}/${source}"
             "$RUNNER_TEMP/trivy" image --scanners vuln --severity HIGH,CRITICAL --format json --output "$RUNNER_TEMP/container-scan.json" "$image"
             bash scripts/check-release-container.sh "$service" "$image"
-            CONTAINER_RUNTIME_VERIFIED=true node scripts/container-release-gate.mjs "$RUNNER_TEMP/container-scan.json" "$image"
+            CONTAINER_RUNTIME_VERIFIED=true DEBIAN_TRACKER_JSON="$RUNNER_TEMP/debian-tracker.json" node scripts/container-release-gate.mjs "$RUNNER_TEMP/container-scan.json" "$image"
           done <<< "$RESOLVED"
 
       # ── Copy each manifest to Docker Hub ─────────────────────────────────

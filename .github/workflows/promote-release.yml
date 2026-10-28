@@ -129,9 +129,14 @@ jobs:
           IMAGE_REF: ${{ matrix.ref }}
           SERVICE: ${{ matrix.service }}
         run: bash scripts/check-release-container.sh "$SERVICE" "$IMAGE_REF"
+      - name: Fetch the Debian security tracker
+        # container-release-gate.mjs reads it for exceptions with debianTracker: those hold
+        # only while Debian still has no fixed build for the release.
+        run: curl -fsSL --retry 3 --max-time 300 -o debian-tracker.json https://security-tracker.debian.org/tracker/data/json
       - env:
           IMAGE_REF: ${{ matrix.ref }}
           CONTAINER_RUNTIME_VERIFIED: ${{ steps.runtime.outputs.verified }}
+          DEBIAN_TRACKER_JSON: debian-tracker.json
         run: node scripts/container-release-gate.mjs container-scan.json "$IMAGE_REF"
 
   promote-production:

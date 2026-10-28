@@ -131,7 +131,9 @@ ARG DOCKER_GID=999
 WORKDIR /app
 
 # Buildx is pinned separately because the distribution plugin embeds an older
-# archive extractor. Health checks use Node's built-in HTTP client.
+# archive extractor. The CLI is pinned so a cached layer cannot keep an older
+# build: 29.9.2 is built with Go 1.26.10, which fixes the net/http and
+# crypto/tls advisories of 1.26.8. Health checks use Node's built-in HTTP client.
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
@@ -141,7 +143,7 @@ RUN apt-get update \
     && . /etc/os-release \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends docker-ce-cli \
+    && apt-get install -y --no-install-recommends docker-ce-cli=5:29.9.2-1~debian.13~trixie \
     && apt-get purge -y --auto-remove gnupg curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -149,9 +151,11 @@ COPY --from=buildx-build /out/docker-buildx /usr/libexec/docker/cli-plugins/dock
 
 # The runtime uses npm for administrator-authorized component installs.
 # Update its bundled dependency tree independently of the pinned Node runtime.
-RUN npm install --global npm@12.2.0 --no-audit --no-fund \
-    && npm install --prefix /tmp/npm-security-patches --ignore-scripts --no-save --no-package-lock --no-audit --no-fund brace-expansion@5.0.11 undici@6.29.1 \
-    && rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion /usr/local/lib/node_modules/npm/node_modules/undici \
+# npm 12.2.1 bundles http-cache-semantics 4.3.0 (CVE-2026-93748) and
+# brace-expansion 5.0.12; only undici still needs the patch.
+RUN npm install --global npm@12.2.1 --no-audit --no-fund \
+    && npm install --prefix /tmp/npm-security-patches --ignore-scripts --no-save --no-package-lock --no-audit --no-fund undici@6.29.1 \
+    && rm -rf /usr/local/lib/node_modules/npm/node_modules/undici \
     && cp -a /tmp/npm-security-patches/node_modules/. /usr/local/lib/node_modules/npm/node_modules/ \
     && rm -rf /tmp/npm-security-patches
 
