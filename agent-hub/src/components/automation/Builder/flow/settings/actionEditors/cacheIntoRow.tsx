@@ -3,7 +3,7 @@
 import type React from 'react';
 import { useMemo } from 'react';
 import { inputClass } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface CacheTable {
     id: string;

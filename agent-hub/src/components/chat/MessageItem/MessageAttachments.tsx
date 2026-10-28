@@ -1,7 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { resolveUrl } from './messageItemHelpers';
 import { openLibraryDocument } from './openLibraryDocument';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 
 interface Attachment { type?: string; url?: string; content?: string; name?: string; documentId?: string }

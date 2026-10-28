@@ -1,6 +1,6 @@
 import React, { useId, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { countdown, daysUntil, formatCalDate, resolveNow, splitByToday } from './calendarMath';
 
 /**

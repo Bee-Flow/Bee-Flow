@@ -6,12 +6,12 @@ import { AlertTriangle, File as FileIcon, Loader2, ShieldCheck, Trash2, Upload }
 import React, { useEffect, useRef, useState } from 'react';
 import {
     useDeleteProjectFile, useProjectFilesQuery, type ProjectFile,
-} from '../../../../api/queries/projectContent';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
+} from '@/api/queries/projectContent';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import { Card, GhostButton, Notice, SecondaryButton } from '../workspaceUi';
 import { formatFileSize } from './labels';
 import useFileUploads, { type UploadRow } from './useFileUploads';

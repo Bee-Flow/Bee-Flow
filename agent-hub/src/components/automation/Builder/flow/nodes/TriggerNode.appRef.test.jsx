@@ -3,7 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     authFetch: (...args) => authFetch(...args),
 }));

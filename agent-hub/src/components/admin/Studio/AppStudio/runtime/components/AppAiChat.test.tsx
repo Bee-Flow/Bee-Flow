@@ -2,13 +2,13 @@ import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AppAiChat from './AppAiChat';
-import { authFetch } from '../../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { DataProvider } from '../DataContext';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 import { asMock, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));

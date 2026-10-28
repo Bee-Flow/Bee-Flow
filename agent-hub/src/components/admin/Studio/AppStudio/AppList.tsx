@@ -11,11 +11,11 @@ import { CARD_CLASSES, CARD_STYLE } from './list/cardStyle';
 import NewAppModal from './list/NewAppModal';
 import OwnerMenu from './list/OwnerMenu';
 import { studioAppsApi } from './studioAppsApi';
-import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../shared/ConfirmDialog';
-import EmptyState from '../../../shared/EmptyState';
-import Modal from '../../../shared/Modal';
-import toast from '../../../shared/Toast';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
+import Modal from '@/components/shared/Modal';
+import toast from '@/components/shared/Toast';
 import type { StudioApp, OpenOptions } from './list/types';
 
 /**

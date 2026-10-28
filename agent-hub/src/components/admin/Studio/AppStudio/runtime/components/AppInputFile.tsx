@@ -1,16 +1,16 @@
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
 import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
-import { logger } from '../../../../../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * App Studio runtime — 'input_file'. Spec: server/appStudio/componentSpecs.js.

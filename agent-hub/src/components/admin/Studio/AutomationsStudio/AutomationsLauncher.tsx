@@ -2,14 +2,14 @@ import React, { Suspense, useState } from 'react';
 import AutomationsOverview from './AutomationsOverview';
 import FindRepeatingWorkTab from './FindRepeatingWorkTab';
 import TemplatesTab from './TemplatesTab';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import { lazyWithI18n } from '../../../../utils/lazyWithReload';
-import type { RepeatingSuggestion } from '../../../../api/queries/automation/repeating';
-import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
+import type { RepeatingSuggestion } from '@/api/queries/automation/repeating';
+import type { ProjectContextPillProject } from '@/components/chat/ProjectContextPill';
 import type { AutomationRowProps } from './AutomationRow';
 import type { AutomationRecord, RunIdSet } from './overviewModel';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // The run history pulls in the whole run viewer: keep it out of the start screen's chunk.
 const ExecutionsPanel = lazyWithI18n(() => import('../Executions/ExecutionsPanel'));

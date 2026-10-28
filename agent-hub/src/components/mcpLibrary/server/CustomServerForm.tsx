@@ -1,10 +1,10 @@
 import { CheckCircle2, Loader2, PlugZap, Plus, TriangleAlert } from 'lucide-react';
 import { useId, useState } from 'react';
 import SegmentedControl from '../../shared/SegmentedControl';
-import { useTestServerMcp } from '../../../api/queries/serverMcp';
-import type { ServerMcpInstall } from '../../../api/queries/serverMcp';
-import { CATEGORIES } from '../../../config/mcpCatalog';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTestServerMcp } from '@/api/queries/serverMcp';
+import type { ServerMcpInstall } from '@/api/queries/serverMcp';
+import { CATEGORIES } from '@/config/mcpCatalog';
+import { useTranslation } from '@/hooks/useTranslation';
 import { errorText, toolCount } from '../libraryText';
 import { ALERT_ERROR, HINT, INPUT, LABEL, PRIMARY_BTN, SECONDARY_BTN } from '../ui';
 

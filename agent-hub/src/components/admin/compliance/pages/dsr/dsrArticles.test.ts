@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { DAY_MS } from '../../../../shared/deadlineMath';
+import { DAY_MS } from '@/components/shared/deadlineMath';
 import { clockPropsOf, countByFilter, isClosed, isOpen, isOverdue, matchesFilter, stateOf } from './dsrArticles';
 
 /**

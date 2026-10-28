@@ -1,6 +1,6 @@
 import AppEmoji from '../../icons/AppEmoji';
-import { saveTranscriptionConfig } from '../../../api/transcriptionConfigApi';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { saveTranscriptionConfig } from '@/api/transcriptionConfigApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { TranscriptionSectionProps } from './adminPanel.types';
 
 /** The "Active Provider" card grid: one card per engine, a click saves it as the active provider. */

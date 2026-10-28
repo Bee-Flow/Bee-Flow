@@ -8,10 +8,10 @@
 import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
-import useProviderConfig from '../../../../hooks/useProviderConfig';
-import type { ProviderMessage } from '../../../../hooks/useProviderConfig';
+import useProviderConfig from '@/hooks/useProviderConfig';
+import type { ProviderMessage } from '@/hooks/useProviderConfig';
 import type { ProviderKeyConfig } from './providerKeyConfig';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The props of every thin provider card that wraps ProviderApiKeyCard. */
 export interface ProviderCardProps {

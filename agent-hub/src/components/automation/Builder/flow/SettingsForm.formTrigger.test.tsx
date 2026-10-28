@@ -5,13 +5,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // The URL panel talks to the API on mount; the form editor itself is what is
 // under test here.
-vi.mock('../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({
         listFormPages: vi.fn(async () => ({ forms: [{ id: 'tok1', url: 'https://app.test/f/tok1', submissions: 0, triggerStepId: null }] })),
         createFormPage: vi.fn(async () => ({ form: { id: 'tok1', url: 'https://app.test/f/tok1', submissions: 0 } })),

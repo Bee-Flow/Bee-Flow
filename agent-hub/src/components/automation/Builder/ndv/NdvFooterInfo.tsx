@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DataSummary } from '../flow/types';
 import InOutParts from './InOutParts';
 

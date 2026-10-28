@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { deepEqual } from '../../../utils/deepEqual';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { deepEqual } from '@/utils/deepEqual';
 import { toast } from '../../shared/Toast';
 import { hasPendingDatatableRefs } from './chat/pendingTables';
 import { reviewedProposal } from './chat/proposalChanges';
 import { isBlankDefinition } from './flow/normalizeDefinition';
-import type useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
+import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
 import type useBuilderHydration from './useBuilderHydration';
 import type { FlowDefinition } from './flow/types';
 

@@ -25,7 +25,7 @@
  * @typedef {((row: { getValue: (columnId: string) => unknown }, columnId: string, filterValue: unknown) => boolean) & { autoRemove: (value: unknown) => boolean }} GridFilterFn
  */
 
-import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /** A number or date filter value: either end may be empty. */
 interface RangeFilter {

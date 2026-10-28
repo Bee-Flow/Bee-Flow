@@ -1,9 +1,9 @@
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { formatDate } from '../../../../../utils/dateFormatters';
-import BarList from '../../../../shared/charts/BarList';
-import SplitBar from '../../../../shared/charts/SplitBar';
-import TokenBarChart from '../../../../shared/charts/TokenBarChart';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { formatDate } from '@/utils/dateFormatters';
+import BarList from '@/components/shared/charts/BarList';
+import SplitBar from '@/components/shared/charts/SplitBar';
+import TokenBarChart from '@/components/shared/charts/TokenBarChart';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AnswersQuestion } from './useAnswersSummary';
 
 const fmt = new Intl.NumberFormat();
@@ -128,14 +128,15 @@ function NoAnswers({ t }: { t: TranslateFn }) {
 }
 
 /** The breakdown a question gets, by its type. */
-export function breakdownFor(q: AnswersQuestion) {
+/** The breakdown a question's type earns; each branch names its component, none is picked at render. */
+export function QuestionBreakdown({ t, q, onSeeAll }: { t: TranslateFn; q: AnswersQuestion; onSeeAll: (() => void) | null }) {
     switch (q.breakdown?.kind) {
-        case 'choice': return ChoiceBreakdown;
-        case 'yesno': return YesNoBreakdown;
-        case 'number': return NumberBreakdown;
-        case 'date': return DateBreakdown;
-        case 'file': return FileBreakdown;
-        case 'text': return TextBreakdown;
-        default: return NoAnswers;
+        case 'choice': return <ChoiceBreakdown t={t} q={q} />;
+        case 'yesno': return <YesNoBreakdown t={t} q={q} />;
+        case 'number': return <NumberBreakdown t={t} q={q} />;
+        case 'date': return <DateBreakdown t={t} q={q} />;
+        case 'file': return <FileBreakdown t={t} q={q} onSeeAll={onSeeAll} />;
+        case 'text': return <TextBreakdown t={t} q={q} onSeeAll={onSeeAll} />;
+        default: return <NoAnswers t={t} />;
     }
 }

@@ -1,13 +1,13 @@
 import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, usePatch } from './kit';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import FormField from '../../../../../shared/FormField';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { FieldKeyFieldProps } from './kit';
 
 interface RecordDetailField {

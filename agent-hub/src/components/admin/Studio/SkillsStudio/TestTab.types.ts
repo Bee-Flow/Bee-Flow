@@ -1,7 +1,7 @@
 import type { Step } from './skillModel.types';
-import type { SkillTestStepResult, SkillTestRun } from '../../../../api/skillsApi';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { SkillTestStepResult, SkillTestRun } from '@/api/skillsApi';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface TestTabProps {
     skillId: string;

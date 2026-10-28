@@ -6,13 +6,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { OrgMcpPolicy } from '../../../api/queries/mcpLibrary';
+import type { OrgMcpPolicy } from '@/api/queries/mcpLibrary';
 import { fakeBackend, POLICY_PATH, policyPayload } from '@/test/mcpLibraryKit';
 import { withQueryClient } from '@/test/queryWrapper';
 import PolicyCard from './PolicyCard';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

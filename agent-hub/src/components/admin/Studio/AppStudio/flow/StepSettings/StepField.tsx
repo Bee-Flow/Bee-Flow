@@ -1,14 +1,14 @@
 import { AlertTriangle, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { columnOptions, isDanglingRef, labelForRef, REFERENCE_EMPTY_HINTS, REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS, referenceText } from '../stepReferences';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import FormField from '../../../../../shared/FormField';
-import Toggle from '../../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import Toggle from '@/components/shared/Toggle';
 import ExpressionInput from '../../inspector/logic/ExpressionInput';
 import BindingField from '../../inspector/panels/BindingField';
 import { INPUT_CLS } from '../../inspector/panels/kit';
 import AutomationPicker from '../../inspector/AutomationPicker';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { RowBinding, SwitchCase, Placeholder, StepFieldProps, ReferenceFieldProps, AutomationRefFieldProps, SwitchCasesFieldProps } from '../StepSettings.types';
 import { FIELD_LABELS, HINTS } from './StepSettings.constants';
 import { KeyedBindingsField } from './KeyedBindingsField';

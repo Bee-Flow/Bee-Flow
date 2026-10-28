@@ -7,7 +7,7 @@ import { joinPath, mapAttrs, type MapCtx } from './mapAttrs';
 import useCellPeek from './useCellPeek';
 import { COL_MAX_PX, MAX_COLS, MAX_ROWS, humanize, isPlainObject } from './valueHelpers';
 import { jsonTextValue, positionChildren, type Field } from '../mapping/upstream/fieldTree';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface RecordTableProps {
     rows: unknown[];

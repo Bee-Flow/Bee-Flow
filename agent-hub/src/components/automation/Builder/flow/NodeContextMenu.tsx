@@ -1,7 +1,7 @@
 import { Copy, Trash2, Play, Power, Unlink, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface NodeContextMenuProps {
     x: number;

@@ -1,6 +1,6 @@
 import { Flag } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { VersionRow } from '../../../../api/queries/automation/versions';
+import useTranslation from '@/hooks/useTranslation';
+import type { VersionRow } from '@/api/queries/automation/versions';
 import { groupVersions, milestonesOnly, shortWhen, versionMeta, versionTitle } from './versionText';
 
 interface Props {

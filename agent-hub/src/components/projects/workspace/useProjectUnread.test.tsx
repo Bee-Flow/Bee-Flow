@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { queryWrapper } from '../../../test/queryWrapper';
+import { queryWrapper } from '@/test/queryWrapper';
 import { useMarkSeenWhenOpen, useProjectUnread } from './useProjectUnread';
 import { makeFakeApi, reply } from './workspaceTestApi';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

@@ -15,7 +15,7 @@
  */
 import React from 'react';
 
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import MonitoringBanner from '../chatSignals/MonitoringBanner';
 import MonitoringNotice from '../chatSignals/MonitoringNotice';
 import type { MonitoringNoticeProps } from '../chatSignals/MonitoringNotice';

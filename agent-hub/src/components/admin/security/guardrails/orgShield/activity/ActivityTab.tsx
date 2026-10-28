@@ -36,10 +36,10 @@ import { FILTER_KEYS, removeFilter, toggleFilter } from './shieldFilters';
 import { formatDay, formatPeriod, intlLocale } from './shieldDates';
 import { toStreamRows } from './shieldStream';
 import useShieldActivityData from './useShieldActivity';
-import { ALERT_SCORE_THRESHOLD, SAFETY_PII_ALERT } from '../../../../../../config/analyticsConfig';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import { defaultRange } from '../../../../../../pages/settings/usage/RangeControl';
-import { deriveRangeParams } from '../../../../../../utils/usageHelpers';
+import { ALERT_SCORE_THRESHOLD, SAFETY_PII_ALERT } from '@/config/analyticsConfig';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { defaultRange } from '@/pages/settings/usage/RangeControl';
+import { deriveRangeParams } from '@/utils/usageHelpers';
 import LicenceLock from '../parts/LicenceLock';
 import type { Region } from '../shieldPalette';
 

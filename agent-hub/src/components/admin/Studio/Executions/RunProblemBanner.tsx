@@ -2,7 +2,7 @@ import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { runLogSentence } from './runLogSentence';
 import type { ErrorInfoLike, RunLogRow } from './runLogSentence';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface StepRecordLike { status?: string | null; errorInfo?: ErrorInfoLike | null }
 

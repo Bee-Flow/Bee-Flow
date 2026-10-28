@@ -2,7 +2,7 @@ import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));

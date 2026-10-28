@@ -2,10 +2,10 @@ import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import ConnectorSyncPanel from './ConnectorSyncPanel';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 /**

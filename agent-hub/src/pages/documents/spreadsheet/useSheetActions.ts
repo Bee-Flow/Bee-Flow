@@ -2,12 +2,12 @@
 // (after the queued cells were sent).
 
 import { useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
-import { downloadSheetCsv, downloadSheetXlsx } from '../../../api/sheetApi';
+import { downloadSheetCsv, downloadSheetXlsx } from '@/api/sheetApi';
 import type { SheetState } from './useSheet';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
     initial: StudioDocument; sheet: SheetState; onBack?: () => void; onRenamed?: (doc: StudioDocument) => void;

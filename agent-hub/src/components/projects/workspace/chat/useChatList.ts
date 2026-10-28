@@ -5,10 +5,10 @@
 // must say so, never read as "nothing here".
 
 import { useMemo } from 'react';
-import { useProjectChatsQuery, type TeamChat } from '../../../../api/queries/projectChats';
+import { useProjectChatsQuery, type TeamChat } from '@/api/queries/projectChats';
 import {
     useMyProjectChatsQuery, useProjectThreadsQuery, type MyProjectChat, type ProjectThread,
-} from '../../../../api/queries/projects';
+} from '@/api/queries/projects';
 
 export type ChatListFilter = 'all' | 'team' | 'ai';
 

@@ -1,5 +1,5 @@
 import type { Phase } from './phaseMachine';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 /**
  * The recipes the New dialog offers. The server owns the recipe (its phases,
  * schema and briefs — server/playbooks/recipes); this is the client's copy of

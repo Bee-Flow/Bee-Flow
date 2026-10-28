@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BuilderTab } from './useBuilderTabUrl';
-import { readinessStamp } from '../../../api/queries/automation/readiness';
+import { readinessStamp } from '@/api/queries/automation/readiness';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
 import AiActQuestionsDialog from './settings/AiActQuestionsDialog';

@@ -1,8 +1,8 @@
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import React from 'react';
 
-import Button from '../../../../../../shared/Button';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Button from '@/components/shared/Button';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { describeProblemLine } from '../ownDataCopy';
 import type { CustomDataType } from '../ownDataModel';
 import type { Step, WizardCommit, WizardInit } from '../useTypeWizard';

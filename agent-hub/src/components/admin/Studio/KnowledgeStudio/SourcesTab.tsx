@@ -4,14 +4,14 @@ import { cronParams, refreshModeKey } from './freshness';
 import { nOf } from './plural';
 import ScheduleMenu from './ScheduleMenu';
 import { sourceKind, sublineFor } from './sourceKinds';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import { kindColorVar, kindTint } from '../../../shared/kindColors';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { KbSource, KbSourceTotals } from './knowledgeApi';
 import type { ScheduleChange } from './ScheduleMenu';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 
 /**
  * The Bronnen tab: every source of a knowledge base, what it is, and how it

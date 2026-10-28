@@ -1,6 +1,6 @@
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import AddRow from '../../parts/AddRow';
 import { LIMITS } from '../ownDataModel';
 import type { Mark } from '../testBench';

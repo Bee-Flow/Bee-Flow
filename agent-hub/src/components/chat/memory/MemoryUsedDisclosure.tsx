@@ -1,9 +1,9 @@
 import { Brain, ChevronRight, Clock, Folder, Info, ListChecks, SlidersHorizontal, User, Workflow, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useId, useState, useEffectEvent } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { ChatMessage, MemoryUsedItem } from '../../../hooks/useChatEngine/types';
-import { openMemoryPanel } from '../../../utils/memoryMode';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { ChatMessage, MemoryUsedItem } from '@/hooks/useChatEngine/types';
+import { openMemoryPanel } from '@/utils/memoryMode';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { toast } from '../../shared/Toast';
 import { deleteMemory, fetchMemoriesByIds } from './memoryApi';

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { enginePill, engineSegments, showsRates } from './engineLine';
 import { statusVar } from './nodeTypeColors';
 import RunBanner from './RunBanner';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { type PlanStripProps, type EngineLineProps, type BuildBannerProps, type SouthCall, type Farewell, type CanvasSouthBarProps } from './CanvasSouthBar.types';
 import { FAREWELL_MS, SKIPPED_MS, elapsedSince, shortReason, planStrip } from './CanvasSouthBar.helpers';
 ;

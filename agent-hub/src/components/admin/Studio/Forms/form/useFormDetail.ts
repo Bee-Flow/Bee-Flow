@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { managedOf, managedRefusalOf } from '../../../../shared/managedPart';
-import type { ManagedBannerInfo } from '../../../../shared/managedPart';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { managedOf, managedRefusalOf } from '@/components/shared/managedPart';
+import type { ManagedBannerInfo } from '@/components/shared/managedPart';
 
 /** The trigger's form definition the Questions tab edits, as the builder stores it. */
 export type FormDraft = Record<string, unknown>;

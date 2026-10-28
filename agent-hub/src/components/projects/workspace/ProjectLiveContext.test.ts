@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { projectKeys } from '../../../api/queries/projects';
+import { projectKeys } from '@/api/queries/projects';
 import { affectsActivity, keysForEvent } from './ProjectLiveContext';
 
 describe('keysForEvent: what a live event makes stale', () => {

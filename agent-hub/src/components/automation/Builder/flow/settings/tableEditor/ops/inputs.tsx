@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { actionButtonClass, rowInputClass } from '../../formStyles';
 
 /** The small controls the operation forms share. */

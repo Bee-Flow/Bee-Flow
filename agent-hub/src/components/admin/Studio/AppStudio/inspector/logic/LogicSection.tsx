@@ -5,7 +5,7 @@ import ValidationRuleEditor from './ValidationRuleEditor';
 import VisibilityControls from './VisibilityControls';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { setNodeComputed, updateNodeLogic } from '../../state/definitionOps';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode, FormulaValue } from '../appDefinition';
 import type { LogicPatch } from './VisibilityControls';
 

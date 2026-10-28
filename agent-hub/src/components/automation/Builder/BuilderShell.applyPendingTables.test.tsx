@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * is what lands on the canvas.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d: unknown) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -25,10 +25,10 @@ vi.mock('./BuildTab', () => ({ default: (p: unknown) => { buildTab = p; return n
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
 import BuilderShellJsx from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import { toast } from '../../shared/Toast';
-import { setCurrentUser } from '../../../utils/scopedStorage';
+import { setCurrentUser } from '@/utils/scopedStorage';
 
 const BuilderShell = BuilderShellJsx as unknown as React.ComponentType<Record<string, unknown>>;
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: queryWrapper() });

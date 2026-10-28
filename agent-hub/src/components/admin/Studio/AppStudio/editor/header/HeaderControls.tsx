@@ -3,13 +3,14 @@
  * notices ("⚠ n to check" and its portalled panel) and the publish pill.
  */
 import { Database, Eye, Pencil, Shield, UploadCloud, Workflow } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { HeaderView, PublishState, RevealTarget } from './headerModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
-import StatusActionPill from '../../../../../shared/StatusActionPill';
+import useTranslation from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import StatusActionPill from '@/components/shared/StatusActionPill';
 import { SaveNoticeCapsule, SaveNoticesPanel } from '../SaveStatusPill';
 import type { SaveNotice } from '../saveNotices';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface ViewSegmentsProps {
     view: HeaderView;
@@ -61,9 +62,7 @@ interface SaveNoticesControlProps {
 /** What the server reported about the last save. */
 export function SaveNoticesControl({ status, error, onRetry, notices, onShow }: SaveNoticesControlProps) {
     const [open, setOpen] = useState(false);
-    useEffect(() => {
-        if (!notices.length) setOpen(false);
-    }, [notices]);
+    useAdjustOnChange([notices], () => { if (!notices.length) setOpen(false); });
     // Anchor for the portalled save-notices panel. It used to be a plain
     // `absolute right-0 top-full` child of the pill's wrapper — the one header
     // overlay that was not a portal — and the center column's overflow-x-clip

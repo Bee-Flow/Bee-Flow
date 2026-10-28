@@ -3,8 +3,8 @@ import {
     buildCurriculumColumns, splitCapstone, courseSegments, courseState, stepMix,
     lessonPlays, nextLessonIn, masteryStillReachable, lessonsMinutes, SEGMENT, CAPSTONE_COURSE_ID,
 } from './curriculum';
-import { COURSES } from '../../../components/onboarding/courses';
-import { LEARNING_PATHS } from '../../../components/onboarding/learningPaths';
+import { COURSES } from '@/components/onboarding/courses';
+import { LEARNING_PATHS } from '@/components/onboarding/learningPaths';
 import { partial } from '@/test/mocks';
 
 describe('buildCurriculumColumns', () => {

@@ -1,10 +1,10 @@
 import { AppWindow, ChevronDown, ChevronRight, ExternalLink, MousePointerClick } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import useAutomationApi from '../../../hooks/useAutomationApi';
-import useTranslation from '../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useTranslation from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { segmentForSection } from '../../admin/Studio/studioRoutes';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One app action that runs the automation, as GET /usage lists it. */
 interface UsageRow {

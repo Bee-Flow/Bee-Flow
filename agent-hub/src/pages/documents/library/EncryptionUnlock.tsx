@@ -5,14 +5,14 @@
 // was refused carries on.
 
 import React from 'react';
-import Modal from '../../../components/shared/Modal';
-import { projectErrorInfo } from '../../../api/queries/projectErrors';
-import useTranslation from '../../../hooks/useTranslation';
-import { apiClient } from '../../../api/client';
-import { API_BASE } from '../../../utils/helpers';
-import { mutate } from '../../../api/mutate';
+import Modal from '@/components/shared/Modal';
+import { projectErrorInfo } from '@/api/queries/projectErrors';
+import useTranslation from '@/hooks/useTranslation';
+import { apiClient } from '@/api/client';
+import { API_BASE } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
 import EncryptionSetupJs from '../../EncryptionSetup';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const EncryptionSetup = EncryptionSetupJs;
 

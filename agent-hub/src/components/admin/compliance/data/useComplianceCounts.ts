@@ -20,7 +20,7 @@
  */
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { API, fetchJson, asObject } from '../../../../api/complianceApi';
+import { API, fetchJson, asObject } from '@/api/complianceApi';
 
 const COMPLIANCE_COUNTS_POLL_MS = 30_000;
 

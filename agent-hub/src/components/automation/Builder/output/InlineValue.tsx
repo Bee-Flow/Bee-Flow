@@ -1,7 +1,7 @@
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
 import { listBadgeClass as listBadgeClassJs } from '../flow/settings/formStyles';
 import { MAX_CELL, safeJson, scalarText, truncate } from './valueHelpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const summariseData = summariseDataJs as (value: unknown) => { label?: string } | null;
 const listBadgeClass = listBadgeClassJs as (extra?: string) => string;

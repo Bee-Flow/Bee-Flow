@@ -12,7 +12,7 @@ import StageShell from './StageShell';
 import useAppRoles, { useOrgDirectory } from '../../AppStudio/rbac/useAppRoles';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
 import { playbooksApi } from '../playbooksApi';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent } from '../phaseMachine';
 import type { Playbook } from '../usePlaybook';
 import type { AudienceKind, DirectoryUser, ScreenPlan } from './access/accessScreenTypes';

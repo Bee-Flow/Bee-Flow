@@ -4,10 +4,10 @@ import { AiGenerate, StarterSets } from './PatternSections';
 import type { PatternLibraryProps } from './patternTypes';
 import RulesPanel from './RulesPanel';
 import { applyStarterSet } from './starterSets';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { toast } from '../../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import { saveRegexGuardrails } from '../api/guardrailsApi';
-import { messageOf } from '../../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 interface PatternsViewProps extends PatternLibraryProps {
     onSaved?: () => void;

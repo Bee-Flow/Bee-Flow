@@ -3,7 +3,7 @@ import { TextField } from '../fields';
 import { InlineHint, CollapsibleCard, BackgroundVariantSelect } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Customer Support ──────────────────────────────────────────────────
 //

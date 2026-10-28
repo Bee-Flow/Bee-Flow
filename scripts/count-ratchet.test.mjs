@@ -17,8 +17,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// workflow-policy job runs these tests without npm ci, so the parser tests skip there.
+let hasTs = false;
+for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
+    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
+}
+const tsTest = hasTs ? test : test.skip;
 const SCRIPT = path.join(HERE, 'count-ratchet.mjs');
 
 function sandbox({ files = {}, metric = 'inline-style', budget = null, pkg = 'pkg', src = true } = {}) {
@@ -777,4 +786,47 @@ test('long-function --list names the files, and --update only lowers', () => {
     run(dir, 'long-function', ['--update']);
     assert.strictEqual(budgetOf(dir, 'long-function'), 3, 'an --update must not raise the budget');
     assert.strictEqual(run(dir, 'long-function').code, 1);
+});
+
+// deep-imports: the parser module and the real root node_modules (for the TypeScript
+// compiler API) are linked into the sandbox, plus an empty mirror manifest.
+function deepSandbox(files, { budget = null, exclude = [], manifest = { entries: [] } } = {}) {
+    const dir = sandbox({ files, pkg: 'agent-hub', metric: 'deep-imports', budget });
+    fs.copyFileSync(path.join(HERE, 'deep-imports.mjs'), path.join(dir, 'scripts/deep-imports.mjs'));
+    fs.writeFileSync(path.join(dir, 'scripts/shared-mirror.manifest.json'), JSON.stringify(manifest));
+    fs.writeFileSync(path.join(dir, 'scripts/deep-imports.exclude.json'), JSON.stringify({ files: exclude }));
+    fs.writeFileSync(path.join(dir, 'package.json'), '{}');
+    fs.symlinkSync(path.join(HERE, '..', 'node_modules'), path.join(dir, 'node_modules'));
+    return dir;
+}
+
+tsTest('deep-imports counts specifiers the alias can spell, in every import form, and nothing else', () => {
+    const dir = deepSandbox({
+        // Counted: two static, a dynamic import, a mock, an export-from (a file may count many).
+        'components/a/b/c/Deep.tsx': "import { x } from '../../../../utils/x';\nimport y from '../../../y';\nconst Z = lazy(() => import('../../../z'));\nexport { w } from '../../../../w';\n",
+        'components/a/b/c/Deep.test.tsx': "vi.mock('../../../../utils/helpers', () => ({}));\n",
+        // Not counted: shallow, the alias, a package, a path that leaves src, a path that is no specifier.
+        'components/a/b/c/Ok.tsx': "import a from '../../a';\nimport b from '@/b';\nimport c from 'react';\nimport s from '../../../../../server/s.js';\n// import d from '../../../d'\nconst p = '../../../../utils';\n",
+        // Not counted: the file mobile runs, and a mirror source.
+        'components/a/b/c/mobile.ts': "import { x } from '../../../../utils/x';\n",
+        'components/a/b/c/mirrored.ts': "import { x } from '../../../../utils/x';\n",
+    }, {
+        exclude: ['components/a/b/c/mobile.ts'],
+        manifest: { entries: [{ source: 'agent-hub/src/components/a/b/c/mirrored.ts', target: 'mobile/src/m/mirrored.ts' }] },
+    });
+    run(dir, 'deep-imports', [], 'agent-hub'); // records the first budget
+    const r = run(dir, 'deep-imports', ['--list'], 'agent-hub');
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.strictEqual(budgetOf(dir, 'deep-imports', 'agent-hub'), 5);
+    assert.match(r.stdout, /4 {2}src\/components\/a\/b\/c\/Deep\.tsx/);
+    assert.match(r.stdout, /1 {2}src\/components\/a\/b\/c\/Deep\.test\.tsx/);
+    assert.doesNotMatch(r.stdout, /Ok\.tsx|mobile\.ts|mirrored\.ts/);
+});
+
+tsTest('deep-imports fails a new deep import over the budget and names the alias', () => {
+    const dir = deepSandbox({ 'components/a/b/c/New.tsx': "import { x } from '../../../utils/x';\n" }, { budget: 0 });
+    const r = run(dir, 'deep-imports', [], 'agent-hub');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 import specifiers climbing three or more levels .* budget is 0/);
+    assert.match(r.stderr, /@\/<path from src>/);
 });

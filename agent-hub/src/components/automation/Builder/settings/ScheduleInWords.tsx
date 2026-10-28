@@ -1,8 +1,8 @@
 import { CalendarCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useSchedulePreviewQuery } from '../../../../api/queries/automation/settings';
-import Toggle from '../../../shared/Toggle';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useSchedulePreviewQuery } from '@/api/queries/automation/settings';
+import Toggle from '@/components/shared/Toggle';
 import { TIMEZONE_OPTIONS, describeCron } from '../flow/scheduleBuilderUtils';
 import { LINK_BTN, SELECT } from './settingsUi';
 import { cronFromWords, toggleDay, withFrequency } from './startChoice';

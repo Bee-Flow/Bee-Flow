@@ -3,7 +3,7 @@ import { Layers, SquareArrowOutUpRight, ChevronDown, Users } from 'lucide-react'
 import React from 'react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { CONTAINER_HEADER } from '../inlineFlowlets';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { statusVar, typeColorVar, typeTint } from '../nodeTypeColors';

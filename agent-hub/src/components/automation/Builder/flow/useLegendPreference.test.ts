@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getItem, setCurrentUser, setItem } from '../../../../utils/scopedStorage';
+import { getItem, setCurrentUser, setItem } from '@/utils/scopedStorage';
 import { LEGEND_ROOM_HEIGHT_PX, LEGEND_ROOM_PX, useLegendPreference } from './useLegendPreference';
 
 /**

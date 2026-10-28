@@ -7,7 +7,7 @@ import { AlertTriangle, Database, LayoutGrid, Link2, Trash2 } from 'lucide-react
 import { useCallback, useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 
 import {
     addRelation, fillersOfRelation, layoutTables, LAYOUT,
@@ -151,7 +151,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
             for (const child of c.sync.children || []) if (child?.tableId) m.set(child.tableId, name);
         }
         return m;
-    }, [connectors]);
+    }, [connectors, tr]);
 
     const nodes = useMemo(() => (tables || []).map((t) => ({
         id: t.id,

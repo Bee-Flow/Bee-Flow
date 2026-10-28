@@ -1,6 +1,6 @@
 import { Plus, Play, Pause, Sliders, Trash2, X } from 'lucide-react';
 import { useRef, useEffect } from 'react';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { SchedulesPickerProps } from './SchedulePickers.types';
 
 function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {

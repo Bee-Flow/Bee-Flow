@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScanText } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { dataExtractionSummary } from '../nodeSummaries';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';

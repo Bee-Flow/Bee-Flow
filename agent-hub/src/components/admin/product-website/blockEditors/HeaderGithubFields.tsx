@@ -1,6 +1,6 @@
 import { TextField } from '../fields';
 import { FieldSelect } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // The "GitHub button" kind of a header button (issue 244): label, repository
 // address, a manual star count and its screen-reader words. The live count

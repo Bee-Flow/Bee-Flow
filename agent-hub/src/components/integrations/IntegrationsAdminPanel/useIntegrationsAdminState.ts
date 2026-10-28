@@ -4,11 +4,11 @@
 // other panel hooks and the section components receive these bindings by
 // explicit threading.
 import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type {
     AdminMcpServer, AdminMessage, AdminOrganization, AgentSearchDefaults,
 } from './IntegrationsAdminPanel.types';
-import { request, RefusedError } from '../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 export default function useIntegrationsAdminState() {
     const [defaults, setDefaults] = useState<string[] | null>(null); // null = all enabled

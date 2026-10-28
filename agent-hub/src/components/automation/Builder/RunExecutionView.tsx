@@ -4,7 +4,7 @@ import { buildRunStepLabelMap, runStepLabel } from './flow/displayHelpers';
 import OutputView from './OutputView';
 import type { DiagramDefinition, RunRow } from './flow/diagramPaneTypes';
 import { tokenForStep, type RunStepLike } from '../../shared/statusTokens';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Read-only execution view for ONE run, shared by the in-automation Run

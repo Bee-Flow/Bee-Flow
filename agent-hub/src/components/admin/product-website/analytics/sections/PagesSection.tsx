@@ -12,7 +12,7 @@
  */
 import { FileText, Compass } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
 import { SERIES, Empty, SortableTable, BreakdownTable, fmt, fmtDurationSec, rateColor } from '../ui';

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, OctagonX, X } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAiActCheck, useAnswerAiAct, type AiActCheckResult } from '../../../../api/queries/automation/aiActCheck';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAiActCheck, useAnswerAiAct, type AiActCheckResult } from '@/api/queries/automation/aiActCheck';
 import AiActQuestions, { draftBody, draftComplete, initialDraft, type AiActDraft } from './AiActQuestions';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 

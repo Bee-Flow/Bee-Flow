@@ -7,7 +7,7 @@ import { DonutChart } from './shared/DonutChart';
 import { fmtCost, MODEL_COLORS, ModelRow, shortModel } from './shared/ModelRow';
 import { fmt, COLORS, Empty, SvgAreaChart } from './shared/SvgAreaChart';
 import type { ModelRate } from './drawer/drawerTypes';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface UsageDeltas {
     calls?: number | null;

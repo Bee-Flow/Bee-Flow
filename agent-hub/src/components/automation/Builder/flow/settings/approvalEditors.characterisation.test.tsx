@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApprovalFields } from './approvalEditors';
-import scopedStorage from '../../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 
 /**
@@ -22,8 +22,8 @@ type Draft = Record<string, unknown>;
 interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknown>; text: () => Promise<string> }
 
 const { authFetch } = vi.hoisted(() => ({ authFetch: vi.fn<(url: string, init?: RequestInit) => Promise<FakeResponse>>() }));
-vi.mock('../../../../../utils/helpers', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../../utils/helpers')>()), API_BASE: '', authFetch,
+vi.mock('@/utils/helpers', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/utils/helpers')>()), API_BASE: '', authFetch,
 }));
 
 const DIRECTORY = { members: [{ id: 'u1', name: 'Ada' }, { id: 'u2', name: 'Grace' }], groups: [{ id: 'g1', name: 'Finance' }] };

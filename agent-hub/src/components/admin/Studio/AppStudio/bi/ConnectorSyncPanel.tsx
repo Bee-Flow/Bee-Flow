@@ -3,7 +3,7 @@ import SyncSettings from './sync/SyncSettings';
 import SyncSetup from './sync/SyncSetup';
 import { useSyncActions } from './sync/useSyncActions';
 import type { SyncConnector } from './sync/useSyncActions';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * App Studio — "keep this in a table".

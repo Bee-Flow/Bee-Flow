@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * through what it hands BuildTab and BuilderHeader, which are stubbed.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d: unknown) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -36,8 +36,8 @@ vi.mock('./UsedByButtonsCapsule', () => ({ default: () => <div data-testid="caps
 
 import BuilderShellJsx from './BuilderShell';
 import { liveStateOf } from './header/liveState';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 
 // The shell is a .jsx component whose props are inferred from defaults; the suite passes the few it needs.
 const BuilderShell = BuilderShellJsx as unknown as React.ComponentType<Record<string, unknown>>;

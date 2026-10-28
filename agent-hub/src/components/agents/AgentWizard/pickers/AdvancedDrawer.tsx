@@ -3,10 +3,10 @@ import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { CollapsibleSection } from './_primitives';
 import { BehaviorBody } from './BehaviorPicker';
-import ComplianceBlock from '../../../admin/compliance/ladder/ComplianceBlock';
-import Modal from '../../../shared/Modal';
+import ComplianceBlock from '@/components/admin/compliance/ladder/ComplianceBlock';
+import Modal from '@/components/shared/Modal';
 import VersionHistory from '../../VersionHistory';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { EditorAgent } from '../builderSplit/editorTypes';
 
 // Right-side slide-in drawer hosting "set-once-and-forget" settings:

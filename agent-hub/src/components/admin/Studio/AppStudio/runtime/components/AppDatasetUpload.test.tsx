@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { authFetch } = vi.hoisted(() => ({
     authFetch: vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(),
 }));
-vi.mock('../../../../../../utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
 // All the component reads from the data context is which app it sits in.
 vi.mock('../DataContext', () => ({ useDataContext: () => ({ appId: 'app_1' }) }));
 

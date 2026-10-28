@@ -1,12 +1,12 @@
 import { AlertCircle, Check, Languages, RotateCcw, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
-import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '../../../api/languages';
-import { errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '@/api/languages';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 // Structured-field editor for the verification + welcome emails, per locale.
 // Fields are plain text rendered into the branded shell; a live preview shows

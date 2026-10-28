@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { operatedStagesOf, type OperatedStage, type StageKey } from '../../../../api/stagesApi';
+import { operatedStagesOf, type OperatedStage, type StageKey } from '@/api/stagesApi';
 import SolutionDetail from './SolutionDetail';
 import type { SolutionProject } from './SolutionDetail';
 import { readSummary } from './solutionOverviewModel';
 import SolutionsOverview from './SolutionsOverview';
 import type { SolutionsSummary, SummaryRow } from './SolutionsOverview';
 import useRemote from './useRemote';
-import { API_BASE } from '../../../../utils/helpers';
-import { request, errorBody, RefusedError } from '../../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { request, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * Studio → Solutions: the builder's bundles.

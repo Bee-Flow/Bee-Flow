@@ -32,7 +32,7 @@ interface BuildTabProps {
 }
 interface SettingsProps { onSave: (patch: Record<string, unknown>) => Promise<void> }
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d: unknown) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -48,8 +48,8 @@ vi.mock('./BuildTab', () => ({ default: (p: BuildTabProps) => { buildTab = p; he
 vi.mock('./SettingsTab', () => ({ default: (p: SettingsProps) => { settings = p; return null; } }));
 
 import BuilderShell from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 
 const mockedFetch = vi.mocked(authFetch);
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: queryWrapper() });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshCw, Clock } from 'lucide-react';
-import beeFlowLogo from '../../../assets/bee-flow-logo.svg';
-import { useTranslation } from '../../../hooks/useTranslation';
+import beeFlowLogo from '@/assets/bee-flow-logo.svg';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface NcOnboardingPendingProps {
     orgName?: string | null;

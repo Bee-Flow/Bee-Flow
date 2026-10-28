@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CustomTierMeta, OrgGroupRow } from '../useOrgDirectory';
 
 interface TierPill {

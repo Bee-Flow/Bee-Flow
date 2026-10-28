@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Finding } from '../shieldFindings';
 import { findingCopy } from './findingCopy';
 

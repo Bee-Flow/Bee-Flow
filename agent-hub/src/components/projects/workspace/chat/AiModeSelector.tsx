@@ -6,9 +6,9 @@
 // picked (the chat's current mode always can, so nothing changes under you).
 
 import React from 'react';
-import type { TeamChat, TeamChatAiMode, TeamChatAiPolicy } from '../../../../api/queries/projectChats';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import type { TeamChat, TeamChatAiMode, TeamChatAiPolicy } from '@/api/queries/projectChats';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 const AI_MODES: readonly TeamChatAiMode[] = Object.freeze(['off', 'mention', 'always']);
 

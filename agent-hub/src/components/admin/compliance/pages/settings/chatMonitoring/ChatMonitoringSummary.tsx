@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import { useChatMonitoringSummary, type Cell, type SurfaceFigures } from '../../../data/useChatMonitoring';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useChatMonitoringSummary, type Cell, type SurfaceFigures } from '@/components/admin/compliance/data/useChatMonitoring';
 import { ActionButton } from './formAtoms';
 import { kindLabel, surfaceLabel } from './chatMonitoringLabels';
 

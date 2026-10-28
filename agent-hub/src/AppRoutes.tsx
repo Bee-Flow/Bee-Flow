@@ -171,7 +171,7 @@ function RootPathGate() {
     // Captured once, not read from `cms`: the effect runs with an empty dep list
     // and must know whether the FIRST render came from the server, which is a
     // fact about this page load rather than current state.
-    const hadServerContent = React.useRef(!!(cms && cms.fromServer)).current;
+    const [hadServerContent] = React.useState(() => !!(cms && cms.fromServer));
     React.useEffect(() => {
         let cancelled = false;
         const params = new URLSearchParams(window.location.search);

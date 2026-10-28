@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Hash, List, Pencil, Sparkles } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { placeholderOf } from './ownDataCopy';
 import type { CustomDataType, Method } from './ownDataModel';
 import { LIMITS, emptyType, suggestTokenKey } from './ownDataModel';

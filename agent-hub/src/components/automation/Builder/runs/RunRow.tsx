@@ -1,11 +1,11 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunRowData } from '@/api/queries/automation/runs';
 import {
     clockTime, formatSeconds, formatWaited, howStartedText, runSentence, runSubject, runTone, stepBars, stepsText,
 } from './runOutcome';
 import RunStatusIcon, { StepBars } from './RunStatusIcon';
-import { mayStartRun, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
+import { mayStartRun, viewOnlyRunHint } from '@/api/queries/automation/runAccess';
 
 interface RunRowProps {
     run: RunRowData;

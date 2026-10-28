@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { StatusBadge } from './components';
 import { SUB_SECTIONS, TIERS } from './constants';
 import type { SubSection, Tier } from './constants';
@@ -11,8 +11,8 @@ import SSOSection from './SSOSection';
 import DocProcessingSection from './DocProcessingSection';
 import loadChatModels from './loadChatModels';
 import type { ProviderModel } from './loadChatModels';
-import { errorMessage } from '../../../utils/caughtError';
-import { request, RefusedError } from '../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { request, RefusedError } from '@/api/mutate';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;

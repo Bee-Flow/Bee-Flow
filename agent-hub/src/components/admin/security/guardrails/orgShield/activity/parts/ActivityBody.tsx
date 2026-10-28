@@ -16,8 +16,8 @@
 import { Globe, MessageSquareText, ScanSearch, Users } from 'lucide-react';
 import React, { useState } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import Tabs from '../../../../../../shared/Tabs';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import Tabs from '@/components/shared/Tabs';
 import type { ActivityView } from '../activityView';
 import EgressMapCard from '../egressMap/EgressMapCard';
 import type { EgressMapFilters } from '../egressMap/egressMapContract';

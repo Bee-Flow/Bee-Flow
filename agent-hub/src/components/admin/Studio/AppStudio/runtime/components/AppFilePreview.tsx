@@ -1,7 +1,7 @@
 import { Download, FileText, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState, type JSX } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { studioAppFetch } from '../../../../../../api/queries/studioApps';
+import useTranslation from '@/hooks/useTranslation';
+import { studioAppFetch } from '@/api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
@@ -13,7 +13,7 @@ import { entryHref, entryName } from './AppInputFile';
 import { descriptorKey, firstDescriptor, friendlyError, materializeEntry, type FileEntry } from './fileLoading';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export { firstDescriptor };
 

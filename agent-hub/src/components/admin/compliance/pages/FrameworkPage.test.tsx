@@ -5,13 +5,13 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkPage from './FrameworkPage';
-import { renderWithClient } from '../../../../test/render';
+import { renderWithClient } from '@/test/render';
 import { sectionById } from '../sections';
 
 // The transport seam (data/api.js fetchJson → utils/helpers authFetch). The rest of
 // helpers stays real: useTranslation imports API_BASE from the same module.
 const authFetch = vi.fn();
-vi.mock('../../../../utils/helpers', async (importOriginal) => {
+vi.mock('@/utils/helpers', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
     return { ...actual, authFetch: (...a: Parameters<typeof authFetch>) => authFetch(...a) };
 });

@@ -3,7 +3,7 @@ import React from 'react';
 import { HealthChip } from './ConnectorHealthPanel';
 import { sevMeta } from './healthMeta';
 import OrgEventTimeline from './OrgEventTimeline';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 import type { FleetOrg, HealthProblem } from './healthMeta';
 

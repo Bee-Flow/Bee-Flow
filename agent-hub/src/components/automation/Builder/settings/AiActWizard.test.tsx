@@ -1,11 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { calls } = vi.hoisted(() => ({ calls: [] as Array<{ url: string; method: string; body: unknown }> }));
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url: string, opts: { method?: string; body?: string } = {}) => {
         const method = opts.method || 'GET';
@@ -36,7 +36,7 @@ vi.mock('../../../../utils/helpers', () => ({
 }));
 
 import AiActWizard, { reasonText } from './AiActWizard';
-import { answersToBody, parseSuggestion } from '../../../../api/queries/automation/readiness';
+import { answersToBody, parseSuggestion } from '@/api/queries/automation/readiness';
 
 describe('AiActWizard', () => {
     beforeEach(() => { calls.length = 0; });

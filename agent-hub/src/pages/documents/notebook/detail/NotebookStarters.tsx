@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { FileText, FileUp, ListChecks, NotebookPen, Sparkles, Table2 } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface Props {
     readySourceCount: number;

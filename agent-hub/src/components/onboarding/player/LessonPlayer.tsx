@@ -1,9 +1,9 @@
 import { X, ArrowLeft, ArrowRight, Check, Lock, PartyPopper, MessageCircleQuestionMark, Minus, PanelRight, Maximize2, AppWindow, CircleCheck, Loader2, Award, Play } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import { StepKindIcon, stepKindLabel } from '../../../pages/settings/learning/bits';
-import { requestLearningNavigate } from '../../../pages/settings/learning/learningEvents';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { StepKindIcon, stepKindLabel } from '@/pages/settings/learning/bits';
+import { requestLearningNavigate } from '@/pages/settings/learning/learningEvents';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import { PRIMARY_ACTION_STYLE } from '../../shared/StudioSectionHeader';
 import { getCourse, courseLessons } from '../courses';
@@ -36,9 +36,9 @@ import SlideStep from './SlideStep';
 import TutorPanel from './TutorPanel';
 import VideoStep, { type VideoStepDoc } from './VideoStep';
 import type { LessonStep } from './SimStep.types';
-import type { StepState, LessonUser, LessonDoc } from '../../../api/lessons.types';
+import type { StepState, LessonUser, LessonDoc } from '@/api/lessons.types';
 import type { CelebrationBadge, CelebrationXp, Celebration, LessonPlayerProps, LessonPlayerViewProps, StepBodyProps, CompletionScreenProps } from './LessonPlayer.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export default function LessonPlayer(props: LessonPlayerProps) {
     const { lessonId, user } = props;

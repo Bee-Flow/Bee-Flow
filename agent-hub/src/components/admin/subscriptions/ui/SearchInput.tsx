@@ -1,6 +1,6 @@
 import { Search, X } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SearchInputProps {
     value: string;

@@ -2,10 +2,10 @@ import { Check, Copy, Download, Ellipsis, ExternalLink, Loader2, Pencil, Stethos
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isNcMirror, sourceNameOf, sourceUrlOf } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import useCopyToClipboard from '../../../../hooks/useCopyToClipboard';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useCopyToClipboard from '@/hooks/useCopyToClipboard';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { MirrorSource } from './sourceMirrors';
 import type { DetailTable, TableHealth, TableMenuProps, HealthDialogProps } from './DatatableDetail.types';
 

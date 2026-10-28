@@ -1,22 +1,22 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderWithClient } from '../../../../../../test/render';
+import { renderWithClient } from '@/test/render';
 import type React from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../../../hooks/useTranslation', async () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', async () => {
     const kit = await import('./testKit');
     return { useTranslation: () => ({ t: kit.t }), __esModule: true };
 });
-vi.mock('../../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ tier: 'enterprise', hasFeature: () => true, hasTier: () => true }),
 }));
 
 import OrgShieldEditorJs from '../OrgShieldEditor';
 import type { CustomDataType } from './ownDataModel';
 import { LEGACY_TYPE, WORDS_TYPE, renderableTab } from './testKit';
-import { authFetch } from '../../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 
 // The editor is plain JSX, so its props infer loosely; name the one used here.
 const OrgShieldEditor = OrgShieldEditorJs as unknown as React.ComponentType<{ orgId: string }>;

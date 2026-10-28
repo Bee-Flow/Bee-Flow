@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type React from 'react';
 
 export type TFn = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;

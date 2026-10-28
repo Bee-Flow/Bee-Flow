@@ -1,6 +1,6 @@
 import type { SolutionItem, SolutionSection } from './solutionSections';
 import type { ControlFinding } from './ControlFindingGroup';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * What is IN this Solution, grouped by what it is FOR.

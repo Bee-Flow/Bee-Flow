@@ -34,11 +34,11 @@
  * never blank.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import { useViewport } from '../../../hooks/useViewport';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { useViewport } from '@/hooks/useViewport';
 import StudioShell from '../../shared/StudioShell';
 import { movedTab, resolveSection, sectionById, SECTIONS_WITH_PICKERS, type Section } from './sections';
-import { API, downloadUrl } from '../../../api/complianceApi';
+import { API, downloadUrl } from '@/api/complianceApi';
 import { compliancePath, useUrlQueryParam } from './data/actions';
 import useComplianceCore from './data/useComplianceCore';
 import useComplianceCounts from './data/useComplianceCounts';

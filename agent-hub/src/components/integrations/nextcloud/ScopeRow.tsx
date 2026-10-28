@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Loader2, Folder, FolderOpen } from 'lucide-react';
-import { useNcScopeResourcesQuery } from '../../../api/queries/integrationsAdmin';
+import { useNcScopeResourcesQuery } from '@/api/queries/integrationsAdmin';
 import SegmentedControl from '../../shared/SegmentedControl';
 import type { TFn, ScopeResource, ScopeEntry, FolderNodeProps, FolderTreePickerProps, ResourcePickerProps, ScopeRowProps } from './NcScopeSection.types';
 

@@ -1,9 +1,9 @@
 import { useId, useState } from 'react';
 import { Eye, Flag, History } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import {
     useFieldDiffQuery, useNameVersionMutation, useVersionDefinitionQuery, type VersionRow,
-} from '../../../../api/queries/automation/versions';
+} from '@/api/queries/automation/versions';
 import VersionChanges from './VersionChanges';
 import VersionMiniCanvas from './VersionMiniCanvas';
 import VersionNameForm from './VersionNameForm';

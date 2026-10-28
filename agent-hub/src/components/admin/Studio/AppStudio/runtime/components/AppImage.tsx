@@ -1,6 +1,6 @@
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'image'. Spec: server/appStudio/componentSpecs.js. */

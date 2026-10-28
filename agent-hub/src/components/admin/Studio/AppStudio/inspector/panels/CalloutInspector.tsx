@@ -1,7 +1,7 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import FormField from '../../../../../shared/FormField';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 import { TOAST_TONES } from '../styleKnobMeta';

@@ -4,8 +4,8 @@
 
 import { ChevronDown, Loader2, X } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import { hueOf, initialsOf } from './projectVisuals';
 
 export const INPUT_CLASS =

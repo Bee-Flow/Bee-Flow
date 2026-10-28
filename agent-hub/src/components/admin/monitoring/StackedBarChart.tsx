@@ -1,6 +1,6 @@
 import { Empty } from './shared';
-import { TYPE_ORDER } from '../../../utils/terminationsModel';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TYPE_ORDER } from '@/utils/terminationsModel';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { TimelineRow, Bucket } from './TerminationsPage.types';
 import { TYPE_META } from './TerminationsPage.helpers';
 

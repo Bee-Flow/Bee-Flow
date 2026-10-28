@@ -24,7 +24,7 @@ import React, { useEffect } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Studio from './index';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: () => true }),
 }));

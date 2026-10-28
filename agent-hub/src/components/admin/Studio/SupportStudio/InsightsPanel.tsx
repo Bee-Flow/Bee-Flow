@@ -1,14 +1,14 @@
 import { BarChart3, History, Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { toast } from '../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { toast } from '@/components/shared/Toast';
 import { SvgAreaChart, type ChartPoint } from '../../monitoring/shared';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SupportInbox, SupportTeammate } from './supportStudio.types';
-import { logger } from '../../../../utils/logger';
-import { useSupportTeammates } from '../../../../api/queries/studioSupport';
-import { mutate, request, RefusedError, errorBody } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { useSupportTeammates } from '@/api/queries/studioSupport';
+import { mutate, request, RefusedError, errorBody } from '@/api/mutate';
 
 // Explicit, non-purple chart color (the strict UI ban rules out the default indigo).
 const CHART_COLOR = '#10b981';

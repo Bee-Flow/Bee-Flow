@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { TextField, IconField, RepeatableList } from '../fields';
 
 // GroupedItemsField — reusable nested-RepeatableList editor for blocks

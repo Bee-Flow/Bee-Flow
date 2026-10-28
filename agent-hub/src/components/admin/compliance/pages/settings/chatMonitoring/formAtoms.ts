@@ -2,7 +2,7 @@
  * The Compliance Center's shared form atoms (audits/auditForms.ts) and its
  * status pill, re-exported for the chat-signals card.
  */
-import StatusPillJs from '../../../shared/StatusPill';
+import StatusPillJs from '@/components/admin/compliance/shared/StatusPill';
 import {
     ActionButton as ActionButtonJs,
     DateInput as DateInputJs,

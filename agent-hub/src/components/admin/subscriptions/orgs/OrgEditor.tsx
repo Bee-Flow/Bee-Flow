@@ -1,8 +1,8 @@
 import { ArrowLeft, Save, Trash2, Shield, CalendarPlus, Clock, Check, Lock, FlaskConical } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import { LIMIT_FIELDS } from '../constants';
 import { useResource } from '../hooks/useApi';
 import type { PlanRecord } from '../plans/usePlanForm';

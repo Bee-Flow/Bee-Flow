@@ -1,16 +1,16 @@
 import React, { useCallback, useState } from 'react';
 import type { ComponentType } from 'react';
-import type { RunListFilters } from '../../../../api/queries/automation/runs';
-import { useInvalidateRuns, useRunList } from '../../../../api/queries/automation/runs';
-import useRunStreamJs from '../../../admin/Studio/Executions/useRunStream';
-import ExecutionViewJs from '../../../admin/Studio/Executions/ExecutionView';
+import type { RunListFilters } from '@/api/queries/automation/runs';
+import { useInvalidateRuns, useRunList } from '@/api/queries/automation/runs';
+import useRunStreamJs from '@/components/admin/Studio/Executions/useRunStream';
+import ExecutionViewJs from '@/components/admin/Studio/Executions/ExecutionView';
 import RunFilters from './RunFilters';
 import RunList from './RunList';
 import RunDetail from './RunDetail';
 import RunCompare from './RunCompare';
 import RunsLeftColumn from './RunsLeftColumn';
 import { useRunsViews } from './useRunsViews';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const useRunStream = useRunStreamJs;
 // ExecutionView is plain JS whose defaults (`= null`) are all tsc can infer from.

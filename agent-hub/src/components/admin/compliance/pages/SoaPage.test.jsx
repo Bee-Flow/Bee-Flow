@@ -2,14 +2,14 @@ import { screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 import SoaPage from './SoaPage';
-import { renderWithClient } from '../../../../test/render';
 import { resolveTab, tabsOf } from '../sections';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

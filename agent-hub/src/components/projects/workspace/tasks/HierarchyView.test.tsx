@@ -2,8 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 import HierarchyView from './HierarchyView';
 
 const task = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({

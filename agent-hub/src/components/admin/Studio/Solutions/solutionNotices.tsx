@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import Notice from './Notice';
 
 interface StripProps {

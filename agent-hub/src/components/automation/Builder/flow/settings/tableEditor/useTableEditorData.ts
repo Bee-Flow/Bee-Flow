@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { useTablePreview, type TablePreviewState } from '../../../../../../hooks/automationBuilder/useTablePreview';
-import type { TableColumn } from '../../../../../../api/queries/automation/runTables';
-import type { DescribedColumn, Finding, OpResult, PreviewFn, PreviewSource, TablePreviewResponse } from '../../../../../../api/queries/automation/tablePreview';
-import { walkPath } from '../../../../../../utils/bindingHelpers';
+import { useTablePreview, type TablePreviewState } from '@/hooks/automationBuilder/useTablePreview';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import type { DescribedColumn, Finding, OpResult, PreviewFn, PreviewSource, TablePreviewResponse } from '@/api/queries/automation/tablePreview';
+import { walkPath } from '@/utils/bindingHelpers';
 import {
     columnsInto, columnsOf, handleFromBinding, issuesOf, sampleRowOf,
     type Binding, type FieldIssue, type TableOp,

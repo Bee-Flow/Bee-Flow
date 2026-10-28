@@ -2,19 +2,19 @@ import { act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
 // The live feed is not switched off here but intercepted: the behaviour these
 // tests guard is precisely what happens when an event comes in.
-vi.mock('../../../../hooks/useProjectStream', () => ({
+vi.mock('@/hooks/useProjectStream', () => ({
     default: (opts) => { globalThis.__stream = opts; },
 }));
 
 // The members panel belongs to the project workspace and has its own tests;
 // here it only has to receive the right Solution, role and person.
-vi.mock('../../../projects/workspace/ProjectMembersPanel', () => ({
+vi.mock('@/components/projects/workspace/ProjectMembersPanel', () => ({
     default: ({ projectId, role, currentUserId, onLeft }) => (
         <div>
             <div data-testid="members-panel">{`${projectId}:${role}:${currentUserId}`}</div>
@@ -24,12 +24,12 @@ vi.mock('../../../projects/workspace/ProjectMembersPanel', () => ({
 }));
 
 // The licence context is app-wide; the settings page only asks whether approvals are licensed.
-vi.mock('../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: () => true, entDegraded: false, entError: null }),
 }));
 
+import { renderWithClient } from '@/test/render';
 import SolutionDetail from './SolutionDetail';
-import { renderWithClient } from '../../../../test/render';
 
 /**
  * The seam between the Solution and the release track: the two new tabs and the

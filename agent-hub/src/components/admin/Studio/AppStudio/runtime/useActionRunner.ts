@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { applyEffects as applyEffectObject } from './actionRunner/applyEffects';
 import type { EffectContext } from './actionRunner/applyEffects';
 import { runActionById } from './actionRunner/bareAction';
@@ -8,7 +8,7 @@ import type {
 } from './actionRunner/runnerContext';
 import type { DataState } from './DataContext';
 import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export { SERVER_STEP_KINDS } from './actionRunner/core';
 
@@ -155,7 +155,9 @@ export default function useActionRunner(
     // A stable translate function: the callbacks below keep their identity (and
     // never read a stale catalogue) however often the catalogue loads.
     const tRef = useRef(t);
-    tRef.current = t;
+    useLayoutEffect(() => {
+        tRef.current = t;
+    });
     const tr = useCallback<Translate>((key, fallback, params) => tRef.current(key, fallback, params), []);
     const [actionState, setActionState] = useState<ActionState>({});
     // Shared variable state for the whole run surface — sequences seed their
@@ -163,11 +165,15 @@ export default function useActionRunner(
     const [vars, setVars] = useDeclaredVariables(definition);
 
     // One ref so runAction stays identity-stable but never reads stale data.
-    const live = useRef<LiveInputs>(null as unknown as LiveInputs);
-    live.current = {
+    // Updated after each commit; the first render's inputs seed it.
+    const liveInputs: LiveInputs = {
         actionState, vars, definition, onNavigate, onBrowseEvent, confirm, onRefresh,
         currentUser, dataState, forms, screen, beforeServerStep,
     };
+    const live = useRef<LiveInputs>(liveInputs);
+    useLayoutEffect(() => {
+        live.current = liveInputs;
+    });
 
     const alive = useRef(true);
     useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, Pencil, Star, User, Building2, Users } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import TemplateEditor from './TemplateEditor';
 import type { LucideIcon } from 'lucide-react';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';

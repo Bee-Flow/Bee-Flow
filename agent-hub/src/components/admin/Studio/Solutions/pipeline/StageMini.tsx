@@ -1,6 +1,6 @@
 import React from 'react';
 import { STAGE_DOT, useStageLabel } from './StageSwitcher';
-import type { StageName } from '../../../../../api/stagesApi';
+import type { StageName } from '@/api/stagesApi';
 
 /**
  * A three-dot glyph of the pipeline for a Solution card: Dev, UAT, PRD with a

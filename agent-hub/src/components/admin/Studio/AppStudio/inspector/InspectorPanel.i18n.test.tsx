@@ -25,7 +25,7 @@ import { describe, it, expect, vi } from 'vitest';
 // vi.mock's factory is hoisted above every import, so the stub is built inside
 // it — a module-scope helper would not exist yet when the first component in
 // the tree imports the hook.
-vi.mock('../../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const NL: Record<string, string> = {
         'app_studio.inspector.actions': 'Acties',
         'app_studio.inspector.content': 'Inhoud',
@@ -64,7 +64,7 @@ vi.mock('../../../../../hooks/useTranslation', () => {
 
 // ActionsSection / AutomationPicker resolve automation titles through the house
 // automations API — stub the network away, exactly as the sibling suite does.
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

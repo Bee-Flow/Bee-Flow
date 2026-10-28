@@ -13,12 +13,12 @@
  * overview asks "what is on, what is off, what is broken" — and broken is a
  * run outcome on an automation that is otherwise live.
  */
-import { nodeTypeLabel, stepFamily } from '../../../automation/Builder/flow/nodeDefs';
-import { describeCron } from '../../../automation/Builder/flow/scheduleBuilderUtils';
-import { APP_EVENT_TYPE_LABEL } from '../../../automation/Builder/flow/triggerLabels';
-import { automation as lifecycleOf } from '../../../shared/statusOf';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
+import { nodeTypeLabel, stepFamily } from '@/components/automation/Builder/flow/nodeDefs';
+import { describeCron } from '@/components/automation/Builder/flow/scheduleBuilderUtils';
+import { APP_EVENT_TYPE_LABEL } from '@/components/automation/Builder/flow/triggerLabels';
+import { automation as lifecycleOf } from '@/components/shared/statusOf';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { ProjectContextPillProject } from '@/components/chat/ProjectContextPill';
 
 /** One step of an automation's definition, as the list rows read it. */
 export interface AutomationStep {
@@ -320,7 +320,7 @@ export function countFolders(rows: AutomationRecord[], folders: ProjectContextPi
 }
 
 /** A folder's name in the filter: its path ("Finance / Invoices"), so two folders called "2026" can be told apart. */
-export { folderPath as folderLabel } from '../../../automation/folderTree';
+export { folderPath as folderLabel } from '@/components/automation/folderTree';
 
 const ts = (v: DateLike) => {
     if (!v) return null;

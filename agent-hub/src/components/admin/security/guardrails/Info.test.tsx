@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Info from './Info';
-import FieldHint from '../../../automation/Builder/flow/FieldHint';
+import FieldHint from '@/components/automation/Builder/flow/FieldHint';
 import type { ReactNode } from 'react';
 
 /**

@@ -16,7 +16,7 @@ const { apiMock, timelineProps, canvasProps, approvalProps, streamOpts } = vi.ho
     streamOpts: { current: null },
 }));
 
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiMock }));
 
 vi.mock('./RunStepTimeline', () => ({
     default: (props) => {
@@ -36,7 +36,7 @@ vi.mock('./RunStepTimeline', () => ({
     },
 }));
 
-vi.mock('../../../automation/Builder/RunExecutionView', () => ({
+vi.mock('@/components/automation/Builder/RunExecutionView', () => ({
     default: (props) => {
         canvasProps.current = props;
         return (
@@ -51,7 +51,7 @@ vi.mock('../../../automation/Builder/RunExecutionView', () => ({
     },
 }));
 
-vi.mock('../../../automation/Builder/approvals/ApprovalActionBar', () => ({
+vi.mock('@/components/automation/Builder/approvals/ApprovalActionBar', () => ({
     default: (props) => {
         approvalProps.current = props;
         return (

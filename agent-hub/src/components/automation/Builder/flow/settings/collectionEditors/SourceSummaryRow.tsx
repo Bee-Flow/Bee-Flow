@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { listPathLabel } from '../../../mapping/listPathLabel';
-import PathField from '../../../mapping/PathField';
-import { collectArrayPaths } from '../../../mapping/upstream';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import { listPathLabel } from '@/components/automation/Builder/mapping/listPathLabel';
+import PathField from '@/components/automation/Builder/mapping/PathField';
+import { collectArrayPaths } from '@/components/automation/Builder/mapping/upstream';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import { FormRow, inputClass } from '../formPrimitives';
 import type { SourceSummaryRowProps, CollectionArrayRefFieldProps } from '../collectionEditors.types';
 import { describeSourceList } from './collectionEditors.helpers';

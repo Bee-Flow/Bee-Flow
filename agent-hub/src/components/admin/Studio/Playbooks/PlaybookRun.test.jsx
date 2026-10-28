@@ -2,9 +2,9 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setCurrentUser, setItem } from '@/utils/scopedStorage';
 import PlaybookRun from './PlaybookRun';
 import { playbooksApi } from './playbooksApi';
-import { setCurrentUser, setItem } from '../../../../utils/scopedStorage';
 
 /**
  * The run page drives the two builders and reports back with CAS writes.
@@ -20,7 +20,7 @@ vi.mock('./playbooksApi', () => {
 });
 
 const shellProps = vi.fn();
-vi.mock('../../../automation/Builder/BuilderShell', () => ({
+vi.mock('@/components/automation/Builder/BuilderShell', () => ({
     default: (props) => {
         shellProps(props);
         return (
@@ -54,10 +54,10 @@ vi.mock('../AppStudio/studioAppsApi', () => ({
 }));
 const getRunSteps = vi.fn(async () => ({ steps: [{ stepId: 's1', status: 'completed', kind: 'nextcloud_list_files' }], definition: null }));
 const getAutomation = vi.fn(async () => ({ automation: { id: 'auto_1', title: 'Facturen inlezen', definition: { steps: [{}, {}, {}, {}] } } }));
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => ({ getRunSteps, getAutomation }) }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => ({ getRunSteps, getAutomation }) }));
 // The fill stage is the FLOW plus the table now — no step list, no counter column.
-vi.mock('../../../automation/Builder/RunExecutionView', () => ({ default: ({ steps }) => <div data-testid="run-canvas" data-n={steps.length} /> }));
-vi.mock('../../../../hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
+vi.mock('@/components/automation/Builder/RunExecutionView', () => ({ default: ({ steps }) => <div data-testid="run-canvas" data-n={steps.length} /> }));
+vi.mock('@/hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 
 const PHASES = ['table', 'automation', 'fill', 'app', 'approvals'];
 function pb(overrides = {}, phaseOverrides = {}) {

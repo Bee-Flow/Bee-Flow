@@ -1,5 +1,5 @@
 import { Check, CircleAlert, Filter, Rows3 } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { runNoteOf, type RunNote as RunNoteData } from './perItem';
 import { routeNoteOf, routeSentence, type RouteContext } from './routeNote';
 

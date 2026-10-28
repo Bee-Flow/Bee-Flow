@@ -1,5 +1,5 @@
 import type { SseHandlerMap } from '../handlerTypes';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Editor surfaces fed through the notebook callbacks (notebook, slides,

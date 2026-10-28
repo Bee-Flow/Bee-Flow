@@ -1,6 +1,6 @@
 import { INPUT_CLS } from '../kit';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import useConnectors from '../../../bi/useConnectors';
+import useTranslation from '@/hooks/useTranslation';
+import useConnectors from '@/components/admin/Studio/AppStudio/bi/useConnectors';
 import FormulaField from '../../logic/FormulaField';
 import type { ConnectorParamFieldProps, ConnectorBindingProps } from '../BindingField.types';
 import { staticDisplay, parseStatic, isFormulaVal } from './BindingField.helpers';

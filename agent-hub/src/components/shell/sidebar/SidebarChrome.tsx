@@ -2,9 +2,9 @@
 // narrow mode's favourite agents and the strip of rows that scrolled away.
 // Split out of Sidebar.jsx without a change in behaviour.
 import { Plus } from 'lucide-react';
-import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
-import beeFlowLogo from '../../../assets/bee-flow-logo.svg';
-import { isImageAvatar, resolveAvatarSrc } from '../../../utils/agentAvatar';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
+import beeFlowLogo from '@/assets/bee-flow-logo.svg';
+import { isImageAvatar, resolveAvatarSrc } from '@/utils/agentAvatar';
 import NotificationCenterJs from '../NotificationCenter';
 import type { SidebarAgent } from './sidebarConversations';
 import type { NavItem } from './sidebarNav';

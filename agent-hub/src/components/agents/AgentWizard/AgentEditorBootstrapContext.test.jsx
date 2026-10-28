@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 let handler = async () => ({ ok: true, json: async () => ({}) });
 
-vi.mock('../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url, opts = {}) => handler(url, opts)),
 }));

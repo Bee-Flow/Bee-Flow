@@ -4,7 +4,7 @@ import { blockHasFindings } from './deleteBlock';
 import DeleteBlockedNotice from './DeleteBlockedNotice';
 import type { DeleteBlock, DeleteTarget } from './useAgentDelete';
 import Modal from '../../shared/Modal';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     t: TranslateFn;

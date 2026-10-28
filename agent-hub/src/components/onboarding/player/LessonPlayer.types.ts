@@ -1,6 +1,6 @@
-import type { LessonUser, StepState, LessonDoc } from '../../../api/lessons.types';
+import type { LessonUser, StepState, LessonDoc } from '@/api/lessons.types';
 import type { LessonStep } from './SimStep.types';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * LessonPlayer — the focused surface for a rich lesson (slides / quizzes /

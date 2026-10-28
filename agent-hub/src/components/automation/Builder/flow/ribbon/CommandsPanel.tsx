@@ -1,7 +1,7 @@
 import { Layers } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
 import { CmdButton } from './jsComponents';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { DRAG_HINT, DRAG_HINT_KEY, nativeAppPills } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import PillRow from './PillRow';

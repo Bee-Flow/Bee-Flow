@@ -1,11 +1,11 @@
 import { Box, FileText, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { entryHref, entryName } from './AppInputFile';
-import Modal from '../../../../../shared/Modal';
-import { request, RefusedError } from '../../../../../../api/mutate';
+import Modal from '@/components/shared/Modal';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * A row's DRAWING — 3D model or PDF — small enough to sit in a table cell and

@@ -53,13 +53,13 @@
 // `checkAvailability` stays because it is the register's contract and the one
 // place where "unknown narrows" is enforced for whatever entry comes next.
 
-import { API_BASE } from '../../../../utils/helpers';
-import { kindOf, type KindKey } from '../../../shared/kindColors';
+import { API_BASE } from '@/utils/helpers';
+import { kindOf, type KindKey } from '@/components/shared/kindColors';
 import { studioAppForKind, studioSectionLabel } from '../studioNav';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { LessonUser, HasFeature } from '@/api/lessons.types';
 import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionCheck, AttentionItem } from './attentionChecks.types';
-import { request, RefusedError } from '../../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 import { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
 import { runCheck } from './attentionChecks.helpers';
 export { checkAvailability, runCheck } from './attentionChecks.helpers';

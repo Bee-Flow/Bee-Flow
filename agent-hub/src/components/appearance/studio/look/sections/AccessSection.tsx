@@ -1,9 +1,9 @@
 import { Users, Lock } from 'lucide-react';
 import React from 'react';
-import Toggle from '../../../../shared/Toggle';
+import Toggle from '@/components/shared/Toggle';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * AccessSection — per-user override toggle. When off, every user sees the

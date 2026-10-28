@@ -9,7 +9,7 @@ import {
     PLACEHOLDER_DATA, PLACEHOLDER_SERIES_KEY, PLACEHOLDER_XKEY,
     makeValueFormatter, resolveSeriesColor,
 } from '../chartPalette';
-import useMeasuredBox from '../../../../../shared/charts/useMeasuredBox';
+import useMeasuredBox from '@/components/shared/charts/useMeasuredBox';
 import { brandPalette } from '../appDesign';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

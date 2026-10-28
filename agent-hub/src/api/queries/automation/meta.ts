@@ -8,9 +8,9 @@
 // failed read, and the tests mock `authFetch` with a bare `{ ok, status, json }`.
 
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { errorBody } from '../../../hooks/useAutomationApi';
-import { errorCode } from '../../../utils/caughtError';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { errorBody } from '@/hooks/useAutomationApi';
+import { errorCode } from '@/utils/caughtError';
 
 /** GET /:id/counts, normalised. A count the server did not send is null, never 0. */
 interface AutomationCounts {

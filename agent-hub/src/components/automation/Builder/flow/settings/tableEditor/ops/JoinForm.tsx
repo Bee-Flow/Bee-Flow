@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnChips, ColumnSelect } from '../TableColumnSelect';
 import TableSourceField from '../TableSourceField';
 import type { JoinKey, JoinOp } from '../tableOpModel';

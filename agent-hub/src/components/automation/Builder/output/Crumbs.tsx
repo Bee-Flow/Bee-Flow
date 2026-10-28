@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { Crumb } from './levels';
 
 interface CrumbsProps {

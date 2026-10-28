@@ -1,9 +1,9 @@
 import { CalendarPlus, Building2, Users, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PlanRecord } from './usePlanForm';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Select } from '../ui/Input';

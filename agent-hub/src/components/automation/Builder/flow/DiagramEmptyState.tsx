@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { typeColorVar, typeTint } from './nodeTypeColors';
 import { formatElapsed } from './runFocus';
 import { TRIGGERS } from './stepPalette';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * The first screen of a new automation (design 1e): "What does this automation start

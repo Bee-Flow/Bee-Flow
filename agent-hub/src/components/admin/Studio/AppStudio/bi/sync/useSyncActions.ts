@@ -5,10 +5,10 @@
 import { useEffect, useState } from 'react';
 import { mailboxSyncPlan, proposalSyncPlan } from './syncModel';
 import type { SyncBlock, SyncPlan, SyncProposal, SyncTableDraft } from './syncModel';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { studioAppsApi } from '../../studioAppsApi';
-import { getSyncStatus, postConnector } from '../../../../../../api/connectorHttp';
-import { messageOf } from '../../../../../../utils/caughtError';
+import { getSyncStatus, postConnector } from '@/api/connectorHttp';
+import { messageOf } from '@/utils/caughtError';
 
 /** The connector as the sync panel reads it. */
 export interface SyncConnector {

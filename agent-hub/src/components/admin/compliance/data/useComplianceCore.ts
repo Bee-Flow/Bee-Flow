@@ -10,13 +10,13 @@
  * `onChanged` is called after every mutation so the hub can bump the counts.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API, fetchJson, json, jsonInit } from '../../../../api/complianceApi';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
+import { API, fetchJson, json, jsonInit } from '@/api/complianceApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import type { CheckRecord } from '../pages/framework/checkSort';
 import type { SetupSettings } from '../setup/SetupSteps';
 import type { HistoryRow } from '../shared/miniBarsMath';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface ScoreHistoryRow extends HistoryRow {
     captured_at: string;

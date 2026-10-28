@@ -1,7 +1,7 @@
 // Pin / Duplicate / Disable / Delete for the step drawer: what each does and
 // when it is offered. The header's ⋯ menu and the quick strip's Pin button
 // both read from here.
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import type { FlowStep } from '../flow/types';
 import type { NdvStepMenuProps } from './NdvStepMenu';

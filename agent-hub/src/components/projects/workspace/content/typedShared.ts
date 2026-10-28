@@ -1,9 +1,9 @@
 // The shared DataTable, re-exported for the project content tables under the
 // names they use. DataTable.tsx types its own props and columns.
 
-import DataTableJs, { TableCell as TableCellJs, TableRow as TableRowJs } from '../../../shared/DataTable';
+import DataTableJs, { TableCell as TableCellJs, TableRow as TableRowJs } from '@/components/shared/DataTable';
 
-export type { TableColumn } from '../../../shared/DataTable';
+export type { TableColumn } from '@/components/shared/DataTable';
 
 export const DataTable = DataTableJs;
 export const TableRow = TableRowJs;

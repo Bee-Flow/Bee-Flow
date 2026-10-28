@@ -8,6 +8,7 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import type { EditorView } from '../engine/view';
 import type { UploadedImage } from '../react/beeEditorTypes';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface ImageAttrs extends Omit<UploadedImage, 'src'> {
     src?: string;
@@ -32,7 +33,8 @@ export default function ImageView({ node, view, selected, editable }: ImageViewP
   const latestWidthRef = useRef(width);
   const startRef = useRef<{ startX: number; startWidth: number; corner: string; }>(null);
 
-  useEffect(() => { setCurrentWidth(width); latestWidthRef.current = width; }, [width]);
+  useAdjustOnChange([width], () => setCurrentWidth(width));
+  useEffect(() => { latestWidthRef.current = width; }, [width]);
 
   const onResizeStart = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>, corner: string) => {
     e.preventDefault();

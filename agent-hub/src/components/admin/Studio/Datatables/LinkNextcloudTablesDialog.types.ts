@@ -2,7 +2,7 @@ import type { RelTable, RelColumn, Relation, LockedRelation } from './linkWizard
 import type { SourceError } from './sourceMirrors';
 import type { WizardError } from './spreadsheet/wizardState';
 import type { Linkable } from './newDatatable/useLinkSources';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type React from 'react';
 
 export type NcId = number | string;

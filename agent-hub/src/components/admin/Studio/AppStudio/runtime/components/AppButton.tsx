@@ -1,7 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2 } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import AppIcon from '../../../../../icons/AppIcon';
+import AppIcon from '@/components/icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
 import type { NodeProps } from './appNode.types';

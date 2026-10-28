@@ -2,8 +2,8 @@
 // newest first. The server takes the input this step received in the chosen
 // run and keeps it as test data; this picker only names the run.
 import { useMemo } from 'react';
-import { useRunList, type RunListFilters, type RunRowData } from '../../../../../../api/queries/automation/runs';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useRunList, type RunListFilters, type RunRowData } from '@/api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const FINISHED = new Set(['success', 'error', 'cancelled']);
 const FILTERS: RunListFilters = { status: 'all', period: 0, q: '', showTests: true };

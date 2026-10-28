@@ -1,6 +1,6 @@
 // The pure part of "Who can call this": which ids a save sends, and which
 // sentence a refusal gets. No React, no network.
-import type { AgentBindings, BoundAgent } from '../../../../../../api/queries/automation/agentBindings';
+import type { AgentBindings, BoundAgent } from '@/api/queries/automation/agentBindings';
 
 /** The ids of the linked agents the viewer can edit (what a save sends). Missing ones are left out: that clears the dead row. */
 export function editableIds(bindings: readonly BoundAgent[]): string[] {

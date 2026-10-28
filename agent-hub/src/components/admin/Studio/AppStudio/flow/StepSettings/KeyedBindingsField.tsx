@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import ExpressionInput from '../../inspector/logic/ExpressionInput';
 import BindingField from '../../inspector/panels/BindingField';
 import { INPUT_CLS } from '../../inspector/panels/kit';

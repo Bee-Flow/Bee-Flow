@@ -1,6 +1,6 @@
 import { CheckCircle2, ChevronDown, CircleHelp, ClipboardList, FlaskConical, Hammer, ListChecks, MessageSquare, Pause, ShieldCheck, Table2, X } from 'lucide-react';
 import { createElement, useId, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import InlineMarkdown from './InlineMarkdown';
 import { stripInlineMarkdown, stripListMarker } from './markdownText';
 import type { LucideIcon } from 'lucide-react';

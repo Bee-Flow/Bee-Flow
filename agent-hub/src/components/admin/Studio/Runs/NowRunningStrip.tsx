@@ -2,9 +2,9 @@ import { Activity, AlertCircle, Loader2 } from 'lucide-react';
 import React from 'react';
 import { nowRunningLines } from './nowRunning';
 import type { NowRunningFacets, NowRunningLine, NowRunningTone } from './nowRunning';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorClassLabel } from '../Executions/runLanguage';
 import { nOf } from '../KnowledgeStudio/plural';
 

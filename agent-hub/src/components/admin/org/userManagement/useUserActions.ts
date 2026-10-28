@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { toast } from '../../../shared/Toast';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { toast } from '@/components/shared/Toast';
 import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 const EMPTY_USER: UserFormData = {
     id: '', username: '', displayName: '', firstName: '', lastName: '', email: '', phone: '',

@@ -1,6 +1,6 @@
 import { optionPairs } from './rowValues';
 import type { OptionPair, RowField } from './rowValues';
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /** A model field a paste can fill. */
 export interface ImportField extends RowField {

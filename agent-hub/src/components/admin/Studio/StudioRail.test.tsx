@@ -16,12 +16,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn(async () => ({ ok: false })) }));
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }: ComponentProps<'a'>) => <a {...p}>{children}</a> }));
 
 import StudioRail from './StudioRail';
-import { renderWithClient as render } from '../../../test/render';
+import { renderWithClient as render } from '@/test/render';
 import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 

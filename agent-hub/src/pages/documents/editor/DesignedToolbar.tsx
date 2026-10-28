@@ -5,8 +5,8 @@ import {
     ArrowLeft, Download, Eye, History, Keyboard, ListTree, Loader2, Maximize2, MessageSquare, Pencil, Presentation, Printer, Search, Stamp, X,
 } from 'lucide-react';
 import React from 'react';
-import SegmentedControl from '../../../components/shared/SegmentedControl';
-import useTranslation from '../../../hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
 import type { People, StudioDocument } from '../documentQueries';
 import type { PresencePeer } from '../useSectionPresence';
 import type { SaveState } from '../useDocumentAutosave';

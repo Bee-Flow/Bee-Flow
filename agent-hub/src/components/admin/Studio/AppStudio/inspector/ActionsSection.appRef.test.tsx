@@ -3,7 +3,7 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));

@@ -1,9 +1,9 @@
 import { CalendarRange, CircleSlash } from 'lucide-react';
 import { useState } from 'react';
-import type { ReasonCode, RepeatingSuggestion } from '../../../../../api/queries/automation/repeating';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { CANVAS_CHIP, DOT_GRID } from '../../../../automation/Builder/flow/canvasClasses';
+import type { ReasonCode, RepeatingSuggestion } from '@/api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import { CANVAS_CHIP, DOT_GRID } from '@/components/automation/Builder/flow/canvasClasses';
 import PatternsSection from './PatternsSection';
 import type { PatternActions } from './PatternsSection';
 import PrivacyFootnote from './PrivacyFootnote';

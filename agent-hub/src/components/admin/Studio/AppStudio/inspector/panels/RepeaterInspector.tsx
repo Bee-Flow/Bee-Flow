@@ -1,6 +1,6 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { updateNodeProps } from '../../state/definitionOps';
 import { actionOptions } from '../actionLabels';
 import { registerInspector } from '../registry';

@@ -10,14 +10,14 @@ vi.mock('./recordsApi', () => ({
     updateRecord: vi.fn(),
     deleteRecord: vi.fn(),
 }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
 import { createRecord, deleteRecord, listRecords, updateRecord } from './recordsApi';
 import RowsTab from './RowsTab';
-import toast from '../../../../shared/Toast';
+import toast from '@/components/shared/Toast';
 import { asMock } from '@/test/mocks';
 
 /**

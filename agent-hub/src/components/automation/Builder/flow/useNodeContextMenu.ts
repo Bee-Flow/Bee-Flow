@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { isToolNodeId } from './aiToolNodes';
 import type { DiagramDefinition, FlowNode, StepId } from './diagramPaneTypes';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface NodeContextMenuState {
     stepId: StepId;
@@ -26,6 +27,6 @@ export function useNodeContextMenu(editable: boolean, structuralEditsBlocked: bo
         setCtxMenu({ stepId: node.id, x: event.clientX, y: event.clientY });
     }, [editable, structuralEditsBlocked]);
     // A pan/zoom would leave the menu floating over the wrong node.
-    useEffect(() => { if (ctxMenu) closeCtxMenu();   }, [definition]);
+    useAdjustOnChange([definition], () => { if (ctxMenu) setCtxMenu(null); });
     return { ctxMenu, closeCtxMenu, onNodeContextMenu };
 }

@@ -1,7 +1,7 @@
 import { toSeconds } from './timelineMarkers';
-import { SPEAKER_COLORS, NEUTRAL_SPEAKER_COLOR } from '../../../config/meetingNotesConfig';
+import { SPEAKER_COLORS, NEUTRAL_SPEAKER_COLOR } from '@/config/meetingNotesConfig';
 import type { PlayerSegment, SpeakerBlock } from '../detail/player/player.types';
-import type { Span } from '../../../utils/ownDataModel';
+import type { Span } from '@/utils/ownDataModel';
 
 /**
  * Pure derivations for the layered meeting player — no DOM, fully testable.

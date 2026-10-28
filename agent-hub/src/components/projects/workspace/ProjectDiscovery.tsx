@@ -1,8 +1,8 @@
 import React from 'react';
 import { CalendarDays, X } from 'lucide-react';
-import { useProjectFileContent, useProjectPins, useSetProjectPin, type ProjectItem } from '../../../api/queries/projectDiscovery';
-import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
-import useTranslation from '../../../hooks/useTranslation';
+import { useProjectFileContent, useProjectPins, useSetProjectPin, type ProjectItem } from '@/api/queries/projectDiscovery';
+import { useProjectTasksQuery } from '@/api/queries/projectTasks';
+import useTranslation from '@/hooks/useTranslation';
 import { canEditProject, type WorkspaceTabProps, type OpenThreadTarget } from './types';
 import { Card, ErrorText, GhostButton, LoadingRow, SecondaryButton } from './workspaceUi';
 import { projectErrorText } from './projectErrorText';

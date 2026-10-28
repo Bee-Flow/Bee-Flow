@@ -69,13 +69,14 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
     const [state, setState] = useState<PageState>({ status: 'loading', form: null, csrf: null, issuedAt: 0, ending: null });
     // The session id lives in a ref as well as in state: the poll loop closes
     // over it, and re-creating the loop on every render would restart the timer.
-    const sessionRef = useRef(readSessionFromUrl());
-    const [sessionId, setSessionId] = useState(sessionRef.current);
+    const [initialSession] = useState(readSessionFromUrl);
+    const sessionRef = useRef(initialSession);
+    const [sessionId, setSessionId] = useState(initialSession);
     // The session id kept purely for FETCHING FILES, which outlives the one
     // above. `setSession(null)` fires the moment the journey reports `done` —
     // and `done` is exactly the page a download lives on. Sharing one ref meant
     // the closing page built no link at all.
-    const fileSidRef = useRef(sessionRef.current);
+    const fileSidRef = useRef(initialSession);
 
     const setSession = useCallback((sid: string | null, { keepUrl = false } = {}) => {
         sessionRef.current = sid;

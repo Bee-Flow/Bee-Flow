@@ -12,7 +12,7 @@
  * leaves them on screen.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { keepUnsavedCopy } from '../hooks/useDocumentAutosave';
 import NotebookNotice, { type NoticeWithAction } from './NotebookNotice';
 import { editorHtml, type NotebookEditorHandle } from './editorHandle';

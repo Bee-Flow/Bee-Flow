@@ -283,7 +283,10 @@ jobs:
             frontend:
               - 'agent-hub/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,entry-budget,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,deep-imports,coverage-ratchet,bundle-ratchet,entry-budget,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              # the deep-imports ratchet reads these two
+              - 'scripts/deep-imports.exclude.json'
+              - 'scripts/shared-mirror.manifest.json'
               - 'server/scripts/testShards.mjs'
               - '.claude/handoff/compliance/keys/**'
               - '.claude/handoff/curriculum/lessons/**'

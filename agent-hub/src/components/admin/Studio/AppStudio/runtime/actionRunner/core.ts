@@ -4,10 +4,10 @@
  * (effects, the v1 automation bridge, the sequence coordinator) uses. The
  * hook that wires them together is ../useActionRunner.ts.
  */
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
-import toast from '../../../../../shared/Toast';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 import type { RunStep } from './stepWalk';
-import { errorMessage } from '../../../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 export {
     MAX_LOOP_ITERATIONS, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, normalizeSequence, resolveNavParams,

@@ -1,7 +1,7 @@
 import { X, FileText } from 'lucide-react';
 import { useId } from 'react';
-import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
 
 /* ── Citation Overlay — shows source name + chunk content ────── */
 interface CitationSource {

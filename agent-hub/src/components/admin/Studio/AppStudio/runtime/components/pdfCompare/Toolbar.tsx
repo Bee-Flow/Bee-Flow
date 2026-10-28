@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Diff, Download, Eye, Maximize2, PanelLeft, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import type { ReactNode } from 'react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { clampPage, MAX_ZOOM, MIN_ZOOM, stepZoom } from './pdfCompareMath';
 
 export type Mode = 'side' | 'swipe' | 'diff';

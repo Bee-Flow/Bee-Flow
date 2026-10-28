@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * LookSectionNav — left-rail table of contents for the Look editor. Highlights

@@ -14,7 +14,7 @@ import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ComponentType, CSSProperties, Dispatch, RefObject, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import { APP_COMPONENT_TYPES } from '../../runtime/componentRegistry';
 import type { AppEditorAction } from '../../state/appEditorState';
@@ -190,7 +190,7 @@ export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitD
         } else {
             commitDefinition(finalDef);
         }
-    }, [dispatch, commitDefinition, definitionRef, screenIdRef]);
+    }, [dispatch, commitDefinition, screenIdRef]);
 
     return { sensors, handleDragStart, handleDragOver, finishDrag, commitTurn };
 }

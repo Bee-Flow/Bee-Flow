@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { FormRecord } from '../formState/types';
 import { FormRow, denseInputClass, hintTextClass } from '../formPrimitives';
 import { FOREACH_CONCURRENCY_MAX, canRunItemsInParallel } from './reliabilityModel';

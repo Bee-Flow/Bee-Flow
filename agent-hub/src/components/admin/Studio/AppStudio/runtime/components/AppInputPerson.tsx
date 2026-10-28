@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Monogram } from './cellValue';
 import ComboBox, { BindingLoader, useHasQueryClient } from './comboBox';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormContext, useFormField } from '../formContext';
 import { hoverable } from '../hoverable';

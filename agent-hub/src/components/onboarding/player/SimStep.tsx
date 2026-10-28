@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Check, X, RotateCcw, Eye } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { LessonStep, OnState, SimConfig, SimStepProps, TranslateFn } from './SimStep.types';
 import { matchPickCorrect, evaluateOrder, seededShuffle } from './sims/simLogic';
 import { FlowBuildSim } from './FlowBuildSim';

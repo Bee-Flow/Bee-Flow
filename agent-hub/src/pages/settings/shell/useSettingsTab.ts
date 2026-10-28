@@ -3,7 +3,7 @@ import {
     settingsTabFromPath,
     settingsPathForTab,
     settingsOrgDeepSegsFromPath,
-} from '../../../authedApp/settingsRoutes';
+} from '@/authedApp/settingsRoutes';
 import type { OrgDeepSegs } from './useComplianceNavigation';
 
 /**

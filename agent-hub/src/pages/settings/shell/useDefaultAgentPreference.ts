@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 /** User-scoped: these are personal "which agent do I start on?" preferences. */
 export function useDefaultAgentPreference() {

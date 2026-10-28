@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { useTheme } from '../../ThemeContext';
-import { API_BASE } from '../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import type { Dispatch, SetStateAction } from 'react';
 import type { GlassTier, ThemeSettings } from '../../ThemeContext.types';
-import { messageOf } from '../../../../utils/caughtError';
-import { request, RefusedError } from '../../../../api/mutate';
+import { messageOf } from '@/utils/caughtError';
+import { request, RefusedError } from '@/api/mutate';
 
 /** The draft the Look editor edits: the theme knobs minus the uploaded wallpaper and its source. */
 export interface LookForm {

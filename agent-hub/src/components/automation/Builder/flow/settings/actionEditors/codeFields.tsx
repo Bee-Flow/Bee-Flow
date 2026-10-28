@@ -12,9 +12,9 @@
 // findings, capabilities. When it cannot (offline, an older server), this is
 // the author's view and nothing is lost.
 import { Maximize2 } from 'lucide-react';
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { lazyWithI18n } from '../../../../../../utils/lazyWithReload';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { Suspense, useMemo, useState } from 'react';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
+import { useTranslation } from '@/hooks/useTranslation';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import CapabilityLine from '../codeStep/CapabilityLine';
@@ -23,8 +23,8 @@ import { upstreamFieldsFrom, type InputsMap } from '../codeStep/codeParams';
 import CodeSourceBlock, { codeInputsRoundTrip } from '../codeStep/CodeSourceBlock';
 import FindingsBanner from '../codeStep/FindingsBanner';
 import { useLargeEditorRequest } from '../codeStep/largeEditorSignal';
-import type { Group } from '../../../mapping/upstream/upstream.types';
-import type { OnFocusField } from '../../../mapping/focusField.types';
+import type { Group } from '@/components/automation/Builder/mapping/upstream/upstream.types';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import type { LargeEditorTab } from '../codeStep/CodeLargeEditor';
 
 const CodeLargeEditor = lazyWithI18n(() => import('../codeStep/CodeLargeEditor'));
@@ -78,9 +78,7 @@ function OpenLargeButton({ onOpen }: { onOpen: () => void }) {
 function useStartedWithParams(state: StepCodeAnalysis, initialCode: string): boolean | null {
     const [started, setStarted] = useState<boolean | null>(() => (initialCode.trim() ? null : false));
     const count = state.analysis ? state.analysis.params.length : null;
-    useEffect(() => {
-        if (started === null && count !== null) setStarted(count > 0);
-    }, [started, count]);
+    if (started === null && count !== null) setStarted(count > 0);
     return started;
 }
 

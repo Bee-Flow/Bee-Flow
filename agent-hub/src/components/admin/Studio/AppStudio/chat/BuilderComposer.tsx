@@ -9,10 +9,10 @@ import type { ClipboardEvent, ChangeEvent, KeyboardEvent, RefObject } from 'reac
 import { IMAGE_ACCEPT_ATTR, MAX_IMAGES_PER_TURN, imageFilesFrom, prepareComposerImages } from './composerImages';
 import { StagedImages } from './TranscriptItems';
 import type { StagedImage } from './TranscriptItems';
-import type { ModelTierMap } from '../../../../../api/queries/modelTiers';
-import useTranslation from '../../../../../hooks/useTranslation';
-import ModelTierSelector from '../../../../licensing/ModelTierSelector';
-import toast from '../../../../shared/Toast';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import useTranslation from '@/hooks/useTranslation';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
+import toast from '@/components/shared/Toast';
 
 interface BuilderComposerProps {
     initialPrompt: string;

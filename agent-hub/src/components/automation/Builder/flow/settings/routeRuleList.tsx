@@ -1,11 +1,12 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import PathField from '../../mapping/PathField';
 import { cardClass, FormRow, rowInputClass } from './formPrimitives';
 import { INLINE_LINK } from './formStyles';
 import type { RouteRule } from './routeEditorsModel';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * Case-name input that commits on blur/Enter instead of per keystroke.
@@ -34,7 +35,7 @@ function CaseNameInput({ name, siblingNames = [], onCommit }: { name: string; si
     const [text, setText] = useState(name);
     const [error, setError] = useState<string | null>(null);
     // Resync when the committed name changes underneath us (AI patch / undo).
-    useEffect(() => { setText(name); setError(null); }, [name]);
+    useAdjustOnChange([name], () => { setText(name); setError(null); });
 
     const commit = () => {
         const trimmed = String(text || '').trim();

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { copyText } from '../../../../utils/copyText';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { copyText } from '@/utils/copyText';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
+import { errorMessage, messageOf } from '@/utils/caughtError';
 
 /** One inbound webhook row, as the server lists it. */
 export interface Webhook {

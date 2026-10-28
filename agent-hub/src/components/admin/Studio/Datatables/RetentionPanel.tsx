@@ -3,13 +3,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ColumnKindIcon } from './ColumnKind';
 import { columnLabel, columnTypeKind, expiringSoonCutoffIso } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import { errorCode, errorMessage } from '../../../../utils/caughtError';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import { errorCode, errorMessage } from '@/utils/caughtError';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CSSProperties } from 'react';
 import type { DtColumn } from './rowBrowser/rowBrowserModel';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * How long the rows are kept, and what that means (Datatables artboard 1f,
@@ -280,16 +281,16 @@ function labelOf(t: TranslateFn, columns: DtColumn[] | null | undefined, key: st
  * policy into a decision.
  */
 function ExpiringSoon({ t, table, columns }: { t: TranslateFn; table: RetentionTable; columns: DtColumn[] }) {
-    const [state, setState] = useState({ loading: true, count: 0, more: false, failed: false });
     const { retentionDays, retentionField } = table;
+    const [state, setState] = useState(() => ({ loading: !!(retentionDays && retentionField), count: 0, more: false, failed: false }));
 
+    useAdjustOnChange([table.id, retentionDays, retentionField], () => {
+        if (!retentionDays || !retentionField) setState({ loading: false, count: 0, more: false, failed: false });
+        else setState(s => ({ ...s, loading: true, failed: false }));
+    });
     useEffect(() => {
-        if (!retentionDays || !retentionField) {
-            setState({ loading: false, count: 0, more: false, failed: false });
-            return undefined;
-        }
+        if (!retentionDays || !retentionField) return undefined;
         let alive = true;
-        setState(s => ({ ...s, loading: true, failed: false }));
         datatablesApi.listRows(table.id, {
             limit: COUNT_LIMIT,
             filters: [{ field: retentionField, op: 'lte', value: expiringSoonCutoffIso(retentionDays, SOON_DAYS) }],

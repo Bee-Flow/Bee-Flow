@@ -85,9 +85,6 @@
     },
     "no-restricted-syntax": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/AuthedApp.tsx": {
@@ -151,9 +148,6 @@
       "count": 3
     },
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -249,16 +243,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/bi/useAppTables.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/bi/useIntegrationCatalog.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/chat/AppBuilderActivity.tsx": {
     "react-hooks/static-components": {
       "count": 1
@@ -307,9 +291,6 @@
   },
   "src/components/admin/Studio/AppStudio/chat/useBuildCue.ts": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     },
     "react-hooks/purity": {
@@ -427,11 +408,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/editor/header/HeaderControls.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/editor/header/VersionHistoryModal.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -443,11 +419,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/editor/header/useCommandActions.ts": {
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
-  "src/components/admin/Studio/AppStudio/editor/header/useHeaderView.ts": {
     "react-hooks/refs": {
       "count": 2
     }
@@ -473,14 +444,11 @@
   "src/components/admin/Studio/AppStudio/editor/shell/useCanvasDrag.ts": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/editor/useBuildFollow.ts": {
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/editor/useEditorHotkeys.ts": {
@@ -507,9 +475,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -563,11 +528,6 @@
   "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.tsx": {
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/AiBrowsingSettings.tsx": {
-    "react-hooks/exhaustive-deps": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/AutomationPicker.tsx": {
@@ -753,15 +713,12 @@
   },
   "src/components/admin/Studio/AppStudio/inspector/useEventWiring.ts": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -794,7 +751,7 @@
       "count": 1
     },
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/rbac/RowRuleBuilder.tsx": {
@@ -811,9 +768,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 3
     }
   },
   "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.ts": {
@@ -851,14 +805,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/runtime/BrowserRunContext.tsx": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/RuntimeContext.tsx": {
@@ -1019,9 +965,6 @@
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputNumber.tsx": {
@@ -1037,9 +980,6 @@
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputRichtext.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 4
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputSelect.tsx": {
@@ -1330,11 +1270,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/runtime/useActionRunner.ts": {
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
   "src/components/admin/Studio/AppStudio/runtime/useAppDataSource.ts": {
     "complexity": {
       "count": 3
@@ -1426,12 +1361,6 @@
   "src/components/admin/Studio/AppStudio/tables/RelationshipsTab.tsx": {
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/preserve-manual-memoization": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/tables/RowsTab.tsx": {
@@ -1506,9 +1435,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Approvals/ApprovalsStudio.tsx": {
@@ -1516,9 +1442,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -1582,14 +1505,6 @@
   "src/components/admin/Studio/AutomationsStudio/QuickSwitcher.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AutomationsStudio/TemplateTile.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AutomationsStudio/automationMenuItems.tsx": {
@@ -1612,11 +1527,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Datatables/ChoiceCard.tsx": {
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -1650,9 +1560,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/Datatables/DatatableSharing.tsx": {
@@ -1668,9 +1575,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -1736,9 +1640,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -1905,9 +1806,6 @@
   "src/components/admin/Studio/Executions/useRunStream.ts": {
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Forms/FormPage.tsx": {
@@ -1915,9 +1813,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -1948,16 +1843,8 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Forms/answers/QuestionCard.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Forms/answers/ResponseDrawer.tsx": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -1990,11 +1877,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Forms/form/ShareTab.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/KnowledgeStudio/AddSourcePanel.tsx": {
     "max-lines": {
       "count": 1
@@ -2020,9 +1902,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/KnowledgeStudio/SettingsTab.tsx": {
@@ -2042,9 +1921,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/static-components": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/KnowledgeStudio/SourcesTab.tsx": {
@@ -2096,9 +1972,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -2197,9 +2070,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Playbooks/stages/DesignStage.tsx": {
@@ -2231,9 +2101,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -2294,11 +2161,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Playbooks/stages/useRunFilm.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Playbooks/usePlaybook.ts": {
     "complexity": {
       "count": 1
@@ -2347,9 +2209,6 @@
   },
   "src/components/admin/Studio/SkillsStudio/SkillStepEditor.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -2402,11 +2261,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/RelatedPartsNotice.tsx": {
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -2488,11 +2342,6 @@
   },
   "src/components/admin/Studio/Solutions/pipeline/settings/seatShapes.ts": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/relatedParts.ts": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -2582,9 +2431,6 @@
   "src/components/admin/Studio/studioAi/DescribeItPanel.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/studioAi/handoff.ts": {
@@ -2704,9 +2550,6 @@
   },
   "src/components/admin/compliance/data/registers.ts": {
     "max-params": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -2990,9 +2833,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/compliance/pages/dsr/DsrTable.tsx": {
@@ -3106,9 +2946,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/compliance/pages/risks/RiskDrawer.tsx": {
@@ -3192,9 +3029,6 @@
   },
   "src/components/admin/languages/PromptEditor.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -3284,9 +3118,6 @@
     },
     "max-lines-per-function": {
       "count": 3
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/monitoring/UsageExplorerPage.tsx": {
@@ -3605,9 +3436,6 @@
     },
     "no-restricted-syntax": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/product-website/analytics/model.ts": {
@@ -3823,14 +3651,6 @@
       "count": 1
     }
   },
-  "src/components/admin/product-website/blog/useBlogEditor.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 9
-    },
-    "react-hooks/immutability": {
-      "count": 4
-    }
-  },
   "src/components/admin/product-website/controls/ColorControl.tsx": {
     "complexity": {
       "count": 1
@@ -3859,11 +3679,6 @@
       "count": 1
     }
   },
-  "src/components/admin/product-website/fieldKit/RepeatableList.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/product-website/inspector/InspectorHost.tsx": {
     "complexity": {
       "count": 1
@@ -3882,14 +3697,6 @@
   "src/components/admin/product-website/pageList/PageRow.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/components/admin/product-website/panel/PanelStage.tsx": {
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/components/admin/product-website/panel/cmsTurnUndo.ts": {
@@ -4384,9 +4191,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/agents/AgentWizard/AgentEditorBootstrapContext.tsx": {
@@ -4482,14 +4286,6 @@
   },
   "src/components/agents/AgentWizard/builderSplit/useAgentBootstrapData.ts": {
     "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/agents/AgentWizard/builderSplit/useAgentSave.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -4723,9 +4519,6 @@
     },
     "react-hooks/preserve-manual-memoization": {
       "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/appearance/studio/look/sections/AdvancedGlassDisclosure.tsx": {
@@ -4751,7 +4544,7 @@
       "count": 1
     },
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/apps/appCatalog.tsx": {
@@ -4759,19 +4552,11 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/BuildTab.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 2
-    }
-  },
   "src/components/automation/Builder/BuilderHeader.tsx": {
     "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -4786,12 +4571,7 @@
       "count": 1
     },
     "react-hooks/immutability": {
-      "count": 3
-    }
-  },
-  "src/components/automation/Builder/CanvasPlanPanel.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/automation/Builder/DiagramPane.tsx": {
@@ -4837,9 +4617,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/NodeDetailView.tsx": {
@@ -4879,21 +4656,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/build/AssistantColumn.tsx": {
-    "react-hooks/refs": {
-      "count": 19
-    }
-  },
-  "src/components/automation/Builder/build/BuildCanvas.tsx": {
-    "react-hooks/refs": {
-      "count": 9
-    }
-  },
-  "src/components/automation/Builder/build/useAddStep.ts": {
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -4942,11 +4704,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/chat/RunProgressBanner.tsx": {
-    "react-hooks/purity": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/chat/WorkModePicker.tsx": {
     "complexity": {
       "count": 1
@@ -4978,12 +4735,6 @@
   "src/components/automation/Builder/flow/AccordionSection.tsx": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/flow/AddStepRibbon.tsx": {
@@ -5084,9 +4835,6 @@
   },
   "src/components/automation/Builder/flow/TriggerProviderPicker.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -5287,11 +5035,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/ribbon/RibbonSearchField.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/flow/ribbon/useRibbonData.ts": {
     "react-hooks/exhaustive-deps": {
       "count": 1
@@ -5406,19 +5149,11 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/SettingsHost.tsx": {
     "react-hooks/static-components": {
       "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/settings/SourceNotices.tsx": {
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/flow/settings/TablesRowValuesEditor.tsx": {
@@ -5439,9 +5174,6 @@
   },
   "src/components/automation/Builder/flow/settings/actionEditors/codeFields.tsx": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -5536,11 +5268,6 @@
   },
   "src/components/automation/Builder/flow/settings/approvalWho.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/settings/codeStep/CodeAssistPanel.tsx": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -5669,9 +5396,6 @@
   "src/components/automation/Builder/flow/settings/routeRuleList.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/setEditors.tsx": {
@@ -5683,9 +5407,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/structuredOutputFields.tsx": {
@@ -5796,18 +5517,10 @@
   },
   "src/components/automation/Builder/flow/useFitClusters.ts": {
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/flow/useLiveNodeMirror.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/useNodeContextMenu.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -5822,9 +5535,6 @@
   },
   "src/components/automation/Builder/flow/useNodeOps.ts": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -5862,11 +5572,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/header/StepCluster.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/header/TestRunMenu.tsx": {
     "complexity": {
       "count": 1
@@ -5881,9 +5586,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/mapping/BindingField.tsx": {
@@ -5942,9 +5644,6 @@
   "src/components/automation/Builder/mapping/LoopBodyEditor.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/mapping/LoopOverPicker.tsx": {
@@ -5974,9 +5673,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/mapping/TemplateField.tsx": {
@@ -5999,9 +5695,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/mapping/ValueBuilder.tsx": {
@@ -6013,9 +5706,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/mapping/ValueBuilderParts.tsx": {
@@ -6025,9 +5715,6 @@
   },
   "src/components/automation/Builder/mapping/VariablePicker.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -6101,11 +5788,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/mapping/toolInput/GenericRow.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/mapping/toolInput/ToolParamField.tsx": {
     "complexity": {
       "count": 1
@@ -6155,9 +5837,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 3
     }
   },
   "src/components/automation/Builder/mapping/valueParts.ts": {
@@ -6194,28 +5873,13 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/ndv/useFormEditor.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/ndv/useOutputEditor.tsx": {
     "max-lines-per-function": {
       "count": 1
     }
   },
-  "src/components/automation/Builder/output/ErrorCard.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/output/RecordTable.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/output/WideOutputView.tsx": {
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -6235,14 +5899,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 2
-    }
-  },
-  "src/components/automation/Builder/settings/AiActWizard.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/settings/GeneralActions.tsx": {
@@ -6261,11 +5917,6 @@
       "count": 2
     }
   },
-  "src/components/automation/Builder/settings/NotificationsSection.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/settings/ScheduleInWords.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -6278,11 +5929,6 @@
   },
   "src/components/automation/Builder/settings/StartDialog.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/settings/settingsUi.tsx": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -6301,7 +5947,7 @@
       "count": 1
     },
     "react-hooks/exhaustive-deps": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/useBuilderHotkeys.ts": {
@@ -6309,14 +5955,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useBuilderHydration.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -6344,39 +5982,8 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/useBuilderShellState.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useBuilderTabUrl.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useFlowletActions.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 3
-    },
-    "react-hooks/preserve-manual-memoization": {
-      "count": 3
-    }
-  },
   "src/components/automation/Builder/useFlowletScope.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
-      "count": 2
-    }
-  },
-  "src/components/automation/Builder/useHiddenSections.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useManagedPart.ts": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -6396,11 +6003,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/useVisualSave.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    }
-  },
   "src/components/automation/Builder/webhooks/useWebhooks.ts": {
     "max-lines-per-function": {
       "count": 1
@@ -6418,9 +6020,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/refs": {
-      "count": 5
     }
   },
   "src/components/automation/taskFormatters.ts": {
@@ -6441,14 +6040,6 @@
   "src/components/automation/useAutomationRouting.ts": {
     "complexity": {
       "count": 1
-    }
-  },
-  "src/components/automation/useDesignerShell.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    },
-    "react-hooks/preserve-manual-memoization": {
-      "count": 3
     }
   },
   "src/components/billing/InvoicesPanel.tsx": {
@@ -6774,12 +6365,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    },
-    "react-hooks/immutability": {
-      "count": 2
     }
   },
   "src/components/chat/Voice/voiceSessionTurn.ts": {
@@ -6839,11 +6424,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/components/comments/CommentComposer.tsx": {
-    "react-hooks/refs": {
-      "count": 20
     }
   },
   "src/components/comments/useCommentsPanel.ts": {
@@ -6923,9 +6503,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7234,11 +6811,6 @@
       "count": 1
     }
   },
-  "src/components/licensing/SubscriptionContext.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/licensing/TierSlider/TierGauge.tsx": {
     "complexity": {
       "count": 1
@@ -7345,9 +6917,6 @@
   "src/components/meeting-picker/MeetingPicker.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/meetings/GoogleMeetAdminPanel.tsx": {
@@ -7398,11 +6967,6 @@
   },
   "src/components/onboarding/generated/lessons.js": {
     "max-lines": {
-      "count": 1
-    }
-  },
-  "src/components/onboarding/learnMedia.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7527,14 +7091,6 @@
   "src/components/projects/workspace/ProjectWorkspacePage.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 3
-    }
-  },
-  "src/components/projects/workspace/chat/ChatComposer.tsx": {
-    "react-hooks/refs": {
-      "count": 10
     }
   },
   "src/components/projects/workspace/chat/ChatMessageBubble.tsx": {
@@ -7576,11 +7132,6 @@
       "count": 1
     }
   },
-  "src/components/projects/workspace/tasks/BoardCard.tsx": {
-    "react-hooks/refs": {
-      "count": 8
-    }
-  },
   "src/components/projects/workspace/tasks/MeetingTasksDialog.tsx": {
     "complexity": {
       "count": 1
@@ -7603,9 +7154,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/projects/workspace/tasks/TasksTab.tsx": {
@@ -7620,11 +7168,6 @@
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
-    }
-  },
-  "src/components/projects/workspace/tasks/TimelineRow.tsx": {
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/components/projects/workspace/tasks/useTaskDialog.tsx": {
@@ -7646,9 +7189,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/error-boundaries": {
-      "count": 11
     }
   },
   "src/components/renderers/CollapsibleCodeBlock.tsx": {
@@ -7735,9 +7275,6 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7827,11 +7364,6 @@
       "count": 1
     }
   },
-  "src/components/shell/NotificationCenter.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/shell/SearchOverlay.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -7842,9 +7374,6 @@
   },
   "src/components/shell/StudioSearchOverlay.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7864,9 +7393,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/error-boundaries": {
-      "count": 3
     }
   },
   "src/components/shell/sidebar/FlyoutRow.tsx": {
@@ -7890,11 +7416,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/shell/sidebar/useScrolledAwayNav.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -8197,11 +7718,6 @@
       "count": 1
     }
   },
-  "src/editor/nodeviews/ImageView.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/editor/react/BeeEditor.tsx": {
     "react-hooks/exhaustive-deps": {
       "count": 1
@@ -8213,9 +7729,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 48
     }
   },
   "src/editor/react/EditorToolbar.tsx": {
@@ -8277,28 +7790,6 @@
   },
   "src/editor/react/useEditorInteractions.ts": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/editor/react/useEditorSync.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
-    }
-  },
-  "src/editor/react/useEditorViewLifecycle.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -8400,11 +7891,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/hooks/useDebouncedCallback.ts": {
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/hooks/useFlowletAgentStream.ts": {
@@ -8686,11 +8172,6 @@
       "count": 1
     }
   },
-  "src/marketing/sections/TechStats.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/marketing/sections/Testimonials.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -8738,9 +8219,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -8802,9 +8280,6 @@
     },
     "react-hooks/exhaustive-deps": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/pages/TemplatesPage.tsx": {
@@ -8813,11 +8288,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/pages/WebpagesPage.test.jsx": {
-    "react-hooks/immutability": {
-      "count": 3
     }
   },
   "src/pages/WebpagesPage.tsx": {
@@ -8839,7 +8309,7 @@
       "count": 1
     },
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/pages/apps/AppsHomePage/index.tsx": {
@@ -8857,11 +8327,6 @@
   },
   "src/pages/documents/DeckPreview.tsx": {
     "complexity": {
-      "count": 2
-    }
-  },
-  "src/pages/documents/DocumentCanvas.tsx": {
-    "react-hooks/immutability": {
       "count": 2
     }
   },
@@ -8962,9 +8427,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 36
     }
   },
   "src/pages/documents/notebook/detail/SessionEndedNotice.tsx": {
@@ -8979,9 +8441,6 @@
   },
   "src/pages/documents/notebook/detail/useNotebookCollab.ts": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9027,9 +8486,6 @@
   },
   "src/pages/documents/notebook/shell/CommandPalette.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9095,14 +8551,6 @@
   "src/pages/documents/spreadsheet/useSheetAssistant.ts": {
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/pages/documents/useDocumentAutosave.ts": {
-    "react-hooks/immutability": {
-      "count": 4
-    },
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/pages/documents/useSectionPresence.ts": {
@@ -9430,16 +8878,8 @@
       "count": 1
     }
   },
-  "src/pages/meeting-notes/hooks/useTranscription.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/pages/meeting-notes/hooks/useWaveform.ts": {
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9734,9 +9174,6 @@
   "src/pages/settings/learning/CertificateDrawer.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/pages/settings/learning/LearningRail.tsx": {
@@ -9933,11 +9370,6 @@
       "count": 2
     }
   },
-  "src/pages/webpages/WebpageEditorBody.tsx": {
-    "react-hooks/refs": {
-      "count": 20
-    }
-  },
   "src/pages/webpages/WebpageEditorPage.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -9997,11 +9429,6 @@
     }
   },
   "src/pages/webpages/ide/useIdeState.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/pages/webpages/preview/usePreviewToken.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 1
     }

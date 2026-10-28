@@ -11,12 +11,12 @@ import { CheckCircle2, ChevronRight, FileText, Mic, NotebookPen, Users } from 'l
 import React, { Suspense, useMemo, useState } from 'react';
 import {
     useMarkAllSeen, useMarkItemSeen, useProjectChangesQuery, versionsBaseUrl, type ChangeGroup, type ChangeItemType,
-} from '../../../api/queries/projectChanges';
-import { hasUnread, useProjectChatsQuery, type TeamChat } from '../../../api/queries/projectChats';
-import { useProjectMembersQuery, type ProjectRole } from '../../../api/queries/projects';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
-import { lazy as lazyWithReload } from '../../../utils/lazyWithReload';
+} from '@/api/queries/projectChanges';
+import { hasUnread, useProjectChatsQuery, type TeamChat } from '@/api/queries/projectChats';
+import { useProjectMembersQuery, type ProjectRole } from '@/api/queries/projects';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import { lazy as lazyWithReload } from '@/utils/lazyWithReload';
 import { AiChip, AvatarStack } from '../../versions/VersionList';
 import { contributorLine, contributorSummary, statsText } from '../../versions/versionText';
 import type { VersionHistoryPanelProps } from '../../versions/VersionHistoryPanel';

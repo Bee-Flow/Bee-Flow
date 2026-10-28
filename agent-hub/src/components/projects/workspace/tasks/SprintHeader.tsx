@@ -7,11 +7,11 @@
 
 import { CheckCheck, MoreHorizontal, Pencil, Play, Target, Trash2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { useUpdateTask, type ProjectTask } from '../../../../api/queries/projectTasks';
-import { useCompleteSprint, useDeleteSprint, useStartSprint, useUpdateSprint, type Sprint } from '../../../../api/queries/projectSprints';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { useUpdateTask, type ProjectTask } from '@/api/queries/projectTasks';
+import { useCompleteSprint, useDeleteSprint, useStartSprint, useUpdateSprint, type Sprint } from '@/api/queries/projectSprints';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import { projectErrorText } from '../projectErrorText';
 import { PrimaryButton } from '../workspaceUi';
 import { sprintName, withPlanningMeta } from './taskPlanning';

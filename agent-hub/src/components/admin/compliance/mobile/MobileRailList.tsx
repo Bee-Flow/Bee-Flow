@@ -13,10 +13,10 @@
  */
 import { ChevronRight, Timer, type LucideIcon } from 'lucide-react';
 import React, { useId } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DeadlineClock from '../../../shared/DeadlineClock';
-import type { TimeInput } from '../../../shared/deadlineMath';
-import { TONES } from '../../../shared/statusTone';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import type { TimeInput } from '@/components/shared/deadlineMath';
+import { TONES } from '@/components/shared/statusTone';
 import { visibleSections } from '../ComplianceRail';
 import railMeta, { railHint, railRowTitle } from '../railMeta';
 import { GROUPS, sectionsInGroup } from '../sections';

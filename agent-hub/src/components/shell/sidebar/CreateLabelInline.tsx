@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface CreateLabelInlineProps {
     onCreateLabel?: (name: string, color: string) => unknown;

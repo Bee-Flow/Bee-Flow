@@ -1,10 +1,10 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { PROGRESS_STEPS, phaseOf, type Phase } from './pipelineModel';
 import { Addresses, LastDeployment } from './StageStatusParts';
 import { STAGE_DOT, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './StageSwitcher';
-import type { PipelineStage, StageKey } from '../../../../../api/stagesApi';
+import type { PipelineStage, StageKey } from '@/api/stagesApi';
 
 export {
      ackText, blockTexts, errorText, findingText, footerLabels,  outcomeText, statusLabel,

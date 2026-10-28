@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A relation a mirror carries: Nextcloud's own (`nc`) or one declared here (`match`). */
 export type MirrorRelation = {

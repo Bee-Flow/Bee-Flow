@@ -5,11 +5,11 @@ import AutoFixConfirm from './AutoFixConfirm';
 import { remediationLabel, type Remediation, type RowCheck } from './CheckRow';
 import { autoFixCount, isOpen, ofSubject, resolveRemediation, shortHash, toMs } from './checkSort';
 import FindingDecision from './FindingDecision';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TableRow } from '../../../../shared/DataTable';
-import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { API } from '../../../../../api/complianceApi';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { TableRow } from '@/components/shared/DataTable';
+import { TONES, toneOfCheckStatus } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import { API } from '@/api/complianceApi';
 import type { DecideFinding } from './FindingDecision';
 
 /**

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { integrationsAdminKeys, useFreshOrgIdQuery, useNcSyncQuery } from '../../../api/queries/integrationsAdmin';
-import type { NcSyncConfig, NcSyncUser } from '../../../api/queries/integrationsAdmin';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { integrationsAdminKeys, useFreshOrgIdQuery, useNcSyncQuery } from '@/api/queries/integrationsAdmin';
+import type { NcSyncConfig, NcSyncUser } from '@/api/queries/integrationsAdmin';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
 
 // Theme tokens only, so every card, pill and control stays readable in the
 // dark themes (Tailwind 4 draws a bare `border` in currentColor).

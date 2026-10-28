@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { RowSelectionState } from '@tanstack/table-core';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { ROLE_COLORS } from '../../styleResolver.constants';
 import { describeFilter as describeFilterJs } from '../gridColumnFilters';
 import GridViewMenu from '../GridViewMenu';

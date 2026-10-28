@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { state } = vi.hoisted(() => ({
     state: {
@@ -12,7 +12,7 @@ const { state } = vi.hoisted(() => ({
     },
 }));
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url: string, opts: { method?: string; body?: string } = {}) => {
         const method = opts.method || 'GET';
@@ -109,7 +109,7 @@ describe('AiActAutoCard', () => {
     });
 
     it('a failed check says so and can be tried again', async () => {
-        const { authFetch } = await import('../../../../utils/helpers');
+        const { authFetch } = await import('@/utils/helpers');
         vi.mocked(authFetch).mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'x' }) } as never);
         state.check = DONE;
         const user = userEvent.setup();

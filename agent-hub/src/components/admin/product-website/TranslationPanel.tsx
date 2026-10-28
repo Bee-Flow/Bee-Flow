@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { buildPageGroups, buildSiteGroups } from './translatable';
 import type { FieldPath, TranslatableGroup, TranslatableRow } from './translatable';
 import type { CmsPageDoc, CmsSiteDoc } from './panel/cmsPanelTypes';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 import AiTranslateControl from '../languages/AiTranslateControl';
 

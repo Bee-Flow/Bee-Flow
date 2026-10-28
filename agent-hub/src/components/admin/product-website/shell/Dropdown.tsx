@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 
 interface DropdownProps {
     trigger: (state: { open: boolean }) => ReactNode;

@@ -12,12 +12,12 @@ import {
 } from '../primitives';
 import type { CmsPageOption } from '../fields';
 import type { StyleBlob } from '../primitives.types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import type { HeaderCta, HeaderData, HeaderLogo, NavChild, NavColumn, NavLink, MegaItem } from './HeaderEditor.types';
 import { set } from './shared';
 import { HeaderGithubFields, HeaderKindSelect } from './HeaderGithubFields';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Header ────────────────────────────────────────────────────────────
 

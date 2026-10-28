@@ -5,10 +5,10 @@ import { renderWithClient } from '@/test/render';
 import PortabilityPage, { rowTone, isPortable, coverageSummary, routeLines } from './PortabilityPage';
 import { partial, stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal<Record<string, unknown>>();
     return { ...actual, fetchJson: (...args: Parameters<typeof fetchJson>) => fetchJson(...args) };
 });

@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 function Bar({ className }: { className: string }) {
     return <div className={`rounded-md bg-[var(--bg-tertiary)] animate-pulse ${className}`} />;

@@ -1,5 +1,5 @@
 import { Table2 } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { PendingTable, UsedTable } from './pendingTables';
 
 interface ProposalTablesProps {

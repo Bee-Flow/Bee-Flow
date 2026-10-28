@@ -1,8 +1,8 @@
 import { ArrowLeft, Percent, Euro, Save } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Banner } from '../ui/Banner';
 import { ChoiceCards } from '../ui/Choice';

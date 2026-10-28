@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Search, X } from 'lucide-react';
-import type { Skill } from '../../../../api/queries/skills';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { Skill } from '@/api/queries/skills';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface PickerSkill extends Skill {
     icon?: string;

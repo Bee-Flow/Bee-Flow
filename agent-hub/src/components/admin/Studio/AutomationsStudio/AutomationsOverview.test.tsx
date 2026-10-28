@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // In-memory scopedStorage so view/sort/group persistence is deterministic.
 const { store } = vi.hoisted(() => ({ store: new Map() }));
-vi.mock('../../../../utils/scopedStorage', () => ({
+vi.mock('@/utils/scopedStorage', () => ({
     default: {
         getItem: (k: Parameters<typeof store.has>[0]) => (store.has(k) ? store.get(k) : null),
         setItem: (k: Parameters<typeof store.set>[0], v: unknown) => { store.set(k, v); },

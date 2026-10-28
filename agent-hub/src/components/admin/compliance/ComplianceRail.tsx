@@ -38,7 +38,7 @@ import { countFor } from './data/useComplianceCounts';
 import railMeta, { railHint, railRowTitle } from './railMeta';
 import { GROUPS, SECTIONS, sectionsInGroup, frameworkOf, sectionForRegulation, type Section } from './sections';
 import ArticleRef from './shared/ArticleRef';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import DeadlineClock from '../../shared/DeadlineClock';
 import { kindTileStyle } from '../../shared/kindColors';
 import SegmentedControl from '../../shared/SegmentedControl';

@@ -1,8 +1,8 @@
 // The keyboard shortcuts of the designed-document editor, as a sheet.
 
 import React from 'react';
-import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
 
 const APPLE = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
 

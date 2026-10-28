@@ -1,9 +1,9 @@
 import { Check, Copy } from 'lucide-react';
 import React from 'react';
-import useCopyToClipboard from '../../../../../../hooks/useCopyToClipboard';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import type { ChatMonitoringConfig } from '../../../data/useChatMonitoring';
-import { formatNoticeDate } from '../../../../../chat/chatSignals/chatSignalsModel';
+import useCopyToClipboard from '@/hooks/useCopyToClipboard';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import type { ChatMonitoringConfig } from '@/components/admin/compliance/data/useChatMonitoring';
+import { formatNoticeDate } from '@/components/chat/chatSignals/chatSignalsModel';
 import { ActionButton } from './formAtoms';
 import type { ChatMonitoringForm } from './chatMonitoringForm';
 import { legalBasisLabel, surfaceLabel } from './chatMonitoringLabels';

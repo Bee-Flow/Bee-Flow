@@ -9,7 +9,7 @@
  */
 import { ArrowLeft, ExternalLink, Globe, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { analyticsApi, analyticsFetch, type AnalyticsResponse } from '../../analyticsApi';
 import { rich } from '../rich';
 import { Card, ErrorNote } from '../AsyncCard';

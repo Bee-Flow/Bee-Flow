@@ -1,6 +1,6 @@
 import { LimitFields, DedupeFields, AggregateFields, SummarizeFields } from './collectionEditors';
 import { Suspense } from 'react';
-import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 
 // The table editors are large and only the table steps need them: keep them out of the entry chunks.
 const ReadTableFields = lazyWithI18n(() => import('./tableEditor/ReadTableFields'));

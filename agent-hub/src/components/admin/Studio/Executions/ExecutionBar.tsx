@@ -1,12 +1,12 @@
 import { ArrowLeft, RotateCcw, Ban, Check, X, ExternalLink, Link2, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel, type RunDefinitionLike } from './runLanguage';
 import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 import type { RunLogRow } from './runLogSentence';
-import { logger } from '../../../../utils/logger';
-import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
+import { logger } from '@/utils/logger';
+import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '@/api/queries/automation/runAccess';
 
 /** The run the bar describes: a log row, plus the lineage and pause fields only the single-run read carries. */
 export type ExecutionRun = RunLogRow & {

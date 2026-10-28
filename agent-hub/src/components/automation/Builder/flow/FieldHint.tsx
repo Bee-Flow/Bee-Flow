@@ -1,5 +1,5 @@
 import React from 'react';
-import Info from '../../../admin/security/guardrails/Info';
+import Info from '@/components/admin/security/guardrails/Info';
 
 /**
  * On-demand field hint. Replaces the always-on multi-line gray descriptions

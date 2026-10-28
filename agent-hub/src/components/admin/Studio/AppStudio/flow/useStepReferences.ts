@@ -5,15 +5,15 @@ import {
     screenOptions, tableOptions,
 } from './stepReferences';
 import type { DocumentSource } from './stepReferences';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { listTemplates } from '../../../../../pages/documents/documentsApi';
-import { API_BASE } from '../../../../../utils/helpers';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useTranslation from '@/hooks/useTranslation';
+import { listTemplates } from '@/pages/documents/documentsApi';
+import { API_BASE } from '@/utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
 import useConnectors from '../bi/useConnectors';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import type { AppDefinition } from '../inspector/appDefinition';
-import { request, RefusedError } from '../../../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 type DatasetSource = NonNullable<Parameters<typeof datasetOptions>[0]>;
 type AutomationSource = NonNullable<Parameters<typeof automationOptions>[0]>;

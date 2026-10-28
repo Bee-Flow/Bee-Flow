@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Bell, ChevronDown, ChevronUp, CircleCheck, CircleX, ShieldCheck, X } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { usePeopleDirectory, type Principal } from '../../../../api/queries/automation/people';
+import { useTranslation } from '@/hooks/useTranslation';
+import { usePeopleDirectory, type Principal } from '@/api/queries/automation/people';
 import PrincipalPicker from './PrincipalPicker';
 import { Choice, SELECT } from './settingsUi';
 import {

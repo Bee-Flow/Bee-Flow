@@ -12,11 +12,11 @@
  */
 import React from 'react';
 
-import { API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import GmailPicker from '../GmailPicker';
 import GoogleDrivePicker from '../GoogleDrivePicker';
 import type { Attachment } from './attachmentFiles';
-import type { ExportedAttachment } from '../../../hooks/useGoogleWorkspacePicker';
+import type { ExportedAttachment } from '@/hooks/useGoogleWorkspacePicker';
 
 type PickedFile = {
     name: string;

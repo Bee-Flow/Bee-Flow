@@ -6,7 +6,7 @@ import { followAfterAdd, followedMessages } from './flow/routeFollowNotes';
 import { FILTER_LIST_ITEM } from './flow/stepPalette';
 import { applyAutoMapToStep } from './mapping/autoMapInputs';
 import { buildRealOutputMap } from './mapping/realOutputs';
-import { MAIL_CONDITION_STEP_RESULTS, mailConditionAutomationFields } from '../../../demo/fixtures/automationsMailCondition';
+import { MAIL_CONDITION_STEP_RESULTS, mailConditionAutomationFields } from '@/demo/fixtures/automationsMailCondition';
 
 /**
  * W1 on the demo automation ("Fabrikam attachments by type"): a Condition

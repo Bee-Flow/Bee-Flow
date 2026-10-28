@@ -2,10 +2,10 @@ import { FileText } from 'lucide-react';
 import React from 'react';
 import { answerChipsFor, citationIsOpenable, GRADE_JUDGED, GRADE_RECORDED, type CitationChip, type RuleChip, type SkillChip } from './answerChips';
 import type { ChatMessage } from './messageTypes';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
-import CitationChips, { chipLabel, chipTitle, ChipText } from '../../../pages/documents/notebook/CitationChips';
-import { passagesNote } from '../../../pages/documents/notebook/citationText';
+import type { SkillSummary } from '@/hooks/useChatEngine/types';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import CitationChips, { chipLabel, chipTitle, ChipText } from '@/pages/documents/notebook/CitationChips';
+import { passagesNote } from '@/pages/documents/notebook/citationText';
 import { kindColorVar, kindIcon } from '../../shared/kindColors';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 

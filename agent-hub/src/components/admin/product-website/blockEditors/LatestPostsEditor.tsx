@@ -1,5 +1,5 @@
 import { TextField, InlineHint, SectionHeaderFields } from '../blog/jsComponents';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Latest posts ──────────────────────────────────────────────────────
 //

@@ -1,5 +1,5 @@
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';

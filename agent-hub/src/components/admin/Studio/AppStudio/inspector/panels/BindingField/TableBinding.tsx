@@ -1,7 +1,7 @@
 import { INPUT_CLS } from '../kit';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import FilterRowsEditor from '../../../bi/FilterRowsEditor';
-import useAppTables, { fieldsForTable } from '../../../bi/useAppTables';
+import useTranslation from '@/hooks/useTranslation';
+import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
+import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
 import type { BindingDraft, TableBindingProps } from '../BindingField.types';
 import { normSort } from './BindingField.helpers';
 import { PickValueField } from './AggregateBinding';

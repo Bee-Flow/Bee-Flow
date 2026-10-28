@@ -1,12 +1,12 @@
 import { GraduationCap, Search, Map, RotateCcw, Award, Lock, Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { Course, LessonDoc } from '../../../api/lessons.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { Course, LessonDoc } from '@/api/lessons.types';
 import type { CapstoneInfo, LearningNavTarget, LevelInfo, ReviewDue } from './learning.types';
 import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone } from './curriculum';
-import { getLearningPath } from '../../../components/onboarding/learningPaths';
+import { getLearningPath } from '@/components/onboarding/learningPaths';
 
 interface LearningRailProps {
     t: TranslateFn;

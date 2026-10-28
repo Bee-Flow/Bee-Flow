@@ -1,7 +1,7 @@
 import { AlertCircle, AlertTriangle, X, ChevronDown, ChevronUp } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import { buildStepLabelMap, resolveOwningStepId, humanizeIssueText } from './flow/displayHelpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import FindingRow from '../../shared/FindingRow';
 import type { StepIssue, StepIssues } from './flow/nodes/nodeProps';
 

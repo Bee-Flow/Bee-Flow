@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { refusalOf, useChatMonitoringRopa, useSaveChatMonitoring, type ChatMonitoringConfig } from '../../../data/useChatMonitoring';
+import { useTranslation } from '@/hooks/useTranslation';
+import { refusalOf, useChatMonitoringRopa, useSaveChatMonitoring, type ChatMonitoringConfig } from '@/components/admin/compliance/data/useChatMonitoring';
 import { ActionButton } from './formAtoms';
 import { buildPutBody, classifyChange, dayOf, formFromSettings, isEmployeeSurface, type ChangeKind, type ChatMonitoringForm } from './chatMonitoringForm';
 import { missingLabel } from './chatMonitoringLabels';

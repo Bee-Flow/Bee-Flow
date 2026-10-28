@@ -1,17 +1,17 @@
-import type { MirrorTable } from '../../../components/admin/Studio/Datatables/sourceMirrors';
+import type { MirrorTable } from '@/components/admin/Studio/Datatables/sourceMirrors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { kindColorVar } from '../../../components/shared/kindColors';
-import useAutomationApi from '../../../hooks/useAutomationApi';
-import { acceptsAdHocRows } from '../../../components/admin/Studio/Datatables/datatableDisplay';
-import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
-import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import { kindColorVar } from '@/components/shared/kindColors';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { acceptsAdHocRows } from '@/components/admin/Studio/Datatables/datatableDisplay';
+import { datatablesApi } from '@/components/admin/Studio/Datatables/datatablesApi';
+import knowledgeApi from '@/components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { ACTION_FIELD_IDS, defaultRowMapping, writableColumns } from '../lib/actionDestinations';
 import type { DatatableField } from '../lib/actionDestinations';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
-import { messageOf } from '../../../utils/caughtError';
-import { mayStartRun, runStartRefusal } from '../../../api/queries/automation/runAccess';
+import { messageOf } from '@/utils/caughtError';
+import { mayStartRun, runStartRefusal } from '@/api/queries/automation/runAccess';
 
 type ViewName = typeof VIEW[keyof typeof VIEW];
 type BranchKey = keyof typeof BRANCH_KIND;

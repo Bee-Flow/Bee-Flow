@@ -2,7 +2,7 @@ import React from 'react';
 import AppIcon from './appIcon';
 import { accentTile, CARD_CLASSES, CARD_STYLE } from './cardStyle';
 import type { StudioApp } from './types';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * What an app card in the gallery shows: icon, name, description and the small

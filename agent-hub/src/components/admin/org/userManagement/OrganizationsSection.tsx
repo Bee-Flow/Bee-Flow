@@ -1,6 +1,6 @@
 import { Edit2, Trash2, Unlink } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import { ORG_SOURCE_KEY } from './constants';
 import type { AdminOrganization } from './types';
 

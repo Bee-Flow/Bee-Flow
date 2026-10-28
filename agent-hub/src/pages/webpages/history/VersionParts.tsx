@@ -1,10 +1,10 @@
 import { ArrowLeft, Eye, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { formatRelativeTime } from '../../../utils/dateFormatters';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatRelativeTime } from '@/utils/dateFormatters';
 import { PRIMARY_SLOTS, SLOT_LANGUAGE } from '../webpageCodeFiles';
 import WebpageEditor from '../WebpageEditor';
-import type { PrimaryFile } from '../../../api/webpageEditorTypes';
+import type { PrimaryFile } from '@/api/webpageEditorTypes';
 import type { VersionRow as Version, ViewedVersion } from './useVersionHistory';
 
 /**

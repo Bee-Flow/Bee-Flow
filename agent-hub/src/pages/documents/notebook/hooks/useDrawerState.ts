@@ -4,7 +4,7 @@
  * reloads. Defaults: both open on first use.
  */
 import { useState, useCallback } from 'react';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const key = (variant: string, k: string) => `bf.workspace.${variant}.${k}`;
 

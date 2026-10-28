@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { slugIssues } from '../../../../utils/cmsPublicRouting';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import { slugIssues } from '@/utils/cmsPublicRouting';
+import AppIcon from '@/components/icons/AppIcon';
 import BlockStyleEditor from '../BlockStyleEditor';
 import { BLOCK_EDITORS as BLOCK_EDITORS_BY_KEY } from '../editors';
 import { Toggle, type CmsPageOption } from '../fields';

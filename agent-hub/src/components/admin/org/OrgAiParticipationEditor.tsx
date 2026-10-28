@@ -9,8 +9,8 @@ import React, { useState } from 'react';
 import {
     useOrgAiParticipation, useSaveOrgAiParticipation,
     type AiSensitivity, type OrgAiParticipationPolicy, type OrgAiParticipationSettings,
-} from '../../../api/queries/aiParticipation';
-import { useTranslation, type TranslateFn } from '../../../hooks/useTranslation';
+} from '@/api/queries/aiParticipation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import ChoiceCards from '../../shared/ChoiceCards';
 import Toggle from '../../shared/Toggle';
 

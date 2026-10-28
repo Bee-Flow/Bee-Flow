@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({
     api: { getCatalog: vi.fn().mockResolvedValue({ apps: [], triggerOutputs: {} }) },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 // A switchable dictionary over the REAL useTranslation, off by default so every
 // other test in this file keeps reading the shipped English. Switched on below
@@ -14,7 +14,7 @@ vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
 // live (src/test/setup.js loads them) a hardcoded label and a translated one
 // render identically, which is how ~30 attributes stayed English unnoticed.
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 import {

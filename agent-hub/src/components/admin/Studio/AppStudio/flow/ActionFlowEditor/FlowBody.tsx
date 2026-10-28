@@ -5,12 +5,12 @@ import { newStep, paletteGroups, stepMeta, type ActionStep } from '../stepCatalo
 import { canConnect, graphToSteps, makeId, parseId, SEP, stepsToGraph, stripStepIds, withStepIds, type FlowStep, type GraphNode, type StepNode } from '../stepGraph';
 import StepSettings from '../StepSettings';
 import useStepReferences from '../useStepReferences';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import NodeContextMenu from '../../../../../automation/Builder/flow/NodeContextMenu';
-import { NodeRuntimeContext } from '../../../../../automation/Builder/flow/NodeRuntimeContext';
-import IconButton from '../../../../../shared/IconButton';
-import toast from '../../../../../shared/Toast';
-import type { BandItem } from '../../../../../automation/Builder/flow/rowBands';
+import useTranslation from '@/hooks/useTranslation';
+import NodeContextMenu from '@/components/automation/Builder/flow/NodeContextMenu';
+import { NodeRuntimeContext } from '@/components/automation/Builder/flow/NodeRuntimeContext';
+import IconButton from '@/components/shared/IconButton';
+import toast from '@/components/shared/Toast';
+import type { BandItem } from '@/components/automation/Builder/flow/rowBands';
 import type { Connection } from '@xyflow/system';
 import type { FlowBodyProps, StepPaletteProps } from '../ActionFlowEditor.types';
 import { indexAfter, spliceScope, dropScopeEdges, canMove, normalizeToSequence, summarise } from './ActionFlowEditor.helpers';
@@ -30,7 +30,7 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
     const graph = useMemo(() => stepsToGraph(withIds, t), [withIds, t]);
     const positions = useMemo(() => layoutGraph(graph.nodes), [graph.nodes]);
 
-    const screens = definition?.screens || [];
+    const screens = useMemo(() => definition?.screens || [], [definition?.screens]);
     const references = useStepReferences(definition);
     const selected = graph.nodes.find((n): n is StepNode => n.id === selectedId && !n.isEntry) || null;
 

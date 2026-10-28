@@ -1,4 +1,4 @@
-import AppIcon from '../../../../../icons/AppIcon';
+import AppIcon from '@/components/icons/AppIcon';
 import type { AppDefinition } from '../../inspector/appDefinition';
 
 /**

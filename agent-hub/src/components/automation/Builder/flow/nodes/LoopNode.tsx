@@ -7,7 +7,7 @@ import { humanizeExpression } from '../displayHelpers';
 import { CONTAINER_HEADER } from '../inlineFlowlets';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { statusVar, typeColorVar, typeTint } from '../nodeTypeColors';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { HumanizeExpression, NodeRunStep, NodeStep, StepNodeProps } from './nodeProps';
 
 type ToggleHandler = ((e?: React.MouseEvent) => void) | null;

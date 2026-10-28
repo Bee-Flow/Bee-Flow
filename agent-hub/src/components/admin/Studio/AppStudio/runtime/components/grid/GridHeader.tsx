@@ -1,6 +1,6 @@
 import { flexRender } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { ALIGN_CLASS } from '../cellValue';
 import GridFilterControl from '../GridFilterControl';
 import { isActiveFilter } from '../gridColumnFilters';

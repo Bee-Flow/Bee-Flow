@@ -8,7 +8,7 @@
 import { Globe2, Maximize2, Minus, Plus, type LucideIcon } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     onZoomIn: () => void;

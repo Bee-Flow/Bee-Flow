@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import ConnectorsPage, { nextSweepAt, toneOfConnector } from './ConnectorsPage';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

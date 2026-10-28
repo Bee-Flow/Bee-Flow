@@ -8,7 +8,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ComponentProps } from 'react';
 import { partial, stub } from '@/test/mocks';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const t = (key: string, fallback: string, vars: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;

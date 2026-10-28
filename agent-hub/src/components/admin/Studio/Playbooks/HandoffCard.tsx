@@ -1,13 +1,14 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, MessageSquare, Pencil, RotateCcw, Square, SkipForward, X } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import React, { useState } from 'react';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { CLIENT_RUN, kindOf } from './phaseMachine';
 import type { Phase } from './phaseMachine';
 import { errorText } from './playbookView';
 import { STAGE_BUTTON, STAGE_BUTTON_GHOST, stageType } from './stages/stageChrome';
 import { phaseLabel } from './recipes';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * The pause between phases. Three faces:
@@ -81,13 +82,8 @@ export default function HandoffCard({ phase, next, index, total, t, onContinue, 
     // was set, and the builder was handed the design the person had just
     // replaced (owner, 2026-09-16). A new brief from the server replaces what
     // is in the box; typing in it still wins until the server changes it again.
-    const lastServer = useRef(serverBrief);
     const [editing, setEditing] = useState(false);
-    useEffect(() => {
-        if (lastServer.current === serverBrief) return;
-        lastServer.current = serverBrief;
-        setBrief(serverBrief);
-    }, [serverBrief]);
+    useAdjustOnChange([serverBrief], () => setBrief(serverBrief));
 
     const label = (p: Phase) => phaseLabel(p, t);
     const btn = STAGE_BUTTON;

@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { getJSON, setJSON } from '../../../../utils/scopedStorage';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { getJSON, setJSON } from '@/utils/scopedStorage';
 import { EMPTY_PREFS, keptChoice, suggestColumns, type ColumnPrefs, type OutputColumn } from './columns';
 import { columnsOf } from './perItem';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** How many columns the drawer's narrow table suggests; the large view takes 7. */
 const NARROW_MAX = 4;

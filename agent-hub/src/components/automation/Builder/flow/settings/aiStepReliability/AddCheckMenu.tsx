@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { CHECK_KINDS } from './checkLists';
 import type { CheckKind } from './reliabilityModel';
 

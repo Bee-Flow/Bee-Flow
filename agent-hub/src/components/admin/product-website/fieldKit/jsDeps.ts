@@ -1,4 +1,4 @@
-import AppIconJs from '../../../icons/AppIcon';
+import AppIconJs from '@/components/icons/AppIcon';
 import IconPickerJs from '../controls/IconPicker';
 import AssetPickerDialogJs from '../dialogs/AssetPickerDialog';
 

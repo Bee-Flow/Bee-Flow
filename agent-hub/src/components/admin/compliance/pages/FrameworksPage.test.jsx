@@ -7,7 +7,7 @@ import { statusChipOf, enableIsPrimary } from './frameworks/FrameworkCandidateCa
 import { frameworkIcon } from './frameworks/frameworkIcons';
 import FrameworksPage, { candidateList, frameworkGroups, LICENSE_PATH } from './FrameworksPage';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

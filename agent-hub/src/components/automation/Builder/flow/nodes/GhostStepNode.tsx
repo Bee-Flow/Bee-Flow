@@ -3,7 +3,7 @@ import { Check, FileText, GitBranch, ListChecks, Pencil, Play, Search } from 'lu
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import IntegrationLogo from './IntegrationLogo';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { typeGroupOf, typeTileStyle } from '../nodeTypeColors';
 import { flightGlyphFor } from '../ribbonOrigin';
 

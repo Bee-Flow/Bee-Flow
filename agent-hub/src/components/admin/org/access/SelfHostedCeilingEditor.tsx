@@ -1,8 +1,8 @@
 import { KeyRound, ToggleLeft } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import FeatureKillSwitches from '../../../integrations/FeatureKillSwitches';
-import ServerLicensePanel from '../../../licensing/ServerLicensePanel';
+import { useTranslation } from '@/hooks/useTranslation';
+import FeatureKillSwitches from '@/components/integrations/FeatureKillSwitches';
+import ServerLicensePanel from '@/components/licensing/ServerLicensePanel';
 
 /**
  * SelfHostedCeilingEditor — the self-hosted ceiling. On self-hosted the ceiling

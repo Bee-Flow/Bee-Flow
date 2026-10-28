@@ -2,8 +2,8 @@ import { render, screen, fireEvent, waitFor, within, cleanup, act } from '@testi
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { withQueryClient } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import OrgUsersPanel from './OrgUsersPanel';
-import { authFetch } from '../../../utils/helpers';
 /**
  * Characterisation suite for OrgUsersPanel — the org rights screen.
  *
@@ -26,11 +26,11 @@ import { authFetch } from '../../../utils/helpers';
 // setActiveSection() call is recorded instead of touching history.
 const tab = vi.hoisted(() => ({ section: 'users', navigated: [], basePath: null }));
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('../../shared/Toast', () => ({ toast }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
-vi.mock('../../../hooks/useUrlTab', () => ({
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useUrlTab', () => ({
     useUrlTab: ({ basePath }) => {
         tab.basePath = basePath;
         return [tab.section, (v) => { tab.navigated.push(v); }];

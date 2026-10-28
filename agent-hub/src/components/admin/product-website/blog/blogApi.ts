@@ -1,5 +1,5 @@
 // Admin API + types for blog posts (server/routes/cmsBlog.js).
-import { API_BASE } from '../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 
 const root = `${API_BASE}/api/cms`;
 

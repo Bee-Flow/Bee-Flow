@@ -1,11 +1,11 @@
 import { Loader2, Lock, Plus, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { FormDetail } from './useFormDetail';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DashCard from '../../../../shared/dashboard/DashCard';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import useConfirm from '../../../../shared/useConfirm';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import DashCard from '@/components/shared/dashboard/DashCard';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useConfirm from '@/components/shared/useConfirm';
 import { useOrgDirectory } from '../../AppStudio/rbac/useAppRoles';
 
 /**

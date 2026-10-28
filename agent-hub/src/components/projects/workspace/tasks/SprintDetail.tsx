@@ -4,10 +4,10 @@
 
 import { Plus, Search, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { useUpdateTask, type ProjectTask } from '../../../../api/queries/projectTasks';
-import { useAssignSprintItems, useUnassignSprintItem, type Sprint } from '../../../../api/queries/projectSprints';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
+import { useUpdateTask, type ProjectTask } from '@/api/queries/projectTasks';
+import { useAssignSprintItems, useUnassignSprintItem, type Sprint } from '@/api/queries/projectSprints';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import type { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
 import { GhostButton } from '../workspaceUi';

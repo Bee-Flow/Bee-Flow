@@ -7,7 +7,7 @@ import type { ToolDraft } from './ghostCellDraft';
 import type { RevealCue } from '../chat/useBuilderTurn';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
-import { MIN_MOVE_GAP_MS } from '../../../../shared/builder/revealSchedule';
+import { MIN_MOVE_GAP_MS } from '@/components/shared/builder/revealSchedule';
 import { findScreen } from '../state/definitionOps';
 
 interface FollowInputs {
@@ -66,6 +66,13 @@ export function scheduleFollowMoves(plan: { ids?: string[]; delays?: Map<string,
     return out;
 }
 
+/** The chapter kept between calls that name no screen; forgotten with the build or with its screen. */
+function nextStickyScreen(enabled: boolean, resolved: BuildScreen | null, sticky: BuildScreen | null, definition: Parameters<typeof findScreen>[0]): BuildScreen | null {
+    if (!enabled) return null;
+    if (resolved) return resolved;
+    return sticky && !findScreen(definition, sticky.id) ? null : sticky;
+}
+
 export default function useBuildFollow({
     surfaceRef, reveal, toolDraft = null, lastCall = null, definition = null, screenId = null, dispatch = null,
     enabled = false, reducedMotion = false,
@@ -82,11 +89,9 @@ export default function useBuildFollow({
         [enabled, definition, toolDraft, lastCall, reveal],
     );
     const [sticky, setSticky] = useState<BuildScreen | null>(null);
-    useEffect(() => {
-        if (!enabled) { setSticky(null); return; }
-        if (resolved) setSticky(resolved);
-        else setSticky((prev) => (prev && !findScreen(definition, prev.id) ? null : prev));
-    }, [enabled, resolved, definition]);
+    // Adjusted during render; it settles at once (the same inputs give the same value).
+    const nextSticky = nextStickyScreen(enabled, resolved, sticky, definition);
+    if (nextSticky !== sticky) setSticky(nextSticky);
     const screen = enabled ? (resolved || sticky) : null;
     const pendingScrollRef = useRef<string | null>(null);
 

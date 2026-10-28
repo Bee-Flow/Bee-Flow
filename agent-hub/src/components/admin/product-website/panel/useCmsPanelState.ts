@@ -4,8 +4,8 @@
 // so all state stays owned by the panel's fiber; the panel and the other
 // panel hooks receive these bindings by explicit threading.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import scopedStorage from '../../../../utils/scopedStorage';
-import useConfirm from '../../../shared/useConfirm';
+import scopedStorage from '@/utils/scopedStorage';
+import useConfirm from '@/components/shared/useConfirm';
 import { SITE_VIRTUAL_ID } from '../sentinels';
 import type {
     CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc, CmsSiteListEntry,

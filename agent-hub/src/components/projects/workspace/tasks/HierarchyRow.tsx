@@ -6,8 +6,8 @@
 
 import { ChevronDown, ChevronRight, ExternalLink, MoreHorizontal, Plus } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { Avatar } from '../workspaceUi';
 import { ProgressBar } from './sprintUi';

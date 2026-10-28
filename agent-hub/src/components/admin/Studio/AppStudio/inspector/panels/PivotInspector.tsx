@@ -1,9 +1,9 @@
 import React from 'react';
 import BindingField from './BindingField';
 import { TextField , usePatch } from './kit';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { ConfigureDataButton } from '../../bi/QueryBuilder';
 import { registerInspector } from '../registry';
 import type { ReactNode } from 'react';

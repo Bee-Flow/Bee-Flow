@@ -2,10 +2,10 @@ import { Crosshair } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useBuildCue } from './BuildCueContext';
 import type { BuildCueValue, BuildPhaseInfo } from './BuildCueContext';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { enginePill, engineSegments, showsRates } from '../../../../shared/builder/engineLine';
-import { formatElapsed } from '../../../../shared/builder/formatElapsed';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import { enginePill, engineSegments, showsRates } from '@/components/shared/builder/engineLine';
+import { formatElapsed } from '@/components/shared/builder/formatElapsed';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The build banner on the App Studio canvas — the sibling of the automation

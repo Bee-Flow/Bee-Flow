@@ -1,5 +1,5 @@
 import { CheckCircle2, ClipboardList, Hammer, Loader2 } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export interface InlinePlan {
     id?: string | null;

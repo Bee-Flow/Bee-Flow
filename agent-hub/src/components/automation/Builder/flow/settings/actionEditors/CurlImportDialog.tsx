@@ -1,7 +1,7 @@
 // "Import cURL" dialog of the http_request editor: paste, preview, apply.
 // The pasted text stays in local state only (never logged, never stored).
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { inputClass } from '../formPrimitives';
 import { parseCurl, type CurlImport } from './curlImport';
 

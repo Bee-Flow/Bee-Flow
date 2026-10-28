@@ -1,7 +1,7 @@
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import useAppTables from '../../../bi/useAppTables';
-import useConnectors from '../../../bi/useConnectors';
-import useDatasets from '../../../bi/useDatasets';
+import useTranslation from '@/hooks/useTranslation';
+import useAppTables from '@/components/admin/Studio/AppStudio/bi/useAppTables';
+import useConnectors from '@/components/admin/Studio/AppStudio/bi/useConnectors';
+import useDatasets from '@/components/admin/Studio/AppStudio/bi/useDatasets';
 import type { TableNameProps, DatasetNameProps, ConnectorNameProps, NamedProps, SourceSentenceProps, SourceSummaryProps } from '../BindingField.types';
 import { slotted } from './BindingField.helpers';
 

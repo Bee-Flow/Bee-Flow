@@ -1,5 +1,5 @@
 import { Activity, Unlink } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AdminOrganization } from './types';
 
 export interface NextcloudBindingsSectionProps {

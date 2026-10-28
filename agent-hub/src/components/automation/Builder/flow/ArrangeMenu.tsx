@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, ChevronDown, Rows3, Shrink, Expand } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * "Arrange ▾" in the south-west zone (design 1a): the three re-layouts

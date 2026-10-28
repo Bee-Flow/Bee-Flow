@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { BeeEditorProps, EditorShared } from './beeEditorTypes';
 import useEditorAnchors from './useEditorAnchors';
 import useEditorChrome from './useEditorChrome';
@@ -13,7 +13,7 @@ export default function useEditorSync(s: EditorShared, props: BeeEditorProps) {
   const { editable = true, onChange, onSave, onTocUpdate, onWordCountChange, notebookId, collab: collabHandle = null } = props;
   const {
     viewRef, lastHtmlRef, viewInst, setTick, setWordCount, onChangeRef, onSaveRef,
-    notebookIdRef, saveTimer, contentGenRef,
+    notebookIdRef, saveTimer: saveTimerRef, contentGenRef,
   } = s;
 
   useEffect(() => { onChangeRef.current = onChange; onSaveRef.current = onSave; });
@@ -21,11 +21,11 @@ export default function useEditorSync(s: EditorShared, props: BeeEditorProps) {
   // Switching notebooks must cancel any save still pending for the previous one.
   useEffect(() => {
     if (notebookIdRef.current !== notebookId) {
-      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
       contentGenRef.current += 1;
     }
     notebookIdRef.current = notebookId;
-  }, [notebookId]);
+  }, [notebookId, notebookIdRef, saveTimerRef, contentGenRef]);
 
   // Keep onTocUpdate fresh for the stable refreshChrome callback.
   const onTocRef = useRef(onTocUpdate);
@@ -48,18 +48,22 @@ export default function useEditorSync(s: EditorShared, props: BeeEditorProps) {
     onRender: () => setTick((n) => n + 1),
   });
   const chromeRef = useRef(chrome);
-  chromeRef.current = chrome;
 
   // Co-editing: bound once the session synced; read-only while it connects.
   const collab = useEditorCollab(viewInst, collabHandle);
   const collabRef = useRef(collab);
-  collabRef.current = collab;
   const effectiveEditable = editable && (!collab.active || collab.canEdit);
   const editableRef = useRef(effectiveEditable);
-  editableRef.current = effectiveEditable;
   const anchors = useEditorAnchors(viewRef, collab.binding);
   const anchorsRef = useRef(anchors);
-  anchorsRef.current = anchors;
+  // The view's callbacks and the shortcut handler read these; they run after
+  // a commit, so the refs follow the committed values.
+  useLayoutEffect(() => {
+    chromeRef.current = chrome;
+    collabRef.current = collab;
+    editableRef.current = effectiveEditable;
+    anchorsRef.current = anchors;
+  });
 
   // Recompute toolbar chrome (word count, TOC) after an external content change
   // that doesn't emit an update (setContent / AI write / content prop) — without

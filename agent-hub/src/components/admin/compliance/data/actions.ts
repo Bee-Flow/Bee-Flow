@@ -17,7 +17,7 @@
  */
 import { useCallback, useState } from 'react';
 import { resolveSection, resolveTab, sectionForRegulation } from '../sections';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** `admin/compliance/<canonical>[/<encoded id>][?tab=<tab>]`. */
 export function compliancePath(sectionId: string, subId: string | null = null, tab: string | null = null) {

@@ -2,9 +2,9 @@ import { X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { FormFieldRef, InputMapping, ParamMeta, ParamMetaByName } from './appDefinition';
 import { INPUT_CLS } from './panels/kit';
-import useTranslation from '../../../../../hooks/useTranslation';
-import IconButton from '../../../../shared/IconButton';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
+import IconButton from '@/components/shared/IconButton';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 // ── Input mapping (run_automation) ─────────────────────────────────────────
 

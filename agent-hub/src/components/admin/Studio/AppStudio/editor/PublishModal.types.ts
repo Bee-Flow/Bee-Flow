@@ -4,7 +4,7 @@ import type { HeaderApp } from './header/headerModel';
 import type { AppDefinition } from '../inspector/appDefinition';
 
 // Re-exported so PublishModal.tsx takes all its types from one import: the file is at its line ceiling.
-export type { TranslateFn } from '../../../../../hooks/useTranslation';
+export type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The issues the server's refusal or the dry run lists, split by weight. */
 export interface Findings {

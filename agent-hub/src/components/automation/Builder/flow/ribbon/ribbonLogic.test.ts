@@ -3,11 +3,11 @@ import { fitsAfterCards, mergeFrequentKeys, outputShapeOf, resolveFrequent, step
 import { addOptionsFor, ribbonAnchor } from './ribbonAnchor';
 import { expandQuery, searchRibbon } from './ribbonSearch';
 import { NATIVE_APP_HOME, availableCategories, presentingCategory, ribbonSections } from './ribbonCategories';
-import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
-import { resolveIntegrationFromTool } from '../../../../../utils/integrationIcons';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
+import { resolveIntegrationFromTool } from '@/utils/integrationIcons';
 import { planBlocksRow, planRow } from './ribbonRows';
 import type { SegmentPlan } from './ribbonRows';
-import { normaliseUsageRows } from '../../../../../api/queries/automation/usage';
+import { normaliseUsageRows } from '@/api/queries/automation/usage';
 
 const listCatalog = {
     apps: [{ id: 'nc-files', label: 'Nextcloud Files', available: true, actions: [{ name: 'nc_files_list', outputSample: { files: [] } }] }],

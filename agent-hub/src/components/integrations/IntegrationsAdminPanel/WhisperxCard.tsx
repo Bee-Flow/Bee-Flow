@@ -1,7 +1,7 @@
 import { Check, Loader2 } from 'lucide-react';
 import type React from 'react';
-import { saveTranscriptionConfig } from '../../../api/transcriptionConfigApi';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { saveTranscriptionConfig } from '@/api/transcriptionConfigApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { TranscriptionSectionProps } from './adminPanel.types';
 
 /** Provider 3: WhisperX, self-hosted (server URL and optional bearer token). */

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { SetStateAction } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import { apiJson } from '../hooks/useApi';
-import { messageOf } from '../../../../utils/caughtError';
-import { logger } from '../../../../utils/logger';
+import { messageOf } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 export type GeoMode = 'off' | 'allowlist' | 'blocklist';
 

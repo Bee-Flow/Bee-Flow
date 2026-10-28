@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowRight, ClipboardPaste, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import type { DtColumn } from './rowBrowser/rowBrowserModel';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import {
     buildImportRows, importableFields, parsePasted, suggestMapping,
 } from '../AppStudio/tables/spreadsheetPaste';

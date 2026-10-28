@@ -2,7 +2,7 @@ import { Ban, CheckCircle2, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { PERSONA_LIMITS, type BulletRejection } from './personaFacts';
 import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "Does" and "Does not": two bullet lists of the same shape (Agents artboard 1c). One component, because they differ only in

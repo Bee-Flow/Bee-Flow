@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { knowledgeApi, type KnowledgeBase } from './knowledgeApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import CategoryField from '../../../agents/AgentWizard/CategoryField';
-import DangerZone from '../../../shared/DangerZone';
-import type { CategoryRow } from '../../../agents/AgentWizard/agentEditor.types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import CategoryField from '@/components/agents/AgentWizard/CategoryField';
+import DangerZone from '@/components/shared/DangerZone';
+import type { CategoryRow } from '@/components/agents/AgentWizard/agentEditor.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SettingsTabProps, NameFieldsProps } from './SettingsTab.types';
 import { SURFACE_CARDS, SettingsTabSection2 } from './SettingsTabSection2';
 import { SettingsTabSection } from './SettingsTabSection';

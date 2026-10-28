@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../utils/helpers', () => ({ authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ authFetch: vi.fn() }));
 
+import { authFetch } from '@/utils/helpers';
 import useWaveform from './useWaveform';
-import { authFetch } from '../../../utils/helpers';
 
 /**
  * Regression: the recording used to be downloaded TWICE (authFetch for peaks +

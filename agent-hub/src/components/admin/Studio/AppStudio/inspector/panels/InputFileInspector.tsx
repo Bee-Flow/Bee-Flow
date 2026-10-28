@@ -1,6 +1,6 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 import { TextField , usePatch } from './kit';

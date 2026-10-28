@@ -1,7 +1,7 @@
 import type { KbUsageSummary, KbSuggestion, KnowledgeBase } from './knowledgeApi';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type React from 'react';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type { FreshnessKb } from './freshness';
 
 /**

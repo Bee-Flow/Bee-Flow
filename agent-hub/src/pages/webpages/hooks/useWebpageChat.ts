@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction , useLayoutEffect } from 'react';
-import useChatEngine from '../../../hooks/useChatEngine';
-import type { ChatAttachment } from '../../../hooks/useChatEngine/historyAttachment';
-import type { ChatMessage } from '../../../hooks/useChatEngine/types';
-import computeWebpageDiff from '../../../utils/computeWebpageDiff';
-import scopedStorage from '../../../utils/scopedStorage';
+import useChatEngine from '@/hooks/useChatEngine';
+import type { ChatAttachment } from '@/hooks/useChatEngine/historyAttachment';
+import type { ChatMessage } from '@/hooks/useChatEngine/types';
+import computeWebpageDiff from '@/utils/computeWebpageDiff';
+import scopedStorage from '@/utils/scopedStorage';
 import { appendEditToLatestAssistant, markApprovedPlansExecuted, setPlanStatus } from '../webpageChatMessages';
-import { isPrimaryFile, type PrimaryContent, type PrimaryFile, type PrimarySetters } from '../../../api/webpageEditorTypes';
-import { api } from '../../../api/webpagesApi';
+import { isPrimaryFile, type PrimaryContent, type PrimaryFile, type PrimarySetters } from '@/api/webpageEditorTypes';
+import { api } from '@/api/webpagesApi';
 import { useWebpageChatPersistence } from './useWebpageSave';
 import { useLatestAssistantRef, useWebpageTurnUndo } from './useWebpageTurnUndo';
 import type { WebpageExtraFiles } from './useWebpageExtraFiles';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const CHAT_MODES = ['ask', 'auto', 'plan'];
 const noop = () => {};

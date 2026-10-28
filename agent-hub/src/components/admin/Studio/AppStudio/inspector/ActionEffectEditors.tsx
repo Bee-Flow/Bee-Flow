@@ -5,9 +5,9 @@ import { mergeDrafts, splitNamed } from './keyedRows';
 import ExpressionInput from './logic/ExpressionInput';
 import { INPUT_CLS } from './panels/kit';
 import { TOAST_TONES } from './styleKnobMeta';
-import useTranslation from '../../../../../hooks/useTranslation';
-import IconButton from '../../../../shared/IconButton';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
+import IconButton from '@/components/shared/IconButton';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 type TFn = (key: string, fallback: string, params?: Record<string, string | number>) => string;
 

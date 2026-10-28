@@ -10,8 +10,8 @@
 
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { fNum } from '../../../../../../../pages/settings/usage/format';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { fNum } from '@/pages/settings/usage/format';
 import { REGION_BG, type Region } from '../../shieldPalette';
 import { REGION_WORDS, wordFor } from '../activityLabels';
 import { groupDestinations, missingReason, rowBar, type DestinationGroup } from './destinationGroups';

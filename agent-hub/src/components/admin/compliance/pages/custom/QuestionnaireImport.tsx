@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { ClipboardPaste, Upload } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { TONES } from '../../../../shared/statusTone';
-import { messageOf } from '../../../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import { TONES } from '@/components/shared/statusTone';
+import { messageOf } from '@/utils/caughtError';
 
 /**
  * QuestionnaireImport — paste a customer's NIS2 questionnaire or a sector code

@@ -1,15 +1,15 @@
 import { AlertTriangle, Info, Search } from 'lucide-react';
 import React from 'react';
-import type { OperatedStage } from '../../../../api/stagesApi';
+import type { OperatedStage } from '@/api/stagesApi';
 import SolutionCard from './SolutionCard';
 import SolutionCardSkeleton from './SolutionCardSkeleton';
 import { Strip, sectionNames } from './solutionNotices';
 import useRemote from './useRemote';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import EmptyState from '../../../shared/EmptyState';
-import FilterPills from '../../../shared/FilterPills';
-import { kindTileStyle } from '../../../shared/kindColors';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import EmptyState from '@/components/shared/EmptyState';
+import FilterPills from '@/components/shared/FilterPills';
+import { kindTileStyle } from '@/components/shared/kindColors';
 
 /* The grids, notices and tabs of the Solutions overview (SolutionsOverview.jsx composes them). */
 

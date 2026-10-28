@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
 import { useUndoCapture } from '../undoTestKit';
@@ -12,16 +12,16 @@ const { client, helpers } = vi.hoisted(() => ({
     client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>>,
     helpers: { authFetch: (() => {}) as unknown as Mock<(...args: unknown[]) => Promise<Response>> },
 }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
-vi.mock('../../../../utils/helpers', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../utils/helpers')>()),
+vi.mock('@/utils/helpers', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/utils/helpers')>()),
     authFetch: (...args: unknown[]) => helpers.authFetch(...args),
 }));
-vi.mock('../../../knowledge/memory/MemoryPanel', () => ({
+vi.mock('@/components/knowledge/memory/MemoryPanel', () => ({
     default: ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => (
         <div data-testid="memory-panel" data-project={projectId} data-can-edit={String(canEdit)} />
     ),

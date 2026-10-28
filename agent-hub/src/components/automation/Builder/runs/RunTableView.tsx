@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { AutomationRequestError } from '../../../../api/queries/automation/http';
-import { downloadRunTableCsv, useRunTablePage } from '../../../../api/queries/automation/runTables';
-import type { TableColumn, TableHandle } from '../../../../api/queries/automation/runTables';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import { AutomationRequestError } from '@/api/queries/automation/http';
+import { downloadRunTableCsv, useRunTablePage } from '@/api/queries/automation/runTables';
+import type { TableColumn, TableHandle } from '@/api/queries/automation/runTables';
 
 /** Rows on one page of the grid. */
 const TABLE_PAGE_SIZE = 50;

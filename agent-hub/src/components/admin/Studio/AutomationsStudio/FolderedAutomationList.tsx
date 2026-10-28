@@ -3,12 +3,12 @@ import React, { useMemo, useState } from 'react';
 import RecentlyDeletedSection from './RecentlyDeletedSection';
 import AutomationRow, { type AutomationRowProps } from './AutomationRow';
 import { isSharedWithMe } from './automationStatus';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
 import { ConfirmRemoveFolder, MoveFolderDialog } from './FolderDialogs';
 import FolderHeader, { NewFolderInput } from './FolderHeader';
-import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary';
-import { buildFolderTree, type FolderTreeNode } from '../../../automation/folderTree';
+import type { AutomationListRow, AutomationFolder } from '@/components/automation/useAutomationLibrary';
+import { buildFolderTree, type FolderTreeNode } from '@/components/automation/folderTree';
 
 /**
  * The automations sidebar, grouped into folders.

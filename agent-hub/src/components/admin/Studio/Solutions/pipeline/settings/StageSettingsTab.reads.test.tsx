@@ -3,16 +3,16 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch: (...a: unknown[]) => unknown }).__authFetch(...args),
 }));
-vi.mock('../../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: () => true, entDegraded: false, entError: null }),
 }));
 vi.mock('../../SolutionAccessDialog', () => ({ default: () => null }));
 
-import type { StageKey } from '../../../../../../api/stagesApi';
+import type { StageKey } from '@/api/stagesApi';
 import StageSettingsTab from './StageSettingsTab';
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };

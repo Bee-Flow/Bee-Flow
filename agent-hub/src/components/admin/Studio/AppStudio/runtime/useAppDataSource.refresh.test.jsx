@@ -11,7 +11,7 @@ import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
  * self-inflicted denial of service.
  */
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ records: [] }) })),
 }));

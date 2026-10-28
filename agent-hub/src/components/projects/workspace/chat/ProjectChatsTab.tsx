@@ -6,12 +6,12 @@
 
 import { Archive, MessageSquare, Plus, Search, RotateCcw } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
-import { useShareThread } from '../../../../api/queries/projects';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import EmptyState from '../../../shared/EmptyState';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { useShareThread } from '@/api/queries/projects';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
 import { THREAD_SEP } from '../tasks/taskLinks';
@@ -21,7 +21,7 @@ import { GhostButton, INPUT_CLASS, LoadingRow, Notice, PrimaryButton } from '../
 import ChatListRow, { type ChatRowContext } from './ChatListRow';
 import { useChatPeople } from './chatPeople';
 import NewChatComposer, { type NewChatMode } from './NewChatComposer';
-import { hasUnread } from '../../../../api/queries/projectChats';
+import { hasUnread } from '@/api/queries/projectChats';
 import ProjectTeamChat from './ProjectTeamChat';
 import { useChatList, type ChatListFilter, type ChatListItem } from './useChatList';
 import { useAnsweringIds } from './useTeamChatLive';

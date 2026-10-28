@@ -1,6 +1,6 @@
 import type { DtTable } from './rowBrowser/rowBrowserModel';
 import type { MirrorSource, MirrorSync } from './sourceMirrors';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceMirror } from './useSourceMirror';
 
 /** The datatable as the detail view reads it. */

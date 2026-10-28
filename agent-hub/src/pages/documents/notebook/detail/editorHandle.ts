@@ -3,7 +3,7 @@
  * Every method is optional: the page calls them with `?.` so an editor build
  * without one of them degrades to "nothing happens" instead of crashing.
  */
-import type { CommentAnchor } from '../../../../api/queries/comments';
+import type { CommentAnchor } from '@/api/queries/comments';
 
 export interface NotebookEditorFacade {
     getHTML?: () => string;

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, ApiError } from '@/api/mutate';
 
 /**
  * What else comes along when parts are added to a Solution.
@@ -116,7 +116,9 @@ const RELATED_DEBOUNCE_MS = 250;
 export function useRelatedParts(projectId: string, items: RelatedRef[]): RelatedState & { retry: () => void } {
     const key = items.map(i => `${i.kind}:${i.id}`).sort().join('|');
     const itemsRef = useRef(items);
-    itemsRef.current = items;
+    useLayoutEffect(() => {
+        itemsRef.current = items;
+    });
     const [answer, setAnswer] = useState<{ key: string; result: RelatedResult | null } | null>(null);
     const [attempt, setAttempt] = useState(0);
 

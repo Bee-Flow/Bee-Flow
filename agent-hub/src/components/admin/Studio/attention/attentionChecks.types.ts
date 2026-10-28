@@ -1,5 +1,5 @@
-import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
-import type { KindKey } from '../../../shared/kindColors';
+import type { LessonUser, HasFeature } from '@/api/lessons.types';
+import type { KindKey } from '@/components/shared/kindColors';
 
 /** One row of the aggregate, once it can be placed. */
 export interface AttentionFinding {

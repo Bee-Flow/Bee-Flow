@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // returns, so the hook's effect dependency `api` stays referentially stable and
 // re-subscribes only when `enabled`/`automationId` genuinely change.
 const { apiMock } = vi.hoisted(() => ({ apiMock: {} }));
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiMock }));
 
 import useRunStream from './useRunStream';
 

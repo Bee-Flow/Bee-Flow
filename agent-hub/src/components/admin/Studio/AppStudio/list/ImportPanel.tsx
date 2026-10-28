@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { accentTile, CARD_STYLE } from './cardStyle';
 import { importMetaLine, importProvenanceText } from './importExport';
 import type { FilePreview } from './types';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 // ── Import from a file (inside the New-app modal) ───────────────────
 

@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnChips } from '../TableColumnSelect';
 import type { PseudonymiseOp } from '../tableOpModel';
 import { Check, NumberInput, TextInput } from './inputs';

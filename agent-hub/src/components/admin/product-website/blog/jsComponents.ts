@@ -6,7 +6,7 @@ import {
     CollapsibleCard as CollapsibleCardJs, InlineHint as InlineHintJs, SegmentedControl as SegmentedControlJs,
 } from '../primitives';
 import AssetPickerDialogJs from '../dialogs/AssetPickerDialog';
-import AppIconJs from '../../../icons/AppIcon';
+import AppIconJs from '@/components/icons/AppIcon';
 import { SectionHeaderFields as SectionHeaderFieldsJs } from '../blockEditors/shared';
 
 // The blog editor's view of the field kit: the typed components themselves,

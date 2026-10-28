@@ -3,10 +3,10 @@
  * difference is only "soft", and a file's slides or sheets in plain language.
  * Pure; every caller passes its own t().
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type {
     CompareResult, CompareSummary, FilePart, FileSummary, SoftReason, StepCompare, StepVerdict,
-} from '../../../../api/queries/automation/runChecks';
+} from '@/api/queries/automation/runChecks';
 
 export type VerdictTone = 'good' | 'soft' | 'bad';
 

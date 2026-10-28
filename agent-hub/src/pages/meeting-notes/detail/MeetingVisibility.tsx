@@ -1,12 +1,12 @@
 import { Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
-import VisibilityCapsule from '../../../components/shared/VisibilityCapsule';
-import { toast } from '../../../components/shared/Toast';
-import useTranslation from '../../../hooks/useTranslation';
-import * as api from '../../../api/transcriptionsApi';
-import { errorMessage } from '../../../utils/caughtError';
-import type { OrgGroup } from '../../../components/shared/VisibilityCapsule.types';
+import { useOrgGroupsQuery } from '@/api/queries/orgGroups';
+import VisibilityCapsule from '@/components/shared/VisibilityCapsule';
+import { toast } from '@/components/shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import * as api from '@/api/transcriptionsApi';
+import { errorMessage } from '@/utils/caughtError';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 import type { MeetingNote } from './meetingDetailTypes';
 
 const NO_GROUPS: OrgGroup[] = [];

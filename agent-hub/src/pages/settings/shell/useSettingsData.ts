@@ -2,8 +2,8 @@ import { useCallback, useMemo } from 'react';
 import {
     useAppPasswordStatusQuery, useGithubStatusQuery, useLinkedinStatusQuery, useMemoryStatsQuery,
     useSettingsAgentsQuery, useSettingsOrganizationsQuery, useUserSettingsQuery,
-} from '../../../api/queries/shellReads';
-import type { MemoryStats } from '../../../components/knowledge/memory/memoryTypes';
+} from '@/api/queries/shellReads';
+import type { MemoryStats } from '@/components/knowledge/memory/memoryTypes';
 import type { PreferencesAgent } from '../PreferencesSection.types';
 import type { SettingsStatuses, SettingsUser } from './settingsShellTypes';
 

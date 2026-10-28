@@ -2,14 +2,14 @@ import { Loader2, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-reac
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useAppRoles, { useOrgDirectory } from './useAppRoles';
 import { resolveAccessEntry } from './rowRuleModel';
-import useTranslation from '../../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import toast from '../../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import toast from '@/components/shared/Toast';
 import { setDefinitionRoles } from '../state/definitionOps';
 import type { RuleTable, AccessPerm } from './rowRuleModel.types';
 import type { Filed } from '../../Solutions/useAddFiling';
 import type { DataModelTable } from './useAppRoles';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { RolesManagerProps, SectionHeaderProps } from './RolesManager.types';
 
@@ -242,9 +242,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
     // ---- member add form ----------------------------------------------------
     const [newMemberUser, setNewMemberUser] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('');
-    useEffect(() => {
-        if (!newMemberRole && draftRoles.length) setNewMemberRole(draftRoles[0].key);
-    }, [draftRoles, newMemberRole]);
+    if (!newMemberRole && draftRoles.length) setNewMemberRole(draftRoles[0].key);
 
     // Only roles the server already knows can take members — assigning a
     // freshly added, unsaved role answers 422 invalid_role.

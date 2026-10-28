@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileCheck2, History, Paperclip, PenLine, Trash2 } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId, type SideDrawerMode } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { TONES } from '../../../../shared/statusTone';
-import { API, fetchJson } from '../../../../../api/complianceApi';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerId, type SideDrawerMode } from '@/components/shared/SideDrawer';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import { TONES } from '@/components/shared/statusTone';
+import { API, fetchJson } from '@/api/complianceApi';
 
 /**
  * AttestDrawer — "I declare this item, and here is the evidence".

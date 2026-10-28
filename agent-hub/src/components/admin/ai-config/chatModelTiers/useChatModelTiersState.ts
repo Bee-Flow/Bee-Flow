@@ -10,7 +10,7 @@ import useClaudeSettings from './useClaudeSettings';
 import useCustomTiers from './useCustomTiers';
 import useModelSetting from './useModelSetting';
 import useTierConfigs from './useTierConfigs';
-import useConfirm from '../../../shared/useConfirm';
+import useConfirm from '@/components/shared/useConfirm';
 
 export default function useChatModelTiersState(allModels: CatalogModel[]) {
     const { confirm, confirmDialog } = useConfirm();

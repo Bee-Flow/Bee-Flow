@@ -1,4 +1,4 @@
-import { registerNavigationGuard } from '../../../utils/unsavedNavigation';
+import { registerNavigationGuard } from '@/utils/unsavedNavigation';
 // The project workspace: one page per project, a rail of sections on the
 // left, the open section on the right. `projectId === ''` is the create form.
 //
@@ -10,13 +10,13 @@ import { registerNavigationGuard } from '../../../utils/unsavedNavigation';
 
 import { AlertTriangle, History, Package } from 'lucide-react';
 import React, { Suspense, useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
-import { ApiError } from '../../../api/client';
-import { useProjectVisitQuery, type ChangeItemType } from '../../../api/queries/projectChanges';
+import { ApiError } from '@/api/client';
+import { useProjectVisitQuery, type ChangeItemType } from '@/api/queries/projectChanges';
 import {
     useProjectQuery, useSetProjectKind, type Project, type ProjectRole,
-} from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
-import { lazy as lazyWithReload } from '../../../utils/lazyWithReload';
+} from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
+import { lazy as lazyWithReload } from '@/utils/lazyWithReload';
 import SegmentedControl from '../../shared/SegmentedControl';
 import useConfirm from '../../shared/useConfirm';
 import ActivityTab from './ActivityTab';
@@ -309,17 +309,17 @@ function Workspace(props: WorkspaceProps) {
                     <SegmentedControl
                         size="sm"
                         ariaLabel={t('project_home.rail.label', 'Project sections')}
-                        value={route.tab}
-                        onChange={(tab) => route.go(tab)}
+                        value={plainRoute.tab}
+                        onChange={(tab) => go(tab)}
                         options={groups.flatMap((g) => g.items.map((item) => ({
                             value: item.id,
                             label: item.label,
-                            badge: unread.tabs[item.id] && item.id !== route.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
+                            badge: unread.tabs[item.id] && item.id !== plainRoute.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
                         })))}
                     />
                 </div>
                 {/* An open team chat shows its own band above its composer. */}
-                {!(route.tab === 'chats' && route.sub) && <ConnectionBand className="px-4 pt-3" />}
+                {!(plainRoute.tab === 'chats' && plainRoute.sub) && <ConnectionBand className="px-4 pt-3" />}
                 {(project.kind === null || project.kind === 'solution') && (
                     <div className="px-4 pt-3">
                         <KindNotice project={project} role={role} onNavigate={onNavigate} />

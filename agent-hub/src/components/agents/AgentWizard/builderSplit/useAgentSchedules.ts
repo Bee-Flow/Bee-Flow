@@ -7,8 +7,8 @@
  * dependency when the flag flips true).
  */
 import { useCallback, useMemo } from 'react';
-import { useCoworkSchedulesQuery } from '../../../../api/queries/sharedReads';
-import { useCan } from '../../../licensing/Gate';
+import { useCoworkSchedulesQuery } from '@/api/queries/sharedReads';
+import { useCan } from '@/components/licensing/Gate';
 
 export interface Schedule { id: string; title?: string; agentId?: string | number | null; [key: string]: unknown }
 

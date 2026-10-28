@@ -27,11 +27,11 @@
 // still add it to the project by hand.
 
 import { createContext, useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
-import { useAttachResource } from '../../../../api/queries/projects';
-import useTranslation from '../../../../hooks/useTranslation';
+import { useAttachResource } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import { useCapture } from '../../../../pages/meeting-notes/capture/CaptureContext';
-import { useRecorder } from '../../../../pages/meeting-notes/hooks/RecorderContext';
+import { useCapture } from '@/pages/meeting-notes/capture/CaptureContext';
+import { useRecorder } from '@/pages/meeting-notes/hooks/RecorderContext';
 
 export const ARM_TTL_MS = 6 * 60 * 60 * 1000;
 

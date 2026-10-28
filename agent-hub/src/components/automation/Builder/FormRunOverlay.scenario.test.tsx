@@ -7,14 +7,14 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { withQueryClient } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import FormRunOverlay from './FormRunOverlay';
 
 const get = vi.fn();
 const post = vi.fn();
-vi.mock('../../../api/client', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) } }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/api/client', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) } }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const reply = (status: number, body: unknown) =>
     Promise.resolve({ ok: status < 400, status, headers: new Headers(), json: async () => body } as unknown as Response);

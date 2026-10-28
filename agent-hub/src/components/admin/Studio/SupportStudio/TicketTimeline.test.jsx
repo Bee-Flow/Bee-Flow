@@ -1,12 +1,12 @@
 import { screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
+import { renderWithClient } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import TicketTimeline from './TicketTimeline';
-import { renderWithClient } from '../../../../test/render';
-import { authFetch } from '../../../../utils/helpers';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 describe('TicketTimeline', () => {
     beforeEach(() => { cleanup(); authFetch.mockReset(); });

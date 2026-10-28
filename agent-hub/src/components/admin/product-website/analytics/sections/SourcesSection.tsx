@@ -15,7 +15,7 @@
  */
 import { Share2, Link2, Copy, Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toChannels, channelLabel, referrerHost, pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
 import { SERIES, Empty, SplitBar, fmt, fmtDurationSec, rateColor } from '../ui';
@@ -24,7 +24,7 @@ import { ACCENT, ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** One UTM dimension's rows: the value under `x`, its count under `y` (or `count`). */
 type UtmRow = { x?: string | null; y?: number; count?: number; name?: string; value?: string };

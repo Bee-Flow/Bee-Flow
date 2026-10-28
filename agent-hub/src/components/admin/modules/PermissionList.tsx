@@ -2,7 +2,7 @@ import { Check, ServerCrash, ShieldAlert } from 'lucide-react';
 import React from 'react';
 import { normalizePermissions, permissionCopy, splitEnvPermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PermissionListProps {
     permissions?: unknown;

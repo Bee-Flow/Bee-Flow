@@ -1,10 +1,10 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { TemplateCard } from '../../../../api/queries/automation/templates';
-import { parseTemplates } from '../../../../api/queries/automation/templates';
+import type { TemplateCard } from '@/api/queries/automation/templates';
+import { parseTemplates } from '@/api/queries/automation/templates';
 
-vi.mock('../../../icons/AppIcon', () => ({ default: () => null }));
+vi.mock('@/components/icons/AppIcon', () => ({ default: () => null }));
 
 import TemplateTile from './TemplateTile';
 

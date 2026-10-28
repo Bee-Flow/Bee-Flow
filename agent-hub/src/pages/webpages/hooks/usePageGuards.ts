@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage, isAbortError } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { errorMessage, isAbortError } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 /**
  * Page-scope guards of the open webpage editor. `mountedRef` is what makes a

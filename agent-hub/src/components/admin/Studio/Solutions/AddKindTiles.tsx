@@ -2,7 +2,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import React from 'react';
 import { ADDABLE, type KindLoad } from './addPartsSources';
 import { kindInkClass } from './kindBar';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * One tile per kind a Solution can hold: its icon, its name and how many of

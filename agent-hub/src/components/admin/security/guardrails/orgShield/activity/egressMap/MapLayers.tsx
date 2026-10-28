@@ -16,7 +16,7 @@
 
 import React, { memo } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_FILL } from '../../shieldPalette';
 import { placeLabel } from './locationCopy';
 import { kindCount, type HostKinds } from './mapLabels';

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Braces, List, Maximize2, Table2, type LucideIcon } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import OutputFieldsViewJs from './mapping/OutputFieldsView';
 import TruncatedOutput from './TruncatedOutput';
 import FriendlyValue, { isTruncatedOutput, shownAs } from './output/FriendlyValue';

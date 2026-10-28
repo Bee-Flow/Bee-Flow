@@ -1,10 +1,10 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Modal from '../../../../../shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
-import type { ModalPlacement, ModalSize } from '../../../../../shared/Modal';
+import type { ModalPlacement, ModalSize } from '@/components/shared/Modal';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
 

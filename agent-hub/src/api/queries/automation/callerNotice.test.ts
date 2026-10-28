@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const authFetch = vi.hoisted(() => vi.fn());
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch }));
 
 import { acknowledgeCallerNotice, fetchCallerNotice } from './callerNotice';
 

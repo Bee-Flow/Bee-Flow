@@ -5,14 +5,14 @@
 
 import { ChevronRight, Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import { TASK_STATUSES, type ProjectTask, type TaskStatus } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { TASK_STATUSES, type ProjectTask, type TaskStatus } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
 import type { useChatPeople } from '../chat/chatPeople';
 import { sortTasks, type TaskSort } from './taskFilters';
 import TaskRow from './TaskRow';
 import { statusLabel } from './taskText';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** Done starts folded once it holds more than this many tasks. */
 const DONE_FOLD_FROM = 6;

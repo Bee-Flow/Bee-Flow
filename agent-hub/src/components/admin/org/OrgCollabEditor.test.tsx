@@ -11,7 +11,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import OrgCollabEditor from './OrgCollabEditor';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
 const respond = (status: number, body: unknown) => ({
     ok: status < 400, status, headers: { get: () => 'application/json' }, json: async () => body,

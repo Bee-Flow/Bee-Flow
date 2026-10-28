@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Plus, Trash2, X } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { INPUT_TYPES, type N8nWorkflow } from './n8nModel';
 import type { N8nWorkflows } from './useN8nState';
 

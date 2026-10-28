@@ -22,9 +22,9 @@ const H = vi.hoisted(() => ({
     state: { meeting: null },
 }));
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-vi.mock('../../../hooks/useUsage', () => ({
+vi.mock('@/hooks/useUsage', () => ({
     default: () => ({ usage: [], unchecked: [], error: null, loading: false, refetch: () => {}, setUsage: () => {} }),
     USAGE_KIND_PATH: {},
 }));
@@ -46,7 +46,7 @@ vi.mock('../hooks/useTranscription', async () => {
     return { default: useTranscriptionStub };
 });
 
-vi.mock('../../../api/transcriptionsApi', () => ({
+vi.mock('@/api/transcriptionsApi', () => ({
     patchTranscription: (...a) => H.patchTranscription(...a),
     regenerateSummary: (...a) => H.regenerateSummary(...a),
     deleteTranscription: vi.fn(async () => ({ success: true })),
@@ -62,7 +62,7 @@ vi.mock('./AssistantSidebar', () => ({ default: () => null }));
 vi.mock('./SpeakerEditor', () => ({ default: () => null }));
 vi.mock('./TemplateEditor', () => ({ default: () => null }));
 vi.mock('./MeetingVisibility', () => ({ default: () => null }));
-vi.mock('../../../components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
+vi.mock('@/components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
 /**
  * A harness in place of the real body: it shows the list MeetingDetail holds
@@ -170,7 +170,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
      */
     it('says so when the server reports the artifact pass did not run', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh',
@@ -190,7 +190,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
 
     it('stays quiet when the artifact pass DID run', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,
@@ -266,7 +266,7 @@ describe('MeetingDetail — writing a destination', () => {
 
     it('says so when the note could not be saved after the automation already ran', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         H.patchTranscription.mockRejectedValue(new Error('offline'));
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-set-destination'));
@@ -322,7 +322,7 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
 describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
     it('zegt hoeveel punten bewaard zijn die de nieuwe pass niet meer opleverde', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh',
@@ -350,7 +350,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
 
     it('...en telt ze wél zodra het er meer dan een zijn', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh',
@@ -374,7 +374,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
 
     it('zwijgt wanneer elk punt gewoon herkend werd', async () => {
         const user = userEvent.setup();
-        const { toast } = await import('../../../components/shared/Toast');
+        const { toast } = await import('@/components/shared/Toast');
         toast.info.mockClear();
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,

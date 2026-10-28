@@ -3,11 +3,11 @@ import React, { useRef, useState } from 'react';
 import PermissionConsentDialog from './PermissionConsentDialog';
 import { normalizePermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
-import { useActivateStaged, useOfflineGrant, useSideloadModule } from '../../../api/queries/modules';
-import type { SideloadResponse } from '../../../api/queries/modules.types';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useActivateStaged, useOfflineGrant, useSideloadModule } from '@/api/queries/modules';
+import type { SideloadResponse } from '@/api/queries/modules.types';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
-import { errorBodyRecord, errorMessage, errorStatus } from '../../../utils/caughtError';
+import { errorBodyRecord, errorMessage, errorStatus } from '@/utils/caughtError';
 
 interface SideloadResult {
     version: string;

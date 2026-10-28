@@ -1,4 +1,4 @@
-import type { ChatMonitoringConfig } from '../../../data/useChatMonitoring';
+import type { ChatMonitoringConfig } from '@/components/admin/compliance/data/useChatMonitoring';
 import type { ChangeKind, ChatMonitoringForm } from './chatMonitoringForm';
 
 /** What every section of the set-up form receives from ChatMonitoringSetup. */

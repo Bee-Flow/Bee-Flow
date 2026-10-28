@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, AlertTriangle, AlertCircle, X, Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface DiagnoseCheck {
     name: string;

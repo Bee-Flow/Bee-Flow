@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Pattern, RepeatingSuggestion } from '../../../../../api/queries/automation/repeating';
-import { interpolate } from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { Pattern, RepeatingSuggestion } from '@/api/queries/automation/repeating';
+import { interpolate } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import {
     appChain, cadenceBars, evidencePills, feedbackSuggestion, makeLabelFor, minutesText, parseRetrySeconds,
     patternEyebrow, reasonTexts, suggestionKey, templateParts, whenText,

@@ -1,9 +1,9 @@
 import React from 'react';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * GlassSection — the everyday glass knobs (intensity + tint + lensing).

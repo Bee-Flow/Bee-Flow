@@ -8,7 +8,7 @@
  * would actually let someone see, and the Approve button went grey with no
  * reason given. This module is the words that fix that.
  */
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AccessMember, AccessPlan, AccessRole, AccessTable, AccessTableRule } from './accessApply';
 
 /** The part of the app the wording reads. */

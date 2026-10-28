@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import type { NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
 

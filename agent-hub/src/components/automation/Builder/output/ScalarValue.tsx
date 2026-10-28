@@ -3,7 +3,7 @@ import { AlertTriangle, ListTree } from 'lucide-react';
 import JsonTree from '../debug/JsonTree';
 import { mapAttrs, type MapCtx } from './mapAttrs';
 import { scalarText } from './valueHelpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export { JsonTree };
 

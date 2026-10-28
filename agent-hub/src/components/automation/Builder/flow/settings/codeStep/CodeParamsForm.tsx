@@ -5,9 +5,9 @@
 // under "Other inputs", so nothing an older step carries is ever lost.
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState, type ComponentType } from 'react';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import ToolInputFormJs from '../../../mapping/ToolInputForm';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
+import ToolInputFormJs from '@/components/automation/Builder/mapping/ToolInputForm';
 import { hintTextClass, subLabelClass } from '../formPrimitives';
 import { paramsToSchema, splitInputs, type InputsMap } from './codeParams';
 

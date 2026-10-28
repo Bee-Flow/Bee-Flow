@@ -1,7 +1,7 @@
 import { ArrowUpRight, CalendarClock, PenLine, ScanSearch } from 'lucide-react';
 import React, { useId } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TONES, toneOfScore, headlineKeyOfScore, HEADLINE_FALLBACK } from '../../../../shared/statusTone';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { TONES, toneOfScore, headlineKeyOfScore, HEADLINE_FALLBACK } from '@/components/shared/statusTone';
 import { formatCalDate } from '../../shared/calendarMath';
 import MiniBars from '../../shared/MiniBars';
 import ScoreRing from '../../shared/ScoreRing';

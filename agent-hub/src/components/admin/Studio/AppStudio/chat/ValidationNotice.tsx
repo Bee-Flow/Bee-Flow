@@ -1,6 +1,6 @@
 import { Wrench } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One validation record: a bare string, or the validator's object. */
 type IssueRecord = string | { hint?: unknown; message?: unknown; code?: unknown; nodeId?: unknown } | null | undefined;

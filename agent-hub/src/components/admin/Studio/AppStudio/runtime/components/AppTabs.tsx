@@ -1,7 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import React, { useEffect, useEffectEvent, useState } from 'react';
-import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime, type ExpressionScope } from '../RuntimeContext';

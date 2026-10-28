@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import scopedStorage from '@/utils/scopedStorage';
 import KnowledgeStudio from './index';
 import { knowledgeApi } from './knowledgeApi';
-import scopedStorage from '../../../../utils/scopedStorage';
 
 vi.mock('./knowledgeApi', () => {
     const knowledgeApi = {
@@ -19,7 +19,7 @@ vi.mock('./knowledgeApi', () => {
     return { knowledgeApi, default: knowledgeApi };
 });
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => [] })),
 }));
@@ -149,7 +149,7 @@ describe('the suggestion banner', () => {
         // would be a second way to attach a knowledge base, and the one that
         // skips the usage-context check.
         knowledgeApi.suggestions.mockResolvedValue({ suggestions: [SUGGESTION] });
-        const { authFetch } = await import('../../../../utils/helpers');
+        const { authFetch } = await import('@/utils/helpers');
         authFetch.mockImplementation(async (url, opts) => ({
             ok: true, status: 200,
             json: async () => (opts?.method === 'PUT' ? {} : { id: 'ag1', config: { knowledge_base_ids: ['kb_other'] } }),

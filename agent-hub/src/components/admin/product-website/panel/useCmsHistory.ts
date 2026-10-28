@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';
 import type useCmsPanelState from './useCmsPanelState';
-import useDraftHistory from '../../../../hooks/useDraftHistory';
+import useDraftHistory from '@/hooks/useDraftHistory';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 

@@ -1,8 +1,8 @@
 import { Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../../../shared/ConfirmDialog';
-import IconButton from '../../../../../shared/IconButton';
+import useTranslation from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import IconButton from '@/components/shared/IconButton';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { insertNode, removeNode, updateNodeProps } from '../../state/definitionOps';
 import { registerInspector } from '../registry';

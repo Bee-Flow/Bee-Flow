@@ -7,7 +7,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (key: string, fallback: string, params: TranslateParams) => interpolate(fallback ?? key, params), locale: 'en' }),
 }));
 const interpolate = (s: string, params?: Record<string, unknown>) => String(s).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m));

@@ -16,7 +16,7 @@
  */
 import { Video, ShieldAlert, ExternalLink, Monitor, Globe, Play, Users } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { sessionSignals } from '../model';
 import { rich } from '../rich';
 import { SERIES, Empty, StatGrid, StatTile, fmt, fmtDurationMs, fmtAgo } from '../ui';

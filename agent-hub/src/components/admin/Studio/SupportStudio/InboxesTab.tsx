@@ -1,18 +1,18 @@
 import { Mail, Plus, Trash2, Link2, Unlink, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
-import useTranslation from '../../../../hooks/useTranslation';
-import { isTrustedOAuthOrigin } from '../../../../lib/oauthMessageOrigin';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import EmptyState from '../../../shared/EmptyState';
-import FormField from '../../../shared/FormField';
-import IconButton from '../../../shared/IconButton';
-import Section from '../../../shared/Section';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import useTranslation from '@/hooks/useTranslation';
+import { isTrustedOAuthOrigin } from '@/lib/oauthMessageOrigin';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import EmptyState from '@/components/shared/EmptyState';
+import FormField from '@/components/shared/FormField';
+import IconButton from '@/components/shared/IconButton';
+import Section from '@/components/shared/Section';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
-import { logger } from '../../../../utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
 
 interface InboxesTabProps {
     inboxes?: SupportInbox[];

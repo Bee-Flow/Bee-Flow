@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
-import { API_DSR, fetchJson, json, asArray } from '../../../../api/complianceApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import { API_DSR, fetchJson, json, asArray } from '@/api/complianceApi';
 import useResource from './useResource';
 import type { DsrRequestRow } from './aggregates';
 import type { Id, UseDsrArgs } from './registers.types';

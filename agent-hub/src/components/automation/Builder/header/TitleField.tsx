@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** A flowlet the canvas is scoped to: the title row becomes a breadcrumb. */
 export interface HeaderScope { key: string; title?: string; refCount?: number; empty?: boolean }
@@ -27,10 +28,10 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(displayTitle);
     const inputRef = useRef<HTMLInputElement | null>(null);
-    useEffect(() => { if (!editing) setDraft(displayTitle); }, [displayTitle, editing]);
+    useAdjustOnChange([displayTitle, editing], () => { if (!editing) setDraft(displayTitle); });
     useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
     // Don't carry an in-flight edit across a scope switch.
-    useEffect(() => { setEditing(false); }, [scope?.key]);
+    useAdjustOnChange([scope?.key], () => setEditing(false));
 
     const commit = () => {
         const next = (draft || '').trim();

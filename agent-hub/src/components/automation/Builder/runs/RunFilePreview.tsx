@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import useRunFilePreview from '../../../../hooks/automationBuilder/useRunFilePreview';
-import type { RunFileRef, RunFilePreviewKind } from '../../../../api/queries/automation/runFiles';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import useRunFilePreview from '@/hooks/automationBuilder/useRunFilePreview';
+import type { RunFileRef, RunFilePreviewKind } from '@/api/queries/automation/runFiles';
 
 const PAGE_BTN = 'p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-40 disabled:cursor-not-allowed';
 

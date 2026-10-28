@@ -5,7 +5,7 @@ import { bodyOf, frame, installVoiceStubs, mockFetch, removeVoiceStubs, speakOne
 
 // Characterisation of what a turn's SSE events do to the hook's state, the
 // host callback, the form the turn is POSTed with and the failure paths.
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 let turnResponse: unknown;
 let lastTurnForm: FormData | null;

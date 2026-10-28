@@ -4,8 +4,8 @@
  * formScenarios}.js); a person reads a plain sentence that says what to do.
  * Pure; every caller passes its own t().
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { AutomationRequestError } from '../../../../api/queries/automation/http';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { AutomationRequestError } from '@/api/queries/automation/http';
 
 const codeOf = (err: unknown): string | null => (err instanceof AutomationRequestError ? err.code : null);
 const statusOf = (err: unknown): number | null => (err instanceof AutomationRequestError ? err.status : null);

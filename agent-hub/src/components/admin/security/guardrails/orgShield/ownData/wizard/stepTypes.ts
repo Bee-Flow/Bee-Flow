@@ -1,6 +1,6 @@
 import type React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CustomDataType } from '../ownDataModel';
 import type { WizardAction, WizardState } from '../useTypeWizard';
 

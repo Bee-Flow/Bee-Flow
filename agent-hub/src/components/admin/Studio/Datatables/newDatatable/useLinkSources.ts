@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { errorCode } from '../../../../../utils/caughtError';
+import { errorCode } from '@/utils/caughtError';
 import { datatablesApi } from '../datatablesApi';
 
 /** What the server says about linking Nextcloud tables right now. */

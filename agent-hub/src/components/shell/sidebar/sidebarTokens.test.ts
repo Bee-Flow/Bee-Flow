@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readExpanded, writeExpanded } from './sidebarTokens';
-import scopedStorage, { setCurrentUser } from '../../../utils/scopedStorage';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 
 beforeEach(() => {
     localStorage.clear();

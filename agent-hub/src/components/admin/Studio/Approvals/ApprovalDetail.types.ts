@@ -1,7 +1,7 @@
 import type { ApprovalListRow } from './useApprovals';
 import type { ApprovalField } from './ApprovalDecisionControls';
-import type useAutomationApi from '../../../../hooks/useAutomationApi';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type useAutomationApi from '@/hooks/useAutomationApi';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type React from 'react';
 
 /** One vote on a panel or stage. */

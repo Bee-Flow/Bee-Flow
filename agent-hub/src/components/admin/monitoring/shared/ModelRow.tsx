@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { InOutBarProps, ModelRowProps } from '../shared.types';
 import { fmt, COLORS } from './SvgAreaChart';
 

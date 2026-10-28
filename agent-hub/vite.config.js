@@ -160,10 +160,11 @@ export default defineConfig(({ mode }) => {
         ],
         envDir: '..',
         resolve: {
-            // '@/' resolves to 'src/'. Use sparingly during the refactor —
-            // files adopt the alias as they are touched; we do not mass-rewrite
-            // existing relative imports. Keep the alias in sync with the
-            // 'paths' mapping in tsconfig.json.
+            // '@/' resolves to 'src/'. An import that climbs three or more
+            // levels is written '@/<path from src>' (npm run lint:deep-imports-ratchet,
+            // node scripts/deep-imports.mjs rewrites them); shorter ones stay
+            // relative. Keep the alias in sync with the 'paths' mapping in
+            // tsconfig.json and with vite.runtime.config.js.
             alias: {
                 '@': path.resolve(import.meta.dirname, 'src'),
                 // Isomorphic modules mirrored from the server (e.g. the

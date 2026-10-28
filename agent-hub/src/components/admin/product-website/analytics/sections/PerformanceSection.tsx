@@ -16,7 +16,7 @@
  */
 import { Gauge, Wrench } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import TrendChart from '../charts/TrendChart';
 import { rich } from '../rich';
 import { fmt } from '../ui';

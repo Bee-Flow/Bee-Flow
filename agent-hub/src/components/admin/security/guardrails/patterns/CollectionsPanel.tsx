@@ -2,7 +2,7 @@ import { Package, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { EMPTY_NOTE, INPUT, PANEL, PANEL_TITLE, SECONDARY_BUTTON } from './patternTypes';
 import type { PatternLibraryProps, RegexRule, RuleCollection } from './patternTypes';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CollectionCardProps {
     col: RuleCollection;

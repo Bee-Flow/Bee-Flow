@@ -1,12 +1,12 @@
 import { Play, Pause, RotateCcw, RotateCw } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useWaveform from '../hooks/useWaveform';
 import { formatDuration } from '../lib/format';
 import { buildSpeakerRows, buildSpeakerColorMap, normalizeChapters } from '../lib/playerData';
 import TimelineStack from './player/TimelineStack';
 import type { PlayerSegment, TimelineMarker } from './player/player.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface WaveformPlayerProps {
     audioSrc: string;

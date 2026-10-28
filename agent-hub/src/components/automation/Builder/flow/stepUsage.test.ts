@@ -8,7 +8,7 @@ import {
     scoreSuggestions,
     TRANSITION_RULES,
 } from './stepUsage';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 const DAY = 86400000;
 

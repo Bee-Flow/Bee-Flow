@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent } from 'react';
 import {
     useShieldAiConfigQuery, useShieldEuModelsQuery, useShieldGuardStatusQuery, useShieldOrganizationsQuery,
-} from '../../../../../api/queries/shellReads';
+} from '@/api/queries/shellReads';
 
 export interface ShieldOrg {
     id: string;

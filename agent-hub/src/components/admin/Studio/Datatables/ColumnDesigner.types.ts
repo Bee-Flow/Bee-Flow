@@ -1,7 +1,7 @@
 import type { DtColumn, DtTable } from './rowBrowser/rowBrowserModel';
 import type { MirrorSource, SourceError } from './sourceMirrors';
 import type { SourceMirror } from './useSourceMirror';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type React from 'react';
 import type { destructiveChanges } from './datatableDisplay';
 

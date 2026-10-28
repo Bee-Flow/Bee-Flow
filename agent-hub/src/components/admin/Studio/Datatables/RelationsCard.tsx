@@ -2,7 +2,7 @@ import { Link2, Loader2, Lock, Plus, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { isSourceMirror, sourceErrorMessage, sourceNameOf } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MirrorRelation, SourceError } from './sourceMirrors';
 import type { MirrorHookTable, SourceMirror } from './useSourceMirror';
 

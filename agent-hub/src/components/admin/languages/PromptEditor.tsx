@@ -2,10 +2,11 @@ import { Check, Copy } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
-import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { getLanguages, sendLanguagesJson } from '../../../api/languages';
-import { logger } from '../../../utils/logger';
+import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { getLanguages, sendLanguagesJson } from '@/api/languages';
+import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** GET /api/languages/:locale/prompts */
 interface PromptData {
@@ -153,12 +154,12 @@ export default function PromptEditor({ locale }: { locale: string }) {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    useEffect(() => {
+    useAdjustOnChange([selectedPrompt, translations], () => {
         if (selectedPrompt) {
             setEditText(translations[selectedPrompt] || '');
             setSaved(false);
         }
-    }, [selectedPrompt, translations]);
+    });
 
     const handleSave = async () => {
         if (!selectedPrompt) return;

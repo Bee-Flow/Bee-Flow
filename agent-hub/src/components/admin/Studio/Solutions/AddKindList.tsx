@@ -1,7 +1,7 @@
 import { Loader2, Search } from 'lucide-react';
 import React, { useMemo } from 'react';
 import type { AddItem, KindLoad } from './addPartsSources';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * The search box and the checklist of ONE kind. Four states stay apart because

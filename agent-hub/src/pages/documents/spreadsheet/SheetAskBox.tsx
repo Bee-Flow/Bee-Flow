@@ -4,7 +4,7 @@
 
 import { CornerDownLeft, Loader2, Sparkles, Square } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { firstSentence } from './sheetAskText';
 import type { SheetAsk } from './useSheetAsk';
 

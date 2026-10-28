@@ -1,6 +1,6 @@
 import type { ExprNode } from './rowFilterSubset';
 import type { AccessEntry, AccessPerm, RuleCondition } from './rowRuleModel.types';
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { READ_WRITE_SCOPES } from './rowRuleModel.constants';
 
 /**

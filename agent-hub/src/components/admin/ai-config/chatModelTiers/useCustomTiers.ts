@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { CUSTOM_TIER_DEFAULTS, slugifyTierLabel } from './constants';
 import type { CustomTier } from './tierTypes';
-import { getAiConfig } from '../../../../api/aiConfig';
+import { getAiConfig } from '@/api/aiConfig';
 
 type ConfirmFn = (opts: { title: string; description?: string; confirmLabel?: string; destructive?: boolean }) => Promise<boolean>;
 

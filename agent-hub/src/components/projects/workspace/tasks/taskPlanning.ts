@@ -1,4 +1,4 @@
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 
 // Planning metadata lives in reserved task labels so it follows the task through
 // the existing project API and remains compatible with older Bee Flow servers.

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export const MEMORY_TYPE_IDS = [
     'instruction',

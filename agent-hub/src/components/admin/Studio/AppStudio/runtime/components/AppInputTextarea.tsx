@@ -1,11 +1,11 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
-import type { CannedResponse } from '../../../../../support/SupportInboxPanel.types';
+import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 

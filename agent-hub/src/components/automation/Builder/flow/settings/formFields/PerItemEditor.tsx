@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { FieldEditorProps } from './fieldEditor.types';
 import { PER_ITEM_NAME_MAX, canAskPerItem } from './fieldKinds';
 import SourceSpecEditor from './SourceSpecEditor';

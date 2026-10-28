@@ -1,9 +1,9 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Modal from '../../../shared/Modal';
-import { toast } from '../../../shared/Toast';
-import { skillsApi } from '../../../../api/skillsApi';
-import type { JsonResourceError } from '../../../../api/client';
+import Modal from '@/components/shared/Modal';
+import { toast } from '@/components/shared/Toast';
+import { skillsApi } from '@/api/skillsApi';
+import type { JsonResourceError } from '@/api/client';
 import type { FromConversationPickerProps, PickerConversation, PickerMessage, BusyProps } from './ExamplesTab.types';
 
 export function FromConversationPicker({ skillId, onClose, onAdded, t }: FromConversationPickerProps) {

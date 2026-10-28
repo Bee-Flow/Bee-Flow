@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import { readableValue } from '../mapping/upstream/fieldTree';

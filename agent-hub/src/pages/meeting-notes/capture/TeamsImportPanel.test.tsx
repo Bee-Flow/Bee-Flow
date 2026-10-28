@@ -4,12 +4,12 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 
 vi.mock('./CaptureControls', () => ({ default: () => null }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../api/microsoftOAuthPopup', () => ({ openMicrosoftOAuthPopup: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/api/microsoftOAuthPopup', () => ({ openMicrosoftOAuthPopup: vi.fn() }));
 
 const queryState: { current: unknown } = { current: null };
 const invalidate = vi.fn();
-vi.mock('../../../api/queries/teamsMeetingNotes', () => ({
+vi.mock('@/api/queries/teamsMeetingNotes', () => ({
     useTeamsRecordings: () => queryState.current,
     useInvalidateTeamsMeetingNotes: () => invalidate,
 }));
@@ -18,7 +18,7 @@ const recorderMock: { current: Record<string, unknown> | null } = { current: nul
 vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.current }));
 
 import TeamsImportPanel from './TeamsImportPanel';
-import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup } from '@/api/microsoftOAuthPopup';
 
 const CONNECTED = { microsoftConnected: true, teamsScopesGranted: true, hasMeetingWriteScope: true, hasTranscriptScope: true, needsReauth: false };
 const ITEMS = [

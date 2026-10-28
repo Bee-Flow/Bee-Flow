@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { Field, INPUT_CLASS, inputStyle } from '../../admin/Studio/AppStudio/runtime/uiBits';
 import { normaliseOptions } from '../formOptions';
 import type { AppPick, FormChangeHandler, FormErrorHandler, FormFieldProps, FormUpload } from '../PublicFormRenderer.types';

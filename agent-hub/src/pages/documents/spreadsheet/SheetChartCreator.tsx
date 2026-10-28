@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChartArea, ChartBar, ChartColumn, ChartColumnStacked, ChartLine, ChartPie, ChartScatter, Donut, Gauge } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { cellName, parseCellRef } from './sheetEngine';
 import { COL_PX, ROW_PX, parseA1Range, type ChartFormat, type ChartType, type SheetChartConfig, validateChart } from './sheetCharts';
 import type { SelectionKind } from './sheetModel';

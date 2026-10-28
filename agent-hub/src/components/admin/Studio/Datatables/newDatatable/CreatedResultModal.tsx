@@ -1,9 +1,9 @@
 import { ShieldAlert } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { BTN } from './constants';
 
 interface CreatedResultModalProps {

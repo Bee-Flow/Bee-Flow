@@ -1,7 +1,7 @@
 import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
-import { NEUTRAL_SPEAKER_COLOR } from '../../../../config/meetingNotesConfig';
-import useTranslation from '../../../../hooks/useTranslation';
+import { NEUTRAL_SPEAKER_COLOR } from '@/config/meetingNotesConfig';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration, formatSpeakerLabel } from '../../lib/format';
 import { segmentNearTime, segmentSpeakerId, speakerColor } from '../../lib/playerData';
 import type { OthersRow, PlayerSegment, SeekToFn, SpeakerBlock, SpeakerTimelineRow } from './player.types';

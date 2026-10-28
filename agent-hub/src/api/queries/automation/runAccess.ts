@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * Who may START a run (Run now, Run again, Run live).

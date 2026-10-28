@@ -1,7 +1,7 @@
 import type { KnowledgeBase } from './knowledgeApi';
-import type { UsageRow } from '../../../../hooks/useUsage';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { UsageRow } from '@/hooks/useUsage';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface SettingsTabProps {
     kb: KnowledgeBase | null;

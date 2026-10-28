@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { EmptyText } from '../../uiBits';
 import type { ReactElement } from 'react';
 import type { RunAction } from './gridTypes';

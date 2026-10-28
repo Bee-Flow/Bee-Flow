@@ -34,7 +34,7 @@
 //         },
 //       }
 
-import type { FlowAttempt, SimScenario } from '../../../../api/lessons.types';
+import type { FlowAttempt, SimScenario } from '@/api/lessons.types';
 
 // ── match ────────────────────────────────────────────────────────────────────
 

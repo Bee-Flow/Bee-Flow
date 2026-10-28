@@ -13,7 +13,7 @@
  * Pure so the wording can be unit-tested without a save.
  */
 
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface ClampLabel {
     key: string;

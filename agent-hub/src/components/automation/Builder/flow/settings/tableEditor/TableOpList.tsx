@@ -4,8 +4,8 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { AlertCircle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { OpResult } from '../../../../../../api/queries/automation/tablePreview';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { OpResult } from '@/api/queries/automation/tablePreview';
 import { actionButtonClass } from '../formStyles';
 import { opSummary } from './opSummary';
 import type { OpHelp, Translate } from './opHelp';

@@ -9,9 +9,9 @@ import EuGptApiKeyCard from './ProviderCards/EuGptCard';
 import GoogleApiKeyCard from './ProviderCards/GoogleCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { getModelMeta, CAT_COLORS } from '../../../api/modelMeta';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { getModelMeta, CAT_COLORS } from '@/api/modelMeta';
 
 import WebSearchInferenceConfig from './WebSearchInferenceConfig';
 
@@ -20,9 +20,9 @@ import ElevenLabsApiKeyCard from './ProviderCards/ElevenLabsCard';
 import GoogleVertexConfigCard from './ProviderCards/GoogleVertexCard';
 import LocalModelsCard from './ProviderCards/LocalModelsCard';
 import RerankerConfig from './RerankerConfig';
-import type { ProviderMessage } from '../../../hooks/useProviderConfig';
+import type { ProviderMessage } from '@/hooks/useProviderConfig';
 import type { CatalogModel } from './chatModelTiers/tierTypes';
-import { request, RefusedError } from '../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 /** A provider as GET /ai/providers lists it. */
 interface ProviderRow {

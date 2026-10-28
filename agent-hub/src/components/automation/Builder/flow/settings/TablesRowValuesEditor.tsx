@@ -25,7 +25,7 @@
 // ./columnMatch.js, which the server mirrors.
 import { RefreshCw, Trash2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import { EmptySlotNote } from '../../mapping/fieldChrome';
 import FieldKindIcon from '../../mapping/FieldKindIcon';
 import { isEmptyBinding } from '../../mapping/partitionInputs';

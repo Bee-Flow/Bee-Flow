@@ -1,6 +1,6 @@
 import { parseId, type FlowStep, type GraphEdge, type GraphNode } from '../stepGraph';
 import { isDanglingRef, labelForRef, type RefOption } from '../stepReferences';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppAction } from '../../inspector/appDefinition';
 import type { FlowGraph } from '../ActionFlowEditor.types';
 

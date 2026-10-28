@@ -1,5 +1,5 @@
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
 import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
 import { NumberField, TextAreaField, TextField, usePatch } from './kit';

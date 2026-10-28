@@ -5,8 +5,8 @@ import { AccessView } from './AccessView';
 import { apiJson } from '../hooks/useApi';
 
 vi.mock('../hooks/useApi', () => ({ apiJson: vi.fn() }));
-vi.mock('../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const apiMock = vi.mocked(apiJson);
 

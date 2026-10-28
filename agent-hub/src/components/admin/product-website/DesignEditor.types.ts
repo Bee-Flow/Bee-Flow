@@ -1,4 +1,4 @@
-import type { DesignColors, EditableDesign } from '../../../marketing/ProductWebsite.types';
+import type { DesignColors, EditableDesign } from '@/marketing/ProductWebsite.types';
 import type { THEME_PRESETS } from './themePresets';
 
 export type { DesignColors, EditableDesign };

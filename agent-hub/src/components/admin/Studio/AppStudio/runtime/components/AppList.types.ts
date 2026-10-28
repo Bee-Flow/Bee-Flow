@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { BindingInput } from '../resolveBinding.types';
 import type { PeekGroupLabel } from '../listPeek';
 

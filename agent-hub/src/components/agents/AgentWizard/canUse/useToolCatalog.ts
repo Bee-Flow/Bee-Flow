@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { READ } from './canUseFacts';
-import { useToolCatalogQuery, useToolLendingQuery } from '../../../../api/queries/agentWizardFacts';
+import { useToolCatalogQuery, useToolLendingQuery } from '@/api/queries/agentWizardFacts';
 import type { ReadState } from '../agentEditor.types';
 import type { ToolApp } from './toolCatalogTypes';
 

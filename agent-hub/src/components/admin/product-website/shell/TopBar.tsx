@@ -6,10 +6,10 @@ import LocaleMenu from './LocaleMenu';
 import PublishMenu from './PublishMenu';
 import SaveBadge from './SaveBadge';
 import SiteVersionMenu from './SiteVersionMenu';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import Tooltip from '../../../shared/Tooltip';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Tooltip from '@/components/shared/Tooltip';
 
 function IconBtn({ name, title, onClick, active = false }: { name: string; title: string; onClick?: () => void; active?: boolean }) {
     return (

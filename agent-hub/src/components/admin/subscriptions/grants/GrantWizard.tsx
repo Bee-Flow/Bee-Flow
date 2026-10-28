@@ -1,9 +1,9 @@
 import { ArrowLeft, ArrowRight, Plus, CheckCircle, Copy, Mail, Save } from 'lucide-react';
 import React, { useState } from 'react';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../utils/caughtError';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import { TIER_PRESETS, EXPIRY_PRESETS } from '../constants';
 import { apiJson } from '../hooks/useApi';
 import { Banner } from '../ui/Banner';

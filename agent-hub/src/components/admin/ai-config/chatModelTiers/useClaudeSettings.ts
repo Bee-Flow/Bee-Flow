@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { CLAUDE_RECOMMENDED, CLAUDE_REC_TIER_ORDER } from './constants';
 import type { StatusMessage, TierConfig, TierSettings } from './tierTypes';
 import { flash } from './tierTypes';
-import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
+import { getAiConfig, postAiConfig } from '@/api/aiConfig';
 
 interface ClaudeRecommendation {
     modelId: string;

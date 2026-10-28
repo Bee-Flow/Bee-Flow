@@ -1,9 +1,9 @@
 // The stop_error editor: the message a deliberate halt records as the run's
 // reason.
-import TemplateField from '../../../mapping/TemplateField';
+import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepEditorProps } from '../collectionEditors';
 
 type StopErrorFieldsProps = StepEditorProps;

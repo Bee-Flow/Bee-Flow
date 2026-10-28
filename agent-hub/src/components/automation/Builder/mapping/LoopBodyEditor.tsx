@@ -6,7 +6,7 @@ import {
     ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3,
     type LucideIcon,
 } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -97,7 +97,9 @@ export default function LoopBodyEditor({
     // back). Patching by id against the current ref drops a flush for a
     // deleted id and always lands on the right row after a reorder.
     const bodyRef = useRef(body);
-    bodyRef.current = body;
+    useLayoutEffect(() => {
+        bodyRef.current = body;
+    });
     // What the body's steps preview against: the outer root plus this loop's
     // own item (`loop.<itemVar>`), so its fields show data and a Loop inside
     // this one resolves its list through it (loopBodyPreview.ts).

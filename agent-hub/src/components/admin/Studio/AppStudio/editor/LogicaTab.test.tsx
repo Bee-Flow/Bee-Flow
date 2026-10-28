@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 // The routine list normally comes from one shared request per session (editor/automationTitles.js).
 // Here it is data, so that each test can set up its own solution and steps without having to time a fetch.
@@ -18,12 +18,12 @@ vi.mock('./automationTitles', () => ({
 // picker and that no second one appears, and you can only see that by letting it render. Only its data
 // layer is a stub.
 const listAutomations = vi.fn(async () => ({ automations: [{ id: 'aut_new', title: 'Weekly digest', isActive: true }] }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations, createAutomation: vi.fn() }),
 }));
 
 import LogicaTab, { pendingCountOf, runCountOf } from './LogicaTab';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock, stub } from '@/test/mocks';
 import type { ReactNode } from 'react';
 import type { ComponentProps } from 'react';

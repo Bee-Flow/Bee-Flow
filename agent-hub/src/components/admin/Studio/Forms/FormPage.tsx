@@ -1,17 +1,18 @@
 import { BarChart3, ClipboardList, ExternalLink, Link2, ListChecks, Loader2, Settings2, Share2, Workflow } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AnswersDashboard from './answers/AnswersDashboard';
 import QuestionsTab from './form/QuestionsTab';
 import SettingsTab from './form/SettingsTab';
 import ShareTab from './form/ShareTab';
 import useFormDetail, { FormDraft } from './form/useFormDetail';
 import { formLiveness, publicFormPath, type FormListRow } from './FormsStudio';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import ManagedPartBanner from '../../../shared/ManagedPartBanner';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import Tabs from '../../../shared/Tabs';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { useTranslation } from '@/hooks/useTranslation';
+import ManagedPartBanner from '@/components/shared/ManagedPartBanner';
+import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import Tabs from '@/components/shared/Tabs';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * Studio → Forms → one form. Tabs: Questions · Share · Answers · Settings for
@@ -44,13 +45,7 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
     const allowed = mine ? TABS_OWNER : TABS_VIEWER;
     const fallback = mine ? 'questions' : 'answers';
     const [active, setActive] = useState(tab && allowed.includes(tab) ? tab : fallback);
-    const lastTab = useRef(tab);
-    useEffect(() => {
-        if (tab !== lastTab.current) {
-            lastTab.current = tab;
-            setActive(tab && allowed.includes(tab) ? tab : fallback);
-        }
-    }, [tab, allowed, fallback]);
+    useAdjustOnChange([tab], () => setActive(tab && allowed.includes(tab) ? tab : fallback));
 
     const detailState = useFormDetail(form?.automationId);
     const { detail, loading, error, reload, dirty } = detailState;

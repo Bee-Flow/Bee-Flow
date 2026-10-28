@@ -12,9 +12,9 @@
  */
 import React, { useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import VersionCompare from '../../../../components/versions/VersionCompare';
-import { CURRENT } from '../../../../api/queries/versions';
+import useTranslation from '@/hooks/useTranslation';
+import VersionCompare from '@/components/versions/VersionCompare';
+import { CURRENT } from '@/api/queries/versions';
 
 interface Props {
     notebookId: string;

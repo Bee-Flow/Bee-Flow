@@ -1,5 +1,5 @@
-import Modal from '../../../shared/Modal';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface EnableEmbedConfirmModalProps {
     t: TranslateFn;

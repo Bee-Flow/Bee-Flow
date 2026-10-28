@@ -5,8 +5,8 @@ import type { BillingPlan, OrgSubscription } from './license/licenseShared';
 import type { OrgSubscriptionState } from './license/useOrgSubscription';
 import OrgLicenseSection from './OrgLicenseSection';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
-vi.mock('../../../billing/InvoicesPanel', () => ({ default: () => <div data-testid="invoices" /> }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/components/billing/InvoicesPanel', () => ({ default: () => <div data-testid="invoices" /> }));
 
 const PLAN: BillingPlan = { id: 'p1', name: 'Team', price: 20, currency: 'eur', billing_interval: 'monthly', has_stripe_price: true };
 

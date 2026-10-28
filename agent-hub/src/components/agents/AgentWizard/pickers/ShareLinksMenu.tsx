@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link2 } from 'lucide-react';
 import ExternalShareSection from './ExternalShareSection';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ShareLinksMenu({ webpageId, webpageName }: { webpageId?: string | null; webpageName?: string }) {
     const { t } = useTranslation();

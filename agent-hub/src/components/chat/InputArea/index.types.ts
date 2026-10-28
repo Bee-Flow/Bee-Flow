@@ -3,9 +3,9 @@ import type { SkillsPopoverProps } from '../../skills/SkillsPopover';
 import type { VoiceTurn } from '../Voice/useVoiceSession.types';
 import type { CoworkMode } from '../../cowork/CoworkModeSwitch';
 import type React from 'react';
-import type { ModelTierMap } from '../../../hooks/useModelTierSelection';
-import type { KnowledgeBase } from '../../../hooks/useKnowledgeBases';
-import type { ChatMessage } from '../../../hooks/useChatEngine/types';
+import type { ModelTierMap } from '@/hooks/useModelTierSelection';
+import type { KnowledgeBase } from '@/hooks/useKnowledgeBases';
+import type { ChatMessage } from '@/hooks/useChatEngine/types';
 import type { UseCoworkComposerReturn } from '../../cowork/useCoworkComposer';
 import type { NoticeModel } from '../chatSignals/chatSignalsModel';
 

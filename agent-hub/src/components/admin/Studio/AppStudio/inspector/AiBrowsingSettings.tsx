@@ -1,8 +1,9 @@
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import FormField from '../../../../shared/FormField';
-import Toggle from '../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import Toggle from '@/components/shared/Toggle';
 import type { SectionTitleProps, AiBrowsingSettingsProps } from './ThemePanel.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export function SectionTitle({ children }: SectionTitleProps) {
     return (
@@ -17,9 +18,10 @@ export function AiBrowsingSettings({ value, onCommit, disabled }: AiBrowsingSett
     const { t } = useTranslation();
     const enabled = value?.enabled === true;
     const domains: string[] = Array.isArray(value?.allowedDomains) ? value.allowedDomains : [];
-    const [draft, setDraft] = React.useState(domains.join('\n'));
+    const domainsText = domains.join('\n');
+    const [draft, setDraft] = React.useState(domainsText);
     // Re-sync when the definition changes underneath (undo, another surface).
-    React.useEffect(() => { setDraft(domains.join('\n')); }, [domains.join('\n')]);
+    useAdjustOnChange([domainsText], () => setDraft(domainsText));
 
     const commitDomains = () => {
         const list = draft

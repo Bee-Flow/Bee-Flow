@@ -2,8 +2,8 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { outputShape } from './outputDrafts';
 import OutputFieldsEditor from './OutputFieldsEditor';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface OutputEditorPanelProps {
     /** The JSON text BOTH faces write — the one piece of state the cap weighs. */

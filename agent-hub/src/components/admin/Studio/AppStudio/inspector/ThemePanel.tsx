@@ -1,10 +1,10 @@
-import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import { TextField, TextAreaField, IconField } from './panels/kit';
 import { SCREEN_DEFAULTS, SCREEN_ENUMS, THEME_ENUMS } from './styleKnobMeta';
-import ColorPicker from '../../../../shared/ColorPicker';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Toggle from '../../../../shared/Toggle';
+import ColorPicker from '@/components/shared/ColorPicker';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Toggle from '@/components/shared/Toggle';
 import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '../runtime/appDesign';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';

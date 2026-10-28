@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import PageStage from '../heatmap/PageStage';
 import { fmt } from '../ui';
 import { ErrorNote } from '../AsyncCard';

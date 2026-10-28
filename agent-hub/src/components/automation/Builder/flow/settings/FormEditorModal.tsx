@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { X, Smartphone, Monitor, FileText, Flag, Zap } from 'lucide-react';
 import FormBuilderFields, { THEME_PRESETS } from './FormBuilderFields';
-import PublicFormRenderer, { FormEndingView } from '../../../../forms/PublicFormRenderer';
+import PublicFormRenderer, { FormEndingView } from '@/components/forms/PublicFormRenderer';
 import { buildPreviewConfig } from './formPreview';
 import type { FormPageEntry } from './formPages';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * The full-screen overview of an automation's hosted form: every page on the

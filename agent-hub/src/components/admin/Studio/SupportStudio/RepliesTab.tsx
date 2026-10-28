@@ -2,17 +2,17 @@ import { Save } from 'lucide-react';
 import { useState } from 'react';
 import type { SupportInbox } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
-import { getIntegrationById } from '../../../../config/integrationCatalog';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { useAvailableIntegrations } from '../../../../api/queries/studioSupport';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
-import ConfigToggle from '../../../shared/ConfigToggle';
-import Disclosure from '../../../shared/Disclosure';
-import FormField from '../../../shared/FormField';
-import Section from '../../../shared/Section';
-import Slider from '../../../shared/Slider';
-import { toast } from '../../../shared/Toast';
+import { getIntegrationById } from '@/config/integrationCatalog';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useAvailableIntegrations } from '@/api/queries/studioSupport';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import ConfigToggle from '@/components/shared/ConfigToggle';
+import Disclosure from '@/components/shared/Disclosure';
+import FormField from '@/components/shared/FormField';
+import Section from '@/components/shared/Section';
+import Slider from '@/components/shared/Slider';
+import { toast } from '@/components/shared/Toast';
 
 const REPLY_MODE_IDS = ['draft', 'auto_confident', 'autonomous'];
 

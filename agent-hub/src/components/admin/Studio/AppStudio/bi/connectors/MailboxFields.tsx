@@ -1,11 +1,11 @@
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { postConnector } from '../../../../../../api/connectorHttp';
+import { postConnector } from '@/api/connectorHttp';
 import { TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { Connector } from './connectorModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../../../utils/caughtError';
+import useTranslation from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 /** Sets (or, for '' / null, removes) one optional connector field. */
 export type SetOpt = (key: string, value: unknown) => void;

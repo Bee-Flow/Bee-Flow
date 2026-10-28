@@ -15,7 +15,7 @@ interface BuildTabProps {
     state: { reviewPlan: { id: string; status: string } | null; reviewQuestionsPlanId: string | null };
 }
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d: unknown) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -28,9 +28,9 @@ vi.mock('./BuildTab', () => ({ default: (p: BuildTabProps) => { buildTab = p; re
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
 import BuilderShell from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
-import scopedStorage, { setCurrentUser } from '../../../utils/scopedStorage';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: queryWrapper() });
 const json = (body: unknown, { ok = true, status = 200 } = {}) => ({ ok, status, json: () => Promise.resolve(body) });

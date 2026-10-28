@@ -1,14 +1,14 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
-import { tierLabel } from '../../../licensing/tierMeta';
+import { useTranslation } from '@/hooks/useTranslation';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import { tierLabel } from '@/components/licensing/tierMeta';
 import BuilderThinkingBlock from './BuilderThinkingBlock';
 import BuilderActivity from './BuilderActivity';
 import InlineMarkdown from './InlineMarkdown';
 import { parseAnswersText } from './questionAnswers';
 import type { LiveRunFocus } from './toolCallDisplay';
-import type { BuilderMessage } from '../../../../hooks/builderStream';
+import type { BuilderMessage } from '@/hooks/builderStream';
 
 interface MessageBubbleProps {
     msg: BuilderMessage;

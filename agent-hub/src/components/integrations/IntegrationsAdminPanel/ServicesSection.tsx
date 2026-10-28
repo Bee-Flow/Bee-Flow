@@ -3,10 +3,10 @@
 // IntegrationsAdminPanel.jsx; all bindings are threaded in as props.
 import { Check, Loader2 } from 'lucide-react';
 import React from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import type { ServicesSectionProps, SetMessage } from './adminPanel.types';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 export default function ServicesSection({
     linkedinClientId, setLinkedinClientId, linkedinClientSecret, setLinkedinClientSecret,

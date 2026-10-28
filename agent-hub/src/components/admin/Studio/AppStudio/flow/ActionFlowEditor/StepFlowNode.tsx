@@ -3,8 +3,8 @@ import { AlertTriangle, CornerDownRight, Plus, Server } from 'lucide-react';
 import { NODE_W } from '../layout';
 import { stepMeta } from '../stepCatalog';
 import { scopesOf } from '../stepGraph';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import StepNodeBase from '../../../../../automation/Builder/flow/nodes/StepNodeBase';
+import useTranslation from '@/hooks/useTranslation';
+import StepNodeBase from '@/components/automation/Builder/flow/nodes/StepNodeBase';
 import type { StepFlowNodeArgs } from '../ActionFlowEditor.types';
 
 export function StepFlowNode({ id, data }: StepFlowNodeArgs) {

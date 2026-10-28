@@ -2,8 +2,8 @@ import { useRef } from 'react';
 import { nOf } from './KnowledgeStudio/plural';
 import { NewMenuButton, type NewMenuSection } from './NewMenu';
 import DescribeItPanel from './studioAi/DescribeItPanel';
-import { useStudioCounts } from '../../../hooks/useStudioCounts';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import { useStudioCounts } from '@/hooks/useStudioCounts';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * The header of the Studio Start screen (Track H3, artboard 1b).

@@ -4,10 +4,10 @@
  * files so they can be imported by tests (and so Fast Refresh keeps working).
  */
 import { kindOf, type Phase, type PlaybookLike } from './phaseMachine';
-import { getItem } from '../../../../utils/scopedStorage';
-import { formatElapsed } from '../../../shared/builder/formatElapsed';
+import { getItem } from '@/utils/scopedStorage';
+import { formatElapsed } from '@/components/shared/builder/formatElapsed';
 import type { PlaybookListItem } from './PlaybookCard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export const AUTOPILOT_KEY = 'playbooks.autopilot';
 

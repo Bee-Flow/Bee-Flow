@@ -21,7 +21,7 @@ import AccordionSection from '../AccordionSection';
 import type { ActionCatalog } from './actionEditors/integrationActionFields';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import useForEachRequest from '../../mapping/useForEachRequest';
 
 /** Fallback list, so the panel still works if the catalog call failed. */

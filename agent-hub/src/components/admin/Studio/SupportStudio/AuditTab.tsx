@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { useAuditEvents, type AuditFilters } from '../../../../api/queries/studioSupport';
+import useTranslation from '@/hooks/useTranslation';
+import { useAuditEvents, type AuditFilters } from '@/api/queries/studioSupport';
 import { metaFor, categoryLabel, CATEGORY_IDS } from './auditMeta';
 import type { SupportInbox } from './supportStudio.types';
-import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
+import type { SupportEvent } from '@/components/support/SupportInboxPanel.types';
 
 type AuditEvent = SupportEvent & { thread_id?: string | null; inbox_id?: string | null };
 

@@ -1,7 +1,7 @@
 import { Edit2, Shield, Trash2 } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import RoleBadge from '../../../shared/RoleBadge';
+import { useTranslation } from '@/hooks/useTranslation';
+import RoleBadge from '@/components/shared/RoleBadge';
 import type { AdminUser } from '../userManagement/types';
 
 export type PeopleUser = AdminUser;

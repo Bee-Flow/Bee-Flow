@@ -1,5 +1,5 @@
 import { Code2, Download, History, MessageSquare, Upload } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import SaveStatus from '../SaveStatus';
 import { IdeBarButton } from './IdeChrome';
 import type { WebpageIDEProps } from './ideProps';

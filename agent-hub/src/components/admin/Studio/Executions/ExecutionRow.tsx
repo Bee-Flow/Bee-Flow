@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, RotateCcw, Ban, Check, X, ExternalLink, Copy, Eye, Link2, Loader2 } from 'lucide-react';
-import { statusLabel, tokenFor } from '../../../shared/statusTokens';
+import { statusLabel, tokenFor } from '@/components/shared/statusTokens';
 import { RunStatusIcon, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 import ContextMenu from '../AutomationsStudio/ContextMenu';
 import { formatRelative, formatDuration, absoluteTime } from '../AutomationsStudio/historyUtils';
-import type useAutomationApi from '../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { howStartedText, stepBars, stepsText } from '../../../automation/Builder/runs/runOutcome';
-import { StepBars } from '../../../automation/Builder/runs/RunStatusIcon';
+import type useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { howStartedText, stepBars, stepsText } from '@/components/automation/Builder/runs/runOutcome';
+import { StepBars } from '@/components/automation/Builder/runs/RunStatusIcon';
 import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
-import { messageOf } from '../../../../utils/caughtError';
-import { mayStartRun, runStartRefusal } from '../../../../api/queries/automation/runAccess';
-import { logger } from '../../../../utils/logger';
+import { messageOf } from '@/utils/caughtError';
+import { mayStartRun, runStartRefusal } from '@/api/queries/automation/runAccess';
+import { logger } from '@/utils/logger';
 
 /**
  * The log's columns by the list's OWN width (@container/runlog, set by

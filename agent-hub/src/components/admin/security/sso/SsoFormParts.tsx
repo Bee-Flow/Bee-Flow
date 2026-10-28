@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { SsoProviderConfig, SsoProviderId, SsoProvidersState } from './useSsoProviders';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const INPUT_STYLE: CSSProperties = { background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' };
 export const CARD = 'p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]';

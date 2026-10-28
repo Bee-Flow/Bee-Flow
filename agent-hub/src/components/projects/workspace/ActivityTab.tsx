@@ -1,4 +1,4 @@
-import { useProjectSearch } from '../../../api/queries/projectDiscovery';
+import { useProjectSearch } from '@/api/queries/projectDiscovery';
 import { itemTab } from './ProjectDiscovery';
 // Activity: what happened in the project, newest first, in sentences.
 // The feed is live — ProjectLiveProvider invalidates it on every durable
@@ -10,12 +10,12 @@ import { itemTab } from './ProjectDiscovery';
 
 import { Activity, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useState, useEffectEvent } from 'react';
-import { useProjectChangeLogQuery } from '../../../api/queries/projectChanges';
+import { useProjectChangeLogQuery } from '@/api/queries/projectChanges';
 import {
     useProjectActivityQuery, useProjectMembersQuery, type ProjectMembers,
-} from '../../../api/queries/projects';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import {
     activityCategory, changeMeta, describeActivity, type ActivityCategory, type ActivityEntry, type ActivityNames,
 } from './activityText';

@@ -9,8 +9,8 @@
 import { X } from 'lucide-react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { useReducedMotion } from '../../../../../../../hooks/useReducedMotion';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { EgressMapFilters } from './egressMapContract';
 import { MapControls } from './MapControls';
 import { MapKindPills } from './MapKindPills';

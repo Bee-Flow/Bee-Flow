@@ -1,16 +1,16 @@
 import type { LucideIcon } from 'lucide-react';
 import { Bot, Workflow } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { DataTableContext, RowLike, TableColumn } from '../../../../shared/DataTable';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import DeadlineClock from '../../../../shared/DeadlineClock';
-import EmptyState from '../../../../shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext, RowLike, TableColumn } from '@/components/shared/DataTable';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import EmptyState from '@/components/shared/EmptyState';
 import { useAiActAssessments } from '../../data/aggregates';
 import type { DateLike } from '../../shared/formatDates';
 import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';
-import type { Tone } from '../../../../shared/statusTone';
+import type { Tone } from '@/components/shared/statusTone';
 
 /** One row of GET /ai-act/assessments (routes/compliance/aiAct.js): the newest attestation per target. */
 export interface AiActAssessment extends RowLike {

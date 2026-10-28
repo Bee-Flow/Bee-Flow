@@ -5,7 +5,7 @@ import React from 'react';
 import NotebookSources from './NotebookSources';
 
 // Stub the meeting picker + capture context (not under test here).
-vi.mock('../../../components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
+vi.mock('@/components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
 vi.mock('../../meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));
 
 const SOURCES = [

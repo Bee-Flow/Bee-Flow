@@ -4,7 +4,7 @@
  * Used by NotebooksPage (it copied these two probes). The
  * results gate the SignRequest and Nextcloud entries in the export menu.
  */
-import { useAiUserSettings, useAuthAppPasswordStatus } from '../../../../api/queries/notebook';
+import { useAiUserSettings, useAuthAppPasswordStatus } from '@/api/queries/notebook';
 
 export default function useExportTargets() {
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useLayoutEffect } from 'react';
 import { declaresManaged, managedOf, managedRefusalOf } from '../../shared/managedPart';
 
 /**
@@ -15,16 +15,21 @@ export default function useManagedPart({ serverAutomation, isStep }: { serverAut
     // read-only for real: the canvas gets `readOnly`, the draft never changes,
     // nothing is saved and the AI builder cannot be entered. On/Off and Run
     // stay (the live state and the stage decide those).
-    const [managedSeen, setManagedSeen] = useState<any>(null);
+    const [managedSeen, setManagedSeen] = useState<any>(() => (declaresManaged(serverAutomation) ? managedOf(serverAutomation) : null));
     const [managedRefusal, setManagedRefusal] = useState<any>(null);
-    useEffect(() => {
+    // Adopted during render whenever the server's answer changes.
+    const [seenAnswer, setSeenAnswer] = useState<unknown>(serverAutomation);
+    if (seenAnswer !== serverAutomation) {
+        setSeenAnswer(serverAutomation);
         if (declaresManaged(serverAutomation)) setManagedSeen(managedOf(serverAutomation));
-    }, [serverAutomation]);
+    }
     const managedPart = isStep ? null : (managedSeen ?? managedRefusal?.managed ?? null);
     const managedNotDeployed = !isStep && managedRefusal?.reason === 'not_deployed';
     const readOnly = !isStep && (!!managedPart || managedRefusal != null);
     const readOnlyRef = useRef(false);
-    readOnlyRef.current = readOnly;
+    useLayoutEffect(() => {
+        readOnlyRef.current = readOnly;
+    });
     /** True when `e` was the stage's refusal; the banner then speaks for it. */
     const noteManagedRefusal = useCallback((e: unknown) => {
         const info = managedRefusalOf(e);

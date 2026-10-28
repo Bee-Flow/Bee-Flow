@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { buildPdfExportHtml } from './messageItemHelpers';
 import type { ChatMessage } from './messageTypes';
-import { API_BASE } from '../../../utils/helpers';
-import { mutate } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
 
 type Translate = (key: string, fallback?: string) => string;
 

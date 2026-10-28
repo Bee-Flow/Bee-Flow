@@ -1,12 +1,12 @@
 import { AppWindow, ArrowUpRight, CheckCircle2, Play, Scale, ShieldCheck, Square, Table2, Workflow } from 'lucide-react';
 import React from 'react';
-import { kindTileStyle } from '../../../../shared/kindColors';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { kindTileStyle } from '@/components/shared/kindColors';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { kindOf, Phase, PlaybookLike } from '../phaseMachine';
 import { phaseFact, totalElapsed } from '../playbookView';
 import { CENTER_PATH } from './complianceView';
 import { phaseLabel } from '../recipes';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface DoorLinkProps {
     icon: React.JSX.Element;

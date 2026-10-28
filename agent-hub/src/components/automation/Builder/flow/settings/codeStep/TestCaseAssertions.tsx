@@ -1,7 +1,7 @@
 // The checks on a test's result, as rows with an "Add a check" button.
 import { Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AssertionRow from './AssertionRow';
 import { newAssertion, type CaseDraft, type CaseProblems } from './testCaseForm';
 

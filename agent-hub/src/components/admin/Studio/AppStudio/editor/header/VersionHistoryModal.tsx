@@ -1,12 +1,12 @@
 import { History, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { HeaderApp } from './headerModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Modal from '../../../../../shared/Modal';
-import toast from '../../../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import toast from '@/components/shared/Toast';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import { studioAppsApi } from '../../studioAppsApi';
-import { errorMessage } from '../../../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 /** One saved version, as listVersions returns it (legacy snake_case included). */
 interface VersionEntry {

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ModalShell from './ModalShell';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 
 interface CmsAsset {
     key: string;

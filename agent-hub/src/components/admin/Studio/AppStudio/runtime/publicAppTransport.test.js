@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { API_BASE } from '@/utils/helpers';
 import { createPublicAppTransport, isPublicSuffix } from './publicAppTransport';
-import { API_BASE } from '../../../../../utils/helpers';
 
 /**
  * The transport is the only thing standing between "the real runtime

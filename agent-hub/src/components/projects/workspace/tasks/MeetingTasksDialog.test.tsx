@@ -2,13 +2,13 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID } from '../content/contentTestKit';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));

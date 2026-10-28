@@ -1,7 +1,7 @@
 import { Boxes, Briefcase, Code2, Grid2x2, HeartPulse, LayoutGrid, Puzzle, Share2, Sparkles, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import IntegrationLogo from './nodes/IntegrationLogo';
-import { getIntegrationLogo } from '../../../../utils/integrationLogos';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
 
 /**
  * The glyphs the ribbon's Apps tab prints on its commands.

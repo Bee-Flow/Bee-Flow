@@ -2,7 +2,7 @@
 // out of NotificationCenter.jsx without a change in behaviour.
 import { AlertCircle, AlertTriangle, Bot, GraduationCap, Handshake, Info, MessageSquare, X } from 'lucide-react';
 import type { CSSProperties, MouseEvent } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import type { AppNotification } from './useNotifications';
 

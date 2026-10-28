@@ -2,7 +2,7 @@
 // (personal, the whole organisation, or chosen groups). Split out of
 // AgentDesigner/index.jsx without a change in behaviour.
 import type { Dispatch, SetStateAction } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface OrgGroup { id: string; name?: string; description?: string | null }
 

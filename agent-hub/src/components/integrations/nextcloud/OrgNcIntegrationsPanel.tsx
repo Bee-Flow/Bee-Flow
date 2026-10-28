@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useNcIntegrationsQuery } from '../../../api/queries/integrationsAdmin';
-import type { NcCatalogItem, NcGroup, NcIntegrationsConfig } from '../../../api/queries/integrationsAdmin';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useNcIntegrationsQuery } from '@/api/queries/integrationsAdmin';
+import type { NcCatalogItem, NcGroup, NcIntegrationsConfig } from '@/api/queries/integrationsAdmin';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, ApiError } from '@/api/mutate';
 
 interface FlashMessage {
     type: 'ok' | 'error';

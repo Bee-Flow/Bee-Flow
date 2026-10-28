@@ -11,7 +11,7 @@
  * The 20MB cap is enforced here for the same reason: it is a property of "what
  * may be attached", not of the button that happened to be clicked.
  */
-import { resizeImageForUpload, readAsDataUrl } from '../../../utils/imageResize';
+import { resizeImageForUpload, readAsDataUrl } from '@/utils/imageResize';
 
 export interface Attachment {
     name: string;

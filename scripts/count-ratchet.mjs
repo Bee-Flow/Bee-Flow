@@ -177,6 +177,17 @@
  *                     relative spelling (`../db`, `../../db.js`, ...): a route
  *                     running its own SQL. The target is a store or a core
  *                     service between the route and the database.
+ *   deep-imports      import specifiers in agent-hub/src that climb three or more
+ *                     levels (`../../../utils/helpers`) and that the `@/` alias
+ *                     (agent-hub/src) can spell instead: import and export-from,
+ *                     dynamic import(), require(), `import()` types and vi.mock /
+ *                     jest.mock and friends, found with the TypeScript parser, so a
+ *                     path in a comment or in test data is not counted. A specifier
+ *                     that leaves src/ (`../../../../server/…`) stays relative, and so do
+ *                     the files listed in scripts/deep-imports.exclude.json and the
+ *                     mirror sources/targets of scripts/shared-mirror.manifest.json
+ *                     (mobile runs or copies those, where `@/` means mobile/src). The
+ *                     codemod is `node scripts/deep-imports.mjs` (same module, same rules).
  *   long-function     functions whose body spans more than 200 lines (from the
  *                     line of `{` to the line of `}`), in server and agent-hub
  *                     non-test files. A brace-depth scanner, no parser: it
@@ -742,6 +753,12 @@ const METRICS = {
         what: 'imports of db.js in routes/',
         advice: 'move the query into a store (stores/) or a service in core/ and call that from the route',
     },
+    'deep-imports': {
+        include: (rel) => !isDeepImportsExcluded(rel),
+        measure: (text, pkg, rel) => (pkg === 'agent-hub' ? deepSpecifiers(text, rel).length : 0),
+        what: 'import specifiers climbing three or more levels instead of using the @/ alias',
+        advice: "write the import as '@/<path from src>' (`node scripts/deep-imports.mjs <file>` rewrites a file); a file mobile executes or mirrors stays relative and is listed in scripts/deep-imports.exclude.json",
+    },
     'long-function': {
         include: (rel) => !TEST_FILE.test(rel),
         measure: (text) => countLongFunctions(text),
@@ -750,6 +767,9 @@ const METRICS = {
     },
 };
 
+// deep-imports parses with the TypeScript compiler API: loaded on demand, like the other parsers.
+let deepSpecifiers;
+let isDeepImportsExcluded;
 const args = process.argv.slice(2);
 const [metricName, pkg] = args.filter((a) => !a.startsWith('--'));
 // The metrics that need a parser: loaded on demand, so the others run without it.
@@ -757,6 +777,7 @@ let countSwallowed;
 if (metricName === 'swallowed-error') ({ countSwallowed } = await import('./catch-classify.mjs'));
 let fetchInEffect;
 if (metricName === 'fetch-in-effect') ({ fetchInEffect } = await import('./effect-fetch.mjs'));
+if (metricName === 'deep-imports') ({ deepSpecifiers, isExcluded: isDeepImportsExcluded } = await import('./deep-imports.mjs'));
 const metric = METRICS[metricName];
 if (!metric || !pkg) {
     console.error(`count-ratchet: usage: node scripts/count-ratchet.mjs <${Object.keys(METRICS).join('|')}> <package> [--update] [--list]`);

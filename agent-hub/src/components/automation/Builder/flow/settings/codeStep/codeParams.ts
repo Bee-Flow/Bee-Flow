@@ -2,8 +2,8 @@
 // split between declared and other inputs, test values, host names and the
 // state of the checks. React-free so every rule here has a plain test.
 
-import type { CodeAnalysis, CodeFinding, CodeParam } from '../../../../../../api/queries/automation/codeStep';
-import { walkPath } from '../../../../../../utils/bindingHelpers';
+import type { CodeAnalysis, CodeFinding, CodeParam } from '@/api/queries/automation/codeStep';
+import { walkPath } from '@/utils/bindingHelpers';
 
 type Obj = Record<string, unknown>;
 export type Binding = { kind: string; value?: unknown; path?: string } & Obj;

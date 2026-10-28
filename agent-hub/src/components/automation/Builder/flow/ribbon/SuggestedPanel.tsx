@@ -1,6 +1,6 @@
 import { stepDragProps } from '../stepDrag';
 import { IntegrationLogo } from './jsComponents';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { FAMILY_TEXT, FAMILY_TILE } from './ribbonCategories';
 import type { StepPayload } from './ribbonCategories';
 import type { FitCard, FrequentItem } from './fitsAfter';

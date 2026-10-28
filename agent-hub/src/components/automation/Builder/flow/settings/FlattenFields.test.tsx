@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage from '../../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import FlattenFields from './FlattenFields';
 import { flattenDraft, type FlattenDraft } from './flattenEditorModel';

@@ -1,9 +1,9 @@
-import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import type { EditorSnapshot, Ref, Setter } from '../../../../api/agentSaveTypes';
+import { API_BASE, authFetch, parseSaveError } from '@/utils/helpers';
+import { errorMessage, messageOf } from '@/utils/caughtError';
+import type { EditorSnapshot, Ref, Setter } from '@/api/agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
-import { logger } from '../../../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 export interface FieldUpdaterDeps {
     setName: (value: string) => void;

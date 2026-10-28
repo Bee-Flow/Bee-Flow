@@ -1,6 +1,6 @@
 // What the Agent Designer's sections receive: the designer's whole state bag
 // (hooks/useAgentState.ts) plus the helpers index.tsx adds next to it.
-import type { authFetch } from '../../../../utils/helpers';
+import type { authFetch } from '@/utils/helpers';
 import type { CAPABILITIES, CapabilityKey } from '../constants';
 import type useAgentState from '../hooks/useAgentState';
 

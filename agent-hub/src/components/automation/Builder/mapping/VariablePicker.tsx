@@ -96,7 +96,7 @@ export default function VariablePicker({
 
     // Scoped to the clicked pill's own step until the author asks for every step.
     const scopeGroup = scoped ? focusGroup : null;
-    const visible = scopeGroup ? [scopeGroup] : groups;
+    const visible = useMemo(() => (scopeGroup ? [scopeGroup] : groups), [scopeGroup, groups]);
     const filteredGroups = useMemo(() => {
         if (!query) return visible;
         const q = query.toLowerCase();

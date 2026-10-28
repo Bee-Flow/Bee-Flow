@@ -1,5 +1,5 @@
 import { displayValue } from '../runtime/uiBits';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A choice as the screen renders it. */
 export interface OptionPair {

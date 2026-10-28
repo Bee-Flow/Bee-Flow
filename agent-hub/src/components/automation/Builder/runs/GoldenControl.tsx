@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { GoldenItem } from '../../../../api/queries/automation/runChecks';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
-import { useGoldens, useMarkGolden, useUnmarkGolden } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { GoldenItem } from '@/api/queries/automation/runChecks';
+import type { RunRowData } from '@/api/queries/automation/runs';
+import { useGoldens, useMarkGolden, useUnmarkGolden } from '@/api/queries/automation/runChecks';
 import HelpPopover from './HelpPopover';
 import IgnorePathsEditor from './IgnorePathsEditor';
 import RunAction from './RunAction';

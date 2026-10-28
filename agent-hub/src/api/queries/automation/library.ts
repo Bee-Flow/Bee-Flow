@@ -6,9 +6,9 @@
 // callers render a failure as a sentence, and the tests mock `authFetch`.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { queryClient } from '../../queryClient';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const BASE = `${API_BASE}/api/automation`;
 

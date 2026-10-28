@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { INPUT_CLS } from '../kit';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import FilterRowsEditor from '../../../bi/FilterRowsEditor';
-import { AGGS, DATE_BUCKETS } from '../../../bi/QueryBuilder';
-import useAppTables, { fieldsForTable } from '../../../bi/useAppTables';
+import useTranslation from '@/hooks/useTranslation';
+import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
+import { AGGS, DATE_BUCKETS } from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
+import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
 import type { BindingDraft, AggregateBindingProps, PickValueFieldProps } from '../BindingField.types';
 
 export function AggregateBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: AggregateBindingProps) {

@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Check, History, ListChecks, Clock, Pencil } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 // The strict parser (null for junk), NOT parseTimestampToSeconds (junk → 0):
 // an unreadable model timestamp must lose its chip, not seek to 0:00.
 import { toSeconds } from '../lib/timelineMarkers';
 import DestinationPicker from './DestinationPicker';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DestinationRecord } from '../lib/actionDestinations';
 import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { STUDIO_APPS } from './studioApps';
 import { SEG_TO_SECTION, SECTION_TO_SEG, sectionFromRaw, segmentForSection, parseStudioUrl, parseStudioQuery, buildStudioSearch, parseAppRefParam, appRefParam, stickyFrom } from './studioRoutes';
-import { __setRuntimeDescriptorsForTests, __resetRuntimeForTests } from '../../../moduleRuntime/registry';
+import { __setRuntimeDescriptorsForTests, __resetRuntimeForTests } from '@/moduleRuntime/registry';
 import { partial } from '@/test/mocks';
 
 describe('seg ↔ section maps', () => {

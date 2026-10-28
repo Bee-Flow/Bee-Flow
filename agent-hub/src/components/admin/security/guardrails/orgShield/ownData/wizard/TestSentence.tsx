@@ -3,10 +3,10 @@ import {
 } from 'lucide-react';
 import React, { useId, useRef, useState } from 'react';
 
-import Button from '../../../../../../shared/Button';
-import { buildRuns } from '../../../../../../chat/dlpReview/dlpFindingsState';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { selectionOffsetsIn } from '../../../../../../../utils/textSelection';
+import Button from '@/components/shared/Button';
+import { buildRuns } from '@/components/chat/dlpReview/dlpFindingsState';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { selectionOffsetsIn } from '@/utils/textSelection';
 import { falseAlarmsLine } from '../ownDataCopy';
 import type { Sentence, SentenceOrigin, Span } from '../ownDataModel';
 import type { Mark, MarkKind, RunSpan } from '../testBench';

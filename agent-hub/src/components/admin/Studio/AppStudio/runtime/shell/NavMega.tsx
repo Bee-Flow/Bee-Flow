@@ -1,8 +1,8 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import type { NavGroup, NavModel, NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
 

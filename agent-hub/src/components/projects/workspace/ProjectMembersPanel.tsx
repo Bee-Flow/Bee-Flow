@@ -11,8 +11,8 @@ import React, { useState } from 'react';
 import {
     useChangeMemberRole, useProjectMembersQuery, useRemoveMember, useSetMemberColor,
     type ProjectMembers, type ProjectRole, type ProjectShare,
-} from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { toast } from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';
 import MemberInviteForm from './MemberInviteForm';

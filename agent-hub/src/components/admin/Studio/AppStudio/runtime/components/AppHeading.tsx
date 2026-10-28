@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'heading'. Spec: server/appStudio/componentSpecs.js. */

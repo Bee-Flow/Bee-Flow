@@ -3,16 +3,16 @@
  * here are named; BuilderShell owns the full shape.
  */
 import type { MouseEvent, RefObject, UIEvent } from 'react';
-import type { BuilderMessage as StreamMessage, DryRun } from '../../../../hooks/builderStream';
-import type { FlowletAgentState } from '../../../../hooks/useFlowletAgentStream';
-import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
+import type { BuilderMessage as StreamMessage, DryRun } from '@/hooks/builderStream';
+import type { FlowletAgentState } from '@/hooks/useFlowletAgentStream';
+import type { BuilderWebSearchStatus } from '@/hooks/useAutomationBuilderStream';
 import type { PlanTodo } from '../BuilderPlanChecklist';
 import type { BuilderHeaderProps } from '../BuilderHeader';
 import type { BuilderSendOptions } from '../builderSend';
 import type { AssistantField } from '../useBuilderShellState';
 import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
-import type { FormDef } from '../../../forms/PublicFormRenderer.types';
+import type { FormDef } from '@/components/forms/PublicFormRenderer.types';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 
 /** One message of the builder chat: the stream hook's shape, plus the tool calls this builder adds to it. */

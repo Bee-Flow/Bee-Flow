@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Table2 } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { tableHandlesIn } from '../../../../api/queries/automation/runTables';
-import type { TableHandle } from '../../../../api/queries/automation/runTables';
+import { useTranslation } from '@/hooks/useTranslation';
+import { tableHandlesIn } from '@/api/queries/automation/runTables';
+import type { TableHandle } from '@/api/queries/automation/runTables';
 import RunTableView from './RunTableView';
 
 const OPEN_BTN = 'inline-flex items-center gap-1 px-2 py-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]';

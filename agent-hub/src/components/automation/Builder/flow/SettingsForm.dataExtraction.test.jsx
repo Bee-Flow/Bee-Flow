@@ -1,13 +1,13 @@
 import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { editor, editorValue } from '@/test/refEditor';
+import scopedStorage from '@/utils/scopedStorage';
 import {
     extractFormState, buildPatch,
     isEmptyExtractionSource, MAX_EXTRACTION_FIELDS, FOREACH_FORM_TYPES,
 } from './settings/formState';
 import SettingsForm from './SettingsForm';
-import { editor, editorValue } from '../../../../test/refEditor';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { buildStepFromPayload } from '../DiagramPane';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 

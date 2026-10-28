@@ -7,7 +7,7 @@ vi.mock('../studioAppsApi', () => {
     return { default: studioAppsApi, studioAppsApi };
 });
 vi.mock('../rbac/useAppRoles', () => ({ default: vi.fn(), useOrgDirectory: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
@@ -32,7 +32,7 @@ vi.mock('../../../../shared/Toast', () => {
  */
 // vi.mock's factory is hoisted above every import, so the stub is built inside
 // it — a module-scope table would not exist yet when the hook is first imported.
-vi.mock('../../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const NL: Record<string, string> = {
         'app_studio.publish.title': 'App publiceren',
         'app_studio.publish.apply': 'Toepassen',

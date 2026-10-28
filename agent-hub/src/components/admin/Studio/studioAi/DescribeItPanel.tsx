@@ -2,11 +2,11 @@ import { Copy, Loader2, Lock, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { destinationForKind, kindLabel, parkSeed, type NavRow } from './handoff';
 import { routeDescription, type RouteResult } from './routeApi';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { kindColorVar, kindIcon, kindTint } from '../../../shared/kindColors';
-import Modal from '../../../shared/Modal';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { KIND_ICON, kindColorVar, kindTint } from '@/components/shared/kindColors';
+import Modal from '@/components/shared/Modal';
 import type { RoutePlan, Destination, BlockRowProps, PlanCaveatsProps, PlanCardProps, PanelBodyProps, DescribeItPanelProps } from './DescribeItPanel.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const CARD_CLASS = 'rounded-xl border border-[var(--border-default)] px-3.5 py-3';
 
@@ -37,7 +37,7 @@ const noKindCode = (result: Extract<RouteResult, { ok: true }>) => {
 };
 
 function BlockRow({ kind, name, note, t }: BlockRowProps) {
-    const Icon = kindIcon(kind);
+    const Icon = kind ? KIND_ICON[kind] ?? null : null;
     const color = kindColorVar(kind);
     return (
         <li
@@ -100,7 +100,7 @@ function PlanCaveats({ plan, dest, blocked, copied, onCopy, t }: PlanCaveatsProp
 }
 
 function PlanCard({ plan, dest, blocked, busyRun, copied, errorLine, onConfirm, onBack, onCopy, t }: PlanCardProps) {
-    const Icon = kindIcon(plan.kind);
+    const Icon = plan.kind ? KIND_ICON[plan.kind] ?? null : null;
     const color = kindColorVar(plan.kind);
     const title = plan.name
         ? t('studio.ai.plan_title', 'New {kind}: {name}', { kind: dest?.label || plan.kind, name: plan.name })

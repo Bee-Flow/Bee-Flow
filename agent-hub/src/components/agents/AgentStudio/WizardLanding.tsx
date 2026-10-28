@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import AgentWizard from '../AgentWizard/index';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     t: TranslateFn;

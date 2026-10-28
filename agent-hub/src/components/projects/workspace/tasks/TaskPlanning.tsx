@@ -5,8 +5,8 @@
 // while it is open and draws its own compact header.
 
 import React, { useId, useState } from 'react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { sprintName } from './taskPlanning';
 import PlanningBacklog, { BacklogControls } from './PlanningBacklog';

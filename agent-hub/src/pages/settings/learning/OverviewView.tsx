@@ -3,11 +3,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, EmojiTile, IconTile, PrimaryButton, SecondaryButton, type TFn } from './bits';
 import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone, courseState, lessonsMinutes, CAPSTONE_CHECK_ID } from './curriculum';
-import { getActionCheck, runActionCheck, applicableCriteria } from '../../../components/onboarding/actionChecks';
-import { getLearningPath } from '../../../components/onboarding/learningPaths';
-import type { CheckVerdict } from '../../../components/onboarding/actionChecks.types';
-import type { SupportUser } from '../../../components/admin/Studio/SupportStudio/supportStudio.types';
-import type { Course, LessonDoc } from '../../../api/lessons.types';
+import { getActionCheck, runActionCheck, applicableCriteria } from '@/components/onboarding/actionChecks';
+import { getLearningPath } from '@/components/onboarding/learningPaths';
+import type { CheckVerdict } from '@/components/onboarding/actionChecks.types';
+import type { SupportUser } from '@/components/admin/Studio/SupportStudio/supportStudio.types';
+import type { Course, LessonDoc } from '@/api/lessons.types';
 
 /**
  * OverviewView — artboard 3a.

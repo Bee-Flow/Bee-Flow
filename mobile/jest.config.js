@@ -39,6 +39,8 @@ const PRESET_BABEL = jestExpoPreset.transform['\\.[jt]sx?$'];
 module.exports = {
     preset: 'jest-expo',
     setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    // The default resolver plus a fence: an agent-hub file mobile executes may not import `@/…` (jest.resolver.js).
+    resolver: '<rootDir>/jest.resolver.js',
     transform: { '\\.mjs$': PRESET_BABEL },
     // `@/*` mirrors the path in tsconfig.json; Metro reads tsconfig itself.
     // The Lucide line: the icon registry imports each icon's own module

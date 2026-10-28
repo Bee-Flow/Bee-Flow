@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { dwellMs, filmOrder, frameAt, recordsById, serverHead } from './runFilm';
 import type { FilmDefinition, StepRecord } from './runFilm';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface RunFilmOptions {
     runId?: string | null;
@@ -24,12 +25,7 @@ export default function useRunFilm(steps: StepRecord[] | null | undefined, defin
     const [head, setHead] = useState<number>(0);
 
     // A different run is a different film.
-    const runRef = useRef<string | null>(runId);
-    useEffect(() => {
-        if (runRef.current === runId) return;
-        runRef.current = runId;
-        setHead(0);
-    }, [runId]);
+    useAdjustOnChange([runId], () => setHead(0));
 
     useEffect(() => {
         if (reducedMotion || head >= limit) return undefined;

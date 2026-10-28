@@ -1,6 +1,6 @@
 import { Table2, Search, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { datatableSummary } from '../nodeSummaries';
 import type { StepNodeData } from './nodeProps';

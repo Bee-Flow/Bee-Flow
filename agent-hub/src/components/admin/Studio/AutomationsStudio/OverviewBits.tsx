@@ -5,9 +5,9 @@ import { buildAutomationMenuItems } from './automationMenuItems';
 import { cardStatusOf } from './cardStatus';
 import { statusLabelOf, triggerTextOf, type AutomationRecord } from './overviewModel';
 import { TONE_CLASSES, toneLabelOf, triggerGlyphKeyOf, triggerToneOf } from './triggerTone';
-import { TRIGGER_ICONS } from '../../../automation/Builder/flow/triggerIcons';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { STATUS_TOKENS, statusLabel, tokenFor } from '../../../shared/statusTokens';
+import { TRIGGER_ICONS } from '@/components/automation/Builder/flow/triggerIcons';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { STATUS_TOKENS, statusLabel, tokenFor } from '@/components/shared/statusTokens';
 import type { AutomationRowProps } from './AutomationRow';
 import type { Point } from '../map/studioMap.types';
 

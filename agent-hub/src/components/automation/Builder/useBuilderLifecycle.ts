@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
-import { publishAutomation, isAiActRefusal } from '../../../api/queries/automation/meta';
+import { publishAutomation, isAiActRefusal } from '@/api/queries/automation/meta';
 import { toast } from '../../shared/Toast';
 import type { unwrapRow } from './unwrapRow';
-import type useAutomationApi from '../../../hooks/useAutomationApi';
-import type useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
+import type useAutomationApi from '@/hooks/useAutomationApi';
+import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
 import type useBuilderHydration from './useBuilderHydration';
 import type { AutomationRow } from './useBuilderHydration';
 import type { RowAnswer } from './unwrapRow';

@@ -7,11 +7,11 @@
 import { CalendarDays, ChevronDown, ChevronRight, Plus, Sparkles, Upload } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useCreateSprint, useProjectSprintsQuery, type Sprint } from '../../../../api/queries/projectSprints';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import EmptyState from '../../../shared/EmptyState';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useCreateSprint, useProjectSprintsQuery, type Sprint } from '@/api/queries/projectSprints';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import EmptyState from '@/components/shared/EmptyState';
 import type { useChatPeople } from '../chat/chatPeople';
 import { GhostButton, Notice, Skeleton } from '../workspaceUi';
 import SprintCreateForm from './SprintCreateForm';
@@ -21,7 +21,7 @@ import {
     AnchoredMenu, CARD, formatSprintDates, MENU_ICON, MENU_ITEM, MENU_PANEL, META, ProgressBar, ROW_LIST, SECTION_LABEL, SprintStatusChip,
     TOOLBAR_BUTTON,
 } from './sprintUi';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** Does this task belong to the sprint? The column is the truth; the label is the legacy mirror. */
 function inSprint(task: ProjectTask, sprint: Sprint): boolean {

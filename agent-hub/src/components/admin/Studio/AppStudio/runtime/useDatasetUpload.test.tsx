@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { authFetch } = vi.hoisted(() => ({
     authFetch: vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(),
 }));
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
 
 import useDatasetUpload from './useDatasetUpload';
 

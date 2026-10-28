@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Sprout, AlertTriangle, Users } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
-import DeadlineClock from '../../../shared/DeadlineClock';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import EmptyState from '@/components/shared/EmptyState';
 import useDrawerMode from '../shared/useDrawerMode';
 import { userName, fmtDate, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
 import PolicyDrawer, { POLICY_DRAWER_WIDTH, PolicyStatusPill, type PolicyDoc } from './policies/PolicyDrawer';

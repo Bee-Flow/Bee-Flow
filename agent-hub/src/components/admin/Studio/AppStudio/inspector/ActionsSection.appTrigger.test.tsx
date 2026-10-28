@@ -28,7 +28,7 @@ const APP_TRIGGER_AUTOMATION = {
     },
 };
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [APP_TRIGGER_AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));

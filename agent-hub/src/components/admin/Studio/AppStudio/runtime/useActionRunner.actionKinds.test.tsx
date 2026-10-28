@@ -23,8 +23,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * observation cannot.
  */
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
@@ -32,8 +32,8 @@ vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: 
 
 import { closeAppModal, openAppModal } from './components/AppModal';
 import useActionRunner from './useActionRunner';
-import { authFetch } from '../../../../../utils/helpers';
-import toast from '../../../../shared/Toast';
+import { authFetch } from '@/utils/helpers';
+import toast from '@/components/shared/Toast';
 import { asMock, stub } from '@/test/mocks';
 
 const require = createRequire(import.meta.url);

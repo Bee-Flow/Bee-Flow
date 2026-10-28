@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { __resetBatchClient } from '@/api/dataBatchClient';
+import { authFetch } from '@/utils/helpers';
 import { DataProvider } from './DataContext';
 import useAppDataSource from './useAppDataSource';
-import { __resetBatchClient } from '../../../../../api/dataBatchClient';
 
 /**
  * The join between react-query and the coalescer.
@@ -16,13 +17,10 @@ import { __resetBatchClient } from '../../../../../api/dataBatchClient';
  * heard of /data/batch.
  */
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));
-
-
-import { authFetch } from '../../../../../utils/helpers';
 
 const observed = [];
 vi.mock('@tanstack/react-query', async () => {

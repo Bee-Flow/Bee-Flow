@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import React from 'react';
 import { type GraphNode } from '../stepGraph';
 import type { Connection } from '@xyflow/system';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { StepFlowNodeArgs } from '../ActionFlowEditor.types';
 
 export function FlowBodySection({ rfNodes, rfEdges, nodeTypes, disabled, onConnect, setSelectedId, setAdding, rootEmpty, t }: {

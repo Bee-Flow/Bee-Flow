@@ -4,7 +4,7 @@
 // of the text is reported as one replaced block, which is always correct, just
 // less minimal.
 
-import { DEFAULT_MAX_COST, diffHunks } from '../../../../editor/diff/sequence';
+import { DEFAULT_MAX_COST, diffHunks } from '@/editor/diff/sequence';
 
 type LineKind = 'same' | 'add' | 'del' | 'gap';
 

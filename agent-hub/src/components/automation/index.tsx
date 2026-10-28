@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AutomationFlyout, AutomationSidebar } from './AutomationListPanes';
 import BuilderShell from './Builder/BuilderShell';
 import { patternOriginOf } from './Builder/usePatternOrigin';
@@ -249,9 +249,14 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
     // ── ?from=app:… — the button this builder was opened from ──────────────
     // The rule itself lives beside the `?from=` contract in studioRoutes.js —
     // it is about what the token means, not about this component.
-    const fromRef = useRef({ automationId: initialTaskId || null, token: initialFrom || null });
-    fromRef.current = stickyFrom(fromRef.current, selectedAutomationId) as { automationId: string | null; token: string | null };
-    const activeFromToken = fromRef.current.token;
+    // Kept from render to render: the next value depends on the last one, so it is
+    // state adjusted during render (stickyFrom returns the same object when nothing
+    // changes, so this settles after at most one extra pass).
+    const [fromState, setFromState] = useState<{ automationId: string | null; token: string | null }>(
+        () => ({ automationId: initialTaskId || null, token: initialFrom || null }));
+    const nextFrom = stickyFrom(fromState, selectedAutomationId) as { automationId: string | null; token: string | null };
+    if (nextFrom !== fromState) setFromState(nextFrom);
+    const activeFromToken = nextFrom.token;
     const activeAppRef = useMemo(() => parseAppRefParam(activeFromToken), [activeFromToken]);
 
     // Editing-signal: only the Automations builder requests fullscreen chrome

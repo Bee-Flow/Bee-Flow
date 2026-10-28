@@ -9,9 +9,9 @@
  * the phase's own vocabulary rather than a colour shouting on its own.
  */
 
-import { toneOfSeverity } from '../../../../shared/statusTone';
+import { toneOfSeverity } from '@/components/shared/statusTone';
 import type { Finding, ComplianceFacts } from './compliance.types';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ArtifactField, PhaseArtifacts } from '../phaseMachine';
 
 /** A column the review found personal data in. */

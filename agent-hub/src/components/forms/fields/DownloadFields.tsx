@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Download, Loader2 } from 'lucide-react';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import type { FormFieldDef } from '../PublicFormRenderer.types';
 
 /** Human file size. 1 decimal from MB up, none below — "0.9 kB" reads as noise. */

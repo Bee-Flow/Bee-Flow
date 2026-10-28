@@ -3,10 +3,10 @@
 // own key. Same pattern as projects/workspace/chat/useChatTier.
 
 import { useCallback, useMemo, useState } from 'react';
-import { useModelTiersQuery, type ModelTierMap } from '../../../api/queries/modelTiers';
-import { DEPTH_TIER_KEYS } from '../../../components/licensing/tierMeta';
-import scopedStorage from '../../../utils/scopedStorage';
-import { logger } from '../../../utils/logger';
+import { useModelTiersQuery, type ModelTierMap } from '@/api/queries/modelTiers';
+import { DEPTH_TIER_KEYS } from '@/components/licensing/tierMeta';
+import scopedStorage from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'sheetAssistantTier';
 

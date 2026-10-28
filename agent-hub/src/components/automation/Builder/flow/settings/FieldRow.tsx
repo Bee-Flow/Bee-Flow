@@ -2,7 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { fieldNameTaken, isValidFieldName } from '../renameFormField';
 import { cardClass, rowInputClass } from './formPrimitives';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { FieldRowProps, RenameArgs, RowNameBoxArgs } from './fieldDesigner.types';
 
 /**

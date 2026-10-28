@@ -2,7 +2,7 @@
  * The editor header's pure parts: the app row it reads, the publish state it
  * derives from it, and the path resolver behind "Show me" on a save notice.
  */
-import statusOf from '../../../../../shared/statusOf';
+import statusOf from '@/components/shared/statusOf';
 import type { AppDefinition } from '../../inspector/appDefinition';
 
 /** The app row as the header reads it (studioAppsApi.getApp, plus legacy snake_case). */

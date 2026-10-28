@@ -19,22 +19,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
 // The integration-status hook is module-cached, so it is driven from here
 // rather than through fetch: one test's success would otherwise be every
 // later test's answer. The hook's own contract is pinned next to its source
 // (hooks/useIntegrationStatus.test.jsx).
 const { appStatus } = vi.hoisted(() => ({ appStatus: { integrationStatus: {}, unavailable: false } }));
-vi.mock('../../../../hooks/useIntegrationStatus', () => ({
+vi.mock('@/hooks/useIntegrationStatus', () => ({
     useIntegrationStatus: () => appStatus,
     invalidateIntegrationStatus: () => {},
 }));
 
+import { renderWithClient, renderHookWithClient } from '@/test/render';
 import CanUseCard from './CanUseCard';
 import SkillDetail from './SkillDetail';
 import useSkillPickerData from './useSkillPickerData';
-import { renderWithClient, renderHookWithClient } from '../../../../test/render';
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 const dead = (status = 500) => ({ ok: false, status, json: async () => ({}) });

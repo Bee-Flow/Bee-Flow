@@ -3,8 +3,8 @@ import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import type { EdgePopoverState } from './SitemapEdges';
 import { NODE_H, NODE_W } from './sitemapGraph';
 import type { Point, SitemapPage } from './sitemapGraph';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from '../blog/jsComponents';
 
 function Badge({ variant, children }: { variant: 'home' | 'nav' | 'orphan'; children: ReactNode }) {

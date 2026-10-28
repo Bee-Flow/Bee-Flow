@@ -5,7 +5,7 @@
  * from the panel state. Org-wide routes (enabled flag, default locale,
  * file uploads) live at /api/cms/admin/* — they're not site-specific.
  */
-import { API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 
 const root = `${API_BASE}/api/cms`;
 

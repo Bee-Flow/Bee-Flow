@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { normaliseOptions } from '../../../../../forms/formOptions';
+import { useTranslation } from '@/hooks/useTranslation';
+import { normaliseOptions } from '@/components/forms/formOptions';
 import { denseInputClass, textareaClass } from '../formPrimitives';
 import type { EditorField } from './fieldEditor.types';
 import { OP_LABELS, VALUELESS_OPS, buildShowIf, isConditionable, opsFor, parseShowIf, type ShowIfModel, type ShowIfOp } from './showIfModel';

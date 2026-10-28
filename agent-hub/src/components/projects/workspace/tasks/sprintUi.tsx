@@ -6,11 +6,11 @@
 
 import { Info } from 'lucide-react';
 import React from 'react';
-import type { TaskStatus } from '../../../../api/queries/projectTasks';
-import type { Sprint } from '../../../../api/queries/projectSprints';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import type { TaskStatus } from '@/api/queries/projectTasks';
+import type { Sprint } from '@/api/queries/projectSprints';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { CHIP_CLASS, StatusGlyph } from './TaskFields';
 import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS, MENU_PANEL_CLASS, TOOLBAR_BUTTON_CLASS } from './tasksMenu';
 

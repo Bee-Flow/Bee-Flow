@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import studioFieldOptions from './studioFieldOptions';
 import StudioScopeProvider, { buildStudioScope } from './StudioScopeProvider';
-import ConditionBuilder from '../../../../../automation/Builder/mapping/ConditionBuilder';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import ConditionBuilder from '@/components/automation/Builder/mapping/ConditionBuilder';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode, CommonNodeProps } from '../appDefinition';
 
 /**

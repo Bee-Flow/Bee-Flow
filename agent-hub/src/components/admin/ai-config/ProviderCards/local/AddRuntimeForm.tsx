@@ -4,10 +4,10 @@
 // rather than as an empty model list two screens later.
 
 import React, { useState } from 'react';
-import { BTN_PRIMARY, BTN_GHOST, testRuntime } from '../../../../../api/localRuntimeApi';
+import { BTN_PRIMARY, BTN_GHOST, testRuntime } from '@/api/localRuntimeApi';
 import ProbeResult from './ProbeResult';
-import type { RuntimeInfo, ProbeData, ConnectRequest } from '../../../../../api/runtimeTypes';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { RuntimeInfo, ProbeData, ConnectRequest } from '@/api/runtimeTypes';
+import { useTranslation } from '@/hooks/useTranslation';
 import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
 interface AddRuntimeFormProps {

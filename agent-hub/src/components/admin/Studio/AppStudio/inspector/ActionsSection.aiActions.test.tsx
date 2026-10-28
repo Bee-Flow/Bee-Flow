@@ -22,7 +22,7 @@ import { asMock, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
 import type { AppDefinition } from './appDefinition';
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

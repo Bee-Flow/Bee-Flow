@@ -1,7 +1,7 @@
 import { X, Plus, Trash2, PenTool, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useState, useEffect, useEffectEvent, SetStateAction, Dispatch } from 'react';
-import Modal from '../../../components/shared/Modal';
-import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 
 // Stable id for signer rows so React can track focus/IME state across reorders.
 // crypto.randomUUID is supported in all modern browsers; the fallback handles

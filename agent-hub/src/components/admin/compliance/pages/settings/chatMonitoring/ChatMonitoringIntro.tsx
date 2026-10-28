@@ -1,6 +1,6 @@
 import { Scale } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * The fixed framing of chat signals: what they are for (checking the

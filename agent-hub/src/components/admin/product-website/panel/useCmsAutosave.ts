@@ -4,14 +4,14 @@
 // callbacks + lifecycle effects.
 import { useCallback, useEffect, useRef } from 'react';
 import type useCmsPanelState from './useCmsPanelState';
-import { messageOf, errorMessage } from '../../../../utils/caughtError';
-import type { AuthFetchOptions } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
-import { toast } from '../../../shared/Toast';
+import { messageOf, errorMessage } from '@/utils/caughtError';
+import type { AuthFetchOptions } from '@/utils/helpers';
+import { settled } from '@/api/settled';
+import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { adoptRealignedOverrides } from './realignedOverrides';
 import { CONFLICT_CODE, SaveConflictError, noteSavedRev, revisionFor, storedRev, withRev } from './cmsRevisions';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 

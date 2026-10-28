@@ -9,6 +9,7 @@ import type { StudioAppDescriptor } from '../admin/Studio/studioRegistry';
 import { segmentForSection } from '../admin/Studio/studioRoutes';
 import { kindColorVar } from '../shared/kindColors';
 import Modal from '../shared/Modal';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * StudioSearchOverlay — name search across the nine Studio kinds, over
@@ -211,8 +212,9 @@ export default function StudioSearchOverlay({ isOpen, onClose, onNavigate }: {
     const trimmed = query.trim();
     const { answer, loading, failed } = useStudioSearch(isOpen, trimmed);
 
+    useAdjustOnChange([isOpen], () => { if (!isOpen) { setQuery(''); setActiveIdx(0); } });
     useEffect(() => {
-        if (!isOpen) { setQuery(''); setActiveIdx(0); return undefined; }
+        if (!isOpen) return undefined;
         const id = setTimeout(() => inputRef.current?.focus(), 30);
         return () => clearTimeout(id);
     }, [isOpen]);

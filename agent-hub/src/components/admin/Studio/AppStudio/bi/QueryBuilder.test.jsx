@@ -4,15 +4,15 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
+import { authFetch } from '@/utils/helpers';
 import { deriveChartMapping } from './ChartDataPanel';
 import QueryBuilder, { buildDescriptor, parseUserNumber } from './QueryBuilder';
-import { authFetch } from '../../../../../utils/helpers';
 
 const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 

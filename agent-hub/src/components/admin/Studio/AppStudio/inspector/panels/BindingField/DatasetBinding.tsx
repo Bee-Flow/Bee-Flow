@@ -1,10 +1,10 @@
 import { Database } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { INPUT_CLS } from '../kit';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import QueryBuilder from '../../../bi/QueryBuilder';
-import useDatasets from '../../../bi/useDatasets';
-import type { Dataset } from '../../../bi/useDatasets';
+import useTranslation from '@/hooks/useTranslation';
+import QueryBuilder from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
+import useDatasets from '@/components/admin/Studio/AppStudio/bi/useDatasets';
+import type { Dataset } from '@/components/admin/Studio/AppStudio/bi/useDatasets';
 import type { BindingDraft, DatasetBindingProps } from '../BindingField.types';
 import { PickValueField } from './AggregateBinding';
 

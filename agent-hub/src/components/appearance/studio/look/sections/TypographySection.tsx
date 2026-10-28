@@ -1,11 +1,11 @@
 import React from 'react';
-import FormField from '../../../../shared/FormField';
-import { FONT_OPTIONS } from '../../../ThemeContext';
-import type { ThemeOption } from '../../../ThemeContext.types';
+import FormField from '@/components/shared/FormField';
+import { FONT_OPTIONS } from '@/components/appearance/ThemeContext';
+import type { ThemeOption } from '@/components/appearance/ThemeContext.types';
 
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Sample text shown next to each font so admins can preview at a glance.
 const FONT_SAMPLE = 'The quick brown fox jumps over the lazy dog.';

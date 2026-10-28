@@ -1,4 +1,4 @@
-import { checkPermission } from '../../../../hooks/usePermissionCheck';
+import { checkPermission } from '@/hooks/usePermissionCheck';
 import type { AttentionBody, AttentionVerdict, AttentionCtx, AttentionGate, AttentionCheck } from './attentionChecks.types';
 import { AVAILABILITY } from './attentionChecks.constants';
 

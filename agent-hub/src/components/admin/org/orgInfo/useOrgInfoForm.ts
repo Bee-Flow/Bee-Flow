@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
-import { logger } from '../../../../utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
 
 /** The organisation's editable fields; every one is sent on save. */
 interface OrgFormFields {

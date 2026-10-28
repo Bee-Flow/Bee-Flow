@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The settings title bar: the phone back button and the section (or screen) title. */
 export function SettingsTitleBar({ titleLabel, onBack }: { titleLabel: string; onBack: () => void }) {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import previewBinding from '../mapping/bindingPreview';
 import { Check, Eye } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { proposalChanges, proposalFields } from './proposalChanges';
 import ProposalTables from './ProposalTables';
 import type { PendingTable, UsedTable } from './pendingTables';

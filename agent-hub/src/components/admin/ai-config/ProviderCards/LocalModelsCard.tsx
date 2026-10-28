@@ -14,8 +14,8 @@
 //     curated starter list or any tag from the Ollama library.
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 import AddRuntimeForm from './local/AddRuntimeForm';
 import {
@@ -26,9 +26,9 @@ import {
     detectRuntimes,
     connectRuntime,
     disconnectRuntime,
-} from '../../../../api/localRuntimeApi';
+} from '@/api/localRuntimeApi';
 import RuntimeRow from './local/RuntimeRow';
-import type { ConnectRequest, DetectResult, RuntimeInfo, RuntimeProvider, StarterModel } from '../../../../api/runtimeTypes';
+import type { ConnectRequest, DetectResult, RuntimeInfo, RuntimeProvider, StarterModel } from '@/api/runtimeTypes';
 import ProviderCardShell, { ProviderStatusPill } from './shared/ProviderCardShell';
 
 interface LocalModelsCardProps extends ProviderCardProps {

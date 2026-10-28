@@ -11,15 +11,15 @@ import {
 import MessageContentBody from './MessageContentBody';
 import { CompactionDivider, RemovedUserMessage } from './MessageNotices';
 import type { ChatMessage } from './messageTypes';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
+import type { SkillSummary } from '@/hooks/useChatEngine/types';
 import ToolOutput from './ToolOutput';
 import type { ToolDecisionHandler } from './ToolConfirmCard';
 import { useMessageActions, useMessageFeedback } from './useMessageActions';
 import type { FeedbackAgent, FeedbackContext } from './useMessageActions';
 import { useMessageEdit, useSimpleMode } from './useMessageEdit';
 import UserEditComposer from './UserEditComposer';
-import useTranslation from '../../../hooks/useTranslation';
-import CitationOverlay from '../../../pages/documents/notebook/CitationOverlay';
+import useTranslation from '@/hooks/useTranslation';
+import CitationOverlay from '@/pages/documents/notebook/CitationOverlay';
 import { MessageErrorBoundary } from '../../shell/ErrorBoundary';
 
 // C9 — the reading column. Messages and composer belong in ONE column; they

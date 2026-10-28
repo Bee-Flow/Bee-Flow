@@ -1,8 +1,8 @@
 import { Check, ChevronDown, Eye, Play } from 'lucide-react';
 import { useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import useDismiss from './useDismiss';
-import { viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
+import { viewOnlyRunHint } from '@/api/queries/automation/runAccess';
 
 export interface RunTriggerOption { id: string; label: string; kind?: string }
 

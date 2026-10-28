@@ -1,8 +1,8 @@
 import { Search, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import Modal from '../../../shared/Modal';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface AppItem {
     id: string;

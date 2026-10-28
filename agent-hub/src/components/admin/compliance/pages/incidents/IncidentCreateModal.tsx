@@ -2,10 +2,10 @@ import { Plus } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createBodyOf, localInputValue } from './incidentClocks';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { useNow } from '../../../../shared/DeadlineClock';
-import Modal from '../../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useNow } from '@/components/shared/DeadlineClock';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /**
  * IncidentCreateModal — "Record incident" / "Record vulnerability".

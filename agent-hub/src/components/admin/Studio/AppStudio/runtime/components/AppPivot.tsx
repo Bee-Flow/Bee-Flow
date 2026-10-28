@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React, { useMemo, useRef } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

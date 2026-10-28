@@ -1,11 +1,11 @@
 import { Plus, Search, Workflow } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { INPUT_CLS } from './panels/kit';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import useTranslation from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
-import Spinner from '../../../../shared/Spinner';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import Spinner from '@/components/shared/Spinner';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { FormFieldRef } from './appDefinition';
 import type { WiredAutomation } from './useEventWiring';
 import type { PickerAutomation, AppRefProp, AutomationPickerProps, AutomationPickerBodyProps, CreateAutomationRowProps } from './AutomationPicker.types';

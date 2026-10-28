@@ -4,8 +4,8 @@
 // contract. Showing the skill's fields over the step's would promise fields
 // the run never hands on.
 import { ArrowRightFromLine, Braces, Calendar, Hash, List, ToggleLeft, Type } from 'lucide-react';
-import type { SkillOutputField } from '../../../../../../api/queries/automation/agents';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { SkillOutputField } from '@/api/queries/automation/agents';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { hintTextClass } from '../formPrimitives';
 import { fieldTypeWord } from './agentStepModel';
 

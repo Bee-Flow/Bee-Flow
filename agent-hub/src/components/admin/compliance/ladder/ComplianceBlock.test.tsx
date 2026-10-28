@@ -3,19 +3,19 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
-vi.mock('../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), dismiss: vi.fn() };
     return { default: toast, toast };
 });
 // The host pulls in heavy neighbours we are not testing here.
-vi.mock('../../../agents/AgentWizard/pickers/BehaviorPicker', () => ({ BehaviorBody: () => <div data-testid="behavior-body" /> }));
-vi.mock('../../../agents/VersionHistory', () => ({ default: () => <div data-testid="version-history" /> }));
+vi.mock('@/components/agents/AgentWizard/pickers/BehaviorPicker', () => ({ BehaviorBody: () => <div data-testid="behavior-body" /> }));
+vi.mock('@/components/agents/VersionHistory', () => ({ default: () => <div data-testid="version-history" /> }));
 
 import ComplianceBlock, { chipState } from './ComplianceBlock';
-import { API } from '../../../../api/complianceApi';
-import { authFetch } from '../../../../utils/helpers';
-import AdvancedDrawer from '../../../agents/AgentWizard/pickers/AdvancedDrawer';
+import { API } from '@/api/complianceApi';
+import { authFetch } from '@/utils/helpers';
+import AdvancedDrawer from '@/components/agents/AgentWizard/pickers/AdvancedDrawer';
 import { asMock, omitted, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 

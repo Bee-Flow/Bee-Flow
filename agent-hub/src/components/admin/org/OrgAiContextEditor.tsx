@@ -14,12 +14,12 @@
 import { Brain, AlertTriangle, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { errorMessage, messageOf } from '../../../utils/caughtError';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { errorMessage, messageOf } from '@/utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '../../../api/mutate';
+import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
 
 // "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
 const formatTokens = (n: number) => Math.round(n).toLocaleString();

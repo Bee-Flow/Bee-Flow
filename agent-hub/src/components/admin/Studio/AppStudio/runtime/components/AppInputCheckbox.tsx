@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';

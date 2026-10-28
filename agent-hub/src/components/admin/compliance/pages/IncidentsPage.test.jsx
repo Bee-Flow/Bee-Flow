@@ -4,10 +4,10 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import IncidentsPage from './IncidentsPage';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

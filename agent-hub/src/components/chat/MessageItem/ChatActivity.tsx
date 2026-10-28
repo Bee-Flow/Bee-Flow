@@ -1,10 +1,10 @@
 import { Check, ChevronRight, Loader2, Minus, TriangleAlert, Wrench } from 'lucide-react';
 import { describeChatTool, detailPayload, resultFor, visibleToolHistory, type ToolEntry } from './chatToolCallDisplay';
 import { DurationPill, StepBadge, TimelineRail } from './timelineParts';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
-import { resolveIntegrationFromTool } from '../../../utils/integrationIcons';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { getToolIcon, toolNameToCatalogId } from '@/utils/helpers';
+import { resolveIntegrationFromTool } from '@/utils/integrationIcons';
 import IntegrationLogo from '../../automation/Builder/flow/nodes/IntegrationLogo';
 import AppEmoji from '../../icons/AppEmoji';
 

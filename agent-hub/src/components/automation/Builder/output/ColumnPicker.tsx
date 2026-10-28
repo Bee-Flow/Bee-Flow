@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, Pin, Search, Square, SquareCheck } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { OutputColumn } from './columns';
 import type { OutputColumnsState } from './useOutputColumns';
 

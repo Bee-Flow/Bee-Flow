@@ -9,7 +9,7 @@
 
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { REGION_BG } from '../../shieldPalette';
 
 export function MapLegend({ t, showOrigin }: { t: TranslateFn; showOrigin: boolean }) {

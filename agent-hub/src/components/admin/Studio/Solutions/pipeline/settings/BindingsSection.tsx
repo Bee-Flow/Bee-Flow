@@ -1,10 +1,10 @@
 import { AlertTriangle, Check, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { DirectoryOptions } from '../../../../../automation/Builder/flow/settings/approvalStages';
-import { newStageKey } from '../../../../../automation/Builder/flow/settings/formState';
-import Button from '../../../../../shared/Button';
-import type { StageKey } from '../../../../../../api/stagesApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import { DirectoryOptions } from '@/components/automation/Builder/flow/settings/approvalStages';
+import { newStageKey } from '@/components/automation/Builder/flow/settings/formState';
+import Button from '@/components/shared/Button';
+import type { StageKey } from '@/api/stagesApi';
 import { ChainEditor } from './GateSection';
 import type { ConnectionOption, Directory } from './stageSettingsApi';
 import {

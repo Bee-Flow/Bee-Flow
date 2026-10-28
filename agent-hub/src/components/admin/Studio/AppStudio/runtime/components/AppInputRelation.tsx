@@ -1,7 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { useMemo } from 'react';
 import ComboBox, { BindingLoader, CANDIDATE_LIMIT, useHasQueryClient } from './comboBox';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';

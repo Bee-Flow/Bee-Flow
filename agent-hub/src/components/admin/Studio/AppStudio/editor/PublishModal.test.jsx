@@ -10,13 +10,13 @@ vi.mock('../studioAppsApi', () => {
     return { default: studioAppsApi, studioAppsApi };
 });
 vi.mock('../rbac/useAppRoles', () => ({ default: vi.fn(), useOrgDirectory: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
+import toast from '@/components/shared/Toast';
 import PublishModal from './PublishModal';
-import toast from '../../../../shared/Toast';
 import useAppRoles, { useOrgDirectory } from '../rbac/useAppRoles';
 import { studioAppsApi } from '../studioAppsApi';
 

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Download, FileText } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import useTranslation from '../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 

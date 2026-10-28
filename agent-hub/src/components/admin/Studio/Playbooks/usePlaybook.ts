@@ -1,4 +1,4 @@
-import type { JsonResourceError } from '../../../../api/client';
+import type { JsonResourceError } from '@/api/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyPhaseResult, kindOf, patchFor, Phase, KeyedPlaybookEvent, PlaybookEvent, PlaybookLike, SERVER_RUN } from './phaseMachine';
 import { playbooksApi } from './playbooksApi';

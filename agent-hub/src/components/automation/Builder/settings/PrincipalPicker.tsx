@@ -1,7 +1,7 @@
 import React, { useId, useMemo, useState } from 'react';
 import { UserPlus, Users } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { filterPrincipals, usePeopleDirectory, type Principal } from '../../../../api/queries/automation/people';
+import { useTranslation } from '@/hooks/useTranslation';
+import { filterPrincipals, usePeopleDirectory, type Principal } from '@/api/queries/automation/people';
 
 /**
  * "Add a person or group…": a search field over the org's people and groups,

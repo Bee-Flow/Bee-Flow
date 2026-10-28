@@ -4,7 +4,7 @@ import OutputView from './OutputView';
 import { humanizeToolName } from './flow/displayHelpers';
 import type { PreviewStep } from './FlowletsPanel.types';
 import type { FlowDefinition } from './flow/types';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Dry-run preview, rendered as a collapsible, dismissible drawer that

@@ -1,8 +1,8 @@
 import React from 'react';
 import { PRESETS } from './answersRange';
 import type { AnswersRange, RangePreset } from './answersRange';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import { useTranslation } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 
 const INPUT = 'px-2 py-1 rounded-lg text-xs border outline-none focus:ring-2';
 

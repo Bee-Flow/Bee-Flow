@@ -1,11 +1,11 @@
 import { Loader2, Sparkles, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation, type TranslateFn } from '../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { nOf } from '../../KnowledgeStudio/plural';
-import type { ApprovalQuestionRow } from '../../../../automation/Builder/flow/settings/approvalTypes';
+import type { ApprovalQuestionRow } from '@/components/automation/Builder/flow/settings/approvalTypes';
 import type { FormDraft } from './useFormDetail';
 
 /**

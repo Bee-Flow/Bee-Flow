@@ -5,7 +5,7 @@ import SecurityHub from './SecurityHub';
 
 const hasTier = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
 vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ hasTier }) }));

@@ -1,6 +1,6 @@
 import { useEffect, useId } from 'react';
 import Modal from '../../shared/Modal';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     t: TranslateFn;

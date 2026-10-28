@@ -15,7 +15,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
  *      tier the automation uses.
  */
 
-vi.mock('../../../../api/modelMeta', () => ({
+vi.mock('@/api/modelMeta', () => ({
     getModelDisplayName: (m: { id: string }) => (m.id === 'qwen2.5:1.5b' ? 'Qwen 2.5 1.5B' : m.id),
 }));
 

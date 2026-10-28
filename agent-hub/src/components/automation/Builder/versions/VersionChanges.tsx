@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { FieldDiff, VersionRow } from '../../../../api/queries/automation/versions';
+import useTranslation from '@/hooks/useTranslation';
+import type { FieldDiff, VersionRow } from '@/api/queries/automation/versions';
 import FieldDiffTable from './FieldDiffTable';
 
 interface Props {

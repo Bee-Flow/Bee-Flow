@@ -1,7 +1,7 @@
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { denseInputClass } from '../../../automation/Builder/flow/settings/formStyles';
+import useTranslation from '@/hooks/useTranslation';
+import { denseInputClass } from '@/components/automation/Builder/flow/settings/formStyles';
 
 /**
  * The one decision surface, shared by the Approvals section's detail view and

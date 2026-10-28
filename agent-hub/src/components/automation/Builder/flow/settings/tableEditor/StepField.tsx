@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { fieldLabelClass, hintTextClass, requiredChipClass } from '../formStyles';
 
 interface Props {

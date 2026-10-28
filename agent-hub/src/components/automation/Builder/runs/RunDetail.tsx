@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo } from 'react';
-import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
-import { useRun, useRunSteps } from '../../../../api/queries/automation/runs';
+import type { RunRowData, RunStepRecord } from '@/api/queries/automation/runs';
+import { useRun, useRunSteps } from '@/api/queries/automation/runs';
 import { buildRunStepLabelMap, buildRunStepMap, runStepLabel } from '../flow/displayHelpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import useRerunFromStep from '../../../../hooks/automationBuilder/useRerunFromStep';
-import type { RerunSideEffect } from '../../../../api/queries/automation/rerun';
+import { useTranslation } from '@/hooks/useTranslation';
+import useRerunFromStep from '@/hooks/automationBuilder/useRerunFromStep';
+import type { RerunSideEffect } from '@/api/queries/automation/rerun';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { runStepTypeMap } from './bindingMisses';
 import { latestSteps } from './runIo';

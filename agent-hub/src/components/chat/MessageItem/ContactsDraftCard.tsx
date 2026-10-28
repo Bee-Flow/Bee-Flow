@@ -1,8 +1,8 @@
 import { UserPlus, Pencil, Mail, Phone, Building2, Briefcase, StickyNote, type LucideIcon } from 'lucide-react';
 import React, { type Dispatch, type SetStateAction } from 'react';
 import DraftCardShell from './DraftCardShell';
-import useDraftAction, { type DraftStatusMap } from '../../../hooks/useDraftAction';
-import useTranslation from '../../../hooks/useTranslation';
+import useDraftAction, { type DraftStatusMap } from '@/hooks/useDraftAction';
+import useTranslation from '@/hooks/useTranslation';
 
 interface ContactsDraft {
     action?: string;

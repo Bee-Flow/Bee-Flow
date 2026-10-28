@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildStripItems, dirtyChips } from './orgShieldStrip';
 import type { StripInput, StripItem } from './orgShieldStrip';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : key;

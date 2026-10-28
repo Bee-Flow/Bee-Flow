@@ -14,7 +14,7 @@
  *   - reference lines, for the Core Web Vitals thresholds
  */
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';
 import { ACCENT } from '../BarList';
 

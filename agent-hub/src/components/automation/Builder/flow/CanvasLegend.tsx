@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircleHelp } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { typeColorVar, typeTint } from './nodeTypeColors';
 
 /**

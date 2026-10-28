@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ImageField as ImageFieldJs, TextField as TextFieldJs } from '../fields';
 
 const ImageField = ImageFieldJs;

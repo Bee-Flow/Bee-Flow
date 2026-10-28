@@ -9,8 +9,8 @@
 import { Info } from 'lucide-react';
 import React, { useId } from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { fNum } from '../../../../../../../pages/settings/usage/format';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { fNum } from '@/pages/settings/usage/format';
 import { REGION_FILL } from '../../shieldPalette';
 import type { DestinationType } from './egressMapContract';
 import type { RowBar } from './destinationGroups';

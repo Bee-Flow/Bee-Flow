@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { BookOpen, Loader2, Table, Trash2, Workflow, type LucideIcon } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
-import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
-import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import { datatablesApi } from '@/components/admin/Studio/Datatables/datatablesApi';
+import knowledgeApi from '@/components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import {
     buildAutomationPayload,
     buildKbSource,

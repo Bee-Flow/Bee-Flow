@@ -2,10 +2,10 @@ import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import OutputView from './OutputView';
-import { fetchRunFullOutput } from '../../../api/queries/runFullOutput';
+import { fetchRunFullOutput } from '@/api/queries/runFullOutput';
 
 // Only the network call is replaced; fullOutputRefOf stays the real reader.
-vi.mock('../../../api/queries/runFullOutput', async (importOriginal) => ({
+vi.mock('@/api/queries/runFullOutput', async (importOriginal) => ({
     ...(await importOriginal()),
     fetchRunFullOutput: vi.fn(),
 }));

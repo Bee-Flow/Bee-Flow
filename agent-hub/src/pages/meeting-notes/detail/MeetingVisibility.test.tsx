@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/react';
-import { renderWithClient } from '../../../test/render';
+import { renderWithClient } from '@/test/render';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../api/transcriptionsApi', () => ({
+vi.mock('@/api/transcriptionsApi', () => ({
     listOrgGroups: vi.fn().mockResolvedValue([{ id: 'g1', name: 'sales' }]),
     publishTranscription: vi.fn(),
 }));

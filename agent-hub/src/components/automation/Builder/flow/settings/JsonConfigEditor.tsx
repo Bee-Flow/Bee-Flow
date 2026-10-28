@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { inputClass } from './formPrimitives';
-import { errorMessage } from '../../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 type JsonObject = Record<string, unknown>;
 

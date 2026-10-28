@@ -1,8 +1,8 @@
 import { Hash, ListChecks, Sparkles } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import ChoiceCards from '../../../../../../shared/ChoiceCards';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { describeProblemLine, placeholderOf, tokenProblemLine } from '../ownDataCopy';
 import type { Method } from '../ownDataModel';
 import {

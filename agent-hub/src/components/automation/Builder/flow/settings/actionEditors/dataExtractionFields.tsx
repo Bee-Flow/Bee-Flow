@@ -2,8 +2,8 @@
 // step's output shape, and any extra guidance for the extraction model.
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import BindingField from '../../../mapping/BindingField';
+import { useTranslation } from '@/hooks/useTranslation';
+import BindingField from '@/components/automation/Builder/mapping/BindingField';
 import AccordionSection from '../../AccordionSection';
 import { ConcurrencyField } from '../aiStepReliability/ConcurrencyField';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '../collectionEditors';
@@ -12,7 +12,7 @@ import {
     EXTRACTION_FIELD_TYPES, MAX_EXTRACTION_FIELDS, MAX_EXTRACTION_INSTRUCTIONS,
     coerceExtractionName, emptyExtractionField,
 } from '../formState';
-import type { ForEachConfig } from '../../../mapping/itemRefs';
+import type { ForEachConfig } from '@/components/automation/Builder/mapping/itemRefs';
 
 /**
  * The Extract data editor: WHICH text, WHICH fields, and any extra guidance.

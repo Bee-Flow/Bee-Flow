@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 
+import { interpolate } from '@/hooks/useTranslation';
 import PrivacyLine from './PrivacyLine';
-import { interpolate } from '../../../hooks/useTranslation';
 
 /**
  * C7: what the line says on screen, and above all what it does NOT say.

@@ -1,4 +1,4 @@
-import { useGoogleMeetConnectedQuery } from '../../../api/queries/meetingNotesConnections';
+import { useGoogleMeetConnectedQuery } from '@/api/queries/meetingNotesConnections';
 
 /**
  * useGoogleMeetConnected — probes whether the current user has a Google

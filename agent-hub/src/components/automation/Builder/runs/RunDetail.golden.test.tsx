@@ -2,12 +2,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { withQueryClient } from '../../../../test/queryWrapper';
-import { authFetch } from '../../../../utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import { BuilderConfirmProvider } from '../BuilderConfirmContext';
 import RunDetail from './RunDetail';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../OutputView', () => ({ default: () => <div /> }));
 
 const STEPS = {

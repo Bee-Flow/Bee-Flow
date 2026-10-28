@@ -2,7 +2,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AccordionSection from './AccordionSection';
 import { FormDensityContext, FormDensityValue, densityForOpen } from './settings/formDensity';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 

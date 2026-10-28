@@ -1,6 +1,6 @@
 import { AlertTriangle, Info } from 'lucide-react';
 import { COUNTED_SECTIONS, countPhrase } from './solutionCounts';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { SourceClaimProps, ContentsStepProps } from './installWizardSteps.types';
 import { selectCls, selectStyle } from './AccessStep';
 

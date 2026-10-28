@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadLearnManifest, resetLearnManifestCache } from '../../../components/onboarding/learnMedia';
+import { loadLearnManifest, resetLearnManifestCache } from '@/components/onboarding/learnMedia';
 import CourseView from './CourseView';
 import type { TFn } from './bits';
-import type { LessonDoc } from '../../../api/lessons.types';
+import type { LessonDoc } from '@/api/lessons.types';
 
 const t: TFn = (_key, fallback) => String(fallback);
 

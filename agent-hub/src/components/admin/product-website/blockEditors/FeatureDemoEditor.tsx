@@ -1,6 +1,6 @@
 import React from 'react';
-import { DEMO_FEATURES, DEMO_FEATURE_IDS } from '../../../../demo/registry';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { DEMO_FEATURES, DEMO_FEATURE_IDS } from '@/demo/registry';
+import { useTranslation } from '@/hooks/useTranslation';
 import { TextField, TextArea, FieldRow, ImageField } from '../fields';
 import { CollapsibleCard, InlineHint, FieldSelect, SegmentedControl } from '../primitives';
 import type { BlockEditorProps } from './editorProps';

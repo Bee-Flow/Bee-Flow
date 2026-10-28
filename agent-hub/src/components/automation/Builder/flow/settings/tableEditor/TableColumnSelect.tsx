@@ -1,8 +1,8 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { TableColumn } from '../../../../../../api/queries/automation/runTables';
-import type { ColumnKind, DescribedColumn } from '../../../../../../api/queries/automation/tablePreview';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import type { ColumnKind, DescribedColumn } from '@/api/queries/automation/tablePreview';
 import { rowInputClass } from '../formStyles';
 import type { Translate } from './opHelp';
 

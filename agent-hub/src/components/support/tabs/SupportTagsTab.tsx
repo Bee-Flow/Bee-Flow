@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useSupportTagTaxonomyQuery } from '../../../api/queries/supportPanels';
+import { useSupportTagTaxonomyQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
 
 interface SupportTag {
     id: string;

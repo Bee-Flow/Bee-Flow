@@ -5,8 +5,8 @@
 
 import { ThumbsDown } from 'lucide-react';
 import React, { useState } from 'react';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 /** The reason code in the reader's words, as "Joined because <reason>" finishes it. */
 export function joinReasonText(reason: string | null | undefined, t: TranslateFn): string {

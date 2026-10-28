@@ -15,7 +15,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 // Heavy children with their own fetches — this file is about section routing.
 vi.mock('./patterns/PatternsView', () => ({ default: () => <div data-testid="view-patterns" /> }));

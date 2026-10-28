@@ -4,13 +4,13 @@ import { isNcMirror, isSpreadsheetMirror, sourceErrorMessage, sourceKindSpec, so
 import RelationsCard from './RelationsCard';
 import { sourceGlyphOf } from './sourceGlyphs';
 import { FileCard, IdentityCard, WriteCard } from './SpreadsheetSourceCards';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MirrorSync, SourceError } from './sourceMirrors';
 import type { MirrorHookTable, SourceMirror } from './useSourceMirror';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
-import { logger } from '../../../../utils/logger';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
+import { logger } from '@/utils/logger';
 
 /**
  * The source tab of a mirrored table — "Nextcloud" or "Spreadsheet" — as

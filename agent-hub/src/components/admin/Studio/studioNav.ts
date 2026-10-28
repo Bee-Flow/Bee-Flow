@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { firstOpenStudioSection, makeCanUse, resolveStudioNav, studioPermissionHeld } from './studioGates';
 import type { StudioGateCtx, StudioNavDescriptor } from './studioGates';
 import { isStudioStart, STUDIO_SECTIONS, type StudioSectionDescriptor } from './studioSections';

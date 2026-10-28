@@ -2,7 +2,7 @@ import { stepMeta } from '../stepCatalog';
 import { type RefOption, type ReferenceKind } from '../stepReferences';
 import useStepReferences from '../useStepReferences';
 import DocumentFillFields from '../DocumentFillFields';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useCatalogStepSpecs } from '../../inspector/panels/SpecPanel';
 import type { AppAction, AppDefinition, AppNode, AppScreen, FormFieldRef } from '../../inspector/appDefinition';
 import type { StepSettingsProps, FieldSpec, StepReferences } from '../StepSettings.types';

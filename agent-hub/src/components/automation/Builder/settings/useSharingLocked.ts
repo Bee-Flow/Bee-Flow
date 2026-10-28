@@ -1,4 +1,4 @@
-import { useEntitlements } from '../../../licensing/EntitlementsContext';
+import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 
 /**
  * Sharing an automation is a plan feature (`automation_sharing`). Only a real

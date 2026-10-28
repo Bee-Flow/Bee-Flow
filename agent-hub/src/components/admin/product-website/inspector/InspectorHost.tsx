@@ -5,7 +5,7 @@ import AnalyticsInspector from './AnalyticsInspector';
 import ChromeInspector from './ChromeInspector';
 import DesignInspector from './DesignInspector';
 import PageInspector from './PageInspector';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CmsActivePage } from '../panel/cmsPanelTypes';
 import {
     ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, DESIGN_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,

@@ -7,10 +7,10 @@
 
 import { ArchiveRestore, BookOpen, Copy, FileText, NotebookPen, Presentation, Sheet, Share2, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import ConfirmDialog from '../../../components/shared/ConfirmDialog';
-import EmptyState from '../../../components/shared/EmptyState';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import type { LibraryRow, People } from '../documentQueries';
 import { useDocTypeLabel, usePersonLabel } from './labels';
 import { isNotebookRow } from './useLibrary';

@@ -1,16 +1,16 @@
 import { Sparkles, Send, CheckCircle2, Loader2, Flag, Tag as TagIcon, Users, MessageSquareText, EyeOff, RotateCcw, Clock, Star, AlertTriangle } from 'lucide-react';
 import { useEffect, useState, useCallback, SetStateAction, Dispatch } from 'react';
 import TicketTimeline from './TicketTimeline';
-import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { useSupportCanned, useSupportTags, useSupportTeammates } from '../../../../api/queries/studioSupport';
-import { toast } from '../../../shared/Toast';
-import EmailHtmlBody from '../../../support/EmailHtmlBody';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useSupportCanned, useSupportTags, useSupportTeammates } from '@/api/queries/studioSupport';
+import { toast } from '@/components/shared/Toast';
+import EmailHtmlBody from '@/components/support/EmailHtmlBody';
 import type { SupportTeammate } from './supportStudio.types';
-import type { ConvLabel } from '../../../shell/sidebar/EditLabelInline';
-import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
+import type { ConvLabel } from '@/components/shell/sidebar/EditLabelInline';
+import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
 import type { SupportThread, SupportMessage, TicketContext, TicketDetailProps, MessageBubbleProps } from './index.types';
-import { mutate, ApiError, errorBody, request, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, request, RefusedError } from '@/api/mutate';
 import { NOT_SUPPORT_TAG, STATUS_IDS, PRIORITY_IDS, STATUS_COLORS, statusLabel, slaBreached } from './SupportStudio.helpers';
 
 export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDetailProps) {

@@ -1,14 +1,14 @@
 import { Upload, X } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useCallback } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import Modal from '../../../shared/Modal';
+import { API_BASE } from '@/utils/helpers';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import Modal from '@/components/shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
-import { errorMessage } from '../../../../utils/caughtError';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
-import { logger } from '../../../../utils/logger';
-import { mutate, request, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { mutate, request, RefusedError } from '@/api/mutate';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
 interface KbDocument {

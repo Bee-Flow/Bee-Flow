@@ -1,5 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import FileExplorer from '../FileExplorer';
 import WebpageAppsPanel from '../WebpageAppsPanel';
 import WebpageDbViewer from '../WebpageDbViewer';

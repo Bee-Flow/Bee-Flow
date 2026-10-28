@@ -1,12 +1,12 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     ackKey, acksOf, isNoop, needsNameConfirm, settingsLinkFor, summarizeParts,
 } from './pipelineModel';
 import { findingText } from './StageStatus';
 import { useStageLabel } from './StageSwitcher';
-import type { Plan, PlanAck, StageKey } from '../../../../../api/stagesApi';
+import type { Plan, PlanAck, StageKey } from '@/api/stagesApi';
 
 /** The body of the deploy dialog: every section of a plan, in reading order. */
 

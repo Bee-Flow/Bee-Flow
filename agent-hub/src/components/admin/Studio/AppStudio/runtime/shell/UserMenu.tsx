@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * UserMenu — who is looking at this app. A small initials button that opens

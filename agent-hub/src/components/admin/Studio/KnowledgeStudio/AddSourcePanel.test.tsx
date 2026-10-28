@@ -8,7 +8,7 @@ import { asMock } from '@/test/mocks';
 // The org's tag vocabulary is a nicety: a tag typed by hand is still a tag,
 // and the server checks it either way. Stubbed so the form does not reach the
 // network for a datalist.
-vi.mock('../../../../api/transcriptionsApi', () => ({
+vi.mock('@/api/transcriptionsApi', () => ({
     listTranscriptionTags: vi.fn(async () => [{ tag: 'sales', count: 6 }, { tag: 'directie', count: 2 }]),
 }));
 

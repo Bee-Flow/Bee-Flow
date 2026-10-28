@@ -1,6 +1,6 @@
 import { FileText, Loader2, RotateCw } from 'lucide-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

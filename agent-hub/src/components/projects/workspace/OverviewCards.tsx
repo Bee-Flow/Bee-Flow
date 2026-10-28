@@ -6,9 +6,9 @@ import { BookOpen, ChevronRight, FileText, Mic, NotebookPen, Upload, UserPlus } 
 import React from 'react';
 import {
     useProjectMembersQuery, useProjectResourcesQuery, type Project, type ProjectRole,
-} from '../../../api/queries/projects';
-import { useProjectFilesQuery } from '../../../api/queries/projectContent';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import { useProjectFilesQuery } from '@/api/queries/projectContent';
+import useTranslation from '@/hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import { useProjectLive } from './ProjectLiveContext';
 import { canEditProject, type WorkspaceIntent, type WorkspaceTabId } from './types';

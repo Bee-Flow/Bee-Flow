@@ -1,11 +1,11 @@
 import { Copy, Check, RefreshCw, Trash2, ServerCog } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import useConfirm from '../../shared/useConfirm';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { messageOf } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError, request, RefusedError, errorBody } from '@/api/mutate';
 
 interface PairingCode {
     id: string;

@@ -13,7 +13,7 @@ import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext'
  * should be.
  */
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: 'https://api.test',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));

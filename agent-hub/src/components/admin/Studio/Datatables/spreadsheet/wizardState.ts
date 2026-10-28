@@ -30,7 +30,7 @@
  * `sheetLabel` so a step need not know the rule.
  */
 
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { COLUMN_TYPES, keyFromName, providerName } from '../datatableDisplay';
 
 /** A refusal from the datatables API: the server's code and body ride on the Error. */

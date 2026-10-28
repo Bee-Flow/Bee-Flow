@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Check, Loader2, AlertCircle, Lock, ChevronDown, ChevronRight, Wrench } from 'lucide-react';
-import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
-import type { SwarmWorker } from '../../../hooks/useChatEngine/types';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
+import type { SwarmWorker } from '@/hooks/useChatEngine/types';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**

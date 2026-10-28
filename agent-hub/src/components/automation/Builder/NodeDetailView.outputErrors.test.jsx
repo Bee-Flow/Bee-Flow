@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({
     api: { getCatalog: vi.fn().mockResolvedValue({ apps: [], triggerOutputs: {} }) },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 /**
  * A switchable dictionary over the REAL useTranslation, off by default.
@@ -21,7 +21,7 @@ vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
  * stays English on a Dutch screen.
  */
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 import {

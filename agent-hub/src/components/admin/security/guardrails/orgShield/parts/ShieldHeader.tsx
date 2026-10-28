@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import { DetectionStatusPill } from './DetectionStatusPill';
 import type { GuardStatus } from './DetectionStatusPill';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { SHIELD_ROW } from '../shieldLayout';
 
 /**

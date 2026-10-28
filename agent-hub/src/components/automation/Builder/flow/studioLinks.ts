@@ -1,7 +1,7 @@
 // Links from the builder into Studio: the agent, skill or knowledge base an AI
 // step uses. One helper so the step editor's "Open" and the canvas card's
 // ports cannot point at two different URLs for the same thing.
-import { segmentForSection } from '../../../admin/Studio/studioRoutes';
+import { segmentForSection } from '@/components/admin/Studio/studioRoutes';
 
 export type StudioLinkSection = 'agents' | 'skills' | 'knowledge';
 

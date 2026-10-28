@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import SettingsTab from './SettingsTab';
 import type { WorkspaceTabProps } from './types';
 import {
@@ -10,7 +10,7 @@ import {
 } from './workspaceTestApi';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

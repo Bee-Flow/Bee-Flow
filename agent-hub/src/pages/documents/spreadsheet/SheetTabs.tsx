@@ -3,8 +3,8 @@
 
 import { Plus, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import type { SheetTab } from '../../../api/sheetApi';
+import useTranslation from '@/hooks/useTranslation';
+import type { SheetTab } from '@/api/sheetApi';
 
 interface SheetTabsProps {
     tabs?: SheetTab[];

@@ -1,5 +1,5 @@
 import { Flame, MousePointerClick, MoveVertical, ExternalLink } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Empty, fmt } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT } from '../BarList';

@@ -1,6 +1,6 @@
 import { AlertTriangle, UserCheck } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useConnectorHealth, type ConnectorHealthProblem } from '../../../api/queries/orgAdminReads';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useConnectorHealth, type ConnectorHealthProblem } from '@/api/queries/orgAdminReads';
 
 /**
  * OrgHealthBanner — org-admin surfacing of connector-health blockers, mounted

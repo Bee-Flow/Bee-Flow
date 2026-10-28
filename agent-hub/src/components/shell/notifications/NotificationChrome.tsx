@@ -1,7 +1,7 @@
 // The bell that opens the inbox (two variants) and the result modal. Split
 // out of NotificationCenter.jsx without a change in behaviour.
 import { Bell, Bot, X } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 
 /** Compact icon-only trigger (sits in a top bar). */

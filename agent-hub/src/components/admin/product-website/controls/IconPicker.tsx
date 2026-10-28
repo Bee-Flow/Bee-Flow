@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ICON_CATALOGUE } from './iconCatalogue';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import ModalShell from '../dialogs/ModalShell';
 
 /**

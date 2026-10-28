@@ -9,7 +9,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import MessageBubble, { readsAsMarkdown, isToolOnlyTurn } from './MessageBubble';
 
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (_k: string, d: string) => d }),
 }));
 

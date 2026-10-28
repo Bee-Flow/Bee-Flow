@@ -1,5 +1,5 @@
-import type { ServerMcpServer } from '../../../api/queries/serverMcp';
-import { useTranslation } from '../../../hooks/useTranslation';
+import type { ServerMcpServer } from '@/api/queries/serverMcp';
+import { useTranslation } from '@/hooks/useTranslation';
 import { DOT_ERROR, DOT_LIVE, DOT_OFF, DOT_WARN } from '../ui';
 
 /** A server-wide server's state as a dot and a word. */

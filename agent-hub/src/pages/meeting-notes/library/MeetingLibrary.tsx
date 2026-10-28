@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Sparkles, X } from 'lucide-react';
-import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
-import useTranslation from '../../../hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
 import MeetingRow from './MeetingRow';
 import LibraryFilters from './LibraryFilters';
 import LibraryEmptyState from './LibraryEmptyState';
 import ReportModal from './ReportModal';
-import { messageOf } from '../../../utils/caughtError';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
 
 const REPORT_MAX_NOTES = 10;

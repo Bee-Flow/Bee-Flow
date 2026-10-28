@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { clocksOf, isVulnerability, stepsOf } from './incidentClocks';
 import { INPUT, ReportingList, SECONDARY_BUTTON, StepAction, usesCraRoute, type StepFields, type StepId } from './IncidentReporting';
 import { IncidentClock, IncidentStatusPill, incidentRef, type IncidentRecord } from './IncidentsTable';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerFooter, DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import SideDrawer, { DrawerFooter, DrawerSection, DrawerId } from '@/components/shared/SideDrawer';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
 import { useDateFormat } from '../../shared/formatDates';
 import SeverityTag from '../../shared/SeverityTag';
 

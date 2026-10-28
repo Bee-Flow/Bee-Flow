@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { useAiConfigQuery } from '../../../api/queries/aiConfigRead';
-import useDraftOverServer from '../../../hooks/useDraftOverServer';
-import { API_BASE } from '../../../utils/helpers';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
+import useDraftOverServer from '@/hooks/useDraftOverServer';
+import { API_BASE } from '@/utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError } from '@/api/mutate';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;

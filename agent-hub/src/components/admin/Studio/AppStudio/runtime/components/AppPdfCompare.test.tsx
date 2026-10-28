@@ -12,7 +12,7 @@ import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
  * without a real PDF.
  */
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: 'https://api.test',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch: (...a: unknown[]) => unknown }).__authFetch(...args),
 }));

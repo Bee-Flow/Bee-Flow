@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Lock, Plug, Share2 } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One way to fix a failed step, as the server's error classifier offers it. */
 export interface ErrorFix {
@@ -84,11 +84,12 @@ function settingWords(t: TranslateFn, p: Record<string, unknown>, info: StepErro
     return key.replace(/^inputs\./, '');
 }
 
-function iconFor(info: StepErrorInfo | null) {
+/** The error's symbol: a lock for access, a plug for a connection, otherwise an alert. */
+function ErrorIcon({ info }: { info: StepErrorInfo | null }) {
     const code = String(info?.code || '').toLowerCase();
-    if (/(forbidden|permission|access|denied|share|not_shared|locked)/.test(code)) return Lock;
-    if (/(auth|token|connect|credential|expired)/.test(code)) return Plug;
-    return AlertCircle;
+    if (/(forbidden|permission|access|denied|share|not_shared|locked)/.test(code)) return <Lock size={14} aria-hidden className="shrink-0" />;
+    if (/(auth|token|connect|credential|expired)/.test(code)) return <Plug size={14} aria-hidden className="shrink-0" />;
+    return <AlertCircle size={14} aria-hidden className="shrink-0" />;
 }
 
 type FixAction =
@@ -157,7 +158,6 @@ export default function ErrorCard({ info, error, remediation = null, onRetry = n
     const [explain, setExplain] = useState<string | null>(null);
     const { title, cause, technical } = errorTexts(t, info, error, remediation);
     const fixes = (info?.fixes || []).filter(f => f && f.id);
-    const Icon = iconFor(info);
 
     const run = (fix: ErrorFix) => {
         setExplain(null);
@@ -175,7 +175,7 @@ export default function ErrorCard({ info, error, remediation = null, onRetry = n
         <div className="rounded-[10px] border border-[color-mix(in_srgb,var(--error)_40%,transparent)] bg-[var(--bg-card)] overflow-hidden text-xs" role="group" aria-label={title} data-testid="output-error-card">
             <div className="px-3.5 py-3 flex flex-col gap-1.5 bg-[color-mix(in_srgb,var(--error)_6%,transparent)]">
                 <div className="flex items-center gap-2 font-semibold text-[13px] text-[var(--error)]">
-                    <Icon size={14} aria-hidden className="shrink-0" />
+                    <ErrorIcon info={info} />
                     <span>{title}</span>
                 </div>
                 {cause && <div className="text-[var(--text-secondary)] leading-[17px] whitespace-pre-wrap break-words">{cause}</div>}

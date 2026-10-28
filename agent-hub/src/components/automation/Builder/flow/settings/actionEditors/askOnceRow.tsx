@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // "Ask this only once per run" — the tick shared by the integration_action and
 // http_request editors, and the caller-side answer to whether it is available.

@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import * as aiStepEditors from '../../../automation/Builder/flow/settings/aiStepEditors';
-import { fieldsToSchema, schemaToFields } from '../../../automation/Builder/flow/settings/formState';
-import FieldKindIcon from '../../../automation/Builder/mapping/FieldKindIcon';
-import { KIND_WORD, expectedKindFor } from '../../../automation/Builder/mapping/fieldKinds';
-import type { OutputFieldRow } from '../../../automation/Builder/flow/settings/structuredOutputFields';
-import type { FormRecord } from '../../../automation/Builder/flow/settings/formState/types';
+import useTranslation from '@/hooks/useTranslation';
+import * as aiStepEditors from '@/components/automation/Builder/flow/settings/aiStepEditors';
+import { fieldsToSchema, schemaToFields } from '@/components/automation/Builder/flow/settings/formState';
+import FieldKindIcon from '@/components/automation/Builder/mapping/FieldKindIcon';
+import { KIND_WORD, expectedKindFor } from '@/components/automation/Builder/mapping/fieldKinds';
+import type { OutputFieldRow } from '@/components/automation/Builder/flow/settings/structuredOutputFields';
+import type { FormRecord } from '@/components/automation/Builder/flow/settings/formState/types';
 import type { OutputSchema, OutputSchemaProp } from './skillModel.types';
 
 /**

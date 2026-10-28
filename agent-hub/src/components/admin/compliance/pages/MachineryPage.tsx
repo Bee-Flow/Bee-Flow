@@ -1,15 +1,15 @@
 import { Factory, PenLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useComplianceRead } from '../../../../api/queries/complianceReads';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
-import DeadlineClock from '../../../shared/DeadlineClock';
-import EmptyState from '../../../shared/EmptyState';
-import { API, asObject, fetchJson, json } from '../../../../api/complianceApi';
+import { useComplianceRead } from '@/api/queries/complianceReads';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import EmptyState from '@/components/shared/EmptyState';
+import { API, asObject, fetchJson, json } from '@/api/complianceApi';
 import useResource from '../data/useResource';
 import ArticleRef from '../shared/ArticleRef';
 import StatusPill from '../shared/StatusPill';
-import type { Tone } from '../../../shared/statusTone';
+import type { Tone } from '@/components/shared/statusTone';
 import AttestDrawer, { type AttestBody } from './custom/AttestDrawer';
 import type { StaticBinding } from '../../Studio/AppStudio/runtime/resolveBinding.types';
 

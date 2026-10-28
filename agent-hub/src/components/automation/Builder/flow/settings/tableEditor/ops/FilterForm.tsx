@@ -1,8 +1,8 @@
 import { useMemo, type ComponentType } from 'react';
-import { seg } from '../../../../mapping/upstream/sampleFields';
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
-import BindingFieldJs from '../../../../mapping/BindingField';
-import ConditionBuilderJs from '../../../../mapping/ConditionBuilder';
+import { seg } from '@/components/automation/Builder/mapping/upstream/sampleFields';
+import { useTranslation } from '@/hooks/useTranslation';
+import BindingFieldJs from '@/components/automation/Builder/mapping/BindingField';
+import ConditionBuilderJs from '@/components/automation/Builder/mapping/ConditionBuilder';
 import { ColumnSelect } from '../TableColumnSelect';
 import { RULE_TESTS, isBlankBinding, type Binding, type FilterOp, type Rule } from '../tableOpModel';
 import { AddButton, Check, Choice, LinesInput, Radios, Row, TextInput } from './inputs';

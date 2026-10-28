@@ -1,7 +1,7 @@
 import { Info, X, XCircle } from 'lucide-react';
-import type { ReasonCode, RepeatingSuggestion, ScanResult } from '../../../../../api/queries/automation/repeating';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { EYEBROW } from '../../../../automation/Builder/flow/canvasClasses';
+import type { ReasonCode, RepeatingSuggestion, ScanResult } from '@/api/queries/automation/repeating';
+import { useTranslation } from '@/hooks/useTranslation';
+import { EYEBROW } from '@/components/automation/Builder/flow/canvasClasses';
 import PatternCard from './PatternCard';
 import PatternSkeleton, { PATTERN_GRID } from './PatternSkeleton';
 import RepeatingEmpty, { emptyKindFor } from './RepeatingEmpty';

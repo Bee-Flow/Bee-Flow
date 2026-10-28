@@ -7,7 +7,7 @@
 // back to status/summary/error/triggerKind.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { AutomationRequestError } from './http';
 
 type RunOutcomeCode =

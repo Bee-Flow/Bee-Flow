@@ -18,9 +18,9 @@ const api = {
     createAutomation: vi.fn(),
     suggestAutomationsStream: vi.fn(),
 };
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { consequenceParts, runLabel } from './RuleCard';
 import RulesPanel from './RulesPanel';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { formatChanged } from './ComplianceLink';
 import {
     STEPS, factsForStep, reviewCopy, reviewHeading, rowsForStep, stepLink, type CopyContext,

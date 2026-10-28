@@ -41,11 +41,14 @@ vi.mock('../utils/helpers', () => ({
 vi.mock('../hooks/useChatEngine', async () => {
     const React = await import('react');
     function useChatEngineMock(opts) {
-            state.engine.opts = opts;
             const [messages, setMessages] = React.useState([]);
             const [isLoading, setIsLoading] = React.useState(false);
-            state.engine.setLoading = setIsLoading;
-            state.engine.setMessages = setMessages;
+            // Handed to the test after each commit (render itself stays pure).
+            React.useLayoutEffect(() => {
+                state.engine.opts = opts;
+                state.engine.setLoading = setIsLoading;
+                state.engine.setMessages = setMessages;
+            }, [opts]);
             return {
                 messages,
                 setMessages,

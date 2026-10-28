@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /** Formats whose natural home is the right edge of the column. */
 /** The column settings a cell reads. A grid column (or its spec) is passed as is; the rest of its keys are ignored here. */

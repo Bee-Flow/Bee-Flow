@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { AppIcon, IconPicker } from './jsDeps';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Shared input class to match other admin panels.
 export const inputClass =

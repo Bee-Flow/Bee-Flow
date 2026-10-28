@@ -1,5 +1,5 @@
 import type { FilePreview } from './types';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // ── Template / app files: saving one, and reading what one claims ───
 

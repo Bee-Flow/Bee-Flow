@@ -3,8 +3,8 @@
 // are threaded in as props from the panel.
 import { Check, Loader2, Mail, Send } from 'lucide-react';
 import React from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { EmailSectionProps } from './adminPanel.types';
 
 export default function EmailSection({

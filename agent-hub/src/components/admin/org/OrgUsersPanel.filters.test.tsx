@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { withQueryClient } from '@/test/render';
 import OrgUsersPanel from './OrgUsersPanel';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { asMock } from '@/test/mocks';
 
@@ -19,8 +19,8 @@ import { asMock } from '@/test/mocks';
  * Security depends on the extracted parts.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({
         // Mirrors the real t(): key, optional string fallback, optional params.
         t: (key: string, fallbackOrParams?: string | TranslateParams, maybeParams?: TranslateParams) => {
@@ -30,7 +30,7 @@ vi.mock('../../../hooks/useTranslation', () => ({
         },
     }),
 }));
-vi.mock('../../../hooks/useUrlTab', () => ({ useUrlTab: () => ['users', vi.fn()] }));
+vi.mock('@/hooks/useUrlTab', () => ({ useUrlTab: () => ['users', vi.fn()] }));
 vi.mock('./OrgCustomTiersPanel', () => ({ default: () => <div /> }));
 vi.mock('../../integrations/nextcloud/NextcloudSyncPanel', () => ({ default: () => <div /> }));
 

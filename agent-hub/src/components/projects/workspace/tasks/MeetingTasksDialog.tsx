@@ -9,11 +9,11 @@ import React, { useEffect, useId, useMemo, useRef, useState, useEffectEvent } fr
 import {
     useCreateTasksBatch, useImproveMeetingTasks, useMeetingTaskSuggestions, useProjectTasksQuery, useUpdateTask,
     type MeetingTaskImprovement, type MeetingTaskSuggestion, type ProjectTask, type TaskInput,
-} from '../../../../api/queries/projectTasks';
-import { useProjectResourcesQuery } from '../../../../api/queries/projects';
-import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
-import { toast } from '../../../shared/Toast';
+} from '@/api/queries/projectTasks';
+import { useProjectResourcesQuery } from '@/api/queries/projects';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { toast } from '@/components/shared/Toast';
 import { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
 import type { WorkspaceUser } from '../types';

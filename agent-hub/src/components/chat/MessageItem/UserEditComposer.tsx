@@ -1,7 +1,7 @@
 import { Send } from 'lucide-react';
 import type { RefObject } from 'react';
 import { resolveUrl } from './messageItemHelpers';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 
 interface Attachment { type?: string; url?: string; content?: string; name?: string }

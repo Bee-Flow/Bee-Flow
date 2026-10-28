@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { cellText } from './cellSummary';
 import type { OutputColumn } from './columns';
 import type { Crumb, Drill, Level, Opener, PageView, Return } from './levels';

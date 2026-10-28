@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /**
  * Drill-down filter state for the analytics dashboard.

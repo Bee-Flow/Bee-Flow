@@ -8,8 +8,8 @@
 import { Ban, ChevronDown, ChevronRight, Code2, FlaskConical, ShieldCheck, Sparkles, SlidersHorizontal, X } from 'lucide-react';
 import { useCallback, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { CodeFinding } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import type { CodeFinding } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
 import CodeAssistPanel from './CodeAssistPanel';
 import CodeChecksPanel from './CodeChecksPanel';
 import CodeEditorField, { type CodeEditorHandle } from './CodeEditorField';

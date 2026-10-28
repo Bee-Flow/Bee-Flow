@@ -27,7 +27,7 @@ const { api } = vi.hoisted(() => ({
         rotateFormPage: vi.fn(),
     },
 }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 const {
     default: FormTriggerFields,

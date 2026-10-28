@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { Input, Toggle, SectionCard, StatusBadge } from './components';
 import type { SyncResult, SSOSectionProps } from './SSOSection.types';
 import { SSOSectionSection } from './SSOSectionSection';

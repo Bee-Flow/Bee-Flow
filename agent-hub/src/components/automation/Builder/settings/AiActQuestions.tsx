@@ -1,8 +1,8 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { AnnexDomainId, Tri } from '../../../../api/queries/automation/readiness';
-import type { AiActAnswerBody, AiActCheckQuestion, AiActOpenQuestion } from '../../../../api/queries/automation/aiActCheck';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { AnnexDomainId, Tri } from '@/api/queries/automation/readiness';
+import type { AiActAnswerBody, AiActCheckQuestion, AiActOpenQuestion } from '@/api/queries/automation/aiActCheck';
 import { DOMAIN_FALLBACK, questionText, reasonText } from './aiActCopy';
 
 /** The answers being given to the open questions, before they are sent. */

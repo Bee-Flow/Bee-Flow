@@ -1,21 +1,21 @@
 import { AppWindow, Clock, Loader2, Settings2, Sparkles, Upload } from 'lucide-react';
 import ActionPill from './ActionPill';
 import InstructionsEditor from './InstructionsEditor';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import ModelTierSelector from '../../../licensing/ModelTierSelector';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
-import { toast } from '../../../shared/Toast';
-import Toggle from '../../../shared/Toggle';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import { toast } from '@/components/shared/Toast';
+import Toggle from '@/components/shared/Toggle';
 import AppsPicker from '../pickers/AppsPicker';
 import { SchedulesPicker } from '../pickers/SchedulesPicker';
 import SkillPicker from '../pickers/SkillPicker';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import type { ComponentProps, Dispatch, Ref, SetStateAction } from 'react';
-import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import type { Skill } from '../../../../api/queries/skills';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { Skill } from '@/api/queries/skills';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { Schedule } from './useAgentSchedules';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type OpenSetter = Dispatch<SetStateAction<boolean>>;
 

@@ -24,7 +24,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // vi.mock's factory is hoisted above every import, so the stub is built inside
 // it — a module-scope helper would not exist yet when the first component in
 // the tree imports the hook.
-vi.mock('../../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const NL: Record<string, string> = {
         'app_studio.shell.ai_builder': 'AI-bouwer',
         'app_studio.shell.ai_building': 'De AI is aan het bouwen — klik om mee te kijken',

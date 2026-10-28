@@ -1,7 +1,7 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import EN_DEFAULTS from '../../../i18n/en-defaults';
+import EN_DEFAULTS from '@/i18n/en-defaults';
 
 // Resolve keys through the REAL EN dict so the canonical permission copy is
 // what the assertions see (matching what an untranslated install renders).
@@ -11,7 +11,7 @@ const t = (key: string, a: string, b: TranslateParams) => {
     for (const [k, v] of Object.entries(params || {})) s = s.replace(`{${k}}`, String(v));
     return s;
 };
-vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
+vi.mock('@/hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
 
 import PermissionConsentDialog from './PermissionConsentDialog';
 import type { TranslateParams } from '@/hooks/useTranslation';

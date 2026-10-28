@@ -2,13 +2,13 @@ import { render, screen, cleanup, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 // UserManagement talks to the network through raw authFetch (not apiClient), so
 // mocking utils/helpers is the single seam for the whole panel.
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
 

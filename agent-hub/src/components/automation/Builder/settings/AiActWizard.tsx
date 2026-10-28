@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { BookOpen, CircleCheck, X } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     AI_ACT_QUESTIONS, useAiActSuggestion, useSaveAiActCheck,
     type AiActAnswers, type AiActDomain, type AiActQuestion, type AiActReason, type AiActState, type AiActSuggestion,
     type AnnexDomainId, type Tri,
-} from '../../../../api/queries/automation/readiness';
+} from '@/api/queries/automation/readiness';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 import { DOMAIN_FALLBACK, questionText, reasonText, type QuestionText } from './aiActCopy';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export { reasonText };
 
@@ -45,15 +46,15 @@ export default function AiActWizard({ open, onClose, automationId, onDone }: {
     const suggestion = useAiActSuggestion(automationId, { enabled: open });
     const save = useSaveAiActCheck(automationId, { onDone: (s) => { onDone?.(s); onClose(); } });
     const [step, setStep] = useState(0);
-    const [draft, setDraft] = useState<Draft>(EMPTY);
+    const [draft, setDraft] = useState<Draft>(() => (open ? initialDraft(suggestion.data) : EMPTY));
     const s = suggestion.data;
 
     // Start every opening at question 1 with the answers filled in.
-    useEffect(() => {
+    useAdjustOnChange([open, suggestion.data], () => {
         if (!open) return;
         setStep(0);
         setDraft(initialDraft(suggestion.data));
-    }, [open, suggestion.data]);
+    });
 
     const q = AI_ACT_QUESTIONS[step];
     const last = step === AI_ACT_QUESTIONS.length - 1;

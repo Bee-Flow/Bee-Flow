@@ -9,7 +9,7 @@
 
 import { ExternalLink } from 'lucide-react';
 import React, { useId, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';
 import { LEGAL_BASES } from '../settings/settingsFields.helpers';

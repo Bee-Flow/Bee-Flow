@@ -1,7 +1,7 @@
 import { Layers, X, Plus, Sparkles, Loader2, Workflow, ArrowDownRight } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { listLayers, getLayerDependencies } from './flow/flowletScope';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { FlowletsPanelProps, Layer, LayerDeps, MainFlowRowProps } from './FlowletsPanel.types';
 import { previewRows, stop, agentProgressText } from './FlowletsPanel.helpers';
 import { DepLine, LayerRow, LayerAiComposer } from './LayerRow';

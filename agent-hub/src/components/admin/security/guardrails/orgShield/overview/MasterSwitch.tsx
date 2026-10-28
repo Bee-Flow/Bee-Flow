@@ -1,7 +1,7 @@
 import { ShieldCheck, ShieldOff } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
 
 interface Props {
     enabled: boolean;

@@ -15,9 +15,9 @@
  *   2. /ai/config reports `voiceChatReady` (a Mistral API key is configured).
  */
 
-import { useVoiceChatConfigReady } from '../../../api/queries/voiceChat';
+import { useVoiceChatConfigReady } from '@/api/queries/voiceChat';
 import { useLicenseContext } from '../../licensing/LicenseContext';
-import type { PermissionUser } from '../../../hooks/usePermissionCheck';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
 
 /** The signed-in user, as far as the voice gate reads it. */
 interface VoiceUser extends PermissionUser {

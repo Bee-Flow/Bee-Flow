@@ -10,8 +10,8 @@ import { getCapabilities } from './controls/styleCapabilities';
 import { FieldRow, Toggle } from './fields';
 import { SectionDivider, SegmentedControl } from './primitives';
 import type { SegmentedOption } from './primitives.types';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * Per-block style overrides — Style sub-tab in pane B.

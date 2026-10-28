@@ -1,4 +1,4 @@
-import useMediaQuery from '../../../../../pages/meeting-notes/hooks/useMediaQuery';
+import useMediaQuery from '@/pages/meeting-notes/hooks/useMediaQuery';
 
 /**
  * "One row per [Attachment] [Label item]": which inner list a row stands for.

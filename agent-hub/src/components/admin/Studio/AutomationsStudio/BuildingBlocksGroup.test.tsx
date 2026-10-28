@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // In-memory scopedStorage so the open/closed choice can be asserted.
 const { store } = vi.hoisted(() => ({ store: new Map<string, unknown>() }));
-vi.mock('../../../../utils/scopedStorage', () => ({
+vi.mock('@/utils/scopedStorage', () => ({
     default: {
         getJSON: (k: string, fb: unknown = null) => (store.has(k) ? store.get(k) : fb),
         setJSON: (k: string, v: unknown) => { store.set(k, v); },

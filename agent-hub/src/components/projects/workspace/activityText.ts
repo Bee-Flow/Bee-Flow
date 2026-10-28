@@ -2,7 +2,7 @@
 // Every sentence is a key in the `project_home` namespace; the English beside
 // it is only the fallback while the catalogue loads.
 
-import type { ProjectActivityItem } from '../../../api/queries/projects';
+import type { ProjectActivityItem } from '@/api/queries/projects';
 
 type TFn = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 

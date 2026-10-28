@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { BarListProps, ShareBarProps } from './ui.types';
 

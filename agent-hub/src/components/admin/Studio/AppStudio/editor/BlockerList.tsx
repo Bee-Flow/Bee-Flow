@@ -1,6 +1,6 @@
 import { AlertTriangle, Info } from 'lucide-react';
 import type { BlockerListProps, IssuePanelProps, IssueRowProps } from './PublishModal.types';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * `context` distinguishes the two ways this list appears. A refused publish

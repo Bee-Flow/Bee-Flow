@@ -1,11 +1,11 @@
 import { AlertTriangle } from 'lucide-react';
 import React, { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { RepeatableList } from '../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
 import type { ModelField, ModelTable } from './tablesManagerModel';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * App Studio — the field editor for ONE data-model table.

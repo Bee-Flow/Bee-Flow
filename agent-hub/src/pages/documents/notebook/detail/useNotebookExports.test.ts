@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { exportErrorText } from './useNotebookExports';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // A translator that marks what it translated, so the test can see which path ran.
 const t = vi.fn((key: string, fallback?: unknown) => `[${key}] ${String(fallback ?? '')}`) as unknown as TranslateFn;

@@ -1,7 +1,7 @@
 import { Crown, ExternalLink, Info, Loader2, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { settingsPathForTab } from '../../../authedApp/settingsRoutes';
-import { useTranslation, type TranslateFn } from '../../../hooks/useTranslation';
+import { settingsPathForTab } from '@/authedApp/settingsRoutes';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { N8nGroup, PermissionSummary } from './n8nModel';
 
 interface Bucket {

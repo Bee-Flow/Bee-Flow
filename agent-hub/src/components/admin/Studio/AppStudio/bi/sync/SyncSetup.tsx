@@ -6,7 +6,7 @@ import { AlertTriangle, CornerDownRight, Database, Loader2, Table2, Zap } from '
 import { incrementalModeCopy } from './syncModel';
 import type { ProposedSetTable, SyncProposal } from './syncModel';
 import type { SyncActions, SyncConnector } from './useSyncActions';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { runWithSave as runWithSaveJs, saveFirstLabel } from '../saveGate';
 import { tRich as tRichJs } from '../tRich';
 

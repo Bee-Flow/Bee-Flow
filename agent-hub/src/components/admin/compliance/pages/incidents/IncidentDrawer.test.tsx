@@ -6,7 +6,7 @@ import IncidentDrawer, { savePatch, craBody } from './IncidentDrawer';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

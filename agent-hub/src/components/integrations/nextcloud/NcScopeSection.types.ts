@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { DesignElement } from '../../admin/Studio/Playbooks/phaseMachine';
 
 /**

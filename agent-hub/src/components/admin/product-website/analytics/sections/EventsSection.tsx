@@ -12,8 +12,8 @@
  */
 import { Zap, MousePointerClick, Layers, ExternalLink } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { blockLabel } from '../heatmap/model';
 import { foldEventData, ctaLeaderboard, blockLeaderboard } from '../model';
 import { SERIES, Empty, StatGrid, StatTile, fmt } from '../ui';

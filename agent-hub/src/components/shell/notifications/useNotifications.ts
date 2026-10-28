@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { settingsPathForTab } from '../../../authedApp/settingsRoutes';
-import { API_BASE } from '../../../utils/helpers';
-import { logger } from '../../../utils/logger';
-import { mutate, request, RefusedError } from '../../../api/mutate';
+import { settingsPathForTab } from '@/authedApp/settingsRoutes';
+import { API_BASE } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
+import { mutate, request, RefusedError } from '@/api/mutate';
 
 /** One notification as GET /api/notifications returns it. */
 export interface AppNotification {

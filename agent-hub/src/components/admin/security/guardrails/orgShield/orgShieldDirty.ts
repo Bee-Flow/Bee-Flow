@@ -1,6 +1,6 @@
 import type { ToolPiiPolicy } from './orgShieldDoc';
 import { isCustomTypeId } from './ownData/ownDataModel';
-import { deepEqual } from '../../../../../utils/deepEqual';
+import { deepEqual } from '@/utils/deepEqual';
 
 /**
  * Which stages of the pipeline hold unsaved edits.

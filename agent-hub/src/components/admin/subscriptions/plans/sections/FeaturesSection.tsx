@@ -1,8 +1,8 @@
 import { Puzzle, FlaskConical, Sparkles, Clock, BookOpen, Globe, Workflow, Brain, Zap, Server, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { INTEGRATION_CATALOG } from '../../../../../config/integrationCatalog';
-import { getIntegrationIcon } from '../../../../../config/integrationIcons';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { INTEGRATION_CATALOG } from '@/config/integrationCatalog';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import { useTranslation } from '@/hooks/useTranslation';
 import { apiJson } from '../../hooks/useApi';
 import { Banner } from '../../ui/Banner';
 import type { PlanSectionProps } from '../usePlanForm';

@@ -1,6 +1,6 @@
 import { BookOpen } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { knowledgeWriteSummary } from '../nodeSummaries';
 import type { StepNodeData } from './nodeProps';

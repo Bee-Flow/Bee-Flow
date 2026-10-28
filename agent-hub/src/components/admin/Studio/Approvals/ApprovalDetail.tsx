@@ -2,16 +2,17 @@ import { ArrowLeft, Clock, Download, ExternalLink, FileText, User } from 'lucide
 import React, { useEffect, useState } from 'react';
 import ApprovalDecisionControls, { type ApprovalField } from './ApprovalDecisionControls';
 import { approvalSourceInfo, approvalStatusChip, formatWhen, stageChainInfo } from './approvalDisplay';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import { FormRichText } from '../../../forms/PublicFormRenderer';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useTranslation from '@/hooks/useTranslation';
+import { FormRichText } from '@/components/forms/PublicFormRenderer';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import type { ApprovalListRow } from './useApprovals';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { ApprovalVote, ApprovalStage, PanelProgressData, ApprovalProgress, ApprovalAttachment, ApprovalRecord, ApprovalDetailData, ApprovalDecisionResponse, ApprovalApi, ApprovalDetailProps, StatusLabelProps, PanelProgressProps, BackButtonProps } from './ApprovalDetail.types';
 import { waitingStageLine, auditLine, formatSize } from './ApprovalDetail.helpers';
 import { Section, StageTimeline } from './StageTimeline';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export default function ApprovalDetail({ approvalId, onBack, onDecided }: ApprovalDetailProps) {
     const { t } = useTranslation();
@@ -20,10 +21,9 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
     const [data, setData] = useState<ApprovalDetailData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    useAdjustOnChange([approvalId], () => { setData(null); setError(null); });
     useEffect(() => {
         let alive = true;
-        setData(null);
-        setError(null);
         api.getApproval(approvalId)
             .then(d => { if (alive) setData(d); })
             .catch(e => { if (alive) setError(e.message || t('studio_misc.errors.load_approval', 'Could not load this approval')); });

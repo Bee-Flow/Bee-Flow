@@ -18,11 +18,11 @@
  */
 import { useMemo } from 'react';
 
-import type { ChatMessage } from '../../../hooks/useChatEngine/types';
-import { useDeploymentMode } from '../../../hooks/useDeploymentMode';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import useShieldStatus from '../../../hooks/useShieldStatus';
-import type { ModelTierMap } from '../../../api/queries/modelTiers';
+import type { ChatMessage } from '@/hooks/useChatEngine/types';
+import { useDeploymentMode } from '@/hooks/useDeploymentMode';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import useShieldStatus from '@/hooks/useShieldStatus';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
 import { tierLabel } from '../../licensing/tierMeta';
 import { footerNotice, resolveTierClaim, shieldLine } from '../composerClaims';
 import { attachedNames } from '../knowledgeBaseClaim';

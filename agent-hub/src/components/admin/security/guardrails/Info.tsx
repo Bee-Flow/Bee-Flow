@@ -40,7 +40,7 @@
 
 import { HelpCircle } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
 
 // Wide enough for a sentence or two without becoming a wall of text. Matches
 // the `w-64` the popover carried before it moved into the portal.

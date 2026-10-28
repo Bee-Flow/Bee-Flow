@@ -10,9 +10,9 @@
  * caller's own organisation (`GET /agents/:id` → `complianceCounting`). A
  * colleague from elsewhere is not counted, so they are not told they are.
  */
-import type { AgentCountingGate } from '../../../api/queries/chatSignals';
-import type { ChatSignal, ShieldStatus } from '../../../api/queries/shieldStatus';
-import type { ChatSignalsTurnSurface } from '../../../hooks/useChatEngine/turnEndpoint';
+import type { AgentCountingGate } from '@/api/queries/chatSignals';
+import type { ChatSignal, ShieldStatus } from '@/api/queries/shieldStatus';
+import type { ChatSignalsTurnSurface } from '@/hooks/useChatEngine/turnEndpoint';
 
 ;
 

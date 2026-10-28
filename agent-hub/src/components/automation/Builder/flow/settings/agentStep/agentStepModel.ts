@@ -1,9 +1,9 @@
 // Pure helpers behind the AI step's "Who does the thinking" block (handoff 5,
 // round 3). React-free, so the rules (which skill leads, what a switch writes,
 // how tools group per integration) are tested without rendering anything.
-import type { AgentPermissions, AgentSkillRef, AgentStepPreview, AgentToolGroup } from '../../../../../../api/queries/automation/agents';
-import { AGENT_PERMISSION_KEYS } from '../../../../../../api/queries/automation/agents';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { AgentPermissions, AgentSkillRef, AgentStepPreview, AgentToolGroup } from '@/api/queries/automation/agents';
+import { AGENT_PERMISSION_KEYS } from '@/api/queries/automation/agents';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface StepSkillRow {
     id: string;

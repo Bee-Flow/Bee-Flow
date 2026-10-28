@@ -4,7 +4,7 @@ import {
     ClientIdField, ClientSecretField, ProviderActions, ProviderHeader, SetupInstructions,
 } from './SsoFormParts';
 import type { SsoProvidersState } from './useSsoProviders';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const TENANT_ALIASES = ['common', 'organizations', 'consumers'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

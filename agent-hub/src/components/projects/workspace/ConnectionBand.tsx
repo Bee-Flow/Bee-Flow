@@ -4,7 +4,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useProjectLive } from './ProjectLiveContext';
 import { Notice } from './workspaceUi';
 

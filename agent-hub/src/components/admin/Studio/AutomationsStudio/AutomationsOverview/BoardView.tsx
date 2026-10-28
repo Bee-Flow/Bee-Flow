@@ -1,5 +1,5 @@
 import { Card } from '../OverviewCards';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { BoardViewProps } from '../AutomationsOverview.types';
 import { COLUMN } from './AutomationsOverview.helpers';
 

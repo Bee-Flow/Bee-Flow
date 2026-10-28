@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAutomationShares, type AutomationShares, type Share, type ShareRole } from '../../../../api/queries/automation/people';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAutomationShares, type AutomationShares, type Share, type ShareRole } from '@/api/queries/automation/people';
 import SharingDialog from './SharingDialog';
 import { SectionHeading, type SaveFn, type SettingsAutomation } from './settingsUi';
 import { useSharingLocked } from './useSharingLocked';

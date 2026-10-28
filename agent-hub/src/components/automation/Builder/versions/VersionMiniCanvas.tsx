@@ -1,4 +1,4 @@
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { typeGroupOf } from '../flow/nodeTypeColors';
 import { nodeDefaultLabel } from '../flow/nodeDefs';
 

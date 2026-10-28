@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import Button from '../../../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import Button from '@/components/shared/Button';
 import SolutionAccessDialog, { type SolutionRole } from '../../SolutionAccessDialog';
 
 /**

@@ -1,18 +1,18 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const { readiness, railProps } = vi.hoisted(() => ({
     readiness: { current: null as unknown },
     railProps: { current: null as null | { onOpenSection?: (id: string) => void } },
 }));
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ folders: [] }) })),
 }));
-vi.mock('../../../../api/queries/automation/readiness', () => ({
+vi.mock('@/api/queries/automation/readiness', () => ({
     useReadiness: () => ({ data: readiness.current }),
     readinessStamp: () => '',
 }));

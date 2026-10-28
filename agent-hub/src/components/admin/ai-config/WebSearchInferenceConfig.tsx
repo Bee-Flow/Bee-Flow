@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { useWebSearchInferenceQuery } from '../../../api/queries/adminConfigReads';
-import useDraftOverServer from '../../../hooks/useDraftOverServer';
-import { API_BASE } from '../../../utils/helpers';
-import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../api/modelMeta';
+import { useWebSearchInferenceQuery } from '@/api/queries/adminConfigReads';
+import useDraftOverServer from '@/hooks/useDraftOverServer';
+import { API_BASE } from '@/utils/helpers';
+import { getModelMeta, getModelDisplayName, type ModelEntry } from '@/api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import { mutate, ApiError } from '../../../api/mutate';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { mutate, ApiError } from '@/api/mutate';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
     {

@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import type { ComponentProps } from 'react';
 

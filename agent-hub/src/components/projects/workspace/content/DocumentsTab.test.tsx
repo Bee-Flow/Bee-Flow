@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, pending, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
 import { useUndoCapture } from '../undoTestKit';
@@ -10,12 +10,12 @@ import { useUndoCapture } from '../undoTestKit';
 // Fresh spies per test (assigned in beforeEach) rather than reset ones: the
 // module mock hands out this object, and the code reads its methods per call.
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
-vi.mock('../../../../pages/documents/DocumentEditor', () => ({
+vi.mock('@/pages/documents/DocumentEditor', () => ({
     default: ({ documentId, onBack }: { documentId: string; onBack: () => void }) => (
         <div data-testid="document-editor">
             editing {documentId}
@@ -25,8 +25,8 @@ vi.mock('../../../../pages/documents/DocumentEditor', () => ({
 }));
 
 // The starters come from the document service (authFetch), not apiClient.
-vi.mock('../../../../pages/documents/documentQueries', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../pages/documents/documentQueries')>()),
+vi.mock('@/pages/documents/documentQueries', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/pages/documents/documentQueries')>()),
     useStarters: () => ({ data: [], isPending: false, isError: false }),
 }));
 
@@ -163,7 +163,7 @@ describe('DocumentsTab: list', () => {
 describe('DocumentsTab: create failure and add', () => {
     it('keeps the gallery open with the server message when creating fails', async () => {
         const user = userEvent.setup();
-        const { ApiError } = await import('../../../../api/client');
+        const { ApiError } = await import('@/api/client');
         client.post.mockImplementation(async () => { throw new ApiError('nope', { status: 403, body: { error: 'Editors only.' } }); });
         const { onOpenSub } = renderTab('editor');
         client.get.mockImplementation(routes(DOCS, { '/api/studio-documents': { documents: [], spreadsheets: false } }));

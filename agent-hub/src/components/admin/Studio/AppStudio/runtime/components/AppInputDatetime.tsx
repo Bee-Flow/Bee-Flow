@@ -1,5 +1,5 @@
 import { nowLocalIso, todayIso } from './localDate';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import type { NodeProps } from './appNode.types';

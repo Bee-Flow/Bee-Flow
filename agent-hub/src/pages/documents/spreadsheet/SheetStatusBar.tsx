@@ -3,7 +3,7 @@
 // copies it.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { formatValue, type Computed } from './sheetEngine';
 import { selectionLabel } from './sheetAskText';
 import { selectionStats } from './selectionStats';

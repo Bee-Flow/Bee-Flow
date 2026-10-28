@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 
 import MessageItem from './index';
-import { normalizeLoadedMessages } from '../../../utils/messageShape';
+import { normalizeLoadedMessages } from '@/utils/messageShape';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 

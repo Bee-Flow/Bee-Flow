@@ -3,7 +3,7 @@
 // chat column, inspector overlay). Its prop list is fully explicit
 // (build/buildTabTypes.ts); what it computes lives in build/useBuildTabModel.ts
 // and the pieces it draws in build/.
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import AssistantColumn from './build/AssistantColumn';
 import BuildDiagramColumn from './build/BuildCanvas';
 import type { BuildTabProps } from './build/buildTabTypes';
@@ -12,6 +12,12 @@ import useBuildTabModel from './build/useBuildTabModel';
 import type { BuildTabModel } from './build/useBuildTabModel';
 import BuilderHeader from './BuilderHeader';
 import AddStepRibbon from './flow/AddStepRibbon';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+
+/** A plan the agent stopped on for the person to review: its panel opens. */
+function awaitsReview(plan: { id?: string | null; status?: string | null } | null | undefined): boolean {
+    return !!plan?.id && ['review', 'paused'].includes(plan.status || '');
+}
 
 /**
  * Build tab body — extracted so BuilderShell stays compact and the
@@ -30,11 +36,12 @@ export default function BuildTab(props: BuildTabProps) {
     // The assistant is summonable: shown only when opened, and never in step
     // mode (v1 Steps are built visually — no AI chat).
     const showChat = props.assistantOpen && mode !== 'step' && !readOnly;
-    const [reviewOpen, setReviewOpen] = useState(false);
-    const [previewOpen, setPreviewOpen] = useState(false);
     const reviewPlanId = state.reviewPlan?.id;
-    useEffect(() => { if (reviewPlanId && ['review', 'paused'].includes(state.reviewPlan?.status || '')) setReviewOpen(true); }, [reviewPlanId, state.reviewPlan?.status]);
-    useEffect(() => { if (!state.proposal) setPreviewOpen(false); }, [state.proposal]);
+    const planAwaitsReview = awaitsReview(state.reviewPlan);
+    const [reviewOpen, setReviewOpen] = useState(planAwaitsReview);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    useAdjustOnChange([reviewPlanId, state.reviewPlan?.status], () => { if (planAwaitsReview) setReviewOpen(true); });
+    useAdjustOnChange([state.proposal], () => { if (!state.proposal) setPreviewOpen(false); });
 
     return (
         <div className="flex flex-col h-full min-h-0">

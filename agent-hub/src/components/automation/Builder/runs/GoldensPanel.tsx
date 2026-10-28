@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { AiAnswers, GoldenItem, ReplayStatus } from '../../../../api/queries/automation/runChecks';
-import { useGoldens, useReplayGoldens, useUnmarkGolden } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { AiAnswers, GoldenItem, ReplayStatus } from '@/api/queries/automation/runChecks';
+import { useGoldens, useReplayGoldens, useUnmarkGolden } from '@/api/queries/automation/runChecks';
 import { GoldenHelp } from './GoldenControl';
 import { goldenErrorText, replayFailureText } from './runChecksErrors';
 import { PRIMARY_BTN, SECONDARY_BTN } from './runChecksStyles';

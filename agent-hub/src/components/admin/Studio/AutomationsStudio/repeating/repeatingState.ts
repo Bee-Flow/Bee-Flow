@@ -1,5 +1,5 @@
-import scopedStorage from '../../../../../utils/scopedStorage';
-import { logger } from '../../../../../utils/logger';
+import scopedStorage from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 /**
  * Per-viewer conveniences for "Find repeating work", in scoped (per-user)

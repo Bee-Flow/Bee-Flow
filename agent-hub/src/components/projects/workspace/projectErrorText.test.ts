@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError } from '../../../api/client';
+import { ApiError } from '@/api/client';
 import {
     ProjectRequestError, projectErrorFromResponse, projectErrorInfo, projectRequest, toProjectError,
-} from '../../../api/queries/projectErrors';
+} from '@/api/queries/projectErrors';
 import { projectErrorText } from './projectErrorText';
 
 // The English fallback, interpolated: what t() renders before the catalogue loads.

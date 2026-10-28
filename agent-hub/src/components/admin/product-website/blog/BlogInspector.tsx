@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import MarkdownEditor from './MarkdownEditor';
 import { CollapsibleCard, FieldRow, ImageField, InlineHint, SegmentedControl, TextArea, TextField, Toggle } from './jsComponents';
 import {

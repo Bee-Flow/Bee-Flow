@@ -5,7 +5,7 @@ import type { FeedbackFilter, FeedbackItem, FeedbackSummary } from './feedback/f
 import FeedbackRow from './feedback/FeedbackRow';
 import { COLORS } from './shared';
 import { Card, Empty, MetricCard } from './sharedTyped';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface FeedbackPageProps {
     feedback: FeedbackItem[];

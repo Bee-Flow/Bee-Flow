@@ -1,7 +1,7 @@
 import React from 'react';
 import DesignEditor from '../DesignEditor';
 import ShareImageSettings from './ShareImageSettings';
-import type { EditableDesign } from '../../../../marketing/ProductWebsite.types';
+import type { EditableDesign } from '@/marketing/ProductWebsite.types';
 
 interface DesignInspectorProps {
     /** DesignEditor falls back to its own defaults while the site has none. */

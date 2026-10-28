@@ -6,8 +6,8 @@
 
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { refreshTeamChatMessage, useProjectChatQuery } from '../../../../api/queries/projectChats';
-import { teamChatKeys } from '../../../../api/queries/useTeamChatMessages';
+import { refreshTeamChatMessage, useProjectChatQuery } from '@/api/queries/projectChats';
+import { teamChatKeys } from '@/api/queries/useTeamChatMessages';
 import { useProjectLive, type ProjectLiveEvent } from '../ProjectLiveContext';
 
 /** After this long without a "finished" event an AI turn is assumed over. */

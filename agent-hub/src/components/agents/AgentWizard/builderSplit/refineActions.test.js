@@ -22,13 +22,13 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));
 
+import { authFetch } from '@/utils/helpers';
 import { createHandleRefine } from './refineActions';
-import { authFetch } from '../../../../utils/helpers';
 
 const PLAN = {
     name: 'Support Bot',

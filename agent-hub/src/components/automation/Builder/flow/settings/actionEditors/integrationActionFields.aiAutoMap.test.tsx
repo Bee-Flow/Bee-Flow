@@ -18,10 +18,10 @@ import { useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { IntegrationActionFields as IntegrationActionFieldsJs } from './integrationActionFields';
-import { VariablePickerProvider as VariablePickerProviderJs } from '../../../mapping/VariablePickerContext';
-import { resetAiAutoMapAvailability } from '../../../mapping/aiAutoMap';
-import type { SuggestMappingsRequest } from '../../../mapping/aiAutoMap';
-import scopedStorage from '../../../../../../utils/scopedStorage';
+import { VariablePickerProvider as VariablePickerProviderJs } from '@/components/automation/Builder/mapping/VariablePickerContext';
+import { resetAiAutoMapAvailability } from '@/components/automation/Builder/mapping/aiAutoMap';
+import type { SuggestMappingsRequest } from '@/components/automation/Builder/mapping/aiAutoMap';
+import scopedStorage from '@/utils/scopedStorage';
 
 const IntegrationActionFields = IntegrationActionFieldsJs as unknown as ComponentType<Record<string, unknown>>;
 const VariablePickerProvider = VariablePickerProviderJs as unknown as ComponentType<Record<string, unknown> & { children: ReactNode }>;

@@ -52,11 +52,11 @@ export interface WebpageEditorBodyProps {
 }
 
 /** The IDE: editors, file tree and the builder chat, wired to the editor's hooks. */
-function IdePane(p: WebpageEditorBodyProps) {
+function IdePane({ idePaneRef, ...p }: WebpageEditorBodyProps) {
     const { chat, extras, fileActions, save } = p;
     const { engine, undo, plans, selection } = chat;
     return (
-        <div ref={p.idePaneRef} className="h-full">
+        <div ref={idePaneRef} className="h-full">
             <WebpageIDE
                 selected={p.page}
                 html={p.content.html} css={p.content.css} js={p.content.js}

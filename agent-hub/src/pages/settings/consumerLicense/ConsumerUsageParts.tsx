@@ -1,5 +1,5 @@
 import { BarChart3, Bot, Check, CreditCard, Crown, Database, DollarSign, ExternalLink, Loader2, Sparkles, type LucideIcon } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { formatCompact, isUnlimitedLimit, type CheckoutMessage, type ConsumerUsageData } from './consumerBilling';
 
 /** Usage bar (matches OrgInfoPanel style). */

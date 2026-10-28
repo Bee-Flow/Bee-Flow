@@ -3,10 +3,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import useAppRoles, { mergeAccess } from './useAppRoles';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import type { ReactNode } from 'react';
 import { asMock, stub } from '@/test/mocks';
 

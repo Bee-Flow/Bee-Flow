@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import FrameworkCandidateCard, { OwnFrameworkCard, statusChipOf, enableIsPrimary, countLabel, recommendedReason } from './FrameworkCandidateCard';
 import { frameworkIcon, FRAMEWORK_ICONS } from './frameworkIcons';
 
-vi.mock('../../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     // Descriptions are translated with an empty fallback, so the two the tests read live here.
     const DICT = {
         'compliance.test_long_desc': `Report actively exploited vulnerabilities and severe incidents through ENISA's single reporting platform: early warning within 24 h, notification within 72 h, a final report 14 days after a fix, and the CE marking in full.`,

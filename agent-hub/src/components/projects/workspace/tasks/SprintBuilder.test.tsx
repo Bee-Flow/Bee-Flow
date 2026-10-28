@@ -2,16 +2,16 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, OWNER_ID } from '../content/contentTestKit';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import type { Sprint } from '../../../../api/queries/projectSprints';
-import { setCurrentUser } from '../../../../utils/scopedStorage';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import type { Sprint } from '@/api/queries/projectSprints';
+import { setCurrentUser } from '@/utils/scopedStorage';
 import type { ChatPeople } from '../chat/chatPeople';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));

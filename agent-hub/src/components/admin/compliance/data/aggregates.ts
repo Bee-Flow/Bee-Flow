@@ -5,11 +5,11 @@
  * junk — the nav test mocks every non-/overview url as `[]`.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
-import { API, fetchJson, json, jsonInit, asObject, asArray } from '../../../../api/complianceApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import { API, fetchJson, json, jsonInit, asObject, asArray } from '@/api/complianceApi';
 import useResource from './useResource';
-import { addCalendarMonths, clockState, DAY_MS, HOUR_MS } from '../../../shared/deadlineMath';
+import { addCalendarMonths, clockState, DAY_MS, HOUR_MS } from '@/components/shared/deadlineMath';
 
 /** The fields of an incident or vulnerability that its deadline clocks read. */
 export interface IncidentClockRow {

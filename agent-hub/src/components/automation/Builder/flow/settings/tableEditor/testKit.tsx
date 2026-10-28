@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import type { TableColumn } from '../../../../../../api/queries/automation/runTables';
-import type { OpResult, PreviewFn, TablePreviewOk, TablePreviewResponse } from '../../../../../../api/queries/automation/tablePreview';
-import { VariablePickerProvider } from '../../../mapping/VariablePickerContext';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import type { OpResult, PreviewFn, TablePreviewOk, TablePreviewResponse } from '@/api/queries/automation/tablePreview';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import TableFields from './TableFields';
 import { newOp, type Binding, type TableOp } from './tableOpModel';
 

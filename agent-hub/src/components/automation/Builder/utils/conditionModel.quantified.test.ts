@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { evaluate } from '@shared/expr/engine.mjs';
-import { walkPath } from '../../../../utils/bindingHelpers';
+import { walkPath } from '@/utils/bindingHelpers';
 import {
     deepenRows, emptyRow, labelFor, operatorsForType, parseExprToRows, rowForField, rowType, serializeRows,
 } from './conditionModel';

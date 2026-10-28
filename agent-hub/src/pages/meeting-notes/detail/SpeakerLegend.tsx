@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { Pencil } from 'lucide-react';
 import { formatSpeakerLabel } from '../lib/format';
 import { speakerColor } from '../lib/playerData';

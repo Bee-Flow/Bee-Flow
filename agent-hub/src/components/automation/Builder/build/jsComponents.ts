@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode, RefAttributes } from 'react';
 import type { AssistantField } from '../useBuilderShellState';
 import type { AddStepPayload, AddStepOptions, Position } from './addStepModel';
 import type { BuilderMessage } from './buildTabTypes';
-import InputAreaJs from '../../../chat/InputArea';
+import InputAreaJs from '@/components/chat/InputArea';
 import CanvasPlanPanelJs from '../CanvasPlanPanel';
 import { AssistantFieldProvider as AssistantFieldProviderJs } from '../chat/AssistantFieldContext';
 import AssistantWelcomeJs from '../chat/AssistantWelcome';

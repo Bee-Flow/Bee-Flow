@@ -33,15 +33,15 @@ import { RouteFields } from './settings/routeEditors';
 import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
 import { IconPicker } from './stepIcons';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import type { ModelTierConfig } from '@/hooks/useModelTierSelection';
 import type { Group, UpstreamDefinition, UpstreamNode } from '../mapping/upstream/upstream.types';
 import type { OnFocusField } from '../mapping/focusField.types';
 import type { StepIssues } from './nodes/nodeProps';
 import type { ActionCatalog } from './settings/actionEditors/integrationActionFields';
 import type { FormRecord } from './settings/formState/types';
 import type { TriggerFieldsProps, TriggerAutomation } from './settings/triggerEditors.types';
-import type { TimelineStep } from '../../../admin/Studio/Executions/RunStepTimeline';
+import type { TimelineStep } from '@/components/admin/Studio/Executions/RunStepTimeline';
 import type { BlockCatalogEntry } from './settings/actionEditors/flowletCallFields';
 import type { FlowEdge } from './types';
 import type { OnRenameField } from './settings/fieldDesigner.types';
@@ -49,7 +49,7 @@ import type { FormEditorContext } from './settings/FormPageEditor';
 import type { InsertUpstreamStep } from './settings/RouteAssist.types';
 import type { RouteFollow, WholeRun } from './settings/SourceNotices';
 import type { SettingsFormProps } from './SettingsForm.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Whether the Condition node may offer "is about" (the topic classifier), read

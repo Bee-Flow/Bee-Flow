@@ -1,9 +1,9 @@
 import { Check, Clock, Edit2, Mail, X } from 'lucide-react';
 import GroupAssignPopover from './GroupAssignPopover';
-import { ORG_ROLES } from '../../../../config/orgRoles';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import RoleBadge from '../../../shared/RoleBadge';
+import { ORG_ROLES } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import RoleBadge from '@/components/shared/RoleBadge';
 import type { MemberUsage, OrgGroupRow, OrgMember } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 import type { OrgMemberRoles } from '../useOrgMemberRoles';

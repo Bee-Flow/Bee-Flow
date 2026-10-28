@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // The language Bee writes the proposal in, as the card sends it.
 const sent: Array<string | null | undefined> = [];
-vi.mock('../../../../api/queries/automation/settings', async (importOriginal) => {
-    const real = await importOriginal<typeof import('../../../../api/queries/automation/settings')>();
+vi.mock('@/api/queries/automation/settings', async (importOriginal) => {
+    const real = await importOriginal<typeof import('@/api/queries/automation/settings')>();
     return {
         ...real,
         useSuggestDescriptionMutation: (language?: string | null) => ({
@@ -19,8 +19,8 @@ vi.mock('../../../../api/queries/automation/settings', async (importOriginal) =>
 // A person whose preference is Dutch (the browser, or Nextcloud handed it
 // over); `strings` is the Dutch catalogue the deployment actually loaded.
 let catalogue: Record<string, string> = {};
-vi.mock('../../../../hooks/useTranslation', async (importOriginal) => {
-    const real = await importOriginal<typeof import('../../../../hooks/useTranslation')>();
+vi.mock('@/hooks/useTranslation', async (importOriginal) => {
+    const real = await importOriginal<typeof import('@/hooks/useTranslation')>();
     return {
         ...real,
         useTranslation: () => ({

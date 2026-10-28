@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 import { sprintPlanPoints, suggestSprintItems } from './sprintPlan';
 
 const item = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({

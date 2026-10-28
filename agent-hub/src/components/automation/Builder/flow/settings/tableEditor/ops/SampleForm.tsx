@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { SampleOp } from '../tableOpModel';
 import { NumberInput, Radios, TextInput } from './inputs';
 import type { OpFormProps } from './opFormTypes';

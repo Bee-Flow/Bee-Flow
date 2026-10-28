@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from './jsComponents';
 import { visibility, type AdminPostSummary } from './blogApi';
 

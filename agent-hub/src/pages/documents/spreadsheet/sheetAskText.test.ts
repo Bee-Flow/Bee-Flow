@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { firstSentence, selectionLabel } from './sheetAskText';
 
 const fake = (_key: string, fallback: string, params?: Record<string, string | number>) => fallback.replace(/\{(\w+)\}/g, (_m, k) => String(params?.[k]));

@@ -1,8 +1,8 @@
 import { AlertTriangle, MoreHorizontal, Plus } from 'lucide-react';
 import React, { useRef } from 'react';
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { kindIcon, kindTileStyle } from '@/components/shared/kindColors';
 
 /**
  * The card shape of the "Can use" tab (Agents artboard 1a, A2 step 2).

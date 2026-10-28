@@ -16,7 +16,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import AppIcon from '../../icons/AppIcon';
 import { BLOCK_CATALOGUE } from './editors';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CmsBlock } from './panel/cmsPanelTypes';
 
 // Derive the row label shown in the left sidebar. Defaults to the block

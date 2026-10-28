@@ -3,7 +3,7 @@ import type { JsonValue, TableColumn, FeedGroup } from './tablesRowValues';
 import type { UpstreamGroup } from '../../mapping/deepFields';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import type { Binding } from '../../mapping/itemRefs';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type React from 'react';
 
 export interface TablesRowValuesEditorProps {

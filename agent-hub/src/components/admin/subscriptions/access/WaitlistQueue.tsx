@@ -1,8 +1,8 @@
 import { CheckCircle, Clock, Trash2 } from 'lucide-react';
 import type { WaitlistUser } from './useSignupSettings';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import EmptyState from '@/components/shared/EmptyState';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 

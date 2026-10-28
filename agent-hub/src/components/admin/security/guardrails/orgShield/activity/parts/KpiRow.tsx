@@ -10,7 +10,7 @@
 
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Totals } from '../shieldTotals';
 import { OUTCOME_FILL, REGION_FILL, REGION_ORDER } from '../../shieldPalette';
 import { SegmentBar, Sparkline } from './miniCharts';

@@ -15,7 +15,7 @@ import ValueBuilder from '../mapping/ValueBuilder';
 import { humanizeFieldKey } from './displayHelpers';
 import { expectedKindFor } from '../mapping/fieldKinds';
 import { expectedShapeFor } from '../mapping/listShape';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { ContractParam } from './useInputMapping';
 import type { Binding, GroupLike, Inputs } from '../mapping/aiAutoMap';
 import type { OnFocusField } from '../mapping/focusField.types';

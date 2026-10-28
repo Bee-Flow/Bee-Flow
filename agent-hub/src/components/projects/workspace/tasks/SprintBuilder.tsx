@@ -5,10 +5,10 @@
 
 import { ArrowLeft, Sparkles, Wand2 } from 'lucide-react';
 import React, { useId, useMemo, useState } from 'react';
-import { useStartPokerSession, type ProjectTask } from '../../../../api/queries/projectTasks';
-import { useAssignSprintItems, useCreateSprint } from '../../../../api/queries/projectSprints';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
+import { useStartPokerSession, type ProjectTask } from '@/api/queries/projectTasks';
+import { useAssignSprintItems, useCreateSprint } from '@/api/queries/projectSprints';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import { projectErrorText } from '../projectErrorText';
 import { GhostButton, PrimaryButton, SelectField } from '../workspaceUi';
 import type { useChatPeople } from '../chat/chatPeople';

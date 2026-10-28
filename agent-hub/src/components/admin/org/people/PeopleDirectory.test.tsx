@@ -5,7 +5,7 @@ import PeopleDirectory from './PeopleDirectory';
 import type { ComponentProps } from 'react';
 import { omitted, stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const ORGS = [
     { id: 'orgA', name: 'Acme B.V.', status: 'active' },

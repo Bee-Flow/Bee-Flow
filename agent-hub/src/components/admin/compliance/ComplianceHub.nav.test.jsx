@@ -9,14 +9,14 @@ import { screen, cleanup, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { rewriteComplianceNav } from '@/pages/settings/complianceNavAdapter';
+import { renderWithClient } from '@/test/render';
 import ComplianceHub from './index';
-import { rewriteComplianceNav } from '../../../pages/settings/complianceNavAdapter';
-import { renderWithClient } from '../../../test/render';
 
 // A page that wants a leave guard installs `guard.fn` (see the SettingsPage mock).
 const guard = vi.hoisted(() => ({ fn: null }));
 
-vi.mock('../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const t = (key) => key;
     // Both import styles are in use (the shared primitives take the default export).
     return { useTranslation: () => ({ t }), default: () => ({ t }) };
@@ -85,7 +85,7 @@ vi.mock('./shared/Skeleton', () => ({
 }));
 // Desktop by default; one test flips it to prove `onBack` is mobile-only.
 const viewport = { isMobile: false };
-vi.mock('../../../hooks/useViewport', () => ({
+vi.mock('@/hooks/useViewport', () => ({
     useViewport: () => ({ isMobile: viewport.isMobile, isCompact: false, isDesktop: !viewport.isMobile, width: viewport.isMobile ? 390 : 1600 }),
     default: () => ({ isMobile: viewport.isMobile, isCompact: false, isDesktop: !viewport.isMobile, width: viewport.isMobile ? 390 : 1600 }),
 }));

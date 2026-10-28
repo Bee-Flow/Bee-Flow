@@ -1,7 +1,7 @@
 import type { StagedImage } from './TranscriptItems';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { readAsDataUrl, resizeImageForUpload } from '../../../../../utils/imageResize';
-import { logger } from '../../../../../utils/logger';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { readAsDataUrl, resizeImageForUpload } from '@/utils/imageResize';
+import { logger } from '@/utils/logger';
 
 /** A staged image with what the size and type checks measured. */
 interface PreparedImage extends StagedImage {

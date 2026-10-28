@@ -139,7 +139,10 @@ and `npm run lint:secrets`.
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
   `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`
   (use `db.withTransaction`), `lint:db-in-routes-ratchet` (routes go through a store) and
-  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub).
+  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub) and
+  `lint:deep-imports-ratchet` (agent-hub imports climbing 3+ `../`: write `@/<path from src>`;
+  `node scripts/deep-imports.mjs [files]` rewrites them. Files mobile executes or mirrors keep
+  relative imports, see `scripts/deep-imports.exclude.json` and `mobile/jest.resolver.js`).
 - `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
   internal import graph, lazy `require`s included, `import type` excluded) in `server`,
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in

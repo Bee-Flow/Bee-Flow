@@ -1,10 +1,10 @@
 import { Check, ChevronDown, Sparkles, TriangleAlert, Zap } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import { kindColorVar } from '../../../shared/kindColors';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { kindColorVar } from '@/components/shared/kindColors';
 import { SORT_MODES, isEmptySkill, metaLine, sortSkills, testChip, testChipColor, usageSubline } from './skillModel';
 import type { SortMode, Skill, UsageSummary, UsageSummaryMap } from './skillModel.types';
 

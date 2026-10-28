@@ -2,9 +2,9 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage from '../../../../../../../utils/scopedStorage';
-import type { DescribedColumn } from '../../../../../../../api/queries/automation/tablePreview';
-import { VariablePickerProvider } from '../../../../mapping/VariablePickerContext';
+import scopedStorage from '@/utils/scopedStorage';
+import type { DescribedColumn } from '@/api/queries/automation/tablePreview';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import { opHelp, type Translate } from '../opHelp';
 import { COLUMNS, GROUPS, SAMPLE, col, op } from '../testKit';
 import type { TableOp } from '../tableOpModel';

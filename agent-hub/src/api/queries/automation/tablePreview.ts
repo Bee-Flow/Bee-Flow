@@ -3,7 +3,7 @@
 // point at the field to fix. The answer stays in the editor: nothing here
 // stores, logs or forwards the rows.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { failure } from './http';
 import type { TableColumn } from './runTables';
 

@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AccessBlock, DataModelTable } from '../../AppStudio/rbac/useAppRoles';
 
 /**

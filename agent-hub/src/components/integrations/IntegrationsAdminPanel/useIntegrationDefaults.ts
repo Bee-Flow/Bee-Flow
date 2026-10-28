@@ -3,9 +3,9 @@
 // verbatim from IntegrationsAdminPanel.jsx.
 import { useMemo } from 'react';
 import { ALL_INTEGRATIONS } from './sections';
-import { orderCategories } from '../../../config/integrationCatalog';
-import { API_BASE } from '../../../utils/helpers';
-import { mutate } from '../../../api/mutate';
+import { orderCategories } from '@/config/integrationCatalog';
+import { API_BASE } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
 import type { DefaultIntegration, SetMessage } from './adminPanel.types';
 
 interface McpServerRow {

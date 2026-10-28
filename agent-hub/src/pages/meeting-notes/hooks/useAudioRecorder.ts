@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UploadOutcome } from './RecorderContext';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 function pickMimeType() {
     if (typeof MediaRecorder === 'undefined') return 'audio/webm';

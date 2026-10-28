@@ -1,7 +1,7 @@
 import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
-import { editorWithValue, typeInEditor } from '../../../../../test/refEditor';
+import { editorWithValue, typeInEditor } from '@/test/refEditor';
 import { MAIL_GROUP, MAILS, renderRoute } from './routeEditors.harness';
 
 /**

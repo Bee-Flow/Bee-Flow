@@ -1,5 +1,5 @@
 import { Rows3 } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { flattenSummary } from '../nodeSummaries';
 import StepNodeBaseJs from './StepNodeBase';

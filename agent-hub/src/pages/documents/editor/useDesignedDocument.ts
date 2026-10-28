@@ -4,15 +4,15 @@
 // downloads and print. DesignedEditor.tsx is the screen around it.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import { projectErrorText } from '../../../components/projects/workspace/projectErrorText';
+import useTranslation from '@/hooks/useTranslation';
+import { projectErrorText } from '@/components/projects/workspace/projectErrorText';
 import type { CanvasHandle } from '../DocumentCanvas';
 import { extractSections } from '../canvasBridge';
 import { downloadPdf, downloadPptx, fetchPreviewHtml, fetchRendered, getDocument, updateDocument } from '../documentsApi';
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave, { readDraft, type Draft } from '../useDocumentAutosave';
-import { messageOf, errorStatus } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { messageOf, errorStatus } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 export interface WorkspaceHandle { flush?: () => Promise<void> }
 

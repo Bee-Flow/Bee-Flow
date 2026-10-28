@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import BucketForm from './ops/BucketForm';
 import DeriveForm from './ops/DeriveForm';
 import DescribeForm from './ops/DescribeForm';

@@ -2,11 +2,11 @@ import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
 import { ACT_AS, ACT_AS_KIND, CONFIRM } from './toolGrants.helpers';
-import { getIntegrationIcon } from '../../../../config/integrationIcons';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import { actionLabelMap } from '../../../automation/Builder/flow/appLabels';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import { actionLabelMap } from '@/components/automation/Builder/flow/appLabels';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import type { ToolApp, ToolCardRow, ToolRowProps, TranslateFn } from './ToolsCard.types';
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */

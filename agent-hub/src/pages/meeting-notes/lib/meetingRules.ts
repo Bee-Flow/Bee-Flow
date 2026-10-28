@@ -1,4 +1,4 @@
-import { segmentForSection } from '../../../components/admin/Studio/studioRoutes';
+import { segmentForSection } from '@/components/admin/Studio/studioRoutes';
 import type { RuleRow, RunFacets } from '../library/RulesPanel.types';
 
 /**

@@ -2,7 +2,7 @@ import { Database, FileInput, Link2, Loader2, Plus, Table2 } from 'lucide-react'
 import TableDesigner from './TableDesigner';
 import { modeLabel, sourceIsWritable, sourceLabel } from './tablesManagerModel';
 import type { ModelTable, TableSource } from './tablesManagerModel';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 const GEN_BTN = 'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]';
 

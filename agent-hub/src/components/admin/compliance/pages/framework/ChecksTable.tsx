@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import DataTable, { type RowLike } from '../../../../shared/DataTable';
-import FilterPills from '../../../../shared/FilterPills';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import EmptyState from '../../../../shared/EmptyState';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { type RowLike } from '@/components/shared/DataTable';
+import FilterPills from '@/components/shared/FilterPills';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import EmptyState from '@/components/shared/EmptyState';
 import CheckRow, { CheckCard } from './CheckRow';
 import CheckExpansion from './CheckExpansion';
 
@@ -17,7 +17,7 @@ import {
 } from './checkSort';
 import type { DecideFinding } from './FindingDecision';
 import type { Remediation, RowCheck } from './CheckRow';
-import type { TableColumn } from '../../../../shared/DataTable';
+import type { TableColumn } from '@/components/shared/DataTable';
 
 /**
  * ChecksTable — toolbar + the checks DataTable of a framework page (1b).

@@ -1,6 +1,6 @@
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { StepPayload } from './ribbon/ribbonCategories';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Drag-and-drop glue for adding steps to the canvas.

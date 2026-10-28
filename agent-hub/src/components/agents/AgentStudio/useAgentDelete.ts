@@ -1,9 +1,9 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { summariseDeleteBlock } from './deleteBlock';
 import type { DeleteBlockBody } from './deleteBlock';
-import { deleteAgentRequest } from '../../../api/agentStudio';
-import { errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { deleteAgentRequest } from '@/api/agentStudio';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 export type DeleteBlock = ReturnType<typeof summariseDeleteBlock>;
 export interface DeleteTarget { id?: string | null; name?: string }

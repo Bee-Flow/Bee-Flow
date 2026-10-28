@@ -1,8 +1,8 @@
 import { Image as ImageIcon } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
-import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
-import { toast } from '../../../shared/Toast';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
+import { toast } from '@/components/shared/Toast';
 
 // Avatar can be either an emoji string OR a data-URL / http URL / server
 // upload path for an image. The picker offers both: tabbed emoji grid + a

@@ -1,8 +1,8 @@
 import React from 'react';
-import ModelSelector from '../../../chat/ModelSelector';
-import Toggle from '../../../shared/Toggle';
-import useCopyToClipboard from '../../../../hooks/useCopyToClipboard';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import ModelSelector from '@/components/chat/ModelSelector';
+import Toggle from '@/components/shared/Toggle';
+import useCopyToClipboard from '@/hooks/useCopyToClipboard';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
 
 export const BehaviorSection = ({

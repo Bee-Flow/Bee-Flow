@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import type { PageListPage } from './pageListShared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from '../fieldKit/jsDeps';
 
 function MenuBtn({ icon, label, onClick, danger }: { icon: string; label: string; onClick?: () => void; danger?: boolean }) {

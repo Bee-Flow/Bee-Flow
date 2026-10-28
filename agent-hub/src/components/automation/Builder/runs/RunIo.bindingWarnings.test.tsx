@@ -1,6 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
 import RunIo from './RunIo';
 
 const MISS = {

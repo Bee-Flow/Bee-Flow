@@ -1,10 +1,10 @@
-import { messageContentToText } from '../../../utils/messageShape';
+import { messageContentToText } from '@/utils/messageShape';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import ActivityIndicator, { type ToolRow } from './ActivityIndicator';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
+import type { SkillSummary } from '@/hooks/useChatEngine/types';
 
 /**
  * The non-tool message body: error card, rendered markdown, or the streaming

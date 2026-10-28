@@ -6,7 +6,7 @@ import type { ClipboardEvent } from 'react';
 import type { ChatMessage } from './messageTypes';
 import PrivacyLine from './PrivacyLine';
 import { findTurnTokenMap, messageTextOf, normaliseScanWarnings } from './privacyLine';
-import { isImageAvatar, resolveAvatarSrc } from '../../../utils/agentAvatar';
+import { isImageAvatar, resolveAvatarSrc } from '@/utils/agentAvatar';
 import { TokenisedBadge } from './jsChildren';
 
 type Translate = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => string;

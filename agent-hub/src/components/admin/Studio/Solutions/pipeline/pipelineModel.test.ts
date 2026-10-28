@@ -3,8 +3,8 @@ import {
     ackKey, buildColumns, effectiveStage, errorKind, followUp, isNoop, outcomeOf, phaseOf, pillStatusOf,
     readStateOf, rowActionOf, submitBlocks,
 } from './pipelineModel';
-import { operatedStagesOf, stageFromSearch, stripOf } from '../../../../../api/stagesApi';
-import type { DeploymentSummary, Pipeline, PipelineStage, Plan } from '../../../../../api/stagesApi';
+import { operatedStagesOf, stageFromSearch, stripOf } from '@/api/stagesApi';
+import type { DeploymentSummary, Pipeline, PipelineStage, Plan } from '@/api/stagesApi';
 
 /**
  * The state table of the pipeline: which column is in which state, and the ONE

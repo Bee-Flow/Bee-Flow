@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { descriptorKey, fetchFileBlob, friendlyError, type FileEntry } from '../fileLoading';
 import { diffRegions, sameGeometry, type ChangeRegion } from './pdfCompareMath';
 import { isRenderCancelled, openPdf } from './pdfEngine';

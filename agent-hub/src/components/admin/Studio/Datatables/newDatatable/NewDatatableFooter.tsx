@@ -1,8 +1,8 @@
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import type { SyntheticEvent } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { BTN } from './constants';
 
 interface NewDatatableFooterProps {

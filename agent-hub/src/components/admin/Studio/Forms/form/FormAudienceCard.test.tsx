@@ -19,7 +19,7 @@ const { api, directory } = vi.hoisted(() => ({
         groups: [{ id: 'g-fin', name: 'Finance' }],
     },
 }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 vi.mock('../../AppStudio/rbac/useAppRoles', () => ({ useOrgDirectory: () => directory }));
 
 const FORM = (audience: unknown) => ({ automationId: 'au1', mine: true, audience });

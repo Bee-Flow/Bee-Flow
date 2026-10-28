@@ -1,12 +1,12 @@
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { getIntegrationIcon } from '../../../../../config/integrationIcons';
+import { getIntegrationIcon } from '@/config/integrationIcons';
 import TriggerProviderPicker from '../TriggerProviderPicker';
 import { FormRow, inputClass } from './formPrimitives';
 import { FILTER_FORM_BY_KEY } from './triggerFilters';
 import { OutlookMailNewFilterFields } from './outlookMailbox/OutlookMailNewFilterFields';
 import type { AppEventFieldsProps } from './triggerEditors.types';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Labels for providers that can appear in SAVED configs but are absent from
 // the dynamic catalog list (hidden, e.g. github; or availability revoked).

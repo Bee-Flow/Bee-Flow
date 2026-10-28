@@ -4,9 +4,10 @@ import ApprovalDetail from './ApprovalDetail';
 import { approvalOriginText, approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
 import useApprovals from './useApprovals';
 import type { ApprovalListRow } from './useApprovals';
-import useTranslation from '../../../../hooks/useTranslation';
-import { RequireTier } from '../../../licensing/LicenseContext';
-import { logger } from '../../../../utils/logger';
+import useTranslation from '@/hooks/useTranslation';
+import { RequireTier } from '@/components/licensing/LicenseContext';
+import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * The Approvals section: every request waiting on a person, and the durable
@@ -52,13 +53,7 @@ function ApprovalsStudioInner({ user = null, initialApprovalId = null }: Approva
     // pressing Back from a detail updated the URL to the list while the
     // detail stayed open — a navigation trap on the one surface people reach
     // through their browser history.
-    const lastInitialRef = React.useRef(initialApprovalId);
-    useEffect(() => {
-        if (initialApprovalId !== lastInitialRef.current) {
-            lastInitialRef.current = initialApprovalId;
-            setOpenId(initialApprovalId || null);
-        }
-    }, [initialApprovalId]);
+    useAdjustOnChange([initialApprovalId], () => setOpenId(initialApprovalId || null));
 
     // Mirrors the server's ORG_ADMIN_VARIANTS (permissions.js) — 'admin' is
     // the legacy spelling of the same role. The 'org_admin' marker permission

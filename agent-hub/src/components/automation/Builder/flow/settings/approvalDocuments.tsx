@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import TemplateField from '../../mapping/TemplateField';
 import { controlSurfaceClass, FormRow } from './formPrimitives';
 import type { ApprovalAttachmentRow, SetDraft } from './approvalTypes';

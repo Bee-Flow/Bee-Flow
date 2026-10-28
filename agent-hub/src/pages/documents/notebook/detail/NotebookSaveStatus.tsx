@@ -14,8 +14,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, Check, CircleDot, CloudOff, Loader2, Radio } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
 
 export type NotebookSaveMode = 'saving' | 'error' | 'conflict' | 'dirty' | 'idle' | 'live' | 'connecting' | 'offline' | 'readonly';
 

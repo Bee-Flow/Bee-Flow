@@ -4,9 +4,9 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-import { authFetch } from '../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import FolderedAutomationList from './FolderedAutomationList';
 
 /**

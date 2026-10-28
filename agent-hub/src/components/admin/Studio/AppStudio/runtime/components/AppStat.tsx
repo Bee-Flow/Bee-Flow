@@ -1,8 +1,8 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { Line, LineChart } from 'recharts';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import { chartColorAt } from '../chartPalette';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';

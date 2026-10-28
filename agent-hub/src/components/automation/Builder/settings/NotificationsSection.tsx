@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Newspaper } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAutomationShares } from '../../../../api/queries/automation/people';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAutomationShares } from '@/api/queries/automation/people';
 import NotificationEventEditor, {
     EventIcon, channelLabel, eventQualifier, eventTitle, recipientLabel, useRecipientNames,
 } from './NotificationEventEditor';
@@ -10,7 +10,8 @@ import {
     type EventSettings, type NotificationEvent, type NotificationSettings,
 } from './notificationSettings';
 import { SectionHeading, withDefinition, type SaveFn, type SettingsAutomation } from './settingsUi';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /*
  * The overview folds by its OWN width (@container/notify). Wide: the matrix of
@@ -36,9 +37,7 @@ export default function NotificationsSection({ automation, onSave }: { automatio
     // A different automation, or a change from elsewhere (the AI builder), resets
     // the page to what is stored.
     const stored = automation?.definition?.notificationSettings;
-    useEffect(() => {
-        setSettings(normalizeNotificationSettings(stored));
-    }, [automation?.id, stored]);
+    useAdjustOnChange([automation?.id, stored], () => setSettings(normalizeNotificationSettings(stored)));
 
     const ownerName = shares.data?.owner?.name || t('automations.notify.owner_fallback', 'Owner');
     const title = automation?.title?.trim() || t('automations.notify.this_automation', 'This automation');

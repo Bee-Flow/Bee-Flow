@@ -1,6 +1,6 @@
 import { AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
 import { Strip } from './solutionNotices';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
 import type { PlanRows, ReadReport, PlanGroupProps, DialogBodyProps } from './upgradeClient.types';
 

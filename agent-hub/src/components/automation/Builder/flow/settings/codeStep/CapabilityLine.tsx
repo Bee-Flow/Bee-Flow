@@ -2,8 +2,8 @@
 // the code: "Can send data to api.example.com and use Gmail: send." The
 // promise a non-programmer needs before running someone else's code.
 import { ShieldCheck } from 'lucide-react';
-import type { CodeCapabilities } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import type { CodeCapabilities } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
 import { hintTextClass } from '../formPrimitives';
 import { toolLabel } from './codeParams';
 

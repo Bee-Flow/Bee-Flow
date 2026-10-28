@@ -10,8 +10,8 @@ import { AlertTriangle, Check, Save, Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {
     ProjectConflictError, projectKeys, useUpdateProject, type Project, type ProjectRole,
-} from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import Toggle from '../../shared/Toggle';
 import {
     ColorSwatches, DescriptionField, IconPicker, InstructionsField, NameField,

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { Project, ProjectRole } from '../../../../api/queries/projects';
+import type { Project, ProjectRole } from '@/api/queries/projects';
 import { takeFirstAnswer } from './firstAnswer';
 import ProjectChatsTab from './ProjectChatsTab';
 import {
@@ -10,11 +10,11 @@ import {
 } from './teamChatTestKit';
 
 const { fetchMock, stream } = vi.hoisted(() => ({ fetchMock: vi.fn(), stream: { onEvent: null } as StreamHolder }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
-vi.mock('../../../../hooks/useProjectStream', () => ({
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/hooks/useProjectStream', () => ({
     default: (opts: { onEvent: StreamHolder['onEvent'] }) => { stream.onEvent = opts.onEvent; },
 }));
-vi.mock('../../../renderers/MarkdownRenderer', () => ({
+vi.mock('@/components/renderers/MarkdownRenderer', () => ({
     default: ({ content }: { content: string }) => <div data-testid="markdown">{content}</div>,
 }));
 

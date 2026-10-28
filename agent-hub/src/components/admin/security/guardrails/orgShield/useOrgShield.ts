@@ -6,12 +6,12 @@ import type { ShieldFields, ToolPiiPolicy } from './orgShieldDoc';
 import useShieldEnvironment from './useShieldEnvironment';
 import type { ShieldOrg } from './useShieldEnvironment';
 import useShieldFields from './useShieldFields';
-import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { deepEqual } from '../../../../../utils/deepEqual';
-import { API_BASE } from '../../../../../utils/helpers';
-import useConfirm from '../../../../shared/useConfirm';
-import { request, RefusedError, mutate, errorBody } from '../../../../../api/mutate';
+import { piiCategoriesLocalized } from '@/config/piiCategories';
+import { useTranslation } from '@/hooks/useTranslation';
+import { deepEqual } from '@/utils/deepEqual';
+import { API_BASE } from '@/utils/helpers';
+import useConfirm from '@/components/shared/useConfirm';
+import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
 
 type Doc = Record<string, unknown>;
 

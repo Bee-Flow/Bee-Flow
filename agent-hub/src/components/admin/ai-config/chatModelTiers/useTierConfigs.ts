@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { CustomTier, StatusMessage, TierConfig } from './tierTypes';
 import { flash } from './tierTypes';
-import { getAiConfig, postAiConfig } from '../../../../api/aiConfig';
-import { logger } from '../../../../utils/logger';
+import { getAiConfig, postAiConfig } from '@/api/aiConfig';
+import { logger } from '@/utils/logger';
 
 const initialTiers = (): TierConfig => ({
     fast: { modelId: '', label: 'Fast' },

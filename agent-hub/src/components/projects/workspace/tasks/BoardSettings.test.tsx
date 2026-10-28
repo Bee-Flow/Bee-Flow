@@ -2,11 +2,11 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { ProjectBoard } from '../../../../api/queries/projectBoard';
+import type { ProjectBoard } from '@/api/queries/projectBoard';
 
 const save = vi.hoisted(() => ({ mutate: vi.fn(), isPending: false, error: null as unknown }));
-vi.mock('../../../../api/queries/projectBoard', async original => ({
-    ...await original<typeof import('../../../../api/queries/projectBoard')>(),
+vi.mock('@/api/queries/projectBoard', async original => ({
+    ...await original<typeof import('@/api/queries/projectBoard')>(),
     useBoardActions: () => ({ save }),
 }));
 import BoardSettings from './BoardSettings';

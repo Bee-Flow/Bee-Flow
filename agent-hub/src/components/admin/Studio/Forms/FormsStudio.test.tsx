@@ -27,15 +27,15 @@ const { fetchMock, listOrgForms, getForm } = vi.hoisted(() => ({
 // A `t` that behaves like the real one: string fallback + {placeholder}
 // interpolation, so "{count} forms" is asserted as a sentence rather than as
 // a key.
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 // STABLE object, like the real hook's useMemo: FormsStudio's load effect is
 // keyed on `api`, so a fresh literal per render would refetch forever.
 const apiStub = { listOrgForms, getForm };
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiStub }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiStub }));
 // createFormAutomation's own dependencies: the API layer it posts through and
 // the builder module it import()s at call time.
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
-vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/components/automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ title: 'New form', fields: [{ name: 'q1' }] }),
 }));
 

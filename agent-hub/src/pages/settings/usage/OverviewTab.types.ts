@@ -1,5 +1,5 @@
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { StarterModel } from '../../../api/runtimeTypes';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { StarterModel } from '@/api/runtimeTypes';
 import type React from 'react';
 
 export interface InOutBarProps {

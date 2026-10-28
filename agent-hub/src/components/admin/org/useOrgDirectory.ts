@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { settled } from '../../../api/settled';
-import { logger } from '../../../utils/logger';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
+import { logger } from '@/utils/logger';
 
 /**
  * One member, as GET /auth/users returns them. Only what the panel reads is

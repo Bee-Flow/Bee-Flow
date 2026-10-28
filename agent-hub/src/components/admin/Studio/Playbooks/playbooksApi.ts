@@ -3,8 +3,8 @@
  * `expectedVersion`; a 409 carries `currentVersion` + the current playbook,
  * and the caller reloads rather than retrying blindly).
  */
-import { createJsonResource } from '../../../../api/client';
-import { API_BASE } from '../../../../utils/helpers';
+import { createJsonResource } from '@/api/client';
+import { API_BASE } from '@/utils/helpers';
 
 const base = `${API_BASE}/api/playbooks`;
 const enc = encodeURIComponent;

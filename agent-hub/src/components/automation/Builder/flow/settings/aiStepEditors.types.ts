@@ -1,10 +1,10 @@
 import type { FormRecord } from './formState/types';
 import type { SetField } from './agentStep/useAgentStepState';
-import type { ModelTierConfig } from '../../../../../hooks/useModelTierSelection';
+import type { ModelTierConfig } from '@/hooks/useModelTierSelection';
 import type { Group } from '../../mapping/upstream/upstream.types';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import type { ActionCatalog } from './actionEditors/integrationActionFields';
-import type { TimelineStep } from '../../../../admin/Studio/Executions/RunStepTimeline';
+import type { TimelineStep } from '@/components/admin/Studio/Executions/RunStepTimeline';
 import type { StepIssues } from './../nodes/nodeProps';
 
 export interface AiStepFieldsProps {

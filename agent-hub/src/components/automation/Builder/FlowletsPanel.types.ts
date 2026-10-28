@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import type { FlowletAgentState } from '../../../hooks/useFlowletAgentStream';
+import type { FlowletAgentState } from '@/hooks/useFlowletAgentStream';
 import type { getLayerDependencies, listLayers } from './flow/flowletScope';
 import type { FlowDefinition, FlowStep } from './flow/types';
 

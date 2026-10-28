@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { EVIDENCE_DAYS } from '../activity/useShieldEvidence';
 import { STEP_OF } from '../orgShieldPosture';
 import { ownDataSummary } from '../ownData/ownDataCopy';

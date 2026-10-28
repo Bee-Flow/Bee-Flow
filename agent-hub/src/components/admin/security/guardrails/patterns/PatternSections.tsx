@@ -2,10 +2,10 @@ import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PatternLibraryProps } from './patternTypes';
 import { STARTER_SETS } from './starterSets';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { TIER_META, configuredTierKeys } from '../../../../licensing/tierMeta';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TIER_META, configuredTierKeys } from '@/components/licensing/tierMeta';
 import { apiJson, generateRegexWithAi } from '../api/guardrailsApi';
-import { errorMessage } from '../../../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 type StarterSet = (typeof STARTER_SETS)[number];
 

@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Pin, PinOff } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import RunTabContainer from '../debug/RunTabContainer';
 import type { DataSummary, FlowStep } from '../flow/types';
 import type { ErrorFix, StepErrorInfo } from '../output/ErrorCard';

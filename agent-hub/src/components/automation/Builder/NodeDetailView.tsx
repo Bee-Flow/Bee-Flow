@@ -23,8 +23,8 @@ import useHiddenSections from './useHiddenSections';
 import useNdvNavigation from './useNdvNavigation';
 import useNdvPanels from './useNdvPanels';
 import useNodeDetailData from './useNodeDetailData';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { walkPath } from '../../../utils/bindingHelpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { walkPath } from '@/utils/bindingHelpers';
 import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, ApprovalDecl, NodeDetailViewProps } from './NodeDetailView.types';
 
 /**

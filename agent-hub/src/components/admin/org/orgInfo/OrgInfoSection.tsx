@@ -1,9 +1,9 @@
 import { Building2, Upload } from 'lucide-react';
 import OrgDefaultLanguage from './OrgDefaultLanguage';
 import { Field } from './orgInfoShared';
-import { API_BASE } from '../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import { COUNTRIES } from '../../subscriptions/access/countries';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { OrgFormData } from './useOrgInfoForm';
 import type { Dispatch, SetStateAction, ChangeEvent } from 'react';
 

@@ -25,7 +25,7 @@ vi.mock('./playbooksApi', () => {
     return { playbooksApi, default: playbooksApi };
 });
 vi.mock('../Datatables/datatablesApi', () => ({ datatablesApi: { list: vi.fn(async () => ({ datatables: [] })) } }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => [] })) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => [] })) }));
 
 // `strings` is the SERVER catalogue for `locale` — the real readingLocale is
 // used (not a stub), so these tests exercise the same rule the app does.
@@ -36,7 +36,7 @@ const NL_DIALOG = Object.freeze({
     'playbooks.new.describe_label': 'Wat moet dit playbook bouwen?',
     'playbooks.phase.table': 'Tabel',
 });
-vi.mock('../../../../hooks/useTranslation', async (importOriginal) => ({
+vi.mock('@/hooks/useTranslation', async (importOriginal) => ({
     readingLocale: (await importOriginal()).readingLocale,
     default: () => ({
         // The same resolution order as the real fallback: the caller's English

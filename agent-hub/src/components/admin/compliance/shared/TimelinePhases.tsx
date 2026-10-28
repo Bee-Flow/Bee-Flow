@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import { useMemo } from 'react';
 import { formatCalDate, parseDay, resolveNow } from './calendarMath';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * TimelinePhases — a framework's phased entry into force as one horizontal

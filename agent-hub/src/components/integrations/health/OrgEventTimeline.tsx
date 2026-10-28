@@ -2,8 +2,8 @@ import { RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { sevMeta, labelFor, summarize, SEVERITY_IDS, SEVERITY_META } from './healthMeta';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { integrationsAdminKeys, useOrgEventTimelineQuery } from '../../../api/queries/integrationsAdmin';
+import { useTranslation } from '@/hooks/useTranslation';
+import { integrationsAdminKeys, useOrgEventTimelineQuery } from '@/api/queries/integrationsAdmin';
 import type { HealthEvent } from './healthMeta';
 
 interface OrgEventTimelineProps {

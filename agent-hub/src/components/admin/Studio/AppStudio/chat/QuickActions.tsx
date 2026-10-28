@@ -1,7 +1,7 @@
 import { Database, LayoutTemplate, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * App Studio — quick-action chips above the AI composer.

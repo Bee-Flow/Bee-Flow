@@ -2,8 +2,8 @@ import { AlertTriangle } from 'lucide-react';
 import React from 'react';
 import { summariseCardFooter } from './cardFooter';
 import type { CardFooterSummary } from './cardFooter';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**

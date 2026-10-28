@@ -10,7 +10,7 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS, TIER_DEFAULTS } from './constants';
 import CustomTierCard from './CustomTierCard';
 import TierCard from './TierCard';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ChatTiersSectionProps extends ModelPickerSource {
     config: TierConfig;

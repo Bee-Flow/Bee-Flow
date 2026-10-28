@@ -1,7 +1,7 @@
 import { Webhook, Copy, Check, Eye, EyeOff, Plus } from 'lucide-react';
 import React from 'react';
 import useWebhooks, { webhookUrl, maskSecret } from './webhooks/useWebhooks';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /** One webhook row as the server lists it. */
 interface WebhookRowData {

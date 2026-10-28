@@ -17,7 +17,7 @@
  * Sections a page stream has not delivered yet render `PendingPage` (one
  * sentence, no fake zeros) — a placeholder is a placeholder, never a claim.
  */
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 import AccessAuditPage from '../pages/AccessAuditPage';
 import AuditsPage from '../pages/AuditsPage';

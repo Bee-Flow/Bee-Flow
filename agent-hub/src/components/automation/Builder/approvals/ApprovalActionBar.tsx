@@ -1,8 +1,8 @@
 import { ShieldQuestion } from 'lucide-react';
-import ApprovalDecisionControls, { type ApprovalField } from '../../../admin/Studio/Approvals/ApprovalDecisionControls';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { toast } from '../../../shared/Toast';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import ApprovalDecisionControls, { type ApprovalField } from '@/components/admin/Studio/Approvals/ApprovalDecisionControls';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { toast } from '@/components/shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Inline action bar for a step that's paused awaiting human approval — the

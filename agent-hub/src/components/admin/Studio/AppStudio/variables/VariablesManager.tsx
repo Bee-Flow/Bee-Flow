@@ -1,9 +1,9 @@
 import { Lock, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import FormField from '../../../../shared/FormField';
-import IconButton from '../../../../shared/IconButton';
+import useTranslation from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import FormField from '@/components/shared/FormField';
+import IconButton from '@/components/shared/IconButton';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import {
     MAX_VARIABLES, RESERVED_VARIABLE_NAMES, VARIABLE_NAME_RE, VARIABLE_TYPES,
@@ -11,7 +11,7 @@ import {
 } from '../runtime/appVariables';
 import { listVariables, removeVariable, renameVariable, setVariable } from '../state/definitionOps';
 import { collectVariableUsage, declarableUnknowns, describeSite, VariableUsage, type UsageSite } from '../state/variableUsage';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition, DefinitionVariable } from '../inspector/appDefinition';
 import type { RevealTarget, VariablesManagerProps, UsageListProps } from './VariablesManager.types';
 import { DefaultField } from './DefaultField';

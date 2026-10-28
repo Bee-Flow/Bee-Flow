@@ -4,12 +4,12 @@
 // per keystroke: every definition save writes a full version snapshot.
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { isTruncatedOutput } from '../mapping/realOutputs';
 import { MAX_PINNED_BYTES, jsonByteLength, safeJsonText } from '../outputDrafts';
 import OutputEditorPanel from '../OutputEditorPanel';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { logger } from '../../../../utils/logger';
+import { errorMessage, messageOf } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 const isTruncated = isTruncatedOutput as (v: unknown) => boolean;
 

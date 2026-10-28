@@ -5,8 +5,8 @@
 // `authFetch` rather than `apiClient`, like the other automation reads: the
 // callers render a failure as a sentence, and the tests mock `authFetch`.
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { logger } from '../../../utils/logger';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
 
 /** A refused request, with the server's error code (`ai_act.domain_required`, `remind_rate_limited`, …). */
 export class AutomationRequestError extends Error {

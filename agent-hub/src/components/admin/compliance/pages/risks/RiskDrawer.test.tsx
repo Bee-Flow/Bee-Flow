@@ -11,7 +11,7 @@ import { acceptPatchOf, draftOf, memberOptions, patchOf } from './riskDraft';
  * draft resets on updated_at, and an owner or review date typed just before
  * was gone. It now sends the draft with the status, in one write.
  */
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 interface Risk {
     id: number; title: string; description?: string | null; category: string; likelihood: number; impact: number;

@@ -1,7 +1,7 @@
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
-import type { ScanMode, ScanSummary } from '../../../../../api/queries/automation/repeating';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { ScanMode, ScanSummary } from '@/api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { eventsText } from './patternView';
 import { DetailsToggle } from './ScanFlow';
 import type { SourceStep } from './useRepeatingScan';

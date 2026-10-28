@@ -4,7 +4,7 @@ import { applyCaseColor, applyPiiGroupColor, caseColorOf, resolvePiiGroupColors 
 import { autoCaseColor, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
 import type { FlowDefinition } from './types';
 import type { EdgeColorMode } from './useEdgeColorMode';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * The "Lines" control — the one discoverable home for connection colours.

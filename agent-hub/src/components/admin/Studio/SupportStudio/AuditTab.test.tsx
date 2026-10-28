@@ -4,11 +4,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import { renderWithClient as render } from '@/test/render';
 import AuditTab from './AuditTab';
-import { authFetch } from '../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const EVENTS = [
     { id: 'e1', actor_kind: 'ai', action: 'ai_reply', inbox_id: 'i1', thread_id: 't1', payload: { confidence: 0.9 }, created_at: '2026-06-29T10:00:00Z' },

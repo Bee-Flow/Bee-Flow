@@ -5,8 +5,8 @@ import { buildAutomationMenuItems } from './automationMenuItems';
 import { roleOf, roleLabel } from './automationStatus';
 import { rowMetaParts, type RowMetaPart } from './cardStatus';
 import { TriggerTile } from './OverviewBits';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';
+import { useTranslation } from '@/hooks/useTranslation';
+import { STATUS_TOKENS, tokenFor } from '@/components/shared/statusTokens';
 import type { AutomationRecord } from './overviewModel';
 import type { Point } from '../map/studioMap.types';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import EN from '@/i18n/en-defaults';
 import { engineSegments, enginePill, formatK, shortModelName, showsRates, MODEL_NAME_MAX } from './engineLine';
-import EN from '../../../i18n/en-defaults';
 
 /**
  * The engine line's wording, pinned as a table: every segment is a

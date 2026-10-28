@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Sparkles, ChevronDown, Loader2, Pencil, Plus, Star } from 'lucide-react';
-import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
-import useTranslation from '../../../hooks/useTranslation';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import useTranslation from '@/hooks/useTranslation';
 import { buildSummaryStamp, SUMMARY_STAMP } from '../lib/summaryStamp';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MeetingNote } from './meetingDetailTypes';
 import type { BuiltinTemplate, CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
 

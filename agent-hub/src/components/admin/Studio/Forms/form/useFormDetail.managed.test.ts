@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const api = vi.hoisted(() => ({ getForm: vi.fn(), updateAutomation: vi.fn() }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 import useFormDetail from './useFormDetail';
 

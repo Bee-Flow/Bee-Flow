@@ -4,9 +4,9 @@
 
 import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import { useCreateSprint, type Sprint } from '../../../../api/queries/projectSprints';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
+import { useCreateSprint, type Sprint } from '@/api/queries/projectSprints';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import { projectErrorText } from '../projectErrorText';
 import { GhostButton, PrimaryButton, SelectField } from '../workspaceUi';
 import { addDays } from './taskPlanning';

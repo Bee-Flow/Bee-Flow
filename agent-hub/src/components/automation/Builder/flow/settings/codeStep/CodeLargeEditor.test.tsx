@@ -3,11 +3,11 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AssistEvent, CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
+import type { AssistEvent, CodeAnalysis } from '@/api/queries/automation/codeStep';
 
 const assistCalls: Array<{ code: string; last: string }> = [];
-vi.mock('../../../../../../api/queries/automation/codeStep', async (importOriginal) => {
-    const real = await importOriginal<typeof import('../../../../../../api/queries/automation/codeStep')>();
+vi.mock('@/api/queries/automation/codeStep', async (importOriginal) => {
+    const real = await importOriginal<typeof import('@/api/queries/automation/codeStep')>();
     return {
         ...real,
         streamCodeAssist: async (req: { code: string; messages: Array<{ content: string }> }, onEvent: (e: AssistEvent) => void) => {

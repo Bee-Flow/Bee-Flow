@@ -10,7 +10,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import OrgAiParticipationEditor from './OrgAiParticipationEditor';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
 const POLICY = {
     autoAllowed: true, alwaysAllowed: true, commentsAutoAllowed: true, sensitivity: 'balanced',

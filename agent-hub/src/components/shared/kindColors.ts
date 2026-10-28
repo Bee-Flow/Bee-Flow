@@ -69,8 +69,12 @@ export { KIND_KEYS };
 
 const KIND_VAR: KindTable<string> = KIND_VARS;
 
-/** The glyph of each kind — the exact lucide names artboard 1b draws. */
-const KIND_ICON: KindTable<LucideIcon> = Object.freeze({
+/**
+ * The glyph of each kind — the exact lucide names artboard 1b draws. Exported
+ * for render code: a component read from a static table is one React can see
+ * is never created during render (a call to kindIcon() is opaque to it).
+ */
+export const KIND_ICON: KindTable<LucideIcon> = Object.freeze({
     automation: Workflow,
     datatable: Table,
     app: LayoutGrid,

@@ -1,6 +1,6 @@
 import { Activity, ArrowRight } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import { OUTCOME_TEXT } from '../shieldPalette';
 import { toolGapCount } from '../tabs/checks/checksModel';

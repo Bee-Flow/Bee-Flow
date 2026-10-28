@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useApprovalsNavQuery } from '../../../api/queries/shellReads';
+import { useApprovalsNavQuery } from '@/api/queries/shellReads';
 import { readNavHas, writeNavHas } from './sidebarTokens';
 
 /**

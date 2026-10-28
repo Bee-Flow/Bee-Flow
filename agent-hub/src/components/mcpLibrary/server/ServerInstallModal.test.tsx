@@ -5,13 +5,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { ServerMcpServer } from '../../../api/queries/serverMcp';
+import type { ServerMcpServer } from '@/api/queries/serverMcp';
 import { fakeBackend } from '@/test/mcpLibraryKit';
 import { withQueryClient } from '@/test/queryWrapper';
 import ServerInstallModal from './ServerInstallModal';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

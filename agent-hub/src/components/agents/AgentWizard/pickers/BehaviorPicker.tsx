@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Check, Copy } from 'lucide-react';
 import { ToggleRow } from './_primitives';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { EditorAgent } from '../builderSplit/editorTypes';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // Copy-to-clipboard field for the embed URL / iframe snippet. Only used
 // inside this picker, so co-located here rather than in _primitives.

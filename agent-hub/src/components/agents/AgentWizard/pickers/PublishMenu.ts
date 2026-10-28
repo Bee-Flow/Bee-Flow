@@ -5,5 +5,5 @@
  * Groups control. Existing imports keep working; new code imports
  * VisibilityCapsule directly.
  */
-export { default,      } from '../../../shared/VisibilityCapsule';
+export { default,      } from '@/components/shared/VisibilityCapsule';
 ;

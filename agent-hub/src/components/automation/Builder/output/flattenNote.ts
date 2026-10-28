@@ -1,5 +1,5 @@
 import { flattenSentenceParts } from '@shared/expr/flatten.mjs';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * A flatten's run in one sentence (spec F49), in place of its Count / Input

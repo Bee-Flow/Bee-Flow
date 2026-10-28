@@ -27,7 +27,7 @@
  */
 import React from 'react';
 
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import AppsPicker from '../../apps/AppsPicker';
 import SkillsPopover, { type SkillsPopoverProps } from '../../skills/SkillsPopover';
 import ComposerPill from '../ComposerPill';

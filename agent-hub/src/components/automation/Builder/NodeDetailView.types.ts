@@ -4,7 +4,7 @@ import type { UpstreamNode, UpstreamDefinition } from './mapping/upstream/upstre
 import type { RunStepRow } from './flow/types';
 import type { BlockCatalogEntry } from './flow/settings/actionEditors/flowletCallFields';
 import type { PlacedStep } from './flow/settings/routeHandoff';
-import type { ModelTierConfig } from '../../../hooks/useModelTierSelection';
+import type { ModelTierConfig } from '@/hooks/useModelTierSelection';
 import type { FormDensity, FormMode } from './flow/settings/formDensity';
 import type { TriggerAutomation } from './flow/settings/triggerEditors.types';
 import type { Validation } from './flow/matchValidationToStep';
@@ -56,7 +56,7 @@ export type { PlacedStep } from './flow/settings/routeHandoff';
 export type { BlockCatalogEntry } from './flow/settings/actionEditors/flowletCallFields';
 export type { TriggerAutomation } from './flow/settings/triggerEditors.types';
 export type { Group, UpstreamDefinition, UpstreamNode } from './mapping/upstream/upstream.types';
-export type { ModelTierConfig } from '../../../hooks/useModelTierSelection';
+export type { ModelTierConfig } from '@/hooks/useModelTierSelection';
 export type { Validation } from './flow/matchValidationToStep';
 export type { ToolCatalog } from './useNodeDetailData';
 export type { NextSuggestion } from './output/UsedBy';

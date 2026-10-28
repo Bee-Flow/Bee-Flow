@@ -1,6 +1,6 @@
 import { ArrowRight, History } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { formatRelativeDate } from '../lib/format';
 import type { MeetingActionItem, SeriesPrevious } from './meetingDetailTypes';
 

@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 type Translate = TranslateFn;
 

@@ -13,7 +13,7 @@ import type { DiagramDefinition, RunRow, Rf } from './diagramPaneTypes';
 import type { EdgeClick } from './useEdgeEditCallbacks';
 import type { NodeDropHit } from './useNodeDragWiring';
 import type { DropTarget } from './stepDrag';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface RenderedGraphArgs {
     editable?: boolean;

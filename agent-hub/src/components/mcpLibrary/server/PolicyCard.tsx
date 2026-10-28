@@ -2,9 +2,9 @@ import { Ban, BadgeCheck, Globe, ListChecks, Loader2, ShieldCheck } from 'lucide
 import { useId, useState } from 'react';
 import ChoiceCards from '../../shared/ChoiceCards';
 import toast from '../../shared/Toast';
-import { useMcpPolicyQuery, useSaveMcpPolicy } from '../../../api/queries/mcpLibrary';
-import type { RemoteMode } from '../../../api/queries/mcpLibrary';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useMcpPolicyQuery, useSaveMcpPolicy } from '@/api/queries/mcpLibrary';
+import type { RemoteMode } from '@/api/queries/mcpLibrary';
+import { useTranslation } from '@/hooks/useTranslation';
 import { errorText, policyDescription, policyLabel } from '../libraryText';
 import { ALERT_ERROR, CARD, DASHED, EYEBROW, HINT, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '../ui';
 

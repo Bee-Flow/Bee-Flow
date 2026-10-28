@@ -1,6 +1,6 @@
 import { Webhook } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { describeCron } from '../flow/scheduleBuilderUtils';
 import { triggerTypeLabel } from '../flow/triggerLabels';
 import StartDialog, { START_CARD_ICON } from './StartDialog';

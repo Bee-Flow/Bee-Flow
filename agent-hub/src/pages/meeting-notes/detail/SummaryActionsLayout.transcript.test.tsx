@@ -15,14 +15,14 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 // The popover branches are not opened here. The modules are loaded, however.
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => ({ listAutomations: vi.fn(), run: vi.fn() }) }));
-vi.mock('../../../components/admin/Studio/Datatables/datatablesApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => ({ listAutomations: vi.fn(), run: vi.fn() }) }));
+vi.mock('@/components/admin/Studio/Datatables/datatablesApi', () => ({
     datatablesApi: { list: vi.fn(), getSchema: vi.fn(), addRow: vi.fn() },
 }));
-vi.mock('../../../components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
+vi.mock('@/components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
     const api = { list: vi.fn(), createSource: vi.fn() };
     return { default: api, knowledgeApi: api };
 });

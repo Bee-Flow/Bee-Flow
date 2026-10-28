@@ -2,10 +2,10 @@ import { Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import FormulaField from './FormulaField';
 import { useCatalogComponents } from '../panels/SpecPanel';
-import IconButton from '../../../../../shared/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
 import { getComponentEntry } from '../../runtime/componentRegistry';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode, FormulaValue } from '../appDefinition';
 
 /**

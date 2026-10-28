@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import type { ComponentProps } from 'react';
 

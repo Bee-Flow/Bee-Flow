@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import { createRecord, listRecords, updateRecord } from './recordsApi';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 /**

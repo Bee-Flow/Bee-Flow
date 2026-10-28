@@ -12,10 +12,10 @@
 // functions), so a test can replace one call with vi.spyOn and keep the rest.
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { safeText } from '../../../hooks/useAutomationApi';
-import type { AutomationApiError } from '../../../hooks/useAutomationApi';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { readEventStream } from '../../../utils/sseStream';
+import { safeText } from '@/hooks/useAutomationApi';
+import type { AutomationApiError } from '@/hooks/useAutomationApi';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { readEventStream } from '@/utils/sseStream';
 
 /* ── Shapes ─────────────────────────────────────────────────────────── */
 

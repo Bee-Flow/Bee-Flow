@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Mic, Square, Pause, Play, X, Loader2 } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import { formatDuration } from '../lib/format';
-import { errorMessage } from '../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 /**
  * Live recording. Every colour is a theme token — the recording ring and the

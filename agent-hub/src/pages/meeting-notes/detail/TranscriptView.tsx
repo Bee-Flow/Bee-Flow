@@ -2,12 +2,12 @@ import React, { useMemo, useState } from 'react';
 import { CircleHelp, Gavel, ListChecks, MoreHorizontal, Search } from 'lucide-react';
 import SpeakerLegend from './SpeakerLegend';
 import TranscriptLineMenu from './TranscriptLineMenu';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration, formatSpeakerLabel } from '../lib/format';
 import { buildSpeakerColorMap, segmentSpeakerId, speakerColor } from '../lib/playerData';
 import { buildLineMarks, type LineMark } from '../lib/transcriptLines';
 import type { PlayerSegment } from './player/player.types';
-import type { TranslateFn, TranslateParams } from '../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
 
 /**
