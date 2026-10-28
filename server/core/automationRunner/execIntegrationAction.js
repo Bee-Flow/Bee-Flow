@@ -23,6 +23,8 @@ const { runnerPort } = require('./featurePorts');
 
 /** automation/outputSchemas' sample output for a tool, for dry runs. */
 const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').synthesizeDryRunOutput(toolName, args);
+/** The tool's own shape with nothing in it, for a dry-run read that found nothing. */
+const emptyDryRunOutput = (toolName, result) => runnerPort('outputSchemas').emptyDryRunOutput(toolName, result);
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
 const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrationActionGates');
@@ -174,18 +176,11 @@ async function dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, pr
 }
 
 /**
- * The answer, checked: an empty dry-run read and an environment error in a dry
- * run fall back to the sample; a soft `{ error }` fails the step. Returns a
- * step result to hand back as-is, or null when `result` stands.
+ * The answer, checked: an environment error in a dry run falls back to the
+ * sample; a soft `{ error }` fails the step. Returns a step result to hand
+ * back as-is, or null when `result` stands.
  */
 function checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps }) {
-    // Empty-result fallback: a live read-only call that returned no rows
-    // teaches the AI nothing about field shapes. In dry-run, swap in the
-    // sample so downstream binding decisions are made against realistic
-    // data. (Live mode keeps the empty result — the user wanted truth.)
-    if (mode === 'dry_run' && deps.isEmptyToolResult(result)) {
-        return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'live_empty' };
-    }
     // A tool call that returned a soft `{ error }` object must fail the step —
     // recording it as success masks misconfigured steps (they show green while
     // doing nothing). Routes through the same catch as a thrown error, so
@@ -283,6 +278,12 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         });
     }
 
+    // A dry-run read that found NOTHING is a real answer, not a reason to
+    // show a sample: the step hands on "no data" in the tool's own shape
+    // (every declared list present and empty), so a forEach behind it walks
+    // zero items and says so, instead of iterating over invented ones or
+    // skipping on a stub without the list.
+    if (mode === 'dry_run' && deps.isEmptyToolResult(result)) result = emptyDryRunOutput(step.tool, result);
     const fallback = checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps });
     if (fallback) return fallback;
     // Cache the actual output shape so the Builder agent gets ground-truth

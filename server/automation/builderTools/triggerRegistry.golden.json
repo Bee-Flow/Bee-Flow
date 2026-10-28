@@ -64,12 +64,14 @@
         {
           "id": "file.deleted",
           "label": "File deleted",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "file.renamed",
           "label": "File renamed",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "share.received",
@@ -109,27 +111,32 @@
         {
           "id": "deck.card.created",
           "label": "Deck card created",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "deck.card.changed",
           "label": "Deck card changed",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "deck.card.deleted",
           "label": "Deck card deleted",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "deck.card.moved",
           "label": "Deck card moved to another list",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "deck.card.completed",
           "label": "Deck card marked done",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "file.tagged",
@@ -139,27 +146,32 @@
         {
           "id": "forms.submitted",
           "label": "Form submitted (Nextcloud Forms)",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "tables.row.added",
           "label": "Row added to a Nextcloud Table",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "tables.row.updated",
           "label": "Row updated in a Nextcloud Table",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "talk.message.received",
           "label": "Talk message received",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "talk.reaction.added",
           "label": "Talk reaction added",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         }
       ]
     },
@@ -1115,6 +1127,10 @@
         {
           "key": "link",
           "sample": "https://cloud.example.com/f/12345"
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
         }
       ],
       "sample": {
@@ -1128,7 +1144,8 @@
         "kind": "file",
         "actor": "alice",
         "datetime": "2026-05-13T09:15:00Z",
-        "link": "https://cloud.example.com/f/12345"
+        "link": "https://cloud.example.com/f/12345",
+        "isOwnAction": false
       }
     },
     "nextcloud.file.changed": {
@@ -1176,6 +1193,10 @@
         {
           "key": "link",
           "sample": "https://cloud.example.com/f/12345"
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
         }
       ],
       "sample": {
@@ -1189,7 +1210,8 @@
         "kind": "file",
         "actor": "alice",
         "datetime": "2026-05-13T10:20:00Z",
-        "link": "https://cloud.example.com/f/12345"
+        "link": "https://cloud.example.com/f/12345",
+        "isOwnAction": false
       }
     },
     "nextcloud.file.deleted": {
@@ -1237,6 +1259,10 @@
         {
           "key": "link",
           "sample": "https://cloud.example.com/f/12348"
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
         }
       ],
       "sample": {
@@ -1250,7 +1276,8 @@
         "kind": "file",
         "actor": "alice",
         "datetime": "2026-05-13T11:30:00Z",
-        "link": "https://cloud.example.com/f/12348"
+        "link": "https://cloud.example.com/f/12348",
+        "isOwnAction": false
       }
     },
     "nextcloud.file.renamed": {
@@ -1302,6 +1329,10 @@
         {
           "key": "link",
           "sample": "https://cloud.example.com/f/12345"
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
         }
       ],
       "sample": {
@@ -1316,7 +1347,8 @@
         "kind": "file",
         "actor": "alice",
         "datetime": "2026-05-13T11:45:00Z",
-        "link": "https://cloud.example.com/f/12345"
+        "link": "https://cloud.example.com/f/12345",
+        "isOwnAction": false
       }
     },
     "nextcloud.share.received": {
@@ -1499,6 +1531,10 @@
           "sample": "personal"
         },
         {
+          "key": "calendarUri",
+          "sample": "personal"
+        },
+        {
           "key": "summary",
           "sample": "Kickoff with Nextcloud"
         },
@@ -1537,6 +1573,7 @@
       "sample": {
         "uid": "evt-9f2a",
         "calendarId": "personal",
+        "calendarUri": "personal",
         "summary": "Kickoff with Nextcloud",
         "startsAt": "2026-05-13T15:00:00+02:00",
         "endsAt": "2026-05-13T15:30:00+02:00",
@@ -2208,6 +2245,10 @@
           "sample": null
         },
         {
+          "key": "isOwn",
+          "sample": false
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T12:30:00Z"
         }
@@ -2221,6 +2262,7 @@
         "message": "Can someone post the latest invoice summary?",
         "isMarkdown": true,
         "inReplyTo": null,
+        "isOwn": false,
         "datetime": "2026-05-13T12:30:00Z"
       }
     },
@@ -2255,6 +2297,10 @@
           "sample": false
         },
         {
+          "key": "isOwn",
+          "sample": false
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T12:31:00Z"
         }
@@ -2267,6 +2313,7 @@
         "actorName": "Alice",
         "reaction": "👍",
         "removed": false,
+        "isOwn": false,
         "datetime": "2026-05-13T12:31:00Z"
       }
     },

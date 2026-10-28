@@ -2,6 +2,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AddSourcePanel, { messageFor } from './AddSourcePanel';
 import { knowledgeApi, type KbSource, type KbSourceTotals, type KnowledgeBase } from './knowledgeApi';
+import { sharedGroupsOf } from './sharedGroups';
 import SettingsTab from './SettingsTab';
 import SourcesTab from './SourcesTab';
 import TestQuestionCard from './TestQuestionCard';
@@ -261,13 +262,13 @@ export default function KnowledgeDetail({
                         onClose={() => setCapsuleOpen(false)}
                         disabled={!canManage}
                         isPublished={!!kb?.is_published}
-                        sharedGroups={kb?.shared_groups || []}
+                        sharedGroups={sharedGroupsOf(kb)}
                         orgGroups={orgGroups}
                         confirmWidening
                         onSetPersonal={() => setAudience({ isPublished: false, sharedGroups: [] })}
                         onSetEntireOrg={() => setAudience({ isPublished: true, sharedGroups: [] })}
                         onToggleGroup={(gid) => {
-                            const cur = kb?.shared_groups || [];
+                            const cur = sharedGroupsOf(kb);
                             const next = cur.includes(gid) ? cur.filter((g) => g !== gid) : [...cur, gid];
                             return setAudience({ isPublished: true, sharedGroups: next });
                         }}

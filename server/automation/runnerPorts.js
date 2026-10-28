@@ -64,6 +64,7 @@ registerRunnerPorts({
     },
     outputSchemas: {
         /** @type {typeof import('./outputSchemas').synthesizeDryRunOutput} */ synthesizeDryRunOutput: (...args) => require('./outputSchemas').synthesizeDryRunOutput(...args),
+        /** @type {typeof import('./outputSchemas').emptyDryRunOutput} */ emptyDryRunOutput: (...args) => require('./outputSchemas').emptyDryRunOutput(...args),
     },
     shapeCache: {
         /** @type {typeof import('./shapeCache').recordShape} */ recordShape: (...args) => require('./shapeCache').recordShape(...args),

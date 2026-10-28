@@ -159,4 +159,9 @@ describe('resolveTarget — automation definitions', () => {
         expect(resolveTarget(FLOW, { path: 'steps[0]', kind: 'app' })).toBeNull();
         expect(resolveTarget(malformed<Parameters<typeof resolveTarget>[0]>(APP), { nodeId: 'cmp_list', kind: 'automation' })).toBeNull();
     });
+
+    it('is null, not a crash, for an app definition without screens', () => {
+        expect(resolveTarget(malformed<Parameters<typeof resolveTarget>[0]>({}), { nodeId: 'x', kind: 'app' })).toBeNull();
+        expect(resolveTarget(malformed<Parameters<typeof resolveTarget>[0]>({ screens: null }), { nodeId: 'x', kind: 'app' })).toBeNull();
+    });
 });

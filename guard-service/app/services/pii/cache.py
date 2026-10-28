@@ -5,12 +5,20 @@
 the engine fingerprint, and the semaphore that bounds simultaneous inferences
 so one big scan cannot starve every other user. A degraded result is never
 cached.
+
+What the cache holds is not personal data by construction: offsets, lengths,
+categories, labels and scores, copied field by field from an allow-list. The
+span text is never written; a hit rebuilds it from the request text, which the
+key binds exactly. The key is an HMAC (GUARD_PII_CACHE_KEY_SECRET, else a
+random per-process secret), so an entry cannot be confirmed by hashing a
+guessed text. GUARD_PII_CACHE_TTL_SECONDS sets the lifetime (0 = no caching).
 """
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+import secrets
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import asyncio
@@ -33,7 +41,42 @@ logger = logging.getLogger("guard.pii")
 # narrower scan's blind spots would have been served as the broader one's result.
 # v5: the key carries the request's custom labels (id, prompt, base floor), and
 # beside them tells enabled_categories [] ("no built-ins") from None ("all").
-_CACHE_SCHEMA_VERSION = 5
+# v6: HMAC key instead of a bare sha256, and entries hold no span text.
+_CACHE_SCHEMA_VERSION = 6
+
+# What an entity keeps in the cache. Everything else (above all ``text``, the
+# PII span itself) is dropped; a hit rebuilds ``text`` from the request.
+_CACHED_ENTITY_FIELDS = (
+    "category",
+    "label",
+    "confidence",
+    "offset",
+    "length",
+    "source",
+    "validated",
+    "near_miss",
+    "context_hit",
+)
+# The envelope fields a cached entry carries besides the two entity lists.
+# None of them holds input text: flags, counts, category names, an engine id.
+_CACHED_ENVELOPE_FIELDS = (
+    "hasPii",
+    "degraded",
+    "degraded_reason",
+    "degraded_categories",
+    "processed_chars",
+    "total_chars",
+    "tier_mode",
+    "engine_fingerprint",
+    "near_miss_counts",
+    "scan_stats",
+)
+_ENTITY_LISTS = ("entities", "custom_entities")
+
+# Random per process unless GUARD_PII_CACHE_KEY_SECRET is set. Per process
+# means replicas (and a restarted pod) do not share entries; set the env
+# secret, the same on every replica, to share them.
+_process_key_secret: bytes | None = None
 
 
 # Bounds concurrent GLiNER inferences per pod so one big-document scan can
@@ -79,9 +122,84 @@ def _categories_key(
     return sorted(enabled_categories) if enabled_categories is not None else None
 
 
+def _cache_key_secret() -> bytes:
+    global _process_key_secret
+    from app.config import settings
+
+    configured = getattr(settings, "pii_cache_key_secret", "") or ""
+    if configured:
+        return configured.encode("utf-8")
+    if _process_key_secret is None:
+        _process_key_secret = secrets.token_bytes(32)
+    return _process_key_secret
+
+
+def reset_cache_key_secret() -> None:
+    """Drop the per-process secret (tests); the next key draws a new one."""
+    global _process_key_secret
+    _process_key_secret = None
+
+
+def _cache_ttl_seconds() -> int:
+    from app.config import settings
+
+    try:
+        ttl = int(getattr(settings, "pii_cache_ttl_seconds", 600))
+    except (TypeError, ValueError):
+        return 600
+    return max(0, ttl)
+
+
+def _to_cache_entry(result: dict) -> dict:
+    """The cacheable part of a result, built from the allow-lists above."""
+    entry: dict = {k: result[k] for k in _CACHED_ENVELOPE_FIELDS if k in result}
+    for list_key in _ENTITY_LISTS:
+        if list_key in result:
+            entry[list_key] = [
+                {k: ent[k] for k in _CACHED_ENTITY_FIELDS if k in ent}
+                for ent in result[list_key] or []
+            ]
+    return entry
+
+
+def _from_cache_entry(entry: dict, text: str) -> dict:
+    """Rebuild a result from a cached entry: each span's text from ``text``.
+
+    ``text`` is the request text, which the HMAC key binds exactly, so the
+    slice is the span the writer saw. A span outside it means the entry is not
+    what this request produced; refuse it (the caller treats it as a miss).
+    """
+    out = {k: entry[k] for k in _CACHED_ENVELOPE_FIELDS if k in entry}
+    for list_key in _ENTITY_LISTS:
+        if list_key not in entry:
+            continue
+        rebuilt = []
+        for cached in entry[list_key] or []:
+            ent = {k: cached[k] for k in _CACHED_ENTITY_FIELDS if k in cached}
+            start = int(ent["offset"])
+            end = start + int(ent["length"])
+            if start < 0 or end > len(text) or end < start:
+                raise ValueError("cached span outside the request text")
+            ent["text"] = text[start:end]
+            rebuilt.append(ent)
+        out[list_key] = rebuilt
+    return out
+
+
+def _cache_redis() -> Any:  # redis.asyncio.Redis; the model stack is untyped in CI
+    """The Redis client, or None: the cache is optional, a failure only costs a miss."""
+    try:
+        from app.dependencies import get_redis
+
+        return get_redis()
+    except Exception:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
+        return None
+
+
 def _cache_key(req: ScanRequest) -> str:
-    """sha256 over everything that decides the answer, namespaced by schema."""
+    """HMAC-SHA256 over everything that decides the answer, namespaced by schema."""
     import hashlib
+    import hmac
     import json
 
     key_payload = json.dumps(
@@ -109,7 +227,9 @@ def _cache_key(req: ScanRequest) -> str:
         ensure_ascii=False,
         separators=(",", ":"),
     )
-    digest = hashlib.sha256(key_payload.encode("utf-8")).hexdigest()
+    digest = hmac.new(
+        _cache_key_secret(), key_payload.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
     return f"guard:pii:v{_CACHE_SCHEMA_VERSION}:{digest}"
 
 
@@ -140,9 +260,10 @@ class _CacheAware(_PiiState):
     ) -> dict:
         """Cache-aware async wrapper around ``detect()``.
 
-        Identical inputs return identical outputs, so cache the JSON-
-        encoded response in Redis keyed by sha256 of the normalised
-        inputs. TTL is short (10 min) — chat replay / multi-turn
+        Identical inputs return identical outputs, so cache the response
+        in Redis under an HMAC of the normalised inputs — without any span
+        text (see the module docstring). TTL is GUARD_PII_CACHE_TTL_SECONDS
+        (default 10 min, 0 = no caching) — chat replay / multi-turn
         rehydration are the dominant cache-hit scenarios. The hot path
         cost on a hit is one Redis GET (~0.3 ms) vs ~300-500 ms for
         regex + ONNX inference.
@@ -209,13 +330,8 @@ class _CacheAware(_PiiState):
             custom,
         )
         cache_key: str | None = None
-        redis = None
-        try:
-            from app.dependencies import get_redis
-
-            redis = get_redis()
-        except Exception:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
-            redis = None
+        cache_ttl = _cache_ttl_seconds()
+        redis = _cache_redis() if cache_ttl > 0 else None
 
         if redis is not None:
             try:
@@ -223,7 +339,7 @@ class _CacheAware(_PiiState):
 
                 cached = await redis.get(cache_key)
                 if cached:
-                    hit = json.loads(cached)
+                    hit = _from_cache_entry(json.loads(cached), text)
                     # Disposition for the pii.scan line only — never written
                     # back to Redis, so cached payloads stay disposition-free.
                     hit.setdefault("scan_stats", {})["cache"] = "hit"
@@ -254,8 +370,12 @@ class _CacheAware(_PiiState):
             try:
                 await redis.set(
                     cache_key,
-                    json.dumps(result, ensure_ascii=False, separators=(",", ":")),
-                    ex=600,
+                    json.dumps(
+                        _to_cache_entry(result),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    ),
+                    ex=cache_ttl,
                 )
             except Exception as exc:  # noqa: BLE001 - the cache is optional; a failure only costs a miss
                 logger.debug("[PiiService] cache write failed: %s", exc)

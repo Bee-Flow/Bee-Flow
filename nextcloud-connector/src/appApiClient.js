@@ -47,9 +47,8 @@ function _isNetworkError(err) {
  */
 
 /**
- * The thunk of withWarmupRetry is usually a fetch, but may be any call that throws on failure
- * (webhookListeners.js passes one that returns a Map): only something with a numeric `status` is
- * a response.
+ * The thunk of withWarmupRetry is a fetch, but may be any call: only something with a numeric
+ * `status` is a response.
  * @param {unknown} value
  * @returns {value is ResponseLike}
  */

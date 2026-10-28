@@ -60,10 +60,28 @@ updates:
     # pwt-runner build jobs in build-push-ghcr.yml both run
     # scripts/check-playwright-lockstep.mjs and fail when the two disagree.
     ignore:
+      # @mistralai/mistralai declares @opentelemetry/resources ^2 as a peer, so the
+      # OpenTelemetry 3 line (core/resources/sdk-metrics 3, sdk-node 0.300, api 1.10)
+      # waits until the Mistral SDK admits it.
+      - dependency-name: "@opentelemetry/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@opentelemetry/sdk-node"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/exporter-*"
+        versions: [">=0.300.0"]
+      - dependency-name: "@opentelemetry/auto-instrumentations-node"
+        versions: [">=0.82.0"]
+      - dependency-name: "@opentelemetry/api"
+        versions: [">=1.10.0"]
       - dependency-name: playwright
       # The runtime is Node 22 (.nvmrc, engines, node:22 images); the types
       # follow the runtime major, not the newest Node (#33).
       - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # isolated-vm 7 needs Node >= 24 (engines) and ships no prebuild for
+      # Node 22's ABI (#150). 6.2.0 carries 7.0.1's ExternalCopy fix. Lift with
+      # the move to Node 24, together with a code-sandbox test run.
+      - dependency-name: isolated-vm
         update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
@@ -81,6 +99,10 @@ updates:
     # the PR that makes its condition true, never on its own. `ignore` also
     # silences security-update PRs for these names: act on an alert by hand.
     ignore:
+      # mermaid 12 adds about 280 kB to the bundle (bundle ratchet). Take it in a PR
+      # that lazy-loads the diagram renderer.
+      - dependency-name: mermaid
+        update-types: ["version-update:semver-major"]
       # 7.1 reports every React Compiler finding per function (react#35873-35884):
       # 2 errors and +508 warnings over the agent-hub baseline. Lift in
       # the PR that fixes those findings or re-baselines eslint-suppressions.json with a reason.
@@ -127,6 +149,10 @@ updates:
       root-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -230,6 +256,15 @@ updates:
       # <6.1.0, no TS 7 JS API before 7.1). Lift with agent-hub's entry.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # eslint and @eslint/js follow agent-hub's eslint major (version-drift
+      # ratchet); move them together with agent-hub.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -241,6 +276,10 @@ updates:
       connector-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   - package-ecosystem: npm
@@ -268,6 +307,10 @@ updates:
       satellites-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   # The shared browser pod. Its playwright moves by hand with the server's and
@@ -306,6 +349,11 @@ updates:
       # when a gliner release admits it; bump both together with a gate run.
       - dependency-name: transformers
         versions: [">=5.17.0"]
+      # The model stack (torch, transformers, gliclass, gliner2) moves together
+      # with the Dockerfile's +cpu torch pin and an eval gate run (#399).
+      - dependency-name: torch
+      - dependency-name: gliclass
+      - dependency-name: gliner2
       # transformers 5.x and tokenizers 0.23 require huggingface-hub<2.0 (#15).
       - dependency-name: huggingface-hub
         update-types: ["version-update:semver-major"]
@@ -323,6 +371,12 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # The model stack (torch, transformers, gliclass, gliner2) moves together
+      # with the Dockerfile's +cpu torch pin and an eval gate run (#399).
+      - dependency-name: torch
+      - dependency-name: gliclass
+      - dependency-name: gliner2
+      - dependency-name: transformers
       # transformers 5.17 and tokenizers 0.23 require huggingface-hub<2.0 (#13).
       - dependency-name: huggingface-hub
         update-types: ["version-update:semver-major"]

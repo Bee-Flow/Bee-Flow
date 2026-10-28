@@ -432,9 +432,12 @@ test('a duplicate action stays an error on the single-step tool; inside a batch,
     assert.ok(batch._warnings.some(w => new RegExp(`^steps\\[0\\] \\(\\$s2\\): gmail_search with these inputs was already built in this turn as ${sId} — not added twice\\.$`).test(w)), JSON.stringify(batch._warnings));
     // A step minted in an EARLIER turn (a fresh wrap over the same draft) is
     // not "this turn": the batch refuses it like the single-step tool does.
+    // Appended right after the search: nothing between the two changes
+    // anything. (At the tail it would follow the notification, which sends —
+    // a re-read after that is allowed, #176.)
     const nextTurn = { ...wrap(), def: dw.def };
     const stale = await applyToolCall('builder_add_steps', {
-        steps: [{ tempId: 's3', type: 'integration_action', spec: { tool: 'gmail_search', inputs: { query: lit('is:unread') } } }],
+        steps: [{ tempId: 's3', type: 'integration_action', spec: { tool: 'gmail_search', inputs: { query: lit('is:unread') }, afterStepId: sId } }],
     }, nextTurn);
     assert.ok(stale.error && stale.failedIndex === 0 && /identical inputs/.test(stale.error), `next turn: refused: ${stale.error}`);
     assert.strictEqual(dw.def.steps.length, 2);

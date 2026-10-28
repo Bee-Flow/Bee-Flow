@@ -86,8 +86,9 @@ export type KnowledgeBase = {
     organizationId?: string | null;
     is_published?: boolean;
     isPublished?: boolean;
-    shared_groups?: string[];
-    sharedGroups?: string[];
+    /** TEXT holding JSON on the server, so the detail route sends a string; read it through `sharedGroupsOf`. */
+    shared_groups?: string[] | string | null;
+    sharedGroups?: string[] | string | null;
     category_id?: string | null;
     categoryId?: string | null;
     lastContentAt?: string | null;

@@ -111,7 +111,12 @@ const restore = installResolveStub({
 after(() => restore());
 
 const { registerRunnerPorts } = require('./featurePorts');
-registerRunnerPorts({ outputSchemas: { synthesizeDryRunOutput: () => ({ sample: true }) } });
+registerRunnerPorts({ outputSchemas: {
+    synthesizeDryRunOutput: () => ({ sample: true }),
+    // The real one lives in automation/outputSchemas (its own tests); this stub
+    // shows what the step handed on.
+    emptyDryRunOutput: (tool, live) => ({ emptyShapeOf: tool, live }),
+} });
 const { execIntegrationAction } = require('./execAi');
 const { createToolMemo } = require('./toolMemo');
 const policy = require('./integrationCachePolicy');
@@ -521,4 +526,20 @@ test('dry run: a not-found on a path no simulated step wrote still throws', asyn
 test('live run: a failed dispatch still throws', async () => {
     dispatchResult = () => { throw new Error('boom'); };
     await assert.rejects(() => run(makeStep({ askOnce: undefined }), makeCtx()), /boom/);
+});
+
+// ── #195: a dry-run read that found nothing is a real answer, not a sample ──
+
+test('dry run: an empty live read hands on "no data" in the tool\'s shape, not the sample, and is not flagged as one', async () => {
+    dispatchResult = () => ({ items: [], total: 0 });
+    const out = await run(makeStep({ askOnce: undefined }), makeCtx(), 'dry_run');
+    assert.deepStrictEqual(out.output, { emptyShapeOf: 'gmail_search', live: { items: [], total: 0 } });
+    assert.strictEqual(out.dryRunSynthesised, undefined);
+    assert.strictEqual(out.dryRunFallback, undefined);
+});
+
+test('live: an empty read stays exactly what the tool answered', async () => {
+    dispatchResult = () => ({ items: [], total: 0 });
+    const out = await run(makeStep({ askOnce: undefined }), makeCtx(), 'live');
+    assert.deepStrictEqual(out.output, { items: [], total: 0 });
 });

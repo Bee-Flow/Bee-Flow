@@ -1,11 +1,12 @@
 /**
  * ZAP REST Client — dependency-free wrapper over the OWASP ZAP daemon API.
  *
- * The security-scan AGENT mode drives a ZAP daemon (launched by
- * scanRunner.startZapDaemon) through its JSON REST API rather than the
- * one-shot zap-baseline/zap-full-scan scripts the container runner uses. This
- * module is the thin, deterministic transport layer for that: it builds query
- * strings, appends the api key on /action/ endpoints only, talks JSON, and
+ * The security-scan AGENT mode drives a ZAP daemon (launched inside the
+ * toolbox container by scanRunner.startAgentToolbox) through its JSON REST API
+ * rather than the one-shot zap-baseline/zap-full-scan scripts the container
+ * runner uses. This module is the thin, deterministic transport layer for
+ * that: it builds query strings, appends the api key on /action/ endpoints
+ * only, talks JSON, and
  * exposes the spider / passive-scan / active-scan / alerts surface the driver
  * needs — plus await* helpers that poll each phase to completion while
  * respecting a cancellation flag.

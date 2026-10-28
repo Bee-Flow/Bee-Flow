@@ -1,6 +1,6 @@
 # Bee Flow Docs — CMS auth relay
 
-A small Cloudflare Worker that handles the GitHub OAuth handshake for the docs CMS at `/cms/`. ~140 lines, no dependencies, free tier.
+A small Cloudflare Worker that handles the GitHub OAuth handshake for the docs CMS at `/cms/`. No runtime dependencies, free tier.
 
 It does exactly one thing: trade an OAuth code for a token and post it back to the editor's browser. Tokens are not stored. No content data ever passes through it.
 
@@ -91,6 +91,11 @@ The default `*.workers.dev` URL is fine. If you'd rather use `cms-auth.beeflow.n
 
 ## Notes
 
-- The worker rejects `site_id`s outside `bee-flow.github.io`, `docs.beeflow.ai`, `beeflow.nl`, and `localhost` — so a stranger can't trick it into completing OAuth flows for their site. Edit `ALLOWED_HOSTS` in `src/worker.js` if you add another domain.
+- The worker refuses a missing `site_id` and any `site_id` whose host is not exactly `bee-flow.github.io`, `docs.beeflow.ai`, `beeflow.nl` or `localhost` (no subdomains). Edit `ALLOWED_HOSTS` in `src/worker.js` if you add another domain.
+- `/auth` binds a random `state` and the site host in a signed `HttpOnly; Secure; SameSite=Lax` cookie (`__Host-cms_oauth_state`). `/callback` refuses a missing, tampered, expired or mismatching state before it exchanges the code, and burns the cookie on every answer.
+- The token goes to the opener only after the opener answers the `authorizing:github` handshake, and only to that opener's exact origin when it parses to the bound site (`https://<host>`; `http(s)://localhost[:port]` for local development). There is no unconditional fallback send.
+- Scope is `public_repo`: the docs repo (`Bee-Flow/docs`) is public, and the CMS reads the editor's profile from `GET /user`, which needs no scope. If the repo ever becomes private, this must become `repo`.
+- Optional settings: `STATE_TTL_SECONDS` (var, default 600; 0 = no time limit, the cookie still dies with the browser session and on first use) and `STATE_SECRET` (secret, HMAC key for the state cookie; defaults to `GITHUB_CLIENT_SECRET`).
+- Tests: `npm test` (node:test, no install needed).
 - Free tier covers 100 000 requests/day. A login is ~2 requests; you'll never hit the limit on docs traffic.
 - Updates to the worker code are deployed with `npx wrangler deploy`.

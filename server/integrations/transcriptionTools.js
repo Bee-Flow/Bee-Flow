@@ -525,7 +525,7 @@ async function handleWhisperXTranscription(args, context) {
             resp = await fetch(primaryEndpoint, {
                 method: 'POST',
                 headers,
-                body: form,
+                body: form.getBuffer(), // a buffer: global fetch cannot send a form-data stream, and the 404 fallback resends it
                 signal: controller.signal,
             });
             if (!resp.ok && resp.status === 404) {
@@ -533,7 +533,7 @@ async function handleWhisperXTranscription(args, context) {
                 resp = await fetch(fallbackEndpoint, {
                     method: 'POST',
                     headers,
-                    body: form,
+                    body: form.getBuffer(), // a buffer: global fetch cannot send a form-data stream, and the 404 fallback resends it
                     signal: controller.signal,
                 });
             }

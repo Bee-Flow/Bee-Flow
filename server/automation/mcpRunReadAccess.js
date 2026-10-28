@@ -32,6 +32,7 @@ const text = (v) => (typeof v === 'string' ? v.trim() : '');
  * @param {{
  *   store?: any,
  *   getUser?: (id: string) => Promise<any>,
+ *   resolveOrgs?: (user: { organizationId?: string|null, groups?: string|string[]|null }) => Promise<{ primary: string|null, all: string[] }>,
  *   getConfig?: (key: string) => Promise<any>,
  *   setConfig?: (key: string, value: any) => Promise<any>,
  *   audit?: (action: string, targetType: string, targetId: string, actorId: string|null, before: any, after: any, orgId: string|null) => Promise<any>,
@@ -40,6 +41,7 @@ const text = (v) => (typeof v === 'string' ? v.trim() : '');
 function makeAccess(overrides = {}) {
     const store = () => overrides.store || require('../stores/automationStore');
     const getUser = overrides.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const resolveOrgs = overrides.resolveOrgs || ((user) => require('../auth/mcpAccess/orgResolve').resolveMcpOrgs(user));
     const getConfig = overrides.getConfig || ((key) => require('../stores/configStore').getConfigFresh(key));
     const setConfig = overrides.setConfig || ((key, value) => require('../stores/configStore').setConfig(key, value));
     const audit = overrides.audit
@@ -55,10 +57,14 @@ function makeAccess(overrides = {}) {
         const a = automationId ? await store().getAutomation(automationId).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedAutomation', e, null)) : null;
         if (!a || a.userId !== userId) throw notFound(what);
         const user = await getUser(userId).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedAutomation#2', e, null));
-        const userOrg = user?.organizationId || null;
+        if (!user) throw notFound(what);
+        // Home org first, then the orgs of the user's groups: a group-only member has no home org.
+        // An unreadable group list denies (the resolver's contract), never "no org, no check".
+        const orgs = await resolveOrgs(user).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedAutomation#3', e, null));
+        if (!orgs) throw notFound(what);
         // An automation of another organisation is not reachable, whoever the owner column names.
-        if (!user || (a.organizationId && a.organizationId !== userOrg)) throw notFound(what);
-        return { automation: a, orgId: a.organizationId || userOrg };
+        if (a.organizationId && !orgs.all.includes(a.organizationId)) throw notFound(what);
+        return { automation: a, orgId: a.organizationId || orgs.primary };
     }
 
     /** The run, its automation and the legs of its journey, or 404. */

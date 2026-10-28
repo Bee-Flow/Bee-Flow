@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/auth`
 
-170 routes, 75 with a request schema. Back to the [endpoint reference](../reference.md).
+171 routes, 75 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `admin-login`
 
@@ -370,6 +370,12 @@ No request schema.
 No request schema.
 
 ### `POST /auth/connector/diagnose`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
+
+### `POST /auth/connector/rotate-key`
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 

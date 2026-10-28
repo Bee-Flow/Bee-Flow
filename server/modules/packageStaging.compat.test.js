@@ -37,3 +37,11 @@ test('an unstamped build skips the semver bounds instead of grading the frozen 1
     delete process.env.APP_VERSION;
     assert.doesNotThrow(() => _compatCheck({ min_app_version: '999.0.0' }));
 });
+
+test('unstamped build: a module that needs a newer product is NOT refused (bounds skipped on purpose, one warning)', (t) => {
+    delete process.env.APP_VERSION;
+    require('./appVersion')._resetWarned();
+    const warn = t.mock.method(require('../telemetry/log'), 'warn', () => {});
+    assert.doesNotThrow(() => _compatCheck({ min_app_version: '999.0.0', max_app_version: '0.0.1' }));
+    assert.equal(warn.mock.callCount(), 1);
+});

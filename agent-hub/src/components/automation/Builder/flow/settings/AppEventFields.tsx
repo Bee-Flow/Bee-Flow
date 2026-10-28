@@ -138,6 +138,17 @@ export function AppEventFields({ draft, set, setNested, catalog = null }: AppEve
             )}
 
             {FilterForm && <FilterForm filter={filter} setFilter={setF} />}
+            {/* Whose events start it (#191). Off by default: a colleague's event
+                only arrives after the server checked, as this automation's owner,
+                that they can see the room / board / table / form / file. */}
+            {selectedEvent?.colleagues === true && (
+                <FormRow label={t('nc_trigger_scope.label', 'Colleagues')} hint={t('nc_trigger_scope.hint', 'Off: only what you do yourself starts this automation. On: a colleague\'s message, card, row, form submission or file change starts it too, but only when it is about a room, board, table, form or file you can see in Nextcloud yourself.')}>
+                    <label className="inline-flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={filter.includeColleagues === true} onChange={(e) => setF('includeColleagues', e.target.checked || undefined)} />
+                        {t('nc_trigger_scope.include_colleagues', 'Also react to events of colleagues')}
+                    </label>
+                </FormRow>
+            )}
             {/* Outlook "New email": which inbox it watches. Kept out of FILTER_FORM_BY_KEY,
                 whose map the phone's flow editor ports one to one (mobile has no picker yet). */}
             {provider === 'msgraph' && event === 'mail.new' && <OutlookMailNewFilterFields filter={filter} setFilter={setF} />}

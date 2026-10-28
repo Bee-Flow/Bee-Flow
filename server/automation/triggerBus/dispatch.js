@@ -5,7 +5,8 @@
 
 const automationStore = require('../../stores/automationStore');
 const { applyDslFilter } = require('../triggers/dslFilters');
-const { pickMatcher } = require('./filters');
+const { pickMatcher, tagFilterNeedsNames } = require('./filters');
+const { normaliseNextcloudPayload } = require('./ncPayload.mts');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -75,8 +76,22 @@ function makeOrgLookup() {
 // POST /webhook/:slug already uses — so a slow/hanging automation never
 // blocks the caller (an ingest HTTP handler, or the global polling tick
 // working through every other tenant's due subscriptions).
+/**
+ * The filter a matcher sees. `includeColleagues` is a delivery switch read by
+ * dispatchEvent, not a payload condition: a matcher that compares unknown
+ * keys (the shallow matchFilter) would otherwise never match.
+ * @param {string} provider
+ * @param {Record<string, unknown> | null | undefined} filter
+ * @returns {Record<string, unknown> | null | undefined}
+ */
+function matchableFilter(provider, filter) {
+    if (provider !== 'nextcloud' || !filter || typeof filter !== 'object' || !Object.hasOwn(filter, 'includeColleagues')) return filter;
+    const { includeColleagues: _switch, ...rest } = filter;
+    return rest;
+}
+
 function runMatchedSubscription(sub, matcher, provider, event, payload) {
-    const ok = matcher(payload, sub.filter);
+    const ok = matcher(payload, matchableFilter(provider, sub.filter));
     if (!ok) {
         // Don't log the raw subject/sender — that's user PII (email subjects,
         // ticket bodies, actor names) landing in plaintext server logs on every
@@ -126,11 +141,31 @@ function runMatchedSubscription(sub, matcher, provider, event, payload) {
 function dispatchToSubscription(sub, { provider, event, payload = {} }) {
     const baseMatcher = pickMatcher(provider, event);
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
-    const result = runMatchedSubscription(sub, matcher, provider, event, payload);
+    const canonical = provider === 'nextcloud' ? normaliseNextcloudPayload(event, payload) : payload;
+    const result = runMatchedSubscription(sub, matcher, provider, event, canonical);
     return result ? [result] : [];
 }
 
-async function dispatchEvent({ provider, event, payload = {}, userId = null, orgId = null }) {
+/**
+ * Fan an inbound event out to the matching subscriptions.
+ *
+ * `userId` names the exact SUBSCRIBER (user-scoped providers: Gmail, MS Graph,
+ * approvals ...). `actorUserId` names the Bee Flow user who CAUSED a Nextcloud
+ * event (resolved from the connector's ncUid) and is never a subscriber
+ * filter: a Nextcloud event fans out across `orgId`, and per subscription
+ *   - the actor's own automations receive it (isOwn / isOwnAction true);
+ *   - a colleague's automation receives it only when its trigger opted in
+ *     (`filter.includeColleagues: true`) AND `ncVisibility` confirms, as that
+ *     colleague, that they can see the resource in Nextcloud;
+ *   - an event whose actor is unknown (guest, bot, federated user, public
+ *     link) needs no opt-in (such events fan out to the org, as they always
+ *     have) but passes the same visibility check, so a non-member never
+ *     receives it.
+ * @param {{ provider: string, event: string, payload?: Record<string, any>, userId?: string | null, orgId?: string | null,
+ *   actorUserId?: string | null, ncVisibility?: import('./ncVisibility.mts').NcVisibility | null }} args
+ */
+async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId = null, orgId = null, actorUserId = null, ncVisibility = null }) {
+    const payload = provider === 'nextcloud' ? normaliseNextcloudPayload(event, rawPayload) : rawPayload;
     // Security: never fan a user-scoped provider's event out to all tenants when
     // the subscriber is unknown. Drop it instead (fail closed).
     if (!userId && isUserScoped(provider)) {
@@ -159,7 +194,7 @@ async function dispatchEvent({ provider, event, payload = {}, userId = null, org
     // fan-out, so it is fire-and-forget with its own error handling.
     if (provider === 'nextcloud' && event === 'file.new') {
         try {
-            require('../../core/meetingNotes/talkAutoIngest').maybeIngest({ payload, userId, orgId })
+            require('../../core/meetingNotes/talkAutoIngest').maybeIngest({ payload, userId: userId || actorUserId, orgId })
                 .catch(e => log.error('[TalkAutoIngest] tap error:', e.message));
         } catch (e) {
             log.error('[TalkAutoIngest] tap load error:', e.message);
@@ -187,12 +222,16 @@ async function dispatchEvent({ provider, event, payload = {}, userId = null, org
     // the filter has no DSL keys, so existing flows are unchanged.
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
     // userId identifies the exact subscriber — filter to just that user.
-    // Otherwise, for org-scoped providers (Nextcloud bot/federated actors)
-    // the event only carries orgId, so scope fan-out to subscribers who
-    // belong to that org.
+    // Otherwise, for org-scoped providers (Nextcloud) scope fan-out to
+    // subscribers who belong to the event's org.
     const orgScoped = !userId && isOrgScoped(provider);
     const lookupOrg = orgScoped ? makeOrgLookup() : null;
     const pollerOwned = provider === 'nextcloud' && NC_POLLER_OWNED_EVENTS.has(event);
+    // Nextcloud org fan-out: the actor is not a subscriber filter.
+    const ncFanOut = provider === 'nextcloud' && !userId;
+    /** @type {import('./ncVisibility.mts').VisibilityMemo} */
+    const memo = new Map();
+    const eligible = [];
     for (const sub of subs) {
         if (pollerOwned && sub.mode === 'polling' && sub.lastCursor) continue;
         if (userId && sub.userId !== userId) continue;
@@ -200,10 +239,58 @@ async function dispatchEvent({ provider, event, payload = {}, userId = null, org
             const subOrg = await lookupOrg(sub.userId);
             if (subOrg !== orgId) continue;
         }
-        const result = runMatchedSubscription(sub, matcher, provider, event, payload);
-        if (result) runs.push(result);
+        eligible.push(sub);
     }
+    // The per-subscriber Nextcloud checks run side by side: the connector
+    // holds its webhook open until this returns.
+    const payloads = await Promise.all(eligible.map(async (sub) => {
+        let subPayload = payload;
+        if (ncFanOut) {
+            const own = !!actorUserId && sub.userId === actorUserId;
+            if (!own) {
+                const overrides = await ncDeliveryFor({ sub, event, payload, actorKnown: !!actorUserId, ncVisibility, memo });
+                if (!overrides) return null;
+                subPayload = { ...payload, ...overrides };
+            }
+            // Stamped per subscription: the excludeOwnUploads / excludeOwnMessages
+            // filters read these, and "own" means THIS subscriber caused it.
+            subPayload = { ...subPayload, isOwn: own, isOwnAction: own };
+        }
+        if (provider === 'nextcloud' && (event === 'file.tagged' || event === 'file.untagged')
+            && ncVisibility && tagFilterNeedsNames(sub.filter) && !Array.isArray(subPayload.tagNames)) {
+            subPayload = { ...subPayload, tagNames: await ncVisibility.tagNames(sub.userId, subPayload.tagIds ?? [subPayload.tagId], memo) };
+        }
+        return subPayload;
+    }));
+    eligible.forEach((sub, i) => {
+        if (!payloads[i]) return;
+        const result = runMatchedSubscription(sub, matcher, provider, event, payloads[i]);
+        if (result) runs.push(result);
+    });
     return runs;
+}
+
+/**
+ * May a Nextcloud event reach a subscription whose owner did NOT cause it?
+ * Returns the payload overrides for that subscriber (possibly empty), or null
+ * for "do not deliver". See dispatchEvent and ncVisibility.mts.
+ * @param {{ sub: { id?: string, userId: string, filter?: Record<string, any> | null }, event: string, payload: Record<string, any>,
+ *   actorKnown: boolean, ncVisibility: import('./ncVisibility.mts').NcVisibility | null,
+ *   memo: import('./ncVisibility.mts').VisibilityMemo }} args
+ * @returns {Promise<Record<string, any> | null>}
+ */
+async function ncDeliveryFor({ sub, event, payload, actorKnown, ncVisibility, memo }) {
+    // A colleague's event is opt-in per trigger; an unknown actor's is not
+    // (those always fanned out), but both are checked.
+    const filter = sub.filter || {};
+    if (actorKnown && filter.includeColleagues !== true) return null;
+    if (!ncVisibility) return null;
+    const decision = await ncVisibility.check(sub.userId, event, payload, memo);
+    if (!decision?.visible) {
+        log.info(`[TriggerBus] sub ${sub.id} skipped nextcloud.${event}: not visible to its owner in Nextcloud`);
+        return null;
+    }
+    return decision.overrides || {};
 }
 
 /**

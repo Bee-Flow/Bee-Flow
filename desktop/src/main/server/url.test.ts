@@ -1,7 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { hostKind, isSameServer, normaliseServerUrl, originOf, serverUrl, withHttp } from './url.ts';
+import { hostKind, isSameServer, normaliseServerUrl, originOf, serverUrl, withHttp, workspaceUrl } from './url.ts';
+
+describe('workspaceUrl', () => {
+    it('opens the workspace at /app, not the root where a public website may live', () => {
+        assert.equal(workspaceUrl('https://bee.example.com'), 'https://bee.example.com/app');
+        assert.equal(workspaceUrl('http://localhost:5176/'), 'http://localhost:5176/app');
+        assert.equal(workspaceUrl('https://cloud.example.com/beeflow'), 'https://cloud.example.com/beeflow/app');
+    });
+
+    it('never doubles /app for an address that was typed with it', () => {
+        const typed = normaliseServerUrl('https://bee.example.com/app/chat');
+        assert.equal(typed.ok && workspaceUrl(typed.url), 'https://bee.example.com/app');
+    });
+});
 
 describe('normaliseServerUrl', () => {
     it('assumes https when no scheme was typed', () => {

@@ -26,6 +26,23 @@ const assert = require('node:assert');
 const Module = require('module');
 const { SURFACES } = require('../../core/kb/usageContexts');
 
+// validateSharedGroupsForOrg is the REAL one, over a fake group directory (the
+// permissions barrel normally wires its collaborators in).
+const { wireDeps } = require('../../auth/permissionsDeps');
+const unused = () => ({});
+wireDeps({
+    authConfigStore: unused, microsoftSession: unused, orgRolePolicy: unused, orgScope: unused, userStoreNow: unused,
+    userStore: () => ({
+        getAllGroups: async () => [
+            { id: 'g1', organizationId: 'orgA' },
+            { id: 'g-sales', organizationId: 'orgA' },
+            { id: 'g-support', organizationId: 'orgA' },
+            { id: 'g-other', organizationId: 'orgB' },
+        ],
+    }),
+});
+const { validateSharedGroupsForOrg: realValidate } = require('../../auth/permissionsStudioScope');
+
 // Every store call that writes lands in `touched`. A refused request must leave it empty.
 const touched = [];
 const pass = (req, res, next) => next();
@@ -44,9 +61,9 @@ const MOCKS = {
     '../../auth': {
         requireAuth: pass,
         requirePermission: () => pass,
-        validateSharedGroupsForOrg: async (orgId, groups) => {
+        validateSharedGroupsForOrg: (orgId, groups) => {
             touched.push({ what: 'validateSharedGroupsForOrg', args: [orgId, groups] });
-            return groups === undefined || groups === null ? undefined : groups;
+            return realValidate(orgId, groups);
         },
         assertUserCanUseOrg: async (req, orgId) => orgId,
     },
@@ -228,4 +245,30 @@ test('detail: GET takes no query options', async () => {
     assert.strictEqual(res.statusCode, 400);
     const ok = await dispatch({ method: 'GET', url: '/kb1' });
     assert.strictEqual(ok.statusCode, 200);
+});
+
+// ── Sharing with real group ids (issue: "Invalid groups for this organisation: [, ]") ──
+// The Studio once sent the characters of the TEXT column `shared_groups` as ids
+// (client fixed in KnowledgeStudio/sharedGroups.ts); this pins the server half.
+
+const setPublishedCalls = () => touched.filter((t) => t.what === 'setPublished');
+
+test('publish: real group ids of the base\'s organisation are accepted and stored as sent', async () => {
+    const res = await dispatch({ method: 'PATCH', url: '/kb1/publish', body: { isPublished: true, sharedGroups: ['g-sales', 'g-support'] } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(setPublishedCalls()[0].args, ['kb1', true, ['g-sales', 'g-support']]);
+});
+
+test('publish: a group of another organisation is refused by id and nothing is stored', async () => {
+    const res = await dispatch({ method: 'PATCH', url: '/kb1/publish', body: { isPublished: true, sharedGroups: ['g-sales', 'g-other'] } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Invalid groups for this organisation: g-other$/);
+    assert.deepStrictEqual(setPublishedCalls(), []);
+});
+
+test('publish: the characters of a JSON string sent as ids are the refusal the user saw', async () => {
+    const res = await dispatch({ method: 'PATCH', url: '/kb1/publish', body: { isPublished: true, sharedGroups: ['[', ']', 'g-sales'] } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Invalid groups for this organisation: \[, \]$/);
+    assert.deepStrictEqual(setPublishedCalls(), []);
 });
