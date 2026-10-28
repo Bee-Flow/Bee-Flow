@@ -81,8 +81,8 @@ function makeIgnore(ignorePaths) {
 }
 
 /**
- * @param {any} a
- * @param {any} b
+ * @param {unknown} a
+ * @param {unknown} b
  * @param {{ ignorePaths?: string[], maxChanges?: number, differs?: { differFor: (v: any) => any }, ctx?: object }} [opts]
  * @returns {Promise<{ changes: import('./outputDiffers').Change[], truncated: boolean }>}
  */

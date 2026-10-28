@@ -275,7 +275,7 @@ module.exports = { compareRuns, isSimulated };
 /** @typedef {{ row: StepRow, hidden: boolean }} StepEntry */
 
 /**
- * @typedef {Object} Side
+ * @typedef Side
  * @property {RunRow} run
  * @property {string[]} runIds
  * @property {Map<string, StepEntry>} byKey
@@ -285,20 +285,20 @@ module.exports = { compareRuns, isSimulated };
  */
 
 /**
- * @typedef {Object} CompareEnv
- * @property {any} store
- * @property {any} differs
+ * @typedef CompareEnv
+ * @property {typeof import('../../stores/automationStore')} store
+ * @property {typeof import('./outputDiffers')} differs
  * @property {Side} sideA
  * @property {Side} sideB
  * @property {ReturnType<typeof caps>} caps
  * @property {string[]} ignorePaths
- * @property {object} ctx
+ * @property {Record<string, unknown>} ctx
  * @property {(file: any) => Promise<any>} loadA
  * @property {(file: any) => Promise<any>} loadB
  */
 
 /**
- * @typedef {Object} StepCompare
+ * @typedef StepCompare
  * @property {string} key
  * @property {string} stepId
  * @property {string | null} stepType

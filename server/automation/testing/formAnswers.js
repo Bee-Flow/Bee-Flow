@@ -40,7 +40,7 @@ const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * The trigger node a run entered through: the primary, or the `triggers[]` entry named by rootStepId.
- * @param {any} definition
+ * @param {import('../automationGraph').AutomationDefinition} definition
  * @param {string | null | undefined} rootStepId
  */
 function enteredTriggerOf(definition, rootStepId) {
@@ -54,7 +54,7 @@ function enteredTriggerOf(definition, rootStepId) {
 /**
  * Split one answered form into what is kept and what is skipped.
  * @param {object|null|undefined} form  the authored declaration (`form` of a trigger or form_page)
- * @param {any} output                  the answers as the run recorded them
+ * @param {unknown} output              the answers as the run recorded them
  * @param {string|null} stepId
  */
 function keepDeclared(form, output, stepId) {
