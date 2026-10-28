@@ -284,8 +284,6 @@ const UNCONVERTED = new Map<string, number>([
     // 40 -> 38: the task sheet's actions and toasts went through t() when its
     // Delete learned to ask first.
     ['src/features/tasks', 38],
-    // 16 -> 13: the template chat's words, when it learned to avoid the keyboard.
-    ['src/features/templates', 13],
     ['src/features/voice', 8],
 ]);
 
