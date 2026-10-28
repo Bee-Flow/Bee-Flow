@@ -195,6 +195,20 @@ function Get-GitSha {
     return "local"
 }
 
+# Product version stamped as APP_VERSION: scripts/app-version.sh (bash, as the
+# staging script); empty when bash is missing or no release tag is known.
+function Get-AppVersion {
+    $bash = Get-Command bash -ErrorAction SilentlyContinue
+    if (-not $bash) { return "" }
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $v = & $bash.Source "$RepoFwd/scripts/app-version.sh" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $v) { return ($v | Select-Object -First 1).ToString().Trim() }
+    } catch { } finally { $ErrorActionPreference = $old }
+    return ""
+}
+
 # The server image takes the App Studio runtime bundle and the SBOM from
 # gitignored folders of its build context; CI stages them
 # (scripts/stage-server-context.sh, shared with build-push-ghcr.yml and
@@ -325,6 +339,8 @@ function Build-One {
             # stamped with the very sha baked in as APP_BUILD_SHA.
             $buildSha = Get-GitSha
             $extra += @("--build-arg", "APP_BUILD_SHA=$buildSha")
+            # Product version for the module compat gates (scripts/app-version.sh, as in CI).
+            $extra += @("--build-arg", "APP_VERSION=$(Get-AppVersion)")
             Initialize-ServerContext $Env $buildSha
         }
         "agent-hub" {

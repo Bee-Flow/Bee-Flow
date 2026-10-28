@@ -311,6 +311,15 @@ function normalizeRecipients(value, field = 'to') {
     return items;
 }
 
+/**
+ * Cc text of a parsed message. mailparser returns one address object, or an
+ * array of them when the message has several Cc headers.
+ * @param {{ text?: string } | { text?: string }[] | undefined} parsedCc
+ */
+function ccText(parsedCc) {
+    return [parsedCc].flat().filter(Boolean).map((a) => a.text).filter(Boolean).join(', ');
+}
+
 /** Filter the tool list down to what the current configuration allows. */
 function allowedTools(tools, config) {
     if (!config || !config.readOnly) return tools;
@@ -318,6 +327,7 @@ function allowedTools(tools, config) {
 }
 
 module.exports = {
+    ccText,
     DEFAULT_IMAP_HOST,
     DEFAULT_IMAP_PORT,
     DEFAULT_SMTP_HOST,

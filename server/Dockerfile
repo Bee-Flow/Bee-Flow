@@ -29,6 +29,7 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
     NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    ONNXRUNTIME_NODE_INSTALL=skip \
     npm ci --omit=dev --no-audit --no-fund
 
 # ── dev ──────────────────────────────────────────────────────────────────────
@@ -218,6 +219,12 @@ ENV PORT=3001
 # server falls back to 'dev' (core/buildInfo.js).
 ARG APP_BUILD_SHA=""
 ENV APP_BUILD_SHA=$APP_BUILD_SHA
+
+# The product version of the release (scripts/app-version.sh), read by
+# server/modules/appVersion.js for the modules' min/max_app_version. Empty =
+# unknown: the server warns once and skips those bounds.
+ARG APP_VERSION=""
+ENV APP_VERSION=$APP_VERSION
 
 EXPOSE 3001
 
