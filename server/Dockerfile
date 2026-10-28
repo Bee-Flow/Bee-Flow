@@ -9,7 +9,7 @@
 # or against BROWSER_WS_ENDPOINT, so `playwright` stays a thin client.
 
 # ── deps ─────────────────────────────────────────────────────────────────────
-FROM node:22.23.4-slim@sha256:5991875dfb80938dd8a6ba3fe3e96fd04929e70792762b3319d8caadbbe229bc AS deps
+FROM node:22.23.4-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da AS deps
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ CMD ["node_modules/.bin/nodemon", "--ignore", "data/", "--ignore", "components/"
 # metadata marker with its database_type. A failed download FAILS THE BUILD,
 # because an image without it records every call as "unknown location";
 # GEO_DB_OPTIONAL=1 builds without it for a hotfix when download.db-ip.com is down.
-FROM node:22.23.4-slim@sha256:5991875dfb80938dd8a6ba3fe3e96fd04929e70792762b3319d8caadbbe229bc AS geo
+FROM node:22.23.4-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da AS geo
 
 ARG GEO_DB_MONTH=""
 ARG GEO_DB_OPTIONAL=0
@@ -104,7 +104,7 @@ RUN set -eu; \
 
 # Buildx 0.38.0 with the corrected archive extractor and golang.org/x/net 0.60.0,
 # built with Go 1.27.2 (CVE-2026-78667/78669/97031); API/CLI stays unchanged.
-FROM golang:1.27.3-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS buildx-build
+FROM golang:1.27.3-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS buildx-build
 RUN apk add --no-cache git
 WORKDIR /src
 RUN git init -q . \
@@ -117,7 +117,7 @@ RUN git init -q . \
     && CGO_ENABLED=0 go build -mod=mod -trimpath -ldflags='-s -w -X github.com/docker/buildx/version.Version=v0.38.0 -X github.com/docker/buildx/version.Revision=0dbe87f36ed472fe36b6796c3f70b4210a731fc5' -o /out/docker-buildx ./cmd/buildx
 
 # ── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22.23.4-trixie-slim@sha256:817bd9409161864cc85fcda5febd87a26f2d47c9fe5af355d327aeddfa11602c AS runtime
+FROM node:22.23.4-trixie-slim@sha256:2117f713a417f3aff682ac8f5bc2ebbdf1beed51f36e67ab1e0fd3866b6d2d8f AS runtime
 
 # The gid that owns /var/run/docker.sock on the host. The server runs as `node`
 # and still shells out to `docker build` / `docker run` (services/pwtRunner.js,
