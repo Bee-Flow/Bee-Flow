@@ -33,7 +33,10 @@ async function getRunFacetsScoped(scope, filters = {}) {
         where.params,
     );
     const facets = { status: {}, triggerKind: {}, automationId: {}, errorClass: {} };
-    const bump = (bucket, key) => { if (key == null) return; facets[bucket][key] = (facets[bucket][key] || 0) + 1; };
+    /**
+     * @param {string} bucket
+     */
+    const bump = (bucket, /** @type {string | number | null} */ key) => { if (key == null) return; facets[bucket][key] = (facets[bucket][key] || 0) + 1; };
     const byAutomation = new Map();
     for (const r of rows) {
         bump('status', r.status);

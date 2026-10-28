@@ -32,6 +32,9 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     // Talk room `token`) from the key-name redaction — they're not credentials
     // and downstream steps need them. Secret shapes/values are still masked.
     const allowKeys = safeOutputKeysForTool(toolName);
+    /**
+     * @param {string} v
+     */
     const redact = (v) => redactForPersistence(v, { secretValues, allowKeys, publicValues }).value;
     // NUL bytes can't live in jsonb/text columns — Postgres rejects them with
     // "unsupported Unicode escape sequence" and aborts the whole run record.

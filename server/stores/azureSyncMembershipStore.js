@@ -3,6 +3,9 @@
 const { parseGroupIds, isMemberOfOrg } = require('../auth/orgMembership');
 
 function createAzureSyncMembershipStore(db) {
+    /**
+     * @param {boolean} add
+     */
     async function change(userId, group, add, azureUserId) {
         return db.withTransaction(async client => {
             const { rows } = await client.query('SELECT groups,"organizationId","azureTenantId","azureUserId" FROM users WHERE id=$1 FOR UPDATE', [userId]);
@@ -36,6 +39,9 @@ function createAzureSyncMembershipStore(db) {
 }
 let store;
 const current = () => store ||= createAzureSyncMembershipStore(require('../db'));
+/**
+ * @param {string} method
+ */
 async function updateMembership(method, userId, group, azureUserId) {
     const changed = await current()[method](userId, group, azureUserId);
     if (changed) await require('../auth/permissions').invalidatePermissionCache(userId);
