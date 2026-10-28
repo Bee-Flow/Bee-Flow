@@ -169,13 +169,18 @@ jobs:
         run: |
           set -euo pipefail
           # The same digest under the same tags, plus sha-<commit> so deploy-prd.yml
-          # finds the exact release build there the way it does on GHCR. crane
-          # copies by digest, so the mirror is byte-identical and a rerun is a no-op.
+          # finds the exact release build there the way it does on GHCR. Copied
+          # by digest, so the mirror is byte-identical and a rerun is a no-op.
+          # skopeo, not crane: crane uploads a large layer in chunks and the
+          # Scaleway registry refuses the second chunk (RANGE_INVALID, seen on
+          # the first fill); skopeo sends each layer in one request. --all keeps
+          # every platform of a multi-arch manifest.
+          skopeo --version
           echo "### Mirror ${MIRROR_PREFIX}" >> "$GITHUB_STEP_SUMMARY"
           while read -r svc commit digest; do
-            src="${IMAGE_PREFIX}/${svc}@${digest}"
+            src="docker://${IMAGE_PREFIX}/${svc}@${digest}"
             for t in "$TAG" prod latest "sha-${SHA}"; do
-              crane copy "$src" "${MIRROR_PREFIX}/${svc}:${t}"
+              skopeo copy --all --retry-times 3 --quiet "$src" "docker://${MIRROR_PREFIX}/${svc}:${t}"
             done
             echo "- \`${MIRROR_PREFIX}/${svc}\` @ \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/plan.txt"
