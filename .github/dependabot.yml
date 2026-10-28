@@ -242,6 +242,12 @@ updates:
       # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # eslint and @eslint/js follow agent-hub's eslint major (version-drift
+      # ratchet); move them together with agent-hub.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -326,6 +332,11 @@ updates:
       # when a gliner release admits it; bump both together with a gate run.
       - dependency-name: transformers
         versions: [">=5.17.0"]
+      # The model stack (torch, transformers, gliclass, gliner2) moves together
+      # with the Dockerfile's +cpu torch pin and an eval gate run (#399).
+      - dependency-name: torch
+      - dependency-name: gliclass
+      - dependency-name: gliner2
       # transformers 5.x and tokenizers 0.23 require huggingface-hub<2.0 (#15).
       - dependency-name: huggingface-hub
         update-types: ["version-update:semver-major"]
@@ -343,6 +354,12 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # The model stack (torch, transformers, gliclass, gliner2) moves together
+      # with the Dockerfile's +cpu torch pin and an eval gate run (#399).
+      - dependency-name: torch
+      - dependency-name: gliclass
+      - dependency-name: gliner2
+      - dependency-name: transformers
       # transformers 5.17 and tokenizers 0.23 require huggingface-hub<2.0 (#13).
       - dependency-name: huggingface-hub
         update-types: ["version-update:semver-major"]
