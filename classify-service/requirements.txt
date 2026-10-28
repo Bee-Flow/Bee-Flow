@@ -1,26 +1,26 @@
 # Image dependencies. The Dockerfile installs torch 2.14.0+cpu from
-# download.pytorch.org in the layer above; the torch==2.14.0 line below matches
+# download.pytorch.org in the layer above; the torch==2.14.1+cpu line below matches
 # that build, so pip finds it (and gliclass's torch>=2) already satisfied.
 #
 # Shared packages carry guard-service's pins, so the two CPU sidecars move
 # together.
-fastapi==0.143.0
+fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
-pydantic-settings==2.15.0
+pydantic-settings==2.16.1
 # certifi: GHSA-6q48-6c7w-9gw2 (compromised emSign intermediates), fixed in 2026.10.19.
-certifi==2026.10.19
+certifi==2026.10.23
 # anyio (via starlette): GHSA-82r6-8w77-94w6, fixed in 4.14.2.
 anyio==4.15.1
 # torch: see guard-service/requirements.txt. Satisfied by the Dockerfile's
 # 2.14.0+cpu; listed so pip and the dependency scanners see what ships.
-torch==2.14.0
+torch==2.14.1+cpu
 # Zero-shot classifier (Apache-2.0). PINNED, with the libraries that decide
 # what the model sees: the eval's thresholds hold for this stack, and a
 # floating version could move every score underneath them. Bump them together,
 # with an eval run.
-gliclass==0.1.20
-transformers==5.18.0
+gliclass==0.1.21
+transformers==5.20.2
 tokenizers==0.23.3
 huggingface_hub==1.33.0
 # gliclass requires both (numpy>=2, scikit-learn>=1).
