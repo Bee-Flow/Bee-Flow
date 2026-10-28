@@ -68,7 +68,9 @@ The most commonly set ones:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `GUARD_PII_MODEL` | `E3-JSI/gliner-multi-pii-domains-v1` | GLiNER model id |
-| `GUARD_REDIS_URL` | `redis://localhost:6379/1` | Decision cache |
+| `GUARD_REDIS_URL` | `redis://localhost:6379/1` | Decision cache (run it without persistence) |
+| `GUARD_PII_CACHE_TTL_SECONDS` | `600` | Lifetime of a cached `/pii` result; `0` = no caching. Entries hold offsets, labels and scores, never span text |
+| `GUARD_PII_CACHE_KEY_SECRET` | random per process | HMAC key for the cache keys; set the same value on every replica to share entries |
 | `GUARD_PII_MAX_CONCURRENCY` | `2` | Concurrent `/pii` requests admitted |
 | `GUARD_PII_REGIONS` | `*` | Active country patterns for the regex tier |
 | `GUARD_PII_REGEX_TIER` | `on` | Regex tier on/off |

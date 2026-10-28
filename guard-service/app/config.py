@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     port: int = 8100
 
     redis_url: str = "redis://localhost:6379/1"
+    # PII result cache in that Redis. Lifetime in seconds; 0 = no caching. An
+    # entry holds offsets, labels and scores only, never the span text.
+    pii_cache_ttl_seconds: int = 600
+    # HMAC key for the cache key. Empty = a random secret per process, so
+    # replicas do not share entries; set the same value on every replica to
+    # share them.
+    pii_cache_key_secret: str = ""
 
     # CPU PII detection (GLiNER, Apache 2.0)
     # Fine-tune of urchade/gliner_multi_pii-v1 with Dutch + healthcare/finance/legal

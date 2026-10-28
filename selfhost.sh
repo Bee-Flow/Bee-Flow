@@ -511,7 +511,7 @@ uninstall() {
     echo -e "                   (license-public-key.pem) if you placed one there"
     echo -e "  ${BOLD}rustfs-data${NC}      object storage: uploaded documents and meeting"
     echo -e "                   recordings — the only durable copy (+ rustfs-logs)"
-    echo -e "  sidecar data     guard-redis-data, ollama-models"
+    echo -e "  sidecar data     ollama-models (and guard-redis-data, left by older versions)"
     echo ""
     echo -e "  Only want to stop or free RAM? ${BOLD}./selfhost.sh --down${NC} removes the"
     echo -e "  containers and keeps ALL data — that is never destructive."
@@ -533,6 +533,8 @@ uninstall() {
     [ "$c" = "beeflow" ] || { echo "Aborted — nothing was removed."; exit 1; }
     # shellcheck disable=SC2046
     compose -f "$COMPOSE_FILE" $(all_profile_args) down --volumes
+    # guard-redis no longer persists; older versions left this volume behind.
+    docker volume rm guard-redis-data >/dev/null 2>&1 || true
     ok "Bee Flow uninstalled — containers and data volumes removed"
 }
 
