@@ -336,7 +336,7 @@ const AUTOMATIONS = (): DemoAutomation[] => ([
     // Shared with the visitor by a colleague, who can edit it.
     automationRow({
         id: 'auto_demo_supplier',
-        userId: 'usr_demo_sdeboer',
+        userId: 'usr_demo_shayes',
         title: 'Supplier onboarding',
         description: 'Adds a new supplier to the register and sends them a welcome email with our invoicing rules.',
         definition: {
@@ -357,7 +357,7 @@ const AUTOMATIONS = (): DemoAutomation[] => ([
         lastStatus: 'success',
         myRole: 'edit',
         accessVia: 'share',
-        owner: { userId: 'usr_demo_sdeboer', name: 'S. de Boer' },
+        owner: { userId: 'usr_demo_shayes', name: 'S. Hayes' },
         createdAt: daysAgo(70),
         updatedAt: daysAgo(40),
     }),

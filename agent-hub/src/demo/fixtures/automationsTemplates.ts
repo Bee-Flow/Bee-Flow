@@ -10,7 +10,7 @@
  */
 
 import { daysAgo } from './common';
-import { LOTTE, ME, SANNE } from './automationsPeople';
+import { LOTTE, ME, CASEY } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
 type StepSketch = [type: string, label: string];
@@ -42,7 +42,7 @@ const BUILT_IN: Seed[] = [
 
 // The organisation's own: saved from automations with "Save as template".
 const ORG: Array<Seed & { createdBy: string; createdByName: string; createdAt: string }> = [
-    { id: 'org-demo-spend', title: 'Invoice spend summary', description: 'Totals a week of vendor invoices from the mailbox and sends finance one summary.', category: null, icon: 'Receipt', tags: [], requiredIntegrations: ['gmail'], triggerReadiness: 'ready', triggerKind: 'manual', triggerApp: null, createdBy: SANNE.id, createdByName: SANNE.name, createdAt: daysAgo(50), steps: [[APP, 'Search billing emails'], ['loop', 'Read each invoice'], ['aggregate', 'Sum totals per vendor'], ['summarize', 'Write the summary'], [SEND, 'Post to finance']] },
+    { id: 'org-demo-spend', title: 'Invoice spend summary', description: 'Totals a week of vendor invoices from the mailbox and sends finance one summary.', category: null, icon: 'Receipt', tags: [], requiredIntegrations: ['gmail'], triggerReadiness: 'ready', triggerKind: 'manual', triggerApp: null, createdBy: CASEY.id, createdByName: CASEY.name, createdAt: daysAgo(50), steps: [[APP, 'Search billing emails'], ['loop', 'Read each invoice'], ['aggregate', 'Sum totals per vendor'], ['summarize', 'Write the summary'], [SEND, 'Post to finance']] },
     { id: 'org-demo-intake', title: 'Client document intake', description: 'Sorts documents dropped in a client folder and asks the account manager before filing them.', category: null, icon: 'FolderInput', tags: [], requiredIntegrations: ['nextcloud'], triggerReadiness: 'ready', triggerKind: 'app_event', triggerApp: 'nextcloud', createdBy: LOTTE.id, createdByName: LOTTE.name, createdAt: daysAgo(9), steps: [[AI, 'Classify the document'], ['switch', 'Route by type'], ['approval', 'Ask the account manager']] },
     { id: 'org-demo-digest', title: 'Monday team digest', description: 'Every Monday morning: open actions, renewals coming up and last week\'s decisions in one email.', category: null, icon: 'Newspaper', tags: [], requiredIntegrations: [], triggerReadiness: 'ready', triggerKind: 'schedule', triggerApp: null, createdBy: ME.id, createdByName: ME.name, createdAt: daysAgo(2), steps: [[AI, 'Gather open actions'], [SEND, 'Email the team']] },
 ];

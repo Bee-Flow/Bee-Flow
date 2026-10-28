@@ -29,7 +29,7 @@ const CUSTOM_ID = /^cdt_[0-9a-f]{10}$/;
 /** A list id is fine when it is a real built-in kind, or one of the org's own types. */
 const knownId = (id) => VALID_CATEGORY_IDS.has(id) || shieldDoc().customDataTypes.some(t => t.id === id);
 const ctx = (over = {}) => ({
-    state: createState(), query: new URLSearchParams(), params: { orgId: 'org_demo_vandael' }, body: null, ...over,
+    state: createState(), query: new URLSearchParams(), params: { orgId: 'org_demo_meridian' }, body: null, ...over,
 });
 const num = (v) => Number(v || 0);
 
@@ -347,15 +347,15 @@ describe('"Your own data"', () => {
         const t = type(POLIS_ID);
         const res = post('test', { type: t, sentences: doc.customDataTests[POLIS_ID].sentences });
         expect(res.summary).toMatchObject({ found: 3, total: 3, falseAlarms: 0 });
-        const one = post('test', { type: t, sentences: [{ id: 'try', text: 'Polis PN-1234567 loopt af.' }] });
-        expect(one.results[0].marks).toEqual([{ start: 6, end: 16, kind: 'found' }]);
-        expect(one.preview).toBe('Polis [polisnummer_1] loopt af.');
+        const one = post('test', { type: t, sentences: [{ id: 'try', text: 'Policy PN-1234567 expires.' }] });
+        expect(one.results[0].marks).toEqual([{ start: 7, end: 17, kind: 'found' }]);
+        expect(one.preview).toBe('Policy [policy_number_1] expires.');
     });
 
     it('matches a list of words as whole words by default', () => {
         const t = type(LEGACY_ID);
-        const res = post('test', { type: t, sentences: [{ id: 'a', text: 'Het schadedossier en schadedossiers' }] });
-        expect(res.results[0].marks).toEqual([{ start: 4, end: 17, kind: 'found' }]);
+        const res = post('test', { type: t, sentences: [{ id: 'a', text: 'The claimfile and claimfiles' }] });
+        expect(res.results[0].marks).toEqual([{ start: 4, end: 13, kind: 'found' }]);
     });
 
     it('needs five marked sentences before it tunes, then tunes the AI type', () => {
@@ -365,8 +365,8 @@ describe('"Your own data"', () => {
         expect(few.status).toBe(400);
         const sentences = [
             ...doc.customDataTests[PROJECT_ID].sentences,
-            { id: 'x1', text: 'Tureluur gaat live.', gold: [{ start: 0, end: 8 }] },
-            { id: 'x2', text: 'Status Grutto: groen.', gold: [{ start: 7, end: 13 }] },
+            { id: 'x1', text: 'Redshank goes live.', gold: [{ start: 0, end: 8 }] },
+            { id: 'x2', text: 'Status Godwit: green.', gold: [{ start: 7, end: 13 }] },
         ];
         const res = post('tune', { type: t, sentences, examples: [] });
         expect(res.improved).toBe(true);

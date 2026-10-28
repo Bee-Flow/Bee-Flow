@@ -167,7 +167,7 @@ function pdfText(m: MailSeed): string {
         `FACTUUR ${m.invoice}`,
         'Fabrikam B.V.',
         `Factuurdatum: ${m.issued}`,
-        'Klant: Contoso B.V.',
+        'Klant: Contoso Ltd',
         '',
         ...m.lines.map(l => `${l.sku}  ${l.description}  ${l.quantity} x ${euro(l.price)}  btw ${l.rate}%`),
         '',

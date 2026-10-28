@@ -22,7 +22,7 @@ import { addCalendarMonths } from '../../components/shared/deadlineMath';
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 const DORA_CUSTOMER_NOTICE_HOURS = 4;
-const ACTOR = 'u_marieke';
+const ACTOR = 'u_alex';
 
 /** incidentStore OPEN_STATUSES: nothing has gone to an authority yet (getDeadlineStats "open"). */
 export const INCIDENT_OPEN_STATUSES = Object.freeze(['open', 'assessing', 'early_warning_sent']);
@@ -224,8 +224,8 @@ export function incidentSeed(org: string, now: number = Date.now()): Incident[] 
             id: 32, kind: 'security_incident', regimes: ['GDPR', 'DORA'],
             title: 'Policy-system connector down for 3 hours after a token rotation',
             description: 'An expired credential stopped the nightly sync with two insurers. No data was exposed; the backlog was replayed. Reported here because the outage touches services two financial entities depend on.',
-            detected_at: ago(3 * HOUR_MS), occurred_at: ago(6 * HOUR_MS), created_by: 'u_farah', updated_at: ago(2 * HOUR_MS),
-            notes: [{ at: ago(2 * HOUR_MS), by: 'u_farah', text: 'Credential rotated and the sync replayed. Customer notification still to be stamped.' }],
+            detected_at: ago(3 * HOUR_MS), occurred_at: ago(6 * HOUR_MS), created_by: 'u_robin', updated_at: ago(2 * HOUR_MS),
+            notes: [{ at: ago(2 * HOUR_MS), by: 'u_robin', text: 'Credential rotated and the sync replayed. Customer notification still to be stamped.' }],
         }),
         incidentRow(org, {
             id: 31, title: 'Claim summary emailed to the wrong broker',

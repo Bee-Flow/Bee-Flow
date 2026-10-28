@@ -16,8 +16,8 @@
  * different set of controls. A demo of the wrong screen is worse than none:
  * it is a confident answer to a question nobody asked.
  *
- * THE ORGANISATION IS THE SAME ONE AS THE COMPLIANCE DEMO: Van Dael
- * Assurantiën, the fictional Dutch insurance intermediary from
+ * THE ORGANISATION IS THE SAME ONE AS THE COMPLIANCE DEMO: Meridian
+ * Insurance, the fictional insurance intermediary from
  * fixtures/compliance.js. Somebody who opens both demos should find one
  * company, not two. The "What happened" evidence (thirty days of shield
  * events and tool traffic, with the world map's locations) lives in
@@ -49,6 +49,7 @@
  */
 
 import { COMMON_ROUTES, daysAgo } from './common';
+import { pick } from '../lang';
 import {
     DESTINATIONS, EGRESS_ROWS, GUARD_OVERVIEW, GUARD_ROWS, INTEG_OVERVIEW, NON_EU_CALLS, PII_NON_EU,
     SOVEREIGNTY_SCORE, TOTAL_CALLS, TOTAL_EVENTS, TOTAL_PII,
@@ -57,8 +58,8 @@ import {
     LEGACY_ID, OWN_DATA_ROUTES, POLIS_ID, PROJECT_ID, ownDataTests, ownDataTypes,
 } from './privacyShieldOwnData';
 
-const ORG = 'org_demo_vandael';
-const ORG_NAME = 'Van Dael Assurantiën B.V.';
+const ORG = 'org_demo_meridian';
+const ORG_NAME = 'Meridian Insurance Group';
 
 /* ── The shield document ────────────────────────────────────────────────
    An insurance intermediary: it handles names, addresses, bank details, BSN
@@ -123,14 +124,14 @@ export function shieldDoc() {
         // `customSensitiveTerms` as a mirror of the words and patterns.
         customDataTypes: ownDataTypes(daysAgo(9)),
         customDataTests: ownDataTests(daysAgo(9)),
-        customSensitiveTerms: ['schadedossier'],
+        customSensitiveTerms: [pick({ en: 'claimfile', nl: 'schadedossier' })],
         // The names that would otherwise be reported as people on every single
         // message. `piiAllowPublicOrgs` covers the well-known companies.
-        piiAllowTerms: ['Van Dael', 'Kifid', 'Zorgverzekeraars Nederland'],
+        piiAllowTerms: ['Meridian', 'ombudsman', 'Insurers Association'],
         piiAllowPublicOrgs: true,
 
         updatedAt: daysAgo(9),
-        updatedBy: 'Marieke de Wit',
+        updatedBy: 'Alex Morgan',
     };
 }
 

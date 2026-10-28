@@ -104,7 +104,7 @@ describe('the records filter interpreter', () => {
 
     it('contains narrows, an empty value passes everything', () => {
         const state = mod.createState();
-        expect(read(state, [{ field: 'title', op: 'contains', value: 'Vermeulen' }]).records.length).toBe(2);
+        expect(read(state, [{ field: 'title', op: 'contains', value: 'Whitfield' }]).records.length).toBe(2);
         expect(read(state, [{ field: 'title', op: 'contains', value: '' }]).records.length)
             .toBe(state.records.tbl_crmdl.length);
         expect(read(state).records.length).toBe(state.records.tbl_crmdl.length);
@@ -114,7 +114,7 @@ describe('the records filter interpreter', () => {
         const state = mod.createState();
         const { records } = read(state, [{ field: 'id', op: 'eq', value: 'rec_dl02' }]);
         expect(records).toHaveLength(1);
-        expect(records[0].title).toMatch(/De Ruiter/);
+        expect(records[0].title).toMatch(/Ward/);
     });
 });
 

@@ -1,6 +1,6 @@
 /**
  * "What happened" for the Privacy Shield demo: thirty days of evidence for
- * the same fictional insurer as privacyShield.js (Van Dael Assurantiën).
+ * the same fictional insurer as privacyShield.js (Meridian Insurance).
  *
  * Every number here is generated from ONE table of days so the parts cannot
  * drift: the timeline sums to the summary, the categories sum to the PII
@@ -19,7 +19,7 @@
  * sit behind Cloudflare; the others are invented, with documentation IPs.
  */
 
-import { daysAgo, minutesAgo } from './common';
+import { AGENT, daysAgo, minutesAgo } from './common';
 
 const DAYS = 30;
 
@@ -72,11 +72,11 @@ const TOP_CATEGORIES = apportion(TOTAL_PII, [
 ]).map(c => ({ category: c.category, violation_type: 'pii', count: c.count }));
 
 const PEOPLE = [
-    { user_id: 'u_sanne', display_name: 'Sanne Vermeer', weight: 30 },
-    { user_id: 'u_ruben', display_name: 'Ruben Tak', weight: 24 },
-    { user_id: 'u_pieter', display_name: 'Pieter Hoogendijk', weight: 19 },
-    { user_id: 'u_farah', display_name: 'Farah El Amrani', weight: 15 },
-    { user_id: 'u_joost', display_name: 'Joost Bakker', weight: 12 },
+    { user_id: 'u_casey', display_name: 'Casey Reed', weight: 30 },
+    { user_id: 'u_taylor', display_name: 'Taylor Quinn', weight: 24 },
+    { user_id: 'u_jordan', display_name: 'Jordan Kim', weight: 19 },
+    { user_id: 'u_robin', display_name: 'Robin Lee', weight: 15 },
+    { user_id: 'u_sam', display_name: 'Sam Rivera', weight: 12 },
 ];
 
 const TOP_USERS = apportion(TOTAL_EVENTS, PEOPLE).map((u, i) => ({
@@ -99,7 +99,7 @@ const LOC_NONE = { city: null, lat: null, lon: null, edge_pop: null, network: nu
 /** `piiShare` is the share of a destination's calls that carried personal data. */
 const DEST_SEEDS = [
     {
-        dest_host: 'cloud.vandael.nl', integration: 'nextcloud', operator: 'Van Dael (own server)',
+        dest_host: 'cloud.meridian.example', integration: 'nextcloud', operator: 'Meridian (own server)',
         country_code: 'NL', country_name: 'Netherlands', location_state: 'local', location_basis: 'socket',
         ...LOC_NONE, sample_peer_ip: '10.20.0.14', piiShare: 0.3, weight: 34,
     },
@@ -294,18 +294,18 @@ function sampleTimes(perDay: (i: number) => number, offset: number): string[] {
 // carries a person (server/core/privacy/specialCategories.js).
 const GUARD_EVENT_SEEDS: Array<[number, string, string, string, string | null]> = [
     [0, 'direct', 'Person,Email', 'tokenized', null],
-    [1, 'agent', 'InternationalBankingAccountNumber', 'tokenized', 'Schadebeoordeling'],
-    [0, 'agent', 'Person,PhoneNumber', 'tokenized', 'Polisintake'],
+    [1, 'agent', 'InternationalBankingAccountNumber', 'tokenized', AGENT.claims],
+    [0, 'agent', 'Person,PhoneNumber', 'tokenized', AGENT.intake],
     [2, 'automation', 'Email', 'redacted', 'Wekelijkse schaderapportage'],
     [3, 'direct', 'NationalIdentificationNumber', 'blocked', null],
-    [1, 'agent', 'Person,Address', 'tokenized', 'Klachtdossier'],
+    [1, 'agent', 'Person,Address', 'tokenized', AGENT.complaints],
     [4, 'direct', 'NationalIdentificationNumber', 'blocked', null],
     [2, 'agent', 'Person', 'tokenized', 'Klantenservice-assistent'],
     [0, 'notebook', 'Email,Person', 'tokenized', null],
     [3, 'automation', 'InternationalBankingAccountNumber,Person', 'tokenized', 'Incassobestand opschonen'],
     [1, 'direct', 'PhoneNumber', 'allowed', null],
-    [4, 'agent', 'Address', 'redacted', 'Polisintake'],
-    [2, 'agent', 'Email', 'tool_blocked', 'Klachtdossier'],
+    [4, 'agent', 'Address', 'redacted', AGENT.intake],
+    [2, 'agent', 'Email', 'tool_blocked', AGENT.complaints],
 ];
 
 const GUARD_TIMES = sampleTimes(i => Math.floor(2 * dayShape(i)), 35);
@@ -350,12 +350,12 @@ const EGRESS_TIMES = sampleTimes(i => Math.floor(3 * dayShape(i)), 12);
 
 /** Where a sampled call started: chat, one of the agents, or the weekly automation. */
 const EGRESS_SURFACES: Array<{ source: string; agent_name: string | null }> = [
-    { source: 'agent', agent_name: 'Polisintake' },
+    { source: 'agent', agent_name: AGENT.intake },
     { source: 'direct_chat', agent_name: null },
-    { source: 'agent', agent_name: 'Klachtdossier' },
+    { source: 'agent', agent_name: AGENT.complaints },
     { source: 'automation', agent_name: 'Wekelijkse schaderapportage' },
     { source: 'direct_chat', agent_name: null },
-    { source: 'agent', agent_name: 'Schadebeoordeling' },
+    { source: 'agent', agent_name: AGENT.claims },
     { source: 'direct_chat', agent_name: null },
 ];
 

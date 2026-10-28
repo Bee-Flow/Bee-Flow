@@ -153,7 +153,7 @@ describe('the demo route', () => {
             { timeout: 6000 },
         );
         await new Promise(r => setTimeout(r, 150));
-        expect(document.body.textContent).toMatch(/Sanne de Vries/);
+        expect(document.body.textContent).toMatch(/Casey Hayes/);
         expect(document.body.textContent).not.toMatch(/Speaker 1/);
     });
 

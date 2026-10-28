@@ -50,7 +50,7 @@ const MAIL_LIST = {
             from: { emailAddress: { name: 'Ingrid Möller', address: 'Ingrid.Moller@Fabrikam.example' } },
             toRecipients: [{ emailAddress: { name: 'Purchasing', address: MAILBOX } }],
             ccRecipients: [
-                { emailAddress: { name: 'Jan de Wit', address: 'jan.dewit@contoso.example' } },
+                { emailAddress: { name: 'Jan Morgan', address: 'jan.morgan@contoso.example' } },
                 { emailAddress: { name: 'Accounts payable', address: 'ap@contoso.example' } },
             ],
             // A name/value list, the shape Gmail's payload.headers has too.
@@ -83,7 +83,7 @@ const MAIL_LIST = {
             importance: 'low',
             hasAttachments: false,
             categories: [],
-            from: { emailAddress: { name: "Daan O'Neill", address: 'daan.oneill@fabrikam.example' } },
+            from: { emailAddress: { name: "Riley O'Neill", address: 'riley.oneill@fabrikam.example' } },
             toRecipients: [{ emailAddress: { name: 'Purchasing', address: MAILBOX } }],
             ccRecipients: [],
             attachments: [],
@@ -98,7 +98,7 @@ const MAIL_LIST = {
             importance: 'normal',
             hasAttachments: true,
             categories: ['Purchasing'],
-            from: { emailAddress: { name: 'Jan de Wit', address: 'jan.dewit@contoso.example' } },
+            from: { emailAddress: { name: 'Jan Morgan', address: 'jan.morgan@contoso.example' } },
             toRecipients: [{ emailAddress: { name: 'Purchasing', address: MAILBOX } }],
             extensions: [{
                 '@odata.type': '#microsoft.graph.openTypeExtension',
@@ -142,7 +142,7 @@ const ORDER_SEARCH = {
                 id: 'ord_7Hk2',
                 order_number: 'SO-2026-0917',
                 status: 'partially_shipped',
-                customer: { id: 'cus_118', name: 'Contoso B.V.', vat_id: 'NL001234567B01' },
+                customer: { id: 'cus_118', name: 'Contoso Ltd', vat_id: 'NL001234567B01' },
                 line_items: [
                     {
                         sku: 'DSK-180-OAK', title: 'Sit-stand desk 180×80', quantity: 4,
@@ -161,7 +161,7 @@ const ORDER_SEARCH = {
                 id: 'ord_7Hk9',
                 order_number: 'SO-2026-0931',
                 status: 'open',
-                customer: { id: 'cus_118', name: 'Contoso B.V.', vat_id: 'NL001234567B01' },
+                customer: { id: 'cus_118', name: 'Contoso Ltd', vat_id: 'NL001234567B01' },
                 line_items: [],
                 shipments: [],
             },

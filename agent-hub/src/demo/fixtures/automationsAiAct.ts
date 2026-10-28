@@ -18,7 +18,7 @@
 
 import { daysAgo } from './common';
 import { rowOf, type DemoRun } from './automationsRuns';
-import { SANNE } from './automationsPeople';
+import { CASEY } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
 type Tri = 'yes' | 'no' | 'unknown';
@@ -75,10 +75,10 @@ export function seedAiAct(): Record<string, AiActRecord> {
                 domains: areas(['essential_services', 'credit']), suggestedDomains: [],
             }],
         },
-        auto_demo_digest: valid('auto', 'minimal', 30, 'usr_demo_mjansen', [
+        auto_demo_digest: valid('auto', 'minimal', 30, 'usr_demo_abrooks', [
             usesAi([['gather', 'Gather open actions', 'ai_step']]), INTERNAL, NOT_SENSITIVE, NOT_PROHIBITED,
         ]),
-        auto_demo_supplier: valid('manual', 'transparency', 40, SANNE.id, [
+        auto_demo_supplier: valid('manual', 'transparency', 40, CASEY.id, [
             usesAi([['draft_welcome', 'Draft the welcome email', 'ai_step']]),
             { id: 'externalOutput', answer: 'yes', confidence: 'certain', by: 'person', evidence: [ev('ai_act.external.email', '"Email the supplier" sends an e-mail that can reach people outside the organisation.', { label: 'Email the supplier' })] },
             NOT_SENSITIVE, NOT_PROHIBITED,

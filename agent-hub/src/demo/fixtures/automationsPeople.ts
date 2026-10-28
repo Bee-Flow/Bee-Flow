@@ -20,15 +20,15 @@ export interface DemoGroup {
 
 /** The visitor: the same id and name as DEMO_USER in common.js. */
 export const ME: DemoPerson = { id: 'demo-user', name: 'Demo user', email: 'demo@example.com' };
-export const SANNE: DemoPerson = { id: 'usr_demo_sdeboer', name: 'S. de Boer', email: 's.deboer@example.com' };
-export const MARK: DemoPerson = { id: 'usr_demo_mjansen', name: 'M. Jansen', email: 'm.jansen@example.com' };
-export const LOTTE: DemoPerson = { id: 'usr_demo_lbakker', name: 'L. Bakker', email: 'l.bakker@example.com' };
-export const PIETER: DemoPerson = { id: 'usr_demo_pvisser', name: 'P. Visser', email: 'p.visser@example.com' };
+export const CASEY: DemoPerson = { id: 'usr_demo_shayes', name: 'S. Hayes', email: 's.hayes@example.com' };
+export const MARK: DemoPerson = { id: 'usr_demo_abrooks', name: 'A. Brooks', email: 'a.brooks@example.com' };
+export const LOTTE: DemoPerson = { id: 'usr_demo_lrivera', name: 'L. Rivera', email: 'l.rivera@example.com' };
+export const JORDAN: DemoPerson = { id: 'usr_demo_phale', name: 'P. Hale', email: 'p.hale@example.com' };
 
 export const FINANCE: DemoGroup = { id: 'grp_demo_finance', name: 'Finance', memberCount: 6 };
 export const ACCOUNT_MANAGERS: DemoGroup = { id: 'grp_demo_accounts', name: 'Account managers', memberCount: 4 };
 
-export const PEOPLE: DemoPerson[] = [ME, SANNE, MARK, LOTTE, PIETER];
+export const PEOPLE: DemoPerson[] = [ME, CASEY, MARK, LOTTE, JORDAN];
 export const GROUPS: DemoGroup[] = [FINANCE, ACCOUNT_MANAGERS];
 
 /** `{ id, name }`, the shape run rows and version rows carry. */

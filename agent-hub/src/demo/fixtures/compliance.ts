@@ -21,7 +21,7 @@
  * array names a check that does not exist quietly empties the SoA's evidence
  * column.
  *
- * The organisation half is invented — Van Dael Assurantiën, a fictional Dutch
+ * The organisation half is invented — Meridian Insurance, a fictional Dutch
  * insurance intermediary. It is written to be recognisable to someone who does
  * this work: a score in the eighties rather than a perfect one, two real
  * failures, a DSR a few days from its deadline, a breach that was notified in
@@ -35,6 +35,8 @@
  * subtracts. compliance.test.js pins the ones that would fail silently.
  */
 
+import { AGENT } from './common';
+import { pick } from '../lang';
 import { ACCESS_LOG_ROUTES, accessAuditSeed, logAccess } from './complianceAccessLog';
 import {
     CHECK_DEFS, ISO_CONTROLS, ISO_THEMES, ISO_CONNECTORS, FRAMEWORKS, MILESTONES,
@@ -99,7 +101,7 @@ interface State {
 
 type Framework = (typeof FRAMEWORKS)[number];
 
-const ORG = 'org_demo_vandael';
+const ORG = 'org_demo_meridian';
 const now = () => Date.now();
 const iso = (msAgo: number) => new Date(now() - msAgo).toISOString();
 const days = (n: number) => n * 86_400_000;
@@ -113,12 +115,12 @@ const inDays = (n: number) => new Date(now() + days(n)).toISOString();
 /* ── Who is in this fictional organisation ──────────────────────────── */
 
 const ORG_USERS = () => ([
-    { id: 'u_marieke', displayName: 'Marieke de Wit', email: 'm.dewit@vandael.example', phone: '+31 20 555 0142', orgRole: 'admin' },
-    { id: 'u_joost', displayName: 'Joost Bakker', email: 'j.bakker@vandael.example', phone: '', orgRole: 'member' },
-    { id: 'u_farah', displayName: 'Farah El Amrani', email: 'f.elamrani@vandael.example', phone: '', orgRole: 'admin' },
-    { id: 'u_pieter', displayName: 'Pieter Hoogendijk', email: 'p.hoogendijk@vandael.example', phone: '', orgRole: 'member' },
-    { id: 'u_sanne', displayName: 'Sanne Vermeer', email: 's.vermeer@vandael.example', phone: '', orgRole: 'member' },
-    { id: 'u_ruben', displayName: 'Ruben Tak', email: 'r.tak@vandael.example', phone: '', orgRole: 'member' },
+    { id: 'u_alex', displayName: 'Alex Morgan', email: 'a.morgan@meridian.example', phone: '+31 20 555 0142', orgRole: 'admin' },
+    { id: 'u_sam', displayName: 'Sam Rivera', email: 's.rivera@meridian.example', phone: '', orgRole: 'member' },
+    { id: 'u_robin', displayName: 'Robin Lee', email: 'r.lee@meridian.example', phone: '', orgRole: 'admin' },
+    { id: 'u_jordan', displayName: 'Jordan Kim', email: 'j.kim@meridian.example', phone: '', orgRole: 'member' },
+    { id: 'u_casey', displayName: 'Casey Reed', email: 'c.reed@meridian.example', phone: '', orgRole: 'member' },
+    { id: 'u_taylor', displayName: 'Taylor Quinn', email: 't.quinn@meridian.example', phone: '', orgRole: 'member' },
 ]);
 
 /* ── The growing set of frameworks ───────────────────────────────────────
@@ -164,18 +166,18 @@ const FRAMEWORK_AFFECTS: Record<string, Record<string, number | string | null>> 
 const SETTINGS = () => ({
     organization_id: ORG,
     onboarded_at: iso(days(214)),
-    dpo_name: 'Marieke de Wit',
-    dpo_email: 'privacy@vandael.example',
+    dpo_name: 'Alex Morgan',
+    dpo_email: 'privacy@meridian.example',
     dpo_phone: '+31 20 555 0142',
     data_residency: 'eu',
     default_retention_days: 365,
-    privacy_notice_url: 'https://vandael.example/privacy',
+    privacy_notice_url: 'https://meridian.example/privacy',
     legal_bases: ['contract', 'legal_obligation', 'legitimate_interests'],
-    breach_recipients: ['privacy@vandael.example', 'j.bakker@vandael.example'],
-    ai_literacy_material_url: 'https://vandael.example/intern/ai-basiskennis',
+    breach_recipients: ['privacy@meridian.example', 's.rivera@meridian.example'],
+    ai_literacy_material_url: 'https://meridian.example/intern/ai-basiskennis',
     ai_literacy_confirmed_at: iso(days(51)),
     ropa_reviewed_at: iso(days(23)),
-    ropa_reviewed_by: 'u_marieke',
+    ropa_reviewed_by: 'u_alex',
     scc_confirmed_operators: ['OpenAI, L.L.C.'],
 
     // ── Redesign fields (PLAN.md §1.3) ──
@@ -188,8 +190,8 @@ const SETTINGS = () => ({
     ai_content_marking_footer: '',
     ai_content_marking_enabled_at: null,
     ai_content_marking_enabled_by: null,
-    public_base_url: 'https://vandael.example',
-    public_dsr_url: 'https://vandael.example/privacy/verzoek',
+    public_base_url: 'https://meridian.example',
+    public_dsr_url: 'https://meridian.example/privacy/verzoek',
     sso_enforces_mfa: true,
     // DORA — the one non-core framework this org runs.
     incident_customer_contacts: ['risk@brandverzekeraar.example', 'ict@levensverzekeraar.example'],
@@ -281,10 +283,10 @@ const DETAILS: Record<string, string> = {
    DERIVED from the DPIA fixture rather than declared, so the two can never
    disagree about which assistant is missing what. */
 const HIGH_RISK_AGENTS = [
-    { id: 'agent_claims', label: 'Schadebeoordeling', risk_reason: 'has a system prompt that mentions automated decisions' },
-    { id: 'agent_intake', label: 'Polisintake', risk_reason: 'routes data to external provider (openai)' },
+    { id: 'agent_claims', label: AGENT.claims, risk_reason: 'has a system prompt that mentions automated decisions' },
+    { id: 'agent_intake', label: AGENT.intake, risk_reason: 'routes data to external provider (openai)' },
     { id: 'agent_helpdesk', label: 'Klantenservice-assistent', risk_reason: 'routes data to external provider (openai)' },
-    { id: 'agent_kifid', label: 'Klachtdossier', risk_reason: 'processes PII categories: health, correspondence' },
+    { id: 'agent_kifid', label: AGENT.complaints, risk_reason: 'processes PII categories: health, correspondence' },
 ];
 
 const art35Row = (subject: { id: string; label: string; risk_reason: string }) => {
@@ -615,13 +617,13 @@ const DSR = () => ([
         subject_email: 'h.veenstra@example.nl', request_type: 'access',
         status: 'in_progress', created_at: iso(days(27)),
         channel: 'public_form', identity_status: 'verified_email_link', identity_verified_at: iso(days(27) - hours(2)),
-        started_at: iso(days(25)), started_by: 'u_marieke',
+        started_at: iso(days(25)), started_by: 'u_alex',
         notes: 'Policyholder asking for every message in which their claim was discussed.',
         timeline: [
             tl('received', iso(days(27))),
             tl('ack_sent', iso(days(27))),
             tl('identity_verified', iso(days(27) - hours(2))),
-            tl('started', iso(days(25)), { by: 'u_marieke' }),
+            tl('started', iso(days(25)), { by: 'u_alex' }),
         ],
     }),
     dsrRow({
@@ -629,52 +631,52 @@ const DSR = () => ([
         subject_email: 'a.dekker@example.nl', request_type: 'deletion',
         status: 'pending', created_at: iso(days(9)),
         channel: 'public_form', identity_status: 'unverified',
-        notes: 'Submitted through the public form on vandael.example/privacy.',
+        notes: 'Submitted through the public form on meridian.example/privacy.',
         timeline: [tl('received', iso(days(9))), tl('ack_sent', iso(days(9)))],
     }),
     dsrRow({
         id: 2415,
         subject_email: 'r.oosterhuis@example.nl', request_type: 'rectification',
-        status: 'fulfilled', created_at: iso(days(34)), fulfilled_at: iso(days(21)), fulfilled_by: 'u_marieke',
+        status: 'fulfilled', created_at: iso(days(34)), fulfilled_at: iso(days(21)), fulfilled_by: 'u_alex',
         channel: 'email_dpo', identity_status: 'verified_manual', identity_verified_at: iso(days(33)),
-        started_at: iso(days(33)), started_by: 'u_marieke',
+        started_at: iso(days(33)), started_by: 'u_alex',
         notes: 'Wrong date of birth in a claim summary.',
         result_summary: 'Corrected in the source record and re-indexed. Confirmed by email.',
         timeline: [
-            tl('received', iso(days(34))), tl('identity_verified', iso(days(33)), { by: 'u_marieke' }),
-            tl('started', iso(days(33)), { by: 'u_marieke' }),
-            tl('fulfilled', iso(days(21)), { by: 'u_marieke' }), tl('result_emailed', iso(days(21))),
+            tl('received', iso(days(34))), tl('identity_verified', iso(days(33)), { by: 'u_alex' }),
+            tl('started', iso(days(33)), { by: 'u_alex' }),
+            tl('fulfilled', iso(days(21)), { by: 'u_alex' }), tl('result_emailed', iso(days(21))),
         ],
     }),
     dsrRow({
         id: 2414,
         subject_email: 'broker@example.com', request_type: 'portability',
-        status: 'rejected', created_at: iso(days(48)), fulfilled_at: iso(days(40)), fulfilled_by: 'u_farah',
+        status: 'rejected', created_at: iso(days(48)), fulfilled_at: iso(days(40)), fulfilled_by: 'u_robin',
         channel: 'email_dpo', identity_status: 'unverified',
         notes: 'Requester could not be identified as the data subject.',
         result_summary: 'Rejected under Art. 12(6): identity not established after two requests for verification.',
         timeline: [
-            tl('received', iso(days(48))), tl('note', iso(days(44)), { by: 'u_farah' }),
-            tl('rejected', iso(days(40)), { by: 'u_farah' }), tl('result_emailed', iso(days(40))),
+            tl('received', iso(days(48))), tl('note', iso(days(44)), { by: 'u_robin' }),
+            tl('rejected', iso(days(40)), { by: 'u_robin' }), tl('result_emailed', iso(days(40))),
         ],
     }),
     dsrRow({
         id: 2413,
         subject_email: 'k.smits@example.nl', request_type: 'objection',
-        status: 'fulfilled', created_at: iso(days(61)), fulfilled_at: iso(days(38)), fulfilled_by: 'u_marieke',
+        status: 'fulfilled', created_at: iso(days(61)), fulfilled_at: iso(days(38)), fulfilled_by: 'u_alex',
         channel: 'phone', identity_status: 'verified_manual', identity_verified_at: iso(days(60)),
-        started_at: iso(days(60)), started_by: 'u_marieke',
+        started_at: iso(days(60)), started_by: 'u_alex',
         // Extended once, with a reason — the only extension GDPR allows, and
         // the one the drawer's "extend" button refuses to repeat.
-        extension_reason: 'Complex objection: the claim file spans two insurers and a Kifid complaint.',
-        extended_by: 'u_marieke', extended_at: iso(days(40)),
+        extension_reason: 'Complex objection: the claim file spans two insurers and an ombudsman complaint.',
+        extended_by: 'u_alex', extended_at: iso(days(40)),
         notes: 'Objection to automated triage of a claim.',
         result_summary: 'Automated triage disabled for this policyholder; claims routed to a handler.',
         timeline: [
-            tl('received', iso(days(61))), tl('identity_verified', iso(days(60)), { by: 'u_marieke' }),
-            tl('started', iso(days(60)), { by: 'u_marieke' }),
-            tl('extended', iso(days(40)), { by: 'u_marieke' }), tl('extension_emailed', iso(days(40))),
-            tl('fulfilled', iso(days(38)), { by: 'u_marieke' }), tl('result_emailed', iso(days(38))),
+            tl('received', iso(days(61))), tl('identity_verified', iso(days(60)), { by: 'u_alex' }),
+            tl('started', iso(days(60)), { by: 'u_alex' }),
+            tl('extended', iso(days(40)), { by: 'u_alex' }), tl('extension_emailed', iso(days(40))),
+            tl('fulfilled', iso(days(38)), { by: 'u_alex' }), tl('result_emailed', iso(days(38))),
         ],
     }),
 ]);
@@ -713,10 +715,10 @@ const PROCESSORS = () => ([
 ]);
 
 const ACTIVITY_SEEDS = [
-    { activity_id: 'agent_claims', name: 'Schadebeoordeling', purpose: 'Drafts a first assessment of a submitted claim against the policy terms, for a handler to check.' },
-    { activity_id: 'agent_intake', name: 'Polisintake', purpose: 'Reads an application and extracts the fields a broker would otherwise retype.' },
+    { activity_id: 'agent_claims', name: AGENT.claims, purpose: 'Drafts a first assessment of a submitted claim against the policy terms, for a handler to check.' },
+    { activity_id: 'agent_intake', name: AGENT.intake, purpose: 'Reads an application and extracts the fields a broker would otherwise retype.' },
     { activity_id: 'agent_helpdesk', name: 'Klantenservice-assistent', purpose: 'Answers policyholder questions from the product documentation, with citations.' },
-    { activity_id: 'agent_kifid', name: 'Klachtdossier', purpose: 'Assembles the file for a Kifid complaint from the correspondence already on record.' },
+    { activity_id: 'agent_kifid', name: AGENT.complaints, purpose: 'Assembles the file for an ombudsman complaint from the correspondence already on record.' },
 ];
 
 const ROPA = (state: State | null = null) => {
@@ -724,7 +726,7 @@ const ROPA = (state: State | null = null) => {
     const s = state?.settings || SETTINGS();
     return {
         organization_id: ORG,
-        controller: { name: 'Van Dael Assurantiën B.V.', dpo_name: s.dpo_name, dpo_email: s.dpo_email, dpo_phone: s.dpo_phone },
+        controller: { name: 'Meridian Insurance Group', dpo_name: s.dpo_name, dpo_email: s.dpo_email, dpo_phone: s.dpo_phone },
         legal_bases: s.legal_bases,
         data_residency: s.data_residency,
         generated_at: iso(0),
@@ -761,7 +763,7 @@ interface DpiaRow {
 
 const DPIA = (): DpiaRow[] => ([
     {
-        id: 4, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_intake', agent_name: 'Polisintake',
+        id: 4, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_intake', agent_name: AGENT.intake,
         answers: {
             purpose: 'Extract structured application fields from documents a broker submits.',
             data_categories: 'Name, address, date of birth, policy history. No special categories.',
@@ -785,7 +787,7 @@ const DPIA = (): DpiaRow[] => ([
         status: 'approved', approved_at: iso(days(66)), expires_at: iso(-days(299)),
     },
     {
-        id: 2, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_kifid', agent_name: 'Klachtdossier',
+        id: 2, organization_id: ORG, mode: 'questionnaire', agent_id: 'agent_kifid', agent_name: AGENT.complaints,
         answers: {
             purpose: 'Assemble a complaint file from correspondence already on record.',
             data_categories: 'Correspondence, claim history, health information where the complaint concerns a disability policy.',
@@ -834,7 +836,7 @@ const soaEntry = (ref: string, status: string) => ({
     justification: status === 'excluded'
         ? 'Physical premises and media are operated by our IaaS provider (Scaleway, FR). Inherited control; evidenced by the provider’s ISO 27001 certificate.'
         : 'In scope. Implemented and evidenced through the linked automated checks and the ISMS policy set.',
-    owner_user_id: status === 'excluded' ? 'u_farah' : 'u_marieke',
+    owner_user_id: status === 'excluded' ? 'u_robin' : 'u_alex',
     approved_at: status === 'approved' ? iso(days(29)) : null,
     reviewed_at: status === 'todo' ? null : iso(days(29)),
 });
@@ -869,16 +871,16 @@ const SOA = () => {
 };
 
 const POLICY_SEEDS = [
-    ['isms-scope', 'ISMS scope statement', 'u_marieke'],
-    ['information-security-policy', 'Information security policy', 'u_marieke'],
-    ['access-control-policy', 'Access control policy', 'u_farah'],
-    ['acceptable-use-policy', 'Acceptable use policy', 'u_farah'],
-    ['supplier-security-policy', 'Supplier security policy', 'u_joost'],
-    ['incident-response-plan', 'Incident response plan', 'u_farah'],
-    ['business-continuity-plan', 'Business continuity plan', 'u_joost'],
-    ['secure-development-policy', 'Secure development policy', 'u_farah'],
-    ['cryptography-policy', 'Cryptography and key management policy', 'u_farah'],
-    ['data-retention-policy', 'Data retention and disposal policy', 'u_marieke'],
+    ['isms-scope', 'ISMS scope statement', 'u_alex'],
+    ['information-security-policy', 'Information security policy', 'u_alex'],
+    ['access-control-policy', 'Access control policy', 'u_robin'],
+    ['acceptable-use-policy', 'Acceptable use policy', 'u_robin'],
+    ['supplier-security-policy', 'Supplier security policy', 'u_sam'],
+    ['incident-response-plan', 'Incident response plan', 'u_robin'],
+    ['business-continuity-plan', 'Business continuity plan', 'u_sam'],
+    ['secure-development-policy', 'Secure development policy', 'u_robin'],
+    ['cryptography-policy', 'Cryptography and key management policy', 'u_robin'],
+    ['data-retention-policy', 'Data retention and disposal policy', 'u_alex'],
 ];
 
 type IsoDoc = ReturnType<typeof ISO_DOCS>['documents'][number];
@@ -997,13 +999,13 @@ interface RiskRow {
 
 const RISKS = () => {
     const risks: RiskRow[] = [
-        { id: 11, title: 'Policyholder data reaches a model outside the EEA', category: 'confidentiality', description: 'A member selects a US-hosted model for a claim conversation containing health information.', likelihood: 3, impact: 4, status: 'treating', owner_user_id: 'u_marieke', review_due_at: iso(days(34)) },
-        { id: 10, title: 'Supplier without a processing agreement', category: 'compliance', description: 'A processor is in use before the DPA is countersigned.', likelihood: 2, impact: 4, status: 'open', owner_user_id: 'u_joost', review_due_at: inDays(6) },
-        { id: 9, title: 'Assistant output relied on without review', category: 'integrity', description: 'A handler treats a drafted claim assessment as a decision rather than a draft.', likelihood: 3, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(12)) },
-        { id: 8, title: 'Shared credential in a support conversation', category: 'confidentiality', description: 'Members paste credentials into tickets or chats.', likelihood: 2, impact: 3, status: 'treating', owner_user_id: 'u_farah', review_due_at: iso(days(58)) },
-        { id: 7, title: 'Knowledge base retains documents past their retention period', category: 'compliance', description: 'Source documents outlive the retention policy because deletion is manual.', likelihood: 3, impact: 2, status: 'open', owner_user_id: 'u_marieke', review_due_at: inDays(21) },
-        { id: 6, title: 'Single administrator for the workspace', category: 'availability', description: 'One person holds every administrative permission.', likelihood: 2, impact: 3, status: 'accepted', owner_user_id: 'u_joost', review_due_at: iso(days(90)), accepted_at: iso(days(44)), accepted_by: 'u_joost' },
-        { id: 5, title: 'Laptop loss exposes cached exports', category: 'confidentiality', description: 'Exported PDFs are kept in local downloads folders.', likelihood: 2, impact: 2, status: 'closed', owner_user_id: 'u_farah', review_due_at: iso(days(120)) },
+        { id: 11, title: 'Policyholder data reaches a model outside the EEA', category: 'confidentiality', description: 'A member selects a US-hosted model for a claim conversation containing health information.', likelihood: 3, impact: 4, status: 'treating', owner_user_id: 'u_alex', review_due_at: iso(days(34)) },
+        { id: 10, title: 'Supplier without a processing agreement', category: 'compliance', description: 'A processor is in use before the DPA is countersigned.', likelihood: 2, impact: 4, status: 'open', owner_user_id: 'u_sam', review_due_at: inDays(6) },
+        { id: 9, title: 'Assistant output relied on without review', category: 'integrity', description: 'A handler treats a drafted claim assessment as a decision rather than a draft.', likelihood: 3, impact: 3, status: 'treating', owner_user_id: 'u_robin', review_due_at: iso(days(12)) },
+        { id: 8, title: 'Shared credential in a support conversation', category: 'confidentiality', description: 'Members paste credentials into tickets or chats.', likelihood: 2, impact: 3, status: 'treating', owner_user_id: 'u_robin', review_due_at: iso(days(58)) },
+        { id: 7, title: 'Knowledge base retains documents past their retention period', category: 'compliance', description: 'Source documents outlive the retention policy because deletion is manual.', likelihood: 3, impact: 2, status: 'open', owner_user_id: 'u_alex', review_due_at: inDays(21) },
+        { id: 6, title: 'Single administrator for the workspace', category: 'availability', description: 'One person holds every administrative permission.', likelihood: 2, impact: 3, status: 'accepted', owner_user_id: 'u_sam', review_due_at: iso(days(90)), accepted_at: iso(days(44)), accepted_by: 'u_sam' },
+        { id: 5, title: 'Laptop loss exposes cached exports', category: 'confidentiality', description: 'Exported PDFs are kept in local downloads folders.', likelihood: 2, impact: 2, status: 'closed', owner_user_id: 'u_robin', review_due_at: iso(days(120)) },
     ].map(r => ({
         ...r,
         organization_id: ORG,
@@ -1013,11 +1015,11 @@ const RISKS = () => {
         updated_at: r.accepted_at || iso(days(30)),
     }));
     const treatments = [
-        { id: 5, risk_id: 11, option: 'mitigate', description: 'Model allowlist per assistant; the claims assistants are pinned to EU-hosted models.', due_at: iso(days(20)), done_at: iso(days(22)), owner_user_id: 'u_marieke' },
-        { id: 4, risk_id: 11, option: 'mitigate', description: 'Privacy Shield set to redact health terms before any outbound call.', due_at: inDays(30), done_at: null, owner_user_id: 'u_farah' },
-        { id: 3, risk_id: 9, option: 'mitigate', description: 'Assistant output carries a standing "draft — a handler decides" banner, and the handbook says the same.', due_at: iso(days(9)), done_at: iso(days(10)), owner_user_id: 'u_farah' },
-        { id: 2, risk_id: 8, option: 'mitigate', description: 'Secret detection on outbound messages; credentials are blocked rather than redacted.', due_at: inDays(14), done_at: null, owner_user_id: 'u_farah' },
-        { id: 1, risk_id: 10, option: 'avoid', description: 'Processor suspended until the agreement is signed.', due_at: inDays(3), done_at: null, owner_user_id: 'u_joost' },
+        { id: 5, risk_id: 11, option: 'mitigate', description: 'Model allowlist per assistant; the claims assistants are pinned to EU-hosted models.', due_at: iso(days(20)), done_at: iso(days(22)), owner_user_id: 'u_alex' },
+        { id: 4, risk_id: 11, option: 'mitigate', description: 'Privacy Shield set to redact health terms before any outbound call.', due_at: inDays(30), done_at: null, owner_user_id: 'u_robin' },
+        { id: 3, risk_id: 9, option: 'mitigate', description: 'Assistant output carries a standing "draft — a handler decides" banner, and the handbook says the same.', due_at: iso(days(9)), done_at: iso(days(10)), owner_user_id: 'u_robin' },
+        { id: 2, risk_id: 8, option: 'mitigate', description: 'Secret detection on outbound messages; credentials are blocked rather than redacted.', due_at: inDays(14), done_at: null, owner_user_id: 'u_robin' },
+        { id: 1, risk_id: 10, option: 'avoid', description: 'Processor suspended until the agreement is signed.', due_at: inDays(3), done_at: null, owner_user_id: 'u_sam' },
     ];
     return { risks, treatments, stats: riskStats(risks) };
 };
@@ -1035,8 +1037,8 @@ const riskStats = (risks: RiskRow[]) => {
 
 const AUDIT = () => {
     const audits = [
-        { id: 2, title: 'Internal audit 2026-H1 — Annex A 5, 6 and 8', scope_note: 'Organisational, people and technological controls. Excludes physical (inherited).', auditor_user_id: 'u_joost', status: 'in_progress', planned_at: iso(days(20)), started_at: iso(days(6)), closed_at: null, organization_id: ORG },
-        { id: 1, title: 'Internal audit 2025-H2 — full ISMS', scope_note: 'First full pass after the ISMS went live.', auditor_user_id: 'u_joost', status: 'closed', planned_at: iso(days(190)), started_at: iso(days(178)), closed_at: iso(days(160)), organization_id: ORG },
+        { id: 2, title: 'Internal audit 2026-H1 — Annex A 5, 6 and 8', scope_note: 'Organisational, people and technological controls. Excludes physical (inherited).', auditor_user_id: 'u_sam', status: 'in_progress', planned_at: iso(days(20)), started_at: iso(days(6)), closed_at: null, organization_id: ORG },
+        { id: 1, title: 'Internal audit 2025-H2 — full ISMS', scope_note: 'First full pass after the ISMS went live.', auditor_user_id: 'u_sam', status: 'closed', planned_at: iso(days(190)), started_at: iso(days(178)), closed_at: iso(days(160)), organization_id: ORG },
     ];
     const findings = [
         { id: 4, audit_id: 2, clause: 'A.5.20', control_ref: 'A.5.20', severity: 'major', description: 'One processor is in use without a signed processing agreement.', evidence_ref: 'Supplier register, row 5', nonconformity_id: 2, created_at: iso(days(5)) },
@@ -1045,25 +1047,25 @@ const AUDIT = () => {
         { id: 1, audit_id: 1, clause: 'A.5.15', control_ref: 'A.5.15', severity: 'minor', description: 'Access review for the claims group was not evidenced.', evidence_ref: 'Access review folder', nonconformity_id: null, created_at: iso(days(170)) },
     ];
     const ncs = [
-        { id: 2, title: 'Processor without a signed agreement', description: 'Raised from internal audit 2026-H1, finding 4.', severity: 'major', source: 'internal_audit', status: 'corrective_action', owner_user_id: 'u_joost', due_at: iso(days(9)), corrective_action: 'Suspend the processor, countersign the agreement, and add a pre-use gate to the supplier checklist.', effectiveness_review_due_at: inDays(60), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
-        { id: 1, title: 'Dependency scanning behind policy', description: 'Raised from internal audit 2026-H1, finding 3.', severity: 'minor', source: 'internal_audit', status: 'effectiveness_review', owner_user_id: 'u_farah', due_at: iso(days(2)), corrective_action: 'Scan moved into the nightly pipeline rather than a manual step.', effectiveness_review_due_at: inDays(45), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
+        { id: 2, title: 'Processor without a signed agreement', description: 'Raised from internal audit 2026-H1, finding 4.', severity: 'major', source: 'internal_audit', status: 'corrective_action', owner_user_id: 'u_sam', due_at: iso(days(9)), corrective_action: 'Suspend the processor, countersign the agreement, and add a pre-use gate to the supplier checklist.', effectiveness_review_due_at: inDays(60), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
+        { id: 1, title: 'Dependency scanning behind policy', description: 'Raised from internal audit 2026-H1, finding 3.', severity: 'minor', source: 'internal_audit', status: 'effectiveness_review', owner_user_id: 'u_robin', due_at: iso(days(2)), corrective_action: 'Scan moved into the nightly pipeline rather than a manual step.', effectiveness_review_due_at: inDays(45), effectiveness_confirmed_at: null, effectiveness_confirmed_by: null, closed_at: null, created_at: iso(days(5)) },
     ];
     // Attendees as ReviewsTab stores them: { id, name }, so a former member still reads by name.
     const person = (id: string) => ({ id, name: ORG_USERS().find(u => u.id === id)?.displayName || id });
     const reviews = [
         {
-            id: 2, held_at: iso(days(47)), attendees: ['u_marieke', 'u_joost', 'u_farah'].map(person),
+            id: 2, held_at: iso(days(47)), attendees: ['u_alex', 'u_sam', 'u_robin'].map(person),
             decisions: 'Approved the SoA as it stands. Agreed to bring the supplier register under the same review cycle as the policy set. Next review in Q3.',
             // The 9.3.2 agenda as it stood on the day (mr_inputs, snapshotted with the minutes).
             inputs: { score_now: 71, score_90d_ago: 54, failing_checks: 3, open_nonconformities: 1, open_incidents: 0, risks_open: 2, risks_high: 1, soa_approved: '28/93', last_internal_audit: iso(days(160)) },
             minutes_evidence_ref: 'MR minutes, Q2', organization_id: ORG,
         },
-        { id: 1, held_at: iso(days(168)), attendees: ['u_marieke', 'u_joost'].map(person), decisions: 'ISMS scope confirmed. Accepted the single-administrator risk for one cycle with a named deputy to be appointed.', inputs: {}, minutes_evidence_ref: null, organization_id: ORG },
+        { id: 1, held_at: iso(days(168)), attendees: ['u_alex', 'u_sam'].map(person), decisions: 'ISMS scope confirmed. Accepted the single-administrator risk for one cycle with a named deputy to be appointed.', inputs: {}, minutes_evidence_ref: null, organization_id: ORG },
     ];
     const objectives = [
-        { id: 3, title: 'Every applicable Annex A control has an approved SoA decision', measure: 'Approved SoA rows / applicable controls', target: '100%', owner_user_id: 'u_marieke', review_due_at: inDays(40), status: 'active' },
-        { id: 2, title: 'No nonconformity open past its due date', measure: 'Overdue nonconformities', target: '0', owner_user_id: 'u_farah', review_due_at: inDays(18), status: 'active' },
-        { id: 1, title: 'All staff attest to the security policy set each year', measure: 'Attestations / personnel', target: '100%', owner_user_id: 'u_joost', review_due_at: iso(days(30)), status: 'achieved' },
+        { id: 3, title: 'Every applicable Annex A control has an approved SoA decision', measure: 'Approved SoA rows / applicable controls', target: '100%', owner_user_id: 'u_alex', review_due_at: inDays(40), status: 'active' },
+        { id: 2, title: 'No nonconformity open past its due date', measure: 'Overdue nonconformities', target: '0', owner_user_id: 'u_robin', review_due_at: inDays(18), status: 'active' },
+        { id: 1, title: 'All staff attest to the security policy set each year', measure: 'Attestations / personnel', target: '100%', owner_user_id: 'u_sam', review_due_at: iso(days(30)), status: 'achieved' },
     ];
     const soa = SOA().stats;
     const risk = RISKS().stats;
@@ -1092,19 +1094,19 @@ interface ObligationRow {
 
 const obligation = ({ id, title, kind, subject, owner, due_at, recur_months }: { id: number; title: string; kind: string; subject: string; owner: string | null; due_at: string; recur_months: number | null }): ObligationRow => ({
     id, organization_id: ORG, title, kind, subject, owner_user_id: owner, due_at, recur_months,
-    notify_offsets: [30, 7, 0], completed_at: null, completed_by: null, created_by: 'u_marieke',
+    notify_offsets: [30, 7, 0], completed_at: null, completed_by: null, created_by: 'u_alex',
     created_at: iso(days(120)), updated_at: iso(days(120)),
 });
 
 const TRAINING = () => {
     const publishedTotal = ISO_DOCS().documents.filter(d => d.status === 'published').length;
     const rows: [string, number, number, string | null][] = [
-        ['u_marieke', 8, 6, iso(days(51))],
-        ['u_joost', 8, 5, iso(days(49))],
-        ['u_farah', 8, 6, iso(days(51))],
-        ['u_pieter', 6, 3, null],
-        ['u_sanne', 8, 4, iso(days(12))],
-        ['u_ruben', 4, 2, null],
+        ['u_alex', 8, 6, iso(days(51))],
+        ['u_sam', 8, 5, iso(days(49))],
+        ['u_robin', 8, 6, iso(days(51))],
+        ['u_jordan', 6, 3, null],
+        ['u_casey', 8, 4, iso(days(12))],
+        ['u_taylor', 4, 2, null],
     ];
     const byId = Object.fromEntries(ORG_USERS().map(u => [u.id, u]));
     return {
@@ -1122,9 +1124,9 @@ const TRAINING = () => {
         // kinds from the server's OBLIGATION_KINDS (routes/compliance/isoProcess.js).
         // One open row per kind and subject: the store's unique index.
         obligations: [
-            obligation({ id: 3, title: 'Annual security awareness refresher', kind: 'training', subject: 'All personnel', owner: 'u_joost', due_at: iso(days(26)), recur_months: 12 }),
-            obligation({ id: 2, title: 'Quarterly access review — claims group', kind: 'access_review', subject: 'Claims group', owner: 'u_farah', due_at: iso(days(4)), recur_months: 3 }),
-            obligation({ id: 1, title: 'Annual supplier review', kind: 'supplier_review', subject: 'Processors', owner: 'u_joost', due_at: inDays(33), recur_months: 12 }),
+            obligation({ id: 3, title: 'Annual security awareness refresher', kind: 'training', subject: 'All personnel', owner: 'u_sam', due_at: iso(days(26)), recur_months: 12 }),
+            obligation({ id: 2, title: 'Quarterly access review — claims group', kind: 'access_review', subject: 'Claims group', owner: 'u_robin', due_at: iso(days(4)), recur_months: 3 }),
+            obligation({ id: 1, title: 'Annual supplier review', kind: 'supplier_review', subject: 'Processors', owner: 'u_sam', due_at: inDays(33), recur_months: 12 }),
         ],
     };
 };
@@ -1727,7 +1729,7 @@ const EVIDENCE = (state: State): EvidenceRow[] => {
     // with its timestamps is not a chain anybody would believe.
     push({
         check_id: null, subject_type: 'framework', subject_id: 'dora',
-        payload: { action: 'enable', framework_id: 'dora', regulation: 'DORA', by: 'u_marieke', at: iso(days(96)) },
+        payload: { action: 'enable', framework_id: 'dora', regulation: 'DORA', by: 'u_alex', at: iso(days(96)) },
         captured_at: iso(days(96)),
     });
     for (const c of state.soa.controls.filter((c): c is SoaControl & { entry: NonNullable<SoaControl['entry']> } => !!c.entry)) {
@@ -1846,7 +1848,7 @@ const AI_ACT_SIGNALS: Record<string, Record<string, unknown>> = {
     'agent:agent_claims': {
         contains_ai: true, customer_facing: false, generates_content: true, disclosure_present: true,
         marking_enabled: false, annex_iii_hint: true, annex_iii_categories: ['insurance'],
-        steps: { ai: [{ id: 'prompt', label: 'Schadebeoordeling', type: 'agent', path: [] }], generating: [] },
+        steps: { ai: [{ id: 'prompt', label: AGENT.claims, type: 'agent', path: [] }], generating: [] },
         surfaces: { published: true },
     },
     'agent:agent_helpdesk': {
@@ -1878,14 +1880,14 @@ interface AiActRow {
 
 const AI_ACT = (): AiActRow[] => ([
     {
-        target_kind: 'agent', target_id: 'agent_claims', title: 'Schadebeoordeling',
+        target_kind: 'agent', target_id: 'agent_claims', title: AGENT.claims,
         outcome: 'high_risk',
         answers: {
             art5: { answer: 'no', practices: [] },
             art50: { interacts: 'no', disclosure: 'yes', generates: 'yes', marking: 'no' },
             annex_iii: { answer: 'yes', category: 'insurance' },
         },
-        attested_by: 'u_marieke', attested_at: iso(days(38)),
+        attested_by: 'u_alex', attested_at: iso(days(38)),
         expires_at: new Date(now() - days(38) + days(365)).toISOString(),
         current: true,
         open_duties: ['art50_2_marking'],
@@ -1898,7 +1900,7 @@ const AI_ACT = (): AiActRow[] => ([
             art50: { interacts: 'yes', disclosure: 'no', generates: 'no', marking: 'unknown' },
             annex_iii: { answer: 'no', category: null },
         },
-        attested_by: 'u_farah', attested_at: iso(days(52)),
+        attested_by: 'u_robin', attested_at: iso(days(52)),
         expires_at: new Date(now() - days(52) + days(365)).toISOString(),
         current: true,
         open_duties: ['art50_1_disclosure'],
@@ -1914,7 +1916,7 @@ const AI_ACT = (): AiActRow[] => ([
             art50: { interacts: 'yes', disclosure: 'no', generates: 'yes', marking: 'no' },
             annex_iii: { answer: 'no', category: null },
         },
-        attested_by: 'u_marieke', attested_at: iso(days(395)),
+        attested_by: 'u_alex', attested_at: iso(days(395)),
         expires_at: iso(days(30)),
         current: false,
         open_duties: ['art50_1_disclosure', 'art50_2_marking'],
@@ -1945,8 +1947,8 @@ const CUSTOM_FRAMEWORK = (): CustomFramework => ({
     id: 'cfw_vvg',
     organization_id: ORG,
     code: 'VVG',
-    name: 'Gedragscode Verzekeraars',
-    reference: 'Verbond van Verzekeraars, editie 2024',
+    name: pick({ en: 'Insurers code of conduct', nl: 'Gedragscode Verzekeraars' }),
+    reference: pick({ en: 'Insurers association, 2024 edition', nl: 'Insurers association, editie 2024' }),
     description: 'The sector code the office signed up to. Nine articles; the five that touch the workspace are attested here every year.',
     attestation_valid_months: 12,
     status: 'active',
@@ -1955,11 +1957,11 @@ const CUSTOM_FRAMEWORK = (): CustomFramework => ({
 });
 
 const CUSTOM_CHECKS = () => (([
-    ['3.1', 'Klantbelang centraal in geautomatiseerde beoordelingen', 'A handler decides every claim; the assistant drafts.', 'high', true, 'AIA-Art26-human-oversight'],
-    ['4.2', 'Transparante communicatie over AI-gebruik', 'Policyholders are told when they are reading AI-drafted text.', 'high', true, null],
-    ['5.1', 'Zorgvuldige omgang met gezondheidsgegevens', 'Health data in disability complaints stays with EU-hosted models.', 'critical', true, null],
-    ['6.3', 'Klachtbehandeling binnen de Kifid-termijn', 'Complaint files are assembled within the Kifid response window.', 'medium', false, null],
-    ['8.1', 'Jaarlijkse zelfevaluatie vastgelegd', 'The board records the yearly self-evaluation against this code.', 'medium', true, null],
+    ['3.1', pick({ en: 'Customer interest first in automated assessments', nl: 'Klantbelang centraal in geautomatiseerde beoordelingen' }), 'A handler decides every claim; the assistant drafts.', 'high', true, 'AIA-Art26-human-oversight'],
+    ['4.2', pick({ en: 'Transparent communication about AI use', nl: 'Transparante communicatie over AI-gebruik' }), 'Policyholders are told when they are reading AI-drafted text.', 'high', true, null],
+    ['5.1', pick({ en: 'Careful handling of health data', nl: 'Zorgvuldige omgang met gezondheidsgegevens' }), 'Health data in disability complaints stays with EU-hosted models.', 'critical', true, null],
+    ['6.3', pick({ en: 'Complaint handling within the ombudsman response window', nl: 'Klachtbehandeling binnen de termijn van de ombudsman' }), 'Complaint files are assembled within the ombudsman response window.', 'medium', false, null],
+    ['8.1', pick({ en: 'Yearly self-evaluation recorded', nl: 'Jaarlijkse zelfevaluatie vastgelegd' }), 'The board records the yearly self-evaluation against this code.', 'medium', true, null],
 ] as [string, string, string, string, boolean, string | null][]).map(([ref, title, description, severity, evidence_required, mapped_check_id], i) => ({
     id: `cck_${ref.replace('.', '_')}`,
     framework_id: 'cfw_vvg',
@@ -1982,7 +1984,7 @@ interface CustomAttestation {
 const CUSTOM_ATTESTATIONS = (): CustomAttestation[] => ([
     { ref: '3.1', outcome: 'compliant', at: 31, statement: 'Every claim decision is taken by a handler; the assistant output carries a draft banner.' },
     { ref: '4.2', outcome: 'partial', at: 31, statement: 'The letter template says so; the chat surface does not yet (see AI Act Art. 50).' },
-    { ref: '5.1', outcome: 'compliant', at: 31, statement: 'Klachtdossier is pinned to EU-hosted models; Privacy Shield redacts health terms outbound.' },
+    { ref: '5.1', outcome: 'compliant', at: 31, statement: `${AGENT.complaints} is pinned to EU-hosted models; Privacy Shield redacts health terms outbound.` },
     { ref: '8.1', outcome: 'compliant', at: 31, statement: 'Recorded in the management review of 47 days ago.' },
 ].map(({ ref, outcome, at, statement }, i) => ({
     id: `att_${i + 1}`,
@@ -1992,7 +1994,7 @@ const CUSTOM_ATTESTATIONS = (): CustomAttestation[] => ([
     outcome,
     statement,
     evidence_refs: [`Management review ${new Date(now() - days(47)).toISOString().slice(0, 10)}`],
-    attested_by: 'u_marieke',
+    attested_by: 'u_alex',
     attested_at: iso(days(at)),
     expires_at: new Date(now() - days(at) + days(365)).toISOString(),
     superseded_at: null,
@@ -2438,9 +2440,9 @@ export const ROUTES = {
             // A request a DPO recorded in person is verified by that act.
             identity_status: 'verified_manual',
             identity_verified_at: created,
-            created_by: 'u_marieke',
+            created_by: 'u_alex',
             notes: (body?.notes as string) || '',
-            timeline: [tl('received', created), tl('identity_verified', created, { by: 'u_marieke' })],
+            timeline: [tl('received', created), tl('identity_verified', created, { by: 'u_alex' })],
         });
         state.dsr = [row, ...state.dsr];
         reseal(state);
@@ -2477,7 +2479,7 @@ export const ROUTES = {
     'POST /api/dsr/requests/:id/start': ({ state, params }: Ctx) => {
         const at = new Date().toISOString();
         state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
-            ? { ...r, status: 'in_progress', started_at: r.started_at || at, started_by: 'u_marieke', timeline: [...r.timeline, tl('started', at, { by: 'u_marieke' })] }
+            ? { ...r, status: 'in_progress', started_at: r.started_at || at, started_by: 'u_alex', timeline: [...r.timeline, tl('started', at, { by: 'u_alex' })] }
             : r));
         return dsrListRow(state.dsr.find(r => sameId(r.id, params.id)) as DsrRow);
     },
@@ -2494,8 +2496,8 @@ export const ROUTES = {
         const until = dsrDueFrom(r.created_at, DSR_EXTENDED_MONTHS);
         const next = {
             ...r, extended_until: until, due_at: until, extension_reason: String(body.reason),
-            extended_by: 'u_marieke', extended_at: at,
-            timeline: [...r.timeline, tl('extended', at, { by: 'u_marieke' }), tl('extension_emailed', at)],
+            extended_by: 'u_alex', extended_at: at,
+            timeline: [...r.timeline, tl('extended', at, { by: 'u_alex' }), tl('extension_emailed', at)],
         };
         state.dsr = state.dsr.map(x => (x.id === r.id ? next : x));
         reseal(state);
@@ -2508,8 +2510,8 @@ export const ROUTES = {
                 ...r, identity_status: 'verified_manual', identity_verified_at: at,
                 timeline: [
                     ...r.timeline,
-                    tl('identity_verified', at, { by: 'u_marieke' }),
-                    ...(body?.note ? [tl('note', at, { by: 'u_marieke', note: String(body.note) })] : []),
+                    tl('identity_verified', at, { by: 'u_alex' }),
+                    ...(body?.note ? [tl('note', at, { by: 'u_alex', note: String(body.note) })] : []),
                 ],
             }
             : r));
@@ -2521,9 +2523,9 @@ export const ROUTES = {
         state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? {
                 ...r, status, result_summary: (body?.result_summary as string) || r.result_summary, pending: false,
-                fulfilled_at: at, fulfilled_by: 'u_marieke',
+                fulfilled_at: at, fulfilled_by: 'u_alex',
                 timeline: [
-                    ...r.timeline, tl(status, at, { by: 'u_marieke' }),
+                    ...r.timeline, tl(status, at, { by: 'u_alex' }),
                     ...(body?.notify_subject === false ? [] : [tl('result_emailed', at)]),
                 ],
             }
@@ -2539,7 +2541,7 @@ export const ROUTES = {
         // routes/dsr.js: the request id and its type, never the address.
         logAccess(state, {
             action: 'dsr.subject_viewed', target_type: 'dsr_request', target_id: String(r.id),
-            changed_by: 'u_marieke', new_values: { request_type: r.request_type },
+            changed_by: 'u_alex', new_values: { request_type: r.request_type },
         });
         return dsrDetail(r);
     },
@@ -2554,7 +2556,7 @@ export const ROUTES = {
     'POST /api/compliance/ropa/review': ({ state }: Ctx) => {
         const at = new Date().toISOString();
         state.settings = { ...state.settings, ropa_reviewed_at: at };
-        return { ok: true, reviewed_at: at, reviewer: 'u_marieke' };
+        return { ok: true, reviewed_at: at, reviewer: 'u_alex' };
     },
     'POST /api/compliance/settings/scc': ({ state, body }: Ctx) => {
         const list = new Set(state.settings.scc_confirmed_operators || []);
@@ -2669,7 +2671,7 @@ export const ROUTES = {
                 // As riskStore.update: every write bumps updated_at, and the first
                 // move to 'accepted' stamps who (the demo's admin) and when.
                 const next = { ...r, ...(body || {}), updated_at: new Date(now()).toISOString() };
-                if (next.status === 'accepted' && !r.accepted_at) Object.assign(next, { accepted_at: next.updated_at, accepted_by: 'u_marieke' });
+                if (next.status === 'accepted' && !r.accepted_at) Object.assign(next, { accepted_at: next.updated_at, accepted_by: 'u_alex' });
                 next.score = (next.likelihood || 0) * (next.impact || 0);
                 return next;
             }),
@@ -2685,9 +2687,9 @@ export const ROUTES = {
 
     'GET /api/compliance/iso/audit': ({ state }: Ctx) => state.audit,
     'GET /api/compliance/iso/audit/independence/:userId': ({ params }: Ctx) => ({
-        // Joost owns no control in the audited scope, so he can audit it.
-        independent: params.userId === 'u_joost',
-        owns_controls: params.userId === 'u_joost' ? [] : ['A.8.2', 'A.8.15'],
+        // Sam owns no control in the audited scope, so he can audit it.
+        independent: params.userId === 'u_sam',
+        owns_controls: params.userId === 'u_sam' ? [] : ['A.8.2', 'A.8.15'],
     }),
     'POST /api/compliance/iso/audits': ({ state, body }: Ctx) => {
         const a = { id: nextId(state.audit.audits), status: 'planned', organization_id: ORG, closed_at: null, ...(body || {}) } as State['audit']['audits'][number];
@@ -2758,7 +2760,7 @@ export const ROUTES = {
         if (!existing) return null;
         if (existing.completed_at) return { completed: existing, next: null };
         const at = new Date().toISOString();
-        const completed = { ...existing, completed_at: at, completed_by: 'u_marieke', updated_at: at };
+        const completed = { ...existing, completed_at: at, completed_by: 'u_alex', updated_at: at };
         let next: ObligationRow | null = null;
         if (existing.recur_months) {
             const due = new Date(existing.due_at);
@@ -2804,7 +2806,7 @@ export const ROUTES = {
             target_kind: params.kind, target_id: params.id,
             title: existing?.title || params.id,
             outcome, answers,
-            attested_by: 'u_marieke', attested_at: at,
+            attested_by: 'u_alex', attested_at: at,
             expires_at: outcome === 'not_applicable' ? null : new Date(now() + days(365)).toISOString(),
             current: true,
             open_duties: outcome === 'transparency' && signals && !signals.disclosure_present ? ['art50_1_disclosure'] : [],
@@ -2917,7 +2919,7 @@ export const ROUTES = {
             outcome,
             statement: (body?.statement as string) || '',
             evidence_refs: refs,
-            attested_by: 'u_marieke',
+            attested_by: 'u_alex',
             attested_at: at,
             expires_at: months == null ? null : new Date(now() + days(Math.round(months * 30.4))).toISOString(),
             superseded_at: null,
@@ -2947,7 +2949,7 @@ export const ROUTES = {
             classification,
             statement: `[${classification}] ${body?.statement || ''}`.trim(),
             evidence_refs: (Array.isArray(body?.evidence_refs) ? body.evidence_refs : []) as string[],
-            attested_by: 'u_farah',
+            attested_by: 'u_robin',
             attested_at: at,
             expires_at: new Date(now() + days(365)).toISOString(),
             superseded_at: null,
@@ -2997,7 +2999,7 @@ function DOC_BODY(doc: { title: string; owner_user_id: string; status: string; c
         '',
         '## Scope',
         '',
-        'This document applies to Van Dael Assurantiën B.V. and to every system used to advise on, sell or administer insurance for our clients, including the AI workspace.',
+        'This document applies to Meridian Insurance Group and to every system used to advise on, sell or administer insurance for our clients, including the AI workspace.',
         '',
         '## Policy',
         '',

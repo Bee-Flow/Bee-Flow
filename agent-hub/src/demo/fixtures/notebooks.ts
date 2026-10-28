@@ -10,6 +10,7 @@
  */
 
 import { COMMON_ROUTES, DEMO_USER, daysAgo } from './common';
+import { pick } from '../lang';
 
 const NOTEBOOK_ID = 'nb_demo_tender';
 
@@ -22,15 +23,46 @@ const source = (id: string, name: string, type: string, wordCount: number) => ({
 });
 
 const SOURCES = () => ([
-    source('src_1', 'Aanbestedingsleidraad 2026-114.pdf', 'pdf', 14820),
-    source('src_2', 'Programma van eisen.docx', 'docx', 6410),
-    source('src_3', 'Nota van inlichtingen (ronde 1).pdf', 'pdf', 3180),
-    source('src_4', 'Onze referentieprojecten.xlsx', 'xlsx', 940),
-    source('src_5', 'ISO 27001 certificaat.pdf', 'pdf', 610),
-    source('src_6', 'Verwerkersovereenkomst (concept).docx', 'docx', 4275),
+    source('src_1', pick({ en: 'Tender guidelines 2026-114.pdf', nl: 'Aanbestedingsleidraad 2026-114.pdf' }), 'pdf', 14820),
+    source('src_2', pick({ en: 'Requirements specification.docx', nl: 'Programma van eisen.docx' }), 'docx', 6410),
+    source('src_3', pick({ en: 'Clarification notes (round 1).pdf', nl: 'Nota van inlichtingen (ronde 1).pdf' }), 'pdf', 3180),
+    source('src_4', pick({ en: 'Our reference projects.xlsx', nl: 'Onze referentieprojecten.xlsx' }), 'xlsx', 940),
+    source('src_5', pick({ en: 'ISO 27001 certificate.pdf', nl: 'ISO 27001 certificaat.pdf' }), 'pdf', 610),
+    source('src_6', pick({ en: 'Data processing agreement (draft).docx', nl: 'Verwerkersovereenkomst (concept).docx' }), 'docx', 4275),
 ]);
 
-const DOCUMENT_HTML = `
+const DOCUMENT_HTML = pick({
+    en: `
+<h1>Tender 2026-114 — draft response</h1>
+<p><em>Compiled from six source documents. Every claim below links back to its source.</em></p>
+
+<h2>1. Understanding the assignment</h2>
+<p>The contracting authority asks for a privacy-friendly AI workspace for about 400 employees,
+with processing inside the EU and demonstrable control over data processing. The guidelines state this
+as a knock-out criterion, not as a wish.</p>
+
+<h2>2. Hard requirements and where we stand</h2>
+<ul>
+  <li><strong>EU data residency</strong> — required. We run entirely inside the region the customer chooses.</li>
+  <li><strong>ISO 27001</strong> — required. Certificate attached, valid until March 2027.</li>
+  <li><strong>Data processing agreement</strong> — the draft text differs from our standard on two points;
+      see section 6.</li>
+  <li><strong>Implementation lead time</strong> — at most eight weeks. Feasible based on the two
+      reference projects of comparable size.</li>
+</ul>
+
+<h2>3. Open points for the second round of clarifications</h2>
+<ol>
+  <li>Does “processing inside the EU” also cover backups and logging?</li>
+  <li>Is a self-hosted variant allowed, or must it be a SaaS service?</li>
+  <li>Who is the data controller for employees’ conversation data?</li>
+</ol>
+
+<h2>4. Risks</h2>
+<p>The biggest risk is not in the technology but in the schedule: the clarification round closes
+eleven days before the submission date, while two of the three open points affect the scope.</p>
+`.trim(),
+    nl: `
 <h1>Tender 2026-114 — conceptantwoord</h1>
 <p><em>Samengesteld uit zes brondocumenten. Elke bewering hieronder is aanklikbaar naar de bron.</em></p>
 
@@ -59,7 +91,8 @@ knock-outcriterium, niet als wens.</p>
 <h2>4. Risico’s</h2>
 <p>Het grootste risico zit niet in de techniek maar in de planning: de nota van inlichtingen sluit
 elf dagen vóór de inschrijfdatum, terwijl twee van de drie open punten de scope raken.</p>
-`.trim();
+`.trim(),
+});
 
 interface Citation { index: number; sourceId: string; title: string; page: number }
 interface ChatMessage { id: string; role: string; content: string; createdAt: string; citations?: Citation[] }
@@ -68,14 +101,27 @@ const CHAT = (): ChatMessage[] => ([
     {
         id: 'msg_1',
         role: 'user',
-        content: 'Welke eisen zijn knock-out en welke zijn wensen?',
+        content: pick({ en: 'Which requirements are knock-out and which are wishes?', nl: 'Welke eisen zijn knock-out en welke zijn wensen?' }),
         createdAt: daysAgo(4),
     },
     {
         id: 'msg_2',
         role: 'assistant',
         createdAt: daysAgo(4),
-        content: [
+        content: pick({
+            en: [
+                'Four requirements are knock-out (grounds for exclusion if not met):',
+                '',
+                '1. Processing inside the EU — guidelines §3.2 [1]',
+                '2. ISO 27001 or equivalent — guidelines §3.4 [1]',
+                '3. Signed data processing agreement before award — requirements §7 [2]',
+                '4. Implementation within eight weeks after award — requirements §9 [2]',
+                '',
+                'The rest of §4 of the requirements is worded as a wish and is scored, not excluded. ',
+                'Note: in the clarification notes, question 14 was answered with “EU includes backup and ',
+                'logging” — which makes the backup region part of the knock-out. [3]',
+            ].join('\n'),
+            nl: [
             'Vier eisen zijn knock-out (uitsluitingsgrond bij niet-voldoen):',
             '',
             '1. Verwerking binnen de EU — leidraad §3.2 [1]',
@@ -87,10 +133,11 @@ const CHAT = (): ChatMessage[] => ([
             'Let op: in de nota van inlichtingen is vraag 14 beantwoord met “EU omvat ook back-up en ',
             'logging” — dat maakt back-upregio onderdeel van de knock-out. [3]',
         ].join('\n'),
+        }),
         citations: [
-            { index: 1, sourceId: 'src_1', title: 'Aanbestedingsleidraad 2026-114.pdf', page: 11 },
-            { index: 2, sourceId: 'src_2', title: 'Programma van eisen.docx', page: 6 },
-            { index: 3, sourceId: 'src_3', title: 'Nota van inlichtingen (ronde 1).pdf', page: 4 },
+            { index: 1, sourceId: 'src_1', title: SOURCES()[0].name, page: 11 },
+            { index: 2, sourceId: 'src_2', title: SOURCES()[1].name, page: 6 },
+            { index: 3, sourceId: 'src_3', title: SOURCES()[2].name, page: 4 },
         ],
     },
 ]);
@@ -121,9 +168,9 @@ function notebook(): Notebook {
         // NotebooksPage filters on `nb.name` and renders `selected.name`;
         // a `title`-only fixture crashed the list with
         // "Cannot read properties of undefined (reading 'toLowerCase')".
-        name: 'Tender 2026-114 — privacy-vriendelijke AI-werkplek',
-        title: 'Tender 2026-114 — privacy-vriendelijke AI-werkplek',
-        description: 'Zes brondocumenten, één conceptantwoord, met bronvermelding per bewering.',
+        name: pick({ en: 'Tender 2026-114 — privacy-friendly AI workspace', nl: 'Tender 2026-114 — privacy-vriendelijke AI-werkplek' }),
+        title: pick({ en: 'Tender 2026-114 — privacy-friendly AI workspace', nl: 'Tender 2026-114 — privacy-vriendelijke AI-werkplek' }),
+        description: pick({ en: 'Six source documents, one draft response, with a source for every claim.', nl: 'Zes brondocumenten, één conceptantwoord, met bronvermelding per bewering.' }),
         // NotebooksPage reads `data.notebook.documentContent` when it opens a
         // notebook; `content`/`html` are carried for the list preview only. A
         // fixture without documentContent opens to a blank editor and the
@@ -144,11 +191,13 @@ function notebook(): Notebook {
 
 function siblings(): Notebook[] {
     const base = notebook();
+    const research = pick({ en: 'Market survey of EU AI vendors', nl: 'Marktverkenning EU AI-leveranciers' });
+    const dpia = pick({ en: 'DPIA — AI assistant for customer service', nl: 'DPIA — AI-assistent voor de klantenservice' });
     return [
         // Exactly one sibling is pinned so the pin affordance is visible on
         // the demo grid without every card carrying it.
-        { ...base, id: 'nb_demo_research', name: 'Marktverkenning EU AI-leveranciers', title: 'Marktverkenning EU AI-leveranciers', description: 'Wie levert wat, en onder welke licentie.', sources: SOURCES().slice(0, 3), messages: [], pinnedAt: daysAgo(3), createdAt: daysAgo(60), updatedAt: daysAgo(21) },
-        { ...base, id: 'nb_demo_dpia', name: 'DPIA — AI-assistent voor de klantenservice', title: 'DPIA — AI-assistent voor de klantenservice', description: 'Risico-analyse en mitigaties.', sources: SOURCES().slice(2, 5), messages: [], createdAt: daysAgo(120), updatedAt: daysAgo(45) },
+        { ...base, id: 'nb_demo_research', name: research, title: research, description: pick({ en: 'Who supplies what, and under which licence.', nl: 'Wie levert wat, en onder welke licentie.' }), sources: SOURCES().slice(0, 3), messages: [], pinnedAt: daysAgo(3), createdAt: daysAgo(60), updatedAt: daysAgo(21) },
+        { ...base, id: 'nb_demo_dpia', name: dpia, title: dpia, description: pick({ en: 'Risk analysis and mitigations.', nl: 'Risico-analyse en mitigaties.' }), sources: SOURCES().slice(2, 5), messages: [], createdAt: daysAgo(120), updatedAt: daysAgo(45) },
     ];
 }
 

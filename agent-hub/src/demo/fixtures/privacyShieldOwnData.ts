@@ -2,7 +2,7 @@
  * "Your own data" for the Privacy Shield demo: the organisation's own kinds
  * of data, their test sets, and a canned test bench.
  *
- * Same fictional insurer as privacyShield.js (Van Dael Assurantiën). Three
+ * Same fictional insurer as privacyShield.js (Meridian Insurance). Three
  * types, one per method, so every row state of the tab is on screen:
  *   - "Polisnummer", a fixed format (PN- and seven digits), tested clean;
  *   - "Projectnamen", recognised by AI, one miss and one false alarm;
@@ -15,6 +15,8 @@
  */
 
 type Span = { start: number; end: number };
+import { pick } from '../lang';
+
 type Sentence = { id: string; text: string; gold?: Span[]; origin?: string };
 type DemoType = {
     id: string;
@@ -27,20 +29,25 @@ type DemoType = {
 };
 type Ctx = { state: { shield: Record<string, unknown> }; body: Record<string, unknown> | null };
 
+const LEGACY_TERM = pick({ en: 'claimfile', nl: 'schadedossier' });
+
 export const POLIS_ID = 'cdt_de0000a001';
 export const PROJECT_ID = 'cdt_de0000a002';
 export const LEGACY_ID = 'cdt_de0000a003';
 
-const DEMO_PROJECTS = ['Zilvermeeuw', 'Kraanvogel', 'Grutto', 'Tureluur'];
+const DEMO_PROJECTS = pick({
+    en: ['Silvergull', 'Cranewing', 'Godwit', 'Redshank'],
+    nl: ['Zilvermeeuw', 'Kraanvogel', 'Grutto', 'Tureluur'],
+});
 
 export function ownDataTypes(at: string) {
     return [
         {
             id: POLIS_ID,
-            name: 'Polisnummer',
-            description: 'Het nummer van een polis: PN- gevolgd door zeven cijfers.',
+            name: pick({ en: 'Policy number', nl: 'Polisnummer' }),
+            description: pick({ en: 'The number of a policy: PN- followed by seven digits.', nl: 'Het nummer van een polis: PN- gevolgd door zeven cijfers.' }),
             method: 'pattern',
-            tokenKey: 'polisnummer',
+            tokenKey: pick({ en: 'policy_number', nl: 'polisnummer' }),
             pattern: { source: '\\bPN-\\d{7}\\b', caseSensitive: false, engine: 're2' },
             quality: { found: 12, total: 12, falseAlarms: 0, sentences: 14, at },
             origin: 'created',
@@ -49,11 +56,11 @@ export function ownDataTypes(at: string) {
         },
         {
             id: PROJECT_ID,
-            name: 'Projectnamen',
-            description: 'De interne namen van onze projecten, meestal een vogelnaam.',
+            name: pick({ en: 'Project names', nl: 'Projectnamen' }),
+            description: pick({ en: 'The internal names of our projects, usually a bird name.', nl: 'De interne namen van onze projecten, meestal een vogelnaam.' }),
             method: 'ai',
-            tokenKey: 'projectnaam',
-            ai: { prompt: 'interne projectnaam', floor: 0.55 },
+            tokenKey: pick({ en: 'project_name', nl: 'projectnaam' }),
+            ai: { prompt: pick({ en: 'internal project name', nl: 'interne projectnaam' }), floor: 0.55 },
             quality: { found: 9, total: 10, falseAlarms: 1, sentences: 12, at },
             origin: 'created',
             createdAt: at,
@@ -61,11 +68,11 @@ export function ownDataTypes(at: string) {
         },
         {
             id: LEGACY_ID,
-            name: 'schadedossier',
+            name: LEGACY_TERM,
             description: '',
             method: 'words',
             tokenKey: 'customterm',
-            words: { values: ['schadedossier'], caseSensitive: false, wholeWord: true },
+            words: { values: [LEGACY_TERM], caseSensitive: false, wholeWord: true },
             origin: 'migrated',
             legacy: true,
         },
@@ -82,20 +89,20 @@ export function ownDataTests(at: string) {
             examples: ['PN-4471902', 'PN-0038215', 'PN-7720014'],
             keepFixed: ['PN-'],
             sentences: [
-                marked('s_polis01', 'Kunt u polis PN-4471902 opzeggen per 1 januari?', 'PN-4471902'),
-                marked('s_polis02', 'De schade valt onder PN-0038215, dekking all-risk.', 'PN-0038215'),
-                marked('s_polis03', 'PN-7720014 is vorige week verlengd.', 'PN-7720014'),
-                s('s_polis04', 'Het formulier heet PN-A en hoort bij de aanvraag.', [], 'nearmiss'),
+                marked('s_polis01', pick({ en: 'Can you cancel policy PN-4471902 as of 1 January?', nl: 'Kunt u polis PN-4471902 opzeggen per 1 januari?' }), 'PN-4471902'),
+                marked('s_polis02', pick({ en: 'The damage falls under PN-0038215, all-risk cover.', nl: 'De schade valt onder PN-0038215, dekking all-risk.' }), 'PN-0038215'),
+                marked('s_polis03', pick({ en: 'PN-7720014 was renewed last week.', nl: 'PN-7720014 is vorige week verlengd.' }), 'PN-7720014'),
+                s('s_polis04', pick({ en: 'The form is called PN-A and belongs to the application.', nl: 'Het formulier heet PN-A en hoort bij de aanvraag.' }), [], 'nearmiss'),
             ],
             updatedAt: at,
         },
         [PROJECT_ID]: {
-            examples: ['Zilvermeeuw', 'Kraanvogel', 'Grutto'],
+            examples: DEMO_PROJECTS.slice(0, 3),
             sentences: [
-                marked('s_proj01', 'Voor Zilvermeeuw plannen we de livegang in maart.', 'Zilvermeeuw'),
-                marked('s_proj02', 'Het team van Kraanvogel zit op de derde verdieping.', 'Kraanvogel'),
-                marked('s_proj03', 'Grutto loopt twee weken uit.', 'Grutto'),
-                s('s_proj04', 'Op het strand zagen we een grutto en een meeuw.', [], 'nearmiss'),
+                marked('s_proj01', pick({ en: `We plan the go-live of ${DEMO_PROJECTS[0]} for March.`, nl: `Voor ${DEMO_PROJECTS[0]} plannen we de livegang in maart.` }), DEMO_PROJECTS[0]),
+                marked('s_proj02', pick({ en: `The ${DEMO_PROJECTS[1]} team sits on the third floor.`, nl: `Het team van ${DEMO_PROJECTS[1]} zit op de derde verdieping.` }), DEMO_PROJECTS[1]),
+                marked('s_proj03', pick({ en: `${DEMO_PROJECTS[2]} is running two weeks late.`, nl: `${DEMO_PROJECTS[2]} loopt twee weken uit.` }), DEMO_PROJECTS[2]),
+                s('s_proj04', pick({ en: 'On the beach we saw a godwit and a gull.', nl: 'Op het strand zagen we een grutto en een meeuw.' }), [], 'nearmiss'),
             ],
             updatedAt: at,
         },
@@ -207,13 +214,22 @@ function previewOf(body: Record<string, unknown>) {
     };
 }
 
-const TEMPLATES = [
-    'Kunt u {x} vandaag nog controleren?',
-    'Zoals besproken sturen we {x} door naar de afdeling schade.',
-    'In de notitie van dinsdag staat {x} vermeld.',
-    'Graag een update over {x} voor het einde van de week.',
-    'Mevrouw belde over {x} en vroeg om terugbelverzoek.',
-];
+const TEMPLATES = pick({
+    en: [
+        'Can you check {x} today?',
+        'As discussed, we are forwarding {x} to the claims department.',
+        'Tuesday\'s note mentions {x}.',
+        'Please send an update on {x} before the end of the week.',
+        'The customer called about {x} and asked for a call back.',
+    ],
+    nl: [
+        'Kunt u {x} vandaag nog controleren?',
+        'Zoals besproken sturen we {x} door naar de afdeling schade.',
+        'In de notitie van dinsdag staat {x} vermeld.',
+        'Graag een update over {x} voor het einde van de week.',
+        'Mevrouw belde over {x} en vroeg om terugbelverzoek.',
+    ],
+});
 
 function assistOf(body: Record<string, unknown>) {
     const preview = previewOf(body);
@@ -228,7 +244,7 @@ function assistOf(body: Record<string, unknown>) {
         outbound: preview.outbound,
         suggestedMethod: null,
         sentences,
-        nearMisses: [s('s_demo_n1', 'Het formulier en de bijlage zijn compleet.', [], 'nearmiss')],
+        nearMisses: [s('s_demo_n1', pick({ en: 'The form and the attachment are complete.', nl: 'Het formulier en de bijlage zijn compleet.' }), [], 'nearmiss')],
         candidates: {
             patterns: type.method === 'pattern' && examples[0] ? [{ source: `\\b${escapeRe(examples[0].replace(/\d/g, '0')).replace(/0+/g, m => `\\d{${m.length}}`)}\\b`, describe: 'The same shape as your examples' }] : [],
             aiLabels: type.method === 'ai' && type.name ? [type.name.toLowerCase()] : [],

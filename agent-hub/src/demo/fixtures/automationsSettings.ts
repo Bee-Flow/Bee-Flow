@@ -12,7 +12,7 @@
 
 import { DEMO_CAPABILITIES, DEMO_ENTITLEMENTS, daysAgo } from './common';
 import { recordRun } from './automationsRuns';
-import { ACCOUNT_MANAGERS, FINANCE, GROUPS, ME, PEOPLE, SANNE, type DemoGroup, type DemoPerson } from './automationsPeople';
+import { ACCOUNT_MANAGERS, FINANCE, GROUPS, ME, PEOPLE, CASEY, type DemoGroup, type DemoPerson } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
 type Role = 'run' | 'view' | 'edit';
@@ -45,7 +45,7 @@ const share = (who: DemoPerson | DemoGroup, role: Role): ShareRow => ({
 
 export function seedShares(): Record<string, ShareRow[]> {
     return {
-        auto_demo_spend_report: [share(FINANCE, 'run'), share(SANNE, 'edit')],
+        auto_demo_spend_report: [share(FINANCE, 'run'), share(CASEY, 'edit')],
         auto_demo_intake: [share(ACCOUNT_MANAGERS, 'edit')],
         auto_demo_supplier: [share(ME, 'edit'), share(FINANCE, 'run')],
     };
@@ -109,7 +109,7 @@ const USAGE_VALUES: Record<string, Array<[string, number]>> = {
     path: [['/Invoices', 41], ['/Finance/Reports', 17], ['/Clients', 12], ['/Shared/Contracts', 5]],
     folder: [['/Invoices', 33], ['/Clients', 21], ['/Finance/Reports', 9]],
     query: [['from:(billing OR invoice OR receipt) newer_than:7d', 12], ['has:attachment subject:invoice', 7], ['from:noreply newer_than:1d', 3]],
-    to: [['finance@example.com', 26], ['team@example.com', 14], ['s.deboer@example.com', 6]],
+    to: [['finance@example.com', 26], ['team@example.com', 14], ['s.hayes@example.com', 6]],
     room: [['Finance', 19], ['Approvals', 11], ['Team', 4]],
 };
 

@@ -27,10 +27,10 @@ const MEETING_ID = 'tr_demo_platform_review';
  * what makes this look like a finished note rather than a raw transcript.
  */
 const SPEAKERS = () => ([
-    { id: 'Sanne de Vries', name: 'Sanne de Vries', color: '#3B82F6' },
-    { id: 'Ruben Bakker', name: 'Ruben Bakker', color: '#EC4899' },
-    { id: 'Iris Hoekstra', name: 'Iris Hoekstra', color: '#F59E0B' },
-    { id: 'Daan Willemsen', name: 'Daan Willemsen', color: '#10B981' },
+    { id: 'Casey Hayes', name: 'Casey Hayes', color: '#3B82F6' },
+    { id: 'Taylor Rivera', name: 'Taylor Rivera', color: '#EC4899' },
+    { id: 'Quinn Ellis', name: 'Quinn Ellis', color: '#F59E0B' },
+    { id: 'Riley Fox', name: 'Riley Fox', color: '#10B981' },
 ]);
 
 /**
@@ -39,19 +39,19 @@ const SPEAKERS = () => ([
  * from these, so they have to be internally consistent.
  */
 const SEGMENTS = () => ([
-    { start: 6, end: 21, speaker: 'Sanne de Vries', text: 'Right — the point of today is to decide whether we roll the new intake flow out to the whole team next sprint, or keep it with the pilot group for another two weeks.' },
-    { start: 22, end: 44, speaker: 'Ruben Bakker', text: 'From my side the pilot has gone well. Fourteen people used it last week, and the only complaint was that the confirmation step was easy to miss on mobile.' },
-    { start: 45, end: 58, speaker: 'Iris Hoekstra', text: 'That matches what I heard. Nobody asked to go back to the old form, which is the bit I care about.' },
-    { start: 59, end: 92, speaker: 'Daan Willemsen', text: 'The thing I would want before a wide rollout is the audit trail. At the moment we log that a document was filed, but not who approved it. If we go org-wide and someone asks in three months, we cannot answer.' },
-    { start: 93, end: 118, speaker: 'Sanne de Vries', text: 'How much work is that, realistically?' },
-    { start: 119, end: 151, speaker: 'Daan Willemsen', text: 'A day, maybe a day and a half. The approval step already carries the user; it just is not written to the run log. I would rather do it before rollout than after.' },
-    { start: 152, end: 176, speaker: 'Ruben Bakker', text: 'Then let us do that. It is one sprint item, and it removes the only objection I would expect from legal.' },
-    { start: 177, end: 205, speaker: 'Sanne de Vries', text: 'Agreed. So: Daan adds the approver to the audit log this sprint, and we roll out to everyone the sprint after. Ruben, can you fix the mobile confirmation step at the same time?' },
-    { start: 206, end: 218, speaker: 'Ruben Bakker', text: 'Yes. It is a layout fix, not a logic one — half a day.' },
-    { start: 219, end: 244, speaker: 'Iris Hoekstra', text: 'One more thing. Do we tell the pilot group they are staying on it for another two weeks? They were told it was two weeks total, and we are now at four.' },
-    { start: 245, end: 268, speaker: 'Sanne de Vries', text: 'Fair. I will send a note today explaining why and what changes. Anything else before we close?' },
-    { start: 269, end: 279, speaker: 'Daan Willemsen', text: 'Nothing from me.' },
-    { start: 280, end: 291, speaker: 'Sanne de Vries', text: 'Good. Thanks everyone.' },
+    { start: 6, end: 21, speaker: 'Casey Hayes', text: 'Right — the point of today is to decide whether we roll the new intake flow out to the whole team next sprint, or keep it with the pilot group for another two weeks.' },
+    { start: 22, end: 44, speaker: 'Taylor Rivera', text: 'From my side the pilot has gone well. Fourteen people used it last week, and the only complaint was that the confirmation step was easy to miss on mobile.' },
+    { start: 45, end: 58, speaker: 'Quinn Ellis', text: 'That matches what I heard. Nobody asked to go back to the old form, which is the bit I care about.' },
+    { start: 59, end: 92, speaker: 'Riley Fox', text: 'The thing I would want before a wide rollout is the audit trail. At the moment we log that a document was filed, but not who approved it. If we go org-wide and someone asks in three months, we cannot answer.' },
+    { start: 93, end: 118, speaker: 'Casey Hayes', text: 'How much work is that, realistically?' },
+    { start: 119, end: 151, speaker: 'Riley Fox', text: 'A day, maybe a day and a half. The approval step already carries the user; it just is not written to the run log. I would rather do it before rollout than after.' },
+    { start: 152, end: 176, speaker: 'Taylor Rivera', text: 'Then let us do that. It is one sprint item, and it removes the only objection I would expect from legal.' },
+    { start: 177, end: 205, speaker: 'Casey Hayes', text: 'Agreed. So: Riley adds the approver to the audit log this sprint, and we roll out to everyone the sprint after. Taylor, can you fix the mobile confirmation step at the same time?' },
+    { start: 206, end: 218, speaker: 'Taylor Rivera', text: 'Yes. It is a layout fix, not a logic one — half a day.' },
+    { start: 219, end: 244, speaker: 'Quinn Ellis', text: 'One more thing. Do we tell the pilot group they are staying on it for another two weeks? They were told it was two weeks total, and we are now at four.' },
+    { start: 245, end: 268, speaker: 'Casey Hayes', text: 'Fair. I will send a note today explaining why and what changes. Anything else before we close?' },
+    { start: 269, end: 279, speaker: 'Riley Fox', text: 'Nothing from me.' },
+    { start: 280, end: 291, speaker: 'Casey Hayes', text: 'Good. Thanks everyone.' },
 ]);
 
 const FULL_TEXT = () => SEGMENTS()
@@ -65,16 +65,16 @@ const SUMMARY = `**Decision:** the new intake flow goes org-wide the sprint afte
 - The one usability complaint was the confirmation step being easy to miss on mobile.
 
 **What is blocking a wider rollout**
-- The run log records that a document was filed, but not who approved it. Daan estimated a day to a day and a half to add the approver, and the team agreed to do it before rollout rather than after — mainly to pre-empt a legal question later.
+- The run log records that a document was filed, but not who approved it. Riley estimated a day to a day and a half to add the approver, and the team agreed to do it before rollout rather than after — mainly to pre-empt a legal question later.
 
 **Also agreed**
-- Ruben fixes the mobile confirmation layout in the same sprint (about half a day).
-- Sanne writes to the pilot group today: the pilot was announced as two weeks and is now at four, so they get an explanation and a note of what changes.`;
+- Taylor fixes the mobile confirmation layout in the same sprint (about half a day).
+- Casey writes to the pilot group today: the pilot was announced as two weeks and is now at four, so they get an explanation and a note of what changes.`;
 
 const ACTION_ITEMS = () => ([
-    { id: 'ai_1', text: 'Add the approving user to the automation run log', assignee: 'Daan Willemsen', timestamp: 151, done: false },
-    { id: 'ai_2', text: 'Fix the confirmation step layout on mobile', assignee: 'Ruben Bakker', timestamp: 218, done: false },
-    { id: 'ai_3', text: 'Write to the pilot group explaining the extension and what changes', assignee: 'Sanne de Vries', timestamp: 268, done: false },
+    { id: 'ai_1', text: 'Add the approving user to the automation run log', assignee: 'Riley Fox', timestamp: 151, done: false },
+    { id: 'ai_2', text: 'Fix the confirmation step layout on mobile', assignee: 'Taylor Rivera', timestamp: 218, done: false },
+    { id: 'ai_3', text: 'Write to the pilot group explaining the extension and what changes', assignee: 'Casey Hayes', timestamp: 268, done: false },
 ]);
 
 const DECISIONS = () => ([
@@ -165,7 +165,7 @@ function detail(): Detail {
         summary: SUMMARY,
         segments: SEGMENTS(),
         speakers: SPEAKERS(),
-        attendees: ['Sanne de Vries', 'Ruben Bakker', 'Iris Hoekstra', 'Daan Willemsen'],
+        attendees: ['Casey Hayes', 'Taylor Rivera', 'Quinn Ellis', 'Riley Fox'],
         actionItems: ACTION_ITEMS(),
         decisions: DECISIONS(),
         questions: QUESTIONS(),

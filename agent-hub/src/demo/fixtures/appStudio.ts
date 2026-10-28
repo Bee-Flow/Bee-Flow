@@ -2,7 +2,7 @@
  * Fixtures for the App Studio demo.
  *
  * The demo opens the real editor (AppEditorShell + BuilderChatPane) on a
- * finished app: a policy-renewal pipeline for Van Dael Assurantiën — the
+ * finished app: a policy-renewal pipeline for Meridian Insurance — the
  * same fictional Dutch insurance intermediary the privacy-shield and
  * compliance demos use. Three tables, seeded rows, a kanban wired to them:
  * the point of App Studio is apps over their OWN data model, so the demo
@@ -21,6 +21,7 @@
  * no logoUrl.
  */
 
+import { pick } from '../lang';
 import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { DEMO_CATALOG } from './appStudioCatalog';
 
@@ -223,29 +224,29 @@ const MODEL = () => ({
 });
 
 const CLIENTS = (): RecordRow[] => ([
-    { id: 'rec_co01', name: 'Bakkerij Vermeulen', industry: 'Food retail', city: 'Utrecht' },
-    { id: 'rec_co02', name: 'Transportbedrijf De Ruiter', industry: 'Logistics', city: 'Zwolle' },
-    { id: 'rec_co03', name: 'Hoveniersbedrijf Groenendijk', industry: 'Landscaping', city: 'Amersfoort' },
-    { id: 'rec_co04', name: 'Architectenbureau Smeets', industry: 'Architecture', city: 'Arnhem' },
+    { id: 'rec_co01', name: 'Whitfield Bakery', industry: 'Food retail', city: 'Northfield' },
+    { id: 'rec_co02', name: 'Ward Transport', industry: 'Logistics', city: 'Eastbridge' },
+    { id: 'rec_co03', name: 'Holloway Landscaping', industry: 'Landscaping', city: 'Westmere' },
+    { id: 'rec_co04', name: 'Shaw Architects', industry: 'Architecture', city: 'Southgate' },
 ]);
 
 const CONTACTS = (): RecordRow[] => ([
-    { id: 'rec_ct01', name: 'Willem Vermeulen', email: 'w.vermeulen@bakkerijvermeulen.example', client: 'rec_co01' },
-    { id: 'rec_ct02', name: 'Sandra de Ruiter', email: 's.deruiter@deruitertransport.example', client: 'rec_co02' },
-    { id: 'rec_ct03', name: 'Peter Groenendijk', email: 'p.groenendijk@groenendijk.example', client: 'rec_co03' },
-    { id: 'rec_ct04', name: 'Ilse Smeets', email: 'i.smeets@smeetsarchitecten.example', client: 'rec_co04' },
+    { id: 'rec_ct01', name: 'Dana Whitfield', email: 'd.whitfield@whitfieldbakery.example', client: 'rec_co01' },
+    { id: 'rec_ct02', name: 'Skyler Ward', email: 's.ward@wardtransport.example', client: 'rec_co02' },
+    { id: 'rec_ct03', name: 'Pat Holloway', email: 'p.holloway@holloway.example', client: 'rec_co03' },
+    { id: 'rec_ct04', name: 'Ellis Shaw', email: 'e.shaw@shaw.example', client: 'rec_co04' },
 ]);
 
 const RENEWALS = (): RecordRow[] => ([
-    { id: 'rec_dl01', title: 'Bedrijfsaansprakelijkheid — Vermeulen', stage: 'lead', amount: 1850, client: 'rec_co01' },
-    { id: 'rec_dl02', title: 'Wagenparkpolis — De Ruiter', stage: 'qualified', amount: 12400, client: 'rec_co02' },
-    { id: 'rec_dl03', title: 'Opstal en inventaris — Vermeulen', stage: 'proposal', amount: 3200, client: 'rec_co01' },
-    { id: 'rec_dl04', title: 'Werkmaterieel — Groenendijk', stage: 'proposal', amount: 5600, client: 'rec_co03' },
-    { id: 'rec_dl05', title: 'Beroepsaansprakelijkheid — Smeets', stage: 'qualified', amount: 4100, client: 'rec_co04' },
-    { id: 'rec_dl06', title: 'Cyberverzekering — Smeets', stage: 'lead', amount: 2300, client: 'rec_co04' },
-    { id: 'rec_dl07', title: 'Verzuimverzekering — De Ruiter', stage: 'won', amount: 18700, client: 'rec_co02' },
-    { id: 'rec_dl08', title: 'Gebouwenverzekering — Groenendijk', stage: 'won', amount: 2950, client: 'rec_co03' },
-    { id: 'rec_dl09', title: 'Milieuschade — Groenendijk', stage: 'lost', amount: 1400, client: 'rec_co03' },
+    { id: 'rec_dl01', title: `${pick({ en: 'General liability', nl: 'Bedrijfsaansprakelijkheid' })} — Whitfield`, stage: 'lead', amount: 1850, client: 'rec_co01' },
+    { id: 'rec_dl02', title: `${pick({ en: 'Fleet policy', nl: 'Wagenparkpolis' })} — Ward`, stage: 'qualified', amount: 12400, client: 'rec_co02' },
+    { id: 'rec_dl03', title: `${pick({ en: 'Property and contents', nl: 'Opstal en inventaris' })} — Whitfield`, stage: 'proposal', amount: 3200, client: 'rec_co01' },
+    { id: 'rec_dl04', title: `${pick({ en: 'Work equipment', nl: 'Werkmaterieel' })} — Holloway`, stage: 'proposal', amount: 5600, client: 'rec_co03' },
+    { id: 'rec_dl05', title: `${pick({ en: 'Professional liability', nl: 'Beroepsaansprakelijkheid' })} — Shaw`, stage: 'qualified', amount: 4100, client: 'rec_co04' },
+    { id: 'rec_dl06', title: `${pick({ en: 'Cyber insurance', nl: 'Cyberverzekering' })} — Shaw`, stage: 'lead', amount: 2300, client: 'rec_co04' },
+    { id: 'rec_dl07', title: `${pick({ en: 'Absence insurance', nl: 'Verzuimverzekering' })} — Ward`, stage: 'won', amount: 18700, client: 'rec_co02' },
+    { id: 'rec_dl08', title: `${pick({ en: 'Building insurance', nl: 'Gebouwenverzekering' })} — Holloway`, stage: 'won', amount: 2950, client: 'rec_co03' },
+    { id: 'rec_dl09', title: `${pick({ en: 'Environmental damage', nl: 'Milieuschade' })} — Holloway`, stage: 'lost', amount: 1400, client: 'rec_co03' },
 ]);
 
 // ---------------------------------------------------------------------------
@@ -670,7 +671,7 @@ export const ROUTES = {
     // AudiencePicker (publish modal) reads this as a BARE array.
     'GET /auth/users': () => ([
         { id: 'demo-user', username: 'demo', displayName: 'Demo user', email: 'demo@example.com' },
-        { id: 'demo-user-2', username: 'sanne', displayName: 'Sanne de Vries', email: 'sanne@vandael.example' },
-        { id: 'demo-user-3', username: 'koen', displayName: 'Koen Bakker', email: 'koen@vandael.example' },
+        { id: 'demo-user-2', username: 'casey', displayName: 'Casey Hayes', email: 'casey@meridian.example' },
+        { id: 'demo-user-3', username: 'morgan', displayName: 'Morgan Rivera', email: 'morgan@meridian.example' },
     ]),
 };

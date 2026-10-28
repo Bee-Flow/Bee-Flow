@@ -44,8 +44,9 @@
  */
 
 import { COMMON_ROUTES, daysAgo } from './common';
+import { pick } from '../lang';
 
-const ORG = 'org_demo_vandael';
+const ORG = 'org_demo_meridian';
 
 interface KbDoc { id: string; title: string; source_type: string; chunk_count: number; created_at: string; content: string }
 
@@ -154,10 +155,10 @@ const KBS = (): Kb[] => ([
         documents: GENERIC_DOCS('kbd_con', 'standard contract positions'),
     },
     {
-        id: 'kb_demo_dutchlaw', name: 'Nederlandse juridische bronnen', icon: '🏛️',
-        description: 'Wetteksten en jurisprudentie, met bronvermelding.',
+        id: 'kb_demo_dutchlaw', name: pick({ en: 'Dutch legal sources', nl: 'Nederlandse juridische bronnen' }), icon: '🏛️',
+        description: pick({ en: 'Statutes and case law, with source references.', nl: 'Wetteksten en jurisprudentie, met bronvermelding.' }),
         category_id: 'kbc_legal',
-        documents: GENERIC_DOCS('kbd_nl', 'Nederlandse wetteksten en jurisprudentie'),
+        documents: GENERIC_DOCS('kbd_nl', pick({ en: 'Dutch statutes and case law', nl: 'Nederlandse wetteksten en jurisprudentie' })),
     },
 ].map(kb => ({
     ...kb,

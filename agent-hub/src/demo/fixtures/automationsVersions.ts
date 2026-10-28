@@ -18,7 +18,7 @@
  */
 
 import { daysAgo, minutesAgo } from './common';
-import { LOTTE, MARK, ME, SANNE, type DemoPerson } from './automationsPeople';
+import { LOTTE, MARK, ME, CASEY, type DemoPerson } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
 interface FlowDef { trigger?: Obj; steps: Obj[]; edges: Obj[]; [key: string]: unknown }
@@ -78,7 +78,7 @@ const APPROVAL_STEP = {
     id: 'approve_summary',
     type: 'approval',
     label: 'Ask finance to approve',
-    assignee: SANNE.email,
+    assignee: CASEY.email,
     prompt: 'This week’s AI/SaaS spend summary is ready. Send it to finance?',
 };
 
@@ -139,7 +139,7 @@ function spendReportVersions(current: FlowDef): VersionRecord[] {
             changes: [moved(step('approve_summary', 6, 'Ask finance to approve'), 'after "Post to finance"', 'after "Write the summary"')],
         },
         {
-            id: 'ver_demo_sr_3', version: 3, savedAt: daysAgo(13), savedBy: SANNE, name: 'Approved by finance',
+            id: 'ver_demo_sr_3', version: 3, savedAt: daysAgo(13), savedBy: CASEY, name: 'Approved by finance',
             description: 'Instruction changed in "Extract billing line items"',
             descriptionJson: [{ code: 'setting_changed', params: { setting: 'Instruction', settingKey: 'prompt', step: 'Extract billing line items' } }],
             runsBefore: { total: 3, failed: 0 }, liveSince: daysAgo(12), definition: v3,
@@ -212,7 +212,7 @@ function digestVersions(current: FlowDef): VersionRecord[] {
         row({
             ...saved('ver_demo_dg_5', 5, daysAgo(2), ME), entry: changedIn('Recipient', 'to', 'Email the team'),
             description: 'Recipient changed in "Email the team"', definition,
-            changes: [setting(send, ['to', 'Recipient', 'to'], ['m.jansen@example.com', 'team@example.com'])],
+            changes: [setting(send, ['to', 'Recipient', 'to'], ['a.brooks@example.com', 'team@example.com'])],
         }),
     ];
 }
