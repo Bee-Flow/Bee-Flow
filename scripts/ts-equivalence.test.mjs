@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compile, hasEsbuild, normalise } from './ts-equivalence.mjs';
+import { compile, hasEsbuild, normalise, stripJsDocCasts } from './ts-equivalence.mjs';
 
 const skip = hasEsbuild() ? false : 'server/ esbuild is not installed (cd server && npm ci)';
 
@@ -18,4 +18,13 @@ test('a changed expression is a difference', { skip }, async () => {
 
 test('normalise keeps a URL that contains //', () => {
     assert.deepEqual(normalise(`const u = 'https://a.b/c'; // trailing\n`), [`const u = 'https://a.b/c';`]);
+});
+
+test('a JSDoc cast is a comment plus parentheses: not a difference, however esbuild lays the call out', { skip }, async () => {
+    const plain = 'function f(err, e) { if (!/x/i.test(err.message)) throw err; log.warn("a", e.message); }\n';
+    const cast = 'function f(err, e) { if (!/x/i.test(/** @type {Error} */ (err).message)) throw err; log.warn("a", /** @type {{ message: string }} */ (e).message); }\n';
+    assert.deepEqual(await compile(cast), await compile(plain));
+    assert.equal(stripJsDocCasts(cast), 'function f(err, e) { if (!/x/i.test((err).message)) throw err; log.warn("a", (e).message); }\n');
+    // a @type on a declaration (no parenthesis after it) is not a cast and stays
+    assert.equal(stripJsDocCasts('/** @type {number} */ let n = 1;\n'), '/** @type {number} */ let n = 1;\n');
 });

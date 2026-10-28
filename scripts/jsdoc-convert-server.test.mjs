@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { addMark, completeOptionsEdits, forbiddenJsDoc, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
+import { addMark, addsRequire, completeOptionsEdits, forbiddenJsDoc, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
 import { applyEdits, inferFile, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
 
@@ -47,6 +47,12 @@ test('a typedef that leaves a destructured name untyped is dropped with its @par
     const { edits: kept, dropped } = completeOptionsEdits(edits);
     assert.deepEqual(kept, edits.slice(2));
     assert.deepEqual(dropped, ['interface BuildArgs (typedef leaves extra untyped)', 'param BuildArgs (typedef leaves members untyped)']);
+});
+
+test('a quick fix that adds a require (a type import written as a module load) is refused', () => {
+    const before = "const { run } = require('./run');\n/** @returns {Promise<{ ctx }>} */\nasync function f() {}\n";
+    assert.equal(addsRequire(before, "const { run } = require('./run');\nconst { Ctx }=require('./ctx');\n/** @returns {Promise<{ ctx: Ctx }>} */\nasync function f() {}\n"), true);
+    assert.equal(addsRequire(before, before.replace('{ ctx }', '{ ctx: string }')), false);
 });
 
 test('the @typecheck mark goes on top, after a shebang, and only once', () => {

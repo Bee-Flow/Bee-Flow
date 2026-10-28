@@ -91,6 +91,16 @@ export function completeOptionsEdits(edits) {
     for (const e of edits) if (e.kind === 'param' && names.has(e.type)) partial.add(e);
     return { edits: edits.filter((e) => !partial.has(e)), dropped: [...partial].map((e) => `${e.kind} ${e.name || e.type || ''} (typedef leaves ${e.kind === 'interface' ? e.open.join(', ') : 'members'} untyped)`) };
 }
+/**
+ * TypeScript's inferFromUsage brings the types it names into scope through its import
+ * adder, which in a CommonJS file is a real `const { T } = require('./m')`: a module load
+ * that was not there, for a type. The compiled program changes, so such a fix is refused;
+ * the inference writes its own type imports as `@typedef {import('./m').T} T`.
+ */
+export function addsRequire(before, after) {
+    const count = (t) => (t.match(/\brequire\s*\(/g) || []).length;
+    return count(after) > count(before);
+}
 /** Puts `// @typecheck` on the first line that may hold it (after a shebang). */
 export function addMark(text) {
     if (/^\s*\/\/\s*@typecheck\b/m.test(text)) return text;
@@ -167,8 +177,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         for (let round = 0; round < 4; round++) {
             let any = false;
             for (const f of files) {
+                const prev = svc.service.getProgram().getSourceFile(f).text;
                 const t = fixRound(ts, svc, f, { applied: [], refused: new Set() }, { fixIds: ['inferFromUsage'], refuse: uselessQuickFix });
-                if (t && !forbiddenInsert(t) && !forbiddenJsDoc(t)) { svc.update(f, t); any = true; }
+                if (t && !forbiddenInsert(t) && !forbiddenJsDoc(t) && !addsRequire(prev, t)) { svc.update(f, t); any = true; }
+                else if (t && addsRequire(prev, t)) report.get(f).push('dropped quick fix (adds a require for a type)');
             }
             if (!any) break;
         }

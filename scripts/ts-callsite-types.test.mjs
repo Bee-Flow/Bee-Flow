@@ -143,7 +143,7 @@ test('JavaScript: a slot typed in pass 1 is not typed again in pass 2 (no stacke
         const f = svc.at('opts.js');
         const inf1 = inferFile(ts, svc.service, f);
         const once = applyEdits(files['opts.js'], lowerToJsDoc(files['opts.js'], inf1.edits).edits);
-        assert.match(once, /@typedef \{Object\} StartArgs/);
+        assert.match(once, /@typedef \{\{ port: number, host: string \}\} StartArgs/);
         assert.match(once, /\{ let \/\*\* @type \{number \| null\} \*\/ timer = null;/);
         // pass 2 over the result: nothing left to type
         const svc2 = serviceOver({ ...files, 'opts.js': once }, { allowJs: true, checkJs: true, noImplicitAny: true, module: ts.ModuleKind.Node16, moduleResolution: ts.ModuleResolutionKind.Node16 });
