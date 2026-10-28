@@ -100,11 +100,10 @@ function outboundText(name, args) {
  * Run one web tool call for the builder model.
  *
  * @param {string} name   agent_search | read_url
- * @param {object} args
- * @param {object} ctx
- * @param {Awaited<ReturnType<typeof resolveWebResearch>>} ctx.research  resolveWebResearch's answer for this turn
- * @param {{ refuse: Function }} ctx.gate  the turn's Privacy Shield toolLoopGate
- * @param {{ userId: string, orgId: string|null, automationId: string|null, modelId: string|null }} ctx.ids
+ * @param {Record<string, unknown>} args  the model's tool arguments
+ * @param {{ research: Awaited<ReturnType<typeof resolveWebResearch>>, // resolveWebResearch's answer for this turn
+ *   gate: { refuse: Function }, // the turn's Privacy Shield toolLoopGate
+ *   ids: { userId: string, orgId: string|null, automationId: string|null, modelId: string|null } }} ctx
  * @returns {Promise<{ result: object, modelText: string|null }>}
  *   `result` is what the panel shows; `modelText` the text the model reads
  *   (null on a refusal, then the model reads `result`).

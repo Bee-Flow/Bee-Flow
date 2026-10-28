@@ -52,14 +52,13 @@ function isSpreadsheetUpload(att) {
 }
 
 /**
- * @param {object} p
- * @param {any} p.req
- * @param {(event: string, data: any) => void} p.send
- * @param {string} p.userId
- * @param {Buffer} p.buffer
- * @param {{ name: string, type?: string }} p.att
- * @param {{ markCreated(id: unknown): void } | undefined} p.documentScope
- * @param {{ sheetsAllowedFor?: Function, importWorkbook?: Function }} [p.deps]
+ * @param {{ req: import('express').Request,
+ *   send: (event: string, data: any) => void,
+ *   userId: string,
+ *   buffer: Buffer,
+ *   att: { name: string, type?: string },
+ *   documentScope: { markCreated(id: unknown): void } | undefined,
+ *   deps?: { sheetsAllowedFor?: Function, importWorkbook?: Function } }} p
  * @returns {Promise<{ base: { documentId?: string }, note: string }>}  empty when nothing was imported
  */
 async function importUploadedSpreadsheet({ req, send, userId, buffer, att, documentScope, deps = {} }) {

@@ -44,7 +44,7 @@ const { HttpError, notFound } = require('../../core/http/errors');
  *
  * @param {{ id?: string, user_id?: string, title?: string|null, messages?: unknown, project_id?: string|null, shared_scope?: string|null, created_at?: string|Date, updated_at?: string|Date }} conversation  the row as read with the project's key
  * @param {{ projectId?: string|null, projectRole?: string|null, canPost?: boolean }} access
- * @param {object} own  the kind's own allow-listed fields
+ * @param {Record<string, unknown>} own  the kind's own allow-listed fields
  */
 function sharedThreadView(conversation, access, own) {
     return {

@@ -15,13 +15,12 @@ const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
- * @typedef {Object} ResolveTitleModelArgs
- * @property {string} [modelId]
- * @property {unknown} titleAgent
- * @property {unknown} tiers
- * @property {unknown} adapter
- * @property {unknown} apiKey
- * @property {unknown} apiUrl
+ * @typedef {{ modelId?: string,
+ *   titleAgent: unknown,
+ *   tiers: unknown,
+ *   adapter: unknown,
+ *   apiKey: unknown,
+ *   apiUrl: unknown }} ResolveTitleModelArgs
  */
 /**
  * The title model is the dedicated admin model if set, else the system title

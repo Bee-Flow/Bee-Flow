@@ -58,10 +58,9 @@ The code runs in a sandbox, a bare JavaScript engine, as one step of an automati
 /**
  * Adds VAT to an amount.
  *
- * @param {object} inputs
- * @param {number} inputs.amount - The amount without VAT
- * @param {number} [inputs.vatRate=21] - VAT percentage
- * @param {'EUR'|'USD'} [inputs.currency='EUR'] - Currency of the amount
+ * @param {{ amount: number, // - The amount without VAT
+ *   vatRate?: number, // =21] - VAT percentage
+ *   currency?: 'EUR'|'USD' }} inputs  currency: ='EUR'] - Currency of the amount
  * @returns {{ total: number, currency: string }} The amount including VAT
  */
 async function main(inputs, ctx) {
@@ -177,13 +176,12 @@ function renderParams(analysis) {
  */
 
 /**
- * @param {object} p
- * @param {string} p.code
- * @param {string[]} [p.allowedTools]
- * @param {string[]} [p.allowedHosts]
- * @param {Array<{path: string, label?: string, type?: string}>} [p.upstreamFields]
- * @param {CodeAnalysis|null} [p.analysis]    analyzeCode of `code`, or null
- * @param {ToolDoc[]} [p.toolDocs]  per allowed tool
+ * @param {{ code: string,
+ *   allowedTools?: string[],
+ *   allowedHosts?: string[],
+ *   upstreamFields?: Array<{path: string, label?: string, type?: string}>,
+ *   analysis?: CodeAnalysis|null, // analyzeCode of `code`, or null
+ *   toolDocs?: ToolDoc[] }} p  toolDocs: per allowed tool
  */
 function renderStepContext({ code, allowedTools = [], allowedHosts = [], upstreamFields = [], analysis = null, toolDocs = [] }) {
     const tools = cleanList(allowedTools, TOOL_NAME_RE, MAX_TOOLS_LISTED);

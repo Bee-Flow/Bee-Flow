@@ -29,14 +29,13 @@ function _previewArgs(args) {
 }
 
 /**
- * @param {Object} params
- * @param {Record<string, unknown>[]}  params.baseMessages - existing conversation messages (from DB); not mutated
- * @param {string} params.tokenizedMessage - the user's message (tokenized form, as persisted normally)
- * @param {unknown[]}  [params.persistedAttachments] - attachment metadata for the user row
- * @param {{ name?: string, args?: unknown, status?: string, resultPreview?: unknown }[]}  params.toolHistory - collected tool calls: { name, args, status, resultPreview }
- * @param {string} params.errorNote - human-readable reason the turn was interrupted
- * @param {(toolName: string) => boolean} [params.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
- * @param {string | null} [params.anchorId] - the stored message the turn was asked on (see placeTurnRows)
+ * @param {{ baseMessages: Record<string, unknown>[], // - existing conversation messages (from DB); not mutated
+ *   tokenizedMessage: string, // - the user's message (tokenized form, as persisted normally)
+ *   persistedAttachments?: unknown[], // - attachment metadata for the user row
+ *   toolHistory: { name?: string, args?: unknown, status?: string, resultPreview?: unknown }[], // - collected tool calls: { name, args, status, resultPreview }
+ *   errorNote: string, // - human-readable reason the turn was interrupted
+ *   isSideEffect?: (toolName: string) => boolean, // - (toolName) => boolean; defaults to sideEffectMap
+ *   anchorId?: string | null }} params  anchorId: - the stored message the turn was asked on (see placeTurnRows)
  * @returns {Record<string, unknown>[]|null} full message list to persist, or null when nothing side-effecting ran
  */
 function buildInterruptedTurnMessages({
