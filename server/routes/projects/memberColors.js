@@ -27,12 +27,11 @@ const COLOR_TEXT = 'color is one of the project colours, like #3b82f6, or null f
 const Body = bodyOf({ color: worded(COLOR_TEXT).trim().max(16, COLOR_TEXT).nullable() }, 'Colouring a person');
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]
- * @param {Function} [deps.getProject]   (id) => project row
- * @param {Function} [deps.getShares]    (projectId) => share rows
- * @param {any}   [deps.store]        stores/projectMemberColorStore surface
- * @param {Function} [deps.emit]         (projectId, event) => durable event
+ * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate,
+ *   getProject?: typeof import('../../stores/projectStore').getProject,
+ *   getShares?: typeof import('../../stores/projectStore').getProjectShares,
+ *   store?: typeof import('../../stores/projectMemberColorStore'),
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<void> }} [deps]  emit: the durable event
  */
 function makeMemberColorsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

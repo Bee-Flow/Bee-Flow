@@ -46,7 +46,7 @@ const { HttpError } = require('../../core/http/errors');
  * gate calls next(), the refusal it wrote otherwise; rejects when it fails.
  *
  * @param {Middleware} gate
- * @param {any} req
+ * @param {unknown} req  handed to the gate as it is
  * @returns {Promise<Refusal|null>}
  */
 function runGate(gate, req) {
@@ -116,8 +116,8 @@ function makeNotebookGate(deps = {}) {
  * Retry-After; a stand-in by default, since a started stream takes no header.
  *
  * @param {Middleware} gate  a makeNotebookGate() middleware
- * @param {any} req
- * @param {any} [res]
+ * @param {unknown} req  handed to the gate as it is
+ * @param {{ set: (name: string, value: string) => unknown }} [res]
  * @returns {Promise<void>}
  */
 function passNotebookGate(gate, req, res = { set() { return this; } }) {

@@ -32,8 +32,7 @@ const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
  * The collaborators of the stage routers, bound on first use. A test passes
  * doubles for the ones it exercises; nothing is replaced in `require.cache`.
  *
- * @param {object} [deps]
- * @returns {object}
+ * @param {Record<string, unknown>} [deps]  the doubles, by the name of the collaborator they replace
  */
 function resolveDeps(deps = {}) {
     const d = {

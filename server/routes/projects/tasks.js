@@ -55,26 +55,25 @@ const P = require('./tasksPoker');
  * tasksRules.js, the shared context in tasksContext.js and the presentation
  * in tasksPresent.js.
  *
- * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware
- * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null
- * @param {Function} [deps.getProject]          (id) => project row
- * @param {any}   [deps.store]               stores/projectTaskStore surface
- * @param {any}   [deps.chatStore]           stores/projectChatStore surface, for chat and thread links
- * @param {any}   [deps.chatCrypto]          { forProject(project, { what }) }
- * @param {any}   [deps.assistant]          projects/taskAssistant surface: forMeeting, forTask
- * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId } for the asker's model tier and limits
- * @param {Function} [deps.improveLimiter]      Express middleware on the AI routes
- * @param {any}   [deps.notifier]           projects/taskNotify surface: assigned({project, actorId, assigneeIds, taskId}), the bell for a task given to someone
- * @param {any}   [deps.commentStore]       stores/projectCommentStore surface: deleteForTarget, so a deleted task takes its comment threads with it
- * @param {Function} [deps.readMeeting]         (req, project, meetingId) => the meeting note (with `actionItems`) when it is filed in this project, else null
- * @param {Function} [deps.listPeople]          (project) => [{ id, name }] the members that can be given a task
- * @param {Function} [deps.query]              (sql, params) => { rows }, what the default `filedIds` asks
- * @param {Function} [deps.filedIds]            (projectId, kind, ids) => Set of the `ids` of that kind filed in the project (may hold more)
- * @param {Function} [deps.emit]                (projectId, event) => durable event
- * @param {Function} [deps.publishTransient]    (projectId, event) => transient event (the live poker session)
- * @param {Function} [deps.logActivity]         (projectId, actorId, action, details)
- * @param {Function} [deps.newId]
+ * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate,
+ *   getProjectRole?: typeof import('../../auth/projectAccess').getProjectRole,
+ *   getProject?: typeof import('../../stores/projectStore').getProject,
+ *   store?: typeof import('../../stores/projectTaskStore'),
+ *   chatStore?: typeof import('../../stores/projectChatStore'), // for chat and thread links
+ *   chatCrypto?: Pick<typeof import('../../projects/chatCrypto'), 'forProject'>,
+ *   assistant?: ReturnType<typeof import('../../projects/taskAssistant').makeTaskAssistant>,
+ *   resolveOrgs?: (req: import('express').Request) => Promise<{ orgId: string|null, limitOrgId: string|null }>, // for the asker's model tier and limits
+ *   improveLimiter?: import('express').RequestHandler, // on the AI routes
+ *   notifier?: ReturnType<typeof import('../../projects/taskNotify').makeTaskNotifier>, // the bell for a task given to someone
+ *   commentStore?: Pick<typeof import('../../stores/projectCommentStore'), 'deleteForTarget'>, // a deleted task takes its comment threads with it
+ *   readMeeting?: (req: import('express').Request, project: import('./tasksContext').TaskProject, meetingId: string) => Promise<Awaited<ReturnType<typeof import('../../stores/transcriptionStore').getTranscription>>|null>, // the meeting note (with `actionItems`) when it is filed in this project, else null
+ *   listPeople?: (project: import('./tasksContext').TaskProject) => Promise<Array<{ id: string, name: string }>>, // the members that can be given a task
+ *   query?: (sql: string, params: unknown[]) => Promise<{ rows: Array<{ id: string }> }>, // what the default `filedIds` asks
+ *   filedIds?: (projectId: string, kind: string, ids: string[]) => Promise<Set<string>>, // the `ids` of that kind filed in the project (may hold more)
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<void>, // durable event
+ *   publishTransient?: typeof import('../../core/projectEventBus').publishTransient, // the live poker session
+ *   logActivity?: typeof import('../../stores/projectStore').logActivity,
+ *   newId?: () => string }} [deps]
  */
 function makeProjectTasksRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

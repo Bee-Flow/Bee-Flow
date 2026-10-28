@@ -67,25 +67,24 @@ const H = require('./commentsHandlers');
  * The route table. Handler bodies live in commentsHandlers.js, the shared
  * context in commentsContext.js and the presentation in commentsPresent.js.
  *
- * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
- * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
- * @param {Function} [deps.getProject]          (id) => project row
- * @param {any}   [deps.store]               stores/projectCommentStore surface
- * @param {any}   [deps.taskNotifier]        projects/taskNotify surface: mentioned(...), the bell for someone mentioned on a task
- * @param {any}   [deps.commentCrypto]       { forProject(project) }
- * @param {any}   [deps.assistant]           { requestReply(...) } (projects/comments/commentAssistant)
- * @param {any}   [deps.participation]       { notify(p), cancel(threadId) } (projects/comments/surface)
- * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
- * @param {Function} [deps.emit]                (projectId, event) => durable event
- * @param {Function} [deps.logActivity]         (projectId, actorId, action, details) => activity row
- * @param {import('express').RequestHandler} [deps.postLimiter]         Express middleware on posting
- * @param {any}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
- * @param {any}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
- * @param {any}   [deps.collabNotifier]      projects/collabNotify surface: commentMentioned(...), the bell for someone mentioned on a document or notebook
- * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {() => number} [deps.now]
- * @param {Function} [deps.newId]
+ * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate,
+ *   getProjectRole?: typeof import('../../auth/projectAccess').getProjectRole, // for mentions
+ *   getProject?: typeof import('../../stores/projectStore').getProject,
+ *   store?: typeof import('../../stores/projectCommentStore'),
+ *   taskNotifier?: Pick<ReturnType<typeof import('../../projects/taskNotify').makeTaskNotifier>, 'mentioned'>, // the bell for someone mentioned on a task
+ *   commentCrypto?: Pick<typeof import('../../projects/comments/commentCrypto'), 'forProject'>,
+ *   assistant?: Pick<ReturnType<typeof import('../../projects/comments/commentAssistant').makeCommentAssistant>, 'requestReply'>,
+ *   participation?: { notify: typeof import('../../projects/comments/surface').notifyHumanComment, cancel: typeof import('../../projects/comments/surface').cancelCommentThread },
+ *   resolveOrgs?: (req: import('express').Request) => Promise<{ orgId: string|null, limitOrgId: string|null }>,
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<void>, // durable event
+ *   logActivity?: typeof import('../../stores/projectStore').logActivity,
+ *   postLimiter?: import('express').RequestHandler, // on posting
+ *   participationStore?: Pick<typeof import('../../stores/projectAiParticipationStore'), 'recordFeedback'|'feedbackFor'>,
+ *   policy?: Pick<ReturnType<typeof import('../../projects/participation/policy').defaultPolicy>, 'resolveOrgPolicy'>,
+ *   collabNotifier?: Pick<ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>, 'commentMentioned'>, // the bell for someone mentioned on a document or notebook
+ *   signalProjectChanged?: typeof import('./complianceSignal').signalProjectChanged,
+ *   now?: () => number,
+ *   newId?: () => string }} [deps]
  */
 function makeProjectCommentsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

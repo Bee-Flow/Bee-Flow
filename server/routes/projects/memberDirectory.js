@@ -37,8 +37,7 @@ function memberAvatar(projectId, userId, user) {
 }
 
 /**
- * @param {object} deps
- * @param {object} deps.userStore  stores/userStore ({ getUser, getGroup })
+ * @param {{ userStore: Pick<typeof import('../../stores/userStore'), 'getUser'|'getGroup'> }} deps
  */
 function makeMemberDirectory({ userStore }) {
     /**

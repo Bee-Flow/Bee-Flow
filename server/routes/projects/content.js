@@ -60,20 +60,19 @@ const S = require('./contentSchemas');
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
- * @param {object} [deps]
- * @param {typeof lazyProjectRoleGate} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]          (id) => project | null
- * @param {typeof import('../../stores/userStore').getUser} [deps.getUser]             (id) => user | null (its organizationId)
- * @param {typeof import('../../stores/documentStore')}   [deps.documents]           stores/documentStore surface ({ createDocument, getDocument })
- * @param {typeof import('../../core/documents/sheetCells')}   [deps.cells]               core/documents/sheetCells surface ({ createSheetTable, dropSheetTable })
- * @param {import('express').RequestHandler} [deps.requireSheets]       the sheet gate (studioDocuments/sheetGate.makeSheetGate())
- * @param {typeof import('../../stores/notebookStore')}   [deps.notebooks]           stores/notebookStore surface ({ createNotebook })
- * @param {typeof import('../../core/documents/documentStarters').starters} [deps.starters]            (locale) => document starters
- * @param {typeof import('../../projects/membership')}   [deps.membership]          projects/membership surface ({ isAllowedIn })
- * @param {typeof import('../../projects/changeFeed')}   [deps.changeFeed]          projects/changeFeed surface ({ recordItemCreated })
- * @param {typeof import('../../projects/projectOrg')}   [deps.projectOrg]          projects/projectOrg surface
- * @param {import('express').RequestHandler} [deps.createLimiter]       rate-limit middleware for the two creates
- * @param {import('express').RequestHandler} [deps.requireNotebooks]    the notebooks gates (notebookGate.makeNotebookGate())
+ * @param {{ requireProjectRole?: typeof lazyProjectRoleGate, // (minRole) => middleware named requireProjectRoleMw
+ *   getProject?: typeof import('../../stores/projectStore').getProject, // (id) => project | null
+ *   getUser?: typeof import('../../stores/userStore').getUser, // (id) => user | null (its organizationId)
+ *   documents?: typeof import('../../stores/documentStore'), // stores/documentStore surface ({ createDocument, getDocument })
+ *   cells?: typeof import('../../core/documents/sheetCells'), // core/documents/sheetCells surface ({ createSheetTable, dropSheetTable })
+ *   requireSheets?: import('express').RequestHandler, // the sheet gate (studioDocuments/sheetGate.makeSheetGate())
+ *   notebooks?: typeof import('../../stores/notebookStore'), // stores/notebookStore surface ({ createNotebook })
+ *   starters?: typeof import('../../core/documents/documentStarters').starters, // (locale) => document starters
+ *   membership?: typeof import('../../projects/membership'), // projects/membership surface ({ isAllowedIn })
+ *   changeFeed?: typeof import('../../projects/changeFeed'), // projects/changeFeed surface ({ recordItemCreated })
+ *   projectOrg?: typeof import('../../projects/projectOrg'), // projects/projectOrg surface
+ *   createLimiter?: import('express').RequestHandler, // rate-limit middleware for the two creates
+ *   requireNotebooks?: import('express').RequestHandler }} [deps]  requireNotebooks: the notebooks gates (notebookGate.makeNotebookGate())
  */
 function makeContentRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
