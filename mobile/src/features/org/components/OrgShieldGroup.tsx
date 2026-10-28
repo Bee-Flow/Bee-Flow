@@ -19,9 +19,8 @@ export function OrgShieldGroup({ shield }: { shield: OrgShield }) {
     const t = useTranslation();
     const router = useRouter();
     const { isOrgAdmin } = useOrgContext();
-    const onMatch =
-        PII_ACTIONS.find((a) => a.id === shield.piiDetectionAction)?.label ??
-        humanise(shield.piiDetectionAction);
+    const action = PII_ACTIONS.find((a) => a.id === shield.piiDetectionAction);
+    const onMatch = action ? t(action.label.i18nKey, action.label.en) : humanise(shield.piiDetectionAction);
     return (
         <Group
             title={t('mobile.org.shield_org_title', "Your organisation's shield")}
