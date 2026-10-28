@@ -9,7 +9,7 @@
  * ../builderTools facade.
  */
 
-const { findStepAnywhere } = require('./draftGraph');
+const { findStepAnywhere, lastStepId } = require('./draftGraph');
 const {
     applyAddAction, applyAddArrayOp, PARSE_JSON_RETIRED_MSG, ADD_FOR_TYPE, findDuplicateAction,
 } = require('./stepBuilders');
@@ -388,7 +388,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         }
         if (e.type === 'integration_action' && typeof spec.tool === 'string' && spec.tool) {
             const cmp = comparableInputs(graph, spec.inputs);
-            const dup = cmp ? findDuplicateAction(graph, spec.tool, cmp) : null;
+            const dup = cmp ? findDuplicateAction(graph, spec.tool, cmp, { anchorId: spec.afterStepId || lastAppliedId || (graph.trigger ? lastStepId(graph) : null) }) : null;
             if (dup && mintedBefore.has(dup.id)) {
                 reuse(i, e, dup.id, 'integration_action', dup.tool);
                 note(`${at}: ${spec.tool} with these inputs was already built in this turn as ${dup.id} — not added twice.`);
