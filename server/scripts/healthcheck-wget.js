@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+// bee-flow-healthcheck-wget
 // @typecheck strict
 'use strict';
-// bee-flow-healthcheck-wget
+// The marker on line 2 must stay within the first 3 lines: the release gate
+// (scripts/check-release-container.sh) reads only those to recognise this stub.
 //
 // Installed as /usr/local/bin/wget in the server image. The image ships no
 // wget or curl (scripts/check-release-container.sh), but compose files from
