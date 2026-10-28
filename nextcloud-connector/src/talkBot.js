@@ -503,27 +503,38 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
     const sig = crypto.createHmac('sha256', config.tenantKey)
         .update(`${ts}\nPOST\n${apiPath}\n${payloadBody}`).digest('hex');
 
-    try {
-        const r = await fetch(`${config.apiBaseUrl}${apiPath}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Beeflow-Source': 'nextcloud-connector',
-                'X-Beeflow-NC-Instance-Id': config.ncInstanceId,
-                'X-Beeflow-Sig': `${ts}.${sig}`,
-            },
-            body: payloadBody,
-            signal: AbortSignal.timeout(10_000),
-        });
-        if (!r.ok) {
-            const t = await r.text().catch(() => '');
-            log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
-        }
-    } catch (err) {
-        log.warn(`[TalkBot] forward failed: ${errMessage(err)}`);
-    }
+    // Answer Talk first, forward afterwards. The forward may take up to 10 s,
+    // which can outlast the time Talk (through AppAPI's bot proxy) gives a
+    // webhook before it counts the delivery as failed; the outcome of the
+    // forward is only ever logged, so Talk has nothing to wait for.
     res.json({ ok: true, event: mapped.event });
+    forwardToBeeFlow(apiPath, payloadBody, `${ts}.${sig}`, /** @type {string} */ (config.ncInstanceId))
+        .catch(err => log.warn(`[TalkBot] forward failed: ${errMessage(err)}`));
 });
+
+/**
+ * @param {string} apiPath
+ * @param {string} payloadBody
+ * @param {string} signature
+ * @param {string} ncInstanceId
+ */
+async function forwardToBeeFlow(apiPath, payloadBody, signature, ncInstanceId) {
+    const r = await fetch(`${config.apiBaseUrl}${apiPath}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Beeflow-Source': 'nextcloud-connector',
+            'X-Beeflow-NC-Instance-Id': ncInstanceId,
+            'X-Beeflow-Sig': signature,
+        },
+        body: payloadBody,
+        signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
+    }
+}
 
 module.exports = Object.assign(router, {
     registerTalkBot,
