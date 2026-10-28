@@ -35,7 +35,6 @@ const h = vi.hoisted(() => ({
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: h.authFetch, setSessionToken: h.setSessionToken }));
 vi.mock('../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../lib/opaque', () => ({ opaqueLogin: vi.fn() }));
-vi.mock('../components/InitSetupWizard', () => ({ default: () => null }));
 vi.mock('./login/SignupWizard', () => ({
     default: (props: WizardProps) => {
         h.wizard.props = props;

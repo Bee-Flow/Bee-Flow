@@ -32,6 +32,7 @@
 import { minutesAgo } from './common';
 import { ME } from './automationsPeople';
 import { opaqueId } from './automationsMailFanout';
+import { pick } from '../lang';
 import type { DemoRun } from './automationsRuns';
 
 type Obj = Record<string, unknown>;
@@ -44,8 +45,26 @@ const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 const PNG = 'image/png';
 
-const FABRIKAM = 'Fabrikam Tankpas <no-reply@fabrikam.example>';
-const CONTOSO = 'Contoso Facilitair <facilitair@contoso.example>';
+/** The sample copy of this demo, per demo language (see demo/lang.ts). */
+const L = pick({
+    en: {
+        fabrikam: 'Fabrikam Fuel Card <no-reply@fabrikam.example>',
+        contoso: 'Contoso Facilities <facilities@contoso.example>',
+        invoice: 'Invoice', specification: 'Specification', quote: 'Cleaning_quote_Q4', rates: 'Rates', terms: 'Terms', proof: 'Proof_of_delivery',
+        invoiceSubject: 'Your Fabrikam invoice', quoteSubject: 'Cleaning quote Q4', ratesSubject: 'New rates and terms 2027',
+        body: (subject: string, sender: string) => `Dear customer,\n\nAttached you will find the documents for "${subject}".\n\nKind regards,\n${sender}`,
+    },
+    nl: {
+        fabrikam: 'Fabrikam Tankpas <no-reply@fabrikam.example>',
+        contoso: 'Contoso Facilitair <facilitair@contoso.example>',
+        invoice: 'Factuur', specification: 'Specificatie', quote: 'Offerte_schoonmaak_Q4', rates: 'Tarieven', terms: 'Voorwaarden', proof: 'Bezorgbewijs',
+        invoiceSubject: 'Je Fabrikam factuur', quoteSubject: 'Offerte schoonmaak Q4', ratesSubject: 'Nieuwe tarieven en voorwaarden 2027',
+        body: (subject: string, sender: string) => `Beste klant,\n\nIn de bijlage vind je de stukken bij "${subject}".\n\nMet vriendelijke groet,\n${sender}`,
+    },
+});
+
+const FABRIKAM = L.fabrikam;
+const CONTOSO = L.contoso;
 const TO = 'finance@contoso.example';
 const QUERY = 'has:attachment newer_than:120d';
 
@@ -54,24 +73,24 @@ interface MailSeed { id: string; from: string; subject: string; date: string; fi
 /** Newest first, as the search returns them. */
 const MAILS: MailSeed[] = [
     {
-        id: '1998e2b47c0a5d31', from: FABRIKAM, subject: 'Je Fabrikam factuur F-2026-0917', date: 'Tue, 29 Sep 2026 06:41:09 +0000 (UTC)',
-        files: [['Factuur_F-2026-0917.pdf', PDF, 48_213], ['Specificatie_F-2026-0917.docx', DOCX, 21_904], ['Fabrikam_logo.png', PNG, 4_812]],
+        id: '1998e2b47c0a5d31', from: FABRIKAM, subject: `${L.invoiceSubject} F-2026-0917`, date: 'Tue, 29 Sep 2026 06:41:09 +0000 (UTC)',
+        files: [[`${L.invoice}_F-2026-0917.pdf`, PDF, 48_213], [`${L.specification}_F-2026-0917.docx`, DOCX, 21_904], ['Fabrikam_logo.png', PNG, 4_812]],
     },
     {
-        id: '19947f0c2e6b18a4', from: CONTOSO, subject: 'Offerte schoonmaak Q4', date: 'Fri, 28 Aug 2026 06:38:52 +0000 (UTC)',
-        files: [['Offerte_schoonmaak_Q4.pdf', PDF, 112_480], ['Contoso_logo.png', PNG, 3_977]],
+        id: '19947f0c2e6b18a4', from: CONTOSO, subject: L.quoteSubject, date: 'Fri, 28 Aug 2026 06:38:52 +0000 (UTC)',
+        files: [[`${L.quote}.pdf`, PDF, 112_480], ['Contoso_logo.png', PNG, 3_977]],
     },
     {
-        id: '198fd03a91c47e52', from: FABRIKAM, subject: 'Nieuwe tarieven en voorwaarden 2027', date: 'Thu, 30 Jul 2026 06:44:17 +0000 (UTC)',
-        files: [['Tarieven_2027.pptx', PPTX, 1_284_115], ['Voorwaarden_2027.docx', DOCX, 38_640], ['Fabrikam_logo.png', PNG, 4_812]],
+        id: '198fd03a91c47e52', from: FABRIKAM, subject: L.ratesSubject, date: 'Thu, 30 Jul 2026 06:44:17 +0000 (UTC)',
+        files: [[`${L.rates}_2027.pptx`, PPTX, 1_284_115], [`${L.terms}_2027.docx`, DOCX, 38_640], ['Fabrikam_logo.png', PNG, 4_812]],
     },
     {
-        id: '198b6e215f0d93c7', from: FABRIKAM, subject: 'Je Fabrikam factuur F-2026-0630', date: 'Mon, 29 Jun 2026 06:40:31 +0000 (UTC)',
-        files: [['Factuur_F-2026-0630.pdf', PDF, 47_388], ['Bezorgbewijs_0630.pdf', PDF, 18_022], ['Fabrikam_logo.png', PNG, 4_812]],
+        id: '198b6e215f0d93c7', from: FABRIKAM, subject: `${L.invoiceSubject} F-2026-0630`, date: 'Mon, 29 Jun 2026 06:40:31 +0000 (UTC)',
+        files: [[`${L.invoice}_F-2026-0630.pdf`, PDF, 47_388], [`${L.proof}_0630.pdf`, PDF, 18_022], ['Fabrikam_logo.png', PNG, 4_812]],
     },
 ];
 
-const bodyOf = (m: MailSeed) => `Beste klant,\n\nIn de bijlage vind je de stukken bij "${m.subject}".\n\nMet vriendelijke groet,\n${m.from.split(' <')[0]}`;
+const bodyOf = (m: MailSeed) => L.body(m.subject, m.from.split(' <')[0]);
 
 /** gmail_read's shape of one mail (gmail_read_many returns a list of these). */
 const read = (m: MailSeed, mi: number) => ({

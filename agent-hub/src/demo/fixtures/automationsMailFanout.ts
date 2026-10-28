@@ -20,6 +20,7 @@
 import { minutesAgo } from './common';
 import { ME } from './automationsPeople';
 import type { DemoRun } from './automationsRuns';
+import { pick } from '../lang';
 
 type Obj = Record<string, unknown>;
 
@@ -31,12 +32,73 @@ const MAIL_FANOUT_AUTOMATION_TITLE = 'Fabrikam invoice mails';
 interface LineSeed { sku: string; description: string; quantity: number; price: number; rate: number }
 interface MailSeed { id: string; date: string; issued: string; invoice: string; pdfSize: number; lines: LineSeed[] }
 
-const FROM = 'Fabrikam Tankpas <no-reply@fabrikam.example>';
 const TO = 'finance@contoso.example';
-const SUBJECT = 'Je Fabrikam factuur';
-const QUERY = 'from:fabrikam.example factuur';
 
-const line = (sku: string, description: string, quantity: number, price: number, rate = 21): LineSeed => ({ sku, description, quantity, price, rate });
+/** The sample copy of this demo, per demo language (see demo/lang.ts). */
+const L = pick({
+    en: {
+        from: 'Fabrikam Fuel Card <no-reply@fabrikam.example>',
+        subject: 'Your Fabrikam invoice',
+        query: 'from:fabrikam.example invoice',
+        invoiceFile: 'Invoice',
+        invoiceTitle: 'INVOICE',
+        invoiceDate: 'Invoice date',
+        customer: 'Customer',
+        totalInclTax: 'Total incl. tax',
+        tax: 'tax',
+        times: 'x',
+        body: (invoice: string, issued: string) => [
+            'Dear customer,',
+            '',
+            `Attached you will find invoice ${invoice} dated ${issued}. We will debit the amount from your account within 14 days.`,
+            'Your invoices are always available in the Fabrikam app too. Questions? Feel free to call or mail our customer service.',
+            '',
+            'Kind regards,',
+            'Fabrikam Fuel Card',
+        ].join('\n'),
+        lines: {
+            'DSK-180-OAK': 'Sit-stand desk 180x80, oak', 'CHR-ERGO-2': 'Ergonomic office chair', 'BK-ERGO-NL': 'Handbook of office ergonomics',
+            'MON-27-4K': 'Monitor 27 inch 4K', 'ARM-DUAL': 'Monitor arm, dual', 'LMP-LED': 'LED desk lamp', 'CBL-USBC-2M': 'USB-C cable 2 m',
+            'DSK-140-WHT': 'Desk 140x70, white', 'DEL-STD': 'Delivery and assembly',
+        } as Record<string, string>,
+        sampleSnippet1: 'Dear customer, please find your invoice attached...', sampleSubject2: 'January invoice', sampleSnippet2: 'Amount: EUR 234.50',
+        sampleBody: 'Dear customer,\n\nPlease find our invoice number 2026-001 attached.\n\nAmount: EUR 1,234.50 (incl. VAT)\nPayment term: 30 days.\n\nKind regards.',
+    },
+    nl: {
+        from: 'Fabrikam Tankpas <no-reply@fabrikam.example>',
+        subject: 'Je Fabrikam factuur',
+        query: 'from:fabrikam.example factuur',
+        invoiceFile: 'Factuur',
+        invoiceTitle: 'FACTUUR',
+        invoiceDate: 'Factuurdatum',
+        customer: 'Klant',
+        totalInclTax: 'Totaal incl. btw',
+        tax: 'btw',
+        times: 'x',
+        body: (invoice: string, issued: string) => [
+            'Beste klant,',
+            '',
+            `In de bijlage vind je factuur ${invoice} van ${issued}. Het bedrag schrijven we binnen 14 dagen af van je rekening.`,
+            'Je facturen staan ook altijd in de Fabrikam app. Vragen? Bel of mail gerust met onze klantenservice.',
+            '',
+            'Met vriendelijke groet,',
+            'Fabrikam Tankpas',
+        ].join('\n'),
+        lines: {
+            'DSK-180-OAK': 'Zit-sta bureau 180×80, eiken', 'CHR-ERGO-2': 'Ergonomische bureaustoel', 'BK-ERGO-NL': 'Handboek ergonomie op kantoor',
+            'MON-27-4K': 'Monitor 27 inch 4K', 'ARM-DUAL': 'Monitorarm, dubbel', 'LMP-LED': 'Bureaulamp LED', 'CBL-USBC-2M': 'USB-C kabel 2 m',
+            'DSK-140-WHT': 'Bureau 140×70, wit', 'DEL-STD': 'Bezorging en montage',
+        } as Record<string, string>,
+        sampleSnippet1: 'Beste klant, hierbij uw factuur...', sampleSubject2: 'Factuur januari', sampleSnippet2: 'Bedrag: €234.50',
+        sampleBody: 'Beste klant,\n\nHierbij ontvangt u onze factuur met nummer 2026-001.\n\nBedrag: €1,234.50 (incl. BTW)\nBetalingstermijn: 30 dagen.\n\nMet vriendelijke groet.',
+    },
+});
+
+const FROM = L.from;
+const SUBJECT = L.subject;
+const QUERY = L.query;
+
+const line = (sku: string, description: string, quantity: number, price: number, rate = 21): LineSeed => ({ sku, description: L.lines[sku] ?? description, quantity, price, rate });
 
 /** Newest first, as the search returns them. Same subject on purpose. */
 const MAILS: MailSeed[] = [
@@ -101,7 +163,7 @@ interface Attachment { filename: string; mimeType: string; size: number; attachm
 /** The 16 attachments of one mail, with the 7 keys gmail_read gives each. */
 function attachmentsOf(m: MailSeed, mailIndex: number): Attachment[] {
     const files = IMAGES.map(([filename, size]) => ({ filename, mimeType: 'image/png', size }));
-    files.splice(PDF_AT, 0, { filename: `Factuur_${m.invoice}.pdf`, mimeType: 'application/pdf', size: m.pdfSize });
+    files.splice(PDF_AT, 0, { filename: `${L.invoiceFile}_${m.invoice}.pdf`, mimeType: 'application/pdf', size: m.pdfSize });
     return files.map((f, i) => ({
         filename: f.filename,
         mimeType: f.mimeType,
@@ -113,15 +175,7 @@ function attachmentsOf(m: MailSeed, mailIndex: number): Attachment[] {
     }));
 }
 
-const bodyOf = (m: MailSeed) => [
-    'Beste klant,',
-    '',
-    `In de bijlage vind je factuur ${m.invoice} van ${m.issued}. Het bedrag schrijven we binnen 14 dagen af van je rekening.`,
-    'Je facturen staan ook altijd in de Fabrikam app. Vragen? Bel of mail gerust met onze klantenservice.',
-    '',
-    'Met vriendelijke groet,',
-    'Fabrikam Tankpas',
-].join('\n');
+const bodyOf = (m: MailSeed) => L.body(m.invoice, m.issued);
 
 /** gmail_search's summary of one mail: its 9 keys in JSONB order. */
 const summary = (m: MailSeed) => ({
@@ -164,14 +218,14 @@ function extracted(m: MailSeed) {
 function pdfText(m: MailSeed): string {
     const { invoice } = extracted(m);
     return [
-        `FACTUUR ${m.invoice}`,
+        `${L.invoiceTitle} ${m.invoice}`,
         'Fabrikam B.V.',
-        `Factuurdatum: ${m.issued}`,
-        'Klant: Contoso Ltd',
+        `${L.invoiceDate}: ${m.issued}`,
+        `${L.customer}: Contoso Ltd`,
         '',
-        ...m.lines.map(l => `${l.sku}  ${l.description}  ${l.quantity} x ${euro(l.price)}  btw ${l.rate}%`),
+        ...m.lines.map(l => `${l.sku}  ${l.description}  ${l.quantity} x ${euro(l.price)}  ${L.tax} ${l.rate}%`),
         '',
-        `Totaal incl. btw: EUR ${euro(invoice.total)}`,
+        `${L.totalInclTax}: EUR ${euro(invoice.total)}`,
     ].join('\n');
 }
 
@@ -356,8 +410,8 @@ export const MAIL_FANOUT_CATALOG_APP = {
             maxResults: { type: 'integer', default: 10, description: 'How many mails at most (up to 500)' },
         }, ['query']), {
             results: [
-                { id: 'msg-1', from: 'sender@example.com', to: 'me@example.com', subject: 'Sample invoice', date: 'Mon, 06 Apr 2026 08:23:19 -0700', snippet: 'Beste klant, hierbij uw factuur...' },
-                { id: 'msg-2', from: 'biller@example.com', to: 'me@example.com', subject: 'Factuur januari', date: 'Mon, 06 Apr 2026 09:15:42 -0700', snippet: 'Bedrag: €234.50' },
+                { id: 'msg-1', from: 'sender@example.com', to: 'me@example.com', subject: 'Sample invoice', date: 'Mon, 06 Apr 2026 08:23:19 -0700', snippet: L.sampleSnippet1 },
+                { id: 'msg-2', from: 'biller@example.com', to: 'me@example.com', subject: L.sampleSubject2, date: 'Mon, 06 Apr 2026 09:15:42 -0700', snippet: L.sampleSnippet2 },
             ],
             total: 2,
         }),
@@ -365,7 +419,7 @@ export const MAIL_FANOUT_CATALOG_APP = {
             messageId: str('The Gmail message id to read'),
         }, ['messageId']), {
             id: 'msg-1', threadId: 'th-1', from: 'sender@example.com', to: 'me@example.com', subject: 'Sample invoice', date: 'Mon, 06 Apr 2026 08:23:19 -0700',
-            body: 'Beste klant,\n\nHierbij ontvangt u onze factuur met nummer 2026-001.\n\nBedrag: €1,234.50 (incl. BTW)\nBetalingstermijn: 30 dagen.\n\nMet vriendelijke groet.',
+            body: L.sampleBody,
             attachments: [{ attachmentId: 'attach-1', filename: 'invoice_2026-001.pdf', mimeType: 'application/pdf', size: 45678, canOCR: true, messageId: 'msg-1', threadId: 'th-1' }],
         }),
         gmailAction('gmail_read_attachment', 'Read attachment', 'Downloads one attachment of a mail and extracts its text.', inputs({

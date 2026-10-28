@@ -55,6 +55,7 @@ const { usageLogFields } = require('../providers/usageNormalizer');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { synthesiseDryRunExtraction } = require('./dataExtractionDryRun');
 
 // The contract's system prompt, verbatim. The field list, the optional
 // instructions and the type rules follow it in the same message; the document
@@ -411,20 +412,6 @@ function shapeExtractionOutput(fields, parsed) {
 }
 
 // ── Dry run ─────────────────────────────────────────────────────────────────
-
-/** Typed sample values for the declared fields — the shape, not the data. */
-function synthesiseDryRunExtraction(fields) {
-    const out = {};
-    for (const f of fields) {
-        switch (f.type) {
-            case 'number':  out[f.name] = 123.45; break;
-            case 'boolean': out[f.name] = true; break;
-            case 'date':    out[f.name] = '2026-01-15'; break;
-            default:        out[f.name] = `Sample ${f.name.replace(/_/g, ' ')}`; break;
-        }
-    }
-    return out;
-}
 
 // ── The step ────────────────────────────────────────────────────────────────
 
