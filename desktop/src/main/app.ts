@@ -474,7 +474,7 @@ export class DesktopApp {
             loadMain: (url) => this.load(this.mainWindow, url),
             quickAsk: (text) => this.quickAsk.toggle(text),
             setServer: (url) => this.setServer(url),
-            pairNextcloud: (server) => this.pairNextcloud(server),
+            pairNextcloud: (server) => this.nc.pairAndReport(server),
             revealPath: (target) => void this.revealPath(target),
             broadcast: (channel, payload) => this.broadcast(channel, payload),
         });
@@ -596,7 +596,7 @@ export class DesktopApp {
             reload: () => this.mainWindow?.webContents.reload(),
             checkForUpdates: () => void this.checkForUpdatesInteractive(),
             openNextcloudFolder: () => void this.nc.openFolder(),
-            pairNextcloud: () => void this.pairNextcloud(),
+            pairNextcloud: () => void this.nc.pairAndReport(),
             refreshNextcloud: () => void this.refreshNextcloud(),
             attachFromNextcloud: () => void this.attachFromNextcloud(),
             showLogs: () => void shell.showItemInFolder(this.log.file),
