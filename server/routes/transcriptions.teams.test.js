@@ -34,6 +34,12 @@ function resetFx() {
     fx.seeded = [];
     fx.inline = async () => ({ transcription: { id: 't-new' } });
     fx.inlineCalls = [];
+    fx.updates = [];
+    fx.failures = [];
+    fx.fresh = null;
+    fx.msSessions = null;
+    fx.accessCalls = 0;
+    require('../core/meetingNotes/manualImportRunner')._resetForTests();
 }
 resetFx();
 
@@ -42,10 +48,10 @@ router.init({
     permissions: { requireAuth: (req, res, next) => next() },
     shared: {
         resolveUserOrgFromReq: async () => 'orgA',
-        resolveAccessContext: async () => ({ orgIds: new Set(['orgA']) }),
+        resolveAccessContext: async () => { fx.accessCalls++; return { orgIds: new Set(['orgA']) }; },
     },
     credentialStore: { getCredential: async () => fx.cred },
-    resolveMicrosoftSession: async () => fx.msSession,
+    resolveMicrosoftSession: async () => (fx.msSessions ? (fx.msSessions.shift() || null) : fx.msSession),
     settings: {
         deriveConnectionStatus: require('../core/meetingNotes/teamsNotesSettings').deriveConnectionStatus,
         resolveTeamsNotesSettings: async () => ({ ...fx.settings }),
@@ -89,7 +95,11 @@ router.init({
     importStore: {
         getJobForEvent: async (userId, eventId) => fx.jobs[eventId] || null,
         listRecentJobsForUser: async () => Object.values(fx.jobs),
-        seedJob: async (row) => { fx.seeded.push(row); return { id: 'job-new', status: 'pending', ...row }; },
+        updateJob: async (id, fields) => { fx.updates.push({ id, fields }); return true; },
+        heartbeatJob: async () => true,
+        getJob: async () => fx.fresh,
+        failJob: async (id, opts) => { fx.failures.push({ id, ...opts }); return true; },
+        seedJob: async (row) => { fx.seeded.push(row); return { id: `job-${row.calendarEventId}`, status: 'pending', ...row }; },
     },
     autoImport: {
         processJobInline: async (args) => { fx.inlineCalls.push(args); return fx.inline(args); },
@@ -219,23 +229,84 @@ test('from-teams: classified refusals', async () => {
         (err) => err.status === 403 && err.code === 'not_organizer');
 });
 
-test('from-teams: seeds a job, runs it, answers the note; 202 while pending; mapped pipeline codes', async () => {
+const settle = async (check) => {
+    for (let i = 0; i < 200 && !check(); i++) await new Promise((r) => setImmediate(r));
+    assert.ok(check(), 'the background import did not finish');
+};
+
+test('from-teams: answers 202 with the job id before the import finishes, then the work runs', async () => {
     connected();
     fx.ended = [meeting()];
-    let res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1', language: 'en' } });
-    assert.deepStrictEqual(res.body, { id: 't-new' });
+    let finish;
+    fx.inline = () => new Promise((resolve) => { finish = () => resolve({ transcription: { id: 't-new' } }); });
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1', language: 'en' } });
+    assert.strictEqual(res.statusCode, 202);
+    assert.deepStrictEqual(res.body, { jobId: 'job-ev1', status: 'pending' });
     assert.strictEqual(fx.seeded[0].joinUrl, 'https://teams.microsoft.com/l/x');
+    // The previous outcome is cleared before the client starts polling.
+    assert.deepStrictEqual(fx.updates[0].fields, { status: 'pending', errorCode: null, lastError: null });
+    await settle(() => fx.inlineCalls.length === 1);
     assert.strictEqual(fx.inlineCalls[0].language, 'en');
     assert.strictEqual(fx.inlineCalls[0].transcriptAllowed, true);
+    assert.strictEqual(fx.accessCalls, 1, 'access context re-resolved when the job runs');
+    finish();
+    await settle(() => fx.failures.length === 0);
+});
 
-    fx.inline = async () => ({ pending: true, status: 'awaiting_artifacts' });
-    res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+test('from-teams: access is checked again when the job runs; a revoked grant lands on the job', async () => {
+    connected();
+    fx.ended = [meeting()];
+    // The request resolves a session; by the time the job runs it is gone.
+    fx.msSessions = [{ accessToken: 'at' }];
+    fx.fresh = { id: 'job-new', status: 'pending', errorCode: null };
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
     assert.strictEqual(res.statusCode, 202);
-    assert.deepStrictEqual(res.body, { jobId: 'job-new', status: 'awaiting_artifacts' });
+    await settle(() => fx.failures.length === 1);
+    assert.strictEqual(fx.inlineCalls.length, 0, 'the import never started');
+    assert.strictEqual(fx.failures[0].errorCode, 'not_connected');
+    assert.strictEqual(fx.failures[0].terminal, true);
+});
 
+test('from-teams: a failure of the pipeline is recorded on the job when the pipeline did not', async () => {
+    connected();
+    fx.ended = [meeting()];
+    fx.fresh = { id: 'job-new', status: 'pending', errorCode: null };
+    fx.inline = async () => { throw new Error('ffmpeg exploded'); };
+    await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    await settle(() => fx.failures.length === 1);
+    assert.deepStrictEqual(
+        { code: fx.failures[0].errorCode, terminal: fx.failures[0].terminal },
+        { code: 'failed', terminal: true },
+    );
+
+    // The pipeline already wrote its classified outcome: nothing is overwritten.
+    fx.failures.length = 0;
+    fx.fresh = { id: 'job-new', status: 'no_recording', errorCode: 'no_recording' };
     fx.inline = async () => { throw Object.assign(new Error('no rec'), { code: 'no_recording' }); };
-    await assert.rejects(dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } }),
-        (err) => err.status === 404 && err.code === 'no_recording');
+    await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    await settle(() => fx.inlineCalls.length === 2);
+    await new Promise((r) => setImmediate(r));
+    assert.deepStrictEqual(fx.failures, []);
+});
+
+test('from-teams: a second click while the import runs starts nothing new; the per-user cap answers 429', async () => {
+    connected();
+    fx.ended = [meeting()];
+    fx.inline = () => new Promise(() => {});
+    await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    const again = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    assert.strictEqual(again.statusCode, 202);
+    await settle(() => fx.inlineCalls.length >= 1);
+    assert.strictEqual(fx.inlineCalls.length, 1);
+
+    process.env.MEETING_IMPORT_MAX_CONCURRENT_PER_USER = '1';
+    try {
+        fx.ended = [meeting({ eventId: 'ev2' })];
+        await assert.rejects(dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev2' } }),
+            (err) => err.status === 429 && err.code === 'too_many_imports');
+    } finally {
+        delete process.env.MEETING_IMPORT_MAX_CONCURRENT_PER_USER;
+    }
 });
 
 test('from-teams: an already ingested job answers its note without running again', async () => {

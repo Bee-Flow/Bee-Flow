@@ -6,7 +6,7 @@
  * PATCH /teams-meetings/:eventId — per-meeting record/import choice
  * GET   /teams-imports           — recent import jobs (failure UX)
  * GET   /teams-recordings        — recently ended meetings the user organized
- * POST  /from-teams              — manual import of a finished meeting
+ * POST  /from-teams              — manual import of a finished meeting (202, runs in the background)
  *
  * The Teams sibling of transcriptions/gmeet.js. Graph only gives recordings
  * and transcripts to the meeting ORGANIZER under delegated permissions, so
@@ -33,6 +33,7 @@ const { deps: d, init } = lazyDeps({
     artifacts: () => require('../../core/meetingNotes/teamsArtifacts'),
     autoImport: () => require('../../core/meetingNotes/teamsAutoImport'),
     importStore: () => require('../../stores/teamsImportStore'),
+    importRunner: () => require('../../core/meetingNotes/manualImportRunner'),
     meetingPrefs: () => require('../../stores/meetingPrefsStore'),
     credentialStore: () => require('../../stores/automationCredentialStore'),
     resolveMicrosoftSession: () => require('../../auth/microsoftSessionHydration').resolveMicrosoftSession,
@@ -248,14 +249,14 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     res.json({ connection, items });
 });
 
-// Manual import of a finished Teams meeting. 202 { jobId, status } when Teams
-// has not finished processing the recording yet; classified 4xx otherwise.
-router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromTeamsBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
-    const userId = sessionUser(req).id;
-    const { event_id, language, context_terms } = req.body;
-    req.setTimeout(600000); res.setTimeout(600000);
+const INGEST_LEASE_MINUTES = Number(process.env.TEAMS_INGEST_LEASE_MINUTES) || 120;
 
-    const orgId = await resolveUserOrgFromReq(req);
+/**
+ * Session + scope gate shared by the request and the background run: the
+ * caller's Microsoft session must exist and carry the Teams scopes.
+ * @param {import('express').Request} req
+ */
+async function requireTeamsAccess(req) {
     const { session, connection } = await resolveTeamsSession(req);
     if (!session) {
         throw connection.needsReauth
@@ -265,6 +266,52 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     if (!connection.teamsScopesGranted) {
         throw new HttpError(403, 'needs_teams_scopes', 'Teams meeting access has not been granted — reconnect Microsoft 365 to add it');
     }
+    return { session, connection };
+}
+
+/**
+ * The import itself, run after the 202. Access is checked again here (the
+ * session and the user's group scope may have changed since the request was
+ * accepted); whatever goes wrong ends up on the job row, never nowhere.
+ * @param {{ req: import('express').Request, job: Awaited<ReturnType<typeof import('../../stores/teamsImportStore').getJob>> & {}, language: string | null, contextTerms: string }} args
+ */
+async function runTeamsImport({ req, job, language, contextTerms }) {
+    const { session, connection } = await requireTeamsAccess(req);
+    const accessCtx = await resolveAccessContext(req);
+    await d.autoImport.processJobInline({
+        job, session, language, contextTerms,
+        transcriptAllowed: connection.hasTranscriptScope,
+        accessCtx,
+    });
+}
+
+/**
+ * A failure that escaped the pipeline (or happened before it): put it on the
+ * job as a terminal, classified error, unless the pipeline already did.
+ * @param {string} jobId
+ * @param {unknown} err
+ */
+async function recordImportFailure(jobId, err) {
+    const e = /** @type {{ code?: string, message?: string }} */ (err);
+    const fresh = await d.importStore.getJob(jobId);
+    if (!fresh || fresh.status === 'ingested' || fresh.errorCode || fresh.status === 'awaiting_artifacts') return;
+    const code = e?.code && TEAMS_ERROR_STATUS[e.code] ? e.code : 'failed';
+    await d.importStore.failJob(jobId, {
+        errorCode: code, terminal: true, lastError: String(e?.message || 'Teams import failed').slice(0, 500),
+    });
+}
+
+// Manual import of a finished Teams meeting. The import takes minutes, longer
+// than a proxy keeps a request open, so this validates, seeds the job and
+// answers 202 { jobId, status } at once; the work runs in the background and the
+// client polls GET /teams-imports for the job (ingested | an error code).
+// 200 { id, dedup } when the meeting was imported before; classified 4xx otherwise.
+router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromTeamsBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+    const userId = sessionUser(req).id;
+    const { event_id, language, context_terms } = req.body;
+
+    const orgId = await resolveUserOrgFromReq(req);
+    const { session } = await requireTeamsAccess(req);
 
     const meeting = (await d.calendar.listRecentlyEndedTeamsMeetings({ session, lookbackHours: 24 * 7, graceMinutes: 0 }))
         .find(m => m.eventId === event_id);
@@ -288,20 +335,31 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
         return res.json({ id: job.transcriptionId, dedup: true });
     }
 
-    let out;
+    const slot = d.importRunner.acquire({ jobKey: `teams:${job.id}`, userId, orgId });
+    if (slot.ok === false) {
+        if (slot.reason !== 'already_running') {
+            throw new HttpError(429, 'too_many_imports', 'Too many meeting imports are running; wait for one to finish');
+        }
+        return res.status(202).json({ jobId: job.id, status: 'pending' });
+    }
+
     try {
-        out = await d.autoImport.processJobInline({
-            job, session, language: language || null, contextTerms: context_terms || '',
-            transcriptAllowed: connection.hasTranscriptScope,
-            accessCtx: await resolveAccessContext(req),
-        });
+        // A fresh run: drop the previous outcome so the poller does not read it,
+        // and keep the poller's tick off the row while this one works.
+        await teamsImportStore.updateJob(job.id, { status: 'pending', errorCode: null, lastError: null });
+        await teamsImportStore.heartbeatJob(job.id, INGEST_LEASE_MINUTES);
     } catch (err) {
-        const status = TEAMS_ERROR_STATUS[err?.code];
-        if (status) throw new HttpError(status, err.code, err.message);
+        slot.release();
         throw err;
     }
-    if (out && out.pending) return res.status(202).json({ jobId: job.id, status: out.status });
-    res.json(out.transcription);
+
+    res.status(202).json({ jobId: job.id, status: 'pending' });
+    void d.importRunner.runDetached({
+        label: 'Transcriptions',
+        release: slot.release,
+        work: () => runTeamsImport({ req, job, language: language || null, contextTerms: context_terms || '' }),
+        onFailure: (err) => recordImportFailure(job.id, err),
+    });
 });
 
 module.exports = Object.assign(router, {

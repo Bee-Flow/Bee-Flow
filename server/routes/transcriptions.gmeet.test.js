@@ -44,6 +44,9 @@ const fx = {
     seedResult: undefined,      // override seedJob return (undefined = echo row)
     inline: null,               // processJobInline impl per test
     inlineCalls: [],
+    updates: [],
+    failures: [],
+    fresh: null,
 };
 
 function resetFx() {
@@ -72,6 +75,11 @@ function resetFx() {
     fx.seedResult = undefined;
     fx.inline = async () => ({ transcription: { id: 't-new' } });
     fx.inlineCalls.length = 0;
+    fx.updates.length = 0;
+    fx.failures.length = 0;
+    fx.fresh = null;
+    fx.credQueue = null;
+    require('../core/meetingNotes/manualImportRunner')._resetForTests();
 }
 resetFx();
 
@@ -166,7 +174,7 @@ stub('../stores/meetingPrefsStore', {
     },
 });
 stub('../auth/automationAuth', { getProviderAuth: async () => fx.providerAuth });
-stub('../stores/automationCredentialStore', { getCredential: async () => fx.cred });
+stub('../stores/automationCredentialStore', { getCredential: async () => (fx.credQueue ? fx.credQueue.shift() : fx.cred) });
 stub('../core/meetingNotes/gmeetCalendar', {
     extractMeetCode: (v) => {
         const s = String(v || '').trim().toLowerCase();
@@ -189,6 +197,10 @@ stub('../core/meetingNotes/gmeetArtifacts', {
 });
 stub('../stores/gmeetImportStore', {
     listRecentJobsForUser: async () => fx.jobs,
+    updateJob: async (id, fields) => { fx.updates.push({ id, fields }); return true; },
+    heartbeatJob: async () => true,
+    getJob: async () => fx.fresh,
+    failJob: async (id, opts) => { fx.failures.push({ id, ...opts }); return true; },
     seedJob: async (row) => {
         fx.seeded.push(row);
         return fx.seedResult !== undefined ? fx.seedResult : { id: 'job-new', status: 'pending', ...row };
@@ -552,6 +564,11 @@ test('from-gmeet: connected without Meet scopes → 403 needs_meet_scopes', asyn
     assert.strictEqual(res.body.code, 'needs_meet_scopes');
 });
 
+const settle = async (check) => {
+    for (let i = 0; i < 200 && !check(); i++) await new Promise((r) => setImmediate(r));
+    assert.ok(check(), 'the background import did not finish');
+};
+
 test('from-gmeet: happy path — seeds a job and returns the saved note', async () => {
     resetFx();
     fx.cred = { status: 'active', scope: MEET_SCOPES };
@@ -562,8 +579,11 @@ test('from-gmeet: happy path — seeds a job and returns the saved note', async 
         method: 'POST', url: '/from-gmeet', session: liveSession(),
         body: { meet_link: 'https://meet.google.com/abc-defg-hij', language: 'en' },
     });
-    assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(res.body, { id: 't-9', title: 'Weekly sync' });
+    // Answers at once; the ingest runs after the response.
+    assert.strictEqual(res.statusCode, 202);
+    assert.deepStrictEqual(res.body, { jobId: 'job-new', status: 'pending' });
+    assert.deepStrictEqual(fx.updates[0].fields, { status: 'pending', errorCode: null, lastError: null });
+    await settle(() => fx.inlineCalls.length === 1);
 
     assert.strictEqual(fx.seeded.length, 1, 'job seeded');
     assert.deepStrictEqual(
@@ -585,8 +605,8 @@ test('from-gmeet: request language and context terms reach the ingest (not silen
         method: 'POST', url: '/from-gmeet', session: liveSession(),
         body: { meet_link: 'https://meet.google.com/abc-defg-hij', language: 'en', context_terms: 'Bee Flow, Kapsule' },
     });
-    assert.strictEqual(res.statusCode, 200);
-    assert.strictEqual(fx.inlineCalls.length, 1);
+    assert.strictEqual(res.statusCode, 202);
+    await settle(() => fx.inlineCalls.length === 1);
     // Regression: processJobInline used to ignore these and run on the
     // settings language with no context terms.
     assert.strictEqual(fx.inlineCalls[0].language, 'en');
@@ -600,39 +620,60 @@ test('from-gmeet: existing poller job is reused instead of reseeding', async () 
     fx.jobs = [{ id: 'job-poller', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', status: 'awaiting_artifacts' }];
 
     const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } });
-    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.statusCode, 202);
+    await settle(() => fx.inlineCalls.length === 1);
     assert.strictEqual(fx.seeded.length, 0, 'no duplicate seed');
     assert.strictEqual(fx.inlineCalls[0].job.id, 'job-poller');
 });
 
-test('from-gmeet: artifacts not ready → 202 { jobId, status }', async () => {
+test('from-gmeet: an already ingested job answers its note without running again', async () => {
     resetFx();
     fx.cred = { status: 'active', scope: MEET_SCOPES };
     fx.recentlyEnded = [meeting()];
-    fx.inline = async () => ({ pending: true, status: 'awaiting_artifacts' });
-
-    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { meeting_code: 'abc-defg-hij' } });
-    assert.strictEqual(res.statusCode, 202);
-    assert.deepStrictEqual(res.body, { jobId: 'job-new', status: 'awaiting_artifacts' });
+    fx.jobs = [{ id: 'job-old', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', status: 'ingested', transcriptionId: 't-old' }];
+    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } });
+    assert.deepStrictEqual(res.body, { id: 't-old', dedup: true });
+    assert.strictEqual(fx.inlineCalls.length, 0);
 });
 
-test('from-gmeet: classified ingest failures map to 4xx with stable codes', async () => {
-    const cases = [
-        ['no_recording', 404],
-        ['no_conference', 404],
-        ['no_drive_access', 403],
-        ['recording_too_large', 413],
-        ['unsupported_edition', 400],
-    ];
-    for (const [code, httpStatus] of cases) {
+test('from-gmeet: a failure the pipeline did not record lands on the job as a classified code', async () => {
+    for (const [code, expected] of [['no_drive_access', 'no_drive_access'], [undefined, 'failed']]) {
         resetFx();
         fx.cred = { status: 'active', scope: MEET_SCOPES };
         fx.recentlyEnded = [meeting()];
-        fx.inline = async () => { const e = new Error(`ingest failed: ${code}`); e.code = code; throw e; };
+        fx.fresh = { id: 'job-new', status: 'pending', errorCode: null };
+        fx.inline = async () => { const e = new Error('boom'); if (code) e.code = code; throw e; };
         const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { meeting_code: 'abc-defg-hij' } });
-        assert.strictEqual(res.statusCode, httpStatus, `${code} → ${httpStatus}`);
-        assert.strictEqual(res.body.code, code);
+        assert.strictEqual(res.statusCode, 202);
+        await settle(() => fx.failures.length === 1);
+        assert.deepStrictEqual({ code: fx.failures[0].errorCode, terminal: fx.failures[0].terminal }, { code: expected, terminal: true });
     }
+
+    // The pipeline wrote its own outcome: it is left alone.
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [meeting()];
+    fx.fresh = { id: 'job-new', status: 'no_recording', errorCode: 'no_recording' };
+    fx.inline = async () => { const e = new Error('none'); e.code = 'no_recording'; throw e; };
+    await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { meeting_code: 'abc-defg-hij' } });
+    await settle(() => fx.inlineCalls.length === 1);
+    await new Promise((r) => setImmediate(r));
+    assert.deepStrictEqual(fx.failures, []);
+});
+
+test('from-gmeet: access is checked again when the job runs', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEnded = [meeting()];
+    fx.fresh = { id: 'job-new', status: 'pending', errorCode: null };
+    // The request sees a grant; by the time the job runs it is gone.
+    fx.credQueue = [{ status: 'active', scope: MEET_SCOPES }, null];
+    fx.providerAuth = { accessToken: 'vault_at', refreshToken: 'vault_rt' };
+    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: { user: { id: 'u1' } }, body: { meeting_code: 'abc-defg-hij' } });
+    assert.strictEqual(res.statusCode, 202);
+    await settle(() => fx.failures.length === 1);
+    assert.strictEqual(fx.inlineCalls.length, 0);
+    assert.strictEqual(fx.failures[0].errorCode, 'not_connected');
 });
 
 test('from-gmeet: unresolvable meeting reference → 400', async () => {

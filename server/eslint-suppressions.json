@@ -8601,9 +8601,6 @@
     }
   },
   "routes/transcriptions/teams.js": {
-    "complexity": {
-      "count": 1
-    },
     "max-depth": {
       "count": 1
     }
