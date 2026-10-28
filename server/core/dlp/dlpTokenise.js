@@ -115,7 +115,7 @@ function _extractLastUserText(messages) {
         if (m?.role !== 'user') continue;
         if (typeof m.content === 'string') return m.content;
         if (Array.isArray(m.content)) {
-            const text = m.content.find(b => b?.type === 'text');
+            const text = m.content.find((/** @type {{ type: string; }} */ b) => b?.type === 'text');
             return text?.text || '';
         }
         return '';

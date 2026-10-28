@@ -37,6 +37,7 @@ function clampSlide(slide, index, limits, warnings) {
         if (t.rows.length > limits.maxTableRows) warnings.push(`${label}: the table was cut to ${limits.maxTableRows} rows`);
         const width = cols.length || (t.rows[0] ? Math.min(t.rows[0].length, limits.maxTableCols) : 0);
         const rows = t.rows.slice(0, limits.maxTableRows).map((r) => {
+            /** @type {(string | number)[]} */
             const out = [];
             for (let i = 0; i < width; i += 1) {
                 const v = r[i];

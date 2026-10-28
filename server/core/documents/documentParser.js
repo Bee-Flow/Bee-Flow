@@ -71,6 +71,10 @@ async function parseDocument(buffer, mimeType, filename, options = {}) {
 }
 
 // ── DOCX Parser ─────────────────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} filename
+ */
 async function parseDocx(buffer, filename, options = {}) {
     try {
         const result = options.returnHtml 
@@ -84,12 +88,16 @@ async function parseDocx(buffer, filename, options = {}) {
         log.info(`[DocumentParser] Extracted ${text.length} chars from DOCX: ${log.nameForLog(filename)}`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse DOCX "${log.nameForLog(filename)}":`, err.message);
-        return `[Document: ${filename} — failed to parse DOCX: ${err.message}]`;
+        log.error(`[DocumentParser] Failed to parse DOCX "${log.nameForLog(filename)}":`, /** @type {Error} */ (err).message);
+        return `[Document: ${filename} — failed to parse DOCX: ${/** @type {Error} */ (err).message}]`;
     }
 }
 
 // ── PPTX Parser ─────────────────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} filename
+ */
 async function parsePptx(buffer, filename) {
     try {
         const { extractPptxText } = require('./pptxExtractor');
@@ -101,8 +109,8 @@ async function parsePptx(buffer, filename) {
         log.info(`[DocumentParser] Extracted ${text.length} chars from PPTX: ${log.nameForLog(filename)} (${slideCount} slides, ${notesCount} with notes)`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse PPTX "${log.nameForLog(filename)}":`, err.message);
-        return `[Presentation: ${filename} — failed to parse PPTX: ${err.message}]`;
+        log.error(`[DocumentParser] Failed to parse PPTX "${log.nameForLog(filename)}":`, /** @type {Error} */ (err).message);
+        return `[Presentation: ${filename} — failed to parse PPTX: ${/** @type {Error} */ (err).message}]`;
     }
 }
 
@@ -111,6 +119,7 @@ async function parsePptx(buffer, filename) {
  * SheetJS reads a CSV buffer as codepage 1252, so "é" arrives as "Ã©". Delimited
  * text that is valid UTF-8 is read as a string instead (BOM stripped); one
  * that is not valid UTF-8 keeps the old behaviour (legacy Windows exports).
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function readWorkbook(buffer) {
     // XLSX/ODS are zip ("PK"), legacy XLS is a compound file (D0 CF 11 E0):
@@ -129,6 +138,10 @@ function readWorkbook(buffer) {
     return XLSX.read(buffer, { type: 'buffer' });
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} filename
+ */
 function parseSpreadsheet(buffer, filename) {
     try {
         const workbook = readWorkbook(buffer);
@@ -138,6 +151,7 @@ function parseSpreadsheet(buffer, filename) {
             return `[Spreadsheet: ${filename} — no sheets found]`;
         }
 
+        /** @type {string[]} */
         const parts = [];
 
         for (const sheetName of sheets) {
@@ -178,12 +192,16 @@ function parseSpreadsheet(buffer, filename) {
         log.info(`[DocumentParser] Parsed spreadsheet "${log.nameForLog(filename)}": ${sheets.length} sheet(s), ${result.length} chars`);
         return result;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse spreadsheet "${log.nameForLog(filename)}":`, err.message);
-        return `[Spreadsheet: ${filename} — failed to parse: ${err.message}]`;
+        log.error(`[DocumentParser] Failed to parse spreadsheet "${log.nameForLog(filename)}":`, /** @type {Error} */ (err).message);
+        return `[Spreadsheet: ${filename} — failed to parse: ${/** @type {Error} */ (err).message}]`;
     }
 }
 
 // ── PDF Fallback Parser (when Mistral OCR is unavailable) ───────
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} filename
+ */
 async function parsePdf(buffer, filename) {
     try {
         const { PDFParse } = require('pdf-parse');
@@ -192,6 +210,7 @@ async function parsePdf(buffer, filename) {
         // The page texts are joined here rather than taken from `text`, which
         // carries "-- 1 of 1 --" separators even for a page with no words.
         const parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
+        /** @type {string} */
         let text;
         try {
             const { pages } = await parser.getText();
@@ -205,8 +224,8 @@ async function parsePdf(buffer, filename) {
         log.info(`[DocumentParser] Extracted ${text.length} chars from PDF: ${log.nameForLog(filename)}`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse PDF "${log.nameForLog(filename)}":`, err.message);
-        return `[PDF: ${filename} — failed to parse: ${err.message}]`;
+        log.error(`[DocumentParser] Failed to parse PDF "${log.nameForLog(filename)}":`, /** @type {Error} */ (err).message);
+        return `[PDF: ${filename} — failed to parse: ${/** @type {Error} */ (err).message}]`;
     }
 }
 

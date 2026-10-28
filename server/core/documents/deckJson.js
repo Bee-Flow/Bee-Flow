@@ -6,6 +6,7 @@ const { fieldsFromContent, slideFromFields, deckFromMarkdown } = require('./deck
 
 function asBulletList(value) {
     if (!Array.isArray(value)) return [];
+    /** @type {{ text: string; level: number; }[]} */
     const out = [];
     for (const b of value) {
         if (b === null || b === undefined) continue;
@@ -65,6 +66,10 @@ function asQuote(value) {
     return null;
 }
 
+/**
+ * @param {string} input
+ * @param {string[]} warnings
+ */
 function slideFromJson(input, warnings) {
     if (typeof input === 'string') {
         const f = fieldsFromContent(input);
