@@ -73,7 +73,7 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
 
     // Tokenize PII in extracted attachment text BEFORE it enters the prompt
     // — a file attached in Legal/Notebook chat must not send names/BSN/email
-    // to the model raw .
+    // to the model raw.
     // Honors the org's chosen action and merges into the same notebook token
     // map so the streamed reply un-tokenises consistently. Reuses the same
     // scanner as direct chat + the KB/doc scans.
