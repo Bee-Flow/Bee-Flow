@@ -58,10 +58,7 @@ async function loadGroupTierRule(userId) {
 }
 
 /**
- * @typedef {Object} GetPermittedTierKeysArgs
- * @property {string | undefined} [userId]
- * @property {Express.Session} [session]
- * @property {string} [taskType]
+ * @typedef {{ userId?: string | undefined, session?: Express.Session, taskType?: string }} GetPermittedTierKeysArgs
  */
 /**
  * @param {GetPermittedTierKeysArgs} param0
