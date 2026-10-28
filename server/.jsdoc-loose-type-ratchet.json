@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of JSDoc types that are any, *, Function, Object or object server may still carry. Lower it with `node scripts/count-ratchet.mjs jsdoc-loose-type server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-10-28",
-  "count": 1663
+  "count": 1662
 }
