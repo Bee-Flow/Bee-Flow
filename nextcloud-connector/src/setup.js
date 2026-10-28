@@ -32,6 +32,7 @@ const auth = require('./auth');
 const rateLimit = require('./rateLimit');
 const { assertAllowedUrl, parseAllowedUrl } = require('./remoteHost');
 const { ncTlsMode } = require('./ncTls'); // NC TLS posture for diagnostics
+const { shellBaseUrl } = require('./embedTarget');
 const ncProxy = require('./ncProxy');
 const log = require('./log'); // callback-signature health for diagnostics
 const { errMessage, errCode, asError } = require('./errors');
@@ -53,7 +54,7 @@ const router = express.Router();
  * The JSON body of a setup request. Every field is optional text the admin typed (or nothing at
  * all, when the body did not parse), so a route reads one and checks it before use.
  * @param {import('express').Request} req
- * @returns {{ mode?: string, apiBaseUrl?: string, publicNcUrl?: string, pairingCode?: string, code?: string }}
+ * @returns {{ mode?: string, apiBaseUrl?: string, embedBaseUrl?: string | null, publicNcUrl?: string, pairingCode?: string, code?: string }}
  */
 function bodyOf(req) {
     return req.body || {};
@@ -262,6 +263,13 @@ router.get('/status', requireNcAdmin, (req, res) => {
             active: config.nextcloudPublicUrl || null,
             internalNcUrl: config.nextcloudUrl,
         },
+        // Where the embedded app's shell comes from right now (null: the
+        // shell baked into the connector image), see embedTarget.js.
+        embed: {
+            envOverridden: config.embedBaseUrlLocked,
+            chosen: stored?.embedBaseUrl || null,
+            active: shellBaseUrl(),
+        },
     });
 });
 
@@ -417,8 +425,11 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
     // sets the env var. The env now seeds the initial value via config.js
     // but admin overrides through this endpoint or the NC settings panel
     // win at runtime — last-writer wins, persisted via setupConfig.
-    let { mode, apiBaseUrl } = bodyOf(req);
-    if (mode === 'cloud') apiBaseUrl = setupConfig.CLOUD_URL;
+    let { mode, apiBaseUrl, embedBaseUrl } = bodyOf(req);
+    if (mode === 'cloud') { apiBaseUrl = setupConfig.CLOUD_URL; embedBaseUrl = null; }
+    // The web app URL of a self-hosted server (optional): where the embedded
+    // app's shell is loaded from while that server is the live one (#401).
+    const webUrl = typeof embedBaseUrl === 'string' ? embedBaseUrl.trim() : '';
 
     // DNS-level check before we persist and start signing requests to it.
     // setupConfig.save() re-runs the synchronous half of this; here we can also
@@ -426,6 +437,7 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
     if (mode !== 'cloud') {
         try {
             await assertAllowedUrl(apiBaseUrl, { label: 'Bee Flow server URL' });
+            if (webUrl) await assertAllowedUrl(webUrl, { label: 'Web app URL' });
         } catch (err) {
             return res.status(400).json({ error: errMessage(err), code: errCode(err) });
         }
@@ -434,7 +446,7 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
     const previousChoice = setupConfig.get();
     let saved;
     try {
-        saved = setupConfig.save({ mode, apiBaseUrl });
+        saved = setupConfig.save({ mode, apiBaseUrl, embedBaseUrl: webUrl || null });
     } catch (err) {
         return res.status(400).json({ error: errMessage(err) });
     }

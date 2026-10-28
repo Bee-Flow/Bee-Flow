@@ -138,7 +138,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
             <variable>
                 <name>BEEFLOW_EMBED_BASE_URL</name>
                 <display-name>Bee Flow frontend — Cloud (default) or self-hosted</display-name>
-                <description>Where the connector loads the embedded Bee Flow app (the SPA shell — index.html + assets) from. This is SEPARATE from "Bee Flow server" above, which is the API. The default, https://beeflow.nl, is Bee Flow Cloud's frontend. If you point "Bee Flow server" at your own / a non-Cloud environment, also set this to the matching frontend host (e.g. https://dev.beeflow.nl) so the embedded app is the same build as your server — otherwise the embed runs the Cloud frontend against your API and can look out of date. Leave at the default to use the Cloud frontend.</description>
+                <description>Where the connector loads the embedded Bee Flow app (the SPA shell: index.html and assets) from. Leave at the default in almost all cases: on Bee Flow Cloud the app comes from Cloud's frontend, and when you switch to a self-hosted server (in /setup or in Settings → Artificial Intelligence) it comes from the web app URL you enter there, or from the copy built into the connector when you leave that empty. Set this only to force one frontend host whatever server is chosen.</description>
                 <default>https://beeflow.nl</default>
             </variable>
             <variable>
