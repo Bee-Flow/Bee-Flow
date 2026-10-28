@@ -64,9 +64,7 @@ async function _initMessagesTable() {
     `);
     // Migration flag columns on the parent tables —
     // added lazily so this is safe on existing databases.
-    // Via runDdl (stores/lib/_ddl.js): fouten per statement luid verzameld
-    // i.p.v. stil ingeslikt; de advisory lock serialiseert ook de unique
-    // index hieronder, die db.exec' substring-queue altijd passeerde.
+    // Via runDdl (stores/lib/_ddl.js): each statement's failure is reported on its own.
     await runDdl('conversationMessages', [
         `ALTER TABLE agent_conversations
             ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
@@ -86,9 +84,11 @@ async function _initMessagesTable() {
     // client_msg_id: idempotency. Two tabs, a retry, or a reconnect mid-send
     //   would otherwise post the same message twice into a shared thread where
     //   everyone can see it happen.
-    // Voorheen één catch om drie statements — welke van de drie faalde was
-    // onzichtbaar; nu rapporteert runDdl ze afzonderlijk.
+    // turn_id / turn_asked_at: the turn that wrote the row and when it was asked
+    //   (./conversationTurns.js orders overlapping turns by it). NULL: unknown.
     await runDdl('conversationMessages', [
+        `ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS turn_id TEXT`,
+        `ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS turn_asked_at TIMESTAMPTZ`,
         `ALTER TABLE conversation_messages
             ADD COLUMN IF NOT EXISTS author_user_id TEXT`,
         `ALTER TABLE conversation_messages

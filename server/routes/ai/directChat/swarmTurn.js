@@ -77,6 +77,8 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         // and a turn that finishes on this conversation in the meantime must
         // stay below this question (see placeTurnRows).
         let anchorId = null;
+        // This turn's id and the time it was asked, taken at the start.
+        const turnMark = { turnId: require('crypto').randomUUID(), askedAt: new Date().toISOString() };
         if (convId) {
             try {
                 const existingConv = await agentStore.getDirectConversation(convId, userId, encryptionOpts(req));
@@ -140,7 +142,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                     // shared thread, a legacy-blob conversation) appended to
                     // the whole array as stored now.
                     const placed = turnRows.length > 0 && anchorId !== null
-                        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId }, userId, meta, encryptionOpts(req));
+                        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId, ...turnMark }, userId, meta, encryptionOpts(req));
                     if (!placed) {
                         const existingConv = await agentStore.getDirectConversation(convId, userId, encryptionOpts(req));
                         const messages = Array.isArray(existingConv?.messages) ? [...existingConv.messages, ...turnRows] : turnRows;

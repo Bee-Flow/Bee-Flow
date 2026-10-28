@@ -25,7 +25,7 @@ const {
     settleStreamedContent, emitRawResponse, restoreForDisplay, applyOutputRegexGuard, guardEmptyResponse,
 } = require('./finalizeContent');
 const { persistenceBase, turnAnchorId, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
-const { placeTurnRows } = require('../../../core/conversation/historyMerge');
+const { placeTurnRows, markOf } = require('../../../core/conversation/historyMerge');
 const { scheduleTitle, extractTurnMemories } = require('./finalizeAftercare');
 const { bestEffort } = require('../../../utils/bestEffort');
 
@@ -79,14 +79,14 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
  * title. Returns the pending title promise (or null).
  */
 async function persistTurn(t, conv) {
-    const { req, send, userId, convId, modelTier, history, _sharedThread, clearInterruptedTurnHook } = t;
+    const { req, send, userId, convId, modelTier, history, _sharedThread, clearInterruptedTurnHook, turnMark } = t;
     const userSave = buildUserRow(t);
     const tokenisationInfo = resolveTokenisationInfo(t);
     const turnRows = [userSave, buildAssistantRow({ ...t, tokenisationInfo })];
     const anchorId = turnAnchorId(t);
     // Right after the message this turn was asked on: another turn on this
     // conversation may have finished while this one ran (see placeTurnRows).
-    const savedMessages = placeTurnRows(persistenceBase(history, conv.messages || []), turnRows, anchorId);
+    const savedMessages = placeTurnRows(persistenceBase(history, conv.messages || []), turnRows, anchorId, markOf({ turnId: turnMark?.turnId, turnAskedAt: turnMark?.askedAt }));
 
     // Save with metadata for OpenAI response chaining + compaction. A turn
     // that extends the stored history saves only its own rows, under the
@@ -94,7 +94,7 @@ async function persistTurn(t, conv) {
     // shared thread and a legacy-blob conversation write the whole array.
     const meta = buildUpdateMeta(t);
     const placed = anchorId !== null
-        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId }, userId, meta, encryptionOpts(req));
+        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId, ...turnMark }, userId, meta, encryptionOpts(req));
     if (!placed) await agentStore.updateDirectConversation(convId, savedMessages, userId, meta, encryptionOpts(req));
     // Turn is durably recorded: a later throw (title generation etc.) must
     // not append a duplicate user/assistant pair via the hook.

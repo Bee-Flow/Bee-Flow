@@ -1174,6 +1174,8 @@ declare namespace DbRow {
         role: string;
         seq: number;
         tool_name: string | null;
+        turn_asked_at: Date | null;
+        turn_id: string | null;
     }
     /** Row of `conversation_turn_locks`. */
     interface ConversationTurnLocks {

@@ -10,8 +10,9 @@
  * device, the Nextcloud embed next to the web app, a question asked again
  * after a dropped stream while the server was still answering) was deleted.
  *
- * Pinned: both turns survive, each right after the history it was asked on,
- * in the order they were asked; an edit/retry still rewrites the history.
+ * Pinned: every turn survives, after the history it was asked on, in the
+ * order the turns were asked whichever finishes first; an edit/retry still
+ * rewrites the history.
  *
  * Run: cd server && node --test core/agentRuntime/chatStream.overlappingTurns.test.js
  */
@@ -132,6 +133,45 @@ test('two overlapping turns, B finishing first: both survive, in the order they 
         'first question', 'first answer',
         'question A', 'answer to question A',
         'question B', 'answer to question B',
+    ]);
+});
+
+/**
+ * Ask `question` and hold it at the provider; resolves once it read the
+ * history and waits, a few ms later so the next turn is asked later.
+ * @param {string} id
+ * @param {string} question
+ */
+async function askHeld(id, question) {
+    const gate = holdAtProvider(question);
+    const done = ask(id, question);
+    await gate.atProvider;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return { done, release: gate.release };
+}
+
+/** @param {string} n */
+const exchange = (n) => [`question ${n}`, `answer to question ${n}`];
+
+test('asked first and finished first, then a later turn on the same history: the order asked', async () => {
+    const id = await conversationWithHistory();
+    const one = await askHeld(id, 'question 1');
+    const two = await askHeld(id, 'question 2');   // both read the same history
+    one.release(); await one.done;                  // 1 is stored first ...
+    two.release(); await two.done;                  // ... and 2 must land after it, not right after the history
+    assert.deepStrictEqual(await stored(id), ['first question', 'first answer', ...exchange('1'), ...exchange('2')]);
+});
+
+test('three overlapping turns, finishing 3, 1, 2, read back in the order asked', async () => {
+    const id = await conversationWithHistory();
+    const one = await askHeld(id, 'question 1');
+    const two = await askHeld(id, 'question 2');
+    const three = await askHeld(id, 'question 3');
+    three.release(); await three.done;
+    one.release(); await one.done;
+    two.release(); await two.done;
+    assert.deepStrictEqual(await stored(id), [
+        'first question', 'first answer', ...exchange('1'), ...exchange('2'), ...exchange('3'),
     ]);
 });
 

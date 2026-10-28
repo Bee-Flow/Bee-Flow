@@ -151,7 +151,7 @@ function historyAnchorId(history) {
 
 // placeTurnRows (where a finished turn's rows go) lives with the store that
 // writes them, stores/agent/conversationOrder.mts; re-exported for the routes.
-const { placeTurnRows } = require('../../stores/agent/conversationOrder.mts');
+const { placeTurnRows, markOf } = require('../../stores/agent/conversationOrder.mts');
 
 /**
  * How a turn saves its own rows: everything `messages` gained after the stored
@@ -160,6 +160,10 @@ const { placeTurnRows } = require('../../stores/agent/conversationOrder.mts');
  * (historyAnchorId). Each row keeps one id across the saves of the turn (an
  * agent turn saves after every tool round, then at its end), so a later save
  * replaces the earlier one instead of adding a copy.
+ *
+ * The turn's id and the time it was asked are taken HERE, when the turn starts
+ * (`turnId`, `askedAt`): turns asked on the same history are stored in the
+ * order they were asked, whichever finishes first (placeTurnRows).
  *
  * Null when the turn has no stored history it extends: an edit or retry sends
  * its own history and rewrites the conversation on purpose.
@@ -170,12 +174,14 @@ const { placeTurnRows } = require('../../stores/agent/conversationOrder.mts');
  * @template {{ [key: string]: unknown }} M
  * @param {M[]} messages  the stored history, then the turn's rows (appended as the turn goes)
  * @param {M[] | null | undefined} storedHistory
- * @returns {(<R>(write: (turn: { rows: M[], anchorId: string | null }) => Promise<R>) => Promise<R>) | null}
+ * @returns {(<R>(write: (turn: { rows: M[], anchorId: string | null, turnId: string, askedAt: string }) => Promise<R>) => Promise<R>) | null}
  */
 function turnSaver(messages, storedHistory) {
     if (!Array.isArray(storedHistory)) return null;
     const anchorId = historyAnchorId(/** @type {HistoryMessage[]} */ (storedHistory));
     const from = storedHistory.length;
+    const turnId = randomUUID();
+    const askedAt = new Date().toISOString();
     /** @type {WeakMap<object, string>} */
     const ids = new WeakMap();
     return (write) => write({
@@ -185,8 +191,8 @@ function turnSaver(messages, storedHistory) {
             if (!id) { id = randomUUID(); ids.set(m, id); }
             return { ...m, id };
         }),
-        anchorId,
+        anchorId, turnId, askedAt,
     });
 }
 
-module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows, turnSaver };
+module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows, markOf, turnSaver };

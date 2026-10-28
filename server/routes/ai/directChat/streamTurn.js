@@ -86,7 +86,7 @@ function makeInterruptedTurnPersister(turn) {
             // Saved under the row lock like a finished turn
             // (finalizeTurn.persistTurn); the whole array only where that does
             // not apply. meta null → meta_json stays untouched.
-            if (anchorId !== null && await agentStore.placeDirectConversationTurn(turn.convId, { rows, anchorId }, userId, null, encryptionOpts(req))) return;
+            if (anchorId !== null && await agentStore.placeDirectConversationTurn(turn.convId, { rows, anchorId, ...turn.turnMark }, userId, null, encryptionOpts(req))) return;
             const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
             await agentStore.updateDirectConversation(turn.convId, placeTurnRows(convNow?.messages || [], rows, anchorId), userId, null, encryptionOpts(req));
         } catch (e) {

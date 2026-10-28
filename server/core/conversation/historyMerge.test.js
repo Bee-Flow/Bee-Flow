@@ -179,3 +179,21 @@ test('placeTurnRows: after the anchor when later rows exist, appended otherwise,
     assert.deepStrictEqual(placeTurnRows(base, rows, null).map(m => m.id), ['a', 'b', 'later', 'q', 'r']);
     assert.deepStrictEqual(base.map(m => m.id), ['a', 'b', 'later']);
 });
+
+test('placeTurnRows with a mark: past the turns asked earlier, whole turns, stopping at a later or unmarked one', () => {
+    const at = (/** @type {number} */ s) => new Date(Date.UTC(2026, 9, 28, 12, 0, s)).toISOString();
+    const base = [
+        { id: 'h' },
+        { id: 'q1', turnId: 't1', turnAskedAt: at(1) }, { id: 'a1', turnId: 't1', turnAskedAt: at(1) },
+        { id: 'q3', turnId: 't3', turnAskedAt: at(3) }, { id: 'a3', turnId: 't3', turnAskedAt: at(3) },
+    ];
+    const rows = [{ id: 'q2' }, { id: 'a2' }];
+    assert.deepStrictEqual(placeTurnRows(base, rows, 'h', { turnId: 't2', askedAt: Date.parse(at(2)) }).map(m => m.id),
+        ['h', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3']);
+    // Same instant: the turn id decides.
+    assert.deepStrictEqual(placeTurnRows(base, rows, 'h', { turnId: 't0', askedAt: Date.parse(at(1)) }).map(m => m.id),
+        ['h', 'q2', 'a2', 'q1', 'a1', 'q3', 'a3']);
+    // An unmarked row stops the skip.
+    assert.deepStrictEqual(placeTurnRows([{ id: 'h' }, { id: 'x' }, ...base.slice(1)], rows, 'h', { turnId: 't9', askedAt: Date.parse(at(9)) }).map(m => m.id).slice(0, 3),
+        ['h', 'q2', 'a2']);
+});

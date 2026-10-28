@@ -68,6 +68,10 @@ function createTurnState({
         disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
         sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
         requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
+        // This turn's id and the server time it was asked, taken now (at the
+        // start): turns asked on the same history are stored in the order they
+        // were asked, whichever finishes first (stores/agent/conversationTurns.js).
+        turnMark: { turnId: require('crypto').randomUUID(), askedAt: new Date().toISOString() },
         // Flips when the composer's stop button closes the response; every
         // loop checks it so a cancelled turn starts no new round.
         clientGone: false,

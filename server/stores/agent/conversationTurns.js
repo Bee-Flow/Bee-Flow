@@ -26,13 +26,31 @@ const { initDB } = require('./initSchema');
 const convMessages = require('./conversationMessages');
 const agentConversations = require('./agentConversations');
 const directConversations = require('./directConversations');
-const { writeTurnRows, placeTurnRows } = require('./conversationOrder.mts');
+const { randomUUID } = require('crypto');
+const { writeTurnRows, placeTurnRows, markOf } = require('./conversationOrder.mts');
 const { PLAINTEXT_CONTEXT } = require('./messageCrypto');
 const log = require('../../telemetry/log');
 
 /** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
 /** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */
-/** @typedef {{ rows: StoredMessage[], anchorId: string | null }} TurnRows  a turn's own rows in order, and the last stored message it was asked on */
+/**
+ * @typedef {{ rows: StoredMessage[], anchorId: string | null, turnId?: string, askedAt?: string }} TurnRows
+ *   a turn's own rows in order, the last stored message it was asked on, and
+ *   the turn's id and the server time it was asked (turnMark) that order it
+ *   among other turns asked on the same history
+ */
+
+/**
+ * A new turn's id and the time it is asked. Take it when the turn STARTS:
+ * overlapping turns are stored in the order they were asked, not finished.
+ * @returns {{ turnId: string, askedAt: string }}
+ */
+function turnMark() {
+    return { turnId: randomUUID(), askedAt: new Date().toISOString() };
+}
+
+/** @param {TurnRows} turn @returns {import('./conversationOrder.mts').TurnMark | null} */
+const markOfTurn = (turn) => markOf({ turnId: turn.turnId, turnAskedAt: turn.askedAt });
 
 /**
  * The rows of one turn into conversation_messages, placed after `anchorId`.
@@ -45,15 +63,15 @@ const log = require('../../telemetry/log');
  * @returns {Promise<boolean>} false: the conversation still reads from its
  *   legacy blob and nothing was written; the caller writes the whole array.
  */
-async function placeTurnMessages(conversationId, type, { rows, anchorId }, ctx = PLAINTEXT_CONTEXT) {
+async function placeTurnMessages(conversationId, type, turn, ctx = PLAINTEXT_CONTEXT) {
+    const { rows, anchorId } = turn;
     await convMessages.initMessagesTable();
     if (!Array.isArray(rows) || rows.length === 0) return true;
     // A keyless write into an encrypted conversation is refused, as for replaceMessages.
     await convMessages._refuseSilentDowngrade(conversationId, ctx);
-    const { randomUUID } = require('crypto');
     const withIds = rows.map((m) => (m.id ? m : { ...m, id: randomUUID() }));
     return withTransaction((client) => writeTurnRows(client, {
-        type, conversationId, anchorId,
+        type, conversationId, anchorId, mark: markOfTurn(turn),
         turnIds: withIds.map((m) => String(m.id)),
         insertRows: (startSeq) => convMessages._bulkInsert(
             convMessages.messagesToRows(conversationId, type, withIds, ctx, startSeq), client),
@@ -76,6 +94,23 @@ function placeOrLog(conversationId, type, turn, ctx) {
 }
 
 /**
+ * The turn write; a conversation still on its legacy blob is first migrated
+ * into conversation_messages (under the row lock, migrateConversationIfNeeded)
+ * from what a reader sees now, then written. False: still not migrated (the
+ * table and the blob disagree); the caller writes the whole array.
+ * @param {string} conversationId
+ * @param {'agent' | 'direct'} type
+ * @param {TurnRows} turn
+ * @param {Readonly<CryptoContext>} ctx
+ * @param {() => Promise<StoredMessage[]>} readStored  the conversation as a reader sees it now
+ */
+async function placeAfterMigrating(conversationId, type, turn, ctx, readStored) {
+    if (await placeOrLog(conversationId, type, turn, ctx)) return true;
+    await convMessages.migrateConversationIfNeeded(conversationId, type, await readStored(), ctx);
+    return placeOrLog(conversationId, type, turn, ctx);
+}
+
+/**
  * Save one finished agent-chat turn (streaming and non-streaming agent chat).
  *
  * A shared thread, or a conversation that still reads from its legacy blob,
@@ -94,15 +129,16 @@ async function saveConversationTurn(conversationId, turn, encryptionKey = null, 
     const access = await agentConversations._resolveAgentWriteContext(conversationId, /** @type {string} */ (userId), encryptionKey);
     if (!access) throw new agentConversations.ConversationWriteDenied(conversationId);
 
-    if (!access.isShared && await placeOrLog(conversationId, 'agent', turn, access.ctx)) {
+    const read = () => agentConversations.getConversationById(conversationId, encryptionKey ?? null, { restore: false })
+        .then((c) => /** @type {StoredMessage[]} */ (c?.messages || []));
+    if (!access.isShared && await placeAfterMigrating(conversationId, 'agent', turn, access.ctx, read)) {
         await run('UPDATE agent_conversations SET updated_at = NOW() WHERE id = $1', [conversationId]);
         return;
     }
-    const current = await agentConversations.getConversationById(conversationId, encryptionKey ?? null, { restore: false });
     const own = new Set(turn.rows.map((m) => m.id));
-    const base = /** @type {StoredMessage[]} */ (current?.messages || []).filter((m) => !own.has(m.id));
+    const base = (await read()).filter((m) => !own.has(m.id));
     await agentConversations.updateConversation(conversationId,
-        placeTurnRows(base, turn.rows, access.isShared ? null : turn.anchorId), encryptionKey, userId);
+        placeTurnRows(base, turn.rows, access.isShared ? null : turn.anchorId, markOfTurn(turn)), encryptionKey, userId);
 }
 
 /**
@@ -124,7 +160,9 @@ async function placeDirectConversationTurn(id, turn, userId, meta = null, option
     await initDB();
     const access = await directConversations._resolveWriteContext(id, userId, options);
     if (!access) throw new directConversations.ConversationWriteDenied(id);
-    if (access.isShared || !await placeOrLog(id, 'direct', turn, access.ctx)) return false;
+    const read = () => directConversations.getDirectConversation(id, userId, { ...options, restore: false })
+        .then((c) => /** @type {StoredMessage[]} */ (c?.messages || []));
+    if (access.isShared || !await placeAfterMigrating(id, 'direct', turn, access.ctx, read)) return false;
 
     if (meta && Object.keys(meta).length > 0) {
         await directConversations.updateDirectConversationMeta(id, access.ownerId, meta, options);
@@ -136,4 +174,4 @@ async function placeDirectConversationTurn(id, turn, userId, meta = null, option
     return true;
 }
 
-module.exports = { placeTurnMessages, saveConversationTurn, placeDirectConversationTurn };
+module.exports = { placeTurnMessages, saveConversationTurn, placeDirectConversationTurn, turnMark };

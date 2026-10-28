@@ -73,131 +73,159 @@ async function storedAgent(id) {
 /** A turn's anchor: the last stored message of the history it read when it started. */
 const anchorOf = (/** @type {string} */ convId) => `${convId}:h2`;
 
-test('two overlapping agent turns, B finishing first: both survive, in the order they were asked', async () => {
+/**
+ * A turn of conversation `convId`: a question and an answer, anchored on the
+ * stored history, asked at `askedAt` (seconds past a fixed minute).
+ * @param {string} convId
+ * @param {string} name
+ * @param {number | null} askedAt  null: a turn without a mark
+ * @param {string} [question]
+ */
+function turnOf(convId, name, askedAt, question = `question ${name}`) {
+    const msg = rowsOf(convId);
+    return {
+        rows: [msg(`${name}-q`, 'user', question), msg(`${name}-a`, 'assistant', `answer ${name}`)],
+        anchorId: anchorOf(convId),
+        ...(askedAt === null ? {} : { turnId: `${convId}:${name}`, askedAt: new Date(Date.UTC(2026, 9, 28, 12, 0, askedAt)).toISOString() }),
+    };
+}
+
+/** @param {string} id @param {...ReturnType<typeof turnOf>} turns  saved in this order */
+async function saveAll(id, ...turns) {
+    for (const turn of turns) await saveConversationTurn(id, turn, null, USER);
+}
+
+const HISTORY = ['first question', 'first answer'];
+
+test('asked first and finished first, then a later turn on the same history: the order asked', async () => {
     const id = await agentConversationWithHistory();
-    const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    // A is asked, then B; both read [h1, h2]. B finishes first.
-    await saveConversationTurn(id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, null, USER);
-    await saveConversationTurn(id, { rows: [msg('a-q', 'user', 'question A'), msg('a-a', 'assistant', 'answer A')], anchorId: ANCHOR }, null, USER);
+    await saveAll(id, turnOf(id, '1', 1), turnOf(id, '2', 2));
+    assert.deepStrictEqual(await storedAgent(id), [...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2']);
+});
+
+test('the later turn finishes first: still the order asked, and nothing lost', async () => {
+    const id = await agentConversationWithHistory();
+    await saveAll(id, turnOf(id, '2', 2), turnOf(id, '1', 1));
+    assert.deepStrictEqual(await storedAgent(id), [...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2']);
+});
+
+test('three overlapping turns finishing 3, 1, 2 read back 1, 2, 3', async () => {
+    const id = await agentConversationWithHistory();
+    await saveAll(id, turnOf(id, '3', 3), turnOf(id, '1', 1), turnOf(id, '2', 2));
     assert.deepStrictEqual(await storedAgent(id), [
-        'first question', 'first answer',
-        'question A', 'answer A',
-        'question B', 'answer B',
+        ...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2', 'question 3', 'answer 3',
+    ]);
+});
+
+test('two turns asked at the same instant: the turn id decides, whichever finishes first', async () => {
+    const one = await agentConversationWithHistory();
+    await saveAll(one, turnOf(one, 'x', 5), turnOf(one, 'y', 5));
+    const other = await agentConversationWithHistory();
+    await saveAll(other, turnOf(other, 'y', 5), turnOf(other, 'x', 5));
+    const expected = [...HISTORY, 'question x', 'answer x', 'question y', 'answer y'];
+    assert.deepStrictEqual(await storedAgent(one), expected);
+    assert.deepStrictEqual(await storedAgent(other), expected);
+});
+
+test('a retry after a dropped stream: both answers kept, the first try first', async () => {
+    const id = await agentConversationWithHistory();
+    // The stream of try 1 drops on the client while the server keeps
+    // answering; the same question asked again (try 2) finishes first.
+    await saveAll(id, turnOf(id, 'try2', 2, 'same question'), turnOf(id, 'try1', 1, 'same question'));
+    assert.deepStrictEqual(await storedAgent(id), [
+        ...HISTORY, 'same question', 'answer try1', 'same question', 'answer try2',
     ]);
 });
 
 test('a turn saved after a tool round and again at its end keeps one copy of its rows, and the other turn stays', async () => {
     const id = await agentConversationWithHistory();
     const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    // A saves after its tool round: the question and the tool-call round so far.
-    await saveConversationTurn(id, { rows: [msg('a-q', 'user', 'question A'), msg('a-t', 'assistant', 'calling a tool')], anchorId: ANCHOR }, null, USER);
-    // B, asked meanwhile on the same history, finishes.
-    await saveConversationTurn(id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, null, USER);
-    // A ends: the same ids again, plus its final answer.
-    await saveConversationTurn(id, { rows: [
-        msg('a-q', 'user', 'question A'), msg('a-t', 'assistant', 'calling a tool'), msg('a-a', 'assistant', 'answer A'),
-    ], anchorId: ANCHOR }, null, USER);
+    const first = turnOf(id, '1', 1);
+    // Turn 1 saves after its tool round: the question and the tool-call round so far.
+    await saveAll(id, { ...first, rows: [first.rows[0], msg('1-t', 'assistant', 'calling a tool')] });
+    // Turn 2, asked later on the same history, finishes.
+    await saveAll(id, turnOf(id, '2', 2));
+    // Turn 1 ends: the same ids again, plus its final answer.
+    await saveAll(id, { ...first, rows: [first.rows[0], msg('1-t', 'assistant', 'calling a tool'), first.rows[1]] });
     assert.deepStrictEqual(await storedAgent(id), [
-        'first question', 'first answer',
-        'question A', 'calling a tool', 'answer A',
-        'question B', 'answer B',
+        ...HISTORY, 'question 1', 'calling a tool', 'answer 1', 'question 2', 'answer 2',
     ]);
 });
 
-test('a retry after a dropped stream: the answer the server was still writing is kept next to the retry', async () => {
+test('rows without a mark keep the plain rule: right after the anchor', async () => {
     const id = await agentConversationWithHistory();
-    const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    // The stream of turn A drops on the client; the server keeps answering.
-    // The user asks the same question again (turn A2) on the same history,
-    // and A2 finishes before A.
-    await saveConversationTurn(id, { rows: [msg('a2-q', 'user', 'same question'), msg('a2-a', 'assistant', 'retry answer')], anchorId: ANCHOR }, null, USER);
-    await saveConversationTurn(id, { rows: [msg('a-q', 'user', 'same question'), msg('a-a', 'assistant', 'late answer')], anchorId: ANCHOR }, null, USER);
-    assert.deepStrictEqual(await storedAgent(id), [
-        'first question', 'first answer',
-        'same question', 'late answer',
-        'same question', 'retry answer',
-    ]);
+    await saveAll(id, turnOf(id, '1', null), turnOf(id, '2', null));
+    assert.deepStrictEqual(await storedAgent(id), [...HISTORY, 'question 2', 'answer 2', 'question 1', 'answer 1']);
+    // A marked turn, however late it was asked, does not skip an unmarked one.
+    await saveAll(id, turnOf(id, '9', 9));
+    assert.deepStrictEqual((await storedAgent(id)).slice(2, 4), ['question 9', 'answer 9']);
 });
 
-test('a turn nothing overtook is appended, and a turn with no stored history (a new chat) too', async () => {
+test('a turn nothing overtook is appended; a brand-new chat switches to the table at its first turn', async () => {
     const id = await agentConversationWithHistory();
-    const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    await saveConversationTurn(id, { rows: [msg('c-q', 'user', 'next'), msg('c-a', 'assistant', 'reply')], anchorId: ANCHOR }, null, USER);
-    assert.deepStrictEqual(await storedAgent(id), ['first question', 'first answer', 'next', 'reply']);
+    await saveAll(id, turnOf(id, 'next', 1));
+    assert.deepStrictEqual(await storedAgent(id), [...HISTORY, 'question next', 'answer next']);
 
     const fresh = await agentConversations.createConversation('agent-1', USER, 'New');
-    const freshMsg = rowsOf(fresh.id);
-    await pg.query('UPDATE agent_conversations SET messages_migrated = TRUE WHERE id = $1', [fresh.id]);
-    await saveConversationTurn(fresh.id, { rows: [freshMsg('n-q', 'user', 'hello'), freshMsg('n-a', 'assistant', 'hi')], anchorId: null }, null, USER);
-    assert.deepStrictEqual(await storedAgent(fresh.id), ['hello', 'hi']);
+    await saveConversationTurn(fresh.id, { ...turnOf(fresh.id, 'n', 1), anchorId: null }, null, USER);
+    assert.deepStrictEqual(await storedAgent(fresh.id), ['question n', 'answer n']);
+    const { rows } = await pg.query('SELECT messages_migrated FROM agent_conversations WHERE id = $1', [fresh.id]);
+    assert.strictEqual(/** @type {{ messages_migrated: boolean }} */ (rows[0]).messages_migrated, true);
 });
 
-test('the seq column follows the placement: dense, with no two rows on one seq', async () => {
+test('the seq column follows the placement, and every row carries its turn', async () => {
     const id = await agentConversationWithHistory();
-    const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    await saveConversationTurn(id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, null, USER);
-    await saveConversationTurn(id, { rows: [msg('a-q', 'user', 'question A'), msg('a-a', 'assistant', 'answer A')], anchorId: ANCHOR }, null, USER);
-    const { rows } = await pg.query('SELECT id, seq FROM conversation_messages WHERE conversation_id = $1 ORDER BY seq', [id]);
-    assert.deepStrictEqual(rows.map((r) => /** @type {{ id: string, seq: number }} */ (r)).map((r) => [r.id, r.seq]), [
-        ['h1', 0], ['h2', 1], ['a-q', 2], ['a-a', 3], ['b-q', 4], ['b-a', 5],
-    ].map(([name, seq]) => [`${id}:${name}`, seq]));
+    await saveAll(id, turnOf(id, '2', 2), turnOf(id, '1', 1));
+    const { rows } = await pg.query('SELECT id, seq, turn_id FROM conversation_messages WHERE conversation_id = $1 ORDER BY seq', [id]);
+    assert.deepStrictEqual(rows.map((r) => /** @type {{ id: string, seq: number, turn_id: string | null }} */ (r)).map((r) => [r.id, r.seq, r.turn_id]), [
+        ['h1', 0, null], ['h2', 1, null], ['1-q', 2, '1'], ['1-a', 3, '1'], ['2-q', 4, '2'], ['2-a', 5, '2'],
+    ].map(([name, seq, turn]) => [`${id}:${name}`, seq, turn === null ? null : `${id}:${turn}`]));
 });
 
-test('a conversation still on its legacy blob: the whole array, built on what is stored now, keeps the other turn', async () => {
+test('a conversation still on its legacy blob is migrated under the lock, then the turn is placed', async () => {
     const id = await agentConversationWithHistory();
-    const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
     await pg.query('UPDATE agent_conversations SET messages_migrated = FALSE WHERE id = $1', [id]);
-    await saveConversationTurn(id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, null, USER);
-    await saveConversationTurn(id, { rows: [msg('a-q', 'user', 'question A'), msg('a-a', 'assistant', 'answer A')], anchorId: ANCHOR }, null, USER);
-    await pg.query('UPDATE agent_conversations SET messages_migrated = TRUE WHERE id = $1', [id]);
-    assert.deepStrictEqual(await storedAgent(id), [
-        'first question', 'first answer',
-        'question A', 'answer A',
-        'question B', 'answer B',
-    ]);
+    await saveAll(id, turnOf(id, '2', 2), turnOf(id, '1', 1));
+    const { rows } = await pg.query('SELECT messages_migrated FROM agent_conversations WHERE id = $1', [id]);
+    assert.strictEqual(/** @type {{ messages_migrated: boolean }} */ (rows[0]).messages_migrated, true);
+    assert.deepStrictEqual(await storedAgent(id), [...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2']);
 });
 
 test('an edit still rewrites the history on purpose (updateConversation), under the row lock', async () => {
     const id = await agentConversationWithHistory();
     const msg = rowsOf(id);
-    const ANCHOR = anchorOf(id);
-    await saveConversationTurn(id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, null, USER);
+    await saveAll(id, turnOf(id, '2', 2));
     await agentConversations.updateConversation(id, [msg('h1', 'user', 'first question'), msg('e-a', 'assistant', 'edited')], null, USER);
     assert.deepStrictEqual(await storedAgent(id), ['first question', 'edited']);
 });
 
-test('direct chat places a turn by the same rule, and writes its meta', async () => {
+/** A direct conversation with the same stored history. */
+async function directConversationWithHistory(migrated = true) {
     const conv = await directConversations.createDirectConversation(USER, 'fast');
     const msg = rowsOf(conv.id);
-    const ANCHOR = anchorOf(conv.id);
     await directConversations.updateDirectConversation(conv.id, [msg('h1', 'user', 'first question'), msg('h2', 'assistant', 'first answer')], USER);
-    await pg.query('UPDATE direct_conversations SET messages_migrated = TRUE WHERE id = $1', [conv.id]);
+    await pg.query('UPDATE direct_conversations SET messages_migrated = $2 WHERE id = $1', [conv.id, migrated]);
+    return conv.id;
+}
 
-    assert.strictEqual(await placeDirectConversationTurn(conv.id, { rows: [msg('b-q', 'user', 'question B'), msg('b-a', 'assistant', 'answer B')], anchorId: ANCHOR }, USER), true);
-    assert.strictEqual(await placeDirectConversationTurn(conv.id, { rows: [msg('a-q', 'user', 'question A'), msg('a-a', 'assistant', 'answer A')], anchorId: ANCHOR }, USER, { lastModel: 'm-a' }), true);
+/** @param {string} id */
+async function storedDirect(id) {
+    const stored = await directConversations.getDirectConversation(id, USER, { restore: false });
+    return { contents: (stored?.messages || []).map((/** @type {Msg} */ m) => m.content), meta: stored?.meta };
+}
 
-    const stored = await directConversations.getDirectConversation(conv.id, USER, { restore: false });
-    assert.deepStrictEqual((stored?.messages || []).map((/** @type {Msg} */ m) => m.content), [
-        'first question', 'first answer',
-        'question A', 'answer A',
-        'question B', 'answer B',
-    ]);
-    assert.strictEqual(stored?.meta?.lastModel, 'm-a');
+test('direct chat places a turn by the same rule, and writes its meta', async () => {
+    const id = await directConversationWithHistory();
+    assert.strictEqual(await placeDirectConversationTurn(id, turnOf(id, '1', 1), USER), true);
+    assert.strictEqual(await placeDirectConversationTurn(id, turnOf(id, '2', 2), USER, { lastModel: 'm-2' }), true);
+    const { contents, meta } = await storedDirect(id);
+    assert.deepStrictEqual(contents, [...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2']);
+    assert.strictEqual(meta?.lastModel, 'm-2');
 });
 
-test('direct chat on a legacy-blob conversation leaves the write to the caller', async () => {
-    const conv = await directConversations.createDirectConversation(USER, 'fast');
-    const msg = rowsOf(conv.id);
-    const ANCHOR = anchorOf(conv.id);
-    await directConversations.updateDirectConversation(conv.id, [msg('h1', 'user', 'q'), msg('h2', 'assistant', 'a')], USER);
-    await pg.query('UPDATE direct_conversations SET messages_migrated = FALSE WHERE id = $1', [conv.id]);
-    assert.strictEqual(await placeDirectConversationTurn(conv.id, { rows: [msg('x', 'user', 'later')], anchorId: ANCHOR }, USER), false);
-    const { rows } = await pg.query('SELECT id FROM conversation_messages WHERE conversation_id = $1', [conv.id]);
-    assert.strictEqual(rows.length, 2, 'nothing written');
+test('direct chat on a legacy-blob conversation is migrated under the lock, then written', async () => {
+    const id = await directConversationWithHistory(false);
+    assert.strictEqual(await placeDirectConversationTurn(id, turnOf(id, '2', 2), USER), true);
+    assert.strictEqual(await placeDirectConversationTurn(id, turnOf(id, '1', 1), USER), true);
+    assert.deepStrictEqual((await storedDirect(id)).contents, [...HISTORY, 'question 1', 'answer 1', 'question 2', 'answer 2']);
 });
