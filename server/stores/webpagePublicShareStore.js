@@ -55,7 +55,7 @@ async function _initDB() {
     if (webpageStore.ready) {
         try { await webpageStore.ready; }
         catch (e) {
-            log.error('[WebpagePublicShareStore] Parent init failed:', e.message);
+            log.error('[WebpagePublicShareStore] Parent init failed:', /** @type {Error} */ (e).message);
             throw e;
         }
     }
@@ -482,7 +482,7 @@ async function purgeSnapshotObjects(shareId) {
         }
         return keys.length;
     } catch (err) {
-        log.warn('[WebpagePublicShareStore] Purge failed:', err.message);
+        log.warn('[WebpagePublicShareStore] Purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }

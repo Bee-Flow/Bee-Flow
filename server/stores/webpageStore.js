@@ -84,6 +84,7 @@ const { bestEffort } = require('../utils/bestEffort');
  *
  * Deliberately NOT around `upsertBinaryExtraFile`: that writes `is_text=false` and `readPageCode`
  * does not read such files, so it cannot change what the page binds.
+ * @param {string} webpageId
  */
 function reindex(webpageId) {
     if (!webpageId) return;
@@ -105,6 +106,12 @@ function reindex(webpageId) {
  * delete) guard themselves in ./webpage/*.
  */
 
+/**
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} slot
+ * @param {string} content
+ */
 async function writeSlotIndexed(userId, webpageId, slot, content, opts = {}) {
     await assertWebpageWrite(webpageId, ['files'], opts);
     const out = await writeSlot(userId, webpageId, slot, content);
@@ -131,6 +138,12 @@ async function deleteExtraFileIndexed(args) {
     return out;
 }
 
+/**
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} versionId
+ * @param {string} slot
+ */
 async function restoreSlotFromVersionIndexed(userId, webpageId, versionId, slot, opts = {}) {
     await assertWebpageWrite(webpageId, ['files'], opts);
     const out = await restoreSlotFromVersion(userId, webpageId, versionId, slot);
@@ -161,7 +174,7 @@ async function managedPayloadOf(webpage) {
             projectId: webpage.projectId, kind: 'webpage', entityId: webpage.id,
         });
     } catch (err) {
-        log.warn(`[WebpageStore] managed lookup for ${webpage.id} failed: ${err.message}`);
+        log.warn(`[WebpageStore] managed lookup for ${webpage.id} failed: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
