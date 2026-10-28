@@ -3,12 +3,14 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Badge, Card, Icon, Text } from '@/shared/ui';
 
 export function AboutCard({ profile }: { profile: string }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     return (
         <Card>
             <View style={styles.body}>
@@ -16,11 +18,13 @@ export function AboutCard({ profile }: { profile: string }) {
                     <Icon name="Hexagon" size={26} color={theme.colors.accentPrimaryFg} />
                 </View>
                 <Text variant="heading" center>
-                    Bee Flow
+                    {t('mobile.settings.product_name', 'Bee Flow')}
                 </Text>
                 <Text variant="caption" tone="tertiary" center>
-                    A self-hosted, zero-knowledge AI workspace. Your data stays on your
-                    server; nobody at Bee Flow can read it.
+                    {t(
+                        'mobile.settings.about_tagline',
+                        'A self-hosted, zero-knowledge AI workspace. Your data stays on your server; nobody at Bee Flow can read it.',
+                    )}
                 </Text>
                 {profile !== 'production' ? (
                     <Badge label={profile.toUpperCase()} tone="warning" />

@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Group, Icon, NoteRow, SettingRow, Text } from '@/shared/ui';
 
@@ -16,40 +17,45 @@ type RowGlyph = 'BookOpen' | 'Github' | 'FileText';
 export function SourceGroups() {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const icon = (name: RowGlyph) => <Icon name={name} size={16} color={theme.colors.textSecondary} />;
     return (
         <>
             <Group
-                title="Licence and source"
-                footer="Bee Flow is fair-code: the source is public and you may self-host it, with commercial restrictions set out in the licence."
+                title={t('mobile.settings.source_title', 'Licence and source')}
+                footer={t(
+                    'mobile.settings.source_footer',
+                    'Bee Flow is fair-code: the source is public and you may self-host it, with commercial restrictions set out in the licence.',
+                )}
             >
                 <SettingRow
-                    label="Documentation"
+                    label={t('mobile.support.docs', 'Documentation')}
                     icon={icon('BookOpen')}
                     onPress={() => void WebBrowser.openBrowserAsync(DOCS_URL, { createTask: false })}
                 />
                 <SettingRow
-                    label="Source code"
+                    label={t('mobile.settings.source_code', 'Source code')}
                     icon={icon('Github')}
                     onPress={() => void WebBrowser.openBrowserAsync(REPO_URL, { createTask: false })}
                 />
                 <SettingRow
-                    label="Licence"
+                    label={t('mobile.org.licence_title', 'Licence')}
                     icon={icon('FileText')}
                     onPress={() => void WebBrowser.openBrowserAsync(LICENSE_URL, { createTask: false })}
                 />
             </Group>
 
-            <Group title="Open source in this app">
+            <Group title={t('mobile.settings.open_source_title', 'Open source in this app')}>
                 <NoteRow>
                     <View style={styles.note}>
                         <Text variant="caption" tone="tertiary">
-                            Built with React Native and Expo. Cryptography by the Noble
-                            libraries (@noble/ciphers, @noble/curves, @noble/hashes), with
-                            Argon2id by argon2kt; icons by Lucide; typeface Inter.
+                            {t(
+                                'mobile.settings.open_source_body',
+                                'Built with React Native and Expo. Cryptography by the Noble libraries (@noble/ciphers, @noble/curves, @noble/hashes), with Argon2id by argon2kt; icons by Lucide; typeface Inter.',
+                            )}
                         </Text>
                         <Text variant="caption" tone="tertiary">
-                            Full dependency licences ship with the source repository.
+                            {t('mobile.settings.open_source_licences', 'Full dependency licences ship with the source repository.')}
                         </Text>
                     </View>
                 </NoteRow>
