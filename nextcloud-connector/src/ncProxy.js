@@ -35,7 +35,6 @@
  *   /nc/index.php/apps/*    → /index.php/apps/...       (Mail, Deck, Notes, Talk, etc.)
  */
 
-const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const crypto = require('crypto');
 const config = require('./config');
@@ -46,6 +45,27 @@ const { isExpressResponse } = require('./httpGuards');
 const { errMessage } = require('./errors');
 
 const ALLOWED_PREFIXES = ['/ocs/', '/remote.php/dav/', '/index.php/apps/'];
+
+/**
+ * A size in MiB from the environment, as bytes; 0 = no cap.
+ * @param {string} name
+ * @param {number} fallbackMb
+ */
+function mbFromEnv(name, fallbackMb) {
+    const raw = process.env[name];
+    const mb = raw === undefined || raw === '' ? fallbackMb : Number(raw);
+    if (!Number.isFinite(mb) || mb < 0) return fallbackMb * 1024 * 1024;
+    return mb === 0 ? Infinity : Math.floor(mb * 1024 * 1024);
+}
+
+// The largest body one /nc/* request may carry (a WebDAV upload from Bee Flow),
+// and the most body bytes all /nc/* requests together may hold in memory while
+// they wait for their signature check. The signature covers sha256(body), so
+// the body has to be read before it can be verified; these caps keep a flood of
+// signature-shaped junk from filling the container's memory. 0 = no cap.
+const MAX_BODY_BYTES = mbFromEnv('BEEFLOW_NC_PROXY_MAX_BODY_MB', 100);
+const MAX_INFLIGHT_BYTES = mbFromEnv('BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB', 512);
+let _inflightBytes = 0;
 
 // Brute-force gate on the HMAC. Only failures are billed — the Bee Flow server
 // legitimately makes a lot of these calls, and throttling those would break
@@ -217,6 +237,93 @@ function canonicalSignedPath(rawUrl) {
     }
 }
 
+/**
+ * The checks that need no body, run BEFORE a single body byte is buffered:
+ * a tenant key exists, the signature header is well formed, its timestamp is
+ * inside the skew window. Returns the reason to refuse, or null.
+ * @param {import('express').Request} req
+ * @returns {string | null}
+ */
+function signatureHeaderProblem(req) {
+    if (!config.tenantKey) return 'no_tenant_key';
+    const sigHeader = req.headers['x-beeflow-sig'];
+    if (!sigHeader || typeof sigHeader !== 'string') return 'missing_signature';
+    const m = /^(\d{1,12})\.([0-9a-fA-F]{64})$/.exec(sigHeader);
+    if (!m) return 'malformed_signature';
+    const ts = parseInt(m[1], 10);
+    if (Math.abs(Math.floor(Date.now() / 1000) - ts) > config.sigSkewSeconds) return 'stale_signature';
+    return null;
+}
+
+/**
+ * Read the request body into req.body (a Buffer), capped per request and in
+ * total across requests still waiting for their signature check. A refusal
+ * answers at once with Connection: close, so the rest of the upload is never
+ * read. The bytes count against the total until the response is done.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function readCappedBody(req, res, next) {
+    const declared = Number(req.headers['content-length']);
+    if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+        res.set('Connection', 'close');
+        return res.status(413).json({ error: 'Request body too large' });
+    }
+    /** @type {Buffer[]} */
+    const chunks = [];
+    let size = 0;
+    let held = 0;
+    let settled = false;
+    const release = () => { _inflightBytes -= held; held = 0; };
+    res.on('close', release);
+    /**
+     * @param {number} status
+     * @param {string} error
+     */
+    const refuse = (status, error) => {
+        if (settled) return;
+        settled = true;
+        chunks.length = 0;
+        release();
+        req.removeListener('data', onData);
+        if (!res.headersSent) {
+            res.set('Connection', 'close');
+            if (status === 503) res.set('Retry-After', '5');
+            res.status(status).json({ error });
+        }
+    };
+    /** @param {Buffer} chunk */
+    function onData(chunk) {
+        if (settled) return;
+        size += chunk.length;
+        if (size > MAX_BODY_BYTES) return refuse(413, 'Request body too large');
+        if (_inflightBytes + chunk.length > MAX_INFLIGHT_BYTES) {
+            log.warn(`[NcProxy] ${Math.round(_inflightBytes / 1048576)} MiB of /nc bodies in flight — refusing ${req.method} ${req.url} with 503`);
+            return refuse(503, 'Connector busy, try again shortly');
+        }
+        _inflightBytes += chunk.length;
+        held += chunk.length;
+        chunks.push(chunk);
+    }
+    req.on('data', onData);
+    req.on('end', () => {
+        if (settled) return;
+        settled = true;
+        // Same rule as body-parser's hasBody: a request that announced no
+        // body keeps none, so the proxy streams it as before.
+        const announced = req.headers['transfer-encoding'] !== undefined || req.headers['content-length'] !== undefined;
+        if (size > 0 || announced) req.body = Buffer.concat(chunks, size);
+        next();
+    });
+    req.on('error', () => { settled = true; release(); });
+}
+
+/** @returns {number} body bytes currently held by /nc/* requests (for tests and diagnostics) */
+function inflightBodyBytes() {
+    return _inflightBytes;
+}
+
 // Constant-time HMAC verification of `<ts>.<sig>` using tenant key.
 // The SaaS sends `X-Beeflow-Sig: <unixSeconds>.<hexHmac>`. Skew tolerance
 // is governed by config.sigSkewSeconds (BEEFLOW_SIG_SKEW_SECONDS). Without
@@ -332,7 +439,7 @@ function buildNcProxy() {
                 proxyReq.removeHeader('x-beeflow-nc-uid'); // internal impersonation hint
                 proxyReq.removeHeader('x-http-method-override'); // already applied to req.method
                 // We consumed the request stream to hash the body for the HMAC
-                // (express.raw, mounted in mount() below), so replay the exact
+                // (readCappedBody, mounted in mount() below), so replay the exact
                 // bytes upstream. Raw bytes — not a parsed-and-re-serialised
                 // object: this path carries WebDAV file uploads, and
                 // round-tripping a .json file through JSON.parse/stringify
@@ -360,16 +467,37 @@ function buildNcProxy() {
 /** @param {import('express').Express} app */
 function mount(app) {
     const proxy = buildNcProxy();
-    // Buffer the body as raw bytes for every content type. Two reasons: the
-    // HMAC covers sha256(body), and WebDAV uploads must reach Nextcloud
-    // byte-for-byte. The limit matches what the global JSON parser used to
-    // impose on this path, plus headroom for file uploads.
-    const rawBody = express.raw({ type: () => true, limit: '100mb' });
-    app.use('/nc', rawBody, (req, res, next) => {
+    /**
+     * Bill a signature failure and answer it (401, or 429 over budget).
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    const rejectSignature = (req, res) => {
+        const verdict = sigLimiter.fail();
+        _recordSigFailure(req);
+        if (!verdict.allowed) {
+            res.set('Retry-After', String(Math.ceil(sigLimiter.windowMs / 1000)));
+            return res.status(429).json({ error: 'Too many invalid signatures' });
+        }
+        return res.status(401).json({ error: 'Missing or invalid X-Beeflow-Sig' });
+    };
+    // Path and signature header first, before any body byte is read: an
+    // unsigned 90 MB POST used to be buffered in full before its 401.
+    app.use('/nc', (req, res, next) => {
         // Allowed-prefix check after pathRewrite would happen too late; do it here.
         if (!isAllowedNcPath(req.url)) {
+            res.set('Connection', 'close');
             return res.status(404).json({ error: 'Path not proxied' });
         }
+        if (signatureHeaderProblem(req)) {
+            res.set('Connection', 'close');
+            return rejectSignature(req, res);
+        }
+        return next();
+    });
+    // Then the body as raw bytes for every content type: the HMAC covers
+    // sha256(body), and WebDAV uploads must reach Nextcloud byte-for-byte.
+    app.use('/nc', readCappedBody, (req, res, next) => {
         // Verify the HMAC FIRST, then bill only a genuine failure. Checking a
         // blocked() gate BEFORE verifying would let a flood of forged signatures
         // (this route is PUBLIC) 429 the legitimate Bee Flow server too — its
@@ -377,15 +505,7 @@ function mount(app) {
         // for the whole window and take out all SaaS→NC access. The HMAC is one
         // SHA256, so a valid caller is now never collateral to an attacker's
         // failures; a forged one is still counted and 429'd once over budget.
-        if (!verifyHmac(req)) {
-            const verdict = sigLimiter.fail();
-            _recordSigFailure(req);
-            if (!verdict.allowed) {
-                res.set('Retry-After', String(Math.ceil(sigLimiter.windowMs / 1000)));
-                return res.status(429).json({ error: 'Too many invalid signatures' });
-            }
-            return res.status(401).json({ error: 'Missing or invalid X-Beeflow-Sig' });
-        }
+        if (!verifyHmac(req)) return rejectSignature(req, res);
         sigLimiter.succeed();
         _sigFailures.consecutive = 0;
         // Restore the real WebDAV method from the tunnel BEFORE http-proxy builds
@@ -446,4 +566,4 @@ function sigFailureStats() {
     return { ..._sigFailures };
 }
 
-module.exports = { mount, verifyHmac, canonicalQuery, canonicalSignedPath, isAllowedNcPath, rewriteDestination, ALLOWED_PREFIXES, sigFailureStats };
+module.exports = { mount, verifyHmac, inflightBodyBytes, MAX_BODY_BYTES, canonicalQuery, canonicalSignedPath, isAllowedNcPath, rewriteDestination, ALLOWED_PREFIXES, sigFailureStats };
