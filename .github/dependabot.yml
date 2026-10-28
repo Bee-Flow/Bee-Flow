@@ -15,21 +15,49 @@
 # grow. The two are meant to be read together: the ratchet stops the debt
 # increasing, Dependabot is what actually pays it down.
 #
-# GROUPING: one PR per ecosystem per week for patch/minor, and a separate PR per
-# major. Ungrouped, this repository's twelve manifests would open dozens of PRs
-# a week, which ends with everyone ignoring them — an alert nobody reads is
-# worse than no alert, because it looks like coverage.
+# TWO KINDS OF UPDATE. Dependabot raises two different PRs and this file
+# paces only one of them.
+#   - Security updates: opened when an advisory is published for a version in
+#     a lockfile, whatever the schedule says. They are switched on by the
+#     repository setting "Dependabot security updates", not here (`gh api -X
+#     PUT repos/{owner}/{repo}/automated-security-fixes`; a GET says whether
+#     it is on). No advisory feed covers a base image or an action pinned to a
+#     commit, so those two never get one (see their entries).
+#     `schedule`, `groups` and `open-pull-requests-limit`
+#     do not touch them (GitHub caps them at 10 open, separately). This file
+#     can still silence them: an `ignore` by name alone, or by `versions`,
+#     applies to security updates too (those entries say so). An `ignore` by
+#     `update-types` only applies to version updates.
+#   - Version updates: "a newer release exists". Everything below paces these.
 #
-# CADENCE: weekly for what ships to customers — server, agent-hub, mobile, desktop, and
-# the PII detector (see the Python section) — monthly for the rest:
-# tooling, satellites, the other sidecars, the actions and the base images.
-# Every scheduled run can open, refresh or supersede PRs, and each of those is
-# a CI run; a weekly satellite paid for up to four a month without moving
-# anything a customer runs. The interval only paces version updates: a
-# security update opens when its advisory is published, whatever the schedule
-# says — except where no advisory reaches, a base image or an action pinned to
-# a commit (see those two entries). A monthly entry runs on the 1st; `day`
-# only means something to a weekly schedule, so those entries leave it out.
+# CADENCE: monthly, every entry, on the 1st at 05:00. A version bump that
+# fixes nothing is maintenance, and it is cheaper done once a month in one
+# reviewed PR per ecosystem than in ten PRs a week, each a CI run, that
+# nobody reads. Speed is where it matters, for vulnerabilities, and two
+# things cover that without a schedule: the security updates above, and
+# .github/workflows/vuln-watch.yml, which scans every lockfile and runtime
+# hourly (OSV-Scanner plus scripts/runtime-watch.mjs) and raises a
+# code-scanning alert for a HIGH or CRITICAL the hour its advisory appears
+# (rules: scripts/vuln-watch-gate.mjs). That is also why guard-service and
+# classify-service, which read customer text, no longer need weekly version
+# bumps: what made the weekly cadence matter for them was a vulnerable
+# dependency, and that now reaches them within the hour, not within the week.
+# `day` only means something to a weekly schedule, so no entry sets it.
+#
+# GROUPING: one group per entry with every minor and patch in it, so one PR
+# per ecosystem/directory per month. Ungrouped, this repository's manifests
+# would open dozens of PRs a month, which ends with everyone ignoring them —
+# an alert nobody reads is worse than no alert, because it looks like
+# coverage. `open-pull-requests-limit: 2` on every entry: the group is the one
+# version-update PR an entry opens; the second slot is headroom, not a quota.
+#
+# MAJORS: every entry ignores `version-update:semver-major` for "*". A major
+# is planned work (a migration, a peer range, a runtime), done by hand in its
+# own PR, not something a bot drops in the queue. Because the rule is by
+# `update-types`, it does not stop a security update: a fix that only exists
+# in a new major still opens as a security-update PR (and vuln-watch reports
+# it). The specific ignores further down stay, with their reasons: they say
+# what has to be true before that major (or minor) can be planned.
 #
 # REBASING: `rebase-strategy: disabled` on every entry. By default Dependabot
 # rebases each open PR that a push to main puts in conflict, and every rebase
@@ -46,8 +74,8 @@ updates:
   # are tooling or satellites.
   - package-ecosystem: npm
     directory: /server
-    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 5
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       server-patch-minor:
@@ -60,6 +88,9 @@ updates:
     # pwt-runner build jobs in build-push-ghcr.yml both run
     # scripts/check-playwright-lockstep.mjs and fail when the two disagree.
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # @mistralai/mistralai declares @opentelemetry/resources ^2 as a peer, so the
       # OpenTelemetry 3 line (core/resources/sdk-metrics 3, sdk-node 0.300, api 1.10)
       # waits until the Mistral SDK admits it.
@@ -87,8 +118,8 @@ updates:
 
   - package-ecosystem: npm
     directory: /agent-hub
-    schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 5
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       frontend-patch-minor:
@@ -99,6 +130,9 @@ updates:
     # the PR that makes its condition true, never on its own. `ignore` also
     # silences security-update PRs for these names: act on an alert by hand.
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # mermaid 12 adds about 280 kB to the bundle (bundle ratchet). Take it in a PR
       # that lazy-loads the diagram renderer.
       - dependency-name: mermaid
@@ -143,13 +177,16 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       root-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
@@ -157,8 +194,8 @@ updates:
 
   - package-ecosystem: npm
     directory: /mobile
-    schedule: { interval: weekly, day: tuesday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       mobile-patch-minor:
@@ -180,6 +217,9 @@ updates:
     # by moving expo to the patched SDK release. Revisit the list at each SDK
     # upgrade (SDK 58 = RN 0.88, React 19.3, reanimated 4.6, worklets 0.12).
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       - dependency-name: react
       - dependency-name: react-dom
       - dependency-name: react-test-renderer
@@ -238,17 +278,20 @@ updates:
   # its runtime dependencies). Electron majors move by hand: a major changes the
   # Chromium and Node it embeds, and desktop/ is tested against one Electron
   # line (see the engines field and the desktop job in ci.yml). Patches and minors come
-  # in one weekly PR.
+  # in one monthly PR.
   - package-ecosystem: npm
     directory: /desktop
-    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       desktop-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       - dependency-name: electron
         update-types: ["version-update:semver-major"]
       # typecheck and build already run on TypeScript 7 (the typescript-7
@@ -270,13 +313,16 @@ updates:
   - package-ecosystem: npm
     directory: /nextcloud-connector
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       connector-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
@@ -284,13 +330,17 @@ updates:
 
   - package-ecosystem: npm
     directory: /docs
-    schedule: { interval: monthly }
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
     open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       docs-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   # Satellites and tooling that had no entry: the module SDK, the e2e suite and
@@ -301,13 +351,16 @@ updates:
   - package-ecosystem: npm
     directories: ["/hub-module-sdk", "/hub-module-sdk/modules/security_scan", "/hub-module-sdk/modules/security_scan/frontend", "/e2e", "/components", "/components/*"]
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       satellites-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
@@ -326,6 +379,9 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       - dependency-name: playwright
       - dependency-name: "@playwright/test"
     labels: [dependencies]
@@ -333,18 +389,22 @@ updates:
   # ── Python sidecars ───────────────────────────────────────────────
   # guard-service handles personal data by definition — it is the PII
   # detector — so its dependencies carry the same weight as the server's, not
-  # less because it is "just a sidecar". So it stays weekly, with the server
-  # (CADENCE, in the header).
+  # less because it is "just a sidecar". Its version updates are monthly like
+  # everyone's; a vulnerable dependency reaches it through security updates and
+  # vuln-watch within the hour (CADENCE, in the header).
   - package-ecosystem: pip
     directory: /guard-service
-    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       guard-service-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # gliner 0.2.29 (pinned, newest) requires transformers<5.17.0 (#14). Lift
       # when a gliner release admits it; bump both together with a gate run.
       - dependency-name: transformers
@@ -360,17 +420,21 @@ updates:
     labels: [dependencies, security]
 
   # classify-service reads customer text too (it scores it against labels),
-  # so it keeps the PII detector's weekly cadence.
+  # so the same holds: monthly version updates, security through security
+  # updates and vuln-watch (CADENCE, in the header).
   - package-ecosystem: pip
     directory: /classify-service
-    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       classify-service-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # The model stack (torch, transformers, gliclass, gliner2) moves together
       # with the Dockerfile's +cpu torch pin and an eval gate run (#399).
       - dependency-name: torch
@@ -389,8 +453,11 @@ updates:
   # Monthly. Every third-party action in .github/workflows is pinned to a
   # commit, and GitHub raises no Dependabot alert (so no security-update PR)
   # for an action pinned that way: this entry is the only thing that moves
-  # them. actions/* are pinned the same way, with a `# vX.Y.Z` comment, and a
-  # major stays its own PR as the header says.
+  # them. actions/* are pinned the same way, with a `# vX.Y.Z` comment. A
+  # major is ignored here as everywhere (MAJORS, in the header), and since no
+  # security-update PR exists for a pinned action, an action major is only
+  # ever moved by hand: GitHub announces the runtime deprecations that force
+  # one (node20 -> node24) in the workflow run annotations months ahead.
   # This entry only scans .github/workflows. The connector's own workflows
   # (nextcloud-connector/.github/workflows, mirrored to Bee-Flow/connector) are
   # not scanned: bump their pins by hand to the versions used here.
@@ -399,13 +466,16 @@ updates:
     # .github/workflows from "/" and a local action only by its own directory.
     directories: ["/", "/.github/actions/npm-install"]
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
     groups:
       actions-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # Every major waits for a deliberate move (header, MAJORS).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # setup-gradle v6 makes the proprietary gradle-actions-caching component
       # (Gradle's own terms, not MIT) the default cache provider (#21). v5 is
       # node24 and MIT; take that.
@@ -428,17 +498,17 @@ updates:
       - /nextcloud-connector
       - /guard-service
       - /classify-service
-    # Monthly, with the satellites. No advisory feed covers a base image, so it
+    # No advisory feed covers a base image, so it
     # never gets a security-update PR and this entry is the only thing that
     # moves one. When image-scan.yml reports a HIGH or CRITICAL that a newer
     # base fixes, do not wait for the 1st: Insights → Dependency graph →
     # Dependabot → "Check for updates" on the Dockerfile, or move the digest
     # by hand.
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     rebase-strategy: disabled
-    # Digest refreshes and patch tags only, unlike the header's rule for the
-    # other ecosystems. A base-image major or minor is a runtime change, not a
+    # Digest refreshes and patch tags only, stricter than the header's rule
+    # for the other ecosystems (which also take minors). A base-image major or minor is a runtime change, not a
     # refresh: node 22 → 24 against an .nvmrc that CI tests on 22, python
     # 3.12 → 3.13 under wheels built for 3.12, CUDA 12.4 → 12.6 under torch.
     # Those are made by hand, one image at a time, never bundled into the
