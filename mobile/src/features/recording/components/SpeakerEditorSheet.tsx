@@ -23,6 +23,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Text } from '@/shared/ui';
 
@@ -54,6 +55,7 @@ export function SpeakerEditorSheetBody({
     reidentifying: boolean;
     attendees: string[];
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const colours = buildSpeakerColors(speakers);
@@ -92,7 +94,7 @@ export function SpeakerEditorSheetBody({
             <SpeakerMergePanel selected={selected} names={names} onMergeInto={save} />
 
             <Button
-                label="Save speaker names"
+                label={t('mobile.recording.speakers_save', 'Save speaker names')}
                 fullWidth
                 loading={saving}
                 disabled={Boolean(collision) || selected.length > 1}

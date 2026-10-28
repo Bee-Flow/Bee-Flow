@@ -72,7 +72,7 @@ export function LevelMeter({
             <View accessibilityLiveRegion="polite" style={{ minHeight: 18 }}>
                 {paused ? (
                     <Text variant="caption" tone="tertiary" center>
-                        Paused — nothing is being recorded
+                        {t('mobile.recording.meter_paused', 'Paused — nothing is being recorded')}
                     </Text>
                 ) : quiet ? (
                     <Text variant="caption" tone="warning" center>
@@ -83,7 +83,7 @@ export function LevelMeter({
                     </Text>
                 ) : (
                     <Text variant="caption" tone="tertiary" center>
-                        Hearing the room
+                        {t('mobile.recording.meter_hearing', 'Hearing the room')}
                     </Text>
                 )}
             </View>

@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Icon, Text, TextField } from '@/shared/ui';
 
@@ -29,25 +30,28 @@ export function ReidentifyPanel({
     busy: boolean;
     onReidentify: (roster: string) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const [roster, setRoster] = useState(attendees.join(', '));
     return (
         <View style={styles.panel}>
-            <Text variant="subheading">Let Bee Flow try again</Text>
+            <Text variant="subheading">{t('mobile.recording.reid_title', 'Let Bee Flow try again')}</Text>
             <Text variant="caption" tone="tertiary">
-                Re-reads the transcript and re-assigns names. It has almost nothing to go on
-                without a list of who was there — so give it one.
+                {t(
+                    'mobile.recording.reid_body',
+                    'Re-reads the transcript and re-assigns names. It has almost nothing to go on without a list of who was there — so give it one.',
+                )}
             </Text>
             <TextField
-                label="Who was in the meeting?"
+                label={t('mobile.recording.reid_roster', 'Who was in the meeting?')}
                 value={roster}
                 onChangeText={setRoster}
-                placeholder="Tom, Gerard, René"
+                placeholder={t('mobile.recording.capture_attendees_ph', 'Tom, Gerard, René')}
                 autoCapitalize="words"
             />
             <Button
-                label="Re-identify speakers"
+                label={t('mobile.recording.reid_button', 'Re-identify speakers')}
                 variant="secondary"
                 fullWidth
                 loading={busy}

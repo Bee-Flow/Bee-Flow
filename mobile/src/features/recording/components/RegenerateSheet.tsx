@@ -44,27 +44,27 @@ export function RegenerateSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="Rewrite the summary"
-            subtitle="Uses the transcript that is already here — no audio, no re-transcribing."
+            title={t('mobile.recording.rewrite_title', 'Rewrite the summary')}
+            subtitle={t('mobile.recording.rewrite_subtitle', 'Uses the transcript that is already here — no audio, no re-transcribing.')}
         >
             {busy ? (
-                <LoadingState label="Rewriting the notes. This takes a moment on a long meeting." />
+                <LoadingState label={t('mobile.recording.rewrite_busy', 'Rewriting the notes. This takes a moment on a long meeting.')} />
             ) : (
                 <View style={styles.stackMd}>
                     {custom.length > 0 ? (
-                        <Section title="Your templates">
+                        <Section title={t('documents.new.own_templates', 'Your templates')}>
                             <View style={styles.stackSm}>
                                 {templateButtons(custom, (tpl) => onChoose({ templateId: tpl.id }))}
                             </View>
                         </Section>
                     ) : null}
-                    <Section title="Built in">
+                    <Section title={t('mobile.recording.templates_builtin', 'Built in')}>
                         <View style={styles.stackSm}>
                             {templateButtons(templates.data?.builtins ?? [], (tpl) => onChoose({ template: tpl.id }))}
                             {templates.isLoading ? <LoadingState /> : null}
                             {templates.isError ? (
                                 <Button
-                                    label="General meeting"
+                                    label={t('meeting_notes.template_general', 'General meeting')}
                                     variant="secondary"
                                     fullWidth
                                     onPress={() => onChoose({ template: 'general' })}

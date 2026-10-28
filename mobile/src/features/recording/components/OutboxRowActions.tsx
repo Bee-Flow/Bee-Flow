@@ -10,6 +10,7 @@
 import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Icon } from '@/shared/ui';
 
@@ -31,19 +32,26 @@ export function OutboxRowActions({
     onEdit: () => void;
     onDiscard: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const failed = item.status === 'failed';
 
     const confirmDiscard = () => {
         Alert.alert(
-            'Delete this recording?',
+            t('mobile.recording.outbox_delete_title', 'Delete this recording?'),
             item.captureMode === 'recording'
-                ? 'This is the only copy of the audio. It has not been uploaded, so deleting it cannot be undone.'
-                : 'The imported audio will be removed from Bee Flow. The original file on your device is not touched.',
+                ? t(
+                    'mobile.recording.outbox_delete_recorded',
+                    'This is the only copy of the audio. It has not been uploaded, so deleting it cannot be undone.',
+                )
+                : t(
+                    'mobile.recording.outbox_delete_imported',
+                    'The imported audio will be removed from Bee Flow. The original file on your device is not touched.',
+                ),
             [
-                { text: 'Keep it', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: onDiscard },
+                { text: t('mobile.recording.outbox_keep', 'Keep it'), style: 'cancel' },
+                { text: t('common.delete', 'Delete'), style: 'destructive', onPress: onDiscard },
             ],
         );
     };
@@ -51,7 +59,7 @@ export function OutboxRowActions({
     if (item.status === 'uploading') {
         return (
             <View style={styles.row}>
-                <Button label="Cancel upload" variant="secondary" onPress={onCancel} />
+                <Button label={t('mobile.recording.outbox_cancel_upload', 'Cancel upload')} variant="secondary" onPress={onCancel} />
             </View>
         );
     }
@@ -59,7 +67,9 @@ export function OutboxRowActions({
     return (
         <View style={styles.row}>
             <Button
-                label={failed ? `Try again${item.attempts > 1 ? ` (${item.attempts})` : ''}` : 'Upload now'}
+                label={failed
+                    ? `${t('mobile.error.retry', 'Try again')}${item.attempts > 1 ? ` (${item.attempts})` : ''}`
+                    : t('mobile.recording.outbox_upload_now', 'Upload now')}
                 onPress={onUpload}
                 icon={
                     <Icon
@@ -69,8 +79,8 @@ export function OutboxRowActions({
                     />
                 }
             />
-            <Button label="Details" variant="secondary" onPress={onEdit} />
-            <Button label="Delete" variant="ghost" onPress={confirmDiscard} />
+            <Button label={t('mobile.recording.outbox_details', 'Details')} variant="secondary" onPress={onEdit} />
+            <Button label={t('common.delete', 'Delete')} variant="ghost" onPress={confirmDiscard} />
         </View>
     );
 }

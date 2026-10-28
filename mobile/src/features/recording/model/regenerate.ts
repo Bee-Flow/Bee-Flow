@@ -2,6 +2,8 @@
  * What a "rewrite the summary" answered, and what the person is told about it.
  */
 
+import { translate } from '@/core/i18n';
+
 import type { ActionItem, Chapter, Decision, OpenQuestion, Speaker } from './types';
 
 export interface RegenerateResult {
@@ -49,11 +51,14 @@ export interface RegenerateOutcome {
  *     must be said before the card pretends the AI just delivered them.
  */
 export function describeRegenerateOutcome(res: RegenerateResult | null): RegenerateOutcome {
-    if (!res) return { kind: 'warning', message: 'The server sent no answer — nothing was changed.' };
+    if (!res) return { kind: 'warning', message: translate('mobile.recording.regen_no_answer', 'The server sent no answer — nothing was changed.') };
     if (res.artifactsRegenerated === false) {
         return {
             kind: 'warning',
-            message: 'Summary rewritten, but working out the action items, decisions and questions failed — the existing ones were kept.',
+            message: translate(
+                'mobile.recording.regen_artifacts_failed',
+                'Summary rewritten, but working out the action items, decisions and questions failed — the existing ones were kept.',
+            ),
         };
     }
     const kept = Array.isArray(res.actionItems)
@@ -62,8 +67,12 @@ export function describeRegenerateOutcome(res: RegenerateResult | null): Regener
     if (kept > 0) {
         return {
             kind: 'warning',
-            message: `Summary rewritten. ${kept} action item(s) were kept: the new pass no longer found them, and they had been checked off or edited.`,
+            message: translate(
+                'mobile.recording.regen_kept',
+                'Summary rewritten. {count} action item(s) were kept: the new pass no longer found them, and they had been checked off or edited.',
+                { count: kept },
+            ),
         };
     }
-    return { kind: 'success', message: 'Summary rewritten' };
+    return { kind: 'success', message: translate('mobile.recording.regen_done', 'Summary rewritten') };
 }

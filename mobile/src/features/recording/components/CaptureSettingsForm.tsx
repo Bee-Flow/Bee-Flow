@@ -18,6 +18,7 @@
 import React, { useRef, useState } from 'react';
 import { ScrollView, View, type TextInput } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Chip, Text, TextField } from '@/shared/ui';
 
@@ -31,6 +32,7 @@ export function CaptureSettingsForm({
     value: CaptureSettings;
     onChange: (patch: Partial<CaptureSettings>) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const attendeesField = useRef<TextInput>(null);
@@ -38,11 +40,11 @@ export function CaptureSettingsForm({
     return (
         <View style={{ gap: theme.spacing.lg }}>
             <TextField
-                label="Title"
+                label={t('automations.document_fields.title', 'Title')}
                 value={value.title}
                 onChangeText={(title) => onChange({ title })}
-                placeholder="Weekly planning"
-                hint="A better title is written automatically once the summary is ready."
+                placeholder={t('mobile.recording.capture_title_ph', 'Weekly planning')}
+                hint={t('mobile.recording.capture_title_hint', 'A better title is written automatically once the summary is ready.')}
                 returnKeyType="next"
                 submitBehavior="submit"
                 onSubmitEditing={() => attendeesField.current?.focus()}
@@ -50,11 +52,11 @@ export function CaptureSettingsForm({
 
             <TextField
                 ref={attendeesField}
-                label="Who is in the meeting?"
+                label={t('mobile.recording.capture_attendees', 'Who is in the meeting?')}
                 value={value.attendees}
                 onChangeText={(attendees) => onChange({ attendees })}
-                placeholder="Tom, Gerard, René"
-                hint="Names, comma separated. This is what lets speakers be named instead of numbered."
+                placeholder={t('mobile.recording.capture_attendees_ph', 'Tom, Gerard, René')}
+                hint={t('mobile.recording.capture_attendees_hint', 'Names, comma separated. This is what lets speakers be named instead of numbered.')}
                 autoCapitalize="words"
                 // The last field before the language chips: Done closes the
                 // keyboard rather than promising a next field there is not.
@@ -63,7 +65,7 @@ export function CaptureSettingsForm({
 
             <View style={{ gap: theme.spacing.sm }}>
                 <Text variant="label" tone="secondary">
-                    LANGUAGE
+                    {t('mobile.recording.capture_language', 'LANGUAGE')}
                 </Text>
                 <ScrollView
                     horizontal
@@ -80,12 +82,12 @@ export function CaptureSettingsForm({
                     ))}
                 </ScrollView>
                 <Text variant="caption" tone="tertiary">
-                    The language spoken in the room, not the language you want the notes in.
+                    {t('mobile.recording.capture_language_hint', 'The language spoken in the room, not the language you want the notes in.')}
                 </Text>
             </View>
 
             <Chip
-                label={showAdvanced ? 'Hide extra options' : 'More options'}
+                label={showAdvanced ? t('mobile.recording.capture_hide_options', 'Hide extra options') : t('automations.ndv.more_options', 'More options')}
                 selected={showAdvanced}
                 onPress={() => setShowAdvanced((open) => !open)}
                 style={{ alignSelf: 'flex-start' }}
@@ -94,20 +96,20 @@ export function CaptureSettingsForm({
             {showAdvanced ? (
                 <View style={{ gap: theme.spacing.lg }}>
                     <TextField
-                        label="Number of speakers"
+                        label={t('mobile.recording.capture_num_speakers', 'Number of speakers')}
                         value={value.numSpeakers}
                         onChangeText={(raw) => onChange({ numSpeakers: raw.replace(/[^0-9]/g, '') })}
-                        placeholder="Auto"
+                        placeholder={t('meeting_notes.capture_num_speakers_ph', 'Auto')}
                         keyboardType="number-pad"
-                        hint="Leave blank to detect automatically. An exact count sharpens diarization."
+                        hint={t('mobile.recording.capture_num_speakers_hint', 'Leave blank to detect automatically. An exact count sharpens diarization.')}
                         containerStyle={{ maxWidth: 180 }}
                     />
                     <TextField
-                        label="Glossary"
+                        label={t('mobile.recording.capture_glossary', 'Glossary')}
                         value={value.contextTerms}
                         onChangeText={(contextTerms) => onChange({ contextTerms })}
-                        placeholder="AFAS, Bee Flow, n8n"
-                        hint="Product names and jargon the transcriber would otherwise mishear."
+                        placeholder={t('mobile.recording.capture_glossary_ph', 'AFAS, Bee Flow, n8n')}
+                        hint={t('mobile.recording.capture_glossary_hint', 'Product names and jargon the transcriber would otherwise mishear.')}
                         autoCapitalize="none"
                     />
                 </View>

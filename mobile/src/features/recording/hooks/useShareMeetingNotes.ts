@@ -9,6 +9,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import { exportTranscription } from '../api/endpoints';
@@ -26,12 +27,13 @@ function writeExport(title: string, markdown: string): File {
 }
 
 export function useShareMeetingNotes() {
+    const t = useTranslation();
     const { toast } = useToast();
     return async (meeting: Transcription) => {
         try {
             const markdown = await exportTranscription(meeting.id, 'md');
             if (!markdown) {
-                toast('Nothing to export yet', 'error');
+                toast(t('mobile.recording.export_empty', 'Nothing to export yet'), 'error');
                 return;
             }
             const file = writeExport(meeting.title, markdown);
@@ -43,7 +45,7 @@ export function useShareMeetingNotes() {
                 });
             } else {
                 await Clipboard.setStringAsync(markdown);
-                toast('Copied the notes to the clipboard', 'success');
+                toast(t('mobile.recording.export_copied', 'Copied the notes to the clipboard'), 'success');
             }
         } catch (err) {
             toast(describeError(err).message, 'error');

@@ -45,11 +45,13 @@ export function LiveRecorder({
 
     const confirmDiscard = () => {
         Alert.alert(
-            'Discard this recording?',
-            `${formatElapsed(recorder.elapsed)} of audio will be deleted. This cannot be undone.`,
+            t('mobile.recording.discard_title', 'Discard this recording?'),
+            t('mobile.recording.discard_message', '{time} of audio will be deleted. This cannot be undone.', {
+                time: formatElapsed(recorder.elapsed),
+            }),
             [
-                { text: 'Keep recording', style: 'cancel' },
-                { text: 'Discard', style: 'destructive', onPress: onDiscard },
+                { text: t('meetings.capture_close_confirm', 'Keep recording'), style: 'cancel' },
+                { text: t('meetings.record_discard', 'Discard'), style: 'destructive', onPress: onDiscard },
             ],
         );
     };
@@ -74,7 +76,7 @@ export function LiveRecorder({
                         }}
                     />
                     <Text variant="label" tone={paused ? 'tertiary' : 'error'}>
-                        {paused ? 'PAUSED' : 'RECORDING'}
+                        {paused ? t('mobile.recording.state_paused', 'PAUSED') : t('mobile.recording.state_recording', 'RECORDING')}
                     </Text>
                 </View>
 
@@ -85,7 +87,7 @@ export function LiveRecorder({
                 <Text
                     variant="title"
                     style={{ fontSize: 56, lineHeight: 64, fontVariant: ['tabular-nums'] }}
-                    accessibilityLabel={`Recorded so far: ${formatElapsed(recorder.elapsed)}`}
+                    accessibilityLabel={t('mobile.recording.elapsed_label', 'Recorded so far: {time}', { time: formatElapsed(recorder.elapsed) })}
                 >
                     {formatElapsed(recorder.elapsed)}
                 </Text>
@@ -116,7 +118,7 @@ export function LiveRecorder({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xxl }}>
                     <CircleButton
                         icon={paused ? 'Play' : 'Pause'}
-                        label={paused ? 'Resume recording' : 'Pause recording'}
+                        label={paused ? t('mobile.recording.resume_recording', 'Resume recording') : t('mobile.recording.pause_recording', 'Pause recording')}
                         onPress={paused ? recorder.resume : recorder.pause}
                         disabled={saving}
                     />
@@ -125,7 +127,7 @@ export function LiveRecorder({
                         onPress={onStop}
                         disabled={saving}
                         accessibilityRole="button"
-                        accessibilityLabel="Stop recording and save"
+                        accessibilityLabel={t('mobile.recording.stop_save', 'Stop recording and save')}
                         accessibilityState={{ disabled: saving, busy: saving }}
                         style={({ pressed }) => ({
                             width: 88,
@@ -143,14 +145,14 @@ export function LiveRecorder({
 
                     <CircleButton
                         icon="Trash2"
-                        label="Discard this recording"
+                        label={t('mobile.recording.discard_label', 'Discard this recording')}
                         onPress={confirmDiscard}
                         disabled={saving}
                     />
                 </View>
 
                 <Text variant="caption" tone="tertiary" center>
-                    {saving ? 'Saving the recording…' : 'Stop to save it and start transcribing.'}
+                    {saving ? t('mobile.recording.saving', 'Saving the recording…') : t('mobile.recording.stop_hint', 'Stop to save it and start transcribing.')}
                 </Text>
             </View>
         </View>

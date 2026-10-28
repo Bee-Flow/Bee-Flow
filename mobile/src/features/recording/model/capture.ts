@@ -4,24 +4,32 @@
 
 import { getLocales } from 'expo-localization';
 
+import { translate } from '@/core/i18n';
+
 import type { CaptureSettings } from './types';
 
-/** The transcription languages the web client offers, same order, Dutch first. */
+/**
+ * The transcription languages the web client offers, same order, Dutch first.
+ * `label` is a getter, so the name is read in the app's language each time a
+ * screen draws it (the screen's own `useTranslation` re-renders it when the
+ * catalogue lands) while the list keeps the plain `{ code, label }` shape its
+ * other readers map over.
+ */
 export const TRANSCRIPTION_LANGUAGES: readonly { code: string; label: string }[] = [
-    { code: 'nl', label: 'Dutch' },
-    { code: 'en', label: 'English' },
-    { code: 'de', label: 'German' },
-    { code: 'fr', label: 'French' },
-    { code: 'es', label: 'Spanish' },
-    { code: 'it', label: 'Italian' },
-    { code: 'pt', label: 'Portuguese' },
-    { code: 'pl', label: 'Polish' },
-    { code: 'tr', label: 'Turkish' },
-    { code: 'ja', label: 'Japanese' },
-    { code: 'zh', label: 'Chinese' },
-    { code: 'ko', label: 'Korean' },
-    { code: 'ar', label: 'Arabic' },
-    { code: 'ru', label: 'Russian' },
+    { code: 'nl', get label() { return translate('mobile.recording.lang_nl', 'Dutch'); } },
+    { code: 'en', get label() { return translate('mobile.recording.lang_en', 'English'); } },
+    { code: 'de', get label() { return translate('mobile.recording.lang_de', 'German'); } },
+    { code: 'fr', get label() { return translate('mobile.recording.lang_fr', 'French'); } },
+    { code: 'es', get label() { return translate('mobile.recording.lang_es', 'Spanish'); } },
+    { code: 'it', get label() { return translate('mobile.recording.lang_it', 'Italian'); } },
+    { code: 'pt', get label() { return translate('mobile.recording.lang_pt', 'Portuguese'); } },
+    { code: 'pl', get label() { return translate('mobile.recording.lang_pl', 'Polish'); } },
+    { code: 'tr', get label() { return translate('mobile.recording.lang_tr', 'Turkish'); } },
+    { code: 'ja', get label() { return translate('mobile.recording.lang_ja', 'Japanese'); } },
+    { code: 'zh', get label() { return translate('mobile.recording.lang_zh', 'Chinese'); } },
+    { code: 'ko', get label() { return translate('mobile.recording.lang_ko', 'Korean'); } },
+    { code: 'ar', get label() { return translate('mobile.recording.lang_ar', 'Arabic'); } },
+    { code: 'ru', get label() { return translate('mobile.recording.lang_ru', 'Russian'); } },
 ];
 
 /**

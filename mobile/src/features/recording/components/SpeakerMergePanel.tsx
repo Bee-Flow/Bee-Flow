@@ -7,6 +7,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip, Text } from '@/shared/ui';
 
@@ -30,12 +31,13 @@ export function SpeakerMergePanel({
     names: Readonly<Record<string, string>>;
     onMergeInto: (id: string) => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     if (selected.length < 2) return null;
     return (
         <View style={styles.panel}>
             <Text variant="caption" tone="secondary">
-                Merge {selected.length} speakers into one. Pick who they really are:
+                {t('mobile.recording.merge_intro', 'Merge {count} speakers into one. Pick who they really are:', { count: selected.length })}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 {selected.map((id) => (
@@ -43,7 +45,7 @@ export function SpeakerMergePanel({
                 ))}
             </ScrollView>
             <Text variant="caption" tone="tertiary">
-                Merging cannot be undone from here — the turns are relabelled.
+                {t('mobile.recording.merge_warning', 'Merging cannot be undone from here — the turns are relabelled.')}
             </Text>
         </View>
     );

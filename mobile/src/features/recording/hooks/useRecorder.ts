@@ -31,6 +31,7 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 
+import { translate } from '@/core/i18n';
 import { useMicPermission, type MicPermission } from '@/shared/device/useMicPermission';
 
 import {
@@ -153,7 +154,7 @@ async function beginCapture(capture: Capture): Promise<boolean> {
         setPhase('idle');
         await teardown(capture);
         await closeJournal();
-        setError(reason(err, 'The microphone could not be started. Another app may be using it.'));
+        setError(reason(err, translate('mobile.recording.err_start', 'The microphone could not be started. Another app may be using it.')));
         return false;
     }
 }
@@ -169,7 +170,7 @@ function pauseCapture({ audio, meter, setPhase, setError }: Capture): void {
         meter.setHistory(SILENT_HISTORY);
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
-        setError(reason(err, 'Could not pause the recording.'));
+        setError(reason(err, translate('mobile.recording.err_pause', 'Could not pause the recording.')));
     }
 }
 
@@ -180,7 +181,7 @@ function resumeCapture({ audio, meter, setPhase, setError }: Capture): void {
         meter.start();
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
-        setError(reason(err, 'Could not resume the recording.'));
+        setError(reason(err, translate('mobile.recording.err_resume', 'Could not resume the recording.')));
     }
 }
 
@@ -198,7 +199,7 @@ async function finishCapture(capture: Capture): Promise<CapturedAudio | null> {
         setPhase('idle');
         if (!uri) {
             await closeJournal();
-            setError('The recording finished but produced no file.');
+            setError(translate('mobile.recording.err_no_file', 'The recording finished but produced no file.'));
             return null;
         }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -210,7 +211,7 @@ async function finishCapture(capture: Capture): Promise<CapturedAudio | null> {
     } catch (err) {
         // A stop that threw still leaves the frames written so far: keep them.
         const kept = await salvageCapture(capture);
-        if (!kept) setError(reason(err, 'The recording could not be finished.'));
+        if (!kept) setError(reason(err, translate('mobile.recording.err_finish', 'The recording could not be finished.')));
         return kept;
     }
 }
@@ -244,7 +245,7 @@ export function useRecorder(options: RecorderOptions = {}): Recorder {
     const [phase, setPhase] = useState<RecorderPhase>('idle');
     const [error, setError] = useState<string | null>(null);
     const mic = useMicPermission((err) =>
-        setError((err as Error)?.message ?? 'Could not ask for microphone access.'),
+        setError((err as Error)?.message ?? translate('mobile.recording.err_mic_access', 'Could not ask for microphone access.')),
     );
     const flags = useRef<CaptureFlags>(IDLE_FLAGS);
     // expo-audio subscribes the listener once, so it reads the latest handler

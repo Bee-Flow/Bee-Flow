@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { formatBytes } from '@/shared/lib/bytes';
 import { Button, Sheet } from '@/shared/ui';
@@ -31,18 +32,19 @@ export function CaptureDetailsSheet({
     onTranscribe: () => void;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <Sheet
             visible={Boolean(draft)}
             onClose={onClose}
-            title={fresh ? 'Before we transcribe' : 'Recording details'}
+            title={fresh ? t('mobile.recording.capture_before', 'Before we transcribe') : t('mobile.recording.capture_details', 'Recording details')}
             subtitle={draft ? `${draft.fileName} · ${formatBytes(draft.sizeBytes) || '—'}` : undefined}
             footer={
                 draft ? (
                     <View style={styles.footer}>
-                        <Button label="Transcribe now" fullWidth onPress={onTranscribe} />
-                        <Button label="Keep on this phone for now" variant="ghost" fullWidth onPress={onClose} />
+                        <Button label={t('mobile.recording.capture_transcribe_now', 'Transcribe now')} fullWidth onPress={onTranscribe} />
+                        <Button label={t('mobile.recording.capture_keep', 'Keep on this phone for now')} variant="ghost" fullWidth onPress={onClose} />
                     </View>
                 ) : null
             }

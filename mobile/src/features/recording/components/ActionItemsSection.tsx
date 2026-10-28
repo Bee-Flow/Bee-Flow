@@ -5,6 +5,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Card, Icon, ListRow, Section } from '@/shared/ui';
 
@@ -18,10 +19,11 @@ export function ActionItemsSection({
     /** Absent when the viewer does not own the note. */
     onToggle?: (index: number) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     if (items.length === 0) return null;
     return (
-        <Section title="Action items">
+        <Section title={t('meetings.extracted_actions', 'Action items')}>
             <Card padded={false}>
                 {items.map((item, index) => (
                     <ListRow

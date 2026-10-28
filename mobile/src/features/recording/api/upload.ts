@@ -10,6 +10,7 @@
 
 import { ApiError } from '@/core/api/client';
 import { uploadFile, type UploadProgress, type UploadTarget } from '@/core/api/xhrUpload';
+import { translate } from '@/core/i18n';
 
 import { readAccepted } from './readers';
 import type { CaptureSettings, TranscriptionAccepted } from '../model/types';
@@ -80,5 +81,5 @@ export async function uploadRecording(input: UploadInput, opts: UploadOptions = 
     const body = await uploadFile<unknown>(target, { uri: input.uri, name: input.fileName, mimeType: input.mimeType, size: 0 }, opts);
     const accepted = readAccepted(body);
     if (accepted?.id) return accepted;
-    throw new ApiError('The server accepted the upload but did not return a note.', { body });
+    throw new ApiError(translate('mobile.recording.err_no_note', 'The server accepted the upload but did not return a note.'), { body });
 }
