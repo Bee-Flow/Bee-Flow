@@ -34,7 +34,7 @@ chunks() {
 
 nearby_tests() {
   git diff --name-only HEAD -- server | grep -E '\.js$' | grep -v '\.test\.js$' | while read -r f; do
-    d=$(dirname "$f"); ls "$d"/*.test.js 2>/dev/null; [ "$d" != server ] && ls "$(dirname "$d")"/*.test.js 2>/dev/null
+    d=$(dirname "$f"); p=$(dirname "$d"); ls "$d"/*.test.js 2>/dev/null; [ "$p" != server ] && ls "$p"/*.test.js 2>/dev/null
   done | sort -u
 }
 
