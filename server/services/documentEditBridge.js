@@ -80,11 +80,11 @@ function bridgeWire(B) {
         if (d.__beeflowDocFlush) { post({ __beeflowDocDirty: true, html: bodyContent(), requestId: d.requestId }); return; }
         if (d.__beeflowDocInsert && typeof d.key === 'string' && /^[A-Za-z0-9_.-]+$/.test(d.key)) {
             setEditing(true); document.body.focus();
-            if (Array.isArray(d.fields) && d.fields.length <= 100 && d.fields.every(function (key) { return typeof key === 'string' && /^[A-Za-z0-9_.-]+$/.test(key); })) {
+            if (Array.isArray(d.fields) && d.fields.length <= 100 && d.fields.every(function (/** @type {string} */ key) { return typeof key === 'string' && /^[A-Za-z0-9_.-]+$/.test(key); })) {
                 var fields = d.fields.length ? d.fields : ['this'];
                 var start = '<!--bf-template:' + window.btoa('{{#each ' + d.key + '}}') + '-->';
                 var end = '<!--bf-template:' + window.btoa('{{/each}}') + '-->';
-                document.execCommand('insertHTML', false, '<table><thead><tr>' + fields.map(function (key) { return '<th>' + key + '</th>'; }).join('') + '</tr></thead><tbody>' + start + '<tr>' + fields.map(function (key) { return '<td>{{' + key + '}}</td>'; }).join('') + '</tr>' + end + '</tbody></table>');
+                document.execCommand('insertHTML', false, '<table><thead><tr>' + fields.map(function (/** @type {string} */ key) { return '<th>' + key + '</th>'; }).join('') + '</tr></thead><tbody>' + start + '<tr>' + fields.map(function (/** @type {string} */ key) { return '<td>{{' + key + '}}</td>'; }).join('') + '</tr>' + end + '</tbody></table>');
             } else document.execCommand('insertText', false, '{{' + d.key + '}}');
             protectTokens();
             post({ __beeflowDocDirty: true, html: bodyContent() });

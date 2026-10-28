@@ -1,3 +1,4 @@
+/** @typedef {import('../core/llm/webSearchInferenceResolver').InferenceEntry} InferenceEntry */
 // @typecheck
 /**
  * Node-Search Tools — Cloud-only agent web search
@@ -54,8 +55,12 @@ function cosineSimilarity(a, b) {
 
 const HTML_TAG_RE = /<\/?(?:script|style|noscript|iframe|svg|nav|header|footer|aside|form)\b[^>]*>[\s\S]*?<\/(?:script|style|noscript|iframe|svg|nav|header|footer|aside|form)>/gi;
 const ANY_TAG_RE = /<[^>]+>/g;
+/** @type {Record<string, string>} */
 const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
 
+/**
+ * @param {string} html
+ */
 function stripHtml(html) {
     return html
         .replace(HTML_TAG_RE, ' ')
@@ -68,6 +73,9 @@ function stripHtml(html) {
 
 // ─── Page fetch ───────────────────────────────────────────────────
 
+/**
+ * @param {string | URL | Request} url
+ */
 async function fetchPage(url) {
     try {
         const res = await fetch(url, {
@@ -100,7 +108,7 @@ async function fetchPage(url) {
         html += decoder.decode();
         return stripHtml(html);
     } catch (err) {
-        log.warn(`[NodeSearch] fetch failed for ${url}: ${err.message}`);
+        log.warn(`[NodeSearch] fetch failed for ${url}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -183,7 +191,7 @@ async function rerankProviderLLM(rerankTarget, query, results) {
             .map((r, i) => ({ ...r, score: map.has(i) ? map.get(i) : 0 }))
             .sort((a, b) => (b.score || 0) - (a.score || 0));
     } catch (err) {
-        const msg = err?.message || String(err);
+        const msg = /** @type {Error} */ (err)?.message || String(err);
         const cleanMsg = /\[object Request\]/.test(msg)
             ? 'transient upstream fetch error (Mistral SDK retry surfaced as TypeError)'
             : msg;
@@ -200,7 +208,7 @@ async function rerankCpuLocal(query, results) {
         if (scored.length === 0) return results;
         return scored.map(s => ({ ...results[s.index], score: s.relevance_score }));
     } catch (err) {
-        log.warn(`[NodeSearch] CPU rerank failed (${err.message}); returning original order`);
+        log.warn(`[NodeSearch] CPU rerank failed (${/** @type {Error} */ (err).message}); returning original order`);
         return results;
     }
 }
@@ -248,7 +256,7 @@ async function cleanupPage(cleanupTarget, query, page) {
         });
         return (out.content || '').trim() || null;
     } catch (err) {
-        const msg = err?.message || String(err);
+        const msg = /** @type {Error} */ (err)?.message || String(err);
         // The Mistral SDK stringifies its inner cause as "[object Request]"
         // when an upstream fetch fails with a TypeError. Surface a cleaner
         // log line so this looks like the transient network issue it is.
@@ -287,11 +295,12 @@ async function executeNodeSearchTool(toolName, args) {
 
     log.info(`[NodeSearch] "${query}" mode=${searchMode} max=${maxResults} fetch=${fetchTopN} detail=${detailLevel}`);
 
+    /** @type {{ embed: InferenceEntry; rerank: InferenceEntry; cleanup: InferenceEntry; }} */
     let targets;
     try {
         targets = await resolveInferenceTargetsWithSecrets();
     } catch (err) {
-        return { error: `Failed to resolve inference targets: ${err.message}` };
+        return { error: `Failed to resolve inference targets: ${/** @type {Error} */ (err).message}` };
     }
     // Note: we do NOT hard-fail when no embedding model is configured. Cosine
     // rerank uses the shared dispatcher (which falls back to a CPU embedder),
@@ -302,7 +311,7 @@ async function executeNodeSearchTool(toolName, args) {
     try {
         results = await serperSearch({ query, num: maxResults });
     } catch (err) {
-        return `Search failed: ${err.message}`;
+        return `Search failed: ${/** @type {Error} */ (err).message}`;
     }
     if (results.length === 0) {
         return {
@@ -324,7 +333,7 @@ async function executeNodeSearchTool(toolName, args) {
     try {
         results = await applyRerank(targets, query, results);
     } catch (err) {
-        log.warn(`[NodeSearch] rerank pipeline failed (${err.message}); continuing with original order`);
+        log.warn(`[NodeSearch] rerank pipeline failed (${/** @type {Error} */ (err).message}); continuing with original order`);
     }
 
     // Cleanup top fetched pages (only those with content)

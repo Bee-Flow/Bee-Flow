@@ -113,6 +113,7 @@ async function grantIntegration({ webpageId, userId, session, tool, fixedArgs, l
     if (typeof tool !== 'string' || !tool.trim()) throw grantError(400, 'tool is required');
     const owner = deps.findOwnerOfTool(tool);
     if (!owner) throw grantError(404, `Unknown tool: ${tool}`);
+    /** @type {Set<string | undefined>} */
     let available;
     try {
         available = await resolveAvailableToolNames({ userId, session }, deps);
@@ -207,6 +208,7 @@ async function listAuthorAutomations({ userId }, _deps = {}) {
  */
 async function listAvailableIntegrations({ userId, session }, _deps = {}) {
     const deps = resolveDeps(_deps);
+    /** @type {Set<string | undefined>} */
     let availableNames;
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);
@@ -243,6 +245,7 @@ async function listAvailableIntegrations({ userId, session }, _deps = {}) {
 async function describeGrants({ webpageId, userId, session }, _deps = {}) {
     const deps = resolveDeps(_deps);
     const grants = await deps.getBridgeGrants(webpageId);
+    /** @type {Set<string | undefined> | null} */
     let availableNames = null;
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);

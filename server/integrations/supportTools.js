@@ -249,7 +249,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                     createdAt: org.createdAt || org.created_at || null,
                 };
             } catch (e) {
-                return { error: e.message };
+                return { error: /** @type {Error} */ (e).message };
             }
         }
         case 'support_get_subscription_status': {
@@ -264,7 +264,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                     renewsAt: sub.current_period_end || sub.renews_at || null,
                 };
             } catch (e) {
-                return { error: e.message };
+                return { error: /** @type {Error} */ (e).message };
             }
         }
         case 'support_list_recent_threads_for_requester': {
@@ -295,7 +295,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                 const hits = await quickKBSearch(aiUserId, kbIds, query, { topK });
                 return (/** @type {any[]} */ (hits) || []).map(h => ({ title: h.title, content: h.content, score: h.score, source: h.source_uri }));
             } catch (e) {
-                return { error: e.message };
+                return { error: /** @type {Error} */ (e).message };
             }
         }
         case 'support_list_canned_responses': {
@@ -309,7 +309,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                     body: `<canned>${renderCannedBody(c.body, thread, null)}</canned>`,
                 }));
             } catch (e) {
-                return { error: e.message };
+                return { error: /** @type {Error} */ (e).message };
             }
         }
         default:

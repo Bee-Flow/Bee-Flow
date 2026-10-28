@@ -188,7 +188,7 @@ async function executeMultiFileTool(toolName, args, { webpageId, userId }) {
                 message: `Created/updated ${path} (${meta.size} bytes).`,
             };
         } catch (err) {
-            return { error: `Failed to create ${path}: ${err.message}` };
+            return { error: `Failed to create ${path}: ${/** @type {Error} */ (err).message}` };
         }
     }
 
@@ -235,6 +235,7 @@ async function executeMultiFileTool(toolName, args, { webpageId, userId }) {
             return { error: `find_text matches ${occurrences.length} places in ${path} (lines ${lines.join(', ')}). Either narrow find_text or set replace_all: true.` };
         }
 
+        /** @type {string | undefined} */
         let next;
         if (replaceAll) {
             next = current;
@@ -255,7 +256,7 @@ async function executeMultiFileTool(toolName, args, { webpageId, userId }) {
                 message: `${path} updated (${occurrences.length} replacement${occurrences.length === 1 ? '' : 's'}, line${occurrences.length === 1 ? '' : 's'} ${occurrences.map(o => o.line).join(', ')}).`,
             };
         } catch (err) {
-            return { error: `Failed to write ${path}: ${err.message}` };
+            return { error: `Failed to write ${path}: ${/** @type {Error} */ (err).message}` };
         }
     }
 

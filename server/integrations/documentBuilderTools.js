@@ -332,7 +332,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
             try {
                 house = houseStyle.houseStyleFacts(await houseStyle.getHouseStyle(ctx.orgId));
             } catch (e) {
-                log.warn('[DocumentTools] House style unavailable:', e.message);
+                log.warn('[DocumentTools] House style unavailable:', /** @type {Error} */ (e).message);
             }
         }
 
@@ -393,7 +393,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
                 openSuggestions = (await suggestionStoreOf(ctx).list('document', doc.id, { status: 'open' }))
                     .slice(0, MAX_OPEN_SUGGESTIONS_LISTED).map((/** @type {import('../stores/documentSuggestionStore').SuggestionRow} */ x) => ({ id: x.id, summary: x.summary }));
             } catch (e) {
-                log.warn('[DocumentTools] open suggestions not listed:', e.message);
+                log.warn('[DocumentTools] open suggestions not listed:', /** @type {Error} */ (e).message);
             }
         }
         if (openSuggestions?.length) message += ` ${openSuggestions.length} suggestion(s) are already proposed and waiting (openSuggestions); do not propose them again.`;
@@ -462,7 +462,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
                 ...updates, expectedVersionId: expected.versionId || existing.versionId, ...aiRevision(userId, args.summary),
             });
         } catch (e) {
-            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: e.message };
+            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: /** @type {Error} */ (e).message };
             throw e;
         }
 
@@ -526,7 +526,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
                 [field]: out.content, expectedVersionId: parseExpected(args.expectedVersionId).versionId || doc.versionId, ...aiRevision(userId, args.summary),
             });
         } catch (e) {
-            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: e.message };
+            if (e.errorClass === 'document_too_large' || e.errorClass === 'document_conflict') return { error: /** @type {Error} */ (e).message };
             throw e;
         }
 

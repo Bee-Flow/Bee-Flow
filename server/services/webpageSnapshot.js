@@ -317,7 +317,7 @@ async function readSnapshotSlot(shareId, slot) {
         for await (const chunk of stream) chunks.push(chunk);
         return Buffer.concat(chunks).toString('utf8');
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
         throw err;
     }
 }
@@ -334,7 +334,7 @@ async function readSnapshotExtra(shareId, path) {
         for await (const chunk of stream) chunks.push(chunk);
         return { bytes: Buffer.concat(chunks), contentType: contentType || 'application/octet-stream' };
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
         throw err;
     }
 }

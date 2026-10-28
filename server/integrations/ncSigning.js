@@ -73,8 +73,10 @@ function formDecode(/** @type {string} */ s) {
  * is not valid UTF-8 throws (URLSearchParams would map %FF and %FE to the
  * same U+FFFD and make distinct queries collide).
  * @throws {URIError}
+ * @param {string} query
  */
 function canonicalQuery(query) {
+    /** @type {string[]} */
     const out = [];
     for (const part of String(query).split('&')) {
         if (!part) continue;
@@ -108,6 +110,8 @@ function canonicalSignedPath(pathOnly) {
  * single-encoded path, which it forwards to Nextcloud unchanged. The query is
  * left alone (the hop re-encodes it; see canonicalQuery). `baseUrl` is the
  * connector origin + `/nc`, kept verbatim.
+ * @param {string} url
+ * @param {string} baseUrl
  */
 function connectorWireUrl(url, baseUrl) {
     const prefix = url.startsWith(baseUrl) ? baseUrl : (url.startsWith('/nc') ? '' : null);
@@ -122,6 +126,7 @@ function connectorWireUrl(url, baseUrl) {
  * The pre-canonical signed path, byte-identical to what releases before the
  * canonical scheme signed: the whole path+query decoded, raw on a bad escape.
  * Connectors that predate `c1` verify exactly this.
+ * @param {string} pathOnly
  */
 function legacySignablePath(pathOnly) {
     try { return decodeURIComponent(pathOnly); } catch (_) { return pathOnly; }
@@ -138,6 +143,7 @@ function legacySignablePath(pathOnly) {
  */
 function signedPathFor(pathOnly) {
     const legacy = legacySignablePath(String(pathOnly));
+    /** @type {string} */
     let canonical;
     try { canonical = canonicalSignedPath(pathOnly); } catch (_) { return { path: legacy, suffix: '' }; }
     return canonical === legacy ? { path: legacy, suffix: '' } : { path: canonical, suffix: `\n${CANONICAL_MARKER}` };

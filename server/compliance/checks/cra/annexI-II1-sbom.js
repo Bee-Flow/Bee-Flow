@@ -84,6 +84,9 @@ module.exports = {
     remediationKey: 'compliance.check_cra_sbom_fix',
     remediationLink: null,
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId) || {};
         if (settings.framework_relevance?.cra === 'not_relevant') {

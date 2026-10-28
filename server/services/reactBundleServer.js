@@ -102,7 +102,7 @@ async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender
         const r = await build({ entry: REACT_ENTRY, files });
         bundle = r.code;
     } catch (e) {
-        return { buildError: e.formatted || e.message || String(e) };
+        return { buildError: e.formatted || /** @type {Error} */ (e).message || String(e) };
     }
     const bodyHtml = reactBodyHtml({ bundle, assetMap, headless: true });
     const doc = shellDoc({

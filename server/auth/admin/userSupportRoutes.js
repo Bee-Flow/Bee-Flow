@@ -150,7 +150,7 @@ async function isKnownRoleId(value) {
         return (roles || []).some(r => r?.id === v);
     } catch (e) {
         // Fail closed: an unverifiable role is not a role.
-        log.warn('[adminRoutes] role allow-list lookup failed:', e.message);
+        log.warn('[adminRoutes] role allow-list lookup failed:', /** @type {Error} */ (e).message);
         return false;
     }
 }

@@ -82,7 +82,7 @@ async function applyNcDefaultPlanIfConfigured(orgId, source) {
         orgHealth.event('bootstrap.plan_applied', { orgId, meta: { planId, fallback } });
         orgHealth.resolve(orgId, ['bootstrap.community_fallback', 'chat.subscription_blocked']);
     } catch (err) {
-        log.warn(`[ConnectorBootstrap] failed to apply NC default plan to org ${orgId}: ${err.message}`);
+        log.warn(`[ConnectorBootstrap] failed to apply NC default plan to org ${orgId}: ${/** @type {Error} */ (err).message}`);
         orgHealth.problem('bootstrap.plan_apply_failed', {
             orgId, source: 'connectorBootstrap', meta: { source, error: err },
         });
@@ -120,6 +120,7 @@ function defaultProvisioningMode() {
 // default_org_integrations), then the env override, then the deployment
 // default. Anything unrecognised fails closed.
 async function resolveProvisioningMode() {
+    /** @type {string | null} */
     let mode;
     try {
         mode = await configStore.getConfig('connector_provisioning_mode');
@@ -284,6 +285,7 @@ async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDispla
 function _selectSecondaryAdmins(ncAdmins, primaryUid) {
     if (!Array.isArray(ncAdmins)) return [];
     const seen = new Set();
+    /** @type {{ uid: string; email: string; displayName: string; }[]} */
     const out = [];
     for (const a of ncAdmins) {
         const uid = String(a?.uid || '').trim();
@@ -309,7 +311,7 @@ async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
                 ncAdminDisplayName: a.displayName,
             });
         } catch (e) {
-            log.warn(`[ConnectorBootstrap] skipped extra NC admin ${a.uid} for org ${org.id}: ${e.message}`);
+            log.warn(`[ConnectorBootstrap] skipped extra NC admin ${a.uid} for org ${org.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }

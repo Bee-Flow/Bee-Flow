@@ -240,7 +240,7 @@ async function policyFindings(stage, deps) {
     } catch (err) {
         if (!err || err.status !== 400) throw err;
         return [finding(stage, {
-            code: 'approval_policy.stale', message: err.message,
+            code: 'approval_policy.stale', message: /** @type {Error} */ (err).message,
             remediation: 'Update the approval chain of Production so every stage has an approver who is not the Solution owner.',
         })];
     }

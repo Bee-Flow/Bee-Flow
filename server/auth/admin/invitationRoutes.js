@@ -158,7 +158,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     } catch (e) {
         // The atomic enforcement at redemption still applies — never block
         // invites because the pre-check itself hiccupped.
-        log.warn('[Invitations] seat-cap pre-check failed (continuing):', e.message);
+        log.warn('[Invitations] seat-cap pre-check failed (continuing):', /** @type {Error} */ (e).message);
     }
 
     // Create invitation token

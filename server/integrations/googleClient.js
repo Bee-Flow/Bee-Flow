@@ -179,7 +179,7 @@ function isRateLimitError(data) {
     const error = data && typeof data === 'object' ? data.error : null;
     if (!error || typeof error !== 'object') return false;
     if (error.status === 'RESOURCE_EXHAUSTED') return true;
-    return Array.isArray(error.errors) && error.errors.some(e => RATE_LIMIT_REASONS.has(e?.reason));
+    return Array.isArray(error.errors) && error.errors.some((/** @type {{ reason: string; }} */ e) => RATE_LIMIT_REASONS.has(e?.reason));
 }
 
 /**
@@ -272,7 +272,7 @@ async function createGoogleApiClient(session, { api, version, extraApis = [], ex
         access_token: session.accessToken,
         refresh_token: session.refreshToken,
     });
-    oauth2Client.on('tokens', (tokens) => {
+    oauth2Client.on('tokens', (/** @type {{ access_token: string | undefined; refresh_token: string | undefined; }} */ tokens) => {
         if (tokens.access_token) session.accessToken = tokens.access_token;
         if (tokens.refresh_token) session.refreshToken = tokens.refresh_token;
         if (onSaved) onSaved(session);

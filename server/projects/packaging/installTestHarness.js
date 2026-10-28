@@ -18,6 +18,9 @@ const blueprintStorePath = require.resolve('../../stores/blueprintStore');
 const calls = [];
 const record = (name, args) => calls.push({ name, args });
 let seq = 0;
+/**
+ * @param {string} p
+ */
 const nextId = (p) => `${p}_${++seq}`;
 const live = new Map();      // id -> the stored automation, for the patch pass
 const liveApps = new Map();  // id -> the stored app definition, for the stamp pass

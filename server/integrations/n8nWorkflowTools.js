@@ -473,7 +473,7 @@ async function workflowCreate(args, { orgId, toolName }) {
         } catch (e) {
             return {
                 success: true,
-                message: `Workflow "${created.name}" created but activation failed: ${e.message}`,
+                message: `Workflow "${created.name}" created but activation failed: ${/** @type {Error} */ (e).message}`,
                 ...summarizeWorkflow(created),
             };
         }
@@ -775,8 +775,8 @@ async function executeN8nWorkflowTool(toolName, args, orgId) {
         if (!handler) return { error: `Unknown n8n workflow tool: ${toolName}` };
         return await handler(args, { orgId, toolName });
     } catch (err) {
-        log.error(`[n8n-workflow] ${toolName} error:`, err.message);
-        return { error: `n8n operation failed: ${err.message}` };
+        log.error(`[n8n-workflow] ${toolName} error:`, /** @type {Error} */ (err).message);
+        return { error: `n8n operation failed: ${/** @type {Error} */ (err).message}` };
     }
 }
 

@@ -140,7 +140,7 @@ async function redeemPairingCode(ctx) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'pairing_code_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
             });
         }
@@ -180,7 +180,7 @@ async function returningBind(ctx, org) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'returning_bind_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
                 remediation: 'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.',
             });
@@ -350,7 +350,7 @@ async function createFreshOrg(ctx) {
                         meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_race_branch' },
                     });
                     return res.status(409).json({
-                        error: e.message,
+                        error: /** @type {Error} */ (e).message,
                         code: 'admin_email_conflict',
                     });
                 }
@@ -401,7 +401,7 @@ async function createFreshOrg(ctx) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
                 remediation: 'The Nextcloud admin email is already used by a user in another Bee Flow organization. Use a different admin user on Nextcloud, or contact support.',
             });

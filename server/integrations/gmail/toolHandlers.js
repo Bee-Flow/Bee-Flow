@@ -124,7 +124,7 @@ async function composeMessage(gmail, args, session, opts) {
             inReplyTo = getHeader(originalHeaderSource, 'Message-ID');
             references = getHeader(originalHeaderSource, 'References');
         } catch (err) {
-            log.info('[Gmail] Could not fetch reply headers:', err.message);
+            log.info('[Gmail] Could not fetch reply headers:', /** @type {Error} */ (err).message);
         }
     } else if (argThreadId) {
         // Automation case: trigger payload gave us the threadId but the
@@ -145,7 +145,7 @@ async function composeMessage(gmail, args, session, opts) {
                 references = getHeader(originalHeaderSource, 'References');
             }
         } catch (err) {
-            log.info('[Gmail] Could not fetch thread headers:', err.message);
+            log.info('[Gmail] Could not fetch thread headers:', /** @type {Error} */ (err).message);
         }
     }
 
@@ -257,7 +257,7 @@ async function createDraft(gmail, args, session) {
             inReplyTo = getHeader(originalHeaderSource, 'Message-ID');
             references = getHeader(originalHeaderSource, 'References');
         } catch (err) {
-            log.info('[Gmail] Could not fetch reply headers for draft:', err.message);
+            log.info('[Gmail] Could not fetch reply headers for draft:', /** @type {Error} */ (err).message);
         }
     }
     if (originalHeaderSource) {

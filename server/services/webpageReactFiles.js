@@ -16,6 +16,10 @@
 const webpageStore = require('../stores/webpageStore');
 const { fallback } = require('../utils/bestEffort');
 
+/**
+ * @param {string} webpageId
+ * @param {string} ownerId
+ */
 async function loadReactFiles(webpageId, ownerId) {
     const files = {};
     const assetMap = {};

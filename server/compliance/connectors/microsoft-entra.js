@@ -145,6 +145,7 @@ module.exports = {
 
         // MFA-capable count — needs AuditLog.Read.All + Entra ID P1/P2;
         // null when the report is not accessible.
+        /** @type {number | null} */
         let mfaCapable = null;
         try {
             const reg = await _graphJson('/reports/authenticationMethods/userRegistrationDetails?$top=500&$select=isMfaCapable', token, safeFetch);

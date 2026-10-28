@@ -78,7 +78,7 @@ async function startOrgTrial(orgId, planId, { changedBy } = {}) {
     try {
         await require('./planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
     } catch (e) {
-        log.warn(`[TrialService] applyPlanToOrg failed for ${orgId}:`, e.message);
+        log.warn(`[TrialService] applyPlanToOrg failed for ${orgId}:`, /** @type {Error} */ (e).message);
     }
     await store.markTrialUsed('organization', orgId);
     await store.recordTrialHistory({
@@ -193,7 +193,7 @@ async function maybeAutoGrantOrgTrial(orgId) {
         return await startOrgTrial(orgId, planId, { changedBy: 'auto_grant_signup' });
     } catch (e) {
         if (e.code !== 'trial_already_used') {
-            log.warn(`[TrialService] Auto-grant org trial failed for ${orgId}:`, e.message);
+            log.warn(`[TrialService] Auto-grant org trial failed for ${orgId}:`, /** @type {Error} */ (e).message);
         }
         return null;
     }
@@ -210,7 +210,7 @@ async function maybeAutoGrantConsumerTrial(userId) {
         return await startConsumerTrial(userId, planId, { changedBy: 'auto_grant_signup' });
     } catch (e) {
         if (e.code !== 'trial_already_used') {
-            log.warn(`[TrialService] Auto-grant consumer trial failed for ${userId}:`, e.message);
+            log.warn(`[TrialService] Auto-grant consumer trial failed for ${userId}:`, /** @type {Error} */ (e).message);
         }
         return null;
     }

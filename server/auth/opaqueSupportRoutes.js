@@ -99,8 +99,10 @@ async function deletePendingLogin(loginId) {
 // predicted from outside.
 const FAKE_RECORD_POOL_SIZE = 4;
 
+/** @type {Promise<string[]> | null} */
 let _fakeRecordsPromise = null;
 
+/** @type {NonSharedBuffer | null} */
 let _fakeKey = null;
 
 function fakeKey() {
@@ -113,6 +115,7 @@ function buildFakeRecords() {
         _fakeRecordsPromise = (async () => {
             await opaque.ready;
             const serverSetup = getServerSetup();
+            /** @type {string[]} */
             const records = [];
             for (let i = 0; i < FAKE_RECORD_POOL_SIZE; i++) {
                 // A password nobody holds. Never stored, never reachable.
@@ -152,6 +155,10 @@ async function fakeRecordFor(username) {
  * wrapDEK), so absence has to look like presence at this level too.
  */
 function fakeWrappedDEK(username, context) {
+    /**
+     * @param {string} label
+     * @param {number} bytes
+     */
     const stretch = (label, bytes) => crypto
         .createHmac('sha256', fakeKey())
         .update(`${context}:${label}:${username}`)
@@ -180,6 +187,7 @@ function fakeWrappedDEK(username, context) {
  * Accept both shapes, because parseJSON falls back to the RAW value when the
  * column holds something unparseable, and older/hand-written rows may still be
  * strings.
+ * @param {string} value
  */
 function readEnvelope(value) {
     if (!value) return null;
@@ -204,9 +212,13 @@ function readEnvelope(value) {
  * wrapped DEK could be overwritten, which is the right way round: everything
  * else fails closed. What was open is the KEY, and on these routes a key the
  * server drops is a key envelope the client believes it stored.
+ * @param {string} name
  */
 const blob = (name) => worded(`${name} must be text.`).min(1, `${name} required`).max(8192, `That ${name} is too long.`);
 
+/**
+ * @param {string} name
+ */
 const envelope = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} must be an encryption envelope.` }) });
 
 // `username` is ACCEPTED AND IGNORED. The shipped web client sends it on both

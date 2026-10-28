@@ -53,6 +53,7 @@ async function updateMatchedUser({ provider, user, existingUser, branch }) {
  * @param {{ req: import('express').Request, provider: string, user: OAuthUser, msTenant?: string }} opts
  */
 async function planNewSsoUser({ req, provider, user, msTenant }) {
+    /** @type {accountProvisioning.SignupIntent | null} */
     let signupIntent = null;
 
     // A truly new OAuth user = a signup. The wizard-driven path
@@ -99,7 +100,7 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
             placement = await accountProvisioning.prepareAccountPlacement(signupIntent, { req });
         } catch (e) {
             if (e instanceof accountProvisioning.SignupError) {
-                log.warn(`[OAuth/${provider}] pending signup rejected (${e.code}): ${e.message}`);
+                log.warn(`[OAuth/${provider}] pending signup rejected (${e.code}): ${/** @type {Error} */ (e).message}`);
                 return { error: e.oauthCode };
             }
             throw e;
@@ -224,10 +225,10 @@ async function finishNewSsoUser({ req, user, localId, placement, signupIntent, p
                         const orgName = preResolvedOrg?.name || '';
                         const { sendWelcomeEmail } = require('../../utils/emailService');
                         await sendWelcomeEmail({ email: user.email, displayName: user.displayName, loginUrl: clientHost, orgName, locale: ssoLocale });
-                    } catch (e) { log.warn('[OAuth] welcome email failed:', e.message); }
+                    } catch (e) { log.warn('[OAuth] welcome email failed:', /** @type {Error} */ (e).message); }
                 });
             }
-        } catch (e) { log.warn('[OAuth] post-create locale/welcome failed:', e.message); }
+        } catch (e) { log.warn('[OAuth] post-create locale/welcome failed:', /** @type {Error} */ (e).message); }
     }
 }
 
@@ -265,6 +266,7 @@ async function resolveSsoUser({ req, provider, user, config }) {
     // Set when this callback is completing a signup started in the wizard
     // (req.session.pendingSignup). Read further down to keep a personal
     // account out of the org domain-matching and no-organisation gate.
+    /** @type {accountProvisioning.SignupIntent | null | undefined} */
     let signupIntent = null;
 
     if (existingUser) {

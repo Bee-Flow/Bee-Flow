@@ -7,6 +7,7 @@ const MAX_LIMIT = 100;
 
 // Allowed first-layer `with` (eager loading) values per endpoint. Anything the
 // model invents is dropped rather than forwarded, so a typo never 400s the call.
+/** @type {Record<string, string[]>} */
 const WITH_OPTIONS = {
     board: ['stages', 'collections', 'cards'],
     activity: ['time_tracking', 'stages'],
@@ -70,6 +71,7 @@ const SORT_PARAM = {
 /**
  * Build the shared parameter schema for a list tool: pagination + filter + sort,
  * plus an optional `with` enum and any tool-specific extras.
+ * @param {string | null} withKey
  */
 function listParams(withKey, extra = {}, required = []) {
     /** @type {Record<string, any>} */ const properties = {

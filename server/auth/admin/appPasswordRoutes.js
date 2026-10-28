@@ -47,6 +47,7 @@ function normalizeNextcloudUrl(raw) {
         return { error: 'That Nextcloud URL is too long.' };
     }
     if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+    /** @type {URL} */
     let parsed;
     try {
         parsed = new URL(value);
@@ -58,7 +59,7 @@ function normalizeNextcloudUrl(raw) {
     try {
         assertAllowedNextcloudHost(normalized);
     } catch (e) {
-        return { error: e.message };
+        return { error: /** @type {Error} */ (e).message };
     }
     return normalized;
 }

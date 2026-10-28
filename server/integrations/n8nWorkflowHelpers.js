@@ -39,7 +39,7 @@ function parseJsonParam(value, paramName, toolName = '') {
         try {
             return JSON.parse(value);
         } catch (e) {
-            throw new Error(`Invalid JSON for "${paramName}": ${e.message}`);
+            throw new Error(`Invalid JSON for "${paramName}": ${/** @type {Error} */ (e).message}`);
         }
     }
     throw new Error(`"${paramName}" must be a JSON array/object or a JSON string.`);
