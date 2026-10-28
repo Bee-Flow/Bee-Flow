@@ -1,5 +1,5 @@
 {
-    "_comment": "Registry of every directory that holds a package.json or a requirements*.txt in git. scripts/check-package-registry.mjs (npm run lint:package-registry) fails when this list and the tree disagree, or when a package's Dependabot entry in .github/dependabot.yml is missing, stale or on another cadence. scripts/check-version-drift.mjs reads the npm packages from here. Fields: dir (repo-relative, '.' for the root), ecosystem (npm | pip), role, lockfile (npm = package-lock.json tracked, pip = pinned requirements.txt tracked, none), dependabot (weekly | monthly | none; none needs a reason).",
+    "_comment": "Registry of every directory that holds a package.json or a requirements*.txt in git. scripts/check-package-registry.mjs (npm run lint:package-registry) fails when this list and the tree disagree, or when a package's Dependabot entry in .github/dependabot.yml is missing, stale or on another cadence. scripts/check-version-drift.mjs reads the npm packages from here. Fields: dir (repo-relative, '.' for the root), ecosystem (npm | pip), role, lockfile (npm = package-lock.json tracked, pip = pinned requirements.txt tracked, none), dependabot (the version-update interval: weekly | monthly | none; none needs a reason). Every entry is monthly since 2026-10-28: security fixes come through Dependabot security updates and vuln-watch, not through the version-update schedule (see the header of .github/dependabot.yml).",
     "roles": {
         "service": "ships to customers as a server-side image",
         "client": "ships to customers as an app the user runs",
@@ -8,12 +8,12 @@
         "tooling": "build, test or docs tooling that ships nowhere"
     },
     "packages": [
-        { "dir": "server", "ecosystem": "npm", "role": "service", "lockfile": "npm", "dependabot": "weekly" },
-        { "dir": "agent-hub", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
-        { "dir": "mobile", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
-        { "dir": "desktop", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "weekly" },
-        { "dir": "guard-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "weekly" },
-        { "dir": "classify-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "weekly" },
+        { "dir": "server", "ecosystem": "npm", "role": "service", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "agent-hub", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "mobile", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "desktop", "ecosystem": "npm", "role": "client", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "guard-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "monthly" },
+        { "dir": "classify-service", "ecosystem": "pip", "role": "sidecar", "lockfile": "pip", "dependabot": "monthly" },
         { "dir": "server/pwt-runner", "ecosystem": "npm", "role": "service", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": ".", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "docs", "ecosystem": "npm", "role": "tooling", "lockfile": "npm", "dependabot": "monthly" },
