@@ -14,6 +14,7 @@
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useUserRefresh } from '@/shared/patterns';
 import { Screen, ScreenHeader } from '@/shared/ui';
@@ -30,6 +31,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function McpScreen() {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const token = useMcpToken();
@@ -39,7 +41,7 @@ export function McpScreen() {
 
     return (
         <Screen edges={['top', 'bottom']}>
-            <ScreenHeader title="MCP" subtitle="Model Context Protocol" />
+            <ScreenHeader title={t('admin.integ_mcp', 'MCP')} subtitle={t('mobile.mcp.subtitle', 'Model Context Protocol')} />
             <ScrollView
                 contentContainerStyle={styles.content}
                 refreshControl={

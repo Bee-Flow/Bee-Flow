@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { FormSheet } from '@/shared/patterns';
 import { TextField } from '@/shared/ui';
 
@@ -23,6 +24,7 @@ export function EnrolSheet({
     onClose: () => void;
     onEnrolled: (codes: string[]) => void;
 }) {
+    const t = useTranslation();
     const [code, setCode] = useState('');
     const enable = useEnableMfa();
 
@@ -38,9 +40,9 @@ export function EnrolSheet({
         <FormSheet
             visible={visible}
             onClose={onClose}
-            title="Set up two-factor"
-            subtitle="Scan the code with your authenticator app"
-            submitLabel="Turn on two-factor"
+            title={t('mobile.security.mfa_setup', 'Set up two-factor')}
+            subtitle={t('mobile.security.enrol_subtitle', 'Scan the code with your authenticator app')}
+            submitLabel={t('mobile.security.enrol_submit', 'Turn on two-factor')}
             onSubmit={submit}
             canSubmit={code.trim().length >= 6}
             submitting={enable.isPending}
@@ -48,7 +50,7 @@ export function EnrolSheet({
         >
             <EnrolmentCode open={visible} />
             <TextField
-                label="Six-digit code from the app"
+                label={t('mobile.security.enrol_code', 'Six-digit code from the app')}
                 value={code}
                 onChangeText={setCode}
                 keyboardType="number-pad"

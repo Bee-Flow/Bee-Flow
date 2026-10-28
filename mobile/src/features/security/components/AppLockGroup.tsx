@@ -34,13 +34,13 @@ export function AppLockGroup({ lock }: { lock: AppLock }) {
     const theme = useTheme();
     const t = useTranslation();
     return (
-        <Group title="On this phone" footer={footerFor(lock, t)}>
+        <Group title={t('mobile.security.group_phone', 'On this phone')} footer={footerFor(lock, t)}>
             <ToggleRow
-                label="Unlock with biometrics"
+                label={t('mobile.security.unlock_biometrics', 'Unlock with biometrics')}
                 description={
                     lock.enabled
-                        ? 'Your key is stored on this device, behind the keystore'
-                        : 'Your key is never written to storage'
+                        ? t('mobile.security.key_stored', 'Your key is stored on this device, behind the keystore')
+                        : t('mobile.security.key_not_stored', 'Your key is never written to storage')
                 }
                 value={lock.enabled}
                 disabled={lock.available !== true}
@@ -60,7 +60,12 @@ export function AppLockGroup({ lock }: { lock: AppLock }) {
                     </Text>
                 </NoteRow>
             ) : null}
-            {lock.enabled ? <InfoRow label="Relocks after" value="2 minutes in the background" /> : null}
+            {lock.enabled ? (
+                <InfoRow
+                    label={t('mobile.security.relock_after', 'Relocks after')}
+                    value={t('mobile.security.relock_value', '2 minutes in the background')}
+                />
+            ) : null}
         </Group>
     );
 }

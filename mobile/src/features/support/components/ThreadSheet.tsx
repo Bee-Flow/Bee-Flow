@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, LoadingState, Sheet, Text, TextField } from '@/shared/ui';
 
@@ -17,6 +18,7 @@ import { useSupportThread } from '../hooks/queries';
 import { isFinished, statusCopy } from '../model/status';
 
 export function ThreadSheet({ threadId, onClose }: { threadId: string | null; onClose: () => void }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const [reply, setReply] = useState('');
     const thread = useSupportThread(threadId);
@@ -25,21 +27,21 @@ export function ThreadSheet({ threadId, onClose }: { threadId: string | null; on
 
     const footer = isFinished(detail?.thread.status) ? (
         <Text variant="caption" tone="tertiary" center>
-            This request is closed. Ask a new question if something else comes up.
+            {t('mobile.support.thread_closed', 'This request is closed. Ask a new question if something else comes up.')}
         </Text>
     ) : (
         <View style={styles.footer}>
             <TextField
                 value={reply}
                 onChangeText={setReply}
-                placeholder="Reply"
+                placeholder={t('mobile.support.reply', 'Reply')}
                 multiline
                 maxLines={4}
                 maxLength={10_000}
-                accessibilityLabel="Reply to this request"
+                accessibilityLabel={t('mobile.support.reply_a11y', 'Reply to this request')}
             />
             <Button
-                label="Send reply"
+                label={t('mobile.support.send_reply', 'Send reply')}
                 onPress={() => send.mutate(reply.trim(), { onSuccess: () => setReply('') })}
                 disabled={reply.trim().length === 0}
                 loading={send.isPending}
@@ -52,7 +54,7 @@ export function ThreadSheet({ threadId, onClose }: { threadId: string | null; on
         <Sheet
             visible={threadId !== null}
             onClose={onClose}
-            title={detail?.thread.subject ?? 'Request'}
+            title={detail?.thread.subject ?? t('automations.http_request_fields.request', 'Request')}
             subtitle={detail ? statusCopy(detail.thread.status).label : undefined}
             footer={footer}
         >

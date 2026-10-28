@@ -19,7 +19,7 @@ import { Modal, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { describeError } from '@/core/api/errors';
-import { useTranslation } from '@/core/i18n';
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Card, CheckRow, Icon, Text, useToast } from '@/shared/ui';
 
@@ -51,7 +51,7 @@ const makeStyles = (theme: Theme) =>
  * secret and the old tick, and that frame is exactly where a fast tap
  * dismisses a token nobody has read.
  */
-function useSecretState(secret: string | null, shareTitle: string) {
+function useSecretState(secret: string | null, shareTitle: string, t: TranslateFn) {
     const { toast } = useToast();
     const [taken, setTaken] = useState(false);
     const [acknowledged, setAcknowledged] = useState(false);
@@ -67,7 +67,7 @@ function useSecretState(secret: string | null, shareTitle: string) {
         if (!secret) return;
         await Clipboard.setStringAsync(secret);
         setTaken(true);
-        toast('Copied to your clipboard', 'success');
+        toast(t('mobile.secret.copied', 'Copied to your clipboard'), 'success');
     };
 
     const share = async () => {
@@ -102,8 +102,8 @@ export function SecretOnce({
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const insets = useSafeAreaInsets();
-    const state = useSecretState(secret, shareTitle);
     const t = useTranslation();
+    const state = useSecretState(secret, shareTitle, t);
 
     return (
         // Android's back button must NOT close this: leaving without the token
@@ -121,8 +121,7 @@ export function SecretOnce({
                             </Text>
                         </View>
                         <Banner tone="warning" icon="TriangleAlert">
-                            You will not be shown this again. Put it where the client that needs it
-                            can read it before you continue.
+                            {t('mobile.secret.shown_once', 'You will not be shown this again. Put it where the client that needs it can read it before you continue.')}
                         </Banner>
                         <Card padded>
                             <Text variant="code" selectable style={styles.code}>
@@ -131,14 +130,14 @@ export function SecretOnce({
                         </Card>
                         <View style={styles.actions}>
                             <Button
-                                label="Copy"
+                                label={t('common.copy', 'Copy')}
                                 variant="secondary"
                                 onPress={() => void state.copy()}
                                 icon={<Icon name="Copy" size={16} color={theme.colors.textPrimary} />}
                                 style={styles.half}
                             />
                             <Button
-                                label="Share"
+                                label={t('datatables.share_button', 'Share')}
                                 variant="secondary"
                                 onPress={() => void state.share()}
                                 icon={<Icon name="Share2" size={16} color={theme.colors.textPrimary} />}

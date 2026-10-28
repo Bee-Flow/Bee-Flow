@@ -7,11 +7,13 @@
 import { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import { useMintMcpToken, useRevokeMcpToken } from './mutations';
 
 export function useTokenFlow() {
+    const t = useTranslation();
     const { toast } = useToast();
     const [minted, setMinted] = useState<string | null>(null);
     const [confirmMint, setConfirmMint] = useState(false);
@@ -21,7 +23,7 @@ export function useTokenFlow() {
         onSuccess: (result) => {
             setConfirmMint(false);
             if (!result?.token) {
-                toast('The server did not return a token', 'error');
+                toast(t('mobile.mcp.no_token_returned', 'The server did not return a token'), 'error');
                 return;
             }
             // Straight into the un-skippable sheet. The value is held nowhere
@@ -37,7 +39,7 @@ export function useTokenFlow() {
     const revoke = useRevokeMcpToken({
         onSuccess: () => {
             setConfirmRevoke(false);
-            toast('Token revoked', 'success');
+            toast(t('mobile.mcp.token_revoked', 'Token revoked'), 'success');
         },
         onError: (err) => {
             setConfirmRevoke(false);

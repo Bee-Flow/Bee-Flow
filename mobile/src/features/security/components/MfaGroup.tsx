@@ -6,6 +6,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Group, Icon, InfoRow, SettingRow } from '@/shared/ui';
 
@@ -23,6 +24,7 @@ export function MfaGroup({
     onTurnOff: () => void;
 }) {
     const theme = useTheme();
+    const t = useTranslation();
     const enabled = Boolean(mfa.data?.enabled);
     const remaining = mfa.data?.recoveryCodesRemaining ?? 0;
     const icon = (name: 'RefreshCw' | 'Shield') => (
@@ -30,33 +32,33 @@ export function MfaGroup({
     );
     return (
         <Group
-            title="Two-factor authentication"
-            footer="A code from an authenticator app, on top of your password. If your organisation requires it for administrators, turning it off may lock you out of admin screens."
+            title={t('mfa.title', 'Two-factor authentication')}
+            footer={t('mobile.security.mfa_footer', 'A code from an authenticator app, on top of your password. If your organisation requires it for administrators, turning it off may lock you out of admin screens.')}
         >
             <MfaStatusRow mfa={mfa} />
             {enabled ? (
                 <InfoRow
-                    label="Recovery codes left"
+                    label={t('mobile.security.codes_left', 'Recovery codes left')}
                     value={String(remaining)}
                     tone={remaining <= 2 ? 'warning' : 'tertiary'}
                 />
             ) : null}
             {enabled ? (
                 <SettingRow
-                    label="Generate new recovery codes"
+                    label={t('mobile.security.codes_generate', 'Generate new recovery codes')}
                     icon={icon('RefreshCw')}
                     onPress={onRegenerate}
                 />
             ) : null}
             {enabled ? (
                 <SettingRow
-                    label="Turn off two-factor"
+                    label={t('mobile.security.mfa_off_title', 'Turn off two-factor')}
                     destructive
                     icon={<Icon name="ShieldOff" size={16} color={theme.colors.error} />}
                     onPress={onTurnOff}
                 />
             ) : (
-                <SettingRow label="Set up two-factor" icon={icon('Shield')} onPress={onSetUp} />
+                <SettingRow label={t('mobile.security.mfa_setup', 'Set up two-factor')} icon={icon('Shield')} onPress={onSetUp} />
             )}
         </Group>
     );

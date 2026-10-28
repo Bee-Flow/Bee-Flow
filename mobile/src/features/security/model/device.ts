@@ -2,15 +2,17 @@
 
 import * as LocalAuthentication from 'expo-local-authentication';
 
+import { translate } from '@/core/i18n';
+
 /** "a fingerprint", "your face", "biometrics" — used inside a sentence. */
 export function describeBiometrics(types: readonly LocalAuthentication.AuthenticationType[]): string {
     if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-        return 'your face or fingerprint';
+        return translate('mobile.security.biometric_face', 'your face or fingerprint');
     }
     if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-        return 'your fingerprint';
+        return translate('mobile.security.biometric_fingerprint', 'your fingerprint');
     }
-    return 'your device unlock';
+    return translate('mobile.security.biometric_device', 'your device unlock');
 }
 
 /**

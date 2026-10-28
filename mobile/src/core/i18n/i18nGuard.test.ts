@@ -243,10 +243,8 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/cowork', 17],
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
-    ['src/features/mcp', 33],
     ['src/features/memory', 24],
     ['src/features/search', 9],
-    ['src/features/security', 30],
     ['src/features/settings', 21],
     // Not new debt: the sitemap's destination labels and hints, moved out of
     // features/shell (98) when the drawer replaced the More tab. The shell
@@ -261,9 +259,6 @@ const UNCONVERTED = new Map<string, number>([
     // for either).
     ['src/features/sitemap', 100],
 
-    // 33 -> 30: the self-help group (its heading and two rows) went through t()
-    // when "What changed recently" moved to the native release notes.
-    ['src/features/support', 30],
     // 16 -> 13: the template chat's words, when it learned to avoid the keyboard.
     ['src/features/templates', 13],
     ['src/features/voice', 8],

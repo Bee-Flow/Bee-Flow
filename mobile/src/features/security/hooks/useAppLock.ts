@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { describeError } from '@/core/api/errors';
 import { useAuth } from '@/core/auth/AuthProvider';
 import * as vault from '@/core/auth/vault';
+import { translate, useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import { describeBiometrics } from '../model/device';
@@ -25,10 +26,11 @@ export interface AppLock {
 
 export function useAppLock(): AppLock {
     const { user } = useAuth();
+    const t = useTranslation();
     const { toast } = useToast();
     const [available, setAvailable] = useState<boolean | null>(null);
     const [enabled, setEnabled] = useState(false);
-    const [biometricKind, setBiometricKind] = useState('biometrics');
+    const [biometricKind, setBiometricKind] = useState(() => translate('automations.aiact.area.biometrics', 'biometrics'));
     const [error, setError] = useState<string | null>(null);
 
     /**
@@ -70,20 +72,20 @@ export function useAppLock(): AppLock {
         if (!next) {
             await vault.forget();
             setEnabled(false);
-            toast('App lock turned off', 'neutral');
+            toast(t('mobile.security.lock_off_toast', 'App lock turned off'), 'neutral');
             return;
         }
         const dek = vault.getDek();
         if (!user || !dek) {
             setError(
-                'Bee Flow does not have your encryption key in memory right now. Sign out and sign back in, then turn this on.',
+                t('mobile.security.lock_no_key', 'Bee Flow does not have your encryption key in memory right now. Sign out and sign back in, then turn this on.'),
             );
             return;
         }
         try {
             await vault.persist(user.id, dek);
             setEnabled(true);
-            toast('App lock is on', 'success');
+            toast(t('mobile.security.lock_on_toast', 'App lock is on'), 'success');
         } catch (err) {
             setError(describeError(err).message);
         }
