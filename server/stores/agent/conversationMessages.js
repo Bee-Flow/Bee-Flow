@@ -18,21 +18,14 @@
  *     seq              INTEGER NOT NULL    -- ordinal, for deterministic ordering
  *     created_at       TIMESTAMPTZ DEFAULT NOW()
  *
- * Migration strategy (lazy, zero-downtime):
- *   - New messages are written to this table.
- *   - On first read of an old conversation, messages_json is migrated
- *     into this table and a flag (messages_migrated) is set on the parent row.
- *   - Once migrated, the blob column is no longer read.
- *   - The blob column is kept for emergency rollback — it stays in sync for
- *     a release cycle, then can be dropped.
+ * Migration (lazy): on first read of an old conversation, messages_json is
+ * copied into this table and messages_migrated is set on the parent row; a
+ * migrated conversation's blob is not read.
  *
- * Phase 5 change:
- *   replaceMessages() and migrateConversationIfNeeded() previously looped and
- *   ran one INSERT per message (N round-trips). They now use a single
- *   parameterized multi-row INSERT, shrinking N round-trips to 1
- *   (or ceil(N/500) for very long conversations — PG parameter limit safety).
- *   replaceMessages() also wraps the DELETE + INSERT in a transaction so
- *   a crashed write never leaves a conversation message-less.
+ * Writes are one multi-row INSERT per 500 rows (the PG parameter limit), and
+ * every write that touches a conversation's rows runs in one transaction
+ * under that conversation's row lock (./conversationOrder.mts): a crashed
+ * write never leaves a conversation message-less, and seq stays unique.
  */
 
 const { randomUUID } = require('crypto');
@@ -42,6 +35,8 @@ const { runDdl } = require('../lib/_ddl');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const { conversationKey, messageAad, PLAINTEXT_CONTEXT } = require('./messageCrypto');
 const { fallback } = require('../../utils/bestEffort');
+// The one read order, and the per-conversation write lock that keeps seq unique.
+const { READ_ORDER, lockConversation: _lockConversation } = require('./conversationOrder.mts');
 
 const initMessagesTable = makeStoreInit('ConversationMessages', _initMessagesTable);
 
@@ -346,8 +341,6 @@ async function _bulkInsert(rows, client, onConflict = '') {
  * Migrate a legacy messages_json blob into the conversation_messages table.
  * Safe to call multiple times — checks messages_migrated flag first.
  * Returns true if migration happened, false if already migrated or nothing to do.
- *
- * Phase 5: Uses bulk INSERT instead of N individual INSERTs.
  * @param {string} conversationId
  * @param {string} type
  * @param {CryptoContext | Readonly<CryptoContext>} [ctx]
@@ -386,10 +379,19 @@ async function migrateConversationIfNeeded(conversationId, type, messagesArray, 
 
     const rows = messagesToRows(conversationId, type, messagesArray, ctx);
 
-    // Phase 5: single bulk INSERT instead of N round-trips
-    await _bulkInsert(rows, null, 'ON CONFLICT (id) DO NOTHING');
-
-    // Mark as migrated on the parent table
+    // Checked again under the lock: a turn's write landing in between would
+    // otherwise sit beside the blob's rows on the same seq numbers.
+    const inserted = await withTransaction(async (client) => {
+        await _lockConversation(client, type, conversationId);
+        const { rows: present } = await client.query(
+            'SELECT id FROM conversation_messages WHERE conversation_id = $1 LIMIT 1',
+            [conversationId]
+        );
+        if (present.length > 0) return false;
+        await _bulkInsert(rows, client, 'ON CONFLICT (id) DO NOTHING');
+        return true;
+    });
+    if (!inserted) return false;
     await run(
         `UPDATE ${parentTable} SET messages_migrated = TRUE WHERE id = $1`,
         [conversationId]
@@ -399,7 +401,7 @@ async function migrateConversationIfNeeded(conversationId, type, messagesArray, 
 }
 
 /**
- * Get all messages for a conversation, ordered by seq ASC.
+ * Get all messages for a conversation, in READ_ORDER.
  * Returns raw message objects ready for use by the AI runtime.
  * @param {CryptoContext | Readonly<CryptoContext>} [ctx]
  * @param {string} conversationId
@@ -407,7 +409,7 @@ async function migrateConversationIfNeeded(conversationId, type, messagesArray, 
 async function getMessages(conversationId, ctx = PLAINTEXT_CONTEXT) {
     await initMessagesTable();
     const rows = await getAll(
-        'SELECT * FROM conversation_messages WHERE conversation_id = $1 ORDER BY seq ASC',
+        `SELECT * FROM conversation_messages WHERE conversation_id = $1 ${READ_ORDER}`,
         [conversationId]
     );
     return rows.map(r => rowToMessage(r, ctx));
@@ -417,11 +419,7 @@ async function getMessages(conversationId, ctx = PLAINTEXT_CONTEXT) {
  * Replace all messages for a conversation (mirrors the old updateConversation behaviour).
  * Deletes existing rows and inserts the new full array atomically inside a transaction.
  * This is called by the dual-write shim in agentConversations / directConversations.
- *
- * Phase 5: Wraps DELETE + bulk INSERT in a single transaction.
- *   - A failed write now leaves the old messages intact (ROLLBACK) rather than
- *     leaving an empty conversation after a partial failure.
- *   - N round-trips → 1 round-trip (or ceil(N/500) for very long conversations).
+ * A failed write leaves the old messages intact (ROLLBACK).
  * @param {string} conversationId
  * @param {string} type
  * @param {Readonly<CryptoContext>} [ctx]
@@ -431,6 +429,8 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
     await _refuseSilentDowngrade(conversationId, ctx);
 
     return withTransaction(async (client) => {
+        // 0. One writer per conversation at a time (./conversationOrder.mts).
+        await _lockConversation(client, type, conversationId);
         // 1. Wipe existing rows for this conversation
         await client.query(
             'DELETE FROM conversation_messages WHERE conversation_id = $1',
@@ -460,9 +460,10 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
  *
  * So shared threads append, and `seq` is allocated HERE rather than taken from
  * an array index. `SELECT ... FOR UPDATE` on the parent row serialises
- * concurrent appenders on the same conversation, which is what makes
- * `MAX(seq)+1` safe; the unique index on (conversation_id, seq) is the backstop
- * if a future caller finds a way around the lock.
+ * concurrent writers on the same conversation (`_lockConversation`), which is
+ * what makes `MAX(seq)+1` safe. There is NO unique index on
+ * (conversation_id, seq) behind it: rows from before the lock may share a
+ * seq, so readers break ties themselves (`READ_ORDER`).
  *
  * Messages carrying a `clientMsgId` are idempotent: a retry, a double-submit
  * from two tabs, or a reconnect mid-send resolves to one row.
@@ -484,13 +485,11 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
     // sitting in an otherwise-encrypted thread. Same refusal.
     await _refuseSilentDowngrade(conversationId, ctx);
 
-    const parentTable = type === 'direct' ? 'direct_conversations' : 'agent_conversations';
-
     return withTransaction(async (client) => {
         // Serialise appenders on this conversation. Without the row lock two
-        // concurrent appends compute the same MAX(seq)+1 and one loses to the
-        // unique index — correct, but a needless 500 for the user.
-        await client.query(`SELECT id FROM ${parentTable} WHERE id = $1 FOR UPDATE`, [conversationId]);
+        // concurrent appends compute the same MAX(seq)+1 and both rows land on
+        // that seq (there is no unique index on (conversation_id, seq)).
+        await _lockConversation(client, type, conversationId);
 
         const { rows: seqRows } = await client.query(
             'SELECT COALESCE(MAX(seq), -1) + 1 AS next FROM conversation_messages WHERE conversation_id = $1',
@@ -539,7 +538,7 @@ async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
     // Read outside the transaction: a decrypt failure must abort before any
     // write happens, and it tells us the source context was wrong.
     const existing = await getAll(
-        'SELECT * FROM conversation_messages WHERE conversation_id = $1 ORDER BY seq ASC',
+        `SELECT * FROM conversation_messages WHERE conversation_id = $1 ${READ_ORDER}`,
         [conversationId]
     );
     if (existing.length === 0) return 0;
@@ -554,6 +553,7 @@ async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
     }));
 
     return withTransaction(async (client) => {
+        await _lockConversation(client, type, conversationId);
         await client.query('DELETE FROM conversation_messages WHERE conversation_id = $1', [conversationId]);
 
         const rows = messagesToRows(conversationId, type, decoded, toCtx);
@@ -589,7 +589,7 @@ async function _refuseSilentDowngrade(conversationId, ctx) {
     if (c.encryptMessages || c.tier === 'none') return;
 
     const existing = await getOne(
-        'SELECT content FROM conversation_messages WHERE conversation_id = $1 ORDER BY seq ASC LIMIT 1',
+        `SELECT content FROM conversation_messages WHERE conversation_id = $1 ${READ_ORDER} LIMIT 1`,
         [conversationId]
     );
     if (!existing || !isEnvelope(existing.content)) return;

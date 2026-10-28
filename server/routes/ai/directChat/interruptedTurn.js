@@ -16,6 +16,7 @@
  */
 
 const { isSideEffect } = require('../../../automation/sideEffectMap');
+const { placeTurnRows } = require('../../../core/conversation/historyMerge');
 
 /** @param {unknown} args */
 function _previewArgs(args) {
@@ -35,6 +36,7 @@ function _previewArgs(args) {
  * @param {{ name?: string, args?: unknown, status?: string, resultPreview?: unknown }[]}  params.toolHistory - collected tool calls: { name, args, status, resultPreview }
  * @param {string} params.errorNote - human-readable reason the turn was interrupted
  * @param {(toolName: string) => boolean} [params.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
+ * @param {string | null} [params.anchorId] - the stored message the turn was asked on (see placeTurnRows)
  * @returns {Record<string, unknown>[]|null} full message list to persist, or null when nothing side-effecting ran
  */
 function buildInterruptedTurnMessages({
@@ -44,6 +46,7 @@ function buildInterruptedTurnMessages({
     toolHistory,
     errorNote,
     isSideEffect: isSideEffectFn = isSideEffect,
+    anchorId = null,
 }) {
     const history = Array.isArray(toolHistory) ? toolHistory : [];
     const sideEffecting = history.filter(t => t && t.name && isSideEffectFn(t.name));
@@ -71,7 +74,7 @@ function buildInterruptedTurnMessages({
         toolHistory: history,
     };
 
-    return [...(baseMessages || []), userSave, assistantSave];
+    return placeTurnRows(baseMessages || [], [userSave, assistantSave], anchorId);
 }
 
 module.exports = { buildInterruptedTurnMessages };

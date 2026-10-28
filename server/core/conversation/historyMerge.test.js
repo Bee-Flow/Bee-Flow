@@ -15,7 +15,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining } = require('./historyMerge');
+const { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows } = require('./historyMerge');
 
 const RICH_ATT = {
     name: 'report.pdf',
@@ -161,4 +161,21 @@ test('shouldDisableResponsesChaining truth table', () => {
     assert.strictEqual(shouldDisableResponsesChaining({ clientHistoryProvided: true, attachmentContext: true }), true);
     assert.strictEqual(shouldDisableResponsesChaining(), false);
     assert.strictEqual(shouldDisableResponsesChaining({}), false);
+});
+
+test('historyAnchorId: the last message with an id, else null', () => {
+    assert.strictEqual(historyAnchorId([{ id: 'a' }, { id: 'b' }, { role: 'user' }]), 'b');
+    assert.strictEqual(historyAnchorId([{ role: 'user' }]), null);
+    assert.strictEqual(historyAnchorId([]), null);
+    assert.strictEqual(historyAnchorId(null), null);
+});
+
+test('placeTurnRows: after the anchor when later rows exist, appended otherwise, inputs untouched', () => {
+    const base = [{ id: 'a' }, { id: 'b' }, { id: 'later' }];
+    const rows = [{ id: 'q' }, { id: 'r' }];
+    assert.deepStrictEqual(placeTurnRows(base, rows, 'b').map(m => m.id), ['a', 'b', 'q', 'r', 'later']);
+    assert.deepStrictEqual(placeTurnRows(base, rows, 'later').map(m => m.id), ['a', 'b', 'later', 'q', 'r']);
+    assert.deepStrictEqual(placeTurnRows(base, rows, 'gone').map(m => m.id), ['a', 'b', 'later', 'q', 'r']);
+    assert.deepStrictEqual(placeTurnRows(base, rows, null).map(m => m.id), ['a', 'b', 'later', 'q', 'r']);
+    assert.deepStrictEqual(base.map(m => m.id), ['a', 'b', 'later']);
 });

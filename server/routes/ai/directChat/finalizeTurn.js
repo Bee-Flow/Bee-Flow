@@ -24,7 +24,8 @@ const log = require('../../../telemetry/log');
 const {
     settleStreamedContent, emitRawResponse, restoreForDisplay, applyOutputRegexGuard, guardEmptyResponse,
 } = require('./finalizeContent');
-const { persistenceBase, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
+const { persistenceBase, turnAnchorId, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
+const { placeTurnRows } = require('../../../core/conversation/historyMerge');
 const { scheduleTitle, extractTurnMemories } = require('./finalizeAftercare');
 const { bestEffort } = require('../../../utils/bestEffort');
 
@@ -79,11 +80,15 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
  */
 async function persistTurn(t, conv) {
     const { req, send, userId, convId, modelTier, history, _sharedThread, clearInterruptedTurnHook } = t;
-    const savedMessages = persistenceBase(history, conv.messages || []);
     const userSave = buildUserRow(t);
     const tokenisationInfo = resolveTokenisationInfo(t);
-    savedMessages.push(userSave);
-    savedMessages.push(buildAssistantRow({ ...t, tokenisationInfo }));
+    // Right after the message this turn was asked on: another turn on this
+    // conversation may have finished while this one ran (see placeTurnRows).
+    const savedMessages = placeTurnRows(
+        persistenceBase(history, conv.messages || []),
+        [userSave, buildAssistantRow({ ...t, tokenisationInfo })],
+        turnAnchorId(t),
+    );
 
     // Save with metadata for OpenAI response chaining + compaction
     await agentStore.updateDirectConversation(convId, savedMessages, userId, buildUpdateMeta(t), encryptionOpts(req));

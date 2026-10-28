@@ -102,3 +102,19 @@ test('long args are truncated in the note', () => {
     const line = msgs[1].content.split('\n')[1];
     assert.ok(line.length < 450, `note line stays compact (${line.length} chars)`);
 });
+
+test('an overtaken interrupted turn is placed after the message it was asked on', () => {
+    const base = [
+        { id: 'r1', role: 'user', content: 'earlier' },
+        { id: 'r2', role: 'user', content: 'asked later, finished first' },
+    ];
+    const msgs = buildInterruptedTurnMessages({
+        baseMessages: base,
+        tokenizedMessage: 'create the issue',
+        toolHistory: [{ name: 'youtrack_create_issue', args: {}, status: 'done' }],
+        errorNote: 'stream died',
+        anchorId: 'r1',
+    });
+    assert.deepStrictEqual(msgs.map(m => m.content.slice(0, 16)), ['earlier', 'create the issue', msgs[2].content.slice(0, 16), 'asked later, fin']);
+    assert.strictEqual(msgs[2].role, 'assistant');
+});
