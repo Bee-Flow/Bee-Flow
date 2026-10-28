@@ -133,6 +133,8 @@ function buildHead(ctx) {
     }
 
     if (favicon) out.push(`<link rel="icon" href="${esc(favicon)}">`);
+    // iOS ignores an SVG apple-touch-icon, so only a raster favicon the site set itself is repeated.
+    if (design.favicon && !/\.svg(\?|$)/i.test(String(design.favicon))) out.push(`<link rel="apple-touch-icon" href="${esc(favicon)}">`);
     for (const link of ctx.extraLinks || []) out.push(link);
 
     // Font preloads + first-paint font variables. Emitted here because the

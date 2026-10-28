@@ -1,5 +1,6 @@
 // @typecheck
 const cmsStore = require('../stores/cmsStore');
+const storageStore = require('../stores/storageStore');
 const { DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS, DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 const { DESIGN_HINT } = require('./schemas');
@@ -11,6 +12,26 @@ const { isPlainObject, clone, refreshSite } = require('./builderToolsShared');
 // to the identity value) — echoing the request back would report success for
 // an edit that evaporated.
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+// logo / favicon: an uploaded IMAGE of this installation's CMS asset store.
+// Accepted spellings: the key (cms/<file>) or the url cms_list_assets returns
+// (/api/cms/asset/cms/<file>); both are stored as the key. Never an external URL.
+const BRAND_ASSET_FIELDS = ['logo', 'favicon'];
+const BRAND_IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico)$/i;
+const BRAND_ASSET_HINT = 'Upload the image with cms_request_upload, then pass the key or url that cms_list_assets shows (cms/<file> or /api/cms/asset/cms/<file>); it must be an image (png, jpg, gif, webp, avif, svg, ico). Never an external URL and never an invented key. An empty string clears it.';
+
+/**
+ * @param {string} raw
+ * @returns {string|null} the cms/<file> key, or null when raw is no CMS asset reference
+ */
+function brandAssetKey(raw) {
+    let s = raw.trim();
+    if (s.startsWith('/api/cms/asset/')) {
+        try { s = s.slice('/api/cms/asset/'.length).split('/').map(decodeURIComponent).join('/'); } catch { return null; }
+    }
+    if (!s.startsWith('cms/') || s.includes('..') || /[?#\\]/.test(s)) return null;
+    return BRAND_IMAGE_EXT_RE.test(s) ? s : null;
+}
 
 const FONT_ROLES = ['heading', 'body', 'mono'];
 
@@ -185,8 +206,19 @@ function sanitizeDesignPatch(args) {
         patch[flag] = args[flag];
     }
 
+    for (const field of BRAND_ASSET_FIELDS) {
+        if (args[field] === undefined) continue;
+        if (typeof args[field] !== 'string') return { error: `${field} must be a string (an asset key, or "" to clear).`, _fixHint: BRAND_ASSET_HINT };
+        if (args[field].trim() === '') { patch[field] = ''; continue; }
+        const key = brandAssetKey(args[field]);
+        if (!key) {
+            return { error: `${field} ${JSON.stringify(args[field].slice(0, 120))} is not an uploaded image of this site's asset store.`, _fixHint: BRAND_ASSET_HINT };
+        }
+        patch[field] = key;
+    }
+
     if (!Object.keys(patch).length) {
-        return bad('Nothing to change — pass at least one of: preset, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, darkBand, grain, gradient.');
+        return bad('Nothing to change — pass at least one of: preset, logo, favicon, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, darkBand, grain, gradient.');
     }
     return { patch };
 }
@@ -194,6 +226,20 @@ function sanitizeDesignPatch(args) {
 async function applyUpdateDesign(draftWrap, args) {
     const sanitized = sanitizeDesignPatch(args);
     if (sanitized.error) return sanitized;
+    // logo / favicon must EXIST in the asset store: a key cannot be invented.
+    for (const field of BRAND_ASSET_FIELDS) {
+        const key = sanitized.patch[field];
+        if (!key) continue;
+        try {
+            await storageStore.headFile(key);
+        } catch (e) {
+            const missing = e && (e.name === 'NoSuchKey' || e.name === 'NotFound' || e.$metadata?.httpStatusCode === 404);
+            return {
+                error: missing ? `${field} ${key} does not exist in the asset store.` : `${field} ${key} could not be checked: the asset store is not available.`,
+                _fixHint: BRAND_ASSET_HINT,
+            };
+        }
+    }
     // Applied to the SiteDoc as stored NOW, under the store's lock: only
     // `design` changes, so pages and chrome saved meanwhile by another admin stay.
     try {

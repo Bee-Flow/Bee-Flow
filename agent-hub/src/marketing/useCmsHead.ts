@@ -49,15 +49,15 @@ function upsertMeta(attrName: string, attrValue: string, content: string): void 
     el.setAttribute('content', content);
 }
 
-function upsertIcon(href: string): void {
-    let el = document.head.querySelector('link[rel="icon"][data-cms-head]');
+function upsertIcon(rel: string, href: string): void {
+    let el = document.head.querySelector(`link[rel="${rel}"][data-cms-head]`);
     if (!href) {
         if (el) el.remove();
         return;
     }
     if (!el) {
         el = document.createElement('link');
-        el.setAttribute('rel', 'icon');
+        el.setAttribute('rel', rel);
         el.setAttribute('data-cms-head', '1');
         // Appended LAST so it wins over the app's static favicon link.
         document.head.appendChild(el);
@@ -84,6 +84,9 @@ export default function useCmsHead({ enabled, pageTitle, seo, favicon, resolveAs
         upsertMeta('property', 'og:description', metaDescription);
         upsertMeta('property', 'og:image', ogImage ? toAbsolute(resolveAssetUrl(ogImage)) : '');
         upsertMeta('name', 'robots', noIndex ? 'noindex' : '');
-        upsertIcon(favicon ? resolveAssetUrl(favicon) : '');
+        const iconUrl = favicon ? resolveAssetUrl(favicon) : '';
+        upsertIcon('icon', iconUrl);
+        // iOS ignores an SVG apple-touch-icon.
+        upsertIcon('apple-touch-icon', iconUrl && !/\.svg(\?|$)/i.test(iconUrl) ? iconUrl : '');
     }, [enabled, pageTitle, metaTitle, metaDescription, ogImage, noIndex, favicon, resolveAssetUrl]);
 }

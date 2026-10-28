@@ -581,11 +581,11 @@ test('cms_update_design: schema in the roster; deep-merge patch persists through
     assert.strictEqual(TOOL_SCHEMAS.length, 13, 'CLOSED SET — 13 tools');
     assert.ok(!schema.function.parameters.required, 'every field is optional (it is a patch)');
     assert.match(schema.function.description, /DEEP-MERGE PATCH/i, 'schema teaches patch semantics');
-    // logo/favicon are uploaded asset keys — never settable by the model.
+    // logo/favicon: only an uploaded image that exists in the asset store.
     const props = Object.keys(schema.function.parameters.properties).sort();
     assert.deepStrictEqual(props, [
-        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'fontsPatch', 'gradient',
-        'grain', 'layoutPatch', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
+        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'favicon', 'fontsPatch', 'gradient',
+        'grain', 'layoutPatch', 'logo', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
     ], props.join(','));
     assert.deepStrictEqual(schema.function.parameters.properties.preset.enum, THEME_PRESET_IDS);
 
@@ -684,6 +684,54 @@ test('cms_update_design: re-reads before writing — a concurrent admin edit is 
         stored.pages.some((p) => p.id === newPage.id),
         'page created mid-turn NOT dropped from the index (would orphan its PageDoc)',
     );
+});
+
+test('cms_update_design: logo and favicon accept only an existing uploaded image of the asset store', async () => {
+    const storageStore = require('../stores/storageStore');
+    const original = storageStore.headFile;
+    const existing = new Set(['cms/1700000000000-mark.png', 'cms/1700000000001-clip.mp4']);
+    storageStore.headFile = async (key) => {
+        if (existing.has(key)) return { contentLength: 1, contentType: 'image/png' };
+        const e = new Error('missing'); e.name = 'NoSuchKey'; throw e;
+    };
+    try {
+        const draft = await makeDraft();
+        const before = clone(draft.site.design);
+        const ok = await applyToolCall(draft, 'cms_update_design', {
+            favicon: '/api/cms/asset/cms/1700000000000-mark.png',
+            logo: 'cms/1700000000000-mark.png',
+            radius: 4,
+        });
+        assert.ok(!ok.error, JSON.stringify(ok));
+        assert.strictEqual(draft.site.design.favicon, 'cms/1700000000000-mark.png', 'url normalised to the key');
+        assert.strictEqual(draft.site.design.logo, 'cms/1700000000000-mark.png');
+        assert.strictEqual(draft.site.design.colors.primary, before.colors.primary, 'patch keeps the rest');
+
+        // A patch without logo/favicon leaves them alone; "" clears one.
+        await applyToolCall(draft, 'cms_update_design', { radius: 8 });
+        assert.strictEqual(draft.site.design.favicon, 'cms/1700000000000-mark.png');
+        const cleared = await applyToolCall(draft, 'cms_update_design', { favicon: '' });
+        assert.ok(!cleared.error, JSON.stringify(cleared));
+        assert.strictEqual(draft.site.design.favicon, '');
+        assert.strictEqual(draft.site.design.logo, 'cms/1700000000000-mark.png');
+
+        const rejected = [
+            ['invented key', { favicon: 'cms/1700000000002-invented.png' }, /does not exist/i],
+            ['external url', { logo: 'https://example.com/a.png' }, /not an uploaded image/i],
+            ['not an image', { logo: 'cms/1700000000001-clip.mp4' }, /not an uploaded image/i],
+            ['path traversal', { logo: 'cms/../secret.png' }, /not an uploaded image/i],
+            ['not a string', { favicon: 5 }, /must be a string/i],
+        ];
+        for (const [name, args, re] of rejected) {
+            const r = await applyToolCall(draft, 'cms_update_design', { radius: 1, ...args });
+            assert.ok(r.error, `${name}: expected a rejection`);
+            assert.match(r.error, re, name);
+            assert.ok(r._fixHint, `${name}: carries a fix hint`);
+        }
+        assert.notStrictEqual(draft.site.design.radius, 1, 'a rejected call persisted nothing');
+    } finally {
+        storageStore.headFile = original;
+    }
 });
 
 test('cms_update_design: teaching-signal rejections; nothing persists on a rejected call', async () => {

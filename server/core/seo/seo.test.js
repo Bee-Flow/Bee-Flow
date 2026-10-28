@@ -84,6 +84,15 @@ test('emits the tags that did not exist anywhere before', () => {
     assert.match(head, /hreflang="x-default"/);
 });
 
+test('a raster favicon is also the apple-touch-icon; an SVG or the default is not', () => {
+    const base = { origin: ORIGIN, slug: 'pricing', locale: 'en', defaultLocale: 'en', locales: LOCALES, page, siteName: 'Bee Flow' };
+    const png = buildHead({ ...base, design: { favicon: 'cms/1-mark.png' } });
+    assert.match(png, /<link rel="icon" href="https:\/\/beeflow\.nl\/api\/cms\/asset\/cms\/1-mark\.png">/);
+    assert.match(png, /<link rel="apple-touch-icon" href="https:\/\/beeflow\.nl\/api\/cms\/asset\/cms\/1-mark\.png">/);
+    assert.doesNotMatch(buildHead({ ...base, design: { favicon: 'cms/1-mark.svg' } }), /apple-touch-icon/);
+    assert.doesNotMatch(buildHead({ ...base, design: {} }), /apple-touch-icon/);
+});
+
 test('the canonical of a Dutch page is the Dutch URL, not the English one', () => {
     const head = buildHead({
         origin: ORIGIN, slug: 'pricing', locale: 'nl', defaultLocale: 'en',

@@ -270,10 +270,12 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_design',
-            description: `Edit the site's THEME: colours, fonts, typography, component shape/size and page layout. This is a DEEP-MERGE PATCH, never a wholesale replace — send ONLY the keys you want to change and every other design value is kept (colorsPatch:{primary} keeps the other six colours). \`preset\` applies one of the built-in themes' complete values FIRST and the other patches then layer on top, so { preset:"midnight-flow", colorsPatch:{primary:"#CE3F26"} } means "that theme, but with this primary". The site LOGO and FAVICON are NOT settable here — they are uploaded assets and you must never invent asset keys. Malformed colours, unknown fonts, out-of-range radius and unknown enum values are REJECTED (nothing is saved), so use the exact vocabulary: ${DESIGN_HINT}`,
+            description: `Edit the site's THEME: colours, fonts, typography, component shape/size and page layout. This is a DEEP-MERGE PATCH, never a wholesale replace — send ONLY the keys you want to change and every other design value is kept (colorsPatch:{primary} keeps the other six colours). \`preset\` applies one of the built-in themes' complete values FIRST and the other patches then layer on top, so { preset:"midnight-flow", colorsPatch:{primary:"#CE3F26"} } means "that theme, but with this primary". \`logo\` and \`favicon\` set the site logo and the browser-tab icon from an ALREADY UPLOADED image (the cms/… key or url from cms_list_assets; check with cms_list_assets, upload with cms_request_upload first); keys that do not exist, non-image files and external URLs are rejected, "" clears. The favicon also serves as the apple-touch-icon (use a PNG; iOS ignores SVG). Malformed colours, unknown fonts, out-of-range radius and unknown enum values are REJECTED (nothing is saved), so use the exact vocabulary: ${DESIGN_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
+                    logo: { type: 'string', description: 'Site logo: an uploaded image, cms/<file> or /api/cms/asset/cms/<file> as listed by cms_list_assets. Must exist; "" clears it.' },
+                    favicon: { type: 'string', description: 'Browser-tab icon (and apple-touch-icon): an uploaded image, cms/<file> or /api/cms/asset/cms/<file> as listed by cms_list_assets. Prefer a square PNG. Must exist; "" clears it.' },
                     preset: {
                         type: 'string',
                         enum: THEME_PRESET_IDS,

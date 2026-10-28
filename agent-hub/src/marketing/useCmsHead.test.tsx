@@ -33,6 +33,7 @@ describe('useCmsHead', () => {
             .toBe(new URL('/api/cms/asset/cms/og.png', window.location.origin).href);
         expect(q('meta[name="robots"][data-cms-head]')!.getAttribute('content')).toBe('noindex');
         expect(q('link[rel="icon"][data-cms-head]')!.getAttribute('href')).toBe('/api/cms/asset/cms/fav.png');
+        expect(q('link[rel="apple-touch-icon"][data-cms-head]')!.getAttribute('href')).toBe('/api/cms/asset/cms/fav.png');
     });
 
     it('falls back to the page title and reconciles on page change (empty values remove tags)', () => {
