@@ -22,6 +22,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const config = require('./config');
+const { isPinMismatch } = require('./ncTlsPin');
 const log = require('./log');
 const { errMessage } = require('./errors');
 
@@ -52,6 +53,10 @@ const LIFECYCLE_PATHS = new Set(['/heartbeat', '/init', '/enabled']);
 // must run rather than 401, but UNLIKE the lifecycle paths they still pass the
 // constant-time secret check below (they are allow-listed in the empty-userId
 // branch, not in LIFECYCLE_PATHS which skips the secret entirely).
+// The /setup routes that still answer while Nextcloud's certificate is refused
+// by the pin (see the lookup failure below).
+const PIN_RECOVERY_PATHS = new Set(['/setup/nc-certificate', '/setup/accept-nc-certificate']);
+
 const SERVICE_PATHS = new Set(['/trigger']);
 
 // Paths that are safe to serve without a NC user context. Includes:
@@ -324,6 +329,19 @@ function appApiAuthMiddleware(req, res, next) {
         })
         .catch((/** @type {unknown} */ err) => {
             log.warn(`[Auth] User lookup failed for ${log.ref(decoded.userId)}: ${errMessage(err)}`);
+            // Nextcloud's certificate changed and the pin refuses it (#403):
+            // every lookup fails, including the one that would show this admin
+            // the way out. Only the two certificate routes go on, without an
+            // admin claim; they are ADMIN routes in info.xml, so AppAPI has
+            // checked the admin before forwarding (setup.js requirePinRecovery).
+            if (isPinMismatch(err) && PIN_RECOVERY_PATHS.has(req.path)) {
+                req.beeflow = {
+                    user: { uid: decoded.userId, email: null, displayName: decoded.userId, isNcAdmin: false },
+                    jwt: null,
+                    ncTlsPinRecovery: true,
+                };
+                return next();
+            }
             // When a browser hits the embedded SPA route (Accept: text/html)
             // while bootstrap is in-flight (no tenant key) or NC OCS is
             // briefly unreachable, returning raw JSON paints a useless error

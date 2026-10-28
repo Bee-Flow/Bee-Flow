@@ -17,4 +17,6 @@ export interface NextcloudUser {
 export interface BeeflowContext {
   user: NextcloudUser;
   jwt: string | null;
+  /** Nextcloud refused the user lookup over a changed certificate; set only on the certificate routes of /setup. */
+  ncTlsPinRecovery?: boolean;
 }

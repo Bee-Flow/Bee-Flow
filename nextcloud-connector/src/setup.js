@@ -31,7 +31,7 @@ const bootstrap = require('./bootstrap'); // for re-bootstrap on URL change
 const auth = require('./auth');
 const rateLimit = require('./rateLimit');
 const { assertAllowedUrl, parseAllowedUrl } = require('./remoteHost');
-const { ncTlsMode } = require('./ncTls'); // NC TLS posture for diagnostics
+const { ncTlsMode, pinStore } = require('./ncTls'); // NC TLS posture for diagnostics, and its pins
 const { shellBaseUrl } = require('./embedTarget');
 const ncProxy = require('./ncProxy');
 const log = require('./log'); // callback-signature health for diagnostics
@@ -54,7 +54,7 @@ const router = express.Router();
  * The JSON body of a setup request. Every field is optional text the admin typed (or nothing at
  * all, when the body did not parse), so a route reads one and checks it before use.
  * @param {import('express').Request} req
- * @returns {{ mode?: string, apiBaseUrl?: string, embedBaseUrl?: string | null, publicNcUrl?: string, pairingCode?: string, code?: string }}
+ * @returns {{ mode?: string, apiBaseUrl?: string, embedBaseUrl?: string | null, publicNcUrl?: string, pairingCode?: string, code?: string, spki?: string }}
  */
 function bodyOf(req) {
     return req.body || {};
@@ -91,6 +91,25 @@ function requireNcAdmin(req, res, next) {
         });
     }
     return next();
+}
+
+/**
+ * Guard for the two certificate routes. A changed Nextcloud certificate that
+ * the pin refuses (#403) breaks the user lookup requireNcAdmin depends on, so
+ * auth.js lets these routes through without an admin claim in exactly that
+ * case. They are ADMIN routes in info.xml: AppAPI checked the admin before it
+ * forwarded the request, and the shared secret proves the request came
+ * through AppAPI. Every other case is the usual check.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function requirePinRecovery(req, res, next) {
+    if (req.beeflow?.ncTlsPinRecovery) {
+        log.warn(`[Setup] ${req.method} ${req.originalUrl} for uid=${log.ref(req.beeflow.user.uid)} while Nextcloud's certificate is refused; relying on AppAPI's admin check`);
+        return next();
+    }
+    return requireNcAdmin(req, res, next);
 }
 
 // Budgets. Generous enough that a real admin clicking around never sees one,
@@ -494,6 +513,33 @@ function rebindFailed(res, caught, action, uid, remediation) {
         remediation: err.remediation || remediation,
     });
 }
+
+// The Nextcloud certificate pins of the self-signed TLS mode (#403): what is
+// pinned per host and which changed certificate is waiting for an admin.
+router.get('/nc-certificate', requirePinRecovery, (_req, res) => {
+    if (ncTlsMode !== 'insecure') return res.json({ mode: ncTlsMode, pins: {}, pending: {} });
+    res.json({ mode: ncTlsMode, ...pinStore().snapshot() });
+});
+
+// Accept a renewed Nextcloud certificate. The body names the new key (as the
+// page and the connector log show it), so a confirmation can only ever accept
+// the certificate the admin looked at.
+router.post('/accept-nc-certificate', requirePinRecovery, limits.rebind, express.json(), (req, res) => {
+    const { spki: raw } = bodyOf(req);
+    const spki = typeof raw === 'string' ? raw.trim() : '';
+    if (!/^sha256\/[A-Za-z0-9+/]{43}=$/.test(spki)) {
+        return res.status(400).json({ ok: false, error: 'Name the certificate key to accept (sha256/…).' });
+    }
+    if (ncTlsMode !== 'insecure') {
+        return res.status(409).json({ ok: false, error: 'Nextcloud\'s certificate is not pinned: it verifies normally.' });
+    }
+    const hosts = pinStore().accept(spki);
+    if (!hosts.length) {
+        return res.status(404).json({ ok: false, error: 'No changed Nextcloud certificate with that key is waiting.' });
+    }
+    log.info(`[Setup] Nextcloud certificate ${spki} accepted for ${hosts.join(', ')} by uid=${log.ref(req.beeflow?.user?.uid || 'unknown')}`);
+    res.json({ ok: true, accepted: hosts, spki });
+});
 
 // Rotate the per-install tenant key: the Bee Flow server issues a new key
 // and the old one stops working, for when the current key is suspected

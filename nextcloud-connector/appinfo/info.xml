@@ -164,7 +164,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
             <variable>
                 <name>BEEFLOW_NC_TLS_PIN</name>
                 <display-name>Auto-trust self-signed Nextcloud cert (optional, advanced)</display-name>
-                <description>"auto" (default) lets the connector trust your Nextcloud's certificate on first start when it is self-signed or signed by an internal CA, so the app can complete setup on local/on-prem installs. This never weakens a valid public certificate. Set to "off" in security-strict environments to disable automatic trust — then only a publicly-trusted certificate or an explicit "Nextcloud CA certificate" above will be accepted.</description>
+                <description>"auto" (default) lets the connector trust your Nextcloud's certificate when it is self-signed or signed by an internal CA, so the app can complete setup on local/on-prem installs. The certificate is pinned on first use: the connector remembers its key and refuses a different one, and an administrator accepts a renewed certificate on the connector's setup page. This never weakens a valid public certificate. Set to "off" in security-strict environments to disable automatic trust — then only a publicly-trusted certificate or an explicit "Nextcloud CA certificate" above will be accepted.</description>
                 <default>auto</default>
             </variable>
         </environment-variables>
@@ -219,7 +219,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
                  repoint the server, redeem a pairing code). The email-verification
                  endpoints stay USER (they run before a tenant key exists and are
                  gated by the one-time emailed code). -->
-            <route><url>^/?setup\/(status|test|diagnostics|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
+            <route><url>^/?setup\/(status|test|diagnostics|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache|nc-certificate|accept-nc-certificate)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
 
             <!-- Nextcloud `webhook_listeners` deliveries -> connector.
                  PUBLIC because the delivery is made by a Nextcloud background
