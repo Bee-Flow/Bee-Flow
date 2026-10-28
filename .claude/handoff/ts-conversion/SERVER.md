@@ -108,6 +108,32 @@ After a `--write` round, `node scripts/ts-behaviour-diff.mjs --base HEAD --paths
 report 0 different compiled programs (JSDoc is comments only); it also covers the files an agent
 touched afterwards, which `--check` does not.
 
+## The loose-type round (2026-10-28, agents)
+
+After the tooling round, the `{Object}`, `{object}`, `{any}`, `{*}` and `{Function}` tags were
+named by hand, one Opus agent per area in its own worktree (`wt/loose-*`), comments only (the
+behaviour diff against the base is the gate before every commit, with typecheck, the tests next to
+each file and `check:fast`). The `jsdoc-loose-type` ratchet went from 2227 to 929 for the whole
+server: routes 355 to 48, automation 255 to 47, stores 247 to 83, core 750 to 174.
+
+What an agent can name from the code alone: an options bag with sub-tags (becomes the literal
+shape, the sub-tag descriptions move into the sentence), a callback (its real signature), a row
+(the store's own typedef or `import('../types/rows').DbRow.X`), a JSON body (`Record<string,
+unknown>`), a value only narrowed later (`unknown`). What stays loose, and why:
+
+- defensive inputs narrowed field by field (DLP shields, automation steps, deck inputs): `unknown`
+  does not compile there without code changes, and the stored shapes are untyped DSL JSON;
+- the shared `ctx` built in `core/index.js` and the collab rows: typing them ripples through every
+  lifecycle file;
+- casts around SDK enums (google, mistral) and library internals (JSZip, dns lookup);
+- lazy-require spreads typed `{Function}` whose callers read the result untyped;
+- self-mutating `result`/`state` objects and `any` returns from optional `require`s.
+
+Merging two such branches: both change comments only, so `git merge -X theirs` is safe; what to
+check afterwards is a typedef defined twice in one file, a helper one branch typed narrower than
+a caller the other branch typed (`assertRecordId`), a comment reflow that puts a history phrase
+on one line (`history-comments` ratchet), and the per-file line ceilings.
+
 ## Lessons from agent-hub that apply here
 
 - The biggest root of open types is data from outside (HTTP bodies, DB rows): nothing in the code
