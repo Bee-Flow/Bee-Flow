@@ -364,6 +364,18 @@ function extractQuestion(payload) {
         .trim();
 }
 
+/**
+ * The agent thread of one user in one Talk room: `talk:<room>:<uid>`. A room
+ * thread from before #404 (`talk:<room>`) stays its first owner's; nothing
+ * moves between users.
+ * @param {string | number} roomToken
+ * @param {string | null} ncUid
+ * @returns {string}
+ */
+function talkConversationToken(roomToken, ncUid) {
+    return `talk:${roomToken}:${ncUid || ''}`;
+}
+
 // Ask the SaaS agent, reusing the same signed execute endpoint the Task
 // Processing providers use. Returns the answer text (possibly empty).
 /**
@@ -375,9 +387,12 @@ async function askSaaSAgent({ question, ncUid, roomToken }) {
     const apiPath = '/api/nextcloud/task-processing/execute';
     const body = JSON.stringify({
         taskType: AGENT_TASK_TYPE,
-        // conversation_token keys the agent's per-thread memory; one thread per
-        // room so a follow-up mention continues the same conversation.
-        input: { input: question, conversation_token: `talk:${roomToken}` },
+        // conversation_token keys the agent's thread memory: one thread per
+        // user per room (#404), so a follow-up mention continues that user's
+        // conversation and nobody ever continues another user's. One thread
+        // per room was owned by whoever asked first; the Bee Flow server
+        // refuses anyone else's token, so every other user started cold.
+        input: { input: question, conversation_token: talkConversationToken(roomToken, ncUid) },
         ncUid: ncUid || null,
     });
     const ts = Math.floor(Date.now() / 1000);
@@ -579,6 +594,7 @@ module.exports = Object.assign(router, {
     mentionsBot,
     extractQuestion,
     handleMention,
+    talkConversationToken,
     BOT_ROUTE,
     BOT_NAME,
 });
