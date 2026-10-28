@@ -40,6 +40,7 @@ function coerceFieldDefault(value, type, at) {
 }
 
 function mergeTableOp(model, args, rowCounts = {}) {
+    /** @type {string[]} */
     const hints = [];
     const tables = Array.isArray(model.tables) ? model.tables : [];
 
@@ -112,6 +113,7 @@ function mergeTableOp(model, args, rowCounts = {}) {
 
     const seenKeys = new Set();
     const fields = [];
+    /** @type {string[]} */
     const derivedFieldKeys = [];
     for (const [i, given] of rawFields.entries()) {
         const at = `fields[${i}]`;
@@ -295,6 +297,7 @@ async function applyUpsertTable(draftWrap, args) {
     const { validateRowFilter } = require('../rlsGateway');
     const canonTable = findModelTable(canonical, merged.table.id) || merged.table;
     const rowFilters = (canonTable.access && typeof canonTable.access.rowFilters === 'object') ? canonTable.access.rowFilters : null;
+    /** @type {string[]} */
     const rowFilterErrors = [];
     for (const roleKey of Object.keys(rowFilters || {})) {
         const { ok, errors } = validateRowFilter(rowFilters[roleKey], canonTable);

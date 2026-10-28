@@ -74,12 +74,16 @@ const CODE_LIMIT_BOUNDS = Object.freeze({
  * dataSteps.js has carried SET_RESERVED_KEYS against this same family of
  * names since the `set` step shipped. This is that lesson, one table over:
  * ask whether the table OWNS the key, never whether the lookup was truthy.
+ * @param {string} key
  */
 function isCodeLimitKey(key) {
     return Object.prototype.hasOwnProperty.call(CODE_LIMIT_BOUNDS, key);
 }
 
-/** "8..256 MB (isolate heap)" — one wording, used by every refusal below. */
+/**
+ * "8..256 MB (isolate heap)" — one wording, used by every refusal below.
+ * @param {string} key
+ */
 function describeCodeLimit(key) {
     const b = CODE_LIMIT_BOUNDS[key];
     return `${b.min}..${b.max}${b.unit ? ` ${b.unit}` : ''} (${b.what})`;
@@ -232,7 +236,7 @@ function checkSet(ctx, step, at) {
             for (const [fkey, fb] of Object.entries(step.fields)) {
                 if (isObject(fb) && fb.kind === 'expr' && typeof fb.value === 'string' && fb.value.trim()) {
                     try { parseExpr(fb.value); }
-                    catch (e) { pushE({ code: 'set.field_expr_parse', severity: 'error', path: `${at}.fields.${fkey}`, message: `Step ${step.id}: field "${fkey}" expr parse error — ${e.message}`, hint: 'Restricted grammar only. Inside a list the current row is `item`.' }); }
+                    catch (e) { pushE({ code: 'set.field_expr_parse', severity: 'error', path: `${at}.fields.${fkey}`, message: `Step ${step.id}: field "${fkey}" expr parse error — ${/** @type {Error} */ (e).message}`, hint: 'Restricted grammar only. Inside a list the current row is `item`.' }); }
                 }
             }
         }

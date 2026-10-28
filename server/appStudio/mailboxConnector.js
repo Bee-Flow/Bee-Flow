@@ -92,7 +92,7 @@ function classifyMailboxError(err, connector) {
  *
  * @param {object} connector  the `mailbox` connector config
  * @param {object} ctx        { app, viewerId, systemArgs, deps }
- * @returns {Promise<{rows: object[], grains: Array<{level, rows}>}>}
+ * @returns {Promise<{rows: object[], grains: Array<{level: unknown, rows}>}>}
  */
 async function runMailboxConnector(connector, ctx = {}) {
     const { app, viewerId = null, systemArgs = {}, deps } = ctx;

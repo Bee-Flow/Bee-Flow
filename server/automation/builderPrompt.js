@@ -77,6 +77,7 @@ ${apps || emptyCatalogLine(catalog)}
 Begin now.`;
 }
 
+/** @typedef {{ agentDraftState?: string, canvasScope?: string | undefined | null, title?: string | undefined }} RenderDraftStateSystemMessageArgs */
 /**
  * Per-turn dynamic context: the live draft state (+ optional canvas-scope
  * hint), emitted as its OWN system message placed late in the message list
@@ -86,6 +87,7 @@ Begin now.`;
  * survives draft mutations, and OpenAI's implicit prefix caching gets the
  * longest possible stable prefix. This block changes every turn — it must
  * never live inside the cached block.
+ * @param {RenderDraftStateSystemMessageArgs} [param0]
  */
 function renderDraftStateSystemMessage({ agentDraftState, canvasScope = null, title } = {}) {
     if (!agentDraftState) return null;
@@ -126,6 +128,7 @@ ${agentDraftState}`;
  * @returns {string|null} null when no preference is set at all
  */
 function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine, disabledMedia, allowedModelTiers } = {}) {
+    /** @type {string[]} */
     const lines = [];
     if (typeof userTimezone === 'string' && userTimezone.trim()) {
         lines.push(`- All times use the user's timezone: ${userTimezone.trim()}.`);
@@ -149,6 +152,7 @@ function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine
     return `## This turn\n\n${lines.join('\n')}`;
 }
 
+/** @typedef {{ codeStepEnabled?: boolean }} LeanMenuNoticeArgs */
 /**
  * The notice that tells the model it holds the REDUCED menu, and what that
  * leaves out. Derived from the same two lists the menu is built from (the batch
@@ -158,6 +162,7 @@ function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine
  * that a document, a switch or a wait EXISTS, and builds the rest silently.
  * Static text: it belongs in the system prompt, which stays the same for every
  * user and session of the band.
+ * @param {LeanMenuNoticeArgs} [param0]
  */
 function leanMenuNotice({ codeStepEnabled = false } = {}) {
     const buildable = leanBatchTypes({ codeStepEnabled });

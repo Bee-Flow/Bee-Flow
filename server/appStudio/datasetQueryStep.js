@@ -94,7 +94,7 @@ function datasetAdapter(ds) {
                 return Buffer.concat(chunks);
             } catch (e) {
                 // An absent shard just means "no rs numbers hashed here".
-                if (e?.name === 'NoSuchKey') return Buffer.alloc(0);
+                if (/** @type {Error} */ (e)?.name === 'NoSuchKey') return Buffer.alloc(0);
                 throw e;
             }
         },
@@ -187,7 +187,7 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
         });
     } catch (e) {
         if (e instanceof DatasetQueryError) {
-            const err = new Error(e.message);
+            const err = new Error(/** @type {Error} */ (e).message);
             err.status = 400;
             throw err;
         }

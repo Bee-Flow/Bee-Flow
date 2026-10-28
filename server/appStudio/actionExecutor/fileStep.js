@@ -147,6 +147,7 @@ async function generateFileStep(app, model, step, ctx) {
         format,
     );
 
+    /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
     let rendered;
     if (format === 'csv') {
         // `bom !== false` rather than a truthy check: the spec default is ON

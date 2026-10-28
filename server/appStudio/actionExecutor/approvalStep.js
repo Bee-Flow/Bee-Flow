@@ -266,7 +266,7 @@ async function requestApprovalStep(app, model, step, ctx) {
             }).catch((e) => bestEffort('appStudio/actionExecutor/approvalStep:requestApprovalStep#4', e));
         }
     } catch (e) {
-        log.warn(`[ActionExecutor] request_approval notify failed: ${e.message}`);
+        log.warn(`[ActionExecutor] request_approval notify failed: ${/** @type {Error} */ (e).message}`);
     }
 
     return { ok: true, result: { approvalId: approval.id, status: 'pending', expiresAt } };

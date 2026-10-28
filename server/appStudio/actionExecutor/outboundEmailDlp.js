@@ -34,7 +34,7 @@ async function screenOutboundEmail(app, { text, subject }) {
         if (!hits) return { blocked: false, outcome: 'clean' };
         return { blocked: shouldBlock, outcome: shouldBlock ? 'blocked' : 'flagged' };
     } catch (e) {
-        log.warn(`[ActionExecutor] outbound DLP scan failed for ${app.id}: ${e.message}`);
+        log.warn(`[ActionExecutor] outbound DLP scan failed for ${app.id}: ${/** @type {Error} */ (e).message}`);
         return { blocked: false, outcome: 'scan_failed' };
     }
 }

@@ -73,7 +73,12 @@ function takeDeclarations(mod) {
     return [];
 }
 
+/**
+ * @param {string} dir
+ * @param {string} originPrefix
+ */
 function loadFromDir(dir, originPrefix) {
+    /** @type {string[]} */
     let names = [];
     try { names = fs.readdirSync(dir); } catch { return; }
     for (const name of names.sort()) {                       // deterministic order
@@ -83,13 +88,14 @@ function loadFromDir(dir, originPrefix) {
                 registerTriggerSource(decl, { origin: `${originPrefix}/${name}` });
             }
         } catch (e) {
-            log.warn(`[triggerSources] failed to load ${originPrefix}/${name}: ${e.message}`);
+            log.warn(`[triggerSources] failed to load ${originPrefix}/${name}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
 
 function loadBundledMcpManifests() {
     const root = path.join(__dirname, '..', '..', 'mcpServers');
+    /** @type {fs.Dirent<string>[]} */
     let entries = [];
     try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -101,7 +107,7 @@ function loadBundledMcpManifests() {
                 registerTriggerSource(decl, { origin: `mcpServers/${entry.name}` });
             }
         } catch (e) {
-            log.warn(`[triggerSources] failed to load mcpServers/${entry.name}/events.js: ${e.message}`);
+            log.warn(`[triggerSources] failed to load mcpServers/${entry.name}/events.js: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
@@ -128,7 +134,10 @@ function listTriggerSourcesForOrg(orgId, opts) {
         .sort((a, b) => (a.order ?? 1000) - (b.order ?? 1000) || a.label.localeCompare(b.label));
 }
 
-/** Exact lookup. Includes hidden and org-scoped entries — never enumerated. */
+/**
+ * Exact lookup. Includes hidden and org-scoped entries — never enumerated.
+ * @param {string} id
+ */
 function getTriggerSource(id) {
     ensureLoaded();
     return _allById.get(id) || null;
@@ -147,7 +156,10 @@ function getEventDef(provider, event) {
     return null;
 }
 
-/** Tenancy scope declared by a provider's events, or null when undeclared. */
+/**
+ * Tenancy scope declared by a provider's events, or null when undeclared.
+ * @param {string} provider
+ */
 function getProviderScope(provider) {
     // Auto-derived providers deliberately return null here: they are polled
     // 1:1 per subscription (dispatchToSubscription), never fanned out, and an

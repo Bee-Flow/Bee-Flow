@@ -267,7 +267,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
             card: false,
         }).catch((e) => bestEffort('automation/approvalService:withdraw#4', e));
     } catch (e) {
-        log.warn(`[approvalService] withdraw notify failed: ${e.message}`);
+        log.warn(`[approvalService] withdraw notify failed: ${/** @type {Error} */ (e).message}`);
     }
 
     return outcome(200, { accepted: true, approval: cancelled });
@@ -297,6 +297,7 @@ async function validateApprovalAssignees(definition, ownerId) {
     const owner = await userStore.getUser(ownerId).catch((e) => fallback('automation/approvalService:validateApprovalAssignees', e, null));
     const orgId = owner?.organizationId || null;
     const groups = await userStore.getAllGroups().catch((e) => fallback('automation/approvalService:validateApprovalAssignees#2', e, []));
+    /** @type {{ path: string; message: string; }[]} */
     const errors = [];
     for (const s of steps) {
         const a = s.approval.assignee;

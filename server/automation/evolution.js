@@ -37,7 +37,7 @@ function defaultDeps() {
         applyToolCall: (/** @type {Parameters<typeof import('./builderTools').applyToolCall>} */ ...a) => require('./builderTools').applyToolCall(...a),
         validateDefinition: (/** @type {Parameters<typeof import('./validate').validateDefinition>} */ ...a) => require('./validate').validateDefinition(...a),
         getDeliverableEvents: () => { try { return require('./deliverableEvents').getDeliverableEvents(); } catch { return []; } },
-        notify: async (n) => { try { await require('../stores/notificationStore').createNotification(n); } catch (e) { log.warn(`[evolution] notify failed: ${e.message}`); } },
+        notify: async (/** @type {{ userId: string; taskId?: string; category?: string; title: string; message?: string; link?: string | null; }} */ n) => { try { await require('../stores/notificationStore').createNotification(n); } catch (e) { log.warn(`[evolution] notify failed: ${/** @type {Error} */ (e).message}`); } },
         now: () => new Date(),
     };
 }
@@ -54,6 +54,9 @@ function validatePlan(plan) {
     return null;
 }
 
+/**
+ * @param {string} automationId
+ */
 async function summariseRuns(automationId, { days = 30 } = {}, deps = defaultDeps()) {
     const d = Math.max(1, Math.min(365, Number(days) || 30));
     const since = new Date(deps.now().getTime() - d * 24 * 3600 * 1000).toISOString();
@@ -112,9 +115,10 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     const draftWrap = { def: copy, automationId: a.id, userId: a.userId, orgId: a.organizationId || null, title: a.title, description: a.description };
     for (let i = 0; i < row.plan.length; i++) {
         const { tool, args } = row.plan[i];
+        /** @type {{ error: string; }} */
         let r;
         try { r = await deps.applyToolCall(tool, args, draftWrap); }
-        catch (e) { r = { error: e.message }; }
+        catch (e) { r = { error: /** @type {Error} */ (e).message }; }
         if (!r || r.error) {
             return deps.store.updateEvolution(evolutionId, { status: 'failed', error: `plan[${i}] ${tool}: ${(r && r.error) || 'no result'}` });
         }
@@ -148,6 +152,9 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     return out;
 }
 
+/**
+ * @param {string} evolutionId
+ */
 async function rollbackEvolution(evolutionId, { reason = 'manual' } = {}, deps = defaultDeps()) {
     const row = await deps.store.getEvolution(evolutionId);
     if (!row) throw new Error('Evolution not found');
@@ -179,6 +186,7 @@ async function rollbackEvolution(evolutionId, { reason = 'manual' } = {}, deps =
  */
 async function evaluateCanaries(deps = defaultDeps()) {
     const rows = await deps.store.listCanaryEvolutions();
+    /** @type {{ id: string; verdict: string; }[]} */
     const verdicts = [];
     for (const row of rows) {
         try {
@@ -200,7 +208,7 @@ async function evaluateCanaries(deps = defaultDeps()) {
                 verdicts.push({ id: row.id, verdict: 'kept' });
             }
         } catch (e) {
-            log.warn(`[evolution] canary ${row.id} evaluation failed: ${e.message}`);
+            log.warn(`[evolution] canary ${row.id} evaluation failed: ${/** @type {Error} */ (e).message}`);
         }
     }
     return verdicts;

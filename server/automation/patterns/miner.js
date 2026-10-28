@@ -51,6 +51,7 @@ const DAILY_STALE_DAYS = 14;
  *   spansMs?: number[], direction?: 'in'|'out', domains?: string[], structured?: boolean,
  *   followRatio?: number
  * }} Candidate
+ * @param {boolean} cold
  */
 
 function gatesFor(cold) {
@@ -114,6 +115,7 @@ function followUps(anchors, actions, opts) {
             stats.set(e.verb, s);
         }
     }
+    /** @type {{ verb: string; app: string; ratio: number; delay: number; }[]} */
     const result = [];
     for (const [verb, s] of stats) {
         const ratio = s.count / anchors.length;
@@ -125,7 +127,10 @@ function followUps(anchors, actions, opts) {
     return result.slice(0, 3);
 }
 
-/** Cluster the distinct templates of a group of events, keyed by event. */
+/**
+ * Cluster the distinct templates of a group of events, keyed by event.
+ * @param {WorkEvent[]} events
+ */
 function clusterEvents(events) {
     const distinct = [...new Set(events.map((e) => e.template).filter(Boolean))];
     const { clusters, assignment } = clusterTemplates(distinct);
@@ -138,7 +143,10 @@ function clusterEvents(events) {
     return byTemplate;
 }
 
-/** A template made only of placeholders says nothing about what repeats. */
+/**
+ * A template made only of placeholders says nothing about what repeats.
+ * @param {string} template
+ */
 function informative(template) {
     return tokenize(template).some((t) => !t.startsWith('<'));
 }
@@ -190,6 +198,9 @@ function minePatterns(events, opts = {}) {
     const since = now - windowDays * DAY;
     /** @type {Record<string, number>} */
     const rejected = {};
+    /**
+     * @param {string} why
+     */
     const reject = (why) => { rejected[why] = (rejected[why] || 0) + 1; };
 
     /** @type {WorkEvent[]} */
@@ -325,6 +336,10 @@ function minePatterns(events, opts = {}) {
  * @param {Candidate[]} list
  */
 function dedupe(list) {
+    /**
+     * @param {Candidate} b
+     * @param {Candidate} a
+     */
     const covered = (b, a) => {
         if (a === b || a.verbs.length <= b.verbs.length) return false;
         const av = new Set(a.verbs);

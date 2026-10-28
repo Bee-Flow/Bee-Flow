@@ -177,7 +177,11 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
 // The wording for the generic matcher: exact equality on a payload field.
 const GENERIC_FILTER_TEXT = 'a payload field = exact value';
 
-/** Does this (provider, event) fall back to the shallow exact-match matcher? */
+/**
+ * Does this (provider, event) fall back to the shallow exact-match matcher?
+ * @param {string} provider
+ * @param {string} event
+ */
 function usesGenericMatcher(provider, event) {
     return pickMatcher(provider, event) === matchFilter;
 }

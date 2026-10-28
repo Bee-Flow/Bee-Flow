@@ -16,6 +16,8 @@ let limiter = null;
 /**
  * `cost` units of the folder write budget of one user: AUTOMATION_MCP_FOLDER_WRITES_PER_MINUTE
  * (default 120, 0 = unlimited). Shared across replicas when Redis is there.
+ * @param {string} userId
+ * @param {number} cost
  */
 async function charge(userId, cost) {
     const rpm = envCap('AUTOMATION_MCP_FOLDER_WRITES_PER_MINUTE', 120);
@@ -33,6 +35,7 @@ async function charge(userId, cost) {
 /**
  * The organisation folders live in for this account (the same one the sidebar
  * uses) and every organisation it belongs to. Throws when either cannot be read.
+ * @param {string} userId
  */
 async function caller(userId) {
     const { resolveDatatablePrincipalForUser } = require('../auth/datatableAccess');

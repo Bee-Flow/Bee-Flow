@@ -221,7 +221,7 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
  * @param {object|null} session
  * @param {object} catalog   from buildCatalogForUser
  * @param {{providers?: boolean, deps?: object}} [opts]  `providers:false` skips the app_event list; `deps` replaces collaborators (tests)
- * @returns {Promise<{agents, agentsError, knowledgeBases, knowledgeBasesError, appEventProviders, appEventProvidersError}>}
+ * @returns {Promise<{agents, agentsError: unknown, knowledgeBases, knowledgeBasesError: unknown, appEventProviders: unknown, appEventProvidersError: unknown}>}
  */
 async function buildPickerCatalogsForUser(userId, session, catalog, { providers: withProviders = true, deps = null } = {}) {
     const providers = (async () => {

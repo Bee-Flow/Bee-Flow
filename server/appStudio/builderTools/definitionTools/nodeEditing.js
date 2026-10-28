@@ -31,6 +31,7 @@ function applyUpdateComponent(draftWrap, args) {
     // A props patch that names a table or field the app does not have is
     // refused now, not at finalize (same guard as app_add_components).
     let propsPatch = hasProps ? args.props : null;
+    /** @type {string[]} */
     const guardNotes = [];
     if (hasProps) {
         const probe = [{ type: found.node.type, props: { ...found.node.props, ...args.props } }];

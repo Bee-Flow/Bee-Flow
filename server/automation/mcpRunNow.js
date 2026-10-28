@@ -141,7 +141,11 @@ function makeRunNow(overrides = {}) {
 
     const notFound = () => new HttpError(404, 'not_found', 'Automation not found, or this account may not run it. Call automations_list for the automations you own.');
 
-    /** The automation if this caller may start it, else 404. */
+    /**
+     * The automation if this caller may start it, else 404.
+     * @param {string} automationId
+     * @param {string} userId
+     */
     async function loadRunnable(automationId, userId) {
         const stored = await store().getAutomation(automationId).catch((e) => fallback('automation/mcpRunNow:load automation', e, null));
         if (!stored) throw notFound();
@@ -151,6 +155,7 @@ function makeRunNow(overrides = {}) {
         // The automation's organisation must be one of the caller's (home or through a
         // group). A resolution that fails is a refusal, never "no org, no check".
         if (stored.organizationId) {
+            /** @type {{ all: string[]; }} */
             let orgs;
             try { orgs = await resolveOrgs(user); } catch { throw notFound(); }
             if (!orgs.all.includes(stored.organizationId)) throw notFound();
@@ -172,6 +177,7 @@ function makeRunNow(overrides = {}) {
         let input = null;
         if (args.input !== undefined && args.input !== null) {
             if (!isPlainObject(args.input)) throw new HttpError(400, 'invalid_input', 'input must be a JSON object.');
+            /** @type {number} */
             let bytes;
             try { bytes = Buffer.byteLength(JSON.stringify(args.input), 'utf8'); } catch { bytes = Infinity; }
             if (c.input > 0 && bytes > c.input) throw new HttpError(413, 'input_too_large', `input is larger than ${c.input} bytes; send less.`);
@@ -303,8 +309,8 @@ function makeRunNow(overrides = {}) {
         try {
             return await run(ctx.userId, args && typeof args === 'object' ? args : {}, ctx);
         } catch (e) {
-            if (e instanceof HttpError) return { ...(e.details && typeof e.details === 'object' ? e.details : {}), error: e.message, code: e.code };
-            log.error(`[automations-mcp] ${name} failed: ${e instanceof Error ? e.message : e}`);
+            if (e instanceof HttpError) return { ...(e.details && typeof e.details === 'object' ? e.details : {}), error: /** @type {Error} */ (e).message, code: e.code };
+            log.error(`[automations-mcp] ${name} failed: ${e instanceof Error ? /** @type {Error} */ (e).message : e}`);
             return { error: `${name} failed.`, code: 'internal_error' };
         }
     }

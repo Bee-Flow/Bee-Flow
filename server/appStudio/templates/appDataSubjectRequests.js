@@ -517,10 +517,18 @@ const STATUS_STEPS = [
     { value: 'closed', label: 'Closed', icon: 'CheckCircle2' },
 ];
 
-/** Today + n days, as a plain ISO date a date column can be compared against. */
+/**
+ * Today + n days, as a plain ISO date a date column can be compared against.
+ * @param {number} n
+ */
 const inDays = (n) => ({ kind: 'formula', expr: `formatDate(dateAdd(today, ${n}, 'day'), 'YYYY-MM-DD')` });
 
-/** Every child row of the open request. required:true — see the header. */
+/**
+ * Every child row of the open request. required:true — see the header.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenRequest = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,

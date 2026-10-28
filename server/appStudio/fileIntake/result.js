@@ -39,7 +39,7 @@ function buildResult({
         : null;
 
     const others = files
-        .filter((f) => f.kind === 'other')
+        .filter((/** @type {{ kind: string; }} */ f) => f.kind === 'other')
         .map((f) => ({ name: f.name, file: f.descriptor }));
 
     const fuzzyPairs = pairs.filter((p) => p.matchStatus === 'fuzzy');

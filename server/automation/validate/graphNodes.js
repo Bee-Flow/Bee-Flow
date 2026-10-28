@@ -125,7 +125,7 @@ function checkContractOutputs({ graph, scope, p, pushE, pushW, isContractScope, 
     // warning; more than one is ambiguous → error. At the ROOT, layer_output
     // steps stay legal (orphan layers converted to automations keep theirs).
     if (isContractScope) {
-        const outs = graph.steps.filter(s => isObject(s) && s.type === 'layer_output');
+        const outs = graph.steps.filter((/** @type {{ type: string; }} */ s) => isObject(s) && s.type === 'layer_output');
         if (outs.length === 0) {
             pushW({ code: 'layer.no_output', severity: 'warning', path: p('steps'), message: `${contractNoun} has no layer_output step — callers receive the last step\'s raw output.`, hint: 'Add a layer_output step with explicit fields so it has a stable output contract.' });
         } else if (outs.length > 1) {

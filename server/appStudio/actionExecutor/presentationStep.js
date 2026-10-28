@@ -36,6 +36,7 @@ async function generatePresentationStep(app, model, step, ctx) {
 
     const { collectDeck } = require('../../core/documents/deckCollect');
     const { normalizeDeck } = require('../../core/documents/deckModel');
+    /** @type {{ title: string; subtitle: string | null; author: string | null; date: string | null; slides: object[]; warnings: string[]; }} */
     let deck;
     try {
         const { deckInput, warnings } = collectDeck(slidesRaw, { title, subtitle });
@@ -45,11 +46,12 @@ async function generatePresentationStep(app, model, step, ctx) {
         if (e && (e.errorClass === 'presentation_empty' || e.errorClass === 'deck_empty')) {
             return { ok: false, error: 'There are no slides to put in the presentation' };
         }
-        if (e && e.errorClass) return { ok: false, error: e.message, code: e.errorClass };
+        if (e && e.errorClass) return { ok: false, error: /** @type {Error} */ (e).message, code: e.errorClass };
         throw e;
     }
 
     // The look the author set on the step; blank = the house style decides.
+    /** @type {Record<string, string>} */
     const theme = {};
     for (const k of ['preset', 'font', 'coverStyle', 'tableStyle', 'logoPlacement']) if (typeof step[k] === 'string' && step[k]) theme[k] = step[k];
     for (const k of ['accent', 'background', 'footerText']) {
@@ -77,7 +79,7 @@ async function generatePresentationStep(app, model, step, ctx) {
         });
     } catch (e) {
         if (e && e.errorClass === 'document_empty') return { ok: false, error: 'There are no slides to put in the presentation' };
-        if (e && e.errorClass) return { ok: false, error: e.message, code: e.errorClass };
+        if (e && e.errorClass) return { ok: false, error: /** @type {Error} */ (e).message, code: e.errorClass };
         throw e;
     }
 

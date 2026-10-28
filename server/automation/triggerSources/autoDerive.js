@@ -76,6 +76,7 @@ function capabilityForTool(tool, integrationId = null) {
  * unambiguously. Guessing would mean listing a trigger whose capability check
  * then fails and which therefore never fires — so such servers are simply not
  * auto-derived, and can ship an events manifest instead.
+ * @param {string} tool
  */
 function mcpServerFromTool(tool) {
     const m = /^mcp_([a-z0-9]+)_/.exec(tool || '');
