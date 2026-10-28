@@ -72,17 +72,23 @@ function makeInterruptedTurnPersister(turn) {
         try {
             const { buildInterruptedTurnMessages } = require('./interruptedTurn');
             const { turnAnchorId } = require('./finalizeRows');
-            const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
-            const msgs = buildInterruptedTurnMessages({
-                baseMessages: convNow?.messages || [],
+            const { placeTurnRows } = require('../../../core/conversation/historyMerge');
+            const anchorId = turnAnchorId(turn);
+            // This turn's own two rows (null: nothing side-effecting ran).
+            const rows = buildInterruptedTurnMessages({
+                baseMessages: [],
                 tokenizedMessage: turn.tokenizedMessage,
                 persistedAttachments: turn.persistedAttachments,
                 toolHistory: turn.collectedToolHistory,
                 errorNote: reason,
-                anchorId: turnAnchorId(turn),
             });
-            // meta null → meta_json stays untouched
-            if (msgs) await agentStore.updateDirectConversation(turn.convId, msgs, userId, null, encryptionOpts(req));
+            if (!rows) return;
+            // Saved under the row lock like a finished turn
+            // (finalizeTurn.persistTurn); the whole array only where that does
+            // not apply. meta null → meta_json stays untouched.
+            if (anchorId !== null && await agentStore.placeDirectConversationTurn(turn.convId, { rows, anchorId, ...turn.turnMark }, userId, null, encryptionOpts(req))) return;
+            const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
+            await agentStore.updateDirectConversation(turn.convId, placeTurnRows(convNow?.messages || [], rows, anchorId), userId, null, encryptionOpts(req));
         } catch (e) {
             log.warn('[DirectChat] Interrupted-turn persistence failed:', e.message);
         }

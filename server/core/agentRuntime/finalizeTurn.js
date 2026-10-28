@@ -11,7 +11,6 @@
  * restore, thinking, tokenisation info) live in ./assistantMessageExtras.
  */
 const { featureModule } = require('../featureModules');
-const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
 const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 const { persistedMemoryUsed } = require('../memory/memoryUsed');
@@ -195,55 +194,49 @@ async function scheduleMemoryExtraction(turn) {
 
 /**
  * SERVER-SIDE PERSISTENCE FOR REDACTION — for both delete mode
- * (guardrailViolation) and redact mode (processedUserMessage changed), the
- * last user message is re-written right after the current event-loop tick
+ * (guardrailViolation) and redact mode (processedUserMessage changed), this
+ * turn's user message is re-written right after the current event-loop tick
  * (was setTimeout(5000), which raced with the conversation save).
+ *
+ * It rewrites THIS turn's user row and saves the turn again (persistDurable
+ * replaces the turn's own rows by id). Re-reading the conversation and
+ * redacting its LAST user message would hit another turn's question when that
+ * turn finished in between, and replacing the re-read array whole would drop
+ * a turn that landed between the read and the write.
  */
 function scheduleRedactionRewrite(turn) {
-    const { guardrailViolation, processedUserMessage, userMessage, conversation, userAuth, _serializeConversationWrite } = turn;
+    const { guardrailViolation, processedUserMessage, userMessage, conversation, userSave, persistDurable } = turn;
     const needsServerPersistence = guardrailViolation || processedUserMessage !== userMessage;
     if (!needsServerPersistence) return;
     const redactedContent = processedUserMessage !== userMessage
         ? processedUserMessage  // Use redacted version (with [REDACTED: RuleName])
         : '[Message removed - policy violation]';  // Full replacement for delete mode
 
-    setImmediate(async () => {
-        try {
-            // restore:false — same reason as the guardrail-violation
-            // persistence path: this block writes the array back via
-            // updateConversation, and restoring tokens here would silently
-            // overwrite tokenized content with real values for the whole
-            // conversation.
-            const conv = await agentStore.getConversationById(conversation.id, userAuth.encryptionKey, { restore: false });
-            if (!conv || !conv.messages) return;
-            // Find the LAST user message (more robust than index-based lookup)
-            let lastUserIdx = -1;
-            for (let i = conv.messages.length - 1; i >= 0; i--) {
-                if (conv.messages[i].role === 'user') {
-                    lastUserIdx = i;
-                    break;
-                }
-            }
-            if (lastUserIdx < 0) {
-                log.warn('[RegexGuard] No user message found for redaction');
-                return;
-            }
-            const updatedMessages = conv.messages.map((m, idx) => {
-                if (idx === lastUserIdx) {
-                    return { ...m, content: redactedContent, isRedacted: true };
-                }
-                return m;
-            });
-            await _serializeConversationWrite(conversation.id, () => agentStore.updateConversation(conversation.id, updatedMessages, userAuth.encryptionKey, userAuth.userId));
-            log.info(`[RegexGuard] Server-side persistence completed for conversation ${conversation.id}`);
-        } catch (redactErr) {
-            log.error('[RegexGuard] Server-side persistence failed:', /** @type {Error} */ (redactErr).message);
-        }
-    });
+    setImmediate(() => redactTurnUserMessage({ userSave, persistDurable, redactedContent, conversationId: conversation.id, tag: '[RegexGuard]' }));
 }
 
-module.exports = { finalizeStreamTurn };
+/**
+ * Redact this turn's stored user message and save the turn again. Shared with
+ * the guardrail hard block (./guardrailHardBlock.js).
+ * @param {{ userSave: Record<string, unknown> | null | undefined, persistDurable: () => Promise<unknown>, redactedContent: string, conversationId: string, tag: string }} p
+ */
+async function redactTurnUserMessage({ userSave, persistDurable, redactedContent, conversationId, tag }) {
+    try {
+        if (!userSave) {
+            log.warn(`${tag} No user message found for redaction`);
+            return;
+        }
+        userSave.content = redactedContent;
+        userSave.isRedacted = true;
+        await persistDurable();
+        log.info(`${tag} Server-side persistence completed for conversation ${conversationId}`);
+    } catch (redactErr) {
+        log.error(`${tag} Server-side persistence failed:`, /** @type {Error} */ (redactErr).message);
+    }
+}
+
+module.exports = { finalizeStreamTurn, redactTurnUserMessage };
 
 /**
- * @typedef {Pick<import('./chatStream/turnLoop').LoopTurn, 'onEvent' | 'messageMetadata' | 'conversation' | '_ut' | '_captureRaw' | '_userPrivacyMeta' | 'userSave' | 'durableMessages' | 'messages' | 'persistDurable' | 'isEphemeral' | 'agent' | 'agentId' | 'userId' | 'processedUserMessage' | 'userMessage' | 'userAuth' | 'extractMemoriesEnabled' | 'validProjectId' | 'modelToUse' | 'memoryPolicy' | 'memoryUsed' | '_kbSources' | '_assistantTokenisationInfo' | 'guardrailViolation'> & { fullResponse: string, useNativeAdapter: boolean, _emailDrafts: Record<string, unknown>[], _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[], _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[], _generatedFiles?: Record<string, unknown>[], _pendingToolCalls?: Record<string, unknown>[], _toolHistory: import('./assistantMessageExtras').ToolHistoryEntry[], _thinkingParts: import('./assistantMessageExtras').ThinkingPart[], _thinking: string, _rawResponseBuffer: string, toolCalls: Record<string, unknown>[], _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} FinalizeTurn  the final answer and everything the turn collected
+ * @typedef {Pick<import('./chatStream/turnLoop').LoopTurn, 'onEvent' | 'messageMetadata' | 'conversation' | '_ut' | '_captureRaw' | '_userPrivacyMeta' | 'userSave' | 'durableMessages' | 'messages' | 'persistDurable' | 'isEphemeral' | 'agent' | 'agentId' | 'userId' | 'processedUserMessage' | 'userMessage' | 'userAuth' | 'extractMemoriesEnabled' | 'validProjectId' | 'modelToUse' | 'memoryPolicy' | 'memoryUsed' | '_kbSources' | '_assistantTokenisationInfo' | 'guardrailViolation'> & { fullResponse: string, useNativeAdapter: boolean, _emailDrafts: Record<string, unknown>[], _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[], _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[], _generatedFiles?: Record<string, unknown>[], _pendingToolCalls?: Record<string, unknown>[], _toolHistory: import('./assistantMessageExtras').ToolHistoryEntry[], _thinkingParts: import('./assistantMessageExtras').ThinkingPart[], _thinking: string, _rawResponseBuffer: string, toolCalls: Record<string, unknown>[] }} FinalizeTurn  the final answer and everything the turn collected
  */

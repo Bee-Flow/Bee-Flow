@@ -16,6 +16,7 @@ const { HttpError } = require('../../../core/http/errors');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { turnTierRefusal } = require('../../../core/llm/resolveTurnModel');
 const { fallback } = require('../../../utils/bestEffort');
+const { historyAnchorId } = require('../../../core/conversation/historyMerge');
 
 async function runSwarmTierTurn({ req, res, userId, message, conversationId, attachments }) {
         const { runSwarmTurn, loadSwarmById } = require('../../../core/swarms/swarmRuntime');
@@ -72,12 +73,19 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         // Load (or create) conversation + restore prior Hive Mind state.
         let convId = conversationId;
         let hiveMind = null;
+        // The last stored message this turn is asked on: a swarm run is long,
+        // and a turn that finishes on this conversation in the meantime must
+        // stay below this question (see placeTurnRows).
+        let anchorId = null;
+        // This turn's id and the time it was asked, taken at the start.
+        const turnMark = { turnId: require('crypto').randomUUID(), askedAt: new Date().toISOString() };
         if (convId) {
             try {
                 const existingConv = await agentStore.getDirectConversation(convId, userId, encryptionOpts(req));
                 if (existingConv && existingConv.hiveMind && typeof existingConv.hiveMind === 'object') {
                     hiveMind = existingConv.hiveMind;
                 }
+                anchorId = historyAnchorId(existingConv?.messages);
             } catch (err) { fallback('routes/ai/directChat/swarmTurn:runSwarmTierTurn#2', err); /* ignore — proceed with fresh state */ }
         }
 
@@ -106,16 +114,16 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                     if (convId) send('conversation_created', { conversationId: convId });
                 }
                 if (convId) {
-                    const existingConv = await agentStore.getDirectConversation(convId, userId, encryptionOpts(req));
-                    const messages = Array.isArray(existingConv?.messages) ? [...existingConv.messages] : [];
+                    /** @type {Record<string, unknown>[]} */
+                    const turnRows = [];
                     if (!result.paused && typeof result.finalText === 'string' && result.finalText.length > 0) {
-                        messages.push({
+                        turnRows.push({
                             role: 'user',
                             content: message,
                             attachments: attachments || [],
                             timestamp: new Date().toISOString(),
                         });
-                        messages.push({
+                        turnRows.push({
                             role: 'assistant',
                             content: result.finalText,
                             metadata: { swarmId },
@@ -128,10 +136,18 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                             timestamp: new Date().toISOString(),
                         });
                     }
-                    await agentStore.updateDirectConversation(convId, messages, userId, {
-                        swarmId,
-                        hiveMind: result.hiveMind,
-                    }, encryptionOpts(req));
+                    const meta = { swarmId, hiveMind: result.hiveMind };
+                    // The turn's own rows under the row lock, nothing else
+                    // rewritten; otherwise (no rows, a new conversation, a
+                    // shared thread, a legacy-blob conversation) appended to
+                    // the whole array as stored now.
+                    const placed = turnRows.length > 0 && anchorId !== null
+                        && await agentStore.placeDirectConversationTurn(convId, { rows: turnRows, anchorId, ...turnMark }, userId, meta, encryptionOpts(req));
+                    if (!placed) {
+                        const existingConv = await agentStore.getDirectConversation(convId, userId, encryptionOpts(req));
+                        const messages = Array.isArray(existingConv?.messages) ? [...existingConv.messages, ...turnRows] : turnRows;
+                        await agentStore.updateDirectConversation(convId, messages, userId, meta, encryptionOpts(req));
+                    }
                 }
             } catch (persistErr) {
                 log.warn('[DirectChat/Swarm] persist failed:', persistErr.message);

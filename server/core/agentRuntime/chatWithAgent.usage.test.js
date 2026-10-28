@@ -34,6 +34,7 @@ const restore = installResolveStub({
         getAgentToolsWithParams: async () => [],
         getOrCreateConversation: async () => ({ id: 'conv-1', messages: [] }),
         updateConversation: async () => {},
+        saveConversationTurn: async () => {},
     },
     '../../stores/usageStore': { logUsage: async (entry) => { logged.push(entry); } },
     '../../stores/guardrailEventStore': { logGuardrailEvent: async () => {} },

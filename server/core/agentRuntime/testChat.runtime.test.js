@@ -71,6 +71,7 @@ const kit = installAgentTurnHarness(S, {
                 };
             },
             updateConversation: async () => { S.conversationWrites++; },
+            saveConversationTurn: async () => { S.conversationWrites++; },
         },
         '../../stores/usageStore': { logUsage: async (row) => { S.usage.push(row); } },
     },

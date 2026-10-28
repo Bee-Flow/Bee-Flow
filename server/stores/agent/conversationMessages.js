@@ -64,9 +64,7 @@ async function _initMessagesTable() {
     `);
     // Migration flag columns on the parent tables —
     // added lazily so this is safe on existing databases.
-    // Via runDdl (stores/lib/_ddl.js): fouten per statement luid verzameld
-    // i.p.v. stil ingeslikt; de advisory lock serialiseert ook de unique
-    // index hieronder, die db.exec' substring-queue altijd passeerde.
+    // Via runDdl (stores/lib/_ddl.js): each statement's failure is reported on its own.
     await runDdl('conversationMessages', [
         `ALTER TABLE agent_conversations
             ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
@@ -86,9 +84,11 @@ async function _initMessagesTable() {
     // client_msg_id: idempotency. Two tabs, a retry, or a reconnect mid-send
     //   would otherwise post the same message twice into a shared thread where
     //   everyone can see it happen.
-    // Voorheen één catch om drie statements — welke van de drie faalde was
-    // onzichtbaar; nu rapporteert runDdl ze afzonderlijk.
+    // turn_id / turn_asked_at: the turn that wrote the row and when it was asked
+    //   (./conversationTurns.js orders overlapping turns by it). NULL: unknown.
     await runDdl('conversationMessages', [
+        `ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS turn_id TEXT`,
+        `ALTER TABLE conversation_messages ADD COLUMN IF NOT EXISTS turn_asked_at TIMESTAMPTZ`,
         `ALTER TABLE conversation_messages
             ADD COLUMN IF NOT EXISTS author_user_id TEXT`,
         `ALTER TABLE conversation_messages
@@ -461,9 +461,9 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
  * So shared threads append, and `seq` is allocated HERE rather than taken from
  * an array index. `SELECT ... FOR UPDATE` on the parent row serialises
  * concurrent writers on the same conversation (`_lockConversation`), which is
- * what makes `MAX(seq)+1` safe. There is NO unique index on
- * (conversation_id, seq) behind it: rows from before the lock may share a
- * seq, so readers break ties themselves (`READ_ORDER`).
+ * what makes `MAX(seq)+1` safe; the unique (conversation_id, seq) index is
+ * the backstop. Rows from before the lock may share a seq until the dedupe
+ * migration renumbered them, so readers break ties themselves (`READ_ORDER`).
  *
  * Messages carrying a `clientMsgId` are idempotent: a retry, a double-submit
  * from two tabs, or a reconnect mid-send resolves to one row.
@@ -487,8 +487,8 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
 
     return withTransaction(async (client) => {
         // Serialise appenders on this conversation. Without the row lock two
-        // concurrent appends compute the same MAX(seq)+1 and both rows land on
-        // that seq (there is no unique index on (conversation_id, seq)).
+        // concurrent appends compute the same MAX(seq)+1 for different rows,
+        // which the unique (conversation_id, seq) index does not let both keep.
         await _lockConversation(client, type, conversationId);
 
         const { rows: seqRows } = await client.query(
@@ -657,18 +657,18 @@ async function isMigrated(conversationId) {
 module.exports = {
     initMessagesTable,
     migrateConversationIfNeeded,
-    getMessages,
-    replaceMessages,
+    getMessages, replaceMessages,
     // Shared threads append; replaceMessages stays for edit/retry/compaction,
     // where rewriting the whole array IS the intent.
     appendMessages,
     rekeyConversation,
-    isMigrated,
-    blankMessageBlobs,
+    isMigrated, blankMessageBlobs,
     // The two encryption chokepoints. Exported so the round-trip — especially
     // the attachment sidecar surviving intact — is unit-testable without a DB.
     messagesToRows,
     rowToMessage,
+    // A finished turn's write (./conversationTurns.js) inserts and guards as replaceMessages does.
+    _bulkInsert, _refuseSilentDowngrade,
     // Awaitbare init-ingang voor migrateDb.
     initDB: initMessagesTable,
 };

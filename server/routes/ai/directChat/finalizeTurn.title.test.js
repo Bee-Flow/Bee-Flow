@@ -18,12 +18,15 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
-/** @type {{ stored: Record<string, unknown>[], saved: Record<string, unknown>[] | null }} */
-const fx = { stored: [], saved: null };
+/** @type {{ stored: Record<string, unknown>[], saved: Record<string, unknown>[] | null, placeable: boolean, placed: unknown[] | null }} */
+const fx = { stored: [], saved: null, placeable: false, placed: null };
 const store = new Proxy({}, {
     get: (_t, name) => async (/** @type {unknown[]} */ ...args) => {
         if (name === 'getDirectConversation') return { id: 'c1', messages: fx.stored, meta: {} };
         if (name === 'updateDirectConversation') { fx.saved = /** @type {Record<string, unknown>[]} */ (args[1]); return true; }
+        // The store's turn save (rows after the anchor, under the row lock);
+        // false = a legacy-blob conversation, the whole array is written instead.
+        if (name === 'placeDirectConversationTurn') { if (fx.placeable) fx.placed = args; return fx.placeable; }
         return null;
     },
 });
@@ -133,4 +136,19 @@ test('a shared thread keeps appending: its store write diffs the tail, and a tur
         _sharedThread: { projectId: 'p1' },
     }));
     assert.deepStrictEqual(contents(fx.saved).slice(-2), ['second question', 'second answer']);
+});
+
+test('a turn on the stored history is saved as its own rows after its anchor, not as a full rewrite', async () => {
+    fx.stored = [...asked, ...overtook];
+    fx.saved = null;
+    fx.placeable = true;
+    fx.placed = null;
+    try {
+        await finalizeDirectChatTurn(turnOf({ resolvedHistory: asked, clientHistoryProvided: false }));
+    } finally { fx.placeable = false; }
+    assert.strictEqual(fx.saved, null, 'no whole-array write');
+    const [convId, { rows, anchorId }] = /** @type {[string, { rows: Record<string, unknown>[], anchorId: string }]} */ (/** @type {unknown} */ (fx.placed));
+    assert.strictEqual(convId, 'c1');
+    assert.strictEqual(anchorId, 'r2');
+    assert.deepStrictEqual(contents(rows), ['second question', 'second answer']);
 });

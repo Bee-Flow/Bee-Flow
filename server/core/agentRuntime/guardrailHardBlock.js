@@ -8,11 +8,11 @@
  * schedule the server-side redaction of the violating user message and end
  * the turn with a result object. Moved verbatim out of chatStream.js.
  */
-const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
+const { redactTurnUserMessage } = require('./finalizeTurn');
 
-/** @param {{ moderationViolation: string | null, guardrailViolation: string | null, onEvent: import('./chatStream/turnState').OnEvent, messageMetadata: import('./chatStream/turnState').MessageMetadata, durableMessages: import('./chatStream/turnState').ChatMessage[], persistDurable: () => Promise<void>, isEphemeral: boolean, conversation: import('./chatStream/turnState').ConversationRow, userAuth: import('./chatStream/turnState').UserAuth, processedUserMessage: string, userMessage: string, modelToUse: string, _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} opts */
-async function respondGuardrailHardBlock({ moderationViolation, guardrailViolation, onEvent, messageMetadata, durableMessages, persistDurable, isEphemeral, conversation, userAuth, processedUserMessage, userMessage, modelToUse, _serializeConversationWrite }) {
+/** @param {{ moderationViolation: string | null, guardrailViolation: string | null, onEvent: import('./chatStream/turnState').OnEvent, messageMetadata: import('./chatStream/turnState').MessageMetadata, durableMessages: import('./chatStream/turnState').ChatMessage[], userSave: import('./chatStream/turnState').ChatMessage | null, persistDurable: () => Promise<void>, isEphemeral: boolean, conversation: import('./chatStream/turnState').ConversationRow, processedUserMessage: string, userMessage: string, modelToUse: string }} opts */
+async function respondGuardrailHardBlock({ moderationViolation, guardrailViolation, onEvent, messageMetadata, durableMessages, userSave, persistDurable, isEphemeral, conversation, processedUserMessage, userMessage, modelToUse }) {
         const violationType = moderationViolation || guardrailViolation;
 
         // Send structured event so frontend can compose the translated message
@@ -30,34 +30,17 @@ async function respondGuardrailHardBlock({ moderationViolation, guardrailViolati
         durableMessages.push(assistantMsg);
         await persistDurable();
 
-        // Server-side persistence: redact/remove the violating user message
+        // Server-side persistence: redact/remove the violating user message.
+        // This turn's own user row, saved again with the turn (see
+        // ./finalizeTurn.js redactTurnUserMessage), never "the last user
+        // message" of a re-read conversation, which may be another turn's.
         if (!isEphemeral) {
-            setImmediate(async () => {
-                try {
-                    // restore:false — we're about to write the array back via
-                    // updateConversation; the default would de-tokenize every
-                    // message and persist real values, breaking the round-trip.
-                    const conv = await agentStore.getConversationById(conversation.id, userAuth.encryptionKey, { restore: false });
-                    if (conv && conv.messages) {
-                        let lastUserIdx = -1;
-                        for (let i = conv.messages.length - 1; i >= 0; i--) {
-                            if (conv.messages[i].role === 'user') { lastUserIdx = i; break; }
-                        }
-                        if (lastUserIdx >= 0) {
-                            const redactedContent = guardrailViolation
-                                ? '[Message removed - policy violation]'
-                                : (processedUserMessage !== userMessage ? processedUserMessage : '[Message removed - policy violation]');
-                            const updatedMessages = conv.messages.map((/** @type {Record<string, unknown>} */ m, /** @type {number} */ idx) =>
-                                idx === lastUserIdx ? { ...m, content: redactedContent, isRedacted: true } : m
-                            );
-                            await _serializeConversationWrite(conversation.id, () => agentStore.updateConversation(conversation.id, updatedMessages, userAuth.encryptionKey, userAuth.userId));
-                            log.info(`[AgentRuntime] Guardrail: server-side redaction completed for conversation ${conversation.id}`);
-                        }
-                    }
-                } catch (err) {
-                    log.error('[AgentRuntime] Guardrail: server-side redaction failed:', /** @type {Error} */ (err).message);
-                }
-            });
+            const redactedContent = guardrailViolation
+                ? '[Message removed - policy violation]'
+                : (processedUserMessage !== userMessage ? processedUserMessage : '[Message removed - policy violation]');
+            setImmediate(() => redactTurnUserMessage({
+                userSave, persistDurable, redactedContent, conversationId: conversation.id, tag: '[AgentRuntime] Guardrail:',
+            }));
         }
 
         log.info(`[AgentRuntime] Guardrail hard-block — skipped AI entirely (violation: ${violationType})`);

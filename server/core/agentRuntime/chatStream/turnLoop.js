@@ -26,7 +26,7 @@ const { finalizeStreamTurn } = require('../finalizeTurn');
 const { prepareTurn } = require('./turnPrepare');
 const { resolveProjectContext } = require('../contextEnrichment');
 const { setupTurn } = require('./turnSetup');
-const { assembleTurnHistory, _serializeConversationWrite } = require('./turnHistory');
+const { assembleTurnHistory } = require('./turnHistory');
 const { runTurnPreflight } = require('./turnPreflight');
 const { createSkillActivationHandler } = require('./skillActivation');
 const { MAX_TOOL_REPEAT, createTurnLoopState, seedNotebookFromEditor } = require('./turnState');
@@ -72,9 +72,9 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     if (moderationViolation || guardrailViolation) {
         return await respondGuardrailHardBlock({
             moderationViolation, guardrailViolation, onEvent: t.onEvent, messageMetadata,
-            durableMessages: t.durableMessages, persistDurable: t.persistDurable, isEphemeral: t.isEphemeral,
-            conversation: t.conversation, userAuth, processedUserMessage: t.processedUserMessage,
-            userMessage, modelToUse: t.modelToUse, _serializeConversationWrite,
+            durableMessages: t.durableMessages, userSave: t.userSave, persistDurable: t.persistDurable, isEphemeral: t.isEphemeral,
+            conversation: t.conversation, processedUserMessage: t.processedUserMessage,
+            userMessage, modelToUse: t.modelToUse,
         });
     }
 
@@ -328,7 +328,7 @@ function finalizeRound(t, st, { fullResponse, useNativeAdapter, guardrailViolati
         guardrailViolation, processedUserMessage: t.processedUserMessage, userMessage: t.userMessage,
         userAuth: t.userAuth, extractMemoriesEnabled: t.extractMemoriesEnabled,
         validProjectId: t.validProjectId, modelToUse: t.modelToUse, toolCalls: st.toolCalls,
-        _serializeConversationWrite, memoryPolicy: t.memoryPolicy, memoryUsed: t.memoryUsed,
+        memoryPolicy: t.memoryPolicy, memoryUsed: t.memoryUsed,
     });
 }
 

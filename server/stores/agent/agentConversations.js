@@ -548,7 +548,7 @@ module.exports = {
     listConversations, listAllConversations, searchConversations,
     getConversationById, createConversation,
     updateConversationTitle, pinConversation, setConversationLabels, updateThreadTitles, deleteConversationById,
-    updateConversationMeta, getConversationMeta,
+    updateConversationMeta, getConversationMeta, _resolveAgentWriteContext, ConversationWriteDenied, // ./conversationTurns.js
     // sharedConversations re-keys meta_json when crypto_scope flips and must
     // bind the SAME AAD this table uses — exported rather than copied.
     _metaAad,
