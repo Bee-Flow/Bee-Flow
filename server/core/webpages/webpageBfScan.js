@@ -31,6 +31,9 @@ const RE_ATTRIBUTE = /([A-Za-z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`
  */
 const RE_EXPRESSION_VALUE = /^\{|\$\{/;
 
+/**
+ * @param {string | null} value
+ */
 function isExpressionValue(value) {
     return typeof value === 'string' && RE_EXPRESSION_VALUE.test(value.trim());
 }
@@ -55,6 +58,10 @@ function isExpressionValue(value) {
 function maskComments(text, kind) {
     const src = String(text || '');
     if (!src || !kind) return src;
+    /**
+     * @param {number} from
+     * @param {number} to
+     */
     const blank = (from, to) => src.slice(from, to).replace(/[^\n]/g, ' ');
     let out = '';
     let i = 0;
@@ -113,7 +120,11 @@ function maskComments(text, kind) {
     return out;
 }
 
-/** The language of a file, for `maskComments`. Unknown → do not mask. */
+/**
+ * The language of a file, for `maskComments`. Unknown → do not mask.
+ * @param {string} source
+ * @param {string | null} slot
+ */
 function commentKindOf(source, slot) {
     if (slot === 'html' || slot === 'css' || slot === 'js') return slot;
     const name = String(source || '').toLowerCase();
@@ -129,9 +140,12 @@ function commentKindOf(source, slot) {
  * Quotes count, so that a `>` IN an attribute value does not cut the tag short early.
  * An unclosed tag stops at the next `<` or at the upper bound — nothing is repaired
  * here, only read.
+ * @param {string} src
+ * @param {number} from
  */
 function openTagText(src, from) {
     const stop = Math.min(src.length, from + MAX_OPEN_TAG_LENGTH);
+    /** @type {string | null} */
     let quote = null;
     for (let i = from; i < stop; i++) {
         const c = src[i];
@@ -142,10 +156,15 @@ function openTagText(src, from) {
     return src.slice(from, stop);
 }
 
-/** De geschreven attributen van een openingstag, op kleine letter. */
+/**
+ * De geschreven attributen van een openingstag, op kleine letter.
+ * @param {string} text
+ */
 function parseAttributes(text) {
+    /** @type {Record<string, string>} */
     const out = {};
     const re = new RegExp(RE_ATTRIBUTE.source, 'g');
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(text)) !== null) {
         const name = String(m[1]).toLowerCase();
@@ -160,6 +179,9 @@ function parseAttributes(text) {
  * The value as the author WROTE it for the attribute that carries the binding.
  * Via the registry, because that attribute may also stand under an older
  * spelling (`datatable` beside `source`).
+ * @param {string} tag
+ * @param {Record<string, string>} attrs
+ * @param {string} from
  */
 function writtenBindingValue(tag, attrs, from) {
     for (const [name, value] of Object.entries(attrs)) {
@@ -179,7 +201,22 @@ function writtenBindingValue(tag, attrs, from) {
  * @param {string|null} slot  'html'|'css'|'js' for one of the three slots, otherwise null
  */
 function scanBfElementsIn(text, source, slot) {
+    /**
+     * @type {{ source: string; slot: string | null; line: number; tag: string; known: boolean; 
+    // The FAMILY is what the element hangs on, not what it is called: the
+    // Code tab tints on it. It comes from the DEFINITION, not from the
+    // filled-in binding: a `<bf-table>` without `source` is still
+    // a table element, and setting the family to `null` because the author
+    // forgot the address would make "I do not know WHICH table" indistinguishable
+    // from "this hangs on no table at all".
+    // `null` therefore means: this KIND of element binds nothing.
+    family: string | null; targetId: string | null; dynamic: boolean; fallback: string | null; 
+    // `null` for an unknown element — "nothing is missing" is a
+    // statement that you cannot make about it (see missingAttributes).
+    missing: string[] | null; reason: string | null; }[]}
+     */
     const marks = [];
+    /** @type {string[]} */
     const unknown = [];
     if (!text) return { marks, total: 0, unknown };
 
@@ -190,6 +227,7 @@ function scanBfElementsIn(text, source, slot) {
     text = maskComments(text, commentKindOf(source, slot));
 
     const re = new RegExp(bfElements.BF_TAG_SCAN.source, 'gi');
+    /** @type {RegExpExecArray | null} */
     let m;
     let total = 0;
     // Regelnummer meelopend bijhouden: de treffers komen in oplopende volgorde,
@@ -262,6 +300,7 @@ function scanBfElements({ html = '', css = '', js = '', extras = [] } = {}) {
     }
 
     const all = [];
+    /** @type {string[]} */
     const unknownTags = [];
     let total = 0;
     for (const part of parts) {

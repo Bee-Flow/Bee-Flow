@@ -50,8 +50,10 @@ function ownHosts() {
  * Regex literals are NOT recognized (`/['"]/` is read as a string start).
  * That is the known blind spot; the safety net in `scanSource` turns it into
  * `unresolved` instead of silence.
+ * @param {string} text
  */
 function maskCode(text) {
+    /** @type {{ value: string; template: boolean; hasSubstitution: boolean; }[]} */
     const literals = [];
     let masked = '';
     let i = 0;
@@ -102,7 +104,11 @@ function maskCode(text) {
     return { masked, literals };
 }
 
-/** 1-gebaseerd regelnummer van een index in de gemaskeerde tekst. */
+/**
+ * 1-gebaseerd regelnummer van een index in de gemaskeerde tekst.
+ * @param {string} masked
+ * @param {number} index
+ */
 function lineAt(masked, index) {
     let line = 1;
     const upto = Math.min(index, masked.length);
@@ -110,7 +116,10 @@ function lineAt(masked, index) {
     return line;
 }
 
-/** The part of a literal that is fixed: everything before the first `${`. */
+/**
+ * The part of a literal that is fixed: everything before the first `${`.
+ * @param {{ value: string; template: boolean; hasSubstitution: boolean; }} literal
+ */
 function fixedPrefixOf(literal) {
     const raw = String(literal.value || '');
     if (!literal.hasSubstitution) return { text: raw.trim(), dynamic: false };
@@ -124,11 +133,15 @@ function fixedPrefixOf(literal) {
  * @returns {{verdict:'internal'|'external'|'unknown', host?:string}}
  *   'unknown' means "not determinable" and counts as `unresolved` — never
  *   as internal, because then the call would disappear from view.
+ * @param {string} prefix
+ * @param {boolean} dynamic
+ * @param {Set<string>} hosts
  */
 function classifyUrl(prefix, dynamic, hosts) {
     const raw = String(prefix || '');
     if (!raw) return { verdict: 'unknown' };
     if (NON_NETWORK_SCHEMES.test(raw)) return { verdict: 'internal' };
+    /** @type {string | null} */
     let host = null;
     if (/^https?:\/\//i.test(raw)) {
         try { host = new URL(raw).host.toLowerCase(); } catch { return { verdict: 'unknown' }; }
@@ -148,7 +161,11 @@ function classifyUrl(prefix, dynamic, hosts) {
     return hosts.has(host) ? { verdict: 'internal' } : { verdict: 'external', host };
 }
 
-/** Aantal treffers van `re` in `text` (re moet /g hebben). */
+/**
+ * Aantal treffers van `re` in `text` (re moet /g hebben).
+ * @param {string} text
+ * @param {RegExp} re
+ */
 function countRaw(text, re) {
     return (String(text).match(re) || []).length;
 }
@@ -162,6 +179,17 @@ function countRaw(text, re) {
  * @param {Set<string>} hosts    eigen hosts
  */
 function scanSource(text, source, lineOffset, hosts) {
+    /**
+     * @type {{ kind: string; method: string | null; 
+    // What stands there, not what we make of it: the author must recognize
+    // his own line. A template keeps an ellipsis as its tail.
+    url: string; 
+    // The part that is REALLY fixed, without the ellipsis: that is what may end up
+    // in a scaffolded automation. `dynamic` says alongside it that
+    // the page built the rest of the address on the spot, so that nobody
+    // regards that automation as complete.
+    urlPrefix: string; dynamic: boolean; host: string | undefined; source: string; line: number; }[]}
+     */
     const found = [];
     let unresolved = 0;
     let internal = 0;
@@ -169,6 +197,12 @@ function scanSource(text, source, lineOffset, hosts) {
 
     const { masked, literals } = maskCode(text);
 
+    /**
+     * @param {string} kind
+     * @param {string | null} method
+     * @param {number} literalIndex
+     * @param {number} at
+     */
     const push = (kind, method, literalIndex, at) => {
         const literal = literals[literalIndex];
         if (!literal) { unresolved++; return; }
@@ -198,6 +232,7 @@ function scanSource(text, source, lineOffset, hosts) {
     // expression and thus not traceable. The method stays null: `{method:
     // 'POST'}` stands in the second argument and is NOT guessed here.
     const fetchRe = new RegExp(RE_FETCH.source, 'g');
+    /** @type {RegExpExecArray | null} */
     let m;
     let fetchSeen = 0;
     while ((m = fetchRe.exec(masked)) !== null) {
@@ -214,6 +249,7 @@ function scanSource(text, source, lineOffset, hosts) {
     let xhrResolved = 0;
     if (/\bXMLHttpRequest\b/.test(masked)) {
         const openRe = new RegExp(RE_XHR_OPEN.source, 'g');
+        /** @type {RegExpExecArray | null} */
         let o;
         while ((o = openRe.exec(masked)) !== null) {
             const method = String(literals[Number(o[1])]?.value || '').trim().toUpperCase();
@@ -234,11 +270,16 @@ function scanSource(text, source, lineOffset, hosts) {
     return { found, unresolved, internal };
 }
 
-/** De inline `<script>`-blokken uit index.html, met hun regeloffset. */
+/**
+ * De inline `<script>`-blokken uit index.html, met hun regeloffset.
+ * @param {string} html
+ */
 function inlineScripts(html) {
+    /** @type {{ text: string; lineOffset: number; }[]} */
     const out = [];
     if (!html) return out;
     const re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(html)) !== null) {
         // A `<script src=…>` has no content that we can read; its
