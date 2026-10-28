@@ -47,6 +47,7 @@ const { secretMatches, decodeAuthHeader } = require('./auth');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { t, userLanguage } = require('./l10n');
 
 // Brute-force gate on the inbound AppAPI shared-secret check. AppAPI itself
 // never presents a bad one, so only failures are billed and real deliveries are
@@ -460,21 +461,24 @@ async function postBotMessage(token, message, replyTo) {
 async function handleMention(payload) {
     const roomToken = payload?.roomToken;
     if (!roomToken) return;
+    // The bot's own sentences follow the asking user's Nextcloud language
+    // (#402); the agent's answer is the model's, in the language it was asked.
+    const lang = await userLanguage(payload.actor);
     const question = extractQuestion(payload);
     if (!question) {
         await postBotMessage(roomToken,
-            'Hi! Mention me with a question — e.g. "@Bee Flow what changed in my calendar today?"',
+            t(lang, 'Hi! Mention me with a question — e.g. "@Bee Flow what changed in my calendar today?"'),
             payload.messageId).catch(e => log.warn(`[TalkBot] reply failed: ${errMessage(e)}`));
         return;
     }
     try {
         const answer = await askSaaSAgent({ question, ncUid: payload.actor, roomToken });
-        await postBotMessage(roomToken, answer || 'I could not find an answer to that.', payload.messageId);
+        await postBotMessage(roomToken, answer || t(lang, 'I could not find an answer to that.'), payload.messageId);
         log.info(`[TalkBot] answered @mention in room ${roomToken} (uid=${log.ref(payload.actor)})`);
     } catch (err) {
         log.warn(`[TalkBot] @mention answer failed for room ${roomToken}: ${errMessage(err)}`);
         await postBotMessage(roomToken,
-            'Sorry — I could not answer that just now. Please try again in a moment.',
+            t(lang, 'Sorry — I could not answer that just now. Please try again in a moment.'),
             payload.messageId).catch(() => {});
     }
 }
@@ -574,6 +578,7 @@ module.exports = Object.assign(router, {
     saveSecret,
     mentionsBot,
     extractQuestion,
+    handleMention,
     BOT_ROUTE,
     BOT_NAME,
 });

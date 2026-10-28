@@ -116,7 +116,7 @@ function decodeAuthHeader(header) {
 
 /**
  * The part of `GET /ocs/v2.php/cloud/users/{uid}` this file reads.
- * @typedef {{ ocs?: { data?: { id: string, email?: string | null, displayname?: string, display_name?: string, groups?: string[] } } }} OcsUserResponse
+ * @typedef {{ ocs?: { data?: { id: string, email?: string | null, displayname?: string, display_name?: string, groups?: string[], language?: string } } }} OcsUserResponse
  */
 
 /**
@@ -167,6 +167,9 @@ async function fetchNextcloudUser(uid) {
         // admin through the org onboarding wizard — not just the single admin
         // captured at bootstrap. `/cloud/users/{uid}` returns the user's groups.
         isNcAdmin: Array.isArray(data.groups) && data.groups.includes('admin'),
+        // Personal settings → Language. Only picks the language of the
+        // connector's own messages (l10n.js); never sent to Bee Flow.
+        language: typeof data.language === 'string' && data.language ? data.language : null,
     };
     _userCache.set(uid, { user, expiresAt: now + USER_CACHE_TTL_MS });
     // Bound the cache so churn on a busy NC instance can't leak memory.
