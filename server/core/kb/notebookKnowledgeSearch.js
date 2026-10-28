@@ -185,7 +185,7 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
             }
         }
     } catch (err) {
-        log.warn('[NotebookKBSearch] Search failed:', err.message);
+        log.warn('[NotebookKBSearch] Search failed:', /** @type {Error} */ (err).message);
         return { chunks: [], contextPrompt: '', citations: [] };
     }
 
@@ -358,7 +358,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
             }
         }
     } catch (e) {
-        log.warn('[NotebookKBSearch] Comprehensive search failed:', e.message);
+        log.warn('[NotebookKBSearch] Comprehensive search failed:', /** @type {Error} */ (e).message);
     }
 
     // 3. If we got very few results, do a second broader query
@@ -391,7 +391,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
                 }
             }
         } catch (e) {
-            log.warn('[NotebookKBSearch] Fallback search failed:', e.message);
+            log.warn('[NotebookKBSearch] Fallback search failed:', /** @type {Error} */ (e).message);
         }
     }
 

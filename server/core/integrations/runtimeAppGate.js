@@ -126,8 +126,14 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         } catch (_) { effectiveIntegrations = null; /* fall back to the legacy org gate */ }
         let _capReg = null;
         try { _capReg = lazy.capabilityRegistry(); } catch (_) { _capReg = null; }
+        /**
+         * @param {string} appId
+         */
         const isKnownIntegration = (appId) => !!(_capReg && _capReg.getCapability(appId)?.kind === 'integration');
 
+        /**
+         * @param {string} appId
+         */
         const isAppOn = (appId) => {
             if (identityUnknown) return false;
             // Must be enabled at user level (a per-user UX preference).

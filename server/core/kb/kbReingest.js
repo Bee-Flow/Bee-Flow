@@ -24,6 +24,9 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
  *   instead of warning.
  * @param {Function} [opts.deleteLocal] test seam for localKBIngest.deleteChunksLocally
+ * @param {string} kbId
+ * @param {string} docId
+ * @param {string} tenantId
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -31,7 +34,7 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, dele
         await (deleteLocal || require('./localKBIngest').deleteChunksLocally)(tenantId, kbId, docId);
     } catch (err) {
         if (!isMissingTable(err)) {
-            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${err.message}`);
+            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${/** @type {Error} */ (err).message}`);
             bestEffort('kb/kbReingest:localChunks', err);
         }
     }
@@ -63,8 +66,8 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, dele
             }
         }
     } catch (e) {
-        if (strict) throw new Error(`chunk cleanup failed for document ${docId}: ${e.message}`);
-        log.warn('[KBHelpers] Search-service chunk cleanup failed:', e.message);
+        if (strict) throw new Error(`chunk cleanup failed for document ${docId}: ${/** @type {Error} */ (e).message}`);
+        log.warn('[KBHelpers] Search-service chunk cleanup failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -151,7 +154,7 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
                 });
             } catch (err) { fallback('core/kb/kbReingest:reingestDocument', err); /* best-effort */ }
             await kbStore.bumpKBVersion(kbId);
-            return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: embedErr.message };
+            return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: /** @type {Error} */ (embedErr).message };
         }
         // Row stays (it is the caller's row), but its chunks are gone: say so.
         try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (err) { bestEffort('core/kb/kbReingest:reingestDocument#2', err); /* best-effort */ }

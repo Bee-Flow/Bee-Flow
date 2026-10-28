@@ -58,6 +58,7 @@ async function generateEmbedding(text, agentContext = null) {
 
 
     try {
+        /** @type {{ "Content-Type": string; Authorization?: string }} */
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -117,7 +118,7 @@ async function generateEmbedding(text, agentContext = null) {
                     source: agentContext?.source || 'knowledge_embedding',
                 });
             } catch (logErr) {
-                log.warn('[AIAgent] Failed to log embedding usage:', logErr.message);
+                log.warn('[AIAgent] Failed to log embedding usage:', /** @type {Error} */ (logErr).message);
             }
         }
 

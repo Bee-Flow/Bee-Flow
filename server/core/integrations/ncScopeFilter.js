@@ -1,3 +1,4 @@
+/** @typedef {import('../entitlements/betaFeatures').SessionLike} SessionLike */
 // @typecheck
 const { RESOURCE_KINDS, resolveNcScope, normalizeFolderPath } = require('./ncScope');
 const { resolveScopeOrg } = require('./ncScopeOrg');
@@ -64,6 +65,10 @@ function _mailMemoKey(ids, entry) {
     return `${_scopeKey(ids)}|${sel}`;
 }
 
+/** @typedef {{ userId: string | null | undefined, orgId: string | null, agentId: string | null }} _effectiveScopeArgs */
+/**
+ * @param {_effectiveScopeArgs} param0
+ */
 async function _effectiveScope({ userId, orgId, agentId }) {
     const key = _scopeKey({ userId, orgId, agentId });
     const hit = _scopeCache.get(key);

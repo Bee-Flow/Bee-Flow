@@ -20,6 +20,9 @@ const PREFIX_TO_INTEGRATION = [
     ['nextcloud_', 'nextcloud'],
 ];
 
+/**
+ * @param {string} toolName
+ */
 function integrationIdForTool(toolName) {
     if (typeof toolName !== 'string') return null;
     for (const [prefix, id] of PREFIX_TO_INTEGRATION) {

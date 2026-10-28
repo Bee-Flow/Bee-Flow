@@ -12,6 +12,7 @@ const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.b
  * two documents are ~99% the same text modulo whitespace / casing.
  *
  * Returns a signed BigInt fitting Postgres BIGINT, or null for empty input.
+ * @param {string} text
  */
 function simhash64(text) {
     if (!text) return null;
@@ -44,6 +45,9 @@ function simhash64(text) {
     return signed;
 }
 
+/**
+ * @param {string} content
+ */
 function byteLength(content) {
     try { return Buffer.byteLength(String(content), 'utf8'); } catch (_) { return null; }
 }
@@ -75,8 +79,8 @@ async function embedDocumentContent(tenantId, kbId, docId, content, { title, sou
             const result = await ingestLocally(tenantId, kbId, docId, content, { title, sourceUri, lang, pages });
             return result.chunks_created || 0;
         } catch (localErr) {
-            log.error('[KBHelpers] Local ingestion failed:', localErr.message);
-            throw new Error(`Local ingestion failed: ${localErr.message}`);
+            log.error('[KBHelpers] Local ingestion failed:', /** @type {Error} */ (localErr).message);
+            throw new Error(`Local ingestion failed: ${/** @type {Error} */ (localErr).message}`);
         }
     }
 
