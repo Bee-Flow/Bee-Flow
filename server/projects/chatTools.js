@@ -148,7 +148,7 @@ function makeProjectChatTools(deps = {}) {
             if (membership().isAllowedIn('notebook', project.kind ?? null) && await notebooksAllowed({ userId, orgId, session })) out.push(DEFINITIONS.create_notebook);
             if (await searchAvailable()) out.push(searchDefinition());
         } catch (err) {
-            log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && err.message}`);
+            log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && /** @type {Error} */ (err).message}`);
             return [];
         }
         return out;
@@ -162,8 +162,15 @@ function makeProjectChatTools(deps = {}) {
         /** @type {{ kind: 'document'|'notebook'|'template', id: string, name: string }[]} */
         const created = [];
         let searches = 0;
+        /**
+         * @param {string} error
+         */
         const refuse = (error) => JSON.stringify({ ok: false, error });
 
+        /**
+         * @param {string} kind
+         * @param {string} noun
+         */
         async function checked(kind, noun) {
             if (created.length >= MAX_ITEMS_PER_ANSWER) return { error: `At most ${MAX_ITEMS_PER_ANSWER} items can be made in one answer.` };
             const role = await getProjectRole(userId, project.id);
@@ -259,17 +266,17 @@ function makeProjectChatTools(deps = {}) {
                 try {
                     return await search(input);
                 } catch (err) {
-                    log.warn(`[ProjectChatTools] search failed in project ${project.id}: ${err && err.message}`);
+                    log.warn(`[ProjectChatTools] search failed in project ${project.id}: ${err && /** @type {Error} */ (err).message}`);
                     return refuse('The search could not be run.');
                 }
             }
             try {
                 return name === 'create_document' ? await createDocument(input) : await createNotebook(input);
             } catch (err) {
-                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${err && (err.errorClass || err.code || err.message)}`);
+                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${err && (err.errorClass || err.code || /** @type {Error} */ (err).message)}`);
                 // A refusal the store states on purpose is a sentence; anything else stays generic.
                 const status = Number(err && err.status);
-                return refuse(status >= 400 && status < 500 && err.message ? String(err.message).slice(0, 200) : 'It could not be made.');
+                return refuse(status >= 400 && status < 500 && /** @type {Error} */ (err).message ? String(/** @type {Error} */ (err).message).slice(0, 200) : 'It could not be made.');
             }
         }
 

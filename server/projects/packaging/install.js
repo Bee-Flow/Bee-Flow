@@ -245,7 +245,7 @@ async function installBlueprint({
             ...provenance,
         }));
     } catch (err) {
-        return { ok: false, errors: [`The Solution could not be created: ${err.message}`] };
+        return { ok: false, errors: [`The Solution could not be created: ${/** @type {Error} */ (err).message}`] };
     }
 
     const ctx = makeInstallCtx({

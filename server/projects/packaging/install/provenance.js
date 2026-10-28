@@ -101,7 +101,7 @@ async function verifyClaimedBlueprint({ claimedId = null, solutionKey = null } =
         const row = await store.getBlueprintById(claimedId, { includeManifest: false });
         return !!row && row.solutionKey === solutionKey;
     } catch (err) {
-        log.warn('[Blueprint] could not check a claimed Blueprint id:', err.message);
+        log.warn('[Blueprint] could not check a claimed Blueprint id:', /** @type {Error} */ (err).message);
         return false;
     }
 }

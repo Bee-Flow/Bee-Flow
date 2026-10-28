@@ -100,7 +100,7 @@ function makeChatShield(deps = {}) {
         try {
             return await resolveShieldFor({ orgId: orgId || null, userId });
         } catch (err) {
-            log.error('[ProjectChat] Privacy Shield lookup failed, not calling the model:', err && err.message);
+            log.error('[ProjectChat] Privacy Shield lookup failed, not calling the model:', err && /** @type {Error} */ (err).message);
             throw new PrivacyBlocked('shield_unavailable');
         }
     }
@@ -141,7 +141,7 @@ function makeChatShield(deps = {}) {
                 });
             } catch (err) {
                 // FAIL CLOSED: the org asked for the gate and it could not run.
-                log.error('[ProjectChat] DLP scan failed, not calling the model:', err && err.message);
+                log.error('[ProjectChat] DLP scan failed, not calling the model:', err && /** @type {Error} */ (err).message);
                 audit(base, { violation_type: 'pii_unavailable', violation_categories: 'privacy_protection_unavailable', action_taken: 'blocked' });
                 throw new PrivacyBlocked('scan_failed');
             }
@@ -183,12 +183,12 @@ function makeChatShield(deps = {}) {
                 audit(base, { violation_type: 'pii_unavailable', violation_categories: 'privacy_protection_unavailable', action_taken: 'blocked' });
                 throw new PrivacyBlocked('pii_unavailable');
             }
-            if (err?.message?.includes('PII Detected')) {
+            if (/** @type {Error} */ (err)?.message?.includes('PII Detected')) {
                 audit(base, { violation_type: 'pii', violation_categories: labelsOf(err.piiEntities), action_taken: 'blocked' });
                 throw new PrivacyBlocked('pii_block');
             }
             // The detector itself failed: fail open, exactly like the agent path.
-            log.warn('[ProjectChat] PII check error (fail-open):', err && err.message);
+            log.warn('[ProjectChat] PII check error (fail-open):', err && /** @type {Error} */ (err).message);
             return { text: outbound, tokenMap: null };
         }
     }
@@ -233,7 +233,7 @@ function makeChatShield(deps = {}) {
                 if (!blocking) return null;
                 return { modelError: `Web search blocked: the query contains sensitive personal information (${cats}). Search again without it.` };
             } catch (err) {
-                log.warn('[ProjectChat] Web Search Guard check failed (fail-open):', err && err.message);
+                log.warn('[ProjectChat] Web Search Guard check failed (fail-open):', err && /** @type {Error} */ (err).message);
                 return null;
             }
         };

@@ -72,6 +72,7 @@ function makeRenderText(deps = {}) {
  * @returns {boolean}
  */
 function looksBrowserReachable(url) {
+    /** @type {string} */
     let host;
     try { host = new URL(url).hostname.toLowerCase().replace(/\.$/, ''); } catch { return false; }
     if (!host || !host.includes('.')) return false;
@@ -105,7 +106,7 @@ async function ncPortalBase(userId, { getUser, getOrganization, appId } = {}) {
         if (!isNc || !/^https?:\/\//i.test(base) || !looksBrowserReachable(base)) return null;
         return `${base}/index.php/apps/app_api/embedded/${appId || 'bee_flow'}/main`;
     } catch (err) {
-        log.warn(`[ProjectCollab] Nextcloud link base for ${userId} unavailable: ${err && err.message}`);
+        log.warn(`[ProjectCollab] Nextcloud link base for ${userId} unavailable: ${err && /** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -135,6 +136,10 @@ function makeCollabNotifier(deps = {}) {
         }
     }
 
+    /**
+     * @param {string[]} ids
+     * @param {string | null} except
+     */
     const unique = (ids, except) => [...new Set(ids || [])].filter((id) => id && id !== except);
 
     /**
@@ -158,7 +163,7 @@ function makeCollabNotifier(deps = {}) {
                     const { title, message } = await renderText({ userId, key, vars: { project: project.name, actor, ...vars } });
                     await createNotification({ userId, category, title, message, link });
                 } catch (err) {
-                    log.warn(`[ProjectCollab] ${event} notification to ${userId} not created: ${err && err.message}`);
+                    log.warn(`[ProjectCollab] ${event} notification to ${userId} not created: ${err && /** @type {Error} */ (err).message}`);
                 }
             }
             for (const userId of email) {
@@ -172,12 +177,12 @@ function makeCollabNotifier(deps = {}) {
                         ctaUrl: link ? await mailLink(userId, link) : null,
                     });
                 } catch (err) {
-                    log.warn(`[ProjectCollab] ${event} mail to ${userId} not sent: ${err && err.message}`);
+                    log.warn(`[ProjectCollab] ${event} mail to ${userId} not sent: ${err && /** @type {Error} */ (err).message}`);
                 }
             }
             return bell.length;
         } catch (err) {
-            log.warn(`[ProjectCollab] ${event} not notified: ${err && err.message}`);
+            log.warn(`[ProjectCollab] ${event} not notified: ${err && /** @type {Error} */ (err).message}`);
             return 0;
         }
     }
@@ -208,7 +213,7 @@ function makeCollabNotifier(deps = {}) {
                 }
                 ids = members.ids;
             } catch (err) {
-                log.warn(`[ProjectCollab] members of group ${sharedWithId} unknown: ${err && err.message}`);
+                log.warn(`[ProjectCollab] members of group ${sharedWithId} unknown: ${err && /** @type {Error} */ (err).message}`);
                 return 0;
             }
         } else if (sharedWithType === 'user') {
