@@ -461,9 +461,9 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
  * So shared threads append, and `seq` is allocated HERE rather than taken from
  * an array index. `SELECT ... FOR UPDATE` on the parent row serialises
  * concurrent writers on the same conversation (`_lockConversation`), which is
- * what makes `MAX(seq)+1` safe. There is NO unique index on
- * (conversation_id, seq) behind it: rows from before the lock may share a
- * seq, so readers break ties themselves (`READ_ORDER`).
+ * what makes `MAX(seq)+1` safe; the unique (conversation_id, seq) index is
+ * the backstop. Rows from before the lock may share a seq until the dedupe
+ * migration renumbered them, so readers break ties themselves (`READ_ORDER`).
  *
  * Messages carrying a `clientMsgId` are idempotent: a retry, a double-submit
  * from two tabs, or a reconnect mid-send resolves to one row.
@@ -487,8 +487,8 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
 
     return withTransaction(async (client) => {
         // Serialise appenders on this conversation. Without the row lock two
-        // concurrent appends compute the same MAX(seq)+1 and both rows land on
-        // that seq (there is no unique index on (conversation_id, seq)).
+        // concurrent appends compute the same MAX(seq)+1 for different rows,
+        // which the unique (conversation_id, seq) index does not let both keep.
         await _lockConversation(client, type, conversationId);
 
         const { rows: seqRows } = await client.query(

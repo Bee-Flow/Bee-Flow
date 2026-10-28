@@ -150,6 +150,9 @@ const LOOSE_MIGRATIONS = [
     // org's org_granted_capabilities (and from the column DEFAULT) and deletes
     // the system-component-designer agent row. A no-op once neither is there.
     'drop-component-designer-2026-10',
+    // Renumbers conversation_messages rows that share a seq (in read order)
+    // and builds the unique (conversation_id, seq) index CONCURRENTLY.
+    'conversation-messages-seq-unique-2026-10',
 ];
 
 /**

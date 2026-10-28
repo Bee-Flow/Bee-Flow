@@ -32,6 +32,7 @@ const convMessages = require('./conversationMessages');
 const agentConversations = require('./agentConversations');
 const directConversations = require('./directConversations');
 const { saveConversationTurn, placeDirectConversationTurn } = require('./conversationTurns');
+const { INDEX_SQL } = require('../../migrations/conversation-messages-seq-unique-2026-10');
 
 const USER = 'user-1';
 
@@ -39,6 +40,9 @@ before(async () => {
     await initDB();
     await convMessages.initDB();
     await pg.query("INSERT INTO agents (id, name, owner_id) VALUES ('agent-1', 'Agent', $1)", [USER]);
+    // The unique (conversation_id, seq) index the migration builds: every
+    // writer below (turn write, replace, lazy migration) must keep seq unique.
+    await pg.query(INDEX_SQL);
 });
 after(close);
 

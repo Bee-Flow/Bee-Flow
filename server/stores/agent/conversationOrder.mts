@@ -10,12 +10,13 @@
  */
 
 /**
- * `seq` is unique per conversation as long as writes on one conversation
- * serialise (`lockConversation`), but no unique index guarantees it, and rows
- * written by unserialised writers may share one. On a tie Postgres returns
- * heap order, which an UPDATE of either row flips, so the same conversation
- * could read back differently from one request to the next. `created_at` (the
- * writing transaction's start) and then `id` make the order total and stable.
+ * `seq` is unique per conversation: every writer takes `lockConversation`,
+ * and the unique index on (conversation_id, seq)
+ * (migrations/conversation-messages-seq-unique-2026-10.js) guarantees it once
+ * the rows that unserialised writers left on one seq are renumbered. Until
+ * then Postgres returns tied rows in heap order, which an UPDATE of either row
+ * flips; `created_at` (the writing transaction's start) and then `id` make the
+ * order total and stable.
  */
 export const READ_ORDER = 'ORDER BY seq ASC, created_at ASC, id ASC';
 
@@ -222,11 +223,18 @@ export async function writeTurnRows(client: RowsClient, w: TurnWrite): Promise<b
         );
     }
     if (plan.moves.length > 0) {
+        // Two steps: the unique (conversation_id, seq) index is checked row by
+        // row, so moving 2 -> 4 while 4 is still there would fail. The moved
+        // rows first go to -1 - seq (no row is ever stored below 0), then up.
         await client.query(
-            `UPDATE conversation_messages AS m SET seq = v.seq
+            `UPDATE conversation_messages AS m SET seq = -1 - v.seq
                FROM unnest($2::text[], $3::int[]) AS v(id, seq)
               WHERE m.conversation_id = $1 AND m.id = v.id`,
             [w.conversationId, plan.moves.map((m) => m.id), plan.moves.map((m) => m.seq)],
+        );
+        await client.query(
+            'UPDATE conversation_messages SET seq = -1 - seq WHERE conversation_id = $1 AND seq < 0',
+            [w.conversationId],
         );
     }
     await w.insertRows(plan.startSeq);
