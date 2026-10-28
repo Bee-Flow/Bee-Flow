@@ -45,7 +45,7 @@ function isRepeat(state, name, args) {
 
 /**
  * @param {string} name
- * @param {any} args
+ * @param {unknown} args
  * @param {any} result
  * @param {any} state
  * @param {{ mutating?: Set<string>|((name: string) => boolean) }} [opts]
