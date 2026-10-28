@@ -7,6 +7,7 @@
 
 import type { ServerProbeResult } from '../shared/types.ts';
 import { failedLoadVerdict, redirectVerdict } from './server/unreachable.ts';
+import { workspaceUrl } from './server/url.ts';
 
 export interface UnreachableHost {
     /** The configured server's address, '' when none. */
@@ -78,7 +79,7 @@ export class UnreachableFlow {
             // network change mid-load). One quiet retry beats an error page
             // with a green "the server answered" on it.
             this.retriedAfterGoodProbe = true;
-            this.host.load(url);
+            this.host.load(workspaceUrl(url));
             return;
         }
         this.retriedAfterGoodProbe = false;

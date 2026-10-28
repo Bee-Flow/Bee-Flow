@@ -29,6 +29,7 @@ import { noNextcloudFolder } from './dialogs.ts';
 import { chromiumFetch } from './server/chromiumFetch.ts';
 import { probeServer, type ProbeOptions } from './server/probe.ts';
 import { isServerNavigation, isUnencrypted, titleSuffix } from './server/serverPage.ts';
+import { workspaceUrl } from './server/url.ts';
 import { createPermissionHandlers, type PermissionPrompt } from './security/permissions.ts';
 import { permissionDecision, senderTrust, type PolicyContext } from './security/policy.ts';
 import { withClientHeader } from './security/sessionHeaders.ts';
@@ -314,7 +315,7 @@ export class DesktopApp {
     /** Point the main window at the server, or at the first-run picker. */
     private async loadWorkspace(window: BrowserWindow): Promise<void> {
         const url = this.settings.get().server.url;
-        this.load(window, url || shellPageUrl('welcome'));
+        this.load(window, url ? workspaceUrl(url) : shellPageUrl('welcome'));
     }
 
     /**
@@ -407,7 +408,7 @@ export class DesktopApp {
 
         this.log.info('Server', `now pointing at ${probe.url}`);
         this.broadcast(EVENT.serverChanged, probe.url);
-        this.load(this.mainWindow, probe.url);
+        this.load(this.mainWindow, workspaceUrl(probe.url));
         this.tray.refresh();
         this.restartOffer.offer(probe.url);
         return probe;
