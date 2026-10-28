@@ -582,7 +582,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} ApprovalRow
+ * @typedef ApprovalRow
  * @property {string} id
  * @property {string | null} [organization_id]
  * @property {string | null} [project_id]
@@ -633,7 +633,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} CreateApprovalInput
+ * @typedef CreateApprovalInput
  * @property {string | null} [organizationId]
  * @property {string | null} [automationId]
  * @property {string} [automationTitle]
@@ -676,7 +676,7 @@ module.exports = {
 /** @typedef {{ createdAt: string | Date, id: string }} ApprovalCursor */
 
 /**
- * @typedef {object} ApprovalFilters
+ * @typedef ApprovalFilters
  * @property {ApprovalViewer | null} [viewer]
  * @property {{ orgId?: string } | null} [org]
  * @property {string | string[]} [status]
@@ -688,7 +688,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} VoteRow
+ * @typedef VoteRow
  * @property {string} id
  * @property {string} approval_id
  * @property {string} stage

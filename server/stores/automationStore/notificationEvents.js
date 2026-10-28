@@ -28,7 +28,7 @@
 const crypto = require('crypto');
 
 /**
- * @typedef {object} EventRow
+ * @typedef EventRow
  * @property {string} id
  * @property {string} automation_id
  * @property {string | null} [run_id]

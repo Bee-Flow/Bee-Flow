@@ -23,7 +23,7 @@ const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
 
 /**
- * @typedef {object} GeneratedFileRow
+ * @typedef GeneratedFileRow
  * @property {string} id
  * @property {string} run_id
  * @property {string} automation_id

@@ -17,7 +17,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 /** @typedef {{ definition?: Record<string, unknown>, projectId?: string | null, [key: string]: unknown }} AutomationUpdates */
 /** @typedef {{ name?: string, description?: string, descriptionJson?: unknown, isLayoutOnly?: boolean }} VersionMeta */
 /**
- * @typedef {object} UpdateAutomationOpts
+ * @typedef UpdateAutomationOpts
  * @property {boolean} [goLive]
  * @property {VersionMeta | null} [versionMeta]
  * @property {boolean} [forceVersion]

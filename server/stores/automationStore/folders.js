@@ -36,7 +36,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} FolderRow
+ * @typedef FolderRow
  * @property {string} id
  * @property {string | null} [organization_id]
  * @property {string} name

@@ -28,7 +28,7 @@ const { fromJsonb } = require('./rowMappers');
 const DELIVERY_CHANNELS = Object.freeze(['nc_talk', 'nc_notification']);
 
 /**
- * @typedef {object} DeliveryRow
+ * @typedef DeliveryRow
  * @property {string} id
  * @property {string} approval_id
  * @property {string | null} [stage]

@@ -98,12 +98,11 @@ const { saveRunFullOutput, getRunFullOutput } = createRunFullOutputs();
  * never names a copy that does not exist. A failed write costs the copy, never
  * the step row: it is logged and the plain sentinel is stored, as before.
  *
- * @param {object} args
- * @param {unknown} args.value                       the redacted output
- * @param {FullOutputRef} args.ref                   the run-step row it belongs to
- * @param {(v: any) => any} [args.clean]             the row's own last pass (NUL stripping)
- * @param {(a: FullOutputRef & { value: unknown, originalBytes: number }) => Promise<void>} [args.save]
- * @param {number} [args.maxBytes]
+ * @param {{
+ *   value: unknown, ref: FullOutputRef, clean?: (v: any) => any,
+ *   save?: (a: FullOutputRef & { value: unknown, originalBytes: number }) => Promise<void>, maxBytes?: number,
+ * }} args
+ *   value: the redacted output; ref: the run-step row it belongs to; clean: the row's own last pass (NUL stripping)
  * @returns {Promise<unknown>}  the value for output_json
  */
 async function persistableOutput({ value, ref, clean = (v) => v, save = saveRunFullOutput, maxBytes = fullOutputMaxBytes() }) {
