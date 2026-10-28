@@ -65,7 +65,7 @@ function makeSheetGate(deps = {}) {
  * offer the type). Never throws.
  *
  * @param {Middleware} gate
- * @param {any} req
+ * @param {unknown} req  handed to the gate as it is
  */
 async function sheetsVisible(gate, req) {
     try {
@@ -88,7 +88,7 @@ let sharedGate = null;
  * the sheet routes (the chat's attachment intake) that hold only the request.
  * Never throws.
  *
- * @param {any} req
+ * @param {unknown} req  handed to the gate as it is
  */
 async function sheetsAllowedFor(req) {
     if (!sharedGate) sharedGate = makeSheetGate();

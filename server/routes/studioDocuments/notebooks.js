@@ -37,11 +37,10 @@ const Filing = bodyOf({
 /** @typedef {import('../projects/notebookGate').Middleware} Middleware */
 
 /**
- * @param {object} [deps]
- * @param {Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling'>} [deps.library]  stores/notebookLibrary surface
- * @param {Pick<typeof import('../../stores/documentStore'), 'assertFolder'>} [deps.documents]       stores/documentStore surface
- * @param {Middleware} [deps.gate]       the notebook gates as one middleware
- * @param {import('express').RequestHandler} [deps.requireAuth]
+ * @param {{ library?: Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling'>, // stores/notebookLibrary surface
+ *   documents?: Pick<typeof import('../../stores/documentStore'), 'assertFolder'>, // stores/documentStore surface
+ *   gate?: Middleware, // the notebook gates as one middleware
+ *   requireAuth?: import('express').RequestHandler }} [deps]
  */
 function makeNotebookLibraryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
