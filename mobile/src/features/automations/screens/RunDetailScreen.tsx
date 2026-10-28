@@ -37,6 +37,7 @@ const makeStyles = (theme: Theme) =>
 function useRunDetailActions(automationId: string, runId: string) {
     const router = useRouter();
     const { toast } = useToast();
+    const t = useTranslation();
     const refresh = useRunRefresh(automationId, runId);
     const onError = (error: Error) => toast(describeError(error).message, 'error');
 
@@ -48,16 +49,16 @@ function useRunDetailActions(automationId: string, runId: string) {
                 router.replace(`/automations/${automationId}/runs?runId=${result.run.id}`);
                 return;
             }
-            toast('Retry started — it is still running');
+            toast(t('mobile.automations.retry_started', 'Retry started — it is still running'));
         },
         onError,
     });
     const cancel = useCancelRun(refresh, {
-        onSuccess: () => toast('Stop requested — it ends after the current step'),
+        onSuccess: () => toast(t('mobile.automations.stop_requested', 'Stop requested — it ends after the current step')),
         onError,
     });
     const decide = useDecideRunStep(runId, refresh, {
-        onSuccess: () => toast('Decision sent', 'success'),
+        onSuccess: () => toast(t('mobile.automations.decision_sent', 'Decision sent'), 'success'),
         onError,
     });
     return { retry, cancel, decide };
@@ -99,7 +100,7 @@ export function RunDetailScreen({ automationId, runId }: { automationId: string;
         data: run.data ?? undefined,
         isLoading: run.isLoading,
         isError: run.isError,
-        error: run.error ?? new Error('This run could not be loaded.'),
+        error: run.error ?? new Error(t('mobile.automations.run_not_loaded', 'This run could not be loaded.')),
         refetch: run.refetch,
     };
 
@@ -114,7 +115,7 @@ export function RunDetailScreen({ automationId, runId }: { automationId: string;
                         onBack={() => leaveRun(router, automationId)}
                     />
                 ) : (
-                    <ScreenHeader title="Run" />
+                    <ScreenHeader title={t('runs.tab.detail_label', 'Run')} />
                 )
             }
             refresh={() => Promise.all([run.refetch(), steps.refetch()])}

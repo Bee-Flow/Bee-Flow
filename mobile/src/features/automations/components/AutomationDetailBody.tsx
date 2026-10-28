@@ -31,14 +31,14 @@ function RunNowButton({ automation, liveRun, pending, onRun }: { automation: Aut
     return (
         <>
             <Button
-                label={liveRun ? 'Already running' : 'Run now'}
+                label={liveRun ? t('mobile.automations.already_running', 'Already running') : t('automations.run_now', 'Run now')}
                 size="lg"
                 fullWidth
                 icon={<Icon name="Play" size={18} color={theme.colors.accentPrimaryFg} />}
                 loading={pending}
                 disabled={liveRun || !canStart}
                 onPress={onRun}
-                accessibilityHint={canStart ? 'Starts this automation immediately, outside its schedule' : hint}
+                accessibilityHint={canStart ? t('mobile.automations.run_now_hint', 'Starts this automation immediately, outside its schedule') : hint}
             />
             {canStart ? null : (
                 <Text variant="label" tone="tertiary">
@@ -68,6 +68,7 @@ export function AutomationDetailBody({
     onDecided: () => void;
     onEditSchedule: () => void;
 }) {
+    const t = useTranslation();
     const { runs, liveRun, stream, run, runNote, setActive, stop } = state;
     const lastRun = runs.data?.[0] ?? null;
     const awaiting = lastRun?.status === 'awaiting_approval' ? lastRun : null;
@@ -105,7 +106,7 @@ export function AutomationDetailBody({
             />
 
             {automation.description ? (
-                <Section title="About">
+                <Section title={t('mobile.automations.about', 'About')}>
                     <Card>
                         <Markdown value={automation.description} streaming={false} />
                     </Card>
@@ -116,8 +117,8 @@ export function AutomationDetailBody({
 
             <Text variant="label" tone="tertiary">
                 {lastRun
-                    ? `Last run took ${formatDuration(runElapsedMs(lastRun))}.`
-                    : 'No runs recorded yet.'}
+                    ? t('mobile.automations.last_run_took', 'Last run took {duration}.', { duration: formatDuration(runElapsedMs(lastRun)) })
+                    : t('mobile.automations.no_runs_recorded', 'No runs recorded yet.')}
             </Text>
         </>
     );

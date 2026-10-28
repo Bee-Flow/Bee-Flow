@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Spinner, Switch, Text } from '@/shared/ui';
 
@@ -30,11 +31,11 @@ const makeStyles = (theme: Theme) =>
         lines: { gap: 2 },
     });
 
-function stateLine(automation: Automation): string {
-    if (!automation.isActive) return 'Paused — it will not fire on its own';
+function stateLine(t: TranslateFn, automation: Automation): string {
+    if (!automation.isActive) return t('mobile.automations.state.paused', 'Paused — it will not fire on its own');
     return automation.nextRunAt
-        ? `Next run ${absoluteTime(automation.nextRunAt).toLowerCase()}`
-        : 'Armed and waiting for its trigger';
+        ? t('mobile.automations.state.next_run', 'Next run {time}', { time: absoluteTime(automation.nextRunAt).toLowerCase() })
+        : t('mobile.automations.state.armed', 'Armed and waiting for its trigger');
 }
 
 export function ActivationRow({
@@ -49,13 +50,14 @@ export function ActivationRow({
     onChange: (next: boolean) => void;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     return (
         <>
             <View style={styles.row}>
                 <View style={styles.text}>
-                    <Text variant="body">Automation is on</Text>
+                    <Text variant="body">{t('mobile.automations.is_on', 'Automation is on')}</Text>
                     <Text variant="caption" tone="tertiary">
-                        {stateLine(automation)}
+                        {stateLine(t, automation)}
                     </Text>
                 </View>
                 {pending ? (
@@ -64,7 +66,7 @@ export function ActivationRow({
                     <Switch
                         value={automation.isActive}
                         onValueChange={onChange}
-                        accessibilityLabel="Automation is on"
+                        accessibilityLabel={t('mobile.automations.is_on', 'Automation is on')}
                     />
                 )}
             </View>

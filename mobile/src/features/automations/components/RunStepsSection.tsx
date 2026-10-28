@@ -6,6 +6,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Card, ListSkeleton, Text } from '@/shared/ui';
 
@@ -28,13 +29,14 @@ interface StepsQuery {
 
 function StepsBody({ steps }: { steps: StepsQuery }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     if (steps.isLoading) return <ListSkeleton rows={4} />;
     if (steps.isError) {
         return (
             <View style={styles.gutter}>
                 <Banner
                     tone="error"
-                    action={<Button label="Retry" variant="ghost" onPress={() => void steps.refetch()} />}
+                    action={<Button label={t('automation_editor.run_retry', 'Retry')} variant="ghost" onPress={() => void steps.refetch()} />}
                 >
                     {describeError(steps.error).message}
                 </Banner>
@@ -50,10 +52,11 @@ function StepsBody({ steps }: { steps: StepsQuery }) {
 
 export function RunStepsSection({ steps }: { steps: StepsQuery }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     return (
         <View style={styles.section}>
             <Text variant="label" tone="tertiary" style={styles.gutter}>
-                STEP BY STEP
+                {t('mobile.automations.step_by_step', 'STEP BY STEP')}
             </Text>
             <StepsBody steps={steps} />
         </View>

@@ -238,14 +238,6 @@ const UNCONVERTED = new Map<string, number>([
     // 12 -> 5: the form card, its date field and the action's result went
     // through t() with the decimal-comma and run-polling fixes.
     ['src/features/apps', 5],
-    // 68 -> 64: the run timeline's empty state and Sent/Received labels and
-    // the live card's Stop went through t() with the step names.
-    // 64 -> 52: the run facts, the failure cards and the outcome banners went
-    // through t() when the trigger and error-class tokens got their words.
-    // 52 -> 50: the run-access hint (automations.run.viewOnlyHint) and the
-    // Run now / Run again accessibility hints go through t(), so the viewer
-    // copy added no strings and two older literals went with the rewrite.
-    ['src/features/automations', 50],
     // 25 -> 17: the schedule screen's labels and toasts went through t() when
     // its Delete learned to ask first.
     ['src/features/cowork', 17],

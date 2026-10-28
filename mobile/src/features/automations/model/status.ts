@@ -129,7 +129,7 @@ export type SkipGroup = 'configured' | 'no_work' | 'pinned';
 
 export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     disabled: 'configured',
-    note: 'configured',
+    'note': 'configured',
     arrayref_unresolved: 'no_work',
     overref_unresolved: 'no_work',
     aggregate_field_absent: 'no_work',
