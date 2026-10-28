@@ -30,6 +30,7 @@ const rateLimit = require('./rateLimit');
 const log = require('./log');
 const { errMessage } = require('./errors');
 const { singleFlight } = require('./singleFlight');
+const { TOP_MENU_NAME } = require('./filesActions');
 
 /**
  * Is this caller presenting the AppAPI shared secret?
@@ -273,7 +274,7 @@ async function registerTopMenu() {
         method: 'POST',
         headers: appApiHeaders(),
         body: JSON.stringify({
-            name: 'main',
+            name: TOP_MENU_NAME,
             displayName: 'Bee Flow',
             icon: 'img/app.svg',
             adminRequired: 0,
@@ -301,7 +302,7 @@ async function registerEmbedScript() {
         headers: appApiHeaders(),
         body: JSON.stringify({
             type: 'top_menu',
-            name: 'main',
+            name: TOP_MENU_NAME,
             path: 'js/embed',
             afterAppId: '',
         }),
