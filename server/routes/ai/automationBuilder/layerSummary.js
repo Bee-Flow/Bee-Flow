@@ -99,7 +99,7 @@ router.post('/summarise-layer', requireAuth, summariseLayerRateLimit, validate({
             { role: 'user', content: userMsg },
         ], { maxTokens: 80, temperature: 0.3, reasoningEffort: 'none', budgetTokens: 0 });
     } catch (e) {
-        log.error('[automationBuilder/summarise-layer] inference failed:', e.message);
+        log.error('[automationBuilder/summarise-layer] inference failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'summarise_layer_unavailable', 'Could not generate a summary right now. Please try again.');
     }
 

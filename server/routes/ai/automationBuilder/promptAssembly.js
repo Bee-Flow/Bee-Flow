@@ -68,6 +68,7 @@ async function assembleTurnPrompt(turn) {
     const draftIsEmpty = !def0.trigger
         && !(Array.isArray(def0.steps) && def0.steps.length)
         && !Object.keys(def0.layers || {}).length;
+    /** @type {string | null} */
     let schemaPart = null;
     if (profile.schemaInjection) {
         try {
@@ -79,7 +80,7 @@ async function assembleTurnPrompt(turn) {
                 schemaPart = relevant.text;
                 for (const t of relevant.tools) draftWrap._inspectedTools.add(t);
             }
-        } catch (e) { log.warn('[AutomationBuilder] schema injection skipped:', e.message); }
+        } catch (e) { log.warn('[AutomationBuilder] schema injection skipped:', /** @type {Error} */ (e).message); }
     }
 
     // The composer's Web search toggle: whether the builder model ITSELF

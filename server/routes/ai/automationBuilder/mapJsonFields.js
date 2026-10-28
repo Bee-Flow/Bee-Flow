@@ -107,6 +107,7 @@ function validateMapJsonRequest(body) {
     // Defensive scrub: a runState-shaped paste must never ship its secrets
     // root to the model — same principle as execAiStep's stripped promptScope.
     if (!Array.isArray(sample)) delete sample.secrets;
+    /** @type {string} */
     let serialized;
     try { serialized = JSON.stringify(sample); } catch { return { error: 'Sample is not serializable JSON.' }; }
     if (typeof serialized !== 'string' || serialized.length > MAX_MAP_JSON_SAMPLE_CHARS) {
@@ -187,6 +188,7 @@ function verifyMappedFields(rawFields, sample, { itemsRef = '' } = {}) {
             }
         }
         if (entry.verified) {
+            /** @type {string} */
             let preview;
             try { preview = typeof v === 'string' ? v : JSON.stringify(v); } catch { preview = String(v); }
             if (typeof preview !== 'string') preview = String(preview);
@@ -249,7 +251,7 @@ router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ 
             { role: 'user', content: userMsg },
         ], MAP_JSON_FIELDS_TOOL, { maxTokens: 1024, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
-        log.error('[automationBuilder/map-json-fields] inference failed:', e.message);
+        log.error('[automationBuilder/map-json-fields] inference failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'map_json_fields_unavailable', 'Could not map fields right now. Please try again.');
     }
 

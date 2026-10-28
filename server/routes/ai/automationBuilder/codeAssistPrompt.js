@@ -142,6 +142,7 @@ function renderToolDoc(doc) {
 /** @param {CodeAnalysis | null} analysis */
 function renderFindings(analysis) {
     if (!analysis || typeof analysis !== 'object') return 'The check is not available right now.';
+    /** @type {string[]} */
     const lines = [];
     if (analysis.syntaxError) {
         const s = analysis.syntaxError;

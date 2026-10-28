@@ -45,6 +45,7 @@ const MAX_CONTEXT_ID_LEN = 64;
 /** Whitelist + bound the client's editor context; null when nothing usable. */
 function sanitizeEditorContext(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    /** @type {Record<string, string>} */
     const out = {};
     for (const key of CONTEXT_STRING_KEYS) {
         const v = raw[key];
@@ -77,6 +78,7 @@ function sanitizeHistory(history) {
 }
 
 // Product-language labels for the tool_call SSE event.
+/** @type {Record<string, string>} */
 const TOOL_LABELS = {
     cms_create_page: 'Created page',
     cms_update_page_meta: 'Updated page settings',
@@ -93,12 +95,18 @@ const TOOL_LABELS = {
     cms_get_page: 'Read page',
 };
 
+/**
+ * @param {string | number} name
+ */
 function labelForTool(name) {
     return TOOL_LABELS[name] || name;
 }
 
 /** One short human line per tool result — feeds the tool_call SSE event. */
 function summariseToolResult(name, args, result) {
+    /**
+     * @param {string} s
+     */
     const cap = (s) => {
         const str = String(s || '').replace(/\s+/g, ' ').trim();
         return str.length > 140 ? `${str.slice(0, 140)}…` : str;
@@ -148,6 +156,7 @@ function parseToolArgs(raw, toolName) {
 
 /** JSON-safe truncation for model-facing tool messages (never cuts mid-JSON). */
 function truncateJson(result, maxChars = 30_000) {
+    /** @type {string} */
     let s;
     try { s = JSON.stringify(result); } catch (_) { return JSON.stringify({ error: 'unserializable tool result' }); }
     if (typeof s !== 'string') return JSON.stringify(null);

@@ -1,3 +1,5 @@
+/** @typedef {import('./turnSetup').BuilderDraftWrap} BuilderDraftWrap */
+/** @typedef {import('../../../automation/builderTools/draftGraph').DraftGraph} DraftGraph */
 // @typecheck
 /**
  * The datatable side of one builder chat turn: how the turn is set up so the
@@ -64,7 +66,11 @@ async function setupDatatableTurn({
     return answered;
 }
 
-/** What a proposal preview carries: the definition, its base, and the tables it creates and uses. */
+/**
+ * What a proposal preview carries: the definition, its base, and the tables it creates and uses.
+ * @param {BuilderDraftWrap} draftWrap
+ * @param {DraftGraph} baseDraft
+ */
 function proposalPreviewPayload(draftWrap, baseDraft) {
     const pending = draftWrap._pendingDatatables || [];
     return {

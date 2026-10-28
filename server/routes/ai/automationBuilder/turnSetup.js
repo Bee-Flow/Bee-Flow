@@ -351,7 +351,7 @@ async function setupTurn(turn) {
         const { buildDatatableCatalogForUser } = require('../../../automation/builderDatatableCatalog');
         draftWrap._datatables = await buildDatatableCatalogForUser(userId);
     } catch (e) {
-        log.warn('[AutomationBuilder] datatable catalog unavailable:', e.message);
+        log.warn('[AutomationBuilder] datatable catalog unavailable:', /** @type {Error} */ (e).message);
         draftWrap._datatables = null;
     }
     catalog.datatables = draftWrap._datatables;
@@ -370,7 +370,7 @@ async function setupTurn(turn) {
         const { buildDocumentCatalogForUser } = require('../../../automation/builderDocumentCatalog');
         draftWrap._documents = await buildDocumentCatalogForUser(userId);
     } catch (e) {
-        log.warn('[AutomationBuilder] document catalog unavailable:', e.message);
+        log.warn('[AutomationBuilder] document catalog unavailable:', /** @type {Error} */ (e).message);
         draftWrap._documents = null;
     }
     catalog.documents = draftWrap._documents;
