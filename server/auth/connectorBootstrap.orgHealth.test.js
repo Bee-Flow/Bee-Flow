@@ -107,7 +107,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const resolved = originalResolve.call(this, request, parent, ...rest);
-    if (parent && /auth[\\/](connectorBootstrap|connector[\\/][A-Za-z]+)\.js$/.test(parent.filename)
+    if (parent && /auth[\\/](connectorBootstrap|connector[\\/][A-Za-z]+)\.(js|mts)$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, resolved)) {
         return MOCK_IDS[resolved];
     }

@@ -23,6 +23,11 @@ function required(name) {
 // This is what enables one-click install from the Nextcloud App Store —
 // the customer admin doesn't need to mint or paste any keys.
 const rawTenantKey = process.env.BEEFLOW_TENANT_KEY || 'auto';
+
+// Bee Flow Cloud's API. Same value as setupConfig.CLOUD_URL (that module
+// needs config, so it cannot be the source here).
+const CLOUD_API_BASE_URL = 'https://server.beeflow.nl';
+const envApiBaseUrl = (process.env.BEEFLOW_API_BASE_URL || '').trim().replace(/\/+$/, '');
 const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
 
 /**
@@ -41,6 +46,7 @@ const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
  * @property {string | null} organizationName
  * @property {string | null} ncInstanceId
  * @property {string} apiBaseUrl
+ * @property {boolean} apiBaseUrlLocked     BEEFLOW_API_BASE_URL names a server other than Cloud: the admin's lock
  * @property {string} embedBaseUrl
  * @property {string | null} pairingCode
  * @property {number} jwtTtlSeconds
@@ -84,7 +90,16 @@ const config = {
     ncInstanceId: null,
     // Override only for staging / on-prem. Default points at the Bee Flow dev
     // environment.
-    apiBaseUrl: (process.env.BEEFLOW_API_BASE_URL || 'https://server.beeflow.nl').replace(/\/+$/, ''),
+    apiBaseUrl: envApiBaseUrl || CLOUD_API_BASE_URL,
+    // Whether BEEFLOW_API_BASE_URL is a deliberate admin lock that the /setup
+    // picker, the admin settings form and the bound-server pin must not
+    // override. AppAPI exports every variable info.xml declares, with its
+    // <default> when nobody typed a value (ExAppEnvVarsHelper::
+    // normalizeAndValidate), so every App Store install runs with
+    // BEEFLOW_API_BASE_URL=https://server.beeflow.nl. Reading "set" as "locked"
+    // made the settings form a no-op and reverted a /setup switch on every
+    // restart. Only a value other than the Cloud default is a lock.
+    apiBaseUrlLocked: !!envApiBaseUrl && envApiBaseUrl !== CLOUD_API_BASE_URL,
 
     // Upstream for the embedded SPA SHELL (index.html + hashed assets). The
     // connector proxies the shell from the cloud frontend host's `/embed/`

@@ -29,6 +29,7 @@ const log = require('./log');
 
 const fs = require('fs').promises;
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
 // ncHostFromUrl and stableInstanceIdFallback are the server's own code: src/shared/orgNaming.js is
@@ -57,6 +58,7 @@ const { errMessage, errCode, errText } = require('./errors');
  * @property {string | null} [organizationName]
  * @property {boolean} [emailSent]
  * @property {string} [ncInstanceId]
+ * @property {string} [apiBaseUrl]  the Bee Flow server that issued it: verify, resend and retarget go there
  * @typedef {PendingBinding & { status: string }} PendingState  what heartbeat and /setup/diagnostics show
  *
  * What /auth/connector/bootstrap and its pending/verify/resend/retarget routes answer. The SaaS
@@ -98,7 +100,7 @@ const { errMessage, errCode, errText } = require('./errors');
  * @property {string} error
  * @property {string | null} remediation
  * @property {string} lastAttemptAt
- * @property {string} nextRetryAt
+ * @property {string | null} nextRetryAt  null when no automatic retry is scheduled
  */
 
 const CACHE_FILE = 'tenant-key.json';
@@ -107,6 +109,12 @@ const ERROR_FILE = 'bootstrap-last-error.json';
 const POLL_INTERVAL_MS = 30_000;
 const POLL_JITTER_MS = 5_000;
 const POLL_GRACE_AFTER_EXPIRY_MS = 5 * 60_000;
+// A failed first bootstrap (Bee Flow server down, egress blocked, DNS not
+// ready) is retried on its own: AppAPI only calls /init on install and
+// upgrade, so without this the connector stayed keyless until a restart.
+// First delay, doubling per failure up to BOOTSTRAP_RETRY_MAX_MS; 0 = off.
+const BOOTSTRAP_RETRY_MS = parseInt(process.env.BEEFLOW_BOOTSTRAP_RETRY_MS || '60000', 10);
+const BOOTSTRAP_RETRY_MAX_MS = 15 * 60_000;
 
 /**
  * @returns {Promise<TenantCache | null>}
@@ -535,13 +543,89 @@ function armTaskPolling() {
     }
 }
 
+// Everything that needs a tenant key and was skipped without one (Assistant
+// providers, Files actions, webhook rows whose secret derives from the key)
+// subscribes here. Fired every time a key becomes active: at boot from the
+// cache, after a provision, an email verification, a pairing code, a server
+// switch or a rotation. Listeners run in the background and must be
+// idempotent; heartbeat.js coalesces its registrations.
+/** @type {Array<() => unknown>} */
+const _tenantKeyListeners = [];
+
+/** @param {() => unknown} listener */
+function onTenantKeyReady(listener) {
+    _tenantKeyListeners.push(listener);
+}
+
+function tenantKeyReady() {
+    stopBootstrapRetry();
+    armTaskPolling();
+    for (const listener of _tenantKeyListeners) {
+        try {
+            Promise.resolve(listener()).catch(err => log.warn(`[Bootstrap] tenant-key listener failed: ${errMessage(err)}`));
+        } catch (err) {
+            log.warn(`[Bootstrap] tenant-key listener failed: ${errMessage(err)}`);
+        }
+    }
+}
+
+/** @type {NodeJS.Timeout | null} */
+let _bootstrapRetryTimer = null;
+let _bootstrapRetryAttempts = 0;
+
+function stopBootstrapRetry() {
+    if (_bootstrapRetryTimer) clearTimeout(_bootstrapRetryTimer);
+    _bootstrapRetryTimer = null;
+    _bootstrapRetryAttempts = 0;
+}
+
+// A rejection that will not change by asking again (bad pairing code,
+// provisioning closed, signature refused) waits for the admin instead.
+/** @param {unknown} err */
+function isRetryableBootstrapError(err) {
+    const status = err instanceof Error ? err.status : undefined;
+    return !status || status >= 500 || status === 408 || status === 429;
+}
+
+/** @param {unknown} err */
+function scheduleBootstrapRetry(err) {
+    if (_bootstrapRetryTimer || config.tenantKey || !config.isAutoTenantKey) return;
+    if (!(BOOTSTRAP_RETRY_MS > 0) || !isRetryableBootstrapError(err)) {
+        if (lastErrorState) {
+            lastErrorState = { ...lastErrorState, nextRetryAt: null };
+            writeErrorFile(lastErrorState).catch(() => {});
+        }
+        return;
+    }
+    const delay = Math.min(BOOTSTRAP_RETRY_MS * 2 ** _bootstrapRetryAttempts, BOOTSTRAP_RETRY_MAX_MS);
+    _bootstrapRetryAttempts += 1;
+    if (lastErrorState) {
+        lastErrorState = { ...lastErrorState, nextRetryAt: new Date(Date.now() + delay).toISOString() };
+        writeErrorFile(lastErrorState).catch(() => {});
+    }
+    _bootstrapRetryTimer = setTimeout(() => {
+        _bootstrapRetryTimer = null;
+        if (config.tenantKey || pendingState?.status === 'awaiting_email_verification') return;
+        log.info(`[Bootstrap] retrying the bootstrap (attempt ${_bootstrapRetryAttempts + 1})`);
+        bootstrapIfNeeded().catch(e => log.warn(`[Bootstrap] retry failed: ${errMessage(e)}`));
+    }, delay);
+    _bootstrapRetryTimer.unref?.();
+}
+
 /**
  * @param {SaasBootstrapResponse} json
  * @param {string | undefined} ncInstanceId
+ * @param {string} [apiBaseUrl]  the server that issued the key, when it is not (any longer) config.apiBaseUrl
  */
-async function applyTenantKeyResponse(json, ncInstanceId) {
+async function applyTenantKeyResponse(json, ncInstanceId, apiBaseUrl) {
     const tenantKey = json.tenantKey;
     if (!tenantKey) throw new Error('Bootstrap response missing tenantKey');
+    // A key is only valid on the server that issued it: a verification
+    // finished after a server switch binds the connector to that server.
+    if (apiBaseUrl && apiBaseUrl !== config.apiBaseUrl && !config.apiBaseUrlLocked) {
+        log.info(`[Bootstrap] Switching to ${apiBaseUrl}, the server that issued this key`);
+        config.apiBaseUrl = apiBaseUrl;
+    }
     config.tenantKey = tenantKey;
     config.organizationId = json.organizationId ?? null;
     config.organizationName = json.organizationName ?? null;
@@ -561,7 +645,7 @@ async function applyTenantKeyResponse(json, ncInstanceId) {
     });
     await deletePendingFile();
     pendingState = null;
-    armTaskPolling();
+    tenantKeyReady();
 }
 
 // Poll the SaaS for an approved binding. Spawned in the background when the
@@ -584,7 +668,7 @@ async function pollPendingBinding(pending) {
         await new Promise(r => setTimeout(r, Math.max(5_000, wait)));
         let res;
         try {
-            res = await fetch(`${config.apiBaseUrl}${pending.pollUrl}`, {
+            res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.pollUrl}`, {
                 signal: AbortSignal.timeout(10_000),
             });
         } catch (e) {
@@ -605,7 +689,7 @@ async function pollPendingBinding(pending) {
                 log.warn('[Bootstrap] Pending poll returned 200 without tenantKey — retrying');
                 continue;
             }
-            await applyTenantKeyResponse(json, pending.ncInstanceId);
+            await applyTenantKeyResponse(json, pending.ncInstanceId, pending.apiBaseUrl);
             log.info(`[Bootstrap] Bound to existing org ${json.organizationId} (${json.organizationName})`);
             return;
         }
@@ -645,7 +729,7 @@ async function submitVerificationCode(code) {
     }
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${pending.verifyUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.verifyUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: String(code || '').trim() }),
@@ -658,7 +742,7 @@ async function submitVerificationCode(code) {
     }
     const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
     if (res.ok && json.tenantKey) {
-        await applyTenantKeyResponse(json, pending.ncInstanceId);
+        await applyTenantKeyResponse(json, pending.ncInstanceId, pending.apiBaseUrl);
         await clearErrorFile();
         log.info(`[Bootstrap] Email verification succeeded — bound to org ${json.organizationId} (${json.organizationName})`);
         return { ok: true, organizationId: json.organizationId, organizationName: json.organizationName };
@@ -684,7 +768,7 @@ async function resendVerificationCode() {
     }
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${pending.resendUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${pending.resendUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             signal: AbortSignal.timeout(15_000),
@@ -723,6 +807,11 @@ async function resendVerificationCode() {
 // mint) happens; once it caches the key, later calls take the fast cached path.
 /** @type {Promise<void> | null} */
 let _bootstrapInFlight = null;
+// Bumped by every explicit reset (invalidateAndRebootstrap). A provision that
+// started before the reset may still be waiting on its server; when it
+// answers, its result belongs to the abandoned target and is dropped instead
+// of overwriting the newer binding.
+let _provisionGeneration = 0;
 /**
  * @returns {Promise<void>}
  */
@@ -730,12 +819,19 @@ function bootstrapIfNeeded() {
     if (_bootstrapInFlight) return _bootstrapInFlight;
     _bootstrapInFlight = (async () => {
         try { return await _provisionFlow(); }
+        catch (err) { scheduleBootstrapRetry(err); throw err; }
         finally { _bootstrapInFlight = null; }
     })();
     return _bootstrapInFlight;
 }
 
 async function _provisionFlow() {
+    const generation = _provisionGeneration;
+    const superseded = () => {
+        if (generation === _provisionGeneration) return false;
+        log.warn('[Bootstrap] a newer setup change superseded this provision — its answer is dropped');
+        return true;
+    };
     if (!config.isAutoTenantKey) {
         log.info('[Bootstrap] BEEFLOW_TENANT_KEY explicitly set, skipping auto-bootstrap');
         return;
@@ -750,10 +846,10 @@ async function _provisionFlow() {
         // Pin to the server this org was provisioned on. A changed default (or
         // picker) URL must not silently move a bound connector to a different
         // Bee Flow server — that would mint a second org there. An explicit
-        // BEEFLOW_API_BASE_URL env override still wins (deliberate admin lock);
+        // BEEFLOW_API_BASE_URL env override (config.apiBaseUrlLocked) still wins;
         // only an explicit reset (setup picker → invalidateAndRebootstrap, which
         // deletes the cache) drops the pin.
-        if (cached.boundApiBaseUrl && !process.env.BEEFLOW_API_BASE_URL) {
+        if (cached.boundApiBaseUrl && !config.apiBaseUrlLocked) {
             if (config.apiBaseUrl !== cached.boundApiBaseUrl) {
                 log.warn(`[Bootstrap] Pinning to bound server ${cached.boundApiBaseUrl} (ignoring configured ${config.apiBaseUrl})`);
             }
@@ -761,7 +857,7 @@ async function _provisionFlow() {
         }
         await clearErrorFile();
         log.info(`[Bootstrap] Loaded cached tenant key for org ${cached.organizationId}`);
-        armTaskPolling();
+        tenantKeyReady();
         return;
     }
 
@@ -864,6 +960,8 @@ async function _provisionFlow() {
         throw err;
     }
 
+    if (superseded()) return;
+
     if (res.status === 202) {
         const json = /** @type {SaasBootstrapResponse} */ (await res.json());
         // Same-domain match — confirm via an emailed code entered in the
@@ -887,6 +985,7 @@ async function _provisionFlow() {
                 maskedEmail: json.maskedEmail || null,
                 organizationName: json.organizationName || null,
                 ncInstanceId: caps.instanceId,
+                apiBaseUrl: config.apiBaseUrl,
             };
             await writePendingFile(pending);
             pendingState = { status: 'awaiting_email_verification', ...pending };
@@ -907,6 +1006,7 @@ async function _provisionFlow() {
             pollUrl: json.pollUrl,
             expiresAt: json.expiresAt,
             ncInstanceId: caps.instanceId,
+            apiBaseUrl: config.apiBaseUrl,
         };
         await writePendingFile(pending);
         log.info(`[Bootstrap] Awaiting org-admin approval (pending ${json.pendingId}, expires ${json.expiresAt})`);
@@ -924,6 +1024,7 @@ async function _provisionFlow() {
         try { parsed = JSON.parse(errBody); } catch (_) { /* not JSON */ }
         const msg = parsed?.error || errBody.slice(0, 200);
         const e = new Error(`Bootstrap rejected by SaaS (HTTP ${res.status}): ${msg}`);
+        e.status = res.status;
         if (parsed?.code) e.code = parsed.code;
         if (parsed?.remediation) e.remediation = parsed.remediation;
         await recordBootstrapError(e, 'saas_post', { remediation: parsed?.remediation });
@@ -950,20 +1051,29 @@ async function _provisionFlow() {
 
 /**
  * Drop the cached tenant key + any in-flight pending binding, clear the
- * in-memory tenant key on `config`, and run a fresh bootstrap. Used by the
- * setup picker when the user flips between Bee Flow Cloud and a
- * self-hosted server — the existing key is for a different SaaS and would
- * be rejected.
+ * in-memory tenant key on `config`, and run a fresh bootstrap, against
+ * `apiBaseUrl` when given (a server switch from /setup or the admin settings
+ * form) or the current server (clear-cache, a new public URL, a pairing code).
  *
- * Best-effort: errors are caught + logged, never thrown to the caller.
+ * Resolves `{ status: 'bound' }` with a key, or `{ status:
+ * 'verification_pending' }` when the server wants the emailed code first: the
+ * connector then stays on that server, keyless, and the embedded app shows the
+ * code screen, exactly as on a fresh install. Verify, resend and retarget go
+ * to the server that issued the pending binding.
+ *
+ * On failure everything rolls back (key, server URL, cache, pending state)
+ * and the error is thrown.
+ * @param {{ pairingCode?: string, apiBaseUrl?: string }} [opts]
+ * @returns {Promise<{ status: 'bound' | 'verification_pending' }>}
  */
-async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCode?: string }} */ ({})) {
+async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
     // Snapshot the previous working state so we can roll back if the new
     // target's bootstrap fails. Without this, a typo in the settings panel
     // (or a Cloud-mode pick from a localhost-only NC sandbox) wipes the
     // working tenant key and strands the connector with 502 "Tenant key not
     // configured" until something else fixes it.
     const prev = {
+        apiBaseUrl: config.apiBaseUrl,
         tenantKey: config.tenantKey,
         organizationId: config.organizationId,
         organizationName: config.organizationName,
@@ -972,6 +1082,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         cacheFile: null,
         pairingCode: config.pairingCode,
     };
+    if (apiBaseUrl) config.apiBaseUrl = apiBaseUrl.replace(/\/+$/, '');
     const cachePath = path.join(config.persistentStorage, CACHE_FILE);
     try {
         prev.cacheFile = await fs.readFile(cachePath, 'utf8').catch(() => null);
@@ -980,6 +1091,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
     try {
         await fs.unlink(cachePath).catch(() => {});
         await deletePendingFile();
+        pendingState = null;
         config.tenantKey = null;
         config.organizationId = null;
         config.organizationName = null;
@@ -990,28 +1102,133 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         log.info('[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping');
         // Explicit admin reset must force a fresh provision, not piggy-back on an
         // in-flight one (which may be mid-bind to the old target / without the
-        // pairing code). Clearing the single-flight guard is safe here: the SaaS
-        // mint is atomic, so even if this races a boot-time provision both
-        // converge on the same key.
+        // pairing code).
         _bootstrapInFlight = null;
+        _provisionGeneration += 1;
         await bootstrapIfNeeded();
         if (!config.tenantKey) {
+            // Read through the getter: TS narrowed pendingState to null above.
+            if (getPendingState()?.status === 'awaiting_email_verification') {
+                log.info(`[Bootstrap] ${config.apiBaseUrl} wants the emailed code before it binds — switch pending`);
+                return { status: 'verification_pending' };
+            }
             // bootstrapIfNeeded swallows network errors and just logs; if we
             // got back here without a key, the new target is unreachable.
             throw new Error('bootstrap completed without producing a tenant key');
         }
+        return { status: 'bound' };
     } catch (err) {
         log.warn(`[Bootstrap] re-bootstrap failed (${errMessage(err)}); rolling back to previous tenant key`);
+        config.apiBaseUrl = prev.apiBaseUrl;
         config.tenantKey = prev.tenantKey;
         config.organizationId = prev.organizationId;
         config.organizationName = prev.organizationName;
         config.ncInstanceId = prev.ncInstanceId;
         config.pairingCode = prev.pairingCode;
+        // A pending binding created during this attempt belongs to the target
+        // we just abandoned: verify/resend would talk to it, and heartbeat
+        // would report a verification the working key does not need.
+        pendingState = null;
+        await deletePendingFile();
         if (prev.cacheFile) {
             await fs.writeFile(cachePath, prev.cacheFile, { mode: 0o600 }).catch(() => {});
         }
         throw err;
     }
+}
+
+/**
+ * Replace this install's tenant key with a fresh one ("Rotate tenant key").
+ *
+ * Asks the Bee Flow server to rotate (POST /auth/connector/rotate-key, signed
+ * with the current key), then applies the new key here: cache, webhook
+ * secrets and the other key-dependent registrations follow via
+ * tenantKeyReady. The old key no longer verifies on the server.
+ *
+ * Re-bootstrapping, which this button used to do, could never rotate: the
+ * server answers a known instance id with its existing key, and the admin was
+ * shown that same fingerprint as "new".
+ *
+ * When the answer is lost after the server may have rotated (network error,
+ * 5xx), the connector re-fetches its binding so it does not keep a key the
+ * server no longer accepts, then reports whether the key changed.
+ * @returns {Promise<{ previousFingerprint: string, fingerprint: string }>}
+ */
+async function rotateTenantKey() {
+    const before = config.tenantKey;
+    if (!before) {
+        const e = new Error('There is no tenant key to rotate yet.');
+        e.code = 'no_tenant_key';
+        throw e;
+    }
+    if (!config.isAutoTenantKey) {
+        const e = new Error('The tenant key is set with BEEFLOW_TENANT_KEY. Rotate it in Bee Flow (Admin → Nextcloud) and set the new key with occ app_api:app:setenv.');
+        e.code = 'env_tenant_key';
+        throw e;
+    }
+    const token = jwt.sign({ purpose: 'connector:rotate-tenant-key' }, before, {
+        algorithm: 'HS256', issuer: 'nextcloud-connector', audience: 'beeflow.nl', expiresIn: 60,
+    });
+    /** @type {Response | null} */
+    let res = null;
+    /** @type {unknown} */
+    let netErr = null;
+    try {
+        res = await fetch(`${config.apiBaseUrl}/auth/connector/rotate-key`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'X-Beeflow-Source': 'nextcloud-connector' },
+            signal: AbortSignal.timeout(15_000),
+        });
+    } catch (e) {
+        netErr = e;
+    }
+    const json = res ? /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({}))) : {};
+
+    if (res?.ok && json.tenantKey) {
+        if (json.tenantKey === before) {
+            const e = new Error('The Bee Flow server answered with the same key; nothing was rotated.');
+            e.code = 'unchanged';
+            throw e;
+        }
+        const cached = await readCache();
+        await applyTenantKeyResponse({
+            tenantKey: json.tenantKey,
+            organizationId: config.organizationId ?? undefined,
+            organizationName: config.organizationName ?? undefined,
+            ncVersion: cached?.ncVersion,
+        }, config.ncInstanceId ?? undefined);
+        log.info(`[Bootstrap] Tenant key rotated for org ${config.organizationId}`);
+        return { previousFingerprint: keyFingerprint(before), fingerprint: keyFingerprint(json.tenantKey) };
+    }
+
+    if (res && res.status === 404) {
+        const e = new Error('This Bee Flow server cannot rotate tenant keys yet. Update the Bee Flow server, then try again.');
+        e.code = 'rotation_unsupported';
+        throw e;
+    }
+    if (res && res.status < 500) {
+        const e = new Error(json.error || `Key rotation refused (HTTP ${res.status})`);
+        e.code = json.code || 'rotation_refused';
+        e.status = res.status;
+        throw e;
+    }
+    // Unknown outcome: the server may have rotated before the answer was lost.
+    // Re-fetch the binding (a known instance gets its CURRENT key back).
+    log.warn(`[Bootstrap] key rotation outcome unknown (${netErr ? errMessage(netErr) : `HTTP ${res?.status}`}); re-fetching the binding`);
+    await invalidateAndRebootstrap();
+    if (config.tenantKey && config.tenantKey !== before) {
+        return { previousFingerprint: keyFingerprint(before), fingerprint: keyFingerprint(config.tenantKey) };
+    }
+    const e = new Error(`Could not rotate the tenant key: ${netErr ? errMessage(netErr) : `HTTP ${res?.status}`}. The current key is unchanged.`);
+    e.code = 'saas_unreachable';
+    throw e;
+}
+
+// First 16 hex chars of sha256(key): enough for an admin to tell two keys
+// apart, never the key itself.
+/** @param {string} key */
+function keyFingerprint(key) {
+    return require('crypto').createHash('sha256').update(String(key)).digest('hex').slice(0, 16);
 }
 
 // Is this NC uid in the admin group? Gates the in-app verification request so
@@ -1046,7 +1263,7 @@ async function requestVerificationCode({ uid, email, displayName }) {
     const retargetUrl = pending.retargetUrl || `/auth/connector/bootstrap/pending/${pending.pendingId}/retarget`;
     let res;
     try {
-        res = await fetch(`${config.apiBaseUrl}${retargetUrl}`, {
+        res = await fetch(`${pending.apiBaseUrl || config.apiBaseUrl}${retargetUrl}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, uid, displayName }),
@@ -1076,11 +1293,13 @@ async function requestVerificationCode({ uid, email, displayName }) {
 
 module.exports = {
     bootstrapIfNeeded,
+    onTenantKeyReady,
     fetchCapabilities,
     getPendingState,
     getLastErrorState,
     remediationFor,
     invalidateAndRebootstrap,
+    rotateTenantKey,
     submitVerificationCode,
     resendVerificationCode,
     requestVerificationCode,

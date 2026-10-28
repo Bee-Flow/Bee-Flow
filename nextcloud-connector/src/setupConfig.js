@@ -5,7 +5,9 @@
  * restarts. Read at boot to override the env-var default for `apiBaseUrl`.
  *
  * Priority for the connector's effective `apiBaseUrl`:
- *   1. Explicit BEEFLOW_API_BASE_URL env (set via `occ app_api:app:setenv`)
+ *   1. BEEFLOW_API_BASE_URL env naming a server other than Cloud (set via
+ *      `occ app_api:app:setenv`; AppAPI injects the Cloud default otherwise,
+ *      which is not a lock, see config.apiBaseUrlLocked)
  *   2. setup-config.json `apiBaseUrl` written by the in-app picker
  *   3. https://server.beeflow.nl (Bee Flow Cloud)
  *
@@ -98,6 +100,26 @@ function save({ mode, apiBaseUrl }) {
     return next;
 }
 
+/**
+ * Put back the server choice that a failed switch replaced. The other fields
+ * (the public Nextcloud URL) stay as they are now.
+ * @param {SetupConfig | null} prev  setupConfig.get() before the switch
+ */
+function restoreApiChoice(prev) {
+    /** @type {SetupConfig} */
+    const next = { ...(cached || {}) };
+    if (prev?.apiBaseUrl) {
+        next.mode = prev.mode;
+        next.apiBaseUrl = prev.apiBaseUrl;
+    } else {
+        delete next.mode;
+        delete next.apiBaseUrl;
+    }
+    next.savedAt = new Date().toISOString();
+    fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
+    cached = next;
+}
+
 // Persist the admin-supplied public NC URL — the one Bee Flow Cloud uses
 // to call back into this Nextcloud for ownership verification + runtime
 // callbacks. Lives in the same file as the apiBaseUrl picker. `null` to
@@ -141,4 +163,4 @@ function chosenApiBaseUrl() {
     return null;
 }
 
-module.exports = { init, get, save, savePublicNcUrl, clear, chosenApiBaseUrl, chosenPublicNcUrl, CLOUD_URL, VALID_MODES };
+module.exports = { init, get, save, restoreApiChoice, savePublicNcUrl, clear, chosenApiBaseUrl, chosenPublicNcUrl, CLOUD_URL, VALID_MODES };
