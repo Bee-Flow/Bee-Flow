@@ -927,7 +927,7 @@ jobs:
 
       - name: Publish the dev release
         if: ${{ env.CHANNEL == 'dev' }}
-        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ env.TAG }}
           name: Bee Flow Desktop — development build
@@ -962,7 +962,7 @@ jobs:
 
       - name: Publish the production release
         if: ${{ env.CHANNEL == 'prod' }}
-        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ env.TAG }}
           name: Bee Flow Desktop ${{ env.VERSION }}
