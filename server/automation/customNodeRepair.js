@@ -180,8 +180,8 @@ function proposedCode(answer) {
  * @param {function} [onProgress]    ({ type, detail }) per turn, like
  *                                   _chatLoop's `emit`.
  *
- * @returns {Promise<{ ok: true, code, repaired, attempts, attemptsUsed, result }
- *                 | { ok: false, reason, message, code: null, lastCandidate, lastError, attempts, attemptsUsed }>}
+ * @returns {Promise<{ ok: true, code: unknown, repaired: unknown, attempts: unknown, attemptsUsed: unknown, result: unknown }
+ *                 | { ok: false, reason: unknown, message: string, code: null, lastCandidate: unknown, lastError: string, attempts: unknown, attemptsUsed: unknown }>}
  */
 async function repairCodeBody({
     code,

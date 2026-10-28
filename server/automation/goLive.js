@@ -74,7 +74,7 @@ const SCHEDULE_MESSAGES = {
  * runPolicy sets run_timeout_ms (the stuck-run reaper's window), and the
  * automation stops being a draft.
  *
- * @returns {{ok: true, columns: object}|{ok: false, status, code, message, body}}
+ * @returns {{ok: true, columns: object}|{ok: false, status: unknown, code: unknown, message: string, body: unknown}}
  */
 function planGoLive(automation, definition, { now = Date.now(), willBeActive, verb = 'publish', deps = {} } = {}) {
     const { nextScheduledRunAt, scheduleSkipsHolidays } = deps.holidays || require('./holidays');
@@ -360,7 +360,7 @@ function writers(deps) {
  * `actorId` is who switches it on (the write's actor, and the owner fallback);
  * `session` and `organizationId` feed checkBeforeLiveCore.
  *
- * @returns {Promise<{ok: true, automation, warnings}|{ok: false, status, code, message, body, raise?, details?}>}
+ * @returns {Promise<{ok: true, automation: { isActive: unknown; }, warnings}|{ok: false, status, code, message, body, raise?, details?}>}
  */
 async function activateCore({ automation, actorId, session = null, organizationId = null, deps = {} }) {
     const a = automation;
@@ -420,7 +420,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
  * inactive and compliance is woken (the same coalescing queue, so on-off-on-off
  * is one review).
  *
- * @returns {Promise<{ok: true, automation}>}
+ * @returns {Promise<{ok: true, automation: { isActive: unknown; }}>}
  * @param {DeactivateCoreArgs} param0
  */
 async function deactivateCore({ automation, actorId, deps = {} }) {

@@ -46,6 +46,7 @@ const STEP_TYPES = new Set(REPLACEABLE_STEP_TYPES);
  * in a builder_add_steps batch — so they map to null and the caller falls back to
  * a generic hint.
  */
+/** @type {Record<string, string | null>} */
 const TOOL_NAME_OVERRIDES = {
     integration_action: 'builder_add_action',
     code: 'builder_add_code_step',
@@ -67,6 +68,7 @@ const TOOL_NAME_OVERRIDES = {
 };
 
 /** Names a model reaches for that are not step types either, but mean one. */
+/** @type {Record<string, string>} */
 const ALIASES = {
     webhook: 'http_request',
     api_call: 'http_request',
