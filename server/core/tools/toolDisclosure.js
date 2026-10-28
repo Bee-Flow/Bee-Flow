@@ -244,11 +244,9 @@ function resolveGroupKey(requested, lazyByGroup) {
  * Given the groups the model asked to load, return the new tool defs to inject.
  *
  * @param {string[]} groupNames
- * @param {Object} ctx
- * @param {Map} ctx.lazyByGroup
- * @param {Set<string>} ctx.loadedNames  - tool names already present in the live list
- * @param {number} ctx.currentToolCount  - current size of the live tool list
- * @param {number} [ctx.maxTools]
+ * @param {{ lazyByGroup: Map, loadedNames: Set<string>, currentToolCount: number, maxTools?: number }} ctx
+ *   `loadedNames`: tool names already present in the live list; `currentToolCount`: current size of the
+ *   live tool list
  * @returns {{ addedDefs: Array, added: string[], alreadyLoaded: string[], unknown: string[], capped: string[] }}
  */
 function expandGroups(groupNames, { lazyByGroup, loadedNames, currentToolCount, maxTools = MAX_DISCLOSED_TOOLS }) {
