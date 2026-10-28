@@ -143,7 +143,9 @@ const tb = require('./triggerBus');
         assert.strictEqual(tb[k], graph[k], `triggerBus.${k} is msGraphSubscriptions.${k}`);
     }
     assert.strictEqual(tb._ncNormaliseActivity, require('./triggerBus/pollers/nextcloud')._ncNormaliseActivity);
-    assert.strictEqual(tb.dispatchEvent, require('./triggerBus/dispatch').dispatchEvent);
+    // dispatchEvent is dispatch.js's, with the Nextcloud visibility checker
+    // attached (#191): a thin wrapper, so the identity no longer holds.
+    assert.strictEqual(typeof tb.dispatchEvent, 'function');
 }
 
 console.log('triggerBus.dsl.test.js — all checks passed');

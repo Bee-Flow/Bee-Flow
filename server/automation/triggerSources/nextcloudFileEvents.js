@@ -5,15 +5,21 @@
  * The Nextcloud file.* trigger events, split out of declared/nextcloud.js to
  * keep that file small (it is spread into that provider's `events`, in order).
  * Not under declared/ on purpose: everything there is loaded as a provider.
- * Fields are the union of both producers: the webhook sets `id`, `owner` and
- * `actorName`; the activity poller sets `activityId` (see triggerBus/pollers/
- * nextcloud.js and nextcloud-connector/src/webhookListeners.js).
+ * The fields ARE the canonical file payload both producers deliver (the
+ * connector's webhook and the activity poller go through
+ * triggerBus/ncPayload.mts), so this list cannot drift from what arrives. A
+ * key the producer cannot know is null: `activityId` on a webhook delivery,
+ * `actorName` from the poller, `id` on a delete.
  */
+const { FILE_FIELDS } = require('../triggerBus/ncPayload.mts');
+
+const FIELDS = [...FILE_FIELDS];
+const RENAMED_FIELDS = [...FILE_FIELDS.slice(0, 3), 'oldPath', ...FILE_FIELDS.slice(3)];
 const FILE_EVENTS = [
     {
         id: 'file.new',
         label: 'New file',
-        fields: ['id', 'activityId', 'path', 'name', 'extension', 'kind', 'actor', 'actorName', 'owner', 'datetime', 'link'],
+        fields: FIELDS,
         sample: {
             id: 4711,
             actorName: 'Alice',
@@ -26,6 +32,7 @@ const FILE_EVENTS = [
             actor: 'alice',
             datetime: '2026-05-13T09:15:00Z',
             link: 'https://cloud.example.com/f/12345',
+            isOwnAction: false,
         },
         scope: 'org',
         source: {
@@ -35,7 +42,7 @@ const FILE_EVENTS = [
     {
         id: 'file.changed',
         label: 'File changed',
-        fields: ['id', 'activityId', 'path', 'name', 'extension', 'kind', 'actor', 'actorName', 'owner', 'datetime', 'link'],
+        fields: FIELDS,
         sample: {
             id: 4711,
             actorName: 'Alice',
@@ -48,6 +55,7 @@ const FILE_EVENTS = [
             actor: 'alice',
             datetime: '2026-05-13T10:20:00Z',
             link: 'https://cloud.example.com/f/12345',
+            isOwnAction: false,
         },
         scope: 'org',
         source: {
@@ -57,7 +65,7 @@ const FILE_EVENTS = [
     {
         id: 'file.deleted',
         label: 'File deleted',
-        fields: ['id', 'activityId', 'path', 'name', 'extension', 'kind', 'actor', 'actorName', 'owner', 'datetime', 'link'],
+        fields: FIELDS,
         sample: {
             id: 4711,
             actorName: 'Alice',
@@ -70,6 +78,7 @@ const FILE_EVENTS = [
             actor: 'alice',
             datetime: '2026-05-13T11:30:00Z',
             link: 'https://cloud.example.com/f/12348',
+            isOwnAction: false,
         },
         scope: 'org',
         source: {
@@ -79,7 +88,7 @@ const FILE_EVENTS = [
     {
         id: 'file.renamed',
         label: 'File renamed',
-        fields: ['id', 'activityId', 'path', 'oldPath', 'name', 'extension', 'kind', 'actor', 'actorName', 'owner', 'datetime', 'link'],
+        fields: RENAMED_FIELDS,
         sample: {
             id: 4711,
             actorName: 'Alice',
@@ -93,6 +102,7 @@ const FILE_EVENTS = [
             actor: 'alice',
             datetime: '2026-05-13T11:45:00Z',
             link: 'https://cloud.example.com/f/12345',
+            isOwnAction: false,
         },
         scope: 'org',
         source: {
