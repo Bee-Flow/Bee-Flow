@@ -74,6 +74,7 @@ function createFakeEngine({ probe = () => [], rejectPattern = (src) => src.inclu
          */
         matchNode(text, compiled) {
             calls.match += 1;
+            /** @type {{ start: number; end: number; typeId: string; }[]} */
             const spans = [];
             for (const e of compiled.entries) {
                 if (!e.re) continue;

@@ -122,7 +122,7 @@ async function checkToolArgs({ toolName, args, shield }) {
         scan = await _deps.detectPii(JSON.stringify(args || {}), blockList, thresholdOf(shield));
     } catch (e) {
         failed = true;
-        log.warn('[ToolPiiGate] argument check failed:', e.message);
+        log.warn('[ToolPiiGate] argument check failed:', /** @type {Error} */ (e).message);
     }
     if (!failed && scan?.degraded) {
         failed = true;
@@ -178,7 +178,7 @@ async function stripBlockedFromText(text, { toolName = null, toolClass = null, s
         if (blocked.length === 0) return unchanged;
         return { text: replaceBlocked(text, blocked), ..._summary(blocked) };
     } catch (e) {
-        log.warn('[ToolPiiGate] result strip failed (fail-open):', e.message);
+        log.warn('[ToolPiiGate] result strip failed (fail-open):', /** @type {Error} */ (e).message);
         return unchanged;
     }
 }
@@ -230,7 +230,7 @@ async function stripBlockedFromKbChunks(chunks, shield, { fields = ['content', '
         }
         return { ..._summary(blocked), sourceLabels: sourceLabels.map(l => replaceBlocked(l, blocked)) };
     } catch (e) {
-        log.warn('[ToolPiiGate] knowledge-base strip failed (fail-open):', e.message);
+        log.warn('[ToolPiiGate] knowledge-base strip failed (fail-open):', /** @type {Error} */ (e).message);
         return none;
     }
 }
@@ -319,6 +319,9 @@ async function stripToolResultForModel(content, { toolName, shield, logEvent = n
  */
 function toolLoopGate({ shield, audit = null, tag }) {
     const shieldNow = typeof shield === 'function' ? shield : async () => shield;
+    /**
+     * @param {string} toolName
+     */
     const logEventFor = (toolName) => (audit ? (fields) => { audit(fields, toolName).catch((e) => bestEffort('privacy/toolPiiGate:audit', e)); } : null);
     return {
         refuse: async (toolName, args) => refuseToolCall({
@@ -339,7 +342,7 @@ async function resolveToolShield(resolve, tag) {
     try {
         return await resolve();
     } catch (e) {
-        log.warn(`[${tag}] Shield lookup failed; tool block lists not applied:`, e.message);
+        log.warn(`[${tag}] Shield lookup failed; tool block lists not applied:`, /** @type {Error} */ (e).message);
         return null;
     }
 }

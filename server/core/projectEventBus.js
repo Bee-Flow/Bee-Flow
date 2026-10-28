@@ -90,14 +90,14 @@ function _ensureSubscriber() {
                 delete parsed._origin;
                 bus.emit(channel.slice(CHANNEL_PREFIX.length), parsed);
             } catch (e) {
-                log.warn('[ProjectEventBus] bad message on', channel, e.message);
+                log.warn('[ProjectEventBus] bad message on', channel, /** @type {Error} */ (e).message);
             }
         });
         _subscriber = sub;
         _subscriberReady = sub.status === 'ready';
         return sub;
     } catch (e) {
-        log.warn('[ProjectEventBus] subscriber setup failed:', e.message);
+        log.warn('[ProjectEventBus] subscriber setup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -161,7 +161,7 @@ async function publishProjectEvent(projectId, event) {
     try {
         bus.emit(projectId, event);
     } catch (e) {
-        log.warn('[ProjectEventBus] local emit failed:', e.message);
+        log.warn('[ProjectEventBus] local emit failed:', /** @type {Error} */ (e).message);
     }
 
     const r = getRedis();
@@ -174,7 +174,7 @@ async function publishProjectEvent(projectId, event) {
         _ensureSubscriber();
         await r.publish(_channel(projectId), JSON.stringify({ ...event, _origin: _originId }));
     } catch (e) {
-        log.warn('[ProjectEventBus] publish failed:', e.message);
+        log.warn('[ProjectEventBus] publish failed:', /** @type {Error} */ (e).message);
     }
 }
 
