@@ -36,7 +36,10 @@ function readCookieToken(req, threadId) {
     return null;
 }
 
-/** Keep the token out of Referer, caches and shared proxies. */
+/**
+ * Keep the token out of Referer, caches and shared proxies.
+ * @param {{ setHeader: (arg0: string, arg1: string) => void; }} res
+ */
 function setNoLeakHeaders(res) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Cache-Control', 'no-store');

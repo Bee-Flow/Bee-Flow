@@ -14,6 +14,7 @@ const {
 /**
  * The caller's first name (or display name), used to anchor speaker naming.
  * Null when the user cannot be looked up: naming works without it.
+ * @param {string} userId
  */
 async function lookupUserName(userId) {
     try {

@@ -36,6 +36,7 @@ const { z } = require('../utils/zod');
 /**
  * No body at all (Express 5 leaves `req.body` undefined then), or an empty
  * one. Every refusal is a sentence that names the keys it would have ignored.
+ * @param {string} why
  */
 const noBody = (why) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),

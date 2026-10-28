@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const log = require('../telemetry/log');
 const templateStore = require('../stores/templateStore');
 const kbStore = require('../stores/knowledgeBases');
@@ -7,6 +7,12 @@ const { getServiceHeaders } = require('../core/serviceAuth');
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
 
+/**
+ * @param {string} templateId
+ * @param {string} userId
+ * @param {string} fileName
+ * @param {string} text
+ */
 async function autoCreateTemplateKB(templateId, userId, fileName, text) {
     log.info(`[Templates] Auto-creating KB for template ${templateId}...`);
 
@@ -71,7 +77,7 @@ async function autoCreateTemplateKB(templateId, userId, fileName, text) {
             }
         }
     } catch (e) {
-        log.warn(`[Templates] Auto-KB ingestion error: ${e.message}`);
+        log.warn(`[Templates] Auto-KB ingestion error: ${/** @type {Error} */ (e).message}`);
         await kbStore.deleteDocument(doc.id);
     }
 }

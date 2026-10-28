@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const fs = require('fs');
 const log = require('../telemetry/log');
 const mammoth = require('mammoth');
@@ -16,6 +16,7 @@ const { generateTemplateContext } = require('./templateContext');
  * data/templates — the one place the upload above writes. The key comes
  * from the database, so a row edited to point elsewhere is refused rather
  * than read, streamed or overwritten.
+ * @param {string} storageKey
  */
 function localTemplateFile(storageKey) {
     const nodePath = require('path');
@@ -25,15 +26,26 @@ function localTemplateFile(storageKey) {
     return file;
 }
 
+/**
+ * @param {string} text
+ */
 function extractParameters(text) {
     const regex = /\{\{([^}]+)\}\}/g;
     const seen = new Set();
+    /** @type {{ name: string; description: string; }[]} */
     const params = [];
+    /** @type {RegExpExecArray | null} */
     let match;
     while ((match = regex.exec(text)) !== null) {
         const raw = match[1].trim();
         // Split on first colon: {{Name: description}}
         const colonIdx = raw.indexOf(':');
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
         let name, description;
         if (colonIdx > 0) {
             name = raw.slice(0, colonIdx).trim();
@@ -50,6 +62,12 @@ function extractParameters(text) {
     return params;
 }
 
+/**
+ * @param {string} templateId
+ * @param {string} userId
+ * @param {string} extractedText
+ * @param {Buffer<ArrayBufferLike>} originalBuffer
+ */
 async function autoParameterizeTemplate(templateId, userId, extractedText, originalBuffer) {
     log.info(`[Templates] Auto-parameterizing template ${templateId}...`);
 
@@ -126,7 +144,7 @@ Respond with ONLY a valid JSON array, no other text:
         const cleaned = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
         replacements = JSON.parse(cleaned);
     } catch (e) {
-        log.error(`[Templates] Failed to parse parameterization JSON: ${e.message}`);
+        log.error(`[Templates] Failed to parse parameterization JSON: ${/** @type {Error} */ (e).message}`);
         log.error(`[Templates] Raw response: ${raw.length} chars`);
         throw new Error('AI returned invalid JSON for parameterization');
     }
@@ -170,7 +188,9 @@ Respond with ONLY a valid JSON array, no other text:
             // Strategy 2: Handle Word's run-splitting by searching within <w:p> paragraphs
             // Word often splits text like "[Invullen: naam]" across multiple <w:r><w:t> elements
             const paragraphRegex = /<w:p[ >][\s\S]*?<\/w:p>/g;
+            /** @type {RegExpExecArray | null} */
             let match;
+            /** @type {string[]} */
             const newContent = [];
             let lastIndex = 0;
 
@@ -179,8 +199,10 @@ Respond with ONLY a valid JSON array, no other text:
                 const paraStart = match.index;
 
                 // Extract all text from <w:t> tags in this paragraph
+                /** @type {{ text: string; fullMatch: string; index: number; }[]} */
                 const textParts = [];
                 const tRegex = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+                /** @type {RegExpExecArray | null} */
                 let tMatch;
                 while ((tMatch = tRegex.exec(paragraph)) !== null) {
                     textParts.push({
@@ -230,6 +252,7 @@ Respond with ONLY a valid JSON array, no other text:
                             // Build replacement for each text part
                             for (let i = startPartIdx; i <= endPartIdx; i++) {
                                 const part = textParts[i];
+                                /** @type {string} */
                                 let newText;
 
                                 if (i === startPartIdx && i === endPartIdx) {

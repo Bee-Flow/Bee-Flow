@@ -78,7 +78,7 @@ async function resolveTeamsSession(req) {
     try {
         session = await d.resolveMicrosoftSession(req.session, userId);
     } catch (err) {
-        log.warn('[Transcriptions] Microsoft session resolve failed:', err.message);
+        log.warn('[Transcriptions] Microsoft session resolve failed:', /** @type {Error} */ (err).message);
     }
     return { session, connection };
 }
@@ -116,6 +116,7 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         const ids = meetingPrefs.teamsIds({ eventId: m.eventId, seriesMasterId: m.seriesMasterId });
         const decision = prefs.decide({ ids, participantCount: meetingPrefs.participantCountOf(m), fallback: true });
         const excluded = !decision.record;
+        /** @type {string} */
         let status;
         if (!m.organizerSelf) status = 'organizer_only';
         else if (excluded) status = 'excluded';
@@ -181,7 +182,7 @@ router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPref
                 }
             }
         } catch (err) {
-            log.warn('[Transcriptions] teams auto-record config failed:', err.message);
+            log.warn('[Transcriptions] teams auto-record config failed:', /** @type {Error} */ (err).message);
             autoRecordingConfig = 'error';
         }
     }

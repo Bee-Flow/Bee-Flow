@@ -12,7 +12,10 @@ const fs = require('fs');
 const summaryTemplateStore = require('../../stores/summaryTemplateStore');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
-/** A user-supplied speaker count → a positive int, or null (Auto). */
+/**
+ * A user-supplied speaker count → a positive int, or null (Auto).
+ * @param {number | undefined} raw
+ */
 function parseSpeakerCount(raw) {
     const n = parseInt(raw, 10);
     return Number.isFinite(n) && n >= 1 ? Math.min(n, 50) : null;
@@ -102,6 +105,8 @@ const VOXTRAL_TIMEOUT_MS = Number(process.env.VOXTRAL_TIMEOUT_MS) || 1_800_000;
  * was then written with the built-in first-generation prompt, and that is none of
  * the five built-in templates: there is thus nothing true to report, and the screen
  * stays silent.
+ * @param {string} userId
+ * @param {string | null} userOrgId
  */
 async function resolveDefaultTemplateForReq(/** @type {import('express').Request} */ req, userId, userOrgId) {
     try {

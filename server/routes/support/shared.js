@@ -21,6 +21,9 @@ function _redactEmail(addr) {
     if (at < 1) return addr.slice(0, 3) + '***';
     return addr.slice(0, Math.min(2, at)) + '***@' + addr.slice(at + 1).split('.')[0].slice(0, 1) + '***';
 }
+/**
+ * @param {string | string[]} id
+ */
 function _shortId(id) {
     return (id || '').toString().slice(0, 8);
 }
@@ -90,6 +93,12 @@ function _buildCsatLinks(thread) {
 // Minimal self-contained HTML page for the public CSAT landing.
 /** @param {{ score?: number, disputed?: boolean, error?: string }} [page] */
 function _csatHtml({ score, disputed, error } = {}) {
+    /** @type {string} */
+    /** @type {string} */
+    /** @type {string} */
+    /** @type {string} */
+    /** @type {string} */
+    /** @type {string} */
     let heading, body;
     if (error) { heading = 'Hmm'; body = error; }
     else if (disputed) { heading = 'Thanks for letting us know'; body = 'We\'ve reopened your request and a team member will follow up shortly.'; }

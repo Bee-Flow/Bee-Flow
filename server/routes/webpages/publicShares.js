@@ -160,9 +160,10 @@ function register(router) {
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 
             const { accessMode, password, allowedEmails, expiresAt, title } = req.body;
+            /** @type {Date | null} */
             let expiry;
             try { expiry = parseExpiresAt(expiresAt); }
-            catch (e) { throw new HttpError(400, 'bad_request', e.message); }
+            catch (e) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message); }
 
             const { share, rawToken } = await publicShareStore.createShare({
                 webpageId: wp.id,
@@ -202,7 +203,7 @@ function register(router) {
             });
         } catch (err) {
             log.error('[Webpages] Create public share failed:', err);
-            res.status(400).json({ error: err.message || 'Failed to create public share' });
+            res.status(400).json({ error: /** @type {Error} */ (err).message || 'Failed to create public share' });
         }
     });
 
@@ -234,9 +235,10 @@ function register(router) {
         if (!share || share.webpageId !== wp.id || share.createdBy !== userId) {
             return res.status(404).json({ error: 'Share not found' });
         }
+        /** @type {Date | null} */
         let expiry;
         try { expiry = parseExpiresAt(req.body.expiresAt); }
-        catch (e) { throw new HttpError(400, 'bad_request', e.message); }
+        catch (e) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message); }
         await publicShareStore.updateExpiry(share.id, userId, expiry);
         const updated = await publicShareStore.getShareById(share.id);
         res.json({ success: true, share: updated });

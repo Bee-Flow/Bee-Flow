@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Router} Router */
 // @typecheck
 /**
  * Ticket lifecycle for the company inbox: create, list, read, reply, patch,
@@ -54,8 +55,12 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 // ── What a body and a query may carry ───────────────────────────────
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {{ subject?: import("zod").ZodString; message?: import("zod").ZodString; email?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; name?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; source?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; website_url?: import("zod").ZodOptional<import("zod").ZodUnknown>; rendered_at_ms?: import("zod").ZodOptional<import("zod").ZodUnknown>; body?: import("zod").ZodString; internalNote?: import("zod").ZodOptional<import("zod").ZodBoolean>; status?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; priority?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; assignee_user_id?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; category?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; tags?: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodString>>; ids?: import("zod").ZodArray<import("zod").ZodString>; action?: import("zod").ZodEnum<{ [x: string]: string; }>; params?: import("zod").ZodOptional<import("zod").ZodObject<{ tag: import("zod").ZodOptional<import("zod").ZodString>; assignee_user_id: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; priority: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; status: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; }, import("zod/v4/core").$strict>>; }} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ * @param {string[]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const STATUSES = ['open', 'ai_responding', 'awaiting_user', 'awaiting_agent', 'resolved', 'closed'];
@@ -110,6 +115,9 @@ const BulkBody = bodyOf({
 });
 
 const STATUS_LIST_TEXT = `status is a comma-separated list of: ${STATUSES.join(', ')}.`;
+/**
+ * @param {string} name
+ */
 const PAGE_TEXT = (name) => `${name} is a whole number.`;
 const InboxQuery = z.object({
     // The chips send 'open,ai_responding,awaiting_user,awaiting_agent' for "active".
@@ -249,6 +257,7 @@ async function postReply(/** @type {import('express').Request} */ req, /** @type
 /** GET /stream — SSE of thread_updated / thread_created for live inbox refresh (staff). */
 async function stream(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     let listener = null;
+    /** @type {() => void | null} */
     let heartbeat = null;
     let markEnded = () => {};
     // Force-cleanup so a listener never outlives the underlying socket. This
@@ -294,6 +303,9 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
 
 // ── The route table ──────────────────────────────────────────────────
 
+/**
+ * @param {Router} router
+ */
 function registerThreadRoutes(router) {
     // Body: { subject, message, email?, name?, source?, website_url?, rendered_at_ms? }
     router.post('/threads', publicCreateLimiter, validate({ body: CreateThread }), createThread);
@@ -324,6 +336,9 @@ function registerThreadRoutes(router) {
     router.get('/stream', stream);
 }
 
+/**
+ * @param {Router} router
+ */
 function registerBulkRoute(router) {
     // POST /threads/bulk — apply an action to multiple threads (staff)
     // Body: { ids: [], action: 'assign'|'status'|'priority'|'tag'|'resolve', params }
