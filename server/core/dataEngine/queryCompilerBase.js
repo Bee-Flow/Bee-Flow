@@ -27,6 +27,9 @@ const ALIAS_RE = /^[A-Za-z][A-Za-z0-9_]{0,62}$/;
 
 /** A 422-style compile failure — a bad/unknown descriptor, never an internal bug. */
 class CompileError extends Error {
+    /**
+     * @param {string} message
+     */
     constructor(message) {
         super(message);
         this.name = 'CompileError';
@@ -45,6 +48,9 @@ class CompileError extends Error {
  * automation's on_error branch; `expose` lets the terminal handler answer it.
  */
 class RowsLockedError extends Error {
+    /**
+     * @param {string} [message]
+     */
     constructor(message = 'The rows of this table are managed by a Solution release. Change them in Dev and deploy.') {
         super(message);
         this.name = 'RowsLockedError';
@@ -70,6 +76,9 @@ function assertRowsWritable(tableMeta, opts) {
 }
 
 // ── Identifier quoting ──────────────────────────────────────────────
+/**
+ * @param {string} name
+ */
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
@@ -129,6 +138,9 @@ function scalar(v, dialect) {
 
 // Escape LIKE metacharacters so a `contains`/`startsWith` value can't smuggle
 // `%`/`_` wildcards. Paired with `ESCAPE '\'` in the emitted SQL.
+/**
+ * @param {string} v
+ */
 function likeEscape(v) {
     return String(v == null ? '' : v).replace(/[\\%_]/g, (c) => '\\' + c);
 }
@@ -146,7 +158,10 @@ function coerceValue(v, field, dialect) {
     return v;
 }
 
-/** A caller-supplied record id: a bounded, non-empty string, nothing else. */
+/**
+ * A caller-supplied record id: a bounded, non-empty string, nothing else.
+ * @param {string} id
+ */
 function assertRecordId(id) {
     if (typeof id !== 'string' || !id || id.length > 64) {
         throw new CompileError('record id must be a non-empty string of at most 64 characters');
@@ -287,6 +302,7 @@ function buildWhere(tableMeta, fm, filters, accessFilter, dialect, match = 'all'
         if (!fields.length) throw new CompileError('search needs at least one column to look in');
         if (fields.length > MAX_FILTERS) throw new CompileError(`search spans at most ${MAX_FILTERS} columns`);
         const like = dialect === 'pg' ? 'ILIKE' : 'LIKE';
+        /** @type {string[]} */
         const parts = [];
         for (const f of fields) {
             parts.push(`${resolveColumn(tableMeta, f, fm)} ${like} ? ESCAPE '\\'`);
@@ -304,6 +320,8 @@ function buildWhere(tableMeta, fm, filters, accessFilter, dialect, match = 'all'
  * -5)` (46 of 51 rows) while reporting hasMore, so the caller paged for ever.
  *
  * `max` lets a caller cap below MAX_RESULT_ROWS; it can never raise the ceiling.
+ * @param {string | number} limit
+ * @param {number} [max]
  */
 function clampLimit(limit, max = MAX_RESULT_ROWS) {
     const ceiling = Math.min(Number.isFinite(max) && max > 0 ? Math.floor(max) : MAX_RESULT_ROWS, MAX_RESULT_ROWS);

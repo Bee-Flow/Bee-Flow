@@ -222,6 +222,7 @@ function buildDraftMessages({ mode = 'create', brief = '', note = '', current = 
 function parseOptions(raw) {
     if (!Array.isArray(raw)) return [];
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const o of raw) {
         const value = typeof o === 'string' ? o : (o && typeof o === 'object' ? (o.label ?? o.value) : '');
