@@ -178,7 +178,7 @@ function normalizePatchField(type, key, value) {
     if (type === 'switch') {
         // Shared with applyAddSwitch so a patched switch is byte-identical to
         // a freshly added one — and so `expr` survives. Rebuilding a case as
-        // `{name, value}` here used to erase the per-case rule the canvas
+        // `{name, value}` here would erase the per-case rule the canvas
         // editor writes; see sanitizeSwitchCases for the full note.
         if (key === 'cases') return sanitizeSwitchCases(value);
         if (key === 'defaultBranch') return typeof value === 'string' ? value : null;

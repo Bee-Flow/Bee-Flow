@@ -41,8 +41,8 @@ const TEMPLATES = [
             trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new', filter: { hasAttachment: true, subjectContains: 'invoice' } } },
             // The trigger lists each attachment as {attachmentId, filename, …},
             // never its bytes: gmail_read_attachment returns a sourceHandle the
-            // upload forwards (the template used to upload
-            // `attachments.0.data`, a field no mail carries).
+            // upload forwards (not `attachments.0.data`, a field no mail
+            // carries).
             steps: [
                 step('read', 'integration_action', { tool: 'gmail_read_attachment', label: 'Read the attachment', inputs: { messageId: { kind: 'ref', path: 'trigger.output.messageId' }, attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' }, filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' } } }),
                 step('extract', 'ai_step', { prompt: 'Extract amount, currency, vendor and dueDate from this email. Return JSON.', inputs: { body: { kind: 'ref', path: 'trigger.output.snippet' } }, outputSchema: { type: 'object', properties: { amount: { type: 'number' }, currency: { type: 'string' }, vendor: { type: 'string' }, dueDate: { type: 'string' } } } }),

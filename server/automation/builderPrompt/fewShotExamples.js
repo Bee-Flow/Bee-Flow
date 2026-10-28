@@ -73,9 +73,8 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     // builder_create_datatable and the dry-run repair. So a `fewShots: 2`
     // override in builder_model_profiles (the one knob that needs no code
     // change) drops the shot the small band can spare, never the Dutch one.
-    // 'core' used to get the serial examples because its menu lacked
-    // builder_add_steps; since 2026-09-11 CORE_TOOL_NAMES carries the batch
-    // tools.
+    // 'core' gets the batched examples too, since CORE_TOOL_NAMES carries the
+    // batch tools (builder_add_steps).
     const ordered = toolset === 'core'
         ? [invoiceTable, createTable, batched, ...examples]
         : [batched, invoiceTable, createTable, ...examples];

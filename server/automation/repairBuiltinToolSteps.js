@@ -81,7 +81,7 @@ function liftBinding(binding) {
 /**
  * Drop an `agentPermissions` block that names no agent and grants nothing.
  *
- * The builder used to write the block on EVERY ai_step, so every AI-built
+ * The builder writes the block on EVERY ai_step, so every AI-built
  * automation carries `{startAutomations:false, useKnowledge:false, useTools:false}`
  * on steps that have no agent — and validate/stepRules flags each one as
  * `ai_step.agent_permissions_orphan` ("sets agent permissions but names no

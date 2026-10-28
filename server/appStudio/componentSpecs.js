@@ -146,8 +146,8 @@ const { MAILBOX_TABLE_TEMPLATES } = require('./mailboxTableTemplates');
 // ---------------------------------------------------------------------------
 
 // ── The look pass (v2.2, additive) ───────────────────────────────────────
-// Every generated app used to look the same because every component had
-// exactly one rendering. The `look` enums below (plus heading.accent and
+// With exactly one rendering per component, every generated app would look
+// the same. The `look` enums below (plus heading.accent and
 // kanban.cardLook) give the display components visual REGISTERS the author —
 // or the AI builder — can pick per instance. Two rules keep them safe:
 //   1. IDENTITY FIRST: the first value of each enum is the default and names

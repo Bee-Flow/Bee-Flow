@@ -2,8 +2,8 @@
 /**
  * Order the app catalogue by relevance to what the user asked for.
  *
- * WHAT THIS REPLACED, AND WHY. The small-model profile used to run the
- * catalogue through a substring filter that kept the first 8 matching apps.
+ * WHAT THIS REPLACES, AND WHY. A substring filter that keeps the first 8
+ * matching apps does badly for the small-model profile.
  * On a Nextcloud install every app id contains "nextcloud", and stop words
  * ("the", "use") match something in almost every action description, so the
  * filter matched ALL 17 apps and the `.slice(0, 8)` then kept whichever eight

@@ -228,8 +228,8 @@ function allTriggerIds(graph) {
 
 /**
  * Is `id` already taken by a trigger or a step (root, flowlet or loop body)?
- * The tempId collision check used to test the literal 'trg' plus the steps,
- * which missed a re-keyed primary and every additional trigger.
+ * The tempId collision check tests every trigger id plus the steps, not the
+ * literal 'trg' alone, which would miss a re-keyed primary and every additional trigger.
  */
 function isKnownNodeId(graph, id) {
     return allTriggerIds(graph).includes(id) || !!findStepAnywhere(graph, id);

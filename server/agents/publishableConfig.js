@@ -189,11 +189,11 @@ function applyConfigValidation(config, validation) {
     }
     // The clamped map is written back WHOLE — including when it clamps to `{}`.
     //
-    // This used to keep the caller's raw map whenever the clamp emptied it, for
+    // Keeping the caller's raw map whenever the clamp empties it, for
     // fear that a stored `{}` would read as "someone has been through the
-    // picker". It does not: `hasCuratedGrants` asks the CONTENTS, and `{}` and
+    // picker", buys nothing: `hasCuratedGrants` asks the CONTENTS, and `{}` and
     // `{gmail:'nope'}` are the same nothing to every reader there is — grants,
-    // curation, confirm, actAs. So the guard bought nothing, and it cost the
+    // curation, confirm, actAs. And it costs
     // one thing the clamp is for: a REFUSED section (`datatables`, an
     // `automations` array, an entry that is not an object) empties the map, and
     // the raw value was then persisted verbatim — after which `GET /agents/:id`
