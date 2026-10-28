@@ -56,6 +56,12 @@
  *   line-ref          comment lines that point at a line number (`L353`,
  *                     `file.js#L3922`). The comment policy: name a symbol,
  *                     never a position — every one of these had gone stale.
+ *   history-comments  comment lines in non-test server source (migrations
+ *                     excluded) that narrate history instead of stating the
+ *                     why: "used to", "was never", "no longer", "previously",
+ *                     "before this", "round 5", "PR #312", "#287", "issue 12".
+ *                     Say what holds now and what breaks if it is changed;
+ *                     who changed what when belongs in the commit message.
  *   status-5xx        `.status(5xx)` calls with a literal 5xx status in non-test
  *                     code: a route that answers a server failure by hand. The
  *                     convention is to throw an HttpError (or next(err)) and
@@ -243,6 +249,7 @@ const BIG_FILE_LIMIT = { 'agent-hub': 400, server: 800 };
 const BIG_FILE_EXEMPT = /(^|\/)(i18n|generated|templates|fixtures)\/|\.generated\.|^scripts\/content\/|^types\/rows\.d\.ts$/;
 
 const LINE_REF = /#L\d+|\b(?:at|on|see|zie|near|line)\s+~?L\d{2,}|\(L\d{2,}\)/i;
+const HISTORY_COMMENT = /\b(?:used to|was never|no longer|previously|before this|round [0-9]|PR #?[0-9]{2,}|#[0-9]{3}\b|issue #?[0-9]+)/i;
 const COMMENT_LINE = /^\s*(?:\/\/|\/?\*)/;
 const DUTCH_WORD = /\b(?:het|een|niet|wordt|worden|zijn|maar|ook|deze|dit|naar|wanneer|omdat|zodat|alleen|nog|geen|hier|daar|dan|moet)\b/gi;
 
@@ -609,6 +616,17 @@ const METRICS = {
         },
         what: 'comments pointing at a line number',
         advice: 'name the function or symbol instead — line numbers go stale with the next edit above them',
+    },
+    'history-comments': {
+        // Migrations describe a past on purpose; tests are not shipped source.
+        include: (rel) => !TEST_FILE.test(rel) && !/^migrations\//.test(rel),
+        measure: (text) => {
+            let n = 0;
+            for (const line of text.split('\n')) if (COMMENT_LINE.test(line) && HISTORY_COMMENT.test(line)) n++;
+            return n;
+        },
+        what: 'comment lines that narrate history (used to, previously, before this, round N, PR/issue numbers)',
+        advice: 'state what holds now and why (a constraint, a hazard, what breaks if it changes); who changed what when belongs in the commit message',
     },
     'status-5xx': {
         include: (rel) => !TEST_FILE.test(rel),
