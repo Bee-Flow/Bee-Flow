@@ -18,8 +18,9 @@ if [[ "$service" == server ]]; then
         test -z "$(find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -print)"
         test -z "$(find /usr -type f -path "*/Archive/Tar*" -print)"
         test ! -e /usr/lib/systemd/systemd-homed
-        node -e '\''const a=require("assert/strict");a.equal(process.version,"v22.23.4");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json").version,"5.0.11");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/undici/package.json").version,"6.29.1");const vm=require("isolated-vm");const isolate=new vm.Isolate({memoryLimit:16});a.equal(isolate.createContextSync().evalSync("6*7"),42);isolate.dispose();'\''
+        node -e '\''const a=require("assert/strict");a.equal(process.version,"v22.23.4");a.equal(require("/usr/local/lib/node_modules/npm/package.json").version,"12.2.1");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json").version,"5.0.12");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/http-cache-semantics/package.json").version,"4.3.0");a.equal(require("/usr/local/lib/node_modules/npm/node_modules/undici/package.json").version,"6.29.1");const vm=require("isolated-vm");const isolate=new vm.Isolate({memoryLimit:16});a.equal(isolate.createContextSync().evalSync("6*7"),42);isolate.dispose();'\''
         npm --version
+        docker --version | grep -q "version 29.9.2,"
         docker buildx version
     '
 elif [[ "$service" == classify || "$service" == guard ]]; then
@@ -49,6 +50,8 @@ elif [[ "$service" == pwt-runner ]]; then
         test ! -e /usr/lib/node_modules/npm
         node -e '\''require("assert/strict").equal(process.version,"v24.22.1")'\''
         cd /runner && node -e '\''require("playwright"); require("@playwright/test")'\''
+        # Only WebKit loads the system GStreamer; the image runs Chromium alone.
+        ! dpkg-query -W gstreamer1.0-plugins-bad libgstreamer-plugins-bad1.0-0 >/dev/null 2>&1
         node /runner/node_modules/@playwright/test/cli.js --version
     '
 elif [[ "$service" == connector ]]; then

@@ -31,8 +31,13 @@ WORKDIR /runner
 # Playwright tested its browsers against. Ubuntu shipped the fixes for
 # CVE-2026-45447 and CVE-2026-84782 after the pinned base digest, and the
 # release container gate fails on a fixable HIGH/CRITICAL finding.
+#
+# gstreamer1.0-plugins-bad goes: only WebKit loads the system GStreamer, and
+# both modes start Chromium alone (entrypoint.js), which decodes media with its
+# own bundled stack. Ubuntu fixes its H.265 parser (CVE-2025-3887) only in ESM.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends --only-upgrade openssl libssl3t64 \
+    && apt-get purge -y gstreamer1.0-plugins-bad libgstreamer-plugins-bad1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Browsers are already baked into the base image — never re-download them.
