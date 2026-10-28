@@ -31,6 +31,9 @@ function _timeMs(v) {
 
 const _num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
 const _bool = (v) => (typeof v === 'boolean' ? v : null);
+/**
+ * @param {string} v
+ */
 const _ident = (v) => (typeof v === 'string' && /^[a-z0-9][a-z0-9_.:-]{0,63}$/i.test(v) ? v.toLowerCase() : null);
 
 /**
@@ -100,6 +103,8 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
      * strict switch: a failed lookup for a metered plan throws (no wrong number is
      * logged), anything else falls back to the configured-or-1.0 behaviour.
      * Returns NaN for a rate that cannot be inverted or divided.
+     * @param {string} to
+     * @param {boolean} strict
      */
     async function _fxFactor(from, to, strict) {
         const currency = _currency();
@@ -222,7 +227,7 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
                         // Re-throw so the LLM handler surfaces 503 to the user.
                         throw e;
                     }
-                    log.error(`[UsageStore] FX rate lookup failed for ${nativeCurrency}→${targetCurrency} (non-PAYG): ${e.message}`);
+                    log.error(`[UsageStore] FX rate lookup failed for ${nativeCurrency}→${targetCurrency} (non-PAYG): ${/** @type {Error} */ (e).message}`);
                     fxRate = 1;
                 }
                 if (fxRate == null || !isFinite(fxRate) || fxRate <= 0) {
@@ -314,7 +319,7 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
                                 [insertedId, paygTarget.stripeCustomerId, paygTarget.meterEventName, amountMicroUnits, identifier]
                             );
                         } catch (e) {
-                            log.error('[UsageStore] PAYG outbox enqueue failed:', e.message, { identifier });
+                            log.error('[UsageStore] PAYG outbox enqueue failed:', /** @type {Error} */ (e).message, { identifier });
                         }
                         // Best-effort happy-path: try once now. If it succeeds the
                         // drain worker has nothing to do. If it fails or never
@@ -333,11 +338,11 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
             // accepting a miscalculated bill. All other usage-log errors stay
             // best-effort (logging must not break the chat path for fixed
             // plans).
-            if (e && typeof e.message === 'string' && e.message.startsWith('fx_rate_unavailable:')) {
-                log.error('[UsageStore] PAYG usage rejected:', e.message);
+            if (e && typeof /** @type {Error} */ (e).message === 'string' && /** @type {Error} */ (e).message.startsWith('fx_rate_unavailable:')) {
+                log.error('[UsageStore] PAYG usage rejected:', /** @type {Error} */ (e).message);
                 throw e;
             }
-            log.error('[UsageStore] Failed to log usage:', e.message);
+            log.error('[UsageStore] Failed to log usage:', /** @type {Error} */ (e).message);
         }
     }
 

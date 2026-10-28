@@ -23,14 +23,22 @@ const TEXT_EXTENSIONS = new Set([
     'jsx', 'ts', 'tsx', 'mts', 'cts', 'scss', 'less', 'env',
 ]);
 
+/**
+ * @param {string} mime
+ * @param {string} ext
+ */
 function isTextFile(mime, ext) {
     if (mime && TEXT_MIME_PREFIXES.some(p => mime.startsWith(p))) return true;
     if (ext && TEXT_EXTENSIONS.has(ext.toLowerCase())) return true;
     return false;
 }
 
+/**
+ * @param {string} path
+ */
 function guessMime(path) {
     const ext = (path.split('.').pop() || '').toLowerCase();
+    /** @type {Record<string, string>} */
     const map = {
         html: 'text/html; charset=utf-8',
         htm: 'text/html; charset=utf-8',
@@ -76,6 +84,9 @@ function guessMime(path) {
  * they collide with the primary slots' filenames.
  */
 const RESERVED_PATHS = new Set(['index.html', 'style.css', 'script.js']);
+/**
+ * @param {string} path
+ */
 function validateExtraPath(path) {
     if (typeof path !== 'string' || !path.trim()) return 'path is required';
     if (path.length > 240) return 'path is too long';
@@ -92,10 +103,16 @@ function validateExtraPath(path) {
     return null;
 }
 
+/**
+ * @param {string} webpageId
+ */
 function extraKey(userId, webpageId, path) {
     return `users/${userId}/webpages/${webpageId}/extras/${path}`;
 }
 
+/**
+ * @param {string} webpageId
+ */
 async function readExtra(userId, webpageId, path) {
     if (!storageStore.isAvailable()) return null;
     try {
@@ -104,11 +121,15 @@ async function readExtra(userId, webpageId, path) {
         for await (const chunk of stream) chunks.push(chunk);
         return Buffer.concat(chunks);
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
         throw err;
     }
 }
 
+/**
+ * @param {string} mimeType
+ * @param {string} webpageId
+ */
 async function writeExtra(userId, webpageId, path, content, mimeType) {
     if (!storageStore.isAvailable()) {
         throw new Error('RustFS not configured — cannot persist extra files');
@@ -118,6 +139,9 @@ async function writeExtra(userId, webpageId, path, content, mimeType) {
     return { sha: sha256(buf.toString('utf8')), size: buf.length };
 }
 
+/**
+ * @param {string} webpageId
+ */
 async function deleteExtra(userId, webpageId, path) {
     if (!storageStore.isAvailable()) return;
     try { await storageStore.deleteFile(extraKey(userId, webpageId, path)); } catch (err) { bestEffort('stores/webpage/extraFiles:deleteExtra', err); /* ignore */ }

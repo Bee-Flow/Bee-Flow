@@ -128,17 +128,18 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
         return { created: ok, reason: ok ? null : 'create_failed' };
     }
 
+    /** @type {number | null} */
     let max = null;
     // A cap that cannot be read is not "no cap": refuse rather than create past a seat licence.
     let capUnknown = false;
     try {
         const limits = await getEffectiveLimits(orgId);
         max = limits?.max_users ?? null;
-    } catch (err) { log.warn(`[seat.cap] plan limit lookup failed org=${orgId}: ${err.message}`); capUnknown = true; }
+    } catch (err) { log.warn(`[seat.cap] plan limit lookup failed org=${orgId}: ${/** @type {Error} */ (err).message}`); capUnknown = true; }
     try {
         const seatCap = await require('../../license/seats').getMaxSeatsForOrg(orgId);
         if (seatCap != null && (max == null || seatCap < max)) max = seatCap;
-    } catch (err) { log.warn(`[seat.cap] licence seat cap lookup failed org=${orgId}: ${err.message}`); capUnknown = true; }
+    } catch (err) { log.warn(`[seat.cap] licence seat cap lookup failed org=${orgId}: ${/** @type {Error} */ (err).message}`); capUnknown = true; }
     if (capUnknown) {
         if (strict) throw unavailable('seat_cap_unavailable', 'Seat limit could not be checked');
         return { created: false, reason: 'limit_check_failed' };
@@ -224,8 +225,8 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             client.release();
             if (e && e.code === '40001' && attempt < 1) continue;
             if (e instanceof SeatCapExceededError) throw e;
-            log.error('[UserStore] createUserWithSeatCheck error:', e.message);
-            return { created: false, reason: 'create_failed', error: e.message };
+            log.error('[UserStore] createUserWithSeatCheck error:', /** @type {Error} */ (e).message);
+            return { created: false, reason: 'create_failed', error: /** @type {Error} */ (e).message };
         }
     }
     return { created: false, reason: 'create_failed' };

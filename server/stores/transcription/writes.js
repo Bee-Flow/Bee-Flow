@@ -123,7 +123,11 @@ function createWrites({ transcriptCrypto }) {
      * organisation.
      */
     function plainColumns(id, cryptoCtx) {
-        /** Seal one content column's value on its way into `params`. */
+        /**
+         * Seal one content column's value on its way into `params`.
+         * @param {string} column
+         * @param {string} value
+         */
         const seal = (column, value) => transcriptCrypto.encryptRow(id, { [column]: value }, cryptoCtx)[column];
         return {
             title: 'title',
@@ -214,6 +218,7 @@ function createWrites({ transcriptCrypto }) {
         });
 
         const params = built ? built.params : [];
+        /** @type {string[]} */
         const setClauses = [];
         let idx = params.length + 1;
 
@@ -231,6 +236,7 @@ function createWrites({ transcriptCrypto }) {
         // the same read. Without it the three columns write as always (with a
         // stamp, without a window) — the path of every other writer, which has
         // no minutes between reading and writing.
+        /** @type {string | null} */
         let sincePh = null;
         const writesArtifacts = updates.actionItems !== undefined
             || updates.decisions !== undefined || updates.questions !== undefined;
