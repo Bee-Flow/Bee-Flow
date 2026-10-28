@@ -262,6 +262,21 @@ test('dry run: typed samples for the declared fields, tagged, and NO model call'
     assert.deepStrictEqual(synthesiseDryRunExtraction([{ name: 'n', type: 'number' }]), { n: 123.45 });
 });
 
+test('dry run: sample strings echo the declared description or name; numbers differ per field', () => {
+    const out = synthesiseDryRunExtraction([
+        { name: 'supplier_name', type: 'string', description: 'Legal name of the supplier. Look in the letterhead.' },
+        { name: 'contact_person', type: 'string', description: '' },
+        { name: 'net', type: 'number' },
+        { name: 'gross', type: 'number' },
+    ]);
+    assert.deepStrictEqual(out, {
+        supplier_name: 'Sample Legal name of the supplier',
+        contact_person: 'Sample contact person',
+        net: 345.67,
+        gross: 456.78,
+    });
+});
+
 // ── Live ───────────────────────────────────────────────────────────────────
 
 test('live: the admin model, the fixed options, thinking off, the shaped output', async () => {
