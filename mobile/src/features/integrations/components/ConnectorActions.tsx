@@ -50,8 +50,10 @@ export function ConnectorActions({
     if (state.notConfigured) {
         return (
             <Text variant="caption" tone="tertiary">
-                An administrator has to add this provider&rsquo;s client credentials before
-                anyone in your organisation can connect it.
+                {t(
+                    'mobile.integrations.not_configured',
+                    'An administrator has to add this provider’s client credentials before anyone in your organisation can connect it.',
+                )}
             </Text>
         );
     }
@@ -59,7 +61,7 @@ export function ConnectorActions({
         <View style={styles.actions}>
             {state.connected && !state.needsReauth ? (
                 <Button
-                    label="Disconnect"
+                    label={t('automations.node_context_menu.disconnect', 'Disconnect')}
                     variant="secondary"
                     onPress={onDisconnect}
                     loading={busy}
@@ -67,7 +69,11 @@ export function ConnectorActions({
                 />
             ) : (
                 <Button
-                    label={state.needsReauth ? 'Reconnect' : 'Connect'}
+                    label={
+                        state.needsReauth
+                            ? t('automations.output.fix_reconnect', 'Reconnect')
+                            : t('automations.add_step_menu.connect', 'Connect')
+                    }
                     variant={state.needsReauth ? 'primary' : 'secondary'}
                     onPress={onConnect}
                     style={styles.action}

@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { Badge } from '@/shared/ui';
 
 export function ConnectorBadge({
@@ -13,8 +14,9 @@ export function ConnectorBadge({
     connected: boolean;
     notConfigured: boolean;
 }) {
-    if (needsReauth) return <Badge label="Needs re-authorising" tone="warning" />;
-    if (connected) return <Badge label="Connected" tone="success" />;
-    if (notConfigured) return <Badge label="Not set up" tone="neutral" />;
+    const t = useTranslation();
+    if (needsReauth) return <Badge label={t('mobile.integrations.badge_reauth', 'Needs re-authorising')} tone="warning" />;
+    if (connected) return <Badge label={t('settings.connected', 'Connected')} tone="success" />;
+    if (notConfigured) return <Badge label={t('mobile.integrations.badge_not_set_up', 'Not set up')} tone="neutral" />;
     return null;
 }

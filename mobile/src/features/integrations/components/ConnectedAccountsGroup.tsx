@@ -30,7 +30,7 @@ export function ConnectedAccountsGroup({
     const t = useTranslation();
     return (
         <Group
-            title="Connected accounts"
+            title={t('mobile.integrations.accounts_title', 'Connected accounts')}
             footer={t(
                 'mobile.integrations.accounts_footer',
                 'Accounts that sign in with Google, Microsoft, LinkedIn or Withings are connected from Bee Flow on a computer. Once connected, they work in the app too.',
