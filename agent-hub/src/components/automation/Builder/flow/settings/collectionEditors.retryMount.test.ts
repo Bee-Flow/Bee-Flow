@@ -71,7 +71,7 @@ describe('the retry row is mounted everywhere it is offered', () => {
         // reason the mount is per-editor. A regression here is invisible in a
         // unit render — the row still works, it just sits under a heading that
         // describes a different setting.
-        for (const base of ['aiStepEditors.tsx', 'datatableEditors.jsx', 'knowledgeWriteEditors.tsx']) {
+        for (const base of ['aiStepEditors.tsx', 'datatableEditors.tsx', 'knowledgeWriteEditors.tsx']) {
             const src = fs.readFileSync(path.join(here, base), 'utf8');
             const closeRow = src.indexOf('</FormRow>', src.indexOf('<ForEachSection'));
             const mount = src.indexOf('<RetrySection');

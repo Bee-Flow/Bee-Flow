@@ -5313,7 +5313,7 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/settings/datatableEditors.jsx": {
+  "src/components/automation/Builder/flow/settings/datatableEditors.tsx": {
     "complexity": {
       "count": 1
     },
