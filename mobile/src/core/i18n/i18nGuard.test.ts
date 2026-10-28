@@ -232,9 +232,6 @@ const UNCONVERTED = new Map<string, number>([
     // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
     // through t() when the long-press menu became the kit's ActionMenu.
     ['src/features/agents', 33],
-    // 12 -> 5: the form card, its date field and the action's result went
-    // through t() with the decimal-comma and run-polling fixes.
-    ['src/features/apps', 5],
     // 68 -> 64: the run timeline's empty state and Sent/Received labels and
     // the live card's Stop went through t() with the step names.
     // 64 -> 52: the run facts, the failure cards and the outcome banners went

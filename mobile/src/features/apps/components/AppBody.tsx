@@ -6,6 +6,7 @@
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { EmptyState, Text } from '@/shared/ui';
 
@@ -30,6 +31,7 @@ export function AppBody({
     refreshing: boolean;
     onRefresh: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -48,11 +50,15 @@ export function AppBody({
             {plan.blocks.length === 0 ? (
                 <EmptyState
                     icon="Monitor"
-                    title="Nothing to fill in here"
+                    title={t('mobile.apps.nothing_to_fill', 'Nothing to fill in here')}
                     message={
                         plan.unsupported.length > 0
-                            ? `This screen is built from ${plan.unsupported.join(', ')} — parts the phone cannot draw. Open the app in a browser to use it.`
-                            : 'This screen has no form or button on it.'
+                            ? t(
+                                  'mobile.apps.unsupported_parts',
+                                  'This screen is built from {parts} — parts the phone cannot draw. Open the app in a browser to use it.',
+                                  { parts: plan.unsupported.join(', ') },
+                              )
+                            : t('mobile.apps.no_form_or_button', 'This screen has no form or button on it.')
                     }
                 />
             ) : (
