@@ -116,6 +116,7 @@ async function runTableOps(args) {
     const { source, ops, runState, limits, mode = 'run', upToOpId, isCancelled } = args;
     const resolveTable = args.resolveTable || (async () => { throw tableError('table_op_invalid', 'No table can be looked up here.'); });
     const list = Array.isArray(ops) ? ops : [];
+    /** @type {OpStat[]} */
     const opStats = [];
     /** @type {string[]} */
     const warnings = [];

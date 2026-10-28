@@ -79,8 +79,8 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
         try {
             result = await dispatchTool(toolName, toolArgs);
         } catch (toolErr) {
-            log.error(`[AITaskRunner]   Tool error (${toolName}):`, toolErr.message);
-            result = { error: toolErr.message };
+            log.error(`[AITaskRunner]   Tool error (${toolName}):`, /** @type {Error} */ (toolErr).message);
+            result = { error: /** @type {Error} */ (toolErr).message };
         }
 
         messages.push({

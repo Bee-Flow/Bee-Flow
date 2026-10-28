@@ -86,7 +86,7 @@ async function _rawDetect(text, policy) {
         }
         return { entities: merged, degraded, degradedReason, degradedCategories, overflow };
     } catch (e) {
-        return { ...empty, degraded: true, degradedReason: `guard_unreachable: ${e.message}` };
+        return { ...empty, degraded: true, degradedReason: `guard_unreachable: ${/** @type {Error} */ (e).message}` };
     }
 }
 
@@ -171,6 +171,7 @@ function _scanFailedMessage(degradedReason, direction, valueCount) {
     const values = `${n} ${n === 1 ? 'value' : 'values'}`;
     const head = `Blocked: the privacy check could not run on this step's ${direction === 'output' ? 'output' : 'input'} (${values}), `
         + 'and this organisation requires content to be checked before it is used.';
+    /** @type {string} */
     let advice;
     if (/guard_not_installed/.test(reason)) {
         advice = 'No privacy check service is installed on this server. Ask an admin to install it, or to review the Privacy Shield setting for when the check cannot run.';
