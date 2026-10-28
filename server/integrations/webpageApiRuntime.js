@@ -137,7 +137,7 @@ async function executeApiHandler({ webpageId, route, req }) {
             concurrencyKey: ctx.authorOrgId || ctx.authorUserId || null,
         });
     } catch (err) {
-        return { status: 500, body: { error: err.message || 'Handler execution failed.' } };
+        return { status: 500, body: { error: /** @type {Error} */ (err).message || 'Handler execution failed.' } };
     }
 
     // The RETURN VALUE is the widest way out and the one no bridge sees: a
@@ -151,7 +151,7 @@ async function executeApiHandler({ webpageId, route, req }) {
         r = await webpageEgress.guardWebpageResult(session, runResult.result);
     } catch (err) {
         if (err && err.guardrailBlocked) {
-            return { status: 502, body: { error: err.message, code: 'blocked_by_privacy_shield' } };
+            return { status: 502, body: { error: /** @type {Error} */ (err).message, code: 'blocked_by_privacy_shield' } };
         }
         throw err;
     }

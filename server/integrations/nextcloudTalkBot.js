@@ -79,7 +79,12 @@ async function getBotSecret(orgId) {
     } catch { return null; }
 }
 
-/** HMAC-SHA256(random ‖ payload) as lowercase hex. */
+/**
+ * HMAC-SHA256(random ‖ payload) as lowercase hex.
+ * @param {crypto.BinaryLike | crypto.KeyObject} secret
+ * @param {string} random
+ * @param {string} payload
+ */
 function botSignature(secret, random, payload) {
     return crypto.createHmac('sha256', secret).update(`${random}${payload}`).digest('hex');
 }
@@ -98,12 +103,17 @@ function verifyTalkSignature({ secret, random, signature, body }) {
     if (typeof signature !== 'string' || !/^[a-fA-F0-9]{64}$/.test(signature)) return false;
     const expected = crypto.createHmac('sha256', secret)
         .update(`${random}${typeof body === 'string' ? body : ''}`).digest();
+    /** @type {Buffer<ArrayBuffer>} */
     let got;
     try { got = Buffer.from(signature.toLowerCase(), 'hex'); } catch { return false; }
     if (got.length !== expected.length) return false;
     return crypto.timingSafeEqual(expected, got);
 }
 
+/**
+ * @param {crypto.BinaryLike | crypto.KeyObject} secret
+ * @param {string} payload
+ */
 function signedHeaders(secret, payload) {
     const random = crypto.randomBytes(32).toString('hex');
     return {
@@ -130,6 +140,7 @@ async function postBotMessage({ baseUrl, secret, roomToken, message, replyTo = n
     // random bytes, never from the message content (two identical cards in one
     // room must not collide onto one id).
     const referenceId = crypto.randomBytes(32).toString('hex');
+    /** @type {{ message: string; referenceId: string; silent: boolean; replyTo?: number }} */
     const body = { message: text, referenceId, silent: !!silent };
     if (Number.isFinite(Number(replyTo)) && Number(replyTo) > 0) body.replyTo = Number(replyTo);
 
@@ -146,7 +157,11 @@ async function postBotMessage({ baseUrl, secret, roomToken, message, replyTo = n
     return { ok: false, status: res.status, referenceId, error: botPostError(res.status) };
 }
 
-/** Add a reaction as the bot. Signature covers the EMOJI, not the envelope. */
+/** @typedef {{ baseUrl?: string, secret?: string, roomToken?: string, messageId?: string, reaction?: string }} PostBotReactionArgs */
+/**
+ * Add a reaction as the bot. Signature covers the EMOJI, not the envelope.
+ * @param {PostBotReactionArgs} param0
+ */
 async function postBotReaction({ baseUrl, secret, roomToken, messageId, reaction }) {
     const emoji = String(reaction || '');
     if (!baseUrl || !secret || !roomToken || messageId == null || !emoji) {
@@ -166,6 +181,9 @@ async function postBotReaction({ baseUrl, secret, roomToken, messageId, reaction
     return { ok: false, status: res.status, error: botPostError(res.status) };
 }
 
+/**
+ * @param {number} status
+ */
 function botPostError(status) {
     switch (status) {
         case 401: return 'the Bee Flow bot is not enabled in this conversation — a moderator has to add it';

@@ -27,6 +27,9 @@ const IF_EXISTS_MODES = ['overwrite', 'append'];
 // happily parses as delimited TEXT and returns a "Sheet1" — a CSV, a PDF or a
 // plain-text note saved under a .xlsx name would come back as a one-column
 // spreadsheet and be overwritten with the text mangled into cells.
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ */
 function isZipPackage(buf) {
     return Buffer.isBuffer(buf) && buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
 }
@@ -38,8 +41,12 @@ const EMPTY_ODS_STYLES =
 
 // Parse an existing .xlsx/.ods into a SheetJS workbook, or throw with a reason
 // the user can act on.
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 async function readWorkbook(buffer) {
     if (!isZipPackage(buffer)) throw new Error('it is not an .xlsx/.ods package (no ZIP signature)');
+    /** @type {XLSX.WorkBook} */
     let workbook;
     try {
         workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -50,7 +57,7 @@ async function readWorkbook(buffer) {
         // would be unreadable on run 2. Patch an empty stylesheet in and retry
         // — only for that specific failure; files from Nextcloud Office or
         // LibreOffice always carry a styles.xml and never take this path.
-        if (!/styles\.xml/.test(e.message)) throw e;
+        if (!/styles\.xml/.test(/** @type {Error} */ (e).message)) throw e;
         const zip = await JSZip.loadAsync(buffer);
         zip.file('styles.xml', EMPTY_ODS_STYLES);
         workbook = XLSX.read(await zip.generateAsync({ type: 'nodebuffer' }), { type: 'buffer' });
@@ -90,6 +97,7 @@ function appendRows(ws, rows, columns) {
 
     // Header cells may be numbers (year columns); object keys are strings.
     const header = existing[0].map((h) => String(h));
+    /** @type {string[]} */
     const added = [];
     for (const r of rows) {
         if (!r || typeof r !== 'object') continue;
@@ -116,6 +124,7 @@ async function buildAppendedSpreadsheet({ ncFetch, authError, root }, path, args
     const cap = toolFileMaxBytes();
     const { buffer: current, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
     if (tooBig || !current) return { error: fileTooLargeMessage(path, declaredBytes, cap) };
+    /** @type {XLSX.WorkBook} */
     let workbook;
     try {
         workbook = await readWorkbook(current);
@@ -124,7 +133,7 @@ async function buildAppendedSpreadsheet({ ncFetch, authError, root }, path, args
         // the caller asked to APPEND, so the existing content is by definition
         // something they want to keep. Replacing it would destroy exactly the
         // data "append" was chosen to protect.
-        return { error: `The existing file at ${path} is not a spreadsheet this tool can append to: ${e.message}` };
+        return { error: `The existing file at ${path} is not a spreadsheet this tool can append to: ${/** @type {Error} */ (e).message}` };
     }
 
     const sheetName = args.sheetName && workbook.Sheets[args.sheetName] ? args.sheetName : workbook.SheetNames[0];
@@ -162,12 +171,13 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
                 // No file yet: the first run of a ledger simply creates it.
             }
 
+            /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
             let gen;
             try {
                 const matrix = officegen.rowsToMatrix(args.rows, args.columns);
                 gen = await officegen.buildSpreadsheet({ matrix, sheetName: args.sheetName, format });
             } catch (e) {
-                return { error: `Could not build the spreadsheet: ${e.message}` };
+                return { error: `Could not build the spreadsheet: ${/** @type {Error} */ (e).message}` };
             }
             const up = await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
             // Only the append path reports `appended`; the overwrite result is
@@ -180,11 +190,12 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
             if (args.content === undefined || args.content === null) return { error: 'content is required' };
             const format = officegen.resolveOfficeFormat(args.format, args.path, ['docx', 'odt'], 'docx');
             const path = officegen.ensureExt(args.path, format);
+            /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
             let gen;
             try {
                 gen = await officegen.buildDocument({ content: String(args.content), title: args.title, format });
             } catch (e) {
-                return { error: `Could not build the document: ${e.message}` };
+                return { error: `Could not build the document: ${/** @type {Error} */ (e).message}` };
             }
             return await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
         }
@@ -204,7 +215,7 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
                 const { resolveMarking } = require('../../core/automationRunner/documentMarking');
                 marking = await resolveMarking(ctx.orgId || null, { automationId: null, aiStepIds: [], provider: 'chat' });
             } catch (e) {
-                log.warn(`[nextcloud_create_presentation] marking unavailable, rendering unmarked: ${e.message}`);
+                log.warn(`[nextcloud_create_presentation] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
             }
 
             // A template deck for THIS deck: a .pptx in the user's Nextcloud
@@ -225,7 +236,7 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
                     const { extractDeckTemplate } = require('../../core/documents/pptxTemplate');
                     theme.template = await extractDeckTemplate(tpl.buffer, { name: tplPath.split('/').pop() });
                 } catch (e) {
-                    return { error: `The template deck could not be used: ${e.message}` };
+                    return { error: `The template deck could not be used: ${/** @type {Error} */ (e).message}` };
                 }
             }
 
@@ -242,7 +253,7 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
                     resolveImage: makeUserImageResolver(ctx.userId),
                 });
             } catch (e) {
-                if (e && e.errorClass) return { error: `Could not build the presentation: ${e.message}` };
+                if (e && e.errorClass) return { error: `Could not build the presentation: ${/** @type {Error} */ (e).message}` };
                 throw e;
             }
 
