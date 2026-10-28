@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # (--index-url, not --extra-index-url), so no CUDA wheel can ever resolve.
 # Pinned to the version guard-service ships.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch==2.14.0+cpu --index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.15.0+cpu --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
