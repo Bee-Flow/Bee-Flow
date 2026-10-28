@@ -93,12 +93,10 @@ function repackArgs(inputPath, outPath) {
  * gets `preprocessed: false` and the original path back.
  *
  * @param {string} inputPath           Path to the source audio.
- * @param {object} [opts]
- * @param {'wav'|'flac'} [opts.format] Output container (default 'wav').
- * @param {string} [opts.label]        Prefix for the temp file, for log clarity.
- * @param {number} [opts.maxSeconds]   Hard-clip the output to this many seconds.
- *        Used by voiceprint enrollment, where pyannote rejects anything over
- *        30s. Omitted by every other caller, so their output is unchanged.
+ * @param {{ format?: 'wav'|'flac', label?: string, maxSeconds?: number }} [opts]
+ *   `format`: Output container (default 'wav'); `label`: Prefix for the temp file, for log clarity;
+ *   `maxSeconds`: Hard-clip the output to this many seconds. Used by voiceprint enrollment, where pyannote
+ *   rejects anything over 30s. Omitted by every other caller, so their output is unchanged
  * @returns {Promise<{path: string, preprocessed: boolean, cleanup: () => void}>}
  *          `cleanup()` removes the temp file (no-op when preprocessing was
  *          skipped, so it never deletes the caller's original).

@@ -87,7 +87,7 @@ async function getPipeline() {
             const transcriber = await pipeline(
                 'automatic-speech-recognition',
                 LOCAL_WHISPER_MODEL_ID,
-                { dtype: /** @type {any} */ (LOCAL_WHISPER_DTYPE) }, // env-configured string
+                { dtype: /** @type {import('@huggingface/transformers').DataType} */ (LOCAL_WHISPER_DTYPE) }, // env-configured string
             );
             log.info(`[LocalWhisper] Model ${LOCAL_WHISPER_MODEL_ID} ready (threads=${LOCAL_WHISPER_WASM_THREADS}, maxDuration=${LOCAL_WHISPER_MAX_DURATION_SEC}s)`);
             return transcriber;
@@ -172,9 +172,9 @@ async function decodeAudioToFloat32(audioPath) {
  * Transcribe an audio file on local CPU.
  *
  * @param {string} audioPath  Absolute path to a temp file. Any format ffmpeg can read.
- * @param {object} [options]
- * @param {string} [options.language='nl']  BCP-47 hint (nl|en|...).
- * @param {boolean} [options.returnTimestamps=true]  Emit segment timing.
+ * @param {{ language?: string, returnTimestamps?: boolean }} [options]
+ *   `language`: BCP-47 hint (nl|en|...); defaults to 'nl'; `returnTimestamps`: Emit segment timing;
+ *   defaults to true
  * @returns {Promise<{ text, segments, language, durationSec, provider } | null>}
  *          null when the model is unavailable / disabled — caller fails open
  *          with a clear message and a "retry on cloud" affordance.

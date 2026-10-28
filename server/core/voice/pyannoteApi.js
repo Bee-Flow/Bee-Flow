@@ -252,25 +252,16 @@ module.exports = {
 };
 
 /**
- * @typedef {object} PyannoteRow  one diarization / transcription row of a job's output
- * @property {string} [speaker]
- * @property {number|string} [start]
- * @property {number|string} [end]
- * @property {string} [text]
+ * @typedef {{ speaker?: string, start?: number|string, end?: number|string, text?: string }} PyannoteRow
+ *   one diarization / transcription row of a job's output
  */
 
 /**
- * @typedef {object} PyannoteOutput  a succeeded job's `output`
- * @property {PyannoteRow[]} [turnLevelTranscription]
- * @property {PyannoteRow[]} [wordLevelTranscription]
- * @property {PyannoteRow[]} [diarization]
- * @property {string} [voiceprint]  an enrollment job's template
- * @property {string} [error]
+ * @typedef {{ turnLevelTranscription?: PyannoteRow[], wordLevelTranscription?: PyannoteRow[],
+ *   diarization?: PyannoteRow[], voiceprint?: string, error?: string }} PyannoteOutput
+ *   a succeeded job's `output`; `voiceprint`: an enrollment job's template
  */
 
 /**
- * @typedef {object} PyannoteJob
- * @property {string} [status]
- * @property {PyannoteOutput} [output]
- * @property {string} [error]
+ * @typedef {{ status?: string, output?: PyannoteOutput, error?: string }} PyannoteJob
  */

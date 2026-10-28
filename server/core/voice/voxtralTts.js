@@ -65,11 +65,9 @@ async function discoverVoiceId(apiKey) {
  * Synthesize speech with Voxtral, fall back to ElevenLabs on error.
  *
  * @param {string} text                Text to speak
- * @param {object} [opts]
- * @param {string} [opts.provider]     'voxtral' | 'elevenlabs' | 'auto' (default: auto)
- * @param {string} [opts.voice]        Voice id (provider-specific)
- * @param {string} [opts.model]        Model id (provider-specific)
- * @param {string} [opts.language]     BCP-47 code (Voxtral only)
+ * @param {{ provider?: string, voice?: string, model?: string, language?: string }} [opts]
+ *   `provider`: 'voxtral' | 'elevenlabs' | 'auto' (default: auto); `voice`: Voice id (provider-specific);
+ *   `model`: Model id (provider-specific); `language`: BCP-47 code (Voxtral only)
  * @returns {Promise<{ audioBase64: string|null, mimeType: string, provider: string }>}
  */
 async function synthesize(text, opts = {}) {

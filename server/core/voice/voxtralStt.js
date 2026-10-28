@@ -25,11 +25,9 @@ const DEFAULT_STT_MODEL = 'voxtral-mini-2602';
  *
  * @param {string} apiKey              Mistral API key
  * @param {Buffer} audioBuffer         Raw audio bytes (webm/opus, wav, mp3, …)
- * @param {object} [opts]
- * @param {string} [opts.mime]         MIME type (default: audio/webm)
- * @param {string} [opts.filename]     Filename hint for the multipart part
- * @param {string} [opts.language]     BCP-47 code ('en', 'nl', 'fr', …) — auto-detect if omitted
- * @param {string} [opts.model]        Override the Voxtral model
+ * @param {{ mime?: string, filename?: string, language?: string, model?: string }} [opts]
+ *   `mime`: MIME type (default: audio/webm); `filename`: Filename hint for the multipart part; `language`:
+ *   BCP-47 code ('en', 'nl', 'fr', …) — auto-detect if omitted; `model`: Override the Voxtral model
  * @returns {Promise<{ text: string, language: string|null, duration: number|null }>}
  */
 async function transcribe(apiKey, audioBuffer, opts = {}) {
