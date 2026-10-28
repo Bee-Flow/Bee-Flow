@@ -5,7 +5,26 @@ This applies the same inference to `server/`, which stays JavaScript and CommonJ
 rename, no build step, types as JSDoc, a file checked once it carries `// @typecheck`
 (`server/jsconfig.json`, `cd server && npm run typecheck`, `npm run lint:checkjs-ratchet`).
 
-**Not run yet.** The scripts and their unit tests are in; the first real run is the next step.
+**Run on 2026-10-28** over every server directory, as `scripts/jsdoc-round.sh` (the loop below with
+every gate scripted): 431 files typed in 49 batches on four machines, floors 3644 / 2302 / 1929 to
+3668 / 2329 / 1954, no compiled line changed. What the first batches taught, now in the tooling:
+
+- an options typedef is written only when every destructured member is typed; a partial one
+  breaks the file at base level (TS2339) and typecheck-settle then reverts the whole file;
+- in a JS file, positional `@param` tags go in for all parameters without a default or for none:
+  one tag turns the undocumented parameters from optional into required for every caller;
+- the tests next to the batch are in the program (not as a source of types): a test calling a
+  store with fewer arguments or a wider value is where a wrong type shows first, and a caller's
+  TS2345/TS2554 maps to the callee's slot (`calleeSlotOfDiagnostic`) and bans every source of it;
+- TypeScript's inferFromUsage may not add a `require` for a type, nor write a `@param` for a
+  slot a caller contradicted (`quickFixRefuser`);
+- typedefs are written as `@typedef {{ a?: T }} Name` (the inline form the server uses; `{Object}`
+  counts against the loose-type ratchet), and the equivalence gate strips JSDoc casts before
+  compiling, because esbuild keeps them and lays the call out differently.
+
+Yield per batch of 40: 5 to 22 files kept; what goes back is a file whose new type a caller
+contradicts in a way the bans cannot repair (an `instanceof` on a narrowed catch variable, a
+spread into a parameter list), or one the added lines push over its line ceiling.
 
 ## Why not the agent-hub converter
 
