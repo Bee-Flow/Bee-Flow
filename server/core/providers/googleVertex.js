@@ -57,7 +57,7 @@ class GoogleVertexProvider extends GoogleProvider {
                 clientConfig.googleAuthOptions = { credentials };
                 log.info(`[GoogleVertex] Using service account ${log.textForLog(credentials.client_email)}`);
             } catch (e) {
-                log.error('[GoogleVertex] Failed to parse service account key:', e.message);
+                log.error('[GoogleVertex] Failed to parse service account key:', /** @type {Error} */ (e).message);
                 throw new Error('Invalid service account JSON key. Please check the format.');
             }
         }
@@ -106,6 +106,7 @@ class GoogleVertexProvider extends GoogleProvider {
 
         try {
             const ai = this.createClient(apiKey, options);
+            /** @type {{ id: string; name: string; }[]} */
             const models = [];
 
             // The SDK pager walks every page by itself in the for-await below.
@@ -135,7 +136,7 @@ class GoogleVertexProvider extends GoogleProvider {
             log.info(`[GoogleVertex] Found ${models.length} models (${models.length - added} from API, ${added} supplemented)`);
             return models;
         } catch (e) {
-            log.error('[GoogleVertex] SDK listModels failed:', e.message);
+            log.error('[GoogleVertex] SDK listModels failed:', /** @type {Error} */ (e).message);
             return knownModels;
         }
     }

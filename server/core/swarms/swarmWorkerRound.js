@@ -153,7 +153,7 @@ async function streamWorkerRound(w, messages) {
             userId,
         }, makeRoundCallback(w, round));
     } catch (streamErr) {
-        round.error = streamErr?.error?.message || streamErr?.message || 'Stream failed';
+        round.error = streamErr?.error?.message || /** @type {Error} */ (streamErr)?.message || 'Stream failed';
     }
     return round;
 }
@@ -177,6 +177,7 @@ async function runWorkerToolCalls(w, toolCalls, messages, toolHistory) {
         const toolEntry = { name, status: 'running', at: Date.now() };
         if (runSnapshot?.workers?.[workerId]) runSnapshot.workers[workerId].tools.push(toolEntry);
         send('swarm_worker_tool', { workerId, role: worker.role, toolName: name, status: 'start' });
+        /** @type {{ error: string; }} */
         let toolResult;
         try {
             // Privacy Shield tool block lists (BFSF-354): a call whose
@@ -202,7 +203,7 @@ async function runWorkerToolCalls(w, toolCalls, messages, toolHistory) {
                 },
             });
         } catch (err) {
-            toolResult = { error: err.message };
+            toolResult = { error: /** @type {Error} */ (err).message };
         }
         const finalStatus = toolResult?.error ? 'error' : 'done';
         toolEntry.status = finalStatus;
