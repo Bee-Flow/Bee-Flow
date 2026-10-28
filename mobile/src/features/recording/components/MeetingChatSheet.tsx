@@ -10,6 +10,7 @@
 import React, { useRef } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Chip, Text } from '@/shared/ui';
 
@@ -19,6 +20,7 @@ import { useMeetingChat } from '../hooks/useMeetingChat';
 import type { Transcription } from '../model/types';
 
 export function MeetingChatSheetBody({ meeting }: { meeting: Transcription }) {
+    const t = useTranslation();
     const theme = useTheme();
     const scroller = useRef<ScrollView>(null);
     const { turns, input, setInput, error, streaming, stop, liveText, suggestions, send } = useMeetingChat(meeting);
@@ -34,8 +36,10 @@ export function MeetingChatSheetBody({ meeting }: { meeting: Transcription }) {
                 {turns.length === 0 ? (
                     <View style={{ gap: theme.spacing.sm }}>
                         <Text variant="caption" tone="tertiary">
-                            Answers come only from this meeting&apos;s transcript. Nothing is saved to
-                            your chat history.
+                            {t(
+                                'mobile.recording.chat_note',
+                                "Answers come only from this meeting's transcript. Nothing is saved to your chat history.",
+                            )}
                         </Text>
                         <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
                             {suggestions.map((suggestion) => (

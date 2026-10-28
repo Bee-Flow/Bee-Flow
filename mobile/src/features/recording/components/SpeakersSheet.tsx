@@ -5,6 +5,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { Sheet } from '@/shared/ui';
 
 import { SpeakerEditorSheetBody } from './SpeakerEditorSheet';
@@ -30,12 +31,13 @@ export function SpeakersSheet({
     onReidentify: (roster: string) => void;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     return (
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="Speakers"
-            subtitle="Fix a name once and it stays fixed, even if this meeting is processed again."
+            title={t('meetings.extracted_speakers', 'Speakers')}
+            subtitle={t('mobile.recording.speakers_subtitle', 'Fix a name once and it stays fixed, even if this meeting is processed again.')}
         >
             <SpeakerEditorSheetBody
                 speakers={meeting.speakers}

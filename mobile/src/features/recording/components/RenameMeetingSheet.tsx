@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { FormSheet } from '@/shared/patterns';
 import { TextField } from '@/shared/ui';
 
@@ -20,19 +21,20 @@ export function RenameMeetingSheet({
     onSave: (title: string) => void;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const title = value.trim();
     return (
         <FormSheet
             visible={visible}
             onClose={onClose}
-            title="Rename meeting"
-            submitLabel="Save"
+            title={t('mobile.recording.rename_title', 'Rename meeting')}
+            submitLabel={t('common.save', 'Save')}
             onSubmit={() => onSave(title)}
             submitting={saving}
             canSubmit={Boolean(title)}
         >
             <TextField
-                label="Title"
+                label={t('automations.document_fields.title', 'Title')}
                 value={value}
                 onChangeText={onChange}
                 autoFocus

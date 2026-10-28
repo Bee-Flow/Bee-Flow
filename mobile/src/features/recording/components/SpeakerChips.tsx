@@ -8,6 +8,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles } from '@/core/theme/ThemeProvider';
 import { Chip, Icon } from '@/shared/ui';
 
@@ -16,6 +17,7 @@ import { buildSpeakerColors } from '../model/format';
 import type { Transcription } from '../model/types';
 
 export function SpeakerChips({ meeting, onEdit }: { meeting: Transcription; onEdit: () => void }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeMeetingStyles);
     const colours = buildSpeakerColors(meeting.speakers);
@@ -39,7 +41,7 @@ export function SpeakerChips({ meeting, onEdit }: { meeting: Transcription; onEd
             ))}
             {meeting.isOwner ? (
                 <Chip
-                    label="Edit speakers"
+                    label={t('meeting_notes.edit_speakers', 'Edit speakers')}
                     onPress={onEdit}
                     icon={<Icon name="Pen" size={12} color={theme.colors.textSecondary} />}
                 />

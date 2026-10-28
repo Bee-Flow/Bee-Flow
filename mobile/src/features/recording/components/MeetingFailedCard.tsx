@@ -11,6 +11,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles } from '@/core/theme/ThemeProvider';
 import { Button, Card, Icon, Text } from '@/shared/ui';
 
@@ -26,6 +27,7 @@ export function MeetingFailedCard({
     retrying: boolean;
     onRetry: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeMeetingStyles);
     const reason = meeting.summary?.replace(/^Transcription failed:\s*/i, '').trim();
@@ -35,7 +37,7 @@ export function MeetingFailedCard({
                 <View style={styles.stackMd}>
                     <View style={styles.titleRow}>
                         <Icon name="TriangleAlert" size={18} color={theme.colors.error} />
-                        <Text variant="subheading">Transcription failed</Text>
+                        <Text variant="subheading">{t('meetings.failed_title', 'Transcription failed')}</Text>
                     </View>
                     {reason ? (
                         <Text variant="body" tone="secondary">
@@ -44,17 +46,17 @@ export function MeetingFailedCard({
                     ) : null}
                     {meeting.audio.available ? (
                         <Text variant="caption" tone="tertiary">
-                            The recording itself is still saved, so this can be run again.
+                            {t('mobile.recording.failed_saved', 'The recording itself is still saved, so this can be run again.')}
                         </Text>
                     ) : (
                         <Text variant="caption" tone="warning">
                             {meeting.audio.capture === 'recording'
-                                ? 'The audio is no longer available and there was never another copy.'
-                                : 'The saved audio is no longer available. Import the original file again.'}
+                                ? t('mobile.recording.failed_gone_recorded', 'The audio is no longer available and there was never another copy.')
+                                : t('mobile.recording.failed_gone_imported', 'The saved audio is no longer available. Import the original file again.')}
                         </Text>
                     )}
                     {meeting.isOwner && meeting.audio.available ? (
-                        <Button label="Try again" loading={retrying} onPress={onRetry} fullWidth />
+                        <Button label={t('mobile.error.retry', 'Try again')} loading={retrying} onPress={onRetry} fullWidth />
                     ) : null}
                 </View>
             </Card>

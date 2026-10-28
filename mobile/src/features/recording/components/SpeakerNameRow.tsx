@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Badge, Chip, Text, TextField } from '@/shared/ui';
 
@@ -35,6 +36,7 @@ export function SpeakerNameRow({
     selected: boolean;
     onToggleSelected: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.row}>
@@ -50,13 +52,13 @@ export function SpeakerNameRow({
                 <View style={styles.meta}>
                     <Text variant="caption" tone="tertiary">
                         {speaker.speakingTime ?? '—'}
-                        {speaker.segments ? ` · ${speaker.segments} turns` : ''}
+                        {speaker.segments ? ` · ${t('mobile.recording.speaker_turns', '{count} turns', { count: speaker.segments })}` : ''}
                     </Text>
                     {/* 'voiceprint': an acoustic match settled it; 'manual': a person did. */}
-                    {speaker.source === 'voiceprint' ? <Badge label="Voice match" tone="success" /> : null}
-                    {speaker.source === 'manual' ? <Badge label="Edited" /> : null}
+                    {speaker.source === 'voiceprint' ? <Badge label={t('mobile.recording.speaker_voice_match', 'Voice match')} tone="success" /> : null}
+                    {speaker.source === 'manual' ? <Badge label={t('automations.ndv.edited', 'Edited')} /> : null}
                     <Chip
-                        label={selected ? 'Selected to merge' : 'Select to merge'}
+                        label={selected ? t('mobile.recording.merge_selected', 'Selected to merge') : t('mobile.recording.merge_select', 'Select to merge')}
                         selected={selected}
                         onPress={onToggleSelected}
                     />
