@@ -104,7 +104,7 @@ const EXTERNAL_TEXT = {
  * What stays inside (an in-app notification, a Talk message, a file in the
  * own Nextcloud, an e-mail to a colleague's literal address) is not a finding.
  *
- * @param {object} definition
+ * @param {AutomationDefinition} definition
  * @param {{ internalDomains?: string[] }} [opts]  the organisation's mail domains
  */
 function detectExternalOutput(definition, { internalDomains = [] } = {}) {
@@ -440,7 +440,7 @@ module.exports = {
 /** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
 
 /**
- * @typedef {object} AutomationRef  the parts of an automation row this check reads
+ * @typedef AutomationRef  the parts of an automation row this check reads
  * @property {string} id
  * @property {string} [userId]
  * @property {string|null} [organizationId]
@@ -448,7 +448,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AiActState  what `aiActState(automation, definition)` answers
+ * @typedef AiActState  what `aiActState(automation, definition)` answers
  * @property {boolean} required
  * @property {string} status
  * @property {string|null} [expiresAt]
@@ -462,7 +462,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AiActRow  a latest-assessment register row (compliance/aiAct/attest)
+ * @typedef AiActRow  a latest-assessment register row (compliance/aiAct/attest)
  * @property {string|Date|null} [expires_at]
  * @property {string|null} [outcome]
  * @property {string|Date|null} [attested_at]

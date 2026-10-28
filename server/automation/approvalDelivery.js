@@ -244,11 +244,10 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
  * Deliver one approval's card on the Nextcloud channels the policy selected.
  * Never throws; returns a small report the caller may log.
  *
- * @param {object}   p
- * @param {object}   p.approval      the durable approval row
- * @param {object}   [p.automation]  the automation it paused (for the title/room)
- * @param {string[]} p.channels      the resolved notification policy's channels
- * @param {string[]} [p.recipientIds] Bee Flow user ids the bell should reach
+ * @param {{ approval: import('./approvalRulebook').Approval, automation?: ApprovalAutomation | null, channels: string[], recipientIds?: string[] }} p
+ *   approval: the durable approval row; automation: the automation it paused (for the
+ *   title/room); channels: the resolved notification policy's channels;
+ *   recipientIds: Bee Flow user ids the bell should reach
  */
 async function deliverApprovalToNextcloud({ approval, automation = null, channels = [], recipientIds = [] }) {
     const report = { talk: null, notifications: [] };
@@ -378,3 +377,5 @@ module.exports = {
 /** @typedef {{ ok: boolean, apiVersion?: string|null, status?: number, error?: string }} BellResult */
 
 /** @typedef {{ ok: boolean, via?: string|null, roomToken?: string, messageId?: string|null, referenceId?: string, error?: string }} TalkCardResult */
+
+/** @typedef {{ title?: string, organizationId?: string | null, userId?: string, definition?: unknown }} ApprovalAutomation  the parts of an automation a card reads */

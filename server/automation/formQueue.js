@@ -68,7 +68,7 @@ function createFormQueue(overrides = {}) {
     const runner = () => overrides.runner || require('../core/automationRunner');
     const formAnswers = () => overrides.formAnswers || require('./formAnswers').write;
     const automationForRun = overrides.automationForRun
-        || ((/** @type {any} */ stored, /** @type {any} */ opts) => require('../core/automationRunner/definitionForRun').automationForRun(stored, opts));
+        || ((/** @type {import('./formQueueShared').FormAutomation} */ stored, /** @type {{ mode?: string }} */ opts) => require('../core/automationRunner/definitionForRun').automationForRun(stored, opts));
 
     /** automationId → { running: bool, items: [], reserved: number, current: item|null } */
     /** @type {Map<string, { running: boolean, items: import('./formQueueShared').FormQueueItem[], reserved: number, current: import('./formQueueShared').FormQueueItem | null }>} */
@@ -104,8 +104,8 @@ function createFormQueue(overrides = {}) {
      * Throws when the work cannot be persisted (500) or the queue is full (503 form_busy).
      *
      * @param {{ automation: { id: string }, session: { id: string }, work: object }} unit
-     * @param {*} res
-     * @param {object} [extra] merged into the 202 body
+     * @param {import('express').Response} res
+     * @param {Record<string, unknown>} [extra] merged into the 202 body
      * @returns {Promise<undefined>}
      */
     async function accept({ automation, session, work }, res, extra = {}) {

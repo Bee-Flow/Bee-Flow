@@ -39,7 +39,7 @@ function oneLine(text, max = 120) {
 }
 
 /**
- * @typedef {Object} RoleWordingArgs
+ * @typedef RoleWordingArgs
  * @property {{ index: number; total: number; } | null} [position]
  */
 /**
@@ -63,12 +63,10 @@ function roleWording({ approval, stage = null, position = null }) {
 /**
  * The allow-listed announcement for one approval request.
  *
- * @param {object} p
- * @param {object} p.approval          the approval row (read, never passed on)
- * @param {string} [p.automationTitle] the automation's name, when the caller has it
- * @param {string} [p.url]             the deep link into Bee Flow
- * @param {object} [p.stage]           the current stage of a chain
- * @param {{ index: number, total: number }} [p.position]
+ * @param {{ approval: import('./approvalRulebook').Approval, automationTitle?: string, url?: string,
+ *   stage?: import('./approvalRulebook').ApprovalStage, position?: { index: number, total: number } }} p
+ *   approval: the approval row (read, never passed on); automationTitle: the automation's
+ *   name, when the caller has it; url: the deep link into Bee Flow; stage: the current stage of a chain
  */
 function approvalAnnouncement({ approval, automationTitle = '', url = null, stage = null, position = null }) {
     const short = shortMessage({ event: 'onApproval', title: automationTitle || approval?.automationTitle || '' });

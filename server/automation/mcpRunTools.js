@@ -31,7 +31,7 @@ const guideSection = () => [runReads.guideSection(), formScenarios.guideSection(
 /**
  * Run one of the tools. Never throws: a refusal comes back as `{ error, code }`.
  * @param {string} name
- * @param {any} args
+ * @param {Record<string, unknown>} args
  * @param {{ userId: string, tokenId?: string|null }} ctx
  */
 function callRunTool(name, args, ctx) {

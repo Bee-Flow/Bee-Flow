@@ -17,7 +17,7 @@
  */
 
 function cacheStub(resolved, exports) {
-    require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports });
+    require.cache[resolved] = /** @type {NodeJS.Module} */ ({ id: resolved, filename: resolved, loaded: true, exports });
 }
 
 function installDispatchStubs() {

@@ -179,7 +179,7 @@ module.exports = { outcome, recordDeploymentOutcome, userDisplayName, deciderNam
 /** @typedef {import('./approvalRulebook').ApprovalVote} ApprovalVote */
 
 /**
- * @typedef {object} DecisionCall  what decide hands to the vote and decision writers
+ * @typedef DecisionCall  what decide hands to the vote and decision writers
  * @property {Approval} approval
  * @property {Record<string, any>|null} run  the run row the approval pauses (null for a run-less approval)
  * @property {string} deciderId

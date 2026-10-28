@@ -20,9 +20,9 @@ const { fallback } = require('../utils/bestEffort');
 // Test seam (_setDepsForTests): the store and the trigger bus this module talks
 // to, swapped for fakes by a test instead of through the module cache. Same
 // convention as triggerBus._setDepsForTests; read at call time.
-/** @type {any} */
+/** @type {typeof REAL_AUTOMATION_STORE} */
 let automationStore = REAL_AUTOMATION_STORE;
-/** @type {any} */
+/** @type {typeof REAL_TRIGGER_BUS} */
 let triggerBus = REAL_TRIGGER_BUS;
 
 /**

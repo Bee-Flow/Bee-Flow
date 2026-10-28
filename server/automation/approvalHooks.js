@@ -33,7 +33,7 @@ const { scanTemplate, parsePath, walkTokens } = require('./expr');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
- * @typedef {object} HookApproval  the parts of an approval row the on_decided hook reads
+ * @typedef HookApproval  the parts of an approval row the on_decided hook reads
  * @property {string} id
  * @property {string} [status]
  * @property {string|null} [ownerId]

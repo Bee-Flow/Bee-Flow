@@ -45,7 +45,7 @@ function columnsOf(step) {
 }
 
 /**
- * @param {any} definition an automation definition
+ * @param {import('./automationGraph').AutomationDefinition} definition an automation definition
  * @returns {Array<{datatableId, stepId, mode, columns}>}
  */
 function collectDatatableUsage(definition) {

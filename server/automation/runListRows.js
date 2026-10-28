@@ -211,7 +211,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} RunRow  a run row as listRunsScoped hands it over, plus what decorate adds
+ * @typedef RunRow  a run row as listRunsScoped hands it over, plus what decorate adds
  * @property {string} [id]
  * @property {string} [automationId]
  * @property {number|null} [version]

@@ -405,7 +405,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} ToolDeps  the test seam
+ * @typedef ToolDeps  the test seam
  * @property {typeof import('../stores/automationStore')} [automationStore]
  * @property {typeof import('./agentBinding')} [agentBinding]
  * @property {ReturnType<typeof import('./access').makeAutomationAccess>} [automationAccess]
@@ -413,7 +413,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} CallCtx  the dispatch context the caller builds (see callerTraceOf)
+ * @typedef CallCtx  the dispatch context the caller builds (see callerTraceOf)
  * @property {string | null} [callerAgentId]
  * @property {string | null} [agentId]
  * @property {string | null} [callerConversationId]
@@ -426,7 +426,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} ToolMeta  the routing metadata of an automation tool (`__automation`)
+ * @typedef ToolMeta  the routing metadata of an automation tool (`__automation`)
  * @property {string} id
  * @property {string} [userId]
  * @property {string | null} [organizationId]

@@ -333,14 +333,14 @@ module.exports = {
  */
 
 /**
- * @typedef {object} ApprovalViewer  who is asking
+ * @typedef ApprovalViewer  who is asking
  * @property {string} [userId]
  * @property {string[]} [groupIds]
  * @property {(orgId: string) => boolean} [isOrgAdminOfOrg]
  */
 
 /**
- * @typedef {object} ApprovalVote  one cast vote, as the store maps it (rowToVote)
+ * @typedef ApprovalVote  one cast vote, as the store maps it (rowToVote)
  * @property {string} [id]
  * @property {string} [approvalId]
  * @property {string} [stage]
@@ -354,7 +354,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} ApprovalLike  the parts of an approval row this rulebook reads
+ * @typedef ApprovalLike  the parts of an approval row this rulebook reads
  * @property {string|null} [source]
  * @property {string|null} [requestedBy]
  * @property {string|null} [ownerId]

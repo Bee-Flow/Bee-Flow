@@ -409,7 +409,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
 }
 
 /**
- * @typedef {Object} DeactivateCoreArgs
+ * @typedef DeactivateCoreArgs
  * @property {string} actorId
  */
 /**
@@ -435,7 +435,7 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
 }
 
 /**
- * @typedef {Object} ConvergeAfterPublishArgs
+ * @typedef ConvergeAfterPublishArgs
  * @property {boolean} [isActive]
  * @property {string} [reason]
  * @property {boolean} [saveSyncs]
@@ -550,7 +550,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} GoLiveDeps  injectable collaborators; each lazily defaults to the real module
+ * @typedef GoLiveDeps  injectable collaborators; each lazily defaults to the real module
  * @property {typeof import('./holidays')} [holidays]
  * @property {typeof import('../core/automationRunner/runPolicy')} [runPolicy]
  * @property {typeof import('./triggerColumns')} [triggerColumns]
@@ -590,7 +590,7 @@ module.exports = {
 /** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object|null, raise?: boolean, details?: object }} GoLiveFailure */
 
 /**
- * @typedef {object} GoLiveAutomation  the parts of a store row the go-live cores read
+ * @typedef GoLiveAutomation  the parts of a store row the go-live cores read
  * @property {string} [id]
  * @property {string} [title]
  * @property {string} [userId]
@@ -602,7 +602,7 @@ module.exports = {
  * @property {number|null} [liveVersion]
  * @property {number} [version]
  * @property {string} [kind]
- * @property {object} [definition]
+ * @property {import('./automationGraph').AutomationDefinition} [definition]
  */
 
 /** @typedef {{ kind?: string, id?: string, layerKey?: string, pinnedSource?: string }} Pin  a pinned (sample-serving) node of a definition */

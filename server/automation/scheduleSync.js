@@ -36,9 +36,8 @@ function scheduleFingerprint(def) {
 
 /**
  * @param {string} automationId
- * @param {object} def            the automation definition
- * @param {object} [opts]
- * @param {boolean} [opts.rearm]  recompute every next_run_at (activation)
+ * @param {import('./automationGraph').AutomationDefinition} def            the automation definition
+ * @param {{ rearm?: boolean }} [opts]  rearm: recompute every next_run_at (activation)
  * @param {{automationStore?: any, cron?: any}} [deps]         { automationStore, cron } — injectable for tests
  * @returns {Promise<{ synced: string[], removed: boolean }>}
  */

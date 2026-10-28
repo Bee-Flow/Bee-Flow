@@ -198,7 +198,7 @@ function withTimeout(promise, ms) {
 }
 
 /**
- * @typedef {object} ClassifyArgs
+ * @typedef ClassifyArgs
  * @property {string} text
  * @property {string} hash
  * @property {string | null} [orgId]

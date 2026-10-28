@@ -85,7 +85,7 @@ function explainRefusal(agent, { userId: _userId = null, orgId = null, groups = 
  *   `shared_groups` is already an array). The caller glues the two lists together; here it is de-duplicated
  *   on id, where the FIRST wins — so the own-agents list should come first, because that carries the draft
  *   state of a row that appears in both lists.
- * @param {object} viewer  `{ userId, orgId, groups }` of the AUTOMATION OWNER
+ * @param {{ userId?: string, orgId?: string | null, groups?: string[] }} [viewer]  of the AUTOMATION OWNER
  * @returns {Array<{id,name,description,scope,canUse,reason}>} sorted by name
  */
 function agentPickerRows(rows, viewer = {}) {
