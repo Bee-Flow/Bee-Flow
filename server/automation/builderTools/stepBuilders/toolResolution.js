@@ -1,5 +1,6 @@
 // @typecheck
 const { fallback } = require('../../../utils/bestEffort');
+const { stepEffect } = require('../../../core/automationModel/stepEffect');
 
 /**
  * Builder tools — which catalog tool the model meant, and whether this user
@@ -171,20 +172,110 @@ function unknownToolError(tool, draftWrap, { label = null } = {}) {
  * and where they are not (the same notification on two branches) the author can
  * vary an input. Label is ignored on purpose — it is cosmetic, so including it
  * would let a renamed copy through.
+ *
+ * NOT a duplicate: the same call with a step that changes something
+ * BETWEEN the two, on the graph — list a folder, delete a file in it, list it
+ * again to check. The second call answers differently, so referencing the
+ * first is not the same thing. `opts.anchorId` is the step the new call is
+ * appended after; without it (the insertion point is unknown) every identical
+ * call is a duplicate, as before.
+ *
+ * @param {DupGraph} graph
+ * @param {string} tool
+ * @param {unknown} inputs
+ * @param {{ anchorId?: string|null }} [opts]
  */
-function findDuplicateAction(graph, tool, inputs) {
+function findDuplicateAction(graph, tool, inputs, opts = {}) {
     const target = JSON.stringify(inputs || {});
+    const anchorId = typeof opts.anchorId === 'string' && opts.anchorId ? opts.anchorId : null;
     for (const s of (graph?.steps || [])) {
         if (!s || s.type !== 'integration_action' || s.tool !== tool) continue;
-        if (JSON.stringify(s.inputs || {}) === target) return s;
+        if (JSON.stringify(s.inputs || {}) !== target) continue;
+        if (anchorId && sideEffectBetween(graph, s.id, anchorId)) continue;
+        return s;
     }
     return null;
+}
+
+/**
+ * Is there a step that changes something (stepEffect: writes or sends) on a
+ * path between the existing call `fromId` and a new call appended after
+ * `anchorId`? Read off the edges, not the list order.
+ *   - the existing call runs BEFORE the insertion point (it is the anchor or
+ *     one of its ancestors): the steps on a path from it to the anchor, the
+ *     anchor included, the call itself not;
+ *   - it runs AFTER the anchor: the steps on a path from the anchor to it,
+ *     both ends excluded (the anchor runs before the new call too);
+ *   - neither (another branch): nothing lies between them.
+ * @param {DupGraph} graph
+ * @param {string} fromId
+ * @param {string} anchorId
+ */
+function sideEffectBetween(graph, fromId, anchorId) {
+    if (fromId === anchorId) return false;
+    const { out, inc } = edgeMaps(graph);
+    const byId = new Map((Array.isArray(graph.steps) ? graph.steps : []).filter(Boolean).map((s) => [s.id, s]));
+    const changes = (/** @type {string} */ id) => {
+        const step = byId.get(id);
+        return !!step && stepEffect(step, { layers: graph.layers }) !== 'reads';
+    };
+    const afterFrom = reachable(fromId, out);
+    if (afterFrom.has(anchorId)) {
+        const upToAnchor = reachable(anchorId, inc).add(anchorId);
+        return [...afterFrom].some((id) => upToAnchor.has(id) && changes(id));
+    }
+    const afterAnchor = reachable(anchorId, out);
+    if (!afterAnchor.has(fromId)) return false;
+    const beforeFrom = reachable(fromId, inc);
+    return [...afterAnchor].some((id) => id !== fromId && beforeFrom.has(id) && changes(id));
+}
+
+/**
+ * The graph's edges as successor and predecessor lists.
+ * @param {DupGraph} graph
+ */
+function edgeMaps(graph) {
+    /** @type {Map<string, string[]>} */ const out = new Map();
+    /** @type {Map<string, string[]>} */ const inc = new Map();
+    const add = (/** @type {Map<string, string[]>} */ m, /** @type {string} */ k, /** @type {string} */ v) => {
+        const list = m.get(k);
+        if (list) list.push(v); else m.set(k, [v]);
+    };
+    for (const e of (Array.isArray(graph.edges) ? graph.edges : [])) {
+        if (!e || typeof e.from !== 'string' || typeof e.to !== 'string') continue;
+        add(out, e.from, e.to);
+        add(inc, e.to, e.from);
+    }
+    return { out, inc };
+}
+
+/**
+ * Every node reachable from `start` along `adj` (`start` itself only on a cycle).
+ * @param {string} start
+ * @param {Map<string, string[]>} adj
+ */
+function reachable(start, adj) {
+    const seen = new Set();
+    const queue = [...(adj.get(start) || [])];
+    while (queue.length) {
+        const id = queue.shift();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        queue.push(...(adj.get(id) || []));
+    }
+    return seen;
 }
 
 module.exports = {
     resolveToolName,
     unknownToolError,
     findDuplicateAction,
+    sideEffectBetween,
 };
 
 /** @typedef {import('../stepEditing/typeChange').BuilderWrap} BuilderWrap */
+/**
+ * The part of a draft graph the duplicate guard reads.
+ * @typedef {{ steps?: Array<{ id: string, type?: string, tool?: string, inputs?: unknown, [key: string]: unknown }>,
+ *   edges?: Array<{ from?: unknown, to?: unknown }>, trigger?: { id?: string }, layers?: Record<string, unknown> }} DupGraph
+ */

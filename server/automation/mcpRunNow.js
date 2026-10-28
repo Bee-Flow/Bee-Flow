@@ -29,7 +29,10 @@
  *      an organisation the caller is in, and the caller holds `run` on it
  *      (anything else answers 404: whether it exists is not told); a `view`
  *      share sees it but may not start it (403 automation_run_forbidden);
- *   4. it is active;
+ *   4. it is active, and the definition the run would execute validates (an
+ *      automation without a published copy runs its working copy, which the
+ *      builder tools save even when it is not yet valid: such a copy is
+ *      refused with its validationErrors, never run with holes in it);
  *   5. the "runs with your own connections" notice, when it applies to a
  *      caller who is not the owner, has been acknowledged in the product;
  *   6. the rate limits (per user and per automation);
@@ -59,6 +62,8 @@ const DEFAULT_INPUT_MAX = 64 * 1024;
 const DEFAULT_PER_MINUTE_USER = 20;
 const DEFAULT_PER_MINUTE_AUTOMATION = 10;
 const DEFAULT_WAIT_MAX_SECONDS = 55;
+// How many validation errors a refusal lists.
+const MAX_VALIDATION_ERRORS = 20;
 
 /** @type {any[]} */
 const RUN_NOW_TOOLS = [
@@ -112,6 +117,7 @@ const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
  *   describeNoticeFor?: Function,
  *   charge?: (name: string, key: string, cost: number, max: number) => Promise<{ ok: boolean, retryAfter?: number }>,
  *   audit?: (action: string, targetType: string, targetId: string, actorId: string|null, before: any, after: any, orgId: string|null) => Promise<any>,
+ *   validate?: (definition: any) => { ok: boolean, errors?: any[] },
  * }} [overrides]
  */
 function makeRunNow(overrides = {}) {
@@ -128,6 +134,10 @@ function makeRunNow(overrides = {}) {
     const describeNoticeFor = overrides.describeNoticeFor || ((o) => require('../core/automationRunner/callerNotice').describeNoticeFor(o));
     const charge = overrides.charge || ((name, key, cost, max) => require('../auth/mcpAccess/gate').checkLimiter({ name, max }, key, cost));
     const audit = overrides.audit || ((...a) => require('../stores/userStore').logAccessAudit(...a));
+    // The pure pass at the activate stage (every rule blocks), as finalize and go-live use it.
+    const validate = overrides.validate || ((def) => require('./validate').validateDefinition(def, {
+        deliverableEvents: require('./deliverableEvents').getDeliverableEvents(),
+    }));
 
     const notFound = () => new HttpError(404, 'not_found', 'Automation not found, or this account may not run it. Call automations_list for the automations you own.');
 
@@ -190,6 +200,19 @@ function makeRunNow(overrides = {}) {
             throw new HttpError(409, 'not_runnable', 'This automation cannot be run in its current state.');
         }
         if (!a) throw notFound();
+
+        // The copy this run executes must validate. An automation without a
+        // published copy runs its working copy, and the builder saves that copy even
+        // when it carries validationErrors; running it would send whatever its
+        // broken bindings resolve to. Refused with the errors, so the caller can fix them.
+        const checked = validate(a.definition || {});
+        if (!checked.ok) {
+            const errors = (checked.errors || []).slice(0, MAX_VALIDATION_ERRORS)
+                .map((e) => ({ code: e.code, path: e.path, message: e.message, ...(e.hint ? { hint: e.hint } : {}) }));
+            throw new HttpError(409, 'automation_invalid',
+                'This automation does not validate, so it is not run. Fix the validationErrors with the builder tools (builder_request_dry_run, builder_finalize) and try again.',
+                { validationErrors: errors });
+        }
 
         const notice = await describeNoticeFor({ automation: stored, userId, store: store(), canEdit: roleSatisfies(role, 'edit') });
         if (notice.applies && !notice.seen) {
@@ -280,7 +303,7 @@ function makeRunNow(overrides = {}) {
         try {
             return await run(ctx.userId, args && typeof args === 'object' ? args : {}, ctx);
         } catch (e) {
-            if (e instanceof HttpError) return { error: e.message, code: e.code };
+            if (e instanceof HttpError) return { ...(e.details && typeof e.details === 'object' ? e.details : {}), error: e.message, code: e.code };
             log.error(`[automations-mcp] ${name} failed: ${e instanceof Error ? e.message : e}`);
             return { error: `${name} failed.`, code: 'internal_error' };
         }

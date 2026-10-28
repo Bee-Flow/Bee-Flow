@@ -33,10 +33,10 @@ test('a cycle through an expression binding is caught', () => {
     assert.ok(validateDefinition(def([a, b])).errors.some(e => e.code === 'ref.cycle'));
 });
 
-test('a plain forward read stays a warning, and an ordered read is clean', () => {
+test('a plain forward read is ref.forward (not a cycle), and an ordered read is clean', () => {
     const fwd = validateDefinition(def([note('a', '{{steps.b.output.x}}'), note('b', 'x')]));
     assert.ok(!fwd.errors.some(e => e.code === 'ref.cycle'));
-    assert.ok(fwd.warnings.some(w => w.code === 'ref.forward'));
+    assert.ok(fwd.errors.some(w => w.code === 'ref.forward'));
     const ordered = validateDefinition(def([note('a', 'x'), note('b', '{{steps.a.output.x}}')]));
     assert.ok(!codes(ordered).includes('ref.cycle'));
 });

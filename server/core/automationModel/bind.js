@@ -618,7 +618,7 @@ function interpolateJsonBody(template, runState, opts = {}) {
 module.exports = {
     walkList,
     resolveValue, resolveDeep, resolveInputs, walkPath, walkRelativePath, interpolateTemplate, cloneLiteral,
-    interpolateJsonBody, withBindingLog, describeBindingMiss, noteRuleMiss, bindingLogStore, noteMiss,
+    interpolateJsonBody, withBindingLog, underField, describeBindingMiss, noteRuleMiss, bindingLogStore, noteMiss,
 };
 
 /**
