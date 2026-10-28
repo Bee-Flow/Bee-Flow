@@ -210,7 +210,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     // take a run down with it.
     if (typeof onRunCreated === 'function') {
         try { await onRunCreated(run); } catch (e) {
-            log.warn(`[automationRunner] onRunCreated hook failed for run ${run.id}: ${e.message}`);
+            log.warn(`[automationRunner] onRunCreated hook failed for run ${run.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 

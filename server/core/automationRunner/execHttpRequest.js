@@ -209,9 +209,9 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
         if (blockPrivateTargets && isPrivateAddressError(e)) {
             throw new Error('http_request: refused — target resolves to a private/internal address. Turn off "Block requests to private/internal addresses" in this step\'s settings if you specifically need to reach it.');
         }
-        if (e.name === 'AbortError') throw new Error(`http_request: timed out after ${timeoutMs}ms.`);
+        if (/** @type {Error} */ (e).name === 'AbortError') throw new Error(`http_request: timed out after ${timeoutMs}ms.`);
         /** @type {import('./runnerError.types').RunnerError} */
-        const failed = new Error(`http_request: ${e.message || String(e)}`);
+        const failed = new Error(`http_request: ${/** @type {Error} */ (e).message || String(e)}`);
         // The request never got an answer (DNS, refused, reset): not a missing
         // "room token / board id", which is what the generic class suggests.
         if (isNetworkFailure(e)) failed.errorClass = 'http_unreachable';

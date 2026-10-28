@@ -260,7 +260,7 @@ async function execFillDocument(step, ctx, runState, mode) {
             });
             savedCopy = { documentId: copy.id, url: `/app/studio/documents/${copy.id}` };
         } catch (e) {
-            log.warn(`[fill_document] ${step.id}: the filled copy could not be saved: ${e.message}`);
+            log.warn(`[fill_document] ${step.id}: the filled copy could not be saved: ${/** @type {Error} */ (e).message}`);
         }
     }
 
