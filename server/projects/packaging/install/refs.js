@@ -97,7 +97,7 @@ function resolveKnownRefs(holderKind, payload, refMap, targetKinds) {
  *     which ends "check it is the right one before activating". Their pick, so
  *     their check.
  *   - not bound at all — always said out loud. A datatable step with no table
- *     is an automation that cannot run, and it used to arrive that way in silence.
+ *     is an automation that cannot run, and it must not arrive that way in silence.
  */
 function applyResolutionsTo(definition, ref, ctx, report) {
     // `wiring` is null when nobody chose anything: a stage copy, or an

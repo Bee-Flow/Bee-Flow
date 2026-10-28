@@ -80,10 +80,10 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
             },
         }).catch(/** @param {Error} e @returns {null} */ (e) => { runError = e; log.error('[playbooks/fill] run error:', e && e.message); return null; });
         const run = await Promise.race([runPromise, guard]);
-        // A rejection before the runner ever created a run row used to come back as
-        // `{ ok: true, runId: null }`, which the route persisted as `running` — and
-        // `refreshFillPhase` returned early on a missing id, so the stale guard
-        // could never fire and the phase span for ever on "Starting the automation…".
+        // A rejection before the runner ever created a run row would come back as
+        // `{ ok: true, runId: null }`, which the route would persist as `running` — and
+        // `refreshFillPhase` would return early on a missing id, so the stale guard
+        // could never fire and the phase would spin for ever on "Starting the automation…".
         if (!run && !runId && !timedOut) {
             return {
                 ok: false,
@@ -114,7 +114,7 @@ async function refreshFillPhase(phase, deps, now = Date.now(), { locale = null }
     const startedAt = phase && phase.startedAt ? Date.parse(phase.startedAt) : NaN;
     const stale = Number.isFinite(startedAt) && now - startedAt > STALE_MS;
     // The stale guard sits ABOVE the id check on purpose: a phase whose run was
-    // never created has nothing to poll, and used to be polled for ever.
+    // never created has nothing to poll, and must not be polled for ever.
     if (!art.runId) return stale ? { status: 'failed', artifacts: art, error: copy.runNeverStarted } : null;
     const run = await automationStore.getRun(art.runId).catch((e) => fallback('playbooks/phases/fillPhase:refreshFillPhase', e, null));
     const rowCount = await currentRowCount(art, deps);

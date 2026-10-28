@@ -36,7 +36,7 @@
 
 /**
  * The SPA's public origin — the host every email/notification link hangs off.
- * This exact idiom used to be copy-pasted at 15+ call sites; the defaults are
+ * This exact idiom is shared by 15+ call sites; the defaults are
  * part of its observed behaviour and must not drift per caller.
  *
  * (Not to be confused with automation/publicUrl.js's resolvePublicBaseUrl(),

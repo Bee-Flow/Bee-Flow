@@ -49,8 +49,8 @@ const AI_SOURCE_FIELD = Object.freeze({
  * ages rows by either, so a table with no date column of its own still has an
  * answer — and "when the row was added" IS when the automation extracted it.
  */
-// The directory the model is shown. It used to be the WHOLE organisation, names
-// and e-mail addresses, in a 700-token call.
+// The directory the model is shown. It is not the WHOLE organisation, whose names
+// and e-mail addresses would fill a 700-token call.
 const DIRECTORY_CAP = 40;
 
 /** @typedef {{ key: string, name?: string, type?: string, system?: boolean }} TableColumn */
@@ -110,7 +110,7 @@ function subjectColumns(table) {
  * The registration this table is missing, filled in as far as the facts allow
  * — AND NO FURTHER.
  *
- * THE LEGAL BASIS IS NEVER FILLED IN. It used to fall back to the
+ * THE LEGAL BASIS IS NEVER FILLED IN. It must not fall back to the
  * organisation's first configured basis and then, failing that, to the
  * literal string 'legitimate_interests'. That is the product taking a legal
  * position on the customer's behalf: Art. 6(1)(f) is a balancing test with a

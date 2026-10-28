@@ -34,7 +34,7 @@ function isKeyClash(err) {
  * ── Why the engine wiring is spelled out here ──────────────────────────────
  *
  * A `datatables` row, its entry in the scope model and the physical CREATE
- * TABLE have to land in ONE transaction. They used to be two on the create
+ * TABLE have to land in ONE transaction. They must not be two, as on the create
  * route, and the failure mode is on the record: the metadata committed first,
  * so a DDL failure left a table the picker listed and every read 500'd on, and
  * the retry then hit the unique index on (scope, key). `createDatatable` takes

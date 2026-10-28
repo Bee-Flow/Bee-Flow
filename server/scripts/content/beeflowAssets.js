@@ -193,9 +193,9 @@ const KNOWLEDGE_FLOW = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880
  * The generic hero / share-card fallback, used wherever a real screenshot has
  * not been supplied (and as og:image on half the site).
  *
- * It used to be a 6×7 grid of hexagons with `(row * 7 + col) % 5` picking which
- * ones were amber. A modulo pattern does not read as a considered composition —
- * it reads as filler, which is exactly what it was, and it put a beehive motif
+ * It is not a 6×7 grid of hexagons with `(row * 7 + col) % 5` picking which
+ * ones are amber: a modulo pattern does not read as a considered composition —
+ * it reads as filler, and it puts a beehive motif
  * in front of people evaluating an automation platform.
  *
  * This draws the thing the product actually is: a workflow. A trigger, three

@@ -678,9 +678,8 @@ async function captureSolution({
     // about which references leave the bundle.
     const graph = buildProjectGraph({ project, ...members });
 
-    // Grouped by KIND. It used to count every external as an automation, which
-    // was true while an automation was the only thing an edge could point at and
-    // became a lie the moment an agent could depend on a skill: "needs 3
+    // Grouped by KIND. Counting every external as an automation would be a lie
+    // as soon as an agent can depend on a skill: "needs 3
     // automation(s)" for three missing knowledge bases sends the installer to
     // the wrong screen. The `{ kind, count }` shape is unchanged.
     const requires = [];
