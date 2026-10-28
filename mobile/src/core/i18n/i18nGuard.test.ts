@@ -246,9 +246,6 @@ const UNCONVERTED = new Map<string, number>([
     // Run now / Run again accessibility hints go through t(), so the viewer
     // copy added no strings and two older literals went with the rewrite.
     ['src/features/automations', 50],
-    // 25 -> 17: the schedule screen's labels and toasts went through t() when
-    // its Delete learned to ask first.
-    ['src/features/cowork', 17],
     ['src/features/documents', 10],
     ['src/features/integrations', 134],
     // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when

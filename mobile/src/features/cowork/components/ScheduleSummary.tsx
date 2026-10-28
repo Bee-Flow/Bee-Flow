@@ -20,7 +20,9 @@ function nextLine(schedule: CoworkSchedule, t: TranslateFn): string {
     if (schedule.isActive && schedule.nextRunAt) {
         return t('mobile.cowork.next_when', 'Next: {when}', { when: describeMoment(schedule.nextRunAt) });
     }
-    return schedule.isActive ? 'No next run scheduled' : 'Paused — it will not run until you resume it.';
+    return schedule.isActive
+        ? t('mobile.cowork.no_next_run', 'No next run scheduled')
+        : t('mobile.cowork.paused_hint', 'Paused — it will not run until you resume it.');
 }
 
 export function ScheduleSummary({ schedule }: { schedule: CoworkSchedule }) {
@@ -30,7 +32,7 @@ export function ScheduleSummary({ schedule }: { schedule: CoworkSchedule }) {
         <View style={styles.root}>
             <View style={styles.badges}>
                 <Badge
-                    label={schedule.isActive ? 'Scheduled' : 'Paused'}
+                    label={schedule.isActive ? t('mobile.cowork.scheduled', 'Scheduled') : t('agent_schedules.paused', 'Paused')}
                     tone={schedule.isActive ? 'success' : 'neutral'}
                 />
                 {schedule.repeatInterval ? (

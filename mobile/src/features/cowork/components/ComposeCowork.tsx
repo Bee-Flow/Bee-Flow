@@ -25,15 +25,13 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text, useToast } from '@/shared/ui';
 
 import { ConfirmCoworkSheet } from './ConfirmCoworkSheet';
 import { useComposeCowork, useCreateSchedule } from '../hooks/mutations';
 import type { Proposal } from '../model/proposal';
-
-/** The web's own placeholder (CoworkComposer.jsx COWORK_PLACEHOLDER). */
-const PLACEHOLDER = 'Describe the work — Bee Flow runs it and reports back';
 
 const makeStyles = (theme: Theme) =>
     StyleSheet.create({
@@ -69,6 +67,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function ComposeCowork() {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
@@ -79,7 +78,7 @@ export function ComposeCowork() {
     const create = useCreateSchedule(() => {
         setProposal(null);
         setBrief('');
-        toast('Scheduled. It runs whether the app is open or not.');
+        toast(t('mobile.cowork.scheduled_toast', 'Scheduled. It runs whether the app is open or not.'));
     });
 
     const canSend = brief.trim().length > 0 && !compose.isPending;
@@ -90,22 +89,22 @@ export function ComposeCowork() {
                 <TextInput
                     value={brief}
                     onChangeText={setBrief}
-                    placeholder={PLACEHOLDER}
+                    placeholder={t('cowork.composer.placeholder', 'Describe the work — Bee Flow runs it and reports back')}
                     placeholderTextColor={theme.colors.textMuted}
                     multiline
-                    accessibilityLabel="Describe the work to delegate"
+                    accessibilityLabel={t('mobile.cowork.brief_label', 'Describe the work to delegate')}
                     underlineColorAndroid="transparent"
                     style={styles.input}
                 />
                 <View style={styles.footer}>
                     <Text variant="label" tone="tertiary" style={styles.hint}>
-                        Now, later, or every week — say it in the sentence.
+                        {t('mobile.cowork.brief_hint', 'Now, later, or every week — say it in the sentence.')}
                     </Text>
                     <Pressable
                         onPress={() => compose.mutate(brief.trim())}
                         disabled={!canSend}
                         accessibilityRole="button"
-                        accessibilityLabel="Work out the schedule"
+                        accessibilityLabel={t('mobile.cowork.compose_label', 'Work out the schedule')}
                         style={[styles.send, canSend ? styles.sendReady : null]}
                     >
                         <Icon
