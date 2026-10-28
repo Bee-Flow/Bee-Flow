@@ -66,7 +66,7 @@ async function chatStructured(modelId, messages, baseOptions, schema) {
         toolChoice: await llmClient.forcedToolChoiceFor(modelId, 'return_structured_output'),
     });
     let structured = null;
-    const call = (result.toolCalls || []).find(tc => tc?.function?.name === 'return_structured_output')
+    const call = (result.toolCalls || []).find((/** @type {{ function: { name: string; }; }} */ tc) => tc?.function?.name === 'return_structured_output')
         || (result.toolCalls || [])[0];
     if (call) {
         try {
@@ -177,8 +177,8 @@ async function stream(req, res) {
         stopHeartbeat();
         res.end();
     } catch (err) {
-        log.error(`[WebpagesPreview/ai/stream] ${err.message}`);
-        send('error', { error: err.message });
+        log.error(`[WebpagesPreview/ai/stream] ${/** @type {Error} */ (err).message}`);
+        send('error', { error: /** @type {Error} */ (err).message });
         stopHeartbeat();
         res.end();
     }
