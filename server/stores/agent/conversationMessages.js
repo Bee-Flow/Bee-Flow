@@ -279,7 +279,7 @@ function rowToMessage(row, ctx = PLAINTEXT_CONTEXT) {
  * statements fast.
  *
  * @param {any[]} rows       - Output of messagesToRows()
- * @param {any}   client     - PG client (from getClient()) for transaction, or null to use pool
+ * @param {PoolClient | null} client - PG client (from getClient()) for transaction, or null to use pool
  * @param {string}   onConflict - Optional "ON CONFLICT ..." clause
  */
 const COLS = 10;          // + author_user_id, client_msg_id
@@ -471,7 +471,7 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
  * @param {string} conversationId
  * @param {'agent'|'direct'} type
  * @param {any[]} messagesArray  messages to APPEND, in order
- * @param {any} ctx  crypto context — for a shared thread this MUST be the
+ * @param {Readonly<import('./messageCrypto').CryptoContext>} ctx  crypto context — for a shared thread this MUST be the
  *                      project context, never the posting user's
  * @returns {Promise<{appended: number, firstSeq: number|null, lastSeq: number|null}>}
  */

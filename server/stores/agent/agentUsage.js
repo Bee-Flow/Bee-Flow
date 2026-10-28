@@ -246,8 +246,8 @@ async function _scan(agentIds, db) {
  * Who uses this agent?
  *
  * @param {string} agentId
- * @param {object} [opts]
- * @param {Db} [opts.db]  injection seam for the tests
+ * @param {{ db?: Db }} [opts]
+ *   db: injection seam for the tests
  * @returns {Promise<{ rows: Array<Omit<UsageRow, 'agentId'>>, partial: string[] }>} `partial` names the
  *   kinds that could NOT be answered. Never treat it as "nothing".
  */

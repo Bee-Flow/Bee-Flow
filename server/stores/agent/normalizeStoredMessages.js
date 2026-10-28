@@ -89,11 +89,10 @@ function classifySynthetic(msg) {
  * Repair a stored message array for display.
  *
  * @param {StoredMessage[]} messages
- * @param {object} [opts]
- * @param {boolean} [opts.wasCompacted=false] Whether this conversation's meta
- *   carries a compaction summary/watermark. Gates synthetic removal entirely:
- *   in a never-compacted conversation the filter cannot fire, so no genuine
- *   message can be hidden by it.
+ * @param {{ wasCompacted?: boolean }} [opts]
+ *   wasCompacted: Whether this conversation's meta carries a compaction summary/watermark. Gates synthetic removal
+ *     entirely: in a never-compacted conversation the filter cannot fire, so no genuine message can be hidden by
+ *     it.
  * @returns {{ messages: StoredMessage[], hiddenCount: number, summarised: boolean, repairedCount: number }}
  */
 function normalizeStoredMessages(messages, opts = {}) {

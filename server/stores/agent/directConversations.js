@@ -338,13 +338,11 @@ async function setDirectConversationKnowledgeBases(id, knowledgeBaseIds, userId)
 }
 
 /**
- * @param {object} [options]
- * @param {boolean} [options.restore=true]
- * @param {string|null} [options.encryptionKey] the caller's session DEK.
- *   REQUIRED on the `zk` tier: there is no escrow to fall back on, so without
- *   it `resolveCrypto` yields no key, `decryptField` refuses to open the
- *   envelope, and the read throws instead of returning the conversation. Every
- *   route that loads a direct conversation must pass `encryptionOpts(req)`.
+ * @param {{ restore?: boolean, encryptionKey?: string|null }} [options]
+ *   encryptionKey: the caller's session DEK. REQUIRED on the `zk` tier: there is no escrow to fall back on, so
+ *     without it `resolveCrypto` yields no key, `decryptField` refuses to open the envelope, and the read throws
+ *     instead of returning the conversation. Every route that loads a direct conversation must pass
+ *     `encryptionOpts(req)`.
  */
 async function getDirectConversation(id, userId, options = {}) {
     await initDB();

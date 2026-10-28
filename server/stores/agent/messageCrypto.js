@@ -150,7 +150,7 @@ function _warnNoKey(orgId, tier, userId, kind = 'all') {
 /**
  * What resolveCrypto hands a store: the keys in scope and, per surface,
  * whether to encrypt.
- * @typedef {object} CryptoContext
+ * @typedef CryptoContext
  * @property {Buffer|null} key                 message content (zero-knowledge surface)
  * @property {Buffer|null} backgroundKey       surfaces a keyless caller has to reach
  * @property {boolean} encryptMessages
@@ -230,14 +230,14 @@ async function _escrowKey(userId, orgId, seedDek = null) {
  * correct regardless (they detect the format on the value) and a policy lookup
  * must not be able to fail a chat request.
  *
- * @param {object} [opts]
- * @param {string|null} [opts.userId]
- * @param {string|null} [opts.orgId]           avoids a user lookup when known
- * @param {string|Buffer|null} [opts.encryptionKey]  session DEK, if any
- * @param {{projectId: string, orgId?: string | null}|null} [opts.projectKeyFor]
- *        Set for a conversation whose `crypto_scope` is 'project'. The key then
- *        comes from the project, not the caller — see the PROJECT_SHARED_MESSAGES
- *        note in this file's header. Never inferred: a caller must say so.
+ * @param {{
+ *   userId?: string|null, orgId?: string|null, encryptionKey?: string|Buffer|null,
+ *   projectKeyFor?: {projectId: string, orgId?: string | null}|null,
+ * }} [opts]
+ *   orgId: avoids a user lookup when known; encryptionKey: session DEK, if any
+ *   projectKeyFor: Set for a conversation whose `crypto_scope` is 'project'. The key then comes from the project,
+ *     not the caller — see the PROJECT_SHARED_MESSAGES note in this file's header. Never inferred: a caller must
+ *     say so.
  * @returns {Promise<CryptoContext>}
  */
 async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey = null, projectKeyFor = null } = {}) {
