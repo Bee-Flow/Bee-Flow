@@ -109,6 +109,17 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
               sees conversations a moderator has added it to, so tell the user
               to add "Bee Flow" to the conversation they mean.
 
+  Whose events: a pushed event (webhook or bot) reaches the automations of
+  the person who caused it. To ALSO react to colleagues' events, set
+  filter.includeColleagues:true (off by default). Bee Flow then asks Nextcloud,
+  as the automation's owner, whether they can see the resource and only fires
+  when they can: a Talk room they are in, a Deck board they can open, a table
+  they may read, a form whose results they may see, a file in their Files.
+  Calendar events and file.tagged stay with the person who caused them.
+  file.new / file.changed need no switch: they read the owner's activity
+  feed, which already lists colleagues' changes to files the owner can see.
+  Events from guests, bots and public links need no switch (same check).
+
   Share has NONE of these. Nextcloud does not expose share.created to webhooks
   and there is no poller for it, so an automation triggered on it WILL NEVER FIRE.
   Do not propose it. If the user asks
@@ -133,7 +144,9 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
   • file.new / file.changed / file.deleted / file.renamed
     Filters: inFolder (path prefix), extension, nameContains,
              excludeOwnUploads, any[]/none[]/expr/age (rich filter DSL).
-    Payload: {id, path, name, extension, kind, actor, datetime, link}.
+    Payload: {id, activityId, path, name, extension, kind, actor, actorName,
+             owner, datetime, link, isOwnAction} — the same keys whether the
+             webhook or the poller delivered it (unknown ones are null).
              file.renamed also carries {oldPath}.
              Paths are user-relative ("/Documents/x.pdf").
              NOTE: file.deleted carries no id — Nextcloud omits it once the
@@ -143,10 +156,11 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
        filter:{inFolder:"/Invoices",extension:"pdf"}}
 
   • file.tagged — fires when a system tag is assigned to a file.
-    Filters: tagId (NUMERIC id — get it from nextcloud_list_tags).
+    Filters: tagId (the numeric id from nextcloud_list_tags, or the tag's name).
     Payload: {fileId, objectIds, tagId, tagIds, objectType, actor, datetime}.
     NOTE: Nextcloud's tag event carries ids only — there is NO tag name and NO
-    file path in it. Never filter on a tag name here; look the id up first.
+    file path in the payload (a tagId given as a name is looked up when the
+    event arrives).
     nextcloud_read_file takes a PATH, not an id: to reach the contents, call
     nextcloud_find_files_by_tag with trigger.output.tagId (its items carry
     path AND id — pick the item whose id equals trigger.output.fileId), then
@@ -155,7 +169,9 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
 
   ── Forms (webhook) ──
   • forms.submitted — fires when someone submits a Nextcloud Form.
-    Filters: formId, formHash, titleContains, submittedByEquals.
+    Filters: formId, formHash, titleContains, submittedByEquals,
+             includeColleagues (set it for "when SOMEONE submits": without it
+             only the owner's own submissions fire).
     Payload: {formId, formHash, formTitle, formOwner, submissionId,
              submittedBy, submittedAt, actor, datetime}.
     The answers are NOT in the trigger payload. Follow it with
@@ -164,7 +180,7 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
     so later steps can bind {{steps.<id>.output.submissions[0].answers.<Question>}}.
     EXAMPLE:
       {kind:"app_event",appProvider:"nextcloud",appEvent:"forms.submitted",
-       filter:{formId:51}}
+       filter:{formId:51,includeColleagues:true}}
 
   ── Tables (webhook) ──
   • tables.row.added / tables.row.updated
@@ -193,9 +209,11 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
   • calendar.event.upcoming (poller) — fires N minutes before an event starts.
     This is the one to use for meeting prep; it is the only calendar trigger
     with the event details in its payload.
-    Filters: leadMinutes (default 15), calendarId, summaryContains.
-    Payload: {uid, calendarId, summary, startsAt, endsAt, location, attendees,
-             minutesUntilStart, actor, datetime}.
+    Filters: leadMinutes (default 15; at most a day unless the install
+             raises it), calendarId (omit = every calendar the user has),
+             summaryContains.
+    Payload: {uid, calendarId, calendarUri, summary, startsAt, endsAt,
+             location, attendees, minutesUntilStart, actor, datetime}.
 
   • calendar.event.created / calendar.event.changed (webhook)
     Filters: calendarId.
@@ -212,12 +230,13 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
 
   • talk.message.received — fires on every message in a conversation the bot is in.
     Filters: roomToken, roomNameContains, actorEquals, messageContains,
-             excludeOwnMessages.
+             excludeOwnMessages, includeColleagues (set it for "when someone
+             posts": without it only the owner's own messages fire).
     Payload: {messageId, roomToken, roomName, actor, actorName, message,
-             isMarkdown, inReplyTo, datetime}.
+             isMarkdown, inReplyTo, isOwn, datetime}.
     EXAMPLE — react to questions in one room:
       {kind:"app_event",appProvider:"nextcloud",appEvent:"talk.message.received",
-       filter:{roomToken:"a1b2c3d4",messageContains:"?"}}
+       filter:{roomToken:"a1b2c3d4",messageContains:"?",includeColleagues:true}}
 
   • talk.reaction.added — fires when someone reacts to a message with an emoji.
     Filters: roomToken, roomNameContains, actorEquals, reaction (a single

@@ -35,6 +35,7 @@ const { createGmailPollers } = require('./triggerBus/pollers/gmail');
 const { createGoogleCalendarPollers } = require('./triggerBus/pollers/googleCalendar');
 const { createGoogleDrivePollers } = require('./triggerBus/pollers/googleDrive');
 const { createNextcloudPollers, _ncNormaliseActivity } = require('./triggerBus/pollers/nextcloud');
+const { withNcVisibility } = require('./triggerBus/ncVisibilityWiring');
 const { POLL_FAILURE_THRESHOLD, escalateSubscriptionFailure: escalateWithCtx } = require('./triggerBus/escalation');
 const { getPublicBaseUrl, buildClientState, provisionSubscription, revokeSubscription, renewExpiringSubscriptions: renewWithCtx } = require('./triggerBus/msGraphSubscriptions');
 const latestMatch = require('./triggerBus/latestMatch');
@@ -368,7 +369,7 @@ function _setDepsForTests(over = null) {
 
 module.exports = {
     _setDepsForTests,
-    dispatchEvent,
+    dispatchEvent: withNcVisibility(dispatchEvent, (uid) => loadSession(uid)), // + the Nextcloud visibility checker
     dispatchSupportEvent,
     runPollingPass,
     renewExpiringSubscriptions,

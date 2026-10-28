@@ -88,7 +88,8 @@ function makeWorker(deps = {}) {
         try {
             // Adopt the pre-warmed toolbox if the dialog warmed one; else cold-start.
             if (prewarmId) {
-                toolbox = await securityScanRunner.adoptToolbox(prewarmId);
+                // Ownership is re-checked here: only the scan owner's warm toolbox.
+                toolbox = await securityScanRunner.adoptToolbox(prewarmId, userId);
                 if (toolbox) await securityScanStore.appendProgress(scanId, '[scan] using pre-warmed toolbox + ZAP daemon').catch(() => {});
             }
             if (!toolbox) {

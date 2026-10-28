@@ -235,3 +235,9 @@ test('normalizeRecipients accepts both address forms and rejects junk', () => {
     assert.throws(() => mail.normalizeRecipients('not-an-address', 'to'), /Invalid e-mail address in "to"/);
     assert.throws(() => mail.normalizeRecipients(['ok@b.nl', 'bad@'], 'cc'), /Invalid e-mail address in "cc"/);
 });
+
+test('ccText flattens one or several Cc headers', () => {
+    assert.strictEqual(mail.ccText(undefined), '');
+    assert.strictEqual(mail.ccText({ text: 'a@x.nl' }), 'a@x.nl');
+    assert.strictEqual(mail.ccText([{ text: 'a@x.nl' }, { text: 'b@x.nl, c@x.nl' }]), 'a@x.nl, b@x.nl, c@x.nl');
+});

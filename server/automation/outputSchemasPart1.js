@@ -361,18 +361,22 @@ const OUTPUT_SCHEMAS_PART_1 = {
     nextcloud_mail_send: {
         shape: { success: 'boolean', outboxId: 'integer', to: 'string', subject: 'string' },
         sample: { success: true, outboxId: 1, to: 'recipient@example.com', subject: 'Sample subject' },
+        echo: { to: 'to', subject: 'subject' },
     },
     nextcloud_talk_send_message: {
         shape: { success: 'boolean', message: '{ id, actor, actorId, message, timestamp }' },
         sample: { success: true, message: { id: 1, actor: 'Alice', actorId: 'alice', message: 'Message text', timestamp: Math.floor(Date.now() / 1000) } },
+        echo: { 'message.message': 'message' },
     },
     nextcloud_calendar_create_event: {
         shape: { success: 'boolean', calendar: 'string', uid: 'string', etag: 'string' },
         sample: { success: true, calendar: 'personal', uid: 'nc-evt-1@cloud.example.com', etag: '"abc123"' },
+        echo: { calendar: 'calendar' },
     },
     nextcloud_notifications_send: {
         shape: { success: 'boolean', userId: 'string', sentToSelf: 'boolean', shortMessage: 'string', longMessage: 'string|null' },
         sample: { success: true, userId: 'alice', sentToSelf: true, shortMessage: 'Heads up', longMessage: null },
+        echo: { userId: 'userId', shortMessage: 'shortMessage', longMessage: 'longMessage' },
     },
     nextcloud_activity_list: {
         shape: { count: 'integer', activities: 'array of { id, type, subject, message, actor, objectType, objectId, objectName, link, datetime }' },
@@ -381,6 +385,7 @@ const OUTPUT_SCHEMAS_PART_1 = {
     nextcloud_calendar_list_events: {
         shape: { calendar: 'string', count: 'integer', events: 'array of { uid, summary, description, location, attendees, dtstart, dtend, organizer, allDay }' },
         sample: { calendar: 'personal', count: 1, events: [{ uid: 'evt-1@cloud.example.com', summary: 'Standup', description: null, location: null, attendees: [], dtstart: new Date(Date.now() + 600_000).toISOString(), dtend: new Date(Date.now() + 2400_000).toISOString(), organizer: null, allDay: false }] },
+        echo: { calendar: 'calendar' },
     },
 };
 

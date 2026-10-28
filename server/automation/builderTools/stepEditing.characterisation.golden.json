@@ -4144,7 +4144,7 @@
      "from",
      "to"
     ],
-    "shape": null
+    "shape": "success: boolean; operation: string (move); source: string; destination: string; overwritten: boolean"
    }
   },
   "steps": [

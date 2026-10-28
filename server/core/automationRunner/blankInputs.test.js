@@ -17,7 +17,8 @@ const { execForEachStep } = require('./execFlow');
 const calls = [];
 const spy = (name) => async (step) => { calls.push(name + ':' + step.id); return { output: { sent: true } }; };
 const engine = {};
-for (const n of ['execNotification', 'execHttpRequest', 'execGenerateDocument', 'execFillDocument', 'execPresentation', 'execSlide']) {
+for (const n of ['execNotification', 'execHttpRequest', 'execGenerateDocument', 'execFillDocument', 'execPresentation', 'execSlide',
+    'execKnowledgeWrite', 'execApproval', 'execDatatable', 'execReturnToApp']) {
     engine[n] = spy(n);
 }
 const leaf = makeLeafRunner({ engine, execFlatten: async () => ({}) }, () => null);
@@ -81,9 +82,68 @@ test('fill_document and presentation: copyName only when a copy is saved', async
     await passes({ type: 'presentation', id: 'p', title: 't', copyName: BAD });
 });
 
-test('slide, knowledge_write and file names are not checked', async () => {
+test('slide and file names are not checked', async () => {
     await passes({ type: 'slide', id: 's', title: 'x', content: BAD });
     await passes({ type: 'generate_document', id: 'g', title: 'T', content: 'c', fileName: BAD });
+});
+
+test('knowledge_write: content, title and sourceUri, as template strings or bindings', async () => {
+    await blocked({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: `Summary: ${BAD}` });
+    await blocked({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: 'c', title: BAD });
+    await blocked({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: { kind: 'template', value: BAD } });
+    await blocked({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: { kind: 'expr', value: 'steps.ev.output.event.summary' } });
+    await passes({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: `Summary: ${OK}`, title: OK });
+    await passes({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: { kind: 'ref', path: 'steps.ev.output.summary' } });
+});
+
+test('knowledge_write: an EMPTY value is still the documented skip, not a hole', async () => {
+    const s = state();
+    s.steps.ev.output.resolution = '';
+    calls.length = 0;
+    await leaf({ type: 'knowledge_write', id: 'k', knowledgeBaseId: 'kb', content: '{{steps.ev.output.resolution}}' }, {}, s, 'live');
+    assert.equal(calls.length, 1);
+});
+
+test('approval: prompt, details and attachment bindings', async () => {
+    await blocked({ type: 'approval', id: 'a', prompt: `Approve ${BAD}?` });
+    await blocked({ type: 'approval', id: 'a', prompt: 'Approve?', approval: { details: `About ${BAD}` } });
+    await blocked({ type: 'approval', id: 'a', prompt: 'Approve?', approval: { attachments: [{ binding: BAD, label: 'Invoice' }] } });
+    await passes({ type: 'approval', id: 'a', prompt: `Approve ${OK}?`, approval: { details: OK, attachments: [{ binding: OK }] } });
+    // The legacy literal title is not interpolated, so not checked.
+    await passes({ type: 'approval', id: 'a', title: BAD });
+});
+
+test('datatable: the values of a write, as bindings; reads, deletes and the where clause are not', async () => {
+    const bad = { kind: 'expr', value: 'steps.ev.output.event.summary' };
+    const ok = { kind: 'expr', value: 'steps.ev.output.summary' };
+    for (const op of ['add_row', 'save_row', 'update_rows']) {
+        await blocked({ type: 'datatable', id: 'd', op, datatableId: 't', values: { Name: bad } });
+        await blocked({ type: 'datatable', id: 'd', op, datatableId: 't', values: { Name: { kind: 'template', value: `x ${BAD}` } } });
+        await passes({ type: 'datatable', id: 'd', op, datatableId: 't', values: { Name: ok } });
+    }
+    // A ref that finds nothing leaves the cell out (an absent value, as for a
+    // tool's optional input), it does not write text with a hole in it.
+    await passes({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: { kind: 'ref', path: 'steps.ev.output.event.summary' } } });
+    // A bare string is a literal for resolveInputs, braces and all: no hole.
+    await passes({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: BAD } });
+    await passes({ type: 'datatable', id: 'd', op: 'find_rows', datatableId: 't', values: { Name: bad } });
+    // An unresolved condition is the executor's own amber skip ("nothing to match on").
+    await passes({ type: 'datatable', id: 'd', op: 'delete_rows', datatableId: 't', where: [{ field: 'Name', op: 'eq', value: bad }] });
+});
+
+test('datatable: a broken expr in a value blocks', async () => {
+    calls.length = 0;
+    await assert.rejects(
+        () => leaf({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: { kind: 'expr', value: '({ a: 1 })' } } }, {}, state(), 'live'),
+        (e) => e.errorClass === 'binding_unresolved',
+    );
+    assert.deepEqual(calls, []);
+});
+
+test('return_to_app: the record to open and the toast the app shows', async () => {
+    await blocked({ type: 'return_to_app', id: 'r', toast: { message: `Created ${BAD}` } });
+    await blocked({ type: 'return_to_app', id: 'r', navigateTo: { screenId: 's', recordRef: BAD } });
+    await passes({ type: 'return_to_app', id: 'r', navigateTo: { screenId: 's', recordRef: OK }, toast: { message: `Created ${OK}` } });
 });
 
 test('only a step that ran blocks: not_run joins and optional trigger keys stay warnings', async () => {
@@ -94,6 +154,7 @@ test('only a step that ran blocks: not_run joins and optional trigger keys stay 
 
 test('a dry run is never stopped', async () => {
     await passes({ type: 'notification', id: 'n', title: 't', body: BAD }, 'dry_run');
+    await passes({ type: 'datatable', id: 'd', op: 'add_row', datatableId: 't', values: { Name: { kind: 'expr', value: 'steps.ev.output.event.summary' } } }, 'dry_run');
 });
 
 test('a failed preflight leaves its misses in the step log', async () => {

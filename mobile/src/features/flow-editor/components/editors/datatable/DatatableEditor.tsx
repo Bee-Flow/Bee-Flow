@@ -1,5 +1,5 @@
 /**
- * The datatable step — the web's DatatableFields (datatableEditors.jsx):
+ * The datatable step — the web's DatatableFields (datatableEditors.tsx):
  * which table, what to do with it, which rows, and what to write. Rows in a
  * datatable outlive the run, so a later run (or another automation) reads what
  * this one wrote. Nothing is free text but the values.

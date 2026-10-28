@@ -7,6 +7,7 @@
 const { matchFilter } = require('../triggers/dslFilters');
 const { containsCI } = require('./matchUtil');
 const { matchNextcloudTablesRowFilter } = require('./filtersTables');
+const { matchNextcloudTagFilter, tagFilterNeedsNames } = require('./filtersNcTags');
 
 function matchGmailMailFilter(payload, filter) {
     if (!filter || typeof filter !== 'object') return true;
@@ -237,23 +238,6 @@ function matchNextcloudCommentFilter(payload, filter) {
     if (filter.pathPrefix && !(payload.path || '').startsWith(filter.pathPrefix)) return false;
     if (filter.actorEquals && payload.actor !== filter.actorEquals) return false;
     if (filter.messageContains && !containsCI(payload.comment, filter.messageContains)) return false;
-    return true;
-}
-
-function matchNextcloudTagFilter(payload, filter) {
-    if (!filter) return true;
-    // Nextcloud's TagAssignedEvent identifies the tag by numeric id only — it
-    // carries no tag name — so `tagId` is the reliable filter. `tagName` is
-    // kept for filters saved against the older activity-feed shape, which did
-    // include a name.
-    if (filter.tagId !== undefined && filter.tagId !== null && filter.tagId !== '') {
-        const ids = Array.isArray(payload.tagIds) ? payload.tagIds.map(String) : [];
-        if (payload.tagId !== undefined && payload.tagId !== null) ids.push(String(payload.tagId));
-        if (!ids.includes(String(filter.tagId))) return false;
-    }
-    if (filter.tagName && payload.tagName !== filter.tagName) return false;
-    if (filter.tagAction && payload.tagAction !== filter.tagAction) return false;
-    if (filter.pathPrefix && !(payload.path || '').startsWith(filter.pathPrefix)) return false;
     return true;
 }
 
@@ -561,7 +545,7 @@ function pickMatcher(provider, event) {
     return provider === 'msgraph' && event === 'mail.new' ? require('./filtersMsGraph').matchMsGraphMailFilter : matchFilter;
 }
 
-module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };
+module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher, tagFilterNeedsNames };
 
 /** @typedef {Record<string, any>} TriggerPayload  an event payload: loose provider JSON, shape differs per provider */
 

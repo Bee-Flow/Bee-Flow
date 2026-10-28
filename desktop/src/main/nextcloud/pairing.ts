@@ -11,6 +11,7 @@
 
 import { CLIENT_HEADER, CLIENT_KIND } from '../security/sessionHeaders.ts';
 import { serverUrl as joinServerUrl } from '../server/url.ts';
+import { INVALID_NEXTCLOUD_ADDRESS, parseNextcloudUrl } from './address.ts';
 import type { LoginFlowCredential } from './loginFlow.ts';
 
 export type PairingResult = { ok: true; server: string; loginName: string; storedOnServer: boolean } | { ok: false; error: string };
@@ -30,11 +31,39 @@ export interface PairingDeps {
     log: PairingLog;
 }
 
-export const NO_PAIRING_TARGET = 'Bee Flow does not know which Nextcloud to sign in to. Enter its address in Settings first.';
+export const NO_PAIRING_TARGET = 'Bee Flow does not know which Nextcloud to sign in to.';
 
-/** The Nextcloud to pair with: the one asked for, else the first account the desktop client knows. */
-export function pairingTarget(hint: string | undefined, accounts: readonly { url: string }[]): string {
-    return hint || accounts[0]?.url || '';
+export { INVALID_NEXTCLOUD_ADDRESS, parseNextcloudUrl };
+
+export type PairingTarget = { ok: true; url: string; source: 'hint' | 'desktop-client' | 'saved' | 'server' } | { ok: false; error: string };
+
+export const INVALID_PAIRING_ADDRESS = INVALID_NEXTCLOUD_ADDRESS;
+
+/**
+ * The Nextcloud to pair with, in order: the address asked for, the first
+ * account the Nextcloud desktop client knows, the address saved in Settings,
+ * the Nextcloud the user's own
+ * Bee Flow server is connected to. An address asked for that is not usable is
+ * an error, not a reason to quietly pick another one.
+ */
+export async function resolvePairingTarget(
+    hint: string | undefined,
+    accounts: readonly { url: string }[],
+    saved: string,
+    fromServer: () => Promise<string | null>,
+): Promise<PairingTarget> {
+    if (hint?.trim()) {
+        const url = parseNextcloudUrl(hint);
+        return url ? { ok: true, url, source: 'hint' } : { ok: false, error: INVALID_PAIRING_ADDRESS };
+    }
+    for (const account of accounts) {
+        const url = parseNextcloudUrl(account.url);
+        if (url) return { ok: true, url, source: 'desktop-client' };
+    }
+    const savedUrl = parseNextcloudUrl(saved);
+    if (savedUrl) return { ok: true, url: savedUrl, source: 'saved' };
+    const url = parseNextcloudUrl(await fromServer().catch(() => null));
+    return url ? { ok: true, url, source: 'server' } : { ok: false, error: NO_PAIRING_TARGET };
 }
 
 export async function pairNextcloud(target: string, deps: PairingDeps): Promise<PairingResult> {
@@ -59,13 +88,18 @@ export async function pairNextcloud(target: string, deps: PairingDeps): Promise<
 }
 
 /** The part of `fetch` the hand-over needs; the main window's session provides it. */
-export type SessionFetch = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number }>;
+export type SessionFetch = (
+    url: string,
+    init: { method: string; headers: Record<string, string>; body?: string; credentials: 'include' },
+) => Promise<{ ok: boolean; status: number; json?: () => Promise<unknown> }>;
 
 /**
  * Hand the app password to the user's own Bee Flow server.
  *
  * The request rides the main window's session, so it carries the user's
- * existing sign-in and no separate token is needed.
+ * existing sign-in and no separate token is needed. `credentials: 'include'`
+ * is what makes it carry the sign-in: Electron's session fetch sends the
+ * session's cookies only when asked to.
  */
 export async function sendAppPasswordToServer(credential: LoginFlowCredential, base: string, fetch: SessionFetch, log: Pick<PairingLog, 'warn'>): Promise<boolean> {
     try {
@@ -73,6 +107,7 @@ export async function sendAppPasswordToServer(credential: LoginFlowCredential, b
             method: 'POST',
             headers: { 'Content-Type': 'application/json', [CLIENT_HEADER]: CLIENT_KIND },
             body: JSON.stringify({ username: credential.loginName, password: credential.appPassword, url: credential.server }),
+            credentials: 'include',
         });
         if (!response.ok) {
             log.warn('Nextcloud', `the Bee Flow server refused the app password (HTTP ${response.status})`);
@@ -82,5 +117,26 @@ export async function sendAppPasswordToServer(credential: LoginFlowCredential, b
     } catch (error) {
         log.warn('Nextcloud', `could not reach the Bee Flow server to store the app password: ${String(error)}`);
         return false;
+    }
+}
+
+/**
+ * The Nextcloud the user's own Bee Flow server is connected to: the address on
+ * their saved app password. Null when there is none or the server cannot say.
+ */
+export async function fetchServerNextcloudUrl(base: string, fetch: SessionFetch, log: Pick<PairingLog, 'warn'>): Promise<string | null> {
+    try {
+        const response = await fetch(joinServerUrl(base, '/auth/app-password-status'), {
+            method: 'GET',
+            headers: { [CLIENT_HEADER]: CLIENT_KIND },
+            credentials: 'include',
+        });
+        if (!response.ok || !response.json) return null;
+        const body = await response.json();
+        const url = body && typeof body === 'object' ? (body as { nextcloudUrl?: unknown }).nextcloudUrl : null;
+        return typeof url === 'string' && url ? url : null;
+    } catch (error) {
+        log.warn('Nextcloud', `could not ask the Bee Flow server for its Nextcloud: ${String(error)}`);
+        return null;
     }
 }

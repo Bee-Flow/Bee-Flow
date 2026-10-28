@@ -14,6 +14,55 @@
 
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
+const { normaliseFilePayload, normaliseCalendarPayload } = require('../ncPayload.mts');
+
+/**
+ * Longest lead time calendar.event.upcoming honours, in minutes. Configurable
+ * (0 = no cap); the default is a day. A value out of range is clamped here
+ * and the builder says so when the trigger is saved (builderTools/triggerAdvice.js).
+ */
+function upcomingMaxLeadMinutes() {
+    const raw = parseInt(String(process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES ?? ''), 10);
+    return Number.isFinite(raw) && raw >= 0 ? raw : 1440;
+}
+
+/** @param {unknown} value  the filter's leadMinutes */
+function upcomingLeadMinutes(value) {
+    const n = Number(value);
+    const lead = Number.isFinite(n) && n > 0 ? n : 15;
+    const max = upcomingMaxLeadMinutes();
+    return Math.max(1, max > 0 ? Math.min(lead, max) : lead);
+}
+
+/** Most calendars one upcoming subscription reads per tick (0 = all). */
+function upcomingMaxCalendars() {
+    const raw = parseInt(String(process.env.AUTOMATION_NC_UPCOMING_MAX_CALENDARS ?? ''), 10);
+    return Number.isFinite(raw) && raw >= 0 ? raw : 50;
+}
+
+/**
+ * The calendar URIs an upcoming subscription watches: the filter's choice, or
+ * every calendar the user has (falling back to 'personal' when the list
+ * cannot be read).
+ * @param {Record<string, any>} filter
+ * @param {(args: Record<string, unknown>) => Promise<any>} listCalendars
+ * @returns {Promise<string[]>}
+ */
+async function upcomingCalendars(filter, listCalendars) {
+    const named = Array.isArray(filter.calendars)
+        ? filter.calendars.map((c) => String(c ?? '').trim()).filter(Boolean)
+        : [];
+    const one = filter.calendar || filter.calendarUri || filter.calendarId;
+    if (named.length) return [...new Set(named)];
+    if (one) return [String(one)];
+    const result = await listCalendars({}).catch((e) => fallback('automation/triggerBus/pollers/nextcloud:upcomingCalendars', e, null));
+    const slugs = Array.isArray(result?.calendars)
+        ? result.calendars.map((c) => c && c.slug).filter((s) => typeof s === 'string' && s)
+        : [];
+    if (!slugs.length) return ['personal'];
+    const cap = upcomingMaxCalendars();
+    return cap > 0 ? slugs.slice(0, cap) : slugs;
+}
 
 // Module-scoped cache of the Nextcloud activity feed per-user. Five
 // triggers (file.new / file.changed / share.received / activity.new /
@@ -73,6 +122,11 @@ async function _ncFetchActivityRows(ctx, userId, session) {
  * slugs vary by Nextcloud version, so we look at both the `type` field
  * and the human-readable subject as a fallback (documented in the plan).
  */
+/**
+ * @param {NcActivityRow} row
+ * @param {{ nextcloudUid?: string | null, connectorNcUid?: string | null, automationProviders?: { nextcloud?: { nextcloudUid?: string | null } } } | null | undefined} session
+ * @returns {Record<string, any>}  the canonical file payload plus the activity-only keys
+ */
 function _ncNormaliseActivity(row, session) {
     const t = String(row.type || '').toLowerCase();
     const subj = String(row.subject || '').toLowerCase();
@@ -93,33 +147,31 @@ function _ncNormaliseActivity(row, session) {
     const isShareReceived = t === 'shared_with_you' || t === 'remote_share_received'
         || ((t === 'shares' || t === 'shared') && subj.includes('shared'));
 
-    const path = row.objectName || '';
-    const name = path.split('/').filter(Boolean).pop() || path;
-    const extension = name.includes('.') ? name.split('.').pop().toLowerCase() : null;
-
     const sessionUid = session?.nextcloudUid
         || session?.automationProviders?.nextcloud?.nextcloudUid
+        || session?.connectorNcUid
         || null;
     const isOwnAction = !!(sessionUid && row.actor === sessionUid);
 
+    // The canonical file payload (../ncPayload.mts) — the same keys the
+    // connector's webhook delivers for the same event — plus the activity-only
+    // keys automations may already bind to (type, subject, message, raw, ...).
     return {
-        activityId: row.id,
-        type: row.type,
-        subject: row.subject,
-        message: row.message,
-        actor: row.actor,
-        objectName: row.objectName,
-        objectType: row.objectType,
-        path,
-        name,
-        extension,
-        // Folder vs file is fuzzy in the activity feed — Nextcloud only
-        // sends `objectType:'files'` for both. Best-effort: treat trailing
-        // slash or absent extension on the path as folder.
-        kind: (path.endsWith('/') || !extension) ? 'folder' : 'file',
-        link: row.link,
-        datetime: row.datetime,
-        isOwnAction,
+        ...normaliseFilePayload({
+            activityId: row.id,
+            type: row.type,
+            subject: row.subject,
+            message: row.message,
+            actor: row.actor,
+            objectName: row.objectName,
+            objectType: row.objectType,
+            // The activity row's object id is the file id the webhook calls `id`.
+            id: row.objectId ?? null,
+            path: row.objectName || '',
+            link: row.link,
+            datetime: row.datetime,
+            isOwnAction,
+        }, { viewerUid: sessionUid }),
         raw: row,
         _isFileCreated: isFileCreated,
         _isFileChanged: isFileChanged,
@@ -224,32 +276,46 @@ function createNextcloudPollers(ctx) {
          * handler above). Cursor JSON: { firedIds:[…last 200] }, keyed
          * `uid|dtstart` so recurring-event instances dedupe independently.
          * Emits the shape matchNextcloudCalendarUpcomingFilter expects
-         * (startsAt / summary / calendarId / attendees).
+         * (startsAt / summary / calendarId / calendarUri / attendees).
+         *
+         * Which calendars: the ones the filter names (`calendars: [...]`, or
+         * one `calendar` / `calendarId` / `calendarUri`), otherwise EVERY
+         * calendar the user can see — reading one calendar by default would
+         * silently miss every event in the others.
          */
         'calendar.event.upcoming': async (sub, session) => {
             try {
                 const tools = ctx.nextcloudCalendarTools();
                 const filter = sub.filter || {};
-                const leadMinutes = Math.max(1, Math.min(Number(filter.leadMinutes) || 15, 240));
-                const calendar = filter.calendar || filter.calendarId || 'personal';
+                const leadMinutes = upcomingLeadMinutes(filter.leadMinutes);
                 const includeAllDay = filter.includeAllDay === true;
+                const { guardedNcCall } = ctx.ncScopeGuard();
+                const calendars = await upcomingCalendars(filter, (args) => guardedNcCall('nextcloud_calendar_list', args, { userId: sub.userId, session },
+                    () => tools.executeNextcloudCalendarTool('nextcloud_calendar_list', args, sub.userId, session)));
 
                 const now = Date.now();
                 const SAFETY_MIN = 5; // widen the window so a slow tick doesn't miss the boundary
-                const evArgs = {
-                    calendar,
-                    start: new Date(now).toISOString(),
-                    end: new Date(now + (leadMinutes + SAFETY_MIN) * 60_000).toISOString(),
-                    limit: 50,
-                };
-                const { guardedNcCall } = ctx.ncScopeGuard();
-                const result = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId: sub.userId, session },
-                    () => tools.executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, sub.userId, session));
-                if (result?.error) {
-                    log.warn(`[TriggerBus] nextcloud calendar upcoming fetch failed for sub ${sub.id}: ${result.error}`);
-                    return [];
+                /** @type {{ calendar: string, ev: any }[]} */
+                const items = [];
+                let failures = 0;
+                for (const calendar of calendars) {
+                    const evArgs = {
+                        calendar,
+                        start: new Date(now).toISOString(),
+                        end: new Date(now + (leadMinutes + SAFETY_MIN) * 60_000).toISOString(),
+                        limit: 50,
+                    };
+                    const result = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId: sub.userId, session },
+                        () => tools.executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, sub.userId, session));
+                    if (result?.error) {
+                        failures += 1;
+                        log.warn(`[TriggerBus] nextcloud calendar upcoming fetch failed for sub ${sub.id}: ${result.error}`);
+                        continue;
+                    }
+                    for (const ev of (Array.isArray(result?.events) ? result.events : [])) items.push({ calendar, ev });
                 }
-                const items = Array.isArray(result?.events) ? result.events : [];
+                // Every calendar failed: leave the cursor alone (nothing was read).
+                if (calendars.length > 0 && failures === calendars.length) return [];
 
                 let cursor = { firedIds: [] };
                 try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { fallback('automation/triggerBus/pollers/nextcloud:calendar.event.upcoming', err); /* ignore */ }
@@ -258,17 +324,18 @@ function createNextcloudPollers(ctx) {
                 const events = [];
                 /** @type {string[]} */
                 const newlyFired = [];
-                for (const ev of items) {
+                for (const { calendar, ev } of items) {
                     const startsAt = ev.dtstart || null;
                     const startMs = startsAt ? Date.parse(startsAt) : NaN;
                     if (!Number.isFinite(startMs)) continue;
                     if (!includeAllDay && ev.allDay) continue; // skip all-day unless asked
                     const key = `${ev.uid || ev.href || ''}|${startsAt}`;
-                    if (fired.has(key)) continue;
+                    // The same event can sit in two calendars (a shared one): fire once.
+                    if (fired.has(key) || newlyFired.includes(key)) continue;
                     const minutesUntilStart = Math.round((startMs - now) / 60_000);
                     if (minutesUntilStart > leadMinutes) continue;  // not yet within window
                     if (minutesUntilStart < -SAFETY_MIN) continue;  // already started > safety ago
-                    events.push({
+                    events.push(normaliseCalendarPayload({
                         uid: ev.uid || null,
                         summary: ev.summary || '',
                         description: ev.description || null,
@@ -277,13 +344,14 @@ function createNextcloudPollers(ctx) {
                         location: ev.location || null,
                         calendar,
                         calendarId: calendar,
+                        calendarUri: calendar,
                         // attendees come back as {cn,email} objects; flatten to
                         // strings so matchNextcloudCalendarFilter's attendeeContains works.
                         attendees: (ev.attendees || []).map(a => (a && (a.email || a.cn)) || a).filter(Boolean),
                         organizer: ev.organizer || null,
                         allDay: !!ev.allDay,
                         minutesUntilStart,
-                    });
+                    }));
                     newlyFired.push(key);
                 }
 
@@ -303,9 +371,9 @@ function createNextcloudPollers(ctx) {
     };
 }
 
-module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity };
+module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity, upcomingLeadMinutes, upcomingMaxLeadMinutes, upcomingCalendars };
 
 /**
  * One row of the Nextcloud activity feed.
- * @typedef {{ id?: number, type?: string, subject?: string, message?: string, actor?: string, objectName?: string, objectType?: string, link?: string, datetime?: string }} NcActivityRow
+ * @typedef {{ id?: number, type?: string, subject?: string, message?: string, actor?: string, objectName?: string, objectType?: string, objectId?: number | string, link?: string, datetime?: string }} NcActivityRow
  */

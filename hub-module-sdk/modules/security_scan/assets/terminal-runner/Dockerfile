@@ -10,20 +10,22 @@
 # HARDENING — the runtime (scanRunner.startAgentToolbox) launches this container
 # with:
 #   - NO docker socket mounted (the agent can never reach the host daemon)
-#   - an isolated, egress-only network (beeflow-scan-net; no inbound, no access
-#     to the API/db/redis or sibling scans)
+#   - an egress-only network (beeflow-scan-net; no inbound, no access to the
+#     API/db/redis: the API server never joins it and reaches ZAP through a
+#     one-port relay on a separate Internal control network). Concurrent scans
+#     share this network.
 #   - --security-opt=no-new-privileges
 #   - cpu / memory / pids caps (cgroup limits) to bound a runaway tool
-#   - CAP_NET_RAW added (single capability, not full root) ONLY when
-#     SECURITY_TOOLBOX_NET_RAW is enabled, so nmap -sS / masscan can use raw
-#     sockets. Everything else still runs as the unprivileged `scanner` user.
+#   - when SECURITY_TOOLBOX_NET_RAW is enabled (the default): root with every
+#     capability dropped except NET_RAW + NET_BIND_SERVICE, so nmap -sS /
+#     masscan can use raw sockets; when disabled, the unprivileged `scanner` user.
 #
 # SIZE — this is a Kali-based image with web/recon/vuln metapackages; expect a
 # large image (~2-4 GB). BUILD IT ONCE and push to GHCR; the runtime never pulls
 # it fresh per scan (resolveToolsImage uses the local tag first). Build:
 #   docker build -t beeflow-security-tools:latest server/terminal-runner
 # Override the tag at runtime with SECURITY_TOOLS_IMAGE.
-FROM kalilinux/kali-rolling:latest@sha256:30399bd65187e06525008dd13eecc2b3439d26a82b2c6b0ba32dee72bd843117
+FROM kalilinux/kali-rolling:latest@sha256:ea20024e16833dab1a5337f5998602f3b81f8a38f3b0995dda272c83a1b0c1b9
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \

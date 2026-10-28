@@ -70,7 +70,7 @@ const WEB: Record<string, string[]> = {
         'flow/settings/approvalQuestions.tsx',
         'flow/settings/approvalWho.tsx',
     ],
-    datatable: ['flow/settings/datatableEditors.jsx'],
+    datatable: ['flow/settings/datatableEditors.tsx'],
     http: ['flow/settings/actionEditors/httpRequestFields.tsx', 'flow/settings/HttpAuthPicker.tsx', 'flow/settings/actionEditors/cacheIntoRow.tsx'],
     code: ['flow/settings/actionEditors/codeFields.tsx', 'flow/settings/codeStep/CodeSourceBlock.tsx', 'flow/settings/codeStep/ReachPanel.tsx'],
     document: ['flow/settings/actionEditors/documentFields.tsx'],

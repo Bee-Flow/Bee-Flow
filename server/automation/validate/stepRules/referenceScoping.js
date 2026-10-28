@@ -104,7 +104,13 @@ function checkReferences(ctx, step, at) {
             return;
         }
         if (!refSeen.has(upstreamId) && upstreamId !== step.id) {
-            pushW({ code: 'ref.forward', severity: 'warning', path: at, message: `Step ${step.id}: refers to step "${upstreamId}" — will resolve to undefined at runtime if it doesn't produce output by then.`, hint: `Wire an edge from "${upstreamId}" to "${step.id}" so the upstream output is available.` });
+            // A read of a step that has not run by now (it comes later in the
+            // flow, or sits on a branch this step does not follow) can only
+            // ever resolve to nothing, so the step would run on a hole. An
+            // error, like ref.unknown_step: a completeness code, so a draft
+            // saves (warning, blockedAt activate) while it is rebuilt, and
+            // finalize and go-live refuse it.
+            pushE({ code: 'ref.forward', severity: 'error', path: at, message: `Step ${step.id}: refers to step "${upstreamId}", which has not run yet at this point, so the value resolves to nothing.`, hint: `Move "${step.id}" after "${upstreamId}" (or wire an edge from "${upstreamId}" to "${step.id}") so the upstream output is available, or read a step that runs before this one.` });
         }
         // `count` on a find_rows step is rows.length CLAMPED BY THE
         // PAGE SIZE — never "how many rows match" — so a condition on

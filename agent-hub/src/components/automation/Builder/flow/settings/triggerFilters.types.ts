@@ -53,6 +53,8 @@ export interface TriggerFilterValues {
     /** A list, or the comma-separated text an older draft stored. */
     tags?: string[] | string;
     reprocessed?: boolean;
+    /** Nextcloud push events: also fire on a colleague's event the owner can see (#191). */
+    includeColleagues?: boolean;
     /** msgraph.mail.new: a shared mailbox's address; absent = the own inbox. */
     mailbox?: string;
     [key: string]: unknown;

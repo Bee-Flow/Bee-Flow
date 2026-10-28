@@ -21,6 +21,9 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveInputs } = require('../automationModel/bind');
+const { captureBindingMisses } = require('../automationModel/bindCapture');
+const { isSideEffect } = require('../automationModel/sideEffectMap');
+const { failOnBlankInputs } = require('./blankInputs');
 const { inferAiStepOutputSchema } = require('./aiOutputInference');
 // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
 // the agent/direct-chat pipeline so automations stop bypassing those controls.
@@ -294,7 +297,8 @@ async function execAiStep(step, ctx, runState, mode) {
     const { agentBinding, skillCtx } = agent;
     const { resolvedTier, tier, aiStepOverride } = await resolveAiStepTier(step, ctx);
     const { maxOutputTokens, modelId, cfg, adapter } = await resolveAiStepModel(tier, aiStepOverride, resolvedTier);
-    const { resolvedInputs, promptText } = interpolateAiStepPrompt(step, runState);
+    const prompted = captureBindingMisses(() => interpolateAiStepPrompt(step, runState));
+    const { resolvedInputs, promptText } = prompted.value;
     const contract = resolveAiStepOutputContract(step, ctx, agent.stepSkills, skillCtx);
     const { effectiveSchema, outputContract } = contract;
 
@@ -317,6 +321,12 @@ async function execAiStep(step, ctx, runState, mode) {
         skillGround: grounding.skillGround, skillGrants: agent.skillGrants, skillCtx,
         stepPermissions: agent.stepPermissions,
     });
+    // The tool loop writes with what the prompt and inputs gave the model: a
+    // step offered a tool with a side effect does not go out with a hole in
+    // them, the same rule as a tool step's own inputs (./blankInputs).
+    if (mode !== 'dry_run' && Array.isArray(tools) && tools.some((t) => t?.function?.name && isSideEffect(t.function.name))) {
+        failOnBlankInputs(step, prompted.misses);
+    }
 
     // ── Safety: guard the ai_step prompt (userInput scope) before the LLM call.
     // A `block` action throws GuardrailBlockError here (live), which flows to

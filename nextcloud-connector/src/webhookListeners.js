@@ -62,6 +62,7 @@ const config = require('./config');
 const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { singleFlight } = require('./singleFlight');
 
 const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 
@@ -71,7 +72,7 @@ const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 const HOOK_PATH = '/hooks/nextcloud';
 
 /** @typedef {{ class: string, event: string, optional?: boolean }} HookEvent */
-/** @typedef {{ id?: number | string, event?: string }} WebhookRow  a row of NC's webhook_listeners list */
+/** @typedef {{ id?: number | string, event?: string, uri?: string, appId?: string | null, headers?: Record<string, string> | null }} WebhookRow  a row of NC's webhook_listeners list */
 
 /**
  * Event classes we subscribe to, and the Bee Flow trigger id each maps to.
@@ -180,29 +181,75 @@ function webhookBody(entry, secret) {
 }
 
 /**
- * Existing rows for our callback URI, keyed by event class.
- * @returns {Promise<Map<string, WebhookRow>>}
+ * Whether a webhook_listeners row is one of ours, whatever Nextcloud URL it
+ * was registered with. Rows are matched on the delivery path (the AppAPI proxy
+ * path of this app plus HOOK_PATH) and on something only we put there: our
+ * appId or our X-Beeflow-Hook-Event header.
+ * @param {WebhookRow} row
  */
-async function listExisting() {
-    const url = `${config.nextcloudUrl}${WEBHOOKS_API}?uri=${encodeURIComponent(hookUri())}`;
-    const res = await fetch(url, {
+function isOurRow(row) {
+    if (!row || !row.event || typeof row.uri !== 'string') return false;
+    let pathname;
+    try { pathname = new URL(row.uri).pathname; } catch (_) { return false; }
+    if (!pathname.endsWith(`/${config.appId}${HOOK_PATH}`)) return false;
+    return row.appId === config.appId || !!row.headers?.['X-Beeflow-Hook-Event'];
+}
+
+/**
+ * Our existing rows: one per event class to update in place, and every other
+ * row of ours to delete.
+ *
+ * Listed WITHOUT `?uri=`: Nextcloud filters that by exact match, so after the
+ * admin set or changed the public Nextcloud URL, the rows registered under the
+ * old address were invisible. Each restart then created a second set while the
+ * first kept firing: double automation runs while the old address still
+ * answered, a failing background job per event once it did not. The same
+ * pass removes duplicates of one class, which would double-fire too.
+ * @param {{ warmupRetry?: boolean }} [opts] false where waiting out a warm-up is pointless
+ * @returns {Promise<{ byClass: Map<string, WebhookRow>, extras: WebhookRow[] }>}
+ */
+async function listExisting({ warmupRetry = true } = {}) {
+    const url = `${config.nextcloudUrl}${WEBHOOKS_API}`;
+    // Only the fetch is retried: withWarmupRetry recognises the AppAPI warm-up 401
+    // on a Response, not on a thrown error or a parsed Map.
+    const get = () => fetch(url, {
         method: 'GET',
         headers: appApiHeaders(),
         signal: AbortSignal.timeout(5_000),
     });
+    const res = warmupRetry
+        ? await withWarmupRetry(get, { label: 'webhook-listeners-list', budgetMs: 30_000 })
+        : await get();
     if (!res.ok) {
         // 404 → the app isn't enabled. Distinguish so the caller can say so.
         const err = new Error(`webhook list HTTP ${res.status}`);
         err.status = res.status;
         throw err;
     }
-    const rows = ocsData(await res.text()) || [];
+    const rows = (ocsData(await res.text()) || []).filter(isOurRow);
+    const current = hookUri();
+    const wanted = new Set(EVENTS.map(e => e.class));
     /** @type {Map<string, WebhookRow>} */
     const byClass = new Map();
-    for (const row of rows) {
-        if (row && row.event) byClass.set(row.event, row);
+    // Keep the row already on the current URI when there is one.
+    const ordered = [...rows].sort((a, b) => Number(b.uri === current) - Number(a.uri === current));
+    /** @type {WebhookRow[]} */
+    const extras = [];
+    for (const row of ordered) {
+        const cls = /** @type {string} */ (row.event);
+        if (wanted.has(cls) && !byClass.has(cls) && row.id !== undefined) byClass.set(cls, row);
+        else extras.push(row);
     }
-    return byClass;
+    return { byClass, extras };
+}
+
+/** @param {WebhookRow} row */
+function deleteRow(row) {
+    return fetch(`${config.nextcloudUrl}${WEBHOOKS_API}/${row.id}`, {
+        method: 'DELETE',
+        headers: appApiHeaders(),
+        signal: AbortSignal.timeout(5_000),
+    });
 }
 
 /**
@@ -235,12 +282,10 @@ let _registered = false;
 let _retryTimer = null;
 
 /**
- * Register (or refresh) every webhook row. Idempotent: safe to call on every
- * /init and from the retry timer.
- *
- * Returns { ok, registered, skipped, failed, reason }.
+ * One registration pass. Idempotent: safe to call on every /init and from the
+ * retry timer. Returns { ok, registered, skipped, failed, removed, reason }.
  */
-async function ensureWebhookListeners() {
+async function runEnsureWebhookListeners() {
     const secret = hookSecret();
     if (!secret) {
         return { ok: false, reason: 'no-tenant-key', registered: 0, skipped: 0, failed: 0 };
@@ -248,13 +293,12 @@ async function ensureWebhookListeners() {
 
     /** @type {Map<string, WebhookRow>} */
     let existing;
+    /** @type {WebhookRow[]} */
+    let extras;
     try {
         // The list call is the capability probe: a 404 means webhook_listeners
         // is disabled, and there is no point fanning out 16 registrations.
-        existing = await withWarmupRetry(() => listExisting(), {
-            label: 'webhook-listeners-list',
-            budgetMs: 30_000,
-        });
+        ({ byClass: existing, extras } = await listExisting());
     } catch (err) {
         if (err instanceof Error && err.status === 404) {
             log.warn('[Webhooks] The webhook_listeners app is not enabled on this Nextcloud — '
@@ -286,13 +330,32 @@ async function ensureWebhookListeners() {
         log.warn(`[Webhooks] Register failed for ${entry.event}: HTTP ${r.status} ${r.body}`);
     }
 
-    log.info(`[Webhooks] ${registered} registered, ${skipped} skipped (optional apps), ${failed} failed`);
+    // Stale rows (an old Nextcloud URL, duplicates, a class we dropped) go
+    // last, so a failed upsert never leaves an event class with no row.
+    let removed = 0;
+    for (const row of extras) {
+        const r = await deleteRow(row).catch(() => null);
+        if (r?.ok) removed++;
+        else log.warn(`[Webhooks] could not delete stale webhook row ${row.id} (${row.event})`);
+    }
+
+    log.info(`[Webhooks] ${registered} registered, ${skipped} skipped (optional apps), ${failed} failed`
+        + (removed ? `, ${removed} stale removed` : ''));
     if (registered > 0 && failed === 0) {
         _registered = true;
         stopRetry();
+    } else {
+        _registered = false;
     }
-    return { ok: failed === 0, registered, skipped, failed };
+    return { ok: failed === 0, registered, skipped, failed, removed };
 }
+
+/**
+ * Register (or refresh) every webhook row. Coalesced: two runs side by side
+ * would both list no row for a class and both create one. A call while a run
+ * for the same key and callback URI is in flight joins it.
+ */
+const ensureWebhookListeners = singleFlight(runEnsureWebhookListeners, () => `${config.tenantKey}|${hookUri()}`);
 
 /**
  * Keep trying until registration succeeds. Bootstrap may still be in flight
@@ -317,27 +380,21 @@ function stopRetry() {
 }
 
 /**
- * Best-effort teardown on shutdown. AppAPI also removes our rows by appId when
- * the ExApp is unregistered, so this is belt-and-braces for a plain restart of
- * a reconfigured connector.
+ * Delete every row of ours. Never called on a container stop (see
+ * shutdown.js); AppAPI removes our rows by appId on a real uninstall.
  */
 async function unregisterWebhookListeners() {
     stopRetry();
     if (!config.nextcloudUrl || !config.tenantKey) return;
-    /** @type {Map<string, WebhookRow>} */
-    let existing;
+    /** @type {WebhookRow[]} */
+    let rows;
     try {
-        existing = await listExisting();
+        const { byClass, extras } = await listExisting({ warmupRetry: false });
+        rows = [...byClass.values(), ...extras];
     } catch (_) {
         return;
     }
-    await Promise.allSettled([...existing.values()].map(row =>
-        fetch(`${config.nextcloudUrl}${WEBHOOKS_API}/${row.id}`, {
-            method: 'DELETE',
-            headers: appApiHeaders(),
-            signal: AbortSignal.timeout(2_000),
-        }).catch(() => {})
-    ));
+    await Promise.allSettled(rows.map(row => deleteRow(row).catch(() => {})));
 }
 
 module.exports = {

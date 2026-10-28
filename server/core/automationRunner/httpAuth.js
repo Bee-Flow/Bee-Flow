@@ -55,7 +55,7 @@ const tokenCache = new Map();   // key -> { token, expiresAt }
 const inflight = new Map();     // key -> Promise<string>
 
 function cacheKey(conn) {
-    return `${conn.id}:${Date.parse(conn.updatedAt) || 0}`;
+    return `${conn.id}:${new Date(conn.updatedAt).getTime() || 0}`;
 }
 
 const NOT_AVAILABLE_MSG = "http_request: the referenced HTTP credential is not available to this automation's owner. Pick one of your own credentials in the step's Authentication settings.";

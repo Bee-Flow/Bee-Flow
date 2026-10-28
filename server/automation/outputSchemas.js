@@ -17,10 +17,26 @@
 
 const { OUTPUT_SCHEMAS_PART_1 } = require('./outputSchemasPart1');
 const { OUTPUT_SCHEMAS_PART_2 } = require('./outputSchemasPart2');
+const { OUTPUT_SCHEMAS_NEXTCLOUD_FILES } = require('./outputSchemasNextcloudFiles');
+const { OUTPUT_SCHEMAS_NEXTCLOUD_GROUPWARE } = require('./outputSchemasNextcloudGroupware');
+const { OUTPUT_SCHEMAS_NEXTCLOUD_APPS } = require('./outputSchemasNextcloudApps');
 
+/**
+ * One tool's entry.
+ *   shape   top-level field -> a short type description ("array of { … }" marks a list a forEach can walk)
+ *   sample  the dry-run placeholder, a realistic value of that shape
+ *   echo    sample field (dotted path) -> the tool argument a dry run copies there, so a
+ *           preview of a write shows what it would write (the path, the recipient), not a stock value
+ * @typedef {{ shape?: Record<string, string>, sample?: any, echo?: Record<string, string> }} OutputSchema
+ */
+
+/** @type {Record<string, OutputSchema>} */
 const OUTPUT_SCHEMAS = {
     ...OUTPUT_SCHEMAS_PART_1,
     ...OUTPUT_SCHEMAS_PART_2,
+    ...OUTPUT_SCHEMAS_NEXTCLOUD_FILES,
+    ...OUTPUT_SCHEMAS_NEXTCLOUD_GROUPWARE,
+    ...OUTPUT_SCHEMAS_NEXTCLOUD_APPS,
 };
 
 /**
@@ -47,7 +63,7 @@ function getOutputSchema(toolName) {
 function synthesizeDryRunOutput(toolName, args) {
     const schema = OUTPUT_SCHEMAS[toolName];
     if (schema?.sample !== undefined) {
-        return JSON.parse(JSON.stringify(schema.sample));
+        return withEchoedInputs(JSON.parse(JSON.stringify(schema.sample)), schema.echo, args);
     }
     // Name-pattern fallback. Most write actions follow a verb suffix
     // convention; we synthesise a shape that matches what those tools
@@ -55,6 +71,77 @@ function synthesizeDryRunOutput(toolName, args) {
     // unschema'd tool still gets a workable bind target during dry-run.
     return inferShapeFromName(toolName, args);
 }
+
+/**
+ * Copy the arguments a dry run was given into the sample, where the tool would
+ * answer with them: `echo` maps a sample path to an argument name. Only a
+ * plain value (text, number, yes/no, or a list of those) is copied; an absent,
+ * empty or structured argument leaves the sample's own value. Mutates and
+ * returns `sample` (a fresh clone).
+ * @template T
+ * @param {T} sample
+ * @param {Record<string, string> | undefined} echo
+ * @param {unknown} args
+ * @returns {T}
+ */
+function withEchoedInputs(sample, echo, args) {
+    if (!echo || !sample || typeof sample !== 'object' || !args || typeof args !== 'object') return sample;
+    const given = /** @type {Record<string, unknown>} */ (args);
+    for (const [path, argName] of Object.entries(echo)) {
+        const v = Object.prototype.hasOwnProperty.call(given, argName) ? given[argName] : undefined;
+        if (isEchoable(v)) setAtPath(sample, path, Array.isArray(v) ? [...v] : v);
+    }
+    return sample;
+}
+
+/**
+ * Set `path` (dotted) on `target` when its parent exists as a record.
+ * @param {unknown} target
+ * @param {string} path
+ * @param {unknown} value
+ */
+function setAtPath(target, path, value) {
+    const keys = path.split('.');
+    let at = /** @type {Record<string, unknown> | null} */ (target);
+    for (const k of keys.slice(0, -1)) {
+        const next = at ? at[k] : null;
+        at = next && typeof next === 'object' ? /** @type {Record<string, unknown>} */ (next) : null;
+        if (!at) return;
+    }
+    if (at) at[keys[keys.length - 1]] = value;
+}
+
+/** @param {unknown} v */
+const isScalar = (v) => (typeof v === 'string' && v.trim() !== '') || (typeof v === 'number' && Number.isFinite(v)) || typeof v === 'boolean';
+/** @param {unknown} v */
+const isEchoable = (v) => isScalar(v) || (Array.isArray(v) && v.length > 0 && v.every(isScalar));
+
+/**
+ * What a read that found NOTHING returns, in the tool's own shape. A dry run
+ * hands this on when a live read came back empty: the real answer, with every
+ * list the tool declares present and empty and a missing count 0, so a forEach
+ * over `.notes` iterates over nothing (which is the truth) and a binding still
+ * finds its keys. Nothing is taken from the sample: a field the live answer
+ * did not carry is null. Without a schema the live answer stands as it is.
+ * @param {string} toolName
+ * @param {unknown} [result] the live (empty) answer
+ */
+function emptyDryRunOutput(toolName, result) {
+    const sample = OUTPUT_SCHEMAS[toolName]?.sample;
+    if (Array.isArray(sample)) return Array.isArray(result) ? result : [];
+    if (!sample || typeof sample !== 'object') return result;
+    const isRecord = !!result && typeof result === 'object' && !Array.isArray(result);
+    /** @type {Record<string, unknown>} */
+    const out = isRecord ? { .../** @type {Record<string, unknown>} */ (result) } : {};
+    const lists = new Set(iterableFieldsOf(toolName));
+    for (const k of new Set([...Object.keys(sample), ...lists])) {
+        if (lists.has(k)) out[k] = Array.isArray(out[k]) ? out[k] : [];
+        else if (!(k in out)) out[k] = COUNT_KEY.test(k) ? 0 : null;
+    }
+    return out;
+}
+
+const COUNT_KEY = /^(count|total)$/;
 
 const VERB_SUFFIX_SHAPES = [
     { match: /_send(_message)?$/,     sample: () => ({ sent: true, id: 'sample-id', message: 'Sent (dry-run preview).' }) },
@@ -138,4 +225,5 @@ function producesList(toolName) {
     return iterableFieldsOf(toolName).length > 0;
 }
 
-module.exports = { OUTPUT_SCHEMAS, getOutputSchema, synthesizeDryRunOutput, describeShape, iterableFieldsOf, producesList };
+module.exports = {
+    emptyDryRunOutput, OUTPUT_SCHEMAS, getOutputSchema, synthesizeDryRunOutput, describeShape, iterableFieldsOf, producesList };

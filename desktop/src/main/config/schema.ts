@@ -10,6 +10,7 @@
  * not treated as an error.
  */
 
+import { INVALID_NEXTCLOUD_ADDRESS, parseNextcloudUrl } from '../nextcloud/address.ts';
 import type { DesktopSettings, WatchedFolder } from '../../shared/types.ts';
 
 /** Bumped only when a migration is needed; `normaliseSettings` handles the rest. */
@@ -47,6 +48,7 @@ export function defaultSettings(platform: NodeJS.Platform = process.platform): D
             configPath: '',
             socketPath: '',
             saveFolder: '',
+            serverUrl: '',
             watchedFolders: [],
         },
     };
@@ -225,6 +227,7 @@ export function normaliseSettings(raw: unknown, platform: NodeJS.Platform = proc
             configPath: asString(nextcloud.configPath, '').trim(),
             socketPath: asString(nextcloud.socketPath, '').trim(),
             saveFolder: asString(nextcloud.saveFolder, '').trim(),
+            serverUrl: parseNextcloudUrl(nextcloud.serverUrl) ?? '',
             watchedFolders: normaliseWatchedFolders(nextcloud.watchedFolders),
         },
     };
@@ -238,6 +241,8 @@ export function normaliseSettings(raw: unknown, platform: NodeJS.Platform = proc
  */
 export function mergeSettings(current: DesktopSettings, patch: unknown, platform: NodeJS.Platform = process.platform): DesktopSettings {
     const input = asRecord(patch);
+    const address = asRecord(input.nextcloud).serverUrl;
+    if (typeof address === 'string' && address.trim() && !parseNextcloudUrl(address)) throw new Error(INVALID_NEXTCLOUD_ADDRESS);
     const merged: Record<string, unknown> = { ...(current as unknown as Record<string, unknown>) };
     for (const [key, value] of Object.entries(input)) {
         if (value === undefined) continue;
