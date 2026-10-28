@@ -43,7 +43,7 @@ router.get('/tmp/:token', async (req, res) => {
         const key = req.query.key;
         const expires = parseInt(req.query.expires, 10);
 
-        log.info(`[StorageProxy] Temp download request: key=${key}, UA=${req.get('User-Agent')?.substring(0, 80)}, IP=${req.ip}`);
+        log.info(`[StorageProxy] Temp download request: key=${key}`);
 
         const verdict = verifyTempSignature(key, expires, token);
         if (verdict === 'missing') {

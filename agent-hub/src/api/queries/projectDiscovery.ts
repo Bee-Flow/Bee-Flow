@@ -23,8 +23,8 @@ export function useSetProjectPin(id: string) {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ item, pinned }: { item: ProjectItem; pinned: boolean }) => pinned
-            ? apiClient.put(`${base(id)}/pins`, { type: item.type, id: item.id }, { retry: false })
-            : apiClient.delete(`${base(id)}/pins/${item.type}/${encodeURIComponent(item.id)}`, { retry: false }),
+            ? apiClient.put(`${base(id)}/pins`, { type: item.type, id: item.id })
+            : apiClient.delete(`${base(id)}/pins/${item.type}/${encodeURIComponent(item.id)}`),
         onSuccess: () => qc.invalidateQueries({ queryKey: discoveryKeys.pins(id) }),
     });
 }

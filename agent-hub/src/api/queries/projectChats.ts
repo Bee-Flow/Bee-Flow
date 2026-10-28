@@ -118,7 +118,7 @@ export function useCreateProjectChat(projectId: string) {
             const body = { ...vars, message: vars.message?.trim() || undefined, title: vars.title?.trim() || undefined };
             const created = await write('Could not start the team chat', () => apiClient.post<{
                 chat?: TeamChat; message?: TeamChatMessage | null; ai?: TeamChatAiResult;
-            }>(chatsPath(projectId), body, { retry: false }));
+            }>(chatsPath(projectId), body));
             if (!created?.chat?.id) throw new Error('Could not start the team chat');
             return { chat: created.chat, message: created.message || null, ai: created.ai || null };
         },
@@ -140,7 +140,7 @@ export function useUpdateProjectChat(projectId: string, chatId: string) {
     return useMutation<TeamChat, Error, TeamChatPatch, { previous?: TeamChat }>({
         mutationFn: async (patch) => {
             const body = await write('Could not update the chat',
-                () => apiClient.patch<{ chat?: TeamChat }>(chatPath(projectId, chatId), patch, { retry: false }));
+                () => apiClient.patch<{ chat?: TeamChat }>(chatPath(projectId, chatId), patch));
             if (!body?.chat) throw new Error('Could not update the chat');
             return body.chat;
         },
@@ -165,7 +165,7 @@ export function useDeleteProjectChat(projectId: string) {
     const qc = useQueryClient();
     return useMutation<void, Error, string>({
         mutationFn: async (chatId) => {
-            await write('Could not delete the chat', () => apiClient.delete(chatPath(projectId, chatId), { retry: false }));
+            await write('Could not delete the chat', () => apiClient.delete(chatPath(projectId, chatId)));
         },
         onSuccess: (_r, chatId) => {
             qc.removeQueries({ queryKey: teamChatKeys.detail(projectId, chatId) });
@@ -246,7 +246,7 @@ export function useEditTeamChatMessage(projectId: string, chatId: string) {
     return useMutation<void, Error, { messageId: string; content: string }>({
         mutationFn: async ({ messageId, content }) => {
             const body = await write('Could not edit the message', () => apiClient.patch<{ message?: TeamChatMessage }>(
-                `${chatPath(projectId, chatId)}/messages/${enc(messageId)}`, { content }, { retry: false }));
+                `${chatPath(projectId, chatId)}/messages/${enc(messageId)}`, { content }));
             if (body?.message) qc.setQueryData<TeamChatMessages>(teamChatKeys.messages(projectId, chatId), prev => foldIn(prev, [body!.message!]));
             else await qc.invalidateQueries({ queryKey: teamChatKeys.messages(projectId, chatId) });
         },
@@ -259,7 +259,7 @@ export function useDeleteTeamChatMessage(projectId: string, chatId: string) {
     return useMutation<void, Error, string>({
         mutationFn: async (messageId) => {
             await write('Could not delete the message',
-                () => apiClient.delete(`${chatPath(projectId, chatId)}/messages/${enc(messageId)}`, { retry: false }));
+                () => apiClient.delete(`${chatPath(projectId, chatId)}/messages/${enc(messageId)}`));
         },
         onSuccess: (_r, messageId) => {
             qc.setQueryData<TeamChatMessages>(key, prev => (prev ? {
@@ -276,7 +276,7 @@ export function useMarkTeamChatRead(projectId: string, chatId: string) {
     const qc = useQueryClient();
     return useMutation<void, Error, number>({
         mutationFn: async (seq) => {
-            await apiClient.post(`${chatPath(projectId, chatId)}/read`, { seq }, { retry: false });
+            await apiClient.post(`${chatPath(projectId, chatId)}/read`, { seq });
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: teamChatKeys.lists(projectId) }),
     });
@@ -289,7 +289,7 @@ export function useTeamChatFeedback(projectId: string, chatId: string) {
     return useMutation<{ autoPausedUntil: string | null }, Error, { messageId: string; helpful: boolean }>({
         mutationFn: async ({ messageId, helpful }) => {
             const body = await write('Could not send your feedback', () => apiClient.post<{ autoPausedUntil?: string | null }>(
-                `${chatPath(projectId, chatId)}/messages/${enc(messageId)}/feedback`, { helpful }, { retry: false }));
+                `${chatPath(projectId, chatId)}/messages/${enc(messageId)}/feedback`, { helpful }));
             return { autoPausedUntil: body?.autoPausedUntil ?? null };
         },
         onSuccess: ({ autoPausedUntil }, { messageId, helpful }) => {

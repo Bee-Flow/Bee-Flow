@@ -72,19 +72,19 @@ function useSprintMutation<TVars>(projectId: string, fallback: string, run: (var
 
 export function useCreateSprint(projectId: string) {
     return useSprintMutation<SprintInput>(projectId, 'Could not create the sprint',
-        (input) => apiClient.post<{ sprint?: Sprint }>(sprintsPath(projectId), input, { retry: false }));
+        (input) => apiClient.post<{ sprint?: Sprint }>(sprintsPath(projectId), input));
 }
 
 export function useUpdateSprint(projectId: string) {
     return useSprintMutation<{ sprintId: string; patch: SprintPatch }>(projectId, 'Could not change the sprint',
-        ({ sprintId, patch }) => apiClient.patch<{ sprint?: Sprint }>(sprintPath(projectId, sprintId), patch, { retry: false }));
+        ({ sprintId, patch }) => apiClient.patch<{ sprint?: Sprint }>(sprintPath(projectId, sprintId), patch));
 }
 
 export function useDeleteSprint(projectId: string) {
     const qc = useQueryClient();
     return useMutation<void, Error, string>({
         mutationFn: async (sprintId) => {
-            await write('Could not delete the sprint', () => apiClient.delete(sprintPath(projectId, sprintId), { retry: false }));
+            await write('Could not delete the sprint', () => apiClient.delete(sprintPath(projectId, sprintId)));
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: projectKeys.sprints(projectId) });
@@ -96,21 +96,21 @@ export function useDeleteSprint(projectId: string) {
 
 export function useAssignSprintItems(projectId: string) {
     return useSprintMutation<{ sprintId: string; taskIds: string[] }>(projectId, 'Could not add the items to the sprint',
-        ({ sprintId, taskIds }) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/items`, { taskIds }, { retry: false }), true);
+        ({ sprintId, taskIds }) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/items`, { taskIds }), true);
 }
 
 export function useUnassignSprintItem(projectId: string) {
     return useSprintMutation<{ sprintId: string; taskId: string }>(projectId, 'Could not remove the item from the sprint',
-        ({ sprintId, taskId }) => apiClient.delete(`${sprintPath(projectId, sprintId)}/items/${enc(taskId)}`, { retry: false }).then(() => undefined), true);
+        ({ sprintId, taskId }) => apiClient.delete(`${sprintPath(projectId, sprintId)}/items/${enc(taskId)}`).then(() => undefined), true);
 }
 
 /** Start the sprint: the project's other active sprint is demoted to planned. */
 export function useStartSprint(projectId: string) {
     return useSprintMutation<string>(projectId, 'Could not start the sprint',
-        (sprintId) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/start`, {}, { retry: false }));
+        (sprintId) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/start`, {}));
 }
 
 export function useCompleteSprint(projectId: string) {
     return useSprintMutation<string>(projectId, 'Could not complete the sprint',
-        (sprintId) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/complete`, {}, { retry: false }));
+        (sprintId) => apiClient.post<{ sprint?: Sprint }>(`${sprintPath(projectId, sprintId)}/complete`, {}));
 }

@@ -295,7 +295,7 @@ router.get('/callback/:provider', async (req, res) => {
                 .catch((/** @type {unknown} */ e) => bestEffort('oauthCallback:azure-group-sync', e));
         }
 
-        log.info(`[OAuth/${provider}] Session setup — user: ${user.id} (${user.displayName}), pendingApproval: ${pendingApproval}, userHasOrg: ${userHasOrg}`);
+        log.info(`[OAuth/${provider}] Session setup — user: ${user.id}, pendingApproval: ${pendingApproval}, userHasOrg: ${userHasOrg}`);
         // The account-status gate. SSO had none: suspending someone stopped
         // their password login and left their Microsoft/Google sign-in working,
         // which is the failure mode that matters most — SSO is how most people

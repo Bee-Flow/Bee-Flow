@@ -32,7 +32,12 @@
  *                     installResolveStub, preloadStubs, ...). Moving a test from the
  *                     raw patch to a helper does not lower the count; only
  *                     injecting through the module's init()/factory seam does
- *                     (phase 2, point 6).
+ *                     (phase 2, point 6). In agent-hub and mobile the module
+ *                     system is the test runner's: a test file calling
+ *                     `vi.mock(`, `vi.doMock(`, `jest.mock(` or `jest.doMock(`
+ *                     counts the same way (`vi.mocked(` is a type helper, not a
+ *                     mock). The target there is a prop, a context provider or
+ *                     a msw handler instead of swapping the module.
  *   authfetch-outside-api  non-test files outside src/api/ that call
  *                     authFetch themselves (utils/helpers.js, where it is
  *                     defined, not counted). The data layer is src/api/:
@@ -77,11 +82,19 @@
  *   as-unknown-as     `as unknown as T` double casts in non-test code: a
  *                     conversion the compiler would refuse. The target is a
  *                     type guard or a correct type at the source.
- *   log-user-content  a server log call that interpolates or passes user content
- *                     or identifiers: a prompt, a file name, an e-mail address
- *                     or message text (`.length` of one is fine). Personal data
- *                     does not go into logs (CLAUDE.md, privacy). The target is
- *                     metadata: a length, a MIME type, an id, a correlation id.
+ *   log-user-content  a server log call (log.*, console.*, or a bestEffort/
+ *                     fallback label) whose arguments carry personal data or
+ *                     user content: an e-mail address, a person's name
+ *                     (`user.name`, displayName, first/last name, username), a
+ *                     phone number, an IP, a user agent, a subject, a body, a
+ *                     prompt, a file name or message text. Read off the code
+ *                     (strings and comments blanked), by the name of the value:
+ *                     `.length` of one, a yes/no (`!!email`), a condition, an
+ *                     object key and anything passed through log.textForLog()/
+ *                     log.nameForLog() are fine. Operator CLIs (scripts/) print
+ *                     to a terminal and are not counted. Personal data does not
+ *                     go into logs (CLAUDE.md, privacy). The target is metadata:
+ *                     a length, a count, a MIME type, an id, a correlation id.
  *   sse-head          a `text/event-stream` head written by hand outside
  *                     core/http/ (an object-literal or setHeader
  *                     Content-Type, or res.type()), in non-test code. The
@@ -207,7 +220,9 @@ const MODULE_MOCK_HELPERS = [
     'installRunnerIdentityStubs', 'installCrudRouteStubs', 'createBuilderStream',
 ];
 const MODULE_MOCK_PATTERN = new RegExp(
-    `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`,
+    `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`
+    // The test runners' module registry (vitest in agent-hub, jest in mobile).
+    + '|(?<![\\w$.])(?:vi|jest)\\s*\\.\\s*(?:mock|doMock)\\s*\\(',
 );
 
 /** Physical lines, as `wc -l` counts them — the unit the plan measured in. */
@@ -308,6 +323,75 @@ function countUncheckedMutations(text) {
         if (/\{[^}]*\b(?:ok|status)\b[^}]*\}\s*=\s*(?:await\s+)?$/.test(before)) continue;
         if (responseRead(after, responseNames(text, m.index, before))) continue;
         n++;
+    }
+    return n;
+}
+
+// log-user-content: a log call (log/logger/console, or a bestEffort/fallback label)
+// whose arguments carry a personal value or user content.
+const LOG_CALL = /(?<![\w$.])(?:(?:log|logger|console)\s*\.\s*(?:debug|info|warn|error|log|trace)|bestEffort|fallback)\s*\(/g;
+// Values that are personal data or user content in their own right, by the name
+// of the last property or variable that holds them.
+const PERSONAL_NAME = /^(?:[\w$]*(?:email|Email|EMAIL)s?|e_?mail|phone|phoneNumber|mobile|ip|clientIp|ipAddress|remoteAddress|userAgent|user_agent|username|userName|fullName|firstName|lastName|subject|body|prompt|[\w$]*(?:[fF]ileName|[fF]ilename)|originalname|originalName|userMessage|messageText)$/;
+// A `displayName` is a person's unless it hangs off a model, voice or tool (`bestWhisper.displayName`).
+const NOT_A_PERSON = /model|whisper|voice|provider|tool|deployment|agent|connector/i;
+// `.name` is personal on a person or on a user's file, not on a tool, a provider or a step.
+const NAMED_HOLDER = /^(?:user|users|u|member|owner|requester|recipient|sender|author|contact|signer|person|profile|account|att|attachment|file|upload)$/;
+// A personal value passed through one of these stays a value; `.length`/`.size` does not.
+const TRANSFORM = new Set(['toLowerCase', 'toUpperCase', 'trim', 'slice', 'substring', 'substr', 'split', 'join', 'toString', 'replace', 'replaceAll', 'padEnd', 'padStart', 'map', 'filter', 'at', 'pop', 'shift']);
+// The log-safe stand-ins (telemetry/logSafe.js: nameForLog, textForLog; mailboxLogRef; a redact helper):
+// whatever they are handed is what they exist to hide.
+const SAFE_WRAPPER = /(?<![\w$])[\w$]*(?:ForLog|LogRef|[rR]edact[\w$]*)\s*\(/g;
+const IDENT_CHAIN = /(?<![\w$.])[A-Za-z_$][\w$]*(?:\s*\??\.\s*[A-Za-z_$][\w$]*)*/g;
+
+/** The args of a log call, with every safe wrapper's own arguments blanked. */
+function withoutSafeWrappers(args) {
+    let out = args;
+    for (const m of [...args.matchAll(SAFE_WRAPPER)].reverse()) {
+        const open = m.index + m[0].length - 1;
+        const end = closeParen(out, open);
+        if (end > 0) out = out.slice(0, open + 1) + ' '.repeat(end - open - 2) + out.slice(end - 1);
+    }
+    return out;
+}
+
+/** True when `args` (code, strings blanked) hands a personal value to the log. */
+function carriesPersonal(args) {
+    for (const m of args.matchAll(IDENT_CHAIN)) {
+        const segs = m[0].split(/\s*\??\.\s*/);
+        const after = args.slice(m.index + m[0].length);
+        for (let i = 0; i < segs.length; i++) {
+            const personal = PERSONAL_NAME.test(segs[i])
+                || (segs[i] === 'name' && i > 0 && NAMED_HOLDER.test(segs[i - 1]))
+                || (segs[i] === 'displayName' && !(i > 0 && NOT_A_PERSON.test(segs[i - 1])));
+            if (!personal) continue;
+            const rest = segs.slice(i + 1);
+            if (rest.length === 0) {
+                const before = args.slice(0, m.index);
+                // Not the value: a function of that name, an object key (`{ email: x }`), a
+                // yes/no (`!!email`) or a condition (`email ? 'set' : 'none'`).
+                if (/^\s*\(/.test(after) || (/^\s*:/.test(after) && /[{,]\s*$/.test(before))
+                    || /!\s*$/.test(before) || /^\s*\?(?![.?])/.test(after)) continue;
+                return true;
+            }
+            // `.length` / `.size` is metadata; another property is a different value (`body.status`);
+            // a transform (`.toLowerCase()`, `.slice(0, 80)`) still carries the value.
+            if (TRANSFORM.has(rest[0]) && (rest.length > 1 || /^\s*\(/.test(after))) return true;
+        }
+    }
+    return false;
+}
+
+function countLogPersonal(text) {
+    const code = blankNonCode(text);
+    let n = 0;
+    for (const m of code.matchAll(LOG_CALL)) {
+        const open = m.index + m[0].length - 1;
+        const end = closeParen(code, open);
+        if (end < 0) continue;
+        // Header names live in strings, which the blanked code no longer has.
+        if (/(?:\.get\s*\(|\.header\s*\(|headers\s*\[)\s*['"`](?:user-agent|x-forwarded-for)['"`]/i.test(text.slice(open, end))) { n++; continue; }
+        if (carriesPersonal(withoutSafeWrappers(code.slice(open + 1, end - 1)))) n++;
     }
     return n;
 }
@@ -473,7 +557,7 @@ const METRICS = {
         // On the code only: a comment that explains why a test does NOT use require.cache is not a mock.
         measure: (text) => (MODULE_MOCK_PATTERN.test(blankNonCode(text)) ? 1 : 0),
         what: 'test files mocking through the module system',
-        advice: 'inject the dependency through the module\'s init()/factory seam instead',
+        advice: 'inject the dependency through the module\'s init()/factory seam (server), or a prop, context provider or msw handler (agent-hub, mobile), instead',
     },
     'authfetch-effect': {
         include: (rel) => !TEST_FILE.test(rel),
@@ -552,10 +636,12 @@ const METRICS = {
         advice: 'write a type guard, or fix the type where the value is produced',
     },
     'log-user-content': {
-        include: (rel) => !TEST_FILE.test(rel),
-        measure: countMatches(/\blog\.(?:debug|info|warn|error)\((?:[^;\n]*\$\{[^}]*?|[^;\n]*?,\s*)(?<!ForLog\((?:[\w$]+\.)?)(?<![\w$.])(?:[\w$]+\.)?(?:prompt|fileName|filename|originalname|originalName|email|userMessage|messageText)\b(?!\.length|\?\.length|Length|Count|Tokens)/g),
-        what: 'log calls that carry user content (prompt, file name, e-mail, message text)',
-        advice: 'log metadata instead: a length, a MIME type, an id or the correlation id, never the text or the name',
+        // Operator CLIs under scripts/ print to the operator's own terminal (a dry
+        // run lists the accounts it would delete), not to the server log.
+        include: (rel) => !TEST_FILE.test(rel) && !/^(?:scripts|testUtils)\//.test(rel) && !/(^|\/)__tests__\//.test(rel),
+        measure: (text) => countLogPersonal(text),
+        what: 'log calls that carry personal data or user content (e-mail, name, phone, IP, user agent, subject, body, prompt, file name, message text)',
+        advice: 'log an id, a length or a count instead, or pass the value through log.textForLog() / log.nameForLog() (telemetry/logSafe.js)',
     },
     'sse-head': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('core/http/'),

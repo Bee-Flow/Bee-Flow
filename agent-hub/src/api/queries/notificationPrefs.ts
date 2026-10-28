@@ -38,7 +38,7 @@ export function useSetNotificationPrefs() {
     const qc = useQueryClient();
     return useMutation<NotificationPrefs, Error, NotificationPrefsPatch, { previous?: NotificationPrefs }>({
         mutationFn: async (patch) => {
-            const body = await apiClient.put<NotificationPrefs>(PREFS_URL, patch, { retry: false });
+            const body = await apiClient.put<NotificationPrefs>(PREFS_URL, patch);
             if (!body) throw new Error('Could not save the notification preferences');
             return body;
         },
@@ -64,8 +64,8 @@ export function useSetProjectMute(projectId: string) {
         mutationFn: async (muted) => {
             const url = `/api/projects/${encodeURIComponent(projectId)}/mute`;
             const body = muted
-                ? await apiClient.put<{ muted: boolean }>(url, {}, { retry: false })
-                : await apiClient.delete<{ muted: boolean }>(url, { retry: false });
+                ? await apiClient.put<{ muted: boolean }>(url, {})
+                : await apiClient.delete<{ muted: boolean }>(url);
             return body?.muted ?? muted;
         },
         // `Project.muted` (GET /api/projects/:id) is the one source of truth.

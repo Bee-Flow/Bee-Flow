@@ -368,7 +368,7 @@ async function executeN8nTool(toolName, args, orgId, attachments) {
             files.length > 0 ? files : null
         );
 
-        log.info(`[n8n] Webhook result:`, typeof result === 'string' ? result.substring(0, 200) : JSON.stringify(result).substring(0, 200));
+        log.info(`[n8n] Webhook result: ${typeof result === 'string' ? result.length : String(JSON.stringify(result) ?? '').length} chars`);
         // Always return a JSON object string (Google Gemini requires Struct, not plain string)
         if (typeof result === 'object' && result !== null) {
             return JSON.stringify(result, null, 2);

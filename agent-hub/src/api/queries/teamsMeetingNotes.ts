@@ -75,7 +75,7 @@ export function useTeamsNotesUserSettings(enabled = true) {
 export function useSaveTeamsNotesUserSettings() {
     const qc = useQueryClient();
     return useMutation<unknown, Error, TeamsNotesSettings>({
-        mutationFn: (settings) => apiClient.put('/api/teams-notes-settings/user/me', settings, { retry: false }),
+        mutationFn: (settings) => apiClient.put('/api/teams-notes-settings/user/me', settings),
         onSettled: () => qc.invalidateQueries({ queryKey: teamsMeetingNotesKeys.userSettings }),
     });
 }
@@ -120,7 +120,7 @@ export function useTeamsNotesOrgSettings(orgId: string | null | undefined) {
 export function useSaveTeamsNotesOrgSettings(orgId: string | null | undefined) {
     const qc = useQueryClient();
     return useMutation<unknown, Error, TeamsNotesSettings>({
-        mutationFn: (settings) => apiClient.put(`/api/teams-notes-settings/${encodeURIComponent(String(orgId))}`, settings, { retry: false }),
+        mutationFn: (settings) => apiClient.put(`/api/teams-notes-settings/${encodeURIComponent(String(orgId))}`, settings),
         onSettled: () => qc.invalidateQueries({ queryKey: ['teamsMeetingNotes', 'orgSettings', orgId] }),
     });
 }

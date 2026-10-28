@@ -59,7 +59,7 @@ export function useSaveOrgAiParticipation(orgId: string) {
     const qc = useQueryClient();
     return useMutation<OrgAiParticipationPolicy, Error, OrgAiParticipationSettings>({
         mutationFn: async (settings) => {
-            const body = await apiClient.put<OrgAiParticipationPolicy>(`${BASE}/org/${encodeURIComponent(orgId)}`, settings, { retry: false });
+            const body = await apiClient.put<OrgAiParticipationPolicy>(`${BASE}/org/${encodeURIComponent(orgId)}`, settings);
             if (!body) throw new Error('Could not save the AI participation settings');
             return body;
         },
@@ -83,7 +83,7 @@ export function useSaveMyAiParticipation() {
     const qc = useQueryClient();
     return useMutation<MyAiParticipation, Error, MyAiParticipation, { previous?: MyAiParticipation }>({
         mutationFn: async (pref) => {
-            const body = await apiClient.put<MyAiParticipation>(`${BASE}/me`, pref, { retry: false });
+            const body = await apiClient.put<MyAiParticipation>(`${BASE}/me`, pref);
             return { autoJoinOnMyMessages: body?.autoJoinOnMyMessages !== false };
         },
         onMutate: async (pref) => {

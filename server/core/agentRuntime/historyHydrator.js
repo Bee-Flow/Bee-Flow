@@ -121,7 +121,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
                     const { uploadImageForInference } = require('./attachmentKinds');
                     url = await uploadImageForInference(att.content, type, userId, name);
                 } catch (e) {
-                    log.warn(`[HistoryHydrator] Lazy upload failed for ${name}: ${e.message}`);
+                    log.warn(`[HistoryHydrator] Lazy upload failed for ${log.nameForLog(name)}: ${e.message}`);
                 }
             }
 

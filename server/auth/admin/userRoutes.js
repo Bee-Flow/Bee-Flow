@@ -206,7 +206,7 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
     try {
         const result = await userStore.createUserWithSeatCheck(newUser, { strict: true });
         if (result.created) {
-            log.info(`[Audit] ${req.session.user?.id || 'system'} created user '${username}' in org '${organizationId || 'none'}' with orgRole '${orgRole || 'none'}'`);
+            log.info(`[Audit] ${req.session.user?.id || 'system'} created user '${newUser.id}' in org '${organizationId || 'none'}' with orgRole '${orgRole || 'none'}'`);
             await userStore.logAccessAudit(
                 'user.create',
                 'user',

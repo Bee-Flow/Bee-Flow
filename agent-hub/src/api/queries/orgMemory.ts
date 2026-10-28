@@ -67,7 +67,7 @@ export function useSaveOrgMemory(orgId: string) {
     const qc = useQueryClient();
     return useMutation<OrgMemorySaved, Error, OrgMemorySettings>({
         mutationFn: async (settings) => {
-            const body = await apiClient.put<OrgMemoryState & { deletedSensitive?: number }>(`${BASE}/${encodeURIComponent(orgId)}`, settings, { retry: false });
+            const body = await apiClient.put<OrgMemoryState & { deletedSensitive?: number }>(`${BASE}/${encodeURIComponent(orgId)}`, settings);
             return {
                 ...readState(body, qc.getQueryData<OrgMemoryState>(orgMemoryKeys.org(orgId))?.stats),
                 deletedSensitive: Number(body?.deletedSensitive) || 0,
@@ -83,7 +83,7 @@ export function useClearOrgMemory(orgId: string) {
     return useMutation<{ deleted: number }, Error, void>({
         mutationFn: async () => {
             const body = await apiClient.post<{ deleted?: number }>(
-                `${BASE}/${encodeURIComponent(orgId)}/clear`, { confirm: 'DELETE' }, { retry: false },
+                `${BASE}/${encodeURIComponent(orgId)}/clear`, { confirm: 'DELETE' },
             );
             return { deleted: Number(body?.deleted) || 0 };
         },

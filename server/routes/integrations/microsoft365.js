@@ -264,7 +264,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
             req.session.oauthScope = tokenData.scope || MS_CONNECT_SCOPES.join(' ');
         }
 
-        log.info(`[MicrosoftConnector] Connected for user ${userId}${email ? ` (${email})` : ''}`);
+        log.info(`[MicrosoftConnector] Connected for user ${userId}`);
         res.send(callbackHTML(email ? `Connected as ${email}!` : 'Microsoft 365 connected!', true));
     } catch (err) {
         log.error('[MicrosoftConnector] Token exchange error:', err.message);

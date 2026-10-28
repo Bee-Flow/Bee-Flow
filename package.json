@@ -31,7 +31,7 @@
     "lint:authfetch-effect-ratchet": "node scripts/count-ratchet.mjs authfetch-effect agent-hub",
     "lint:fetch-in-effect-ratchet": "node scripts/count-ratchet.mjs fetch-in-effect agent-hub",
     "lint:authfetch-outside-api-ratchet": "node scripts/count-ratchet.mjs authfetch-outside-api agent-hub",
-    "lint:module-mock-ratchet": "node scripts/count-ratchet.mjs module-mock server",
+    "lint:module-mock-ratchet": "node scripts/count-ratchet.mjs module-mock server && node scripts/count-ratchet.mjs module-mock agent-hub && node scripts/count-ratchet.mjs module-mock mobile",
     "lint:status-5xx-ratchet": "node scripts/count-ratchet.mjs status-5xx server",
     "lint:log-user-content-ratchet": "node scripts/count-ratchet.mjs log-user-content server",
     "lint:error-echo-ratchet": "node scripts/count-ratchet.mjs error-echo server",

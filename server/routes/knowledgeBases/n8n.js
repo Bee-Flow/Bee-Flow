@@ -184,7 +184,7 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
                 ingestedDocs++;
                 lastResult = result;
             } catch (err) {
-                log.error(`[KB] Failed to ingest item ${doc.title}:`, err.message);
+                log.error(`[KB] Failed to ingest item ${log.textForLog(doc.title)}:`, err.message);
                 if (documentsToIngest.length === 1) throw err; // Throw if it's the only one
             }
         }

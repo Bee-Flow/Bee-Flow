@@ -273,7 +273,7 @@ export function useCreateTestCase(automationId: string | null) {
     const invalidate = useInvalidateCases(automationId);
     return useMutation({
         mutationFn: async (body: TestCaseBody & { stepId: string }): Promise<TestCase | null> => {
-            const res = await apiClient.post(base(automationId as string), body, { retry: false });
+            const res = await apiClient.post(base(automationId as string), body);
             return parseTestCase(obj(res).testCase);
         },
         onSuccess: invalidate,
@@ -284,7 +284,7 @@ export function useUpdateTestCase(automationId: string | null) {
     const invalidate = useInvalidateCases(automationId);
     return useMutation({
         mutationFn: async ({ caseId, body }: { caseId: string; body: TestCaseBody }): Promise<TestCase | null> => {
-            const res = await apiClient.put(`${base(automationId as string)}/${encodeURIComponent(caseId)}`, body, { retry: false });
+            const res = await apiClient.put(`${base(automationId as string)}/${encodeURIComponent(caseId)}`, body);
             return parseTestCase(obj(res).testCase);
         },
         onSuccess: invalidate,
@@ -295,7 +295,7 @@ export function useDeleteTestCase(automationId: string | null) {
     const invalidate = useInvalidateCases(automationId);
     return useMutation({
         mutationFn: async (caseId: string): Promise<void> => {
-            await apiClient.delete(`${base(automationId as string)}/${encodeURIComponent(caseId)}`, { retry: false });
+            await apiClient.delete(`${base(automationId as string)}/${encodeURIComponent(caseId)}`);
         },
         onSuccess: invalidate,
     });
@@ -313,7 +313,7 @@ export function useRunTestCases(automationId: string | null) {
     const invalidate = useInvalidateCases(automationId);
     return useMutation({
         mutationFn: async (req: RunTestCasesRequest): Promise<TestRunResponse> => parseTestRun(
-            await apiClient.post(`${base(automationId as string)}/run`, req, { retry: false }),
+            await apiClient.post(`${base(automationId as string)}/run`, req),
         ),
         onSettled: invalidate,
     });

@@ -363,11 +363,11 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
     const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename above, userId from the session
 
     if (!fs.existsSync(filePath)) {
-        log.error(`[Templates] Download-filled file not found: ${filePath}`);
+        log.error(`[Templates] Download-filled file not found: ${log.nameForLog(sanitized)}`);
         return res.status(404).json({ error: 'File not found' });
     }
 
-    log.info(`[Templates] Serving filled document: ${filePath}`);
+    log.info(`[Templates] Serving filled document: ${log.nameForLog(sanitized)}`);
     res.setHeader('Content-Disposition', contentDisposition(sanitized));
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     sendStream(fs.createReadStream(filePath), res);

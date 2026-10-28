@@ -126,7 +126,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
 
     if (userResponse.ok) {
         const userData = /** @type {Record<string, any>} */ (await userResponse.json()); // the provider's profile payload
-        log.info(`[OAuth/Microsoft] User info received — id: ${userData.id}, displayName: ${userData.displayName}, mail: ${userData.mail}, upn: ${userData.userPrincipalName}`);
+        log.info(`[OAuth/Microsoft] User info received — id: ${userData.id}, has mail: ${!!userData.mail}, has upn: ${!!userData.userPrincipalName}`);
         assertGraphIdentity(identity, userData.id);
         // Keep the Azure object id separate from the local id. The
         // local id is resolved/minted in the provisioning block below
@@ -137,7 +137,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
             email: userData.mail || userData.userPrincipalName,
             provider: 'microsoft'
         });
-        log.info(`[OAuth/Microsoft] Mapped user — azureUserId: ${user.azureUserId}, displayName: ${user.displayName}, email: ${log.textForLog(user.email)}`);
+        log.info(`[OAuth/Microsoft] Mapped user — azureUserId: ${user.azureUserId}, email: ${log.textForLog(user.email)}`);
 
         user.picture = await microsoftLogin.saveMicrosoftPhoto(tokenData.access_token, user) || user.picture;
     } else {

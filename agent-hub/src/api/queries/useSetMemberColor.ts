@@ -46,6 +46,6 @@ export function useMemberMutation<TVars>(projectId: string, run: (vars: TVars) =
 /** Give a person a colour in this project (`null`: the automatic one). The owner may for anyone, everybody for themselves. */
 export function useSetMemberColor(projectId: string) {
     return useMemberMutation<{ userId: string; color: string | null }>(projectId,
-        ({ userId, color }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(userId)}/color`, { color }, { retry: false }),
+        ({ userId, color }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(userId)}/color`, { color }),
         'Could not change the colour');
 }

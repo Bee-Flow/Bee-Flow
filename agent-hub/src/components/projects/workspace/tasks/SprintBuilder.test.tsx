@@ -87,7 +87,7 @@ describe('SprintBuilder', () => {
         // Picking an unestimated item does.
         await user.click(screen.getByTestId('builder-pick-t3'));
         await user.click(await screen.findByTestId('builder-estimate'));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/start', { taskIds: ['t3'] }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/poker/session/start', { taskIds: ['t3'] }));
     });
 
     it('flags the picks without an estimate and warns when the plan runs over capacity', async () => {
@@ -117,8 +117,8 @@ describe('SprintBuilder', () => {
         await user.click(screen.getByTestId('builder-pick-t2'));
         await user.type(screen.getByTestId('builder-name'), 'Sprint 4');
         await user.click(screen.getByRole('button', { name: 'Create sprint with 2 items' }));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Sprint 4' }), expect.anything()));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s-new/items', { taskIds: ['t1', 't2'] }, expect.anything()));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints', expect.objectContaining({ name: 'Sprint 4' })));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/sprints/s-new/items', { taskIds: ['t1', 't2'] }));
         await waitFor(() => expect(handlers.onCreated).toHaveBeenCalled());
     });
 });

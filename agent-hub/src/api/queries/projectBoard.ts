@@ -16,8 +16,8 @@ export function useProjectBoard(id: string) {
 export function useBoardActions(id: string) {
     const qc = useQueryClient();
     const refresh = async () => { await Promise.all([qc.invalidateQueries({ queryKey: boardKey(id) }), qc.invalidateQueries({ queryKey: projectKeys.tasks(id) })]); };
-    const save = useMutation({ mutationFn: (body: Pick<ProjectBoard, 'columns' | 'version'>) => apiClient.put<ProjectBoard>(base(id), body, { retry: false }), onSuccess: refresh });
-    const move = useMutation({ mutationFn: ({ taskId, ...body }: { taskId: string; columnId: string; beforeId: string | null }) => apiClient.patch(`${base(id)}/tasks/${encodeURIComponent(taskId)}`, body, { retry: false }), onSuccess: refresh });
-    const create = useMutation({ mutationFn: (body: { columnId: string; title: string }) => apiClient.post<{ id: string }>(`${base(id)}/tasks`, body, { retry: false }), onSuccess: refresh });
+    const save = useMutation({ mutationFn: (body: Pick<ProjectBoard, 'columns' | 'version'>) => apiClient.put<ProjectBoard>(base(id), body), onSuccess: refresh });
+    const move = useMutation({ mutationFn: ({ taskId, ...body }: { taskId: string; columnId: string; beforeId: string | null }) => apiClient.patch(`${base(id)}/tasks/${encodeURIComponent(taskId)}`, body), onSuccess: refresh });
+    const create = useMutation({ mutationFn: (body: { columnId: string; title: string }) => apiClient.post<{ id: string }>(`${base(id)}/tasks`, body), onSuccess: refresh });
     return { save, move, create };
 }

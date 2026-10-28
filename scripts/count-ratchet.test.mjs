@@ -205,6 +205,26 @@ test('module-mock also counts a test that mocks through a testUtils helper, and 
     assert.strictEqual(budgetOf(dir, 'module-mock'), 5);
 });
 
+test('module-mock counts a test file that swaps a module through vitest or jest, once, and nothing else', () => {
+    const dir = sandbox({
+        files: {
+            'a.test.tsx': "vi.mock('../api/client', () => ({ apiClient: {} }));\nvi.mock('../utils/helpers');\n",
+            'b.test.ts': "beforeEach(() => { vi.doMock('./x', () => ({})); });\n",
+            'c.test.tsx': "jest.mock('expo-router', () => ({}));\n",
+            'd.test.ts': "jest.doMock('@/core/api/client', () => ({}));\n",
+            // A typed view of a mocked value, a spy, a fake function, and the
+            // words in a comment or a string are not a module swap.
+            'clean1.test.ts': "const m = vi.mocked(fn);\nvi.spyOn(api, 'get');\nconst f = vi.fn();\njest.fn();\n",
+            'clean2.test.tsx': "// no vi.mock( here\nconst s = 'jest.mock(x)';\n",
+            // Source that helps tests build a mock is not itself a test.
+            'test/mocks.ts': "vi.mock('../i18n');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'module-mock').code, 0);
+    assert.strictEqual(budgetOf(dir, 'module-mock'), 4);
+    assert.match(run(dir, 'module-mock', ['--list']).stdout, /1\s+src\/a\.test\.tsx/);
+});
+
 test('module-mock lists every export of a testUtils helper that writes require.cache or hooks the resolver', () => {
     const utils = path.join(HERE, '..', 'server', 'testUtils');
     const script = fs.readFileSync(SCRIPT, 'utf8');
@@ -421,6 +441,56 @@ test('log-user-content counts log calls carrying a prompt, file name, e-mail or 
     });
     assert.strictEqual(run(dir, 'log-user-content').code, 0);
     assert.strictEqual(budgetOf(dir, 'log-user-content'), 2);
+});
+
+test('log-user-content counts every log call that hands a personal value to the log, once per call', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'personal.js': [
+                "log.info(`[Auth] approved ${user.id} (${user.email || 'no email'})`);",
+                "console.warn('signup blocked for', requesterEmail);",
+                "log.info(`[Proxy] UA=${req.get('User-Agent')}`);",
+                'log.info(`[Proxy] from ${req.ip}`);',
+                'log.info(`[SignRequest] to ${signers.map(s => s.email).join(", ")}`);',
+                'log.info(`[Mail] subject "${subject}"`);',
+                "log.error('[Webhook] got', req.body);",
+                'log.info(`[Contacts] ${action.firstName} ${action.lastName}`);',
+                'log.info(`[OAuth] user ${user.id} (${user.displayName}) phone ${phone}`);',
+                'log.info(`[Upload] ${att.name}`);',
+                'log.info(`[Whisper] Transcribing ${audioFileName}`);',
+                'bestEffort(`mail:${toEmail}`, e);',
+                // Multi-line call, with the value on a later line.
+                "log.warn(\n    '[x] failed',\n    { who: email },\n);",
+            ].join('\n') + '\n',
+            'safe.js': [
+                'log.info(`[Auth] approved ${user.id}`);',
+                'log.info(`[Mail] sent to ${log.textForLog(user.email)}`);',
+                'log.info(`[Upload] ${log.nameForLog(att.name)} (${prompt.length} chars)`);',
+                'log.info(`[Mail] subject ${subject?.length ?? 0} chars`);',
+                'log.info(`[Mail] address set=${!!address} name set=${!!displayName}`);',
+                "log.info(`[Rule] ${subject ? 'with' : 'without'} a subject`);",
+                // Another property of a holder is another value; a key is not a value.
+                'log.warn(`[License] ${resp.status} ${body.status}`);',
+                "log.info('[x]', JSON.stringify({ email: 1 }).length);",
+                // A tool's or a model's name is not a person's.
+                'log.info(`[Tool] ${tool.name} ${bestWhisper.displayName}`);',
+                // A header named in an explanation is not a header read.
+                "log.warn('check that the proxy forwards X-Forwarded-For');",
+                // The words in strings and comments are not values.
+                "log.info('email sent'); // user.email",
+                'isValidEmail(email);',
+            ].join('\n') + '\n',
+            'a.test.js': 'log.info(`${user.email}`);\n',
+            // An operator CLI prints to the operator's terminal, not to the server log.
+            'scripts/listUsers.js': 'console.log(`${u.email}`);\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'log-user-content').code, 0);
+    assert.strictEqual(budgetOf(dir, 'log-user-content'), 13);
+    const list = run(dir, 'log-user-content', ['--list']).stdout;
+    assert.match(list, /\b13\s+personal\.js/);
+    assert.doesNotMatch(list, /safe\.js|listUsers|a\.test/);
 });
 
 test('--list on a package without a budget lists and writes no budget file', () => {

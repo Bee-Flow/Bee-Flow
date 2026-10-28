@@ -197,7 +197,7 @@ async function executeSignRequestTool(toolName, args, userId) {
         if (args.message) payload.message = args.message;
         if (args.fromEmail) payload.from_email = args.fromEmail;
 
-        log.info(`[SignRequest] Sending document for signing to: ${signers.map(s => s.email).join(', ')}`);
+        log.info(`[SignRequest] Sending document for signing to ${signers.length} signer(s)`);
         const result = await signrequestApiRequest(subdomain, token, 'POST', '/signrequest-quick-create/', payload);
 
         return {
@@ -323,7 +323,7 @@ async function sendPdfForSigning(userId, { pdfBase64, fileName, signers, subject
     if (message) payload.message = message;
     if (fromEmail) payload.from_email = fromEmail;
 
-    log.info(`[SignRequest] Sending PDF "${log.nameForLog(fileName)}" for signing to: ${signers.map(s => s.email).join(', ')}`);
+    log.info(`[SignRequest] Sending PDF "${log.nameForLog(fileName)}" for signing to ${signers.length} signer(s)`);
     return await signrequestApiRequest(subdomain, token, 'POST', '/signrequest-quick-create/', payload);
 }
 

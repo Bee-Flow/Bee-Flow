@@ -744,7 +744,7 @@ async function executeGammaTool(toolName, args = {}, userId) {
         if (toolName === 'gamma_create_presentation') {
             if (!args.inputText) return { error: 'inputText is required' };
             const body = buildCreateBody(args);
-            log.info(`[Gamma] Starting generation (${body.format || 'presentation'}): "${(body.inputText || '').substring(0, 80)}..."`);
+            log.info(`[Gamma] Starting generation (${body.format || 'presentation'}): ${String(body.inputText || '').length} chars of input`);
             return await createAndMaybePoll(apiKey, '/generations', body, args);
         }
 
@@ -761,7 +761,7 @@ async function executeGammaTool(toolName, args = {}, userId) {
             const note = template.usedUrlCandidate
                 ? 'Started from a Gamma URL by using the trailing URL ID as the template ID candidate. If Gamma returns not found, copy the exact gammaId from Gamma and retry.'
                 : undefined;
-            log.info(`[Gamma] Starting template generation from ${template.gammaId}: "${(args.prompt || '').substring(0, 80)}..."`);
+            log.info(`[Gamma] Starting template generation from ${template.gammaId}: ${args.prompt?.length ?? 0} chars of prompt`);
             return await createAndMaybePoll(apiKey, '/generations/from-template', body, args, {
                 templateGammaId: template.gammaId,
                 templateUrl: template.templateUrl,
@@ -773,7 +773,7 @@ async function executeGammaTool(toolName, args = {}, userId) {
             if (!args.originalContent) return { error: 'originalContent is required because Gamma API cannot read existing Gamma content by URL.' };
             if (!args.editInstructions) return { error: 'editInstructions is required' };
             const body = buildRevisionBody(args);
-            log.info(`[Gamma] Starting revised copy generation: "${(args.editInstructions || '').substring(0, 80)}..."`);
+            log.info(`[Gamma] Starting revised copy generation: ${String(args.editInstructions || '').length} chars of instructions`);
             return await createAndMaybePoll(apiKey, '/generations', body, args, {
                 sourceGammaId: args.sourceGammaId || null,
                 sourceGammaUrl: args.sourceGammaUrl || null,

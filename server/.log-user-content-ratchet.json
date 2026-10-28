@@ -1,5 +1,5 @@
 {
-  "_comment": "Highest number of log calls that carry user content (prompt, file name, e-mail, message text) server may still carry. Lower it with `node scripts/count-ratchet.mjs log-user-content server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-24",
-  "count": 11
+  "_comment": "Highest number of log calls that carry personal data or user content (e-mail, name, phone, IP, user agent, subject, body, prompt, file name, message text) server may still carry. Lower it with `node scripts/count-ratchet.mjs log-user-content server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-26",
+  "count": 0
 }

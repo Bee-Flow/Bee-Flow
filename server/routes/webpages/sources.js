@@ -162,7 +162,7 @@ function register(router, { upload }) {
 
             if (file.content) {
                 ingestDriveSource(webpageId, source.id, userId, file.content, file.name).catch(err => {
-                    log.error(`[Webpages] Drive ingestion failed for ${file.name}:`, err.message);
+                    log.error(`[Webpages] Drive ingestion failed for ${log.nameForLog(file.name)}:`, err.message);
                 });
             } else {
                 webpageStore.updateSource(source.id, { status: 'error', error: 'No content received from Drive' });

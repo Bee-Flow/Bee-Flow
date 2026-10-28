@@ -125,7 +125,7 @@ Respond with ONLY a valid JSON array, no other text:
         replacements = JSON.parse(cleaned);
     } catch (e) {
         log.error(`[Templates] Failed to parse parameterization JSON: ${e.message}`);
-        log.error(`[Templates] Raw response: ${raw.slice(0, 500)}`);
+        log.error(`[Templates] Raw response: ${raw.length} chars`);
         throw new Error('AI returned invalid JSON for parameterization');
     }
 

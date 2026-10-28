@@ -112,7 +112,7 @@ export function useUpdateProject(projectId: string) {
     return useMutation<Project, Error, ProjectForm & { version?: number }>({
         mutationFn: async (patch) => {
             try {
-                const saved = await apiClient.put<Project>(`/api/projects/${enc(projectId)}`, patch, { retry: false });
+                const saved = await apiClient.put<Project>(`/api/projects/${enc(projectId)}`, patch);
                 if (!saved) throw new Error('Could not save the project');
                 return saved;
             } catch (e) {
@@ -137,7 +137,7 @@ export function useDeleteProject() {
     return useMutation<void, Error, string>({
         mutationFn: async (projectId) => {
             try {
-                await apiClient.delete(`/api/projects/${enc(projectId)}`, { retry: false });
+                await apiClient.delete(`/api/projects/${enc(projectId)}`);
             } catch (e) {
                 throw toProjectError(e, 'Could not delete the project');
             }
@@ -151,7 +151,7 @@ function useArchiveMutation(projectId: string, action: 'archive' | 'restore', fa
     return useMutation<void, Error, void>({
         mutationFn: async () => {
             try {
-                await apiClient.post(`/api/projects/${enc(projectId)}/${action}`, {}, { retry: false });
+                await apiClient.post(`/api/projects/${enc(projectId)}/${action}`, {});
             } catch (e) {
                 throw toProjectError(e, fallback);
             }
@@ -173,7 +173,7 @@ export function useSetProjectKind(projectId: string) {
     return useMutation<Project, Error, ProjectKind>({
         mutationFn: async (kind) => {
             try {
-                const saved = await apiClient.put<Project>(`/api/projects/${enc(projectId)}/kind`, { kind }, { retry: false });
+                const saved = await apiClient.put<Project>(`/api/projects/${enc(projectId)}/kind`, { kind });
                 return saved as Project;
             } catch (e) {
                 throw toProjectError(e, 'Could not change the project type');
@@ -205,7 +205,7 @@ export function useProjectMembersQuery(projectId: string | null | undefined) {
 
 export function useInviteMember(projectId: string) {
     return useMemberMutation<InviteForm>(projectId,
-        (form) => apiClient.post(`/api/projects/${enc(projectId)}/share`, form, { retry: false }),
+        (form) => apiClient.post(`/api/projects/${enc(projectId)}/share`, form),
         'Could not invite this member');
 }
 
@@ -230,7 +230,7 @@ export function useTransferOwner(projectId: string) {
     return useMutation<void, Error, TransferOwnerForm>({
         mutationFn: async (form) => {
             try {
-                await apiClient.post(`/api/projects/${enc(projectId)}/transfer-owner`, form, { retry: false });
+                await apiClient.post(`/api/projects/${enc(projectId)}/transfer-owner`, form);
             } catch (e) {
                 throw toProjectError(e, 'Could not transfer the project');
             }
@@ -246,13 +246,13 @@ export function useTransferOwner(projectId: string) {
 
 export function useChangeMemberRole(projectId: string) {
     return useMemberMutation<{ memberId: string; role: 'editor' | 'viewer' }>(projectId,
-        ({ memberId, role }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`, { role }, { retry: false }),
+        ({ memberId, role }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`, { role }),
         'Could not change the role');
 }
 
 export function useRemoveMember(projectId: string) {
     return useMemberMutation<string>(projectId,
-        (memberId) => apiClient.delete(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`, { retry: false }),
+        (memberId) => apiClient.delete(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`),
         'Could not remove this member');
 }
 
@@ -295,7 +295,7 @@ export function useAttachResource(projectId: string) {
     return useMutation<void, Error, { kind: string; id: string; attach: boolean }>({
         mutationFn: async (body) => {
             try {
-                await apiClient.put(`/api/projects/${enc(projectId)}/resources`, body, { retry: false });
+                await apiClient.put(`/api/projects/${enc(projectId)}/resources`, body);
             } catch (e) {
                 throw toProjectError(e, 'Could not update the project');
             }
@@ -342,8 +342,8 @@ export function useShareThread(projectId: string) {
     return useMutation<void, Error, { conversationId: string; type: 'direct' | 'agent'; share: boolean }>({
         mutationFn: async ({ conversationId, type, share }) => {
             try {
-                if (share) await apiClient.post(`/api/projects/${enc(projectId)}/threads`, { conversationId, type }, { retry: false });
-                else await apiClient.delete(`/api/projects/${enc(projectId)}/threads/${enc(conversationId)}`, { query: { type }, retry: false });
+                if (share) await apiClient.post(`/api/projects/${enc(projectId)}/threads`, { conversationId, type });
+                else await apiClient.delete(`/api/projects/${enc(projectId)}/threads/${enc(conversationId)}`, { query: { type } });
             } catch (e) {
                 throw toProjectError(e, share ? 'Could not share this chat' : 'Could not stop sharing this chat');
             }

@@ -61,6 +61,21 @@ function truncate(s, max) {
     return s.length > max ? s.slice(0, max) + '…[truncated]' : s;
 }
 
+/**
+ * The browser family and major version of a user agent ("Firefox 144"): what a
+ * crash report needs, without the full string, which is personal data in a log.
+ * @param {unknown} ua
+ */
+function browserOf(ua) {
+    const s = String(ua || '');
+    // Most specific first: Edge and Opera also carry "Chrome/", Chrome also carries "Safari/".
+    for (const [token, family] of [['Edg', 'Edge'], ['OPR', 'Opera'], ['Firefox', 'Firefox'], ['Chrome', 'Chrome'], ['Version', 'Safari']]) {
+        const m = s.match(new RegExp(`\\b${token}/(\\d+)`));
+        if (m) return `${family} ${m[1]}`;
+    }
+    return 'unknown';
+}
+
 router.post('/', reportLimiter, (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const body = req.body || {};
@@ -70,7 +85,7 @@ router.post('/', reportLimiter, (/** @type {import('express').Request} */ req, /
             stack: truncate(String(body.stack || ''), 8000),
             componentStack: truncate(String(body.componentStack || ''), 8000),
             url: truncate(String(body.url || ''), 512),
-            userAgent: truncate(String(body.userAgent || ''), 512),
+            browser: browserOf(body.userAgent),
             at: truncate(String(body.at || new Date().toISOString()), 48),
             buildSha: truncate(String(body.buildSha || ''), 64),
             userRole: truncate(String(body.userRole || ''), 64),

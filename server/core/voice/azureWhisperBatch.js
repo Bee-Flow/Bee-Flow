@@ -132,7 +132,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
     const { AZURE_LOCALE_MAP } = require('./azureSpeech');
     const locale = AZURE_LOCALE_MAP[language] || `${language}-${language.toUpperCase()}`;
 
-    log.info(`[Transcription:AzureWhisper] Transcribing "${audioFileName}" (${(audioData.length / (1024 * 1024)).toFixed(1)} MB), locale: ${locale}`);
+    log.info(`[Transcription:AzureWhisper] Transcribing ${log.nameForLog(audioFileName)} (${(audioData.length / (1024 * 1024)).toFixed(1)} MB), locale: ${locale}`);
 
     const tempInputPath = path.join(os.tmpdir(), `azwhi-in-${Date.now()}`);
     await fs.promises.writeFile(tempInputPath, audioData);

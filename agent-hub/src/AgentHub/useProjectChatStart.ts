@@ -130,7 +130,6 @@ function useShareNewChat(t: TranslateFn) {
             await apiClient.post(
                 `/api/projects/${encodeURIComponent(projectId)}/threads`,
                 { conversationId, type },
-                { retry: false },
             );
         },
         onSuccess: (_data, vars) => {

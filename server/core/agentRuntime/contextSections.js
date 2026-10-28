@@ -28,7 +28,7 @@ async function toolHintSection(tools, userId, d) {
     try {
         const toolHint = await d.buildToolHint(tools, userId);
         if (toolHint) {
-            log.info(`[MCP-DEBUG] contextBuilder: toolHint added (${toolHint.length} chars) — preview: ${toolHint.substring(0, 200)}`);
+            log.info(`[MCP-DEBUG] contextBuilder: toolHint added (${toolHint.length} chars)`);
             return toolHint;
         }
         log.info(`[MCP-DEBUG] contextBuilder: toolHint returned empty/null`);

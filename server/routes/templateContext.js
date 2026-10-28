@@ -73,7 +73,7 @@ First write the description, then the separator line, then the instructions. Do 
     raw = raw.trim();
     if (!raw) return;
 
-    log.info(`[Templates] AI response (${raw.length} chars): ${raw.slice(0, 200)}...`);
+    log.info(`[Templates] AI response (${raw.length} chars)`);
 
     // Split on the separator
     const updates = {};
