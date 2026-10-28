@@ -265,7 +265,6 @@ const UNCONVERTED = new Map<string, number>([
     // 34 -> 33: the row body's "Tap to read the full result", with the reauth
     // note that now names the connector.
     ['src/features/notifications', 33],
-    ['src/features/org', 73],
     ['src/features/recording', 98],
     ['src/features/search', 9],
     ['src/features/security', 30],

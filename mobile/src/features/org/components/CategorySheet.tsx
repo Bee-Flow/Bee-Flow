@@ -6,6 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Chip, Sheet, Text } from '@/shared/ui';
 
@@ -24,6 +25,7 @@ export function CategorySheet({
     saving: boolean;
     onSave: (categories: string[]) => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const [draft, setDraft] = useState<string[]>(selected);
 
@@ -45,20 +47,22 @@ export function CategorySheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="What counts as personal data"
+            title={t('mobile.org.pii_sheet_title', 'What counts as personal data')}
             subtitle={
-                draft.length === 0 ? 'Nothing selected means everything' : `${draft.length} categories`
+                draft.length === 0
+                    ? t('mobile.org.pii_sheet_none', 'Nothing selected means everything')
+                    : t('mobile.org.pii_sheet_count', '{count} categories', { count: draft.length })
             }
             footer={
                 <View style={styles.footer}>
                     <Button
-                        label="Select all"
+                        label={t('mobile.org.pii_select_all', 'Select all')}
                         variant="ghost"
                         onPress={() => setDraft([])}
                         style={styles.footerButton}
                     />
                     <Button
-                        label="Save"
+                        label={t('common.save', 'Save')}
                         onPress={() => onSave(draft)}
                         loading={saving}
                         style={styles.footerButton}
@@ -68,21 +72,21 @@ export function CategorySheet({
         >
             <View style={styles.body}>
                 <Text variant="caption" tone="tertiary">
-                    {EMPTY_MEANS_ALL}
+                    {t(EMPTY_MEANS_ALL.i18nKey, EMPTY_MEANS_ALL.en)}
                 </Text>
                 {PII_GROUPS.map((group) => {
-                    const items = PII_CATEGORIES.filter((c) => c.group === group);
+                    const items = PII_CATEGORIES.filter((c) => c.group === group.id);
                     if (items.length === 0) return null;
                     return (
-                        <View key={group} style={styles.group}>
+                        <View key={group.id} style={styles.group}>
                             <Text variant="label" tone="tertiary">
-                                {group.toUpperCase()}
+                                {t(group.i18nKey, group.en).toUpperCase()}
                             </Text>
                             <View accessibilityRole="list" style={styles.chips}>
                                 {items.map((category) => (
                                     <Chip
                                         key={category.id}
-                                        label={category.label}
+                                        label={t(category.i18nKey, category.en)}
                                         selected={draft.includes(category.id)}
                                         onPress={() => toggle(category.id)}
                                     />

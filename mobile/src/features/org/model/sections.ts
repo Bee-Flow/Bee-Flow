@@ -46,7 +46,8 @@ export interface OrgSection {
     id: OrgSectionId;
     /** The web's label key (both dictionaries), or a `mobile.org.*` one. */
     labelKey: string;
-    label: string;
+    /** The English fallback for `labelKey`: render `t(labelKey, labelFallback)`. */
+    labelFallback: string;
     icon: IconName;
     /** The web's accent for the row glyph. */
     color: string;
@@ -55,22 +56,22 @@ export interface OrgSection {
 
 /** orgInfoShared.jsx SECTIONS, then BASE_ORG_SUB_ITEMS, then AZURE_SUB_ITEM. */
 export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
-    { id: 'license', labelKey: 'settings.license_usage', label: 'License & Usage', icon: 'CreditCard', color: '#3b82f6', href: '/org/billing' },
-    { id: 'auth', labelKey: 'settings.signin_method', label: 'Sign-in Method', icon: 'KeyRound', color: '#10b981', href: '/org/sign-in' },
-    { id: 'privacy', labelKey: 'settings.privacy_shield', label: 'Privacy Shield', icon: 'Shield', color: '#ef4444', href: '/org/shield' },
-    { id: 'encryption', labelKey: 'settings.encryption', label: 'Encryption', icon: 'Lock', color: '#8b5cf6', href: '/org/encryption' },
-    { id: 'ai_context', labelKey: 'settings.ai_context', label: 'AI & Collaboration', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
-    { id: 'integration_cache', labelKey: 'settings.integration_cache', label: 'Answer Reuse', icon: 'DatabaseZap', color: '#06b6d4', href: '/org/integration-cache' },
-    { id: 'info', labelKey: 'settings.org_info', label: 'Organisation Info', icon: 'Info', color: '#14b8a6', href: '/org/info' },
-    { id: 'org_usage', labelKey: 'settings.usage_monitoring', label: 'Usage & Monitoring', icon: 'BarChart3', color: '#f59e0b', href: '/org/usage' },
-    { id: 'org_compliance', labelKey: 'settings.compliance', label: 'Compliance', icon: 'Scale', color: 'compliance', href: '/org/compliance' },
-    { id: 'org_users', labelKey: 'settings.users_groups', label: 'Users & Groups', icon: 'Users', color: '#3b82f6', href: '/org/people' },
-    { id: 'org_academy', labelKey: 'settings.academy', label: 'Academy', icon: 'GraduationCap', color: '#059669', href: '/org/academy' },
-    { id: 'org_integrations', labelKey: 'settings.integrations', label: 'Integrations', icon: 'Link2', color: '#0ea5e9', href: '/org/integrations' },
-    { id: 'org_github_sync', labelKey: 'settings.github_sync', label: 'GitHub Sync', icon: 'FolderGit2', color: '#8b5cf6', href: '/org/github-sync' },
-    { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', label: 'Nextcloud Sync', icon: 'Cloud', color: '#0082C9', href: '/org/nextcloud' },
-    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', label: 'Meeting Templates', icon: 'FileText', color: '#a855f7', href: '/org/meeting-templates' },
-    { id: 'org_azure', labelKey: 'settings.azure_config', label: 'Azure Configuration', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
+    { id: 'license', labelKey: 'settings.license_usage', labelFallback: 'License & Usage', icon: 'CreditCard', color: '#3b82f6', href: '/org/billing' },
+    { id: 'auth', labelKey: 'settings.signin_method', labelFallback: 'Sign-in Method', icon: 'KeyRound', color: '#10b981', href: '/org/sign-in' },
+    { id: 'privacy', labelKey: 'settings.privacy_shield', labelFallback: 'Privacy Shield', icon: 'Shield', color: '#ef4444', href: '/org/shield' },
+    { id: 'encryption', labelKey: 'settings.encryption', labelFallback: 'Encryption', icon: 'Lock', color: '#8b5cf6', href: '/org/encryption' },
+    { id: 'ai_context', labelKey: 'settings.ai_context', labelFallback: 'AI & Collaboration', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
+    { id: 'integration_cache', labelKey: 'settings.integration_cache', labelFallback: 'Answer Reuse', icon: 'DatabaseZap', color: '#06b6d4', href: '/org/integration-cache' },
+    { id: 'info', labelKey: 'settings.org_info', labelFallback: 'Organisation Info', icon: 'Info', color: '#14b8a6', href: '/org/info' },
+    { id: 'org_usage', labelKey: 'settings.usage_monitoring', labelFallback: 'Usage & Monitoring', icon: 'BarChart3', color: '#f59e0b', href: '/org/usage' },
+    { id: 'org_compliance', labelKey: 'settings.compliance', labelFallback: 'Compliance', icon: 'Scale', color: 'compliance', href: '/org/compliance' },
+    { id: 'org_users', labelKey: 'settings.users_groups', labelFallback: 'Users & Groups', icon: 'Users', color: '#3b82f6', href: '/org/people' },
+    { id: 'org_academy', labelKey: 'settings.academy', labelFallback: 'Academy', icon: 'GraduationCap', color: '#059669', href: '/org/academy' },
+    { id: 'org_integrations', labelKey: 'settings.integrations', labelFallback: 'Integrations', icon: 'Link2', color: '#0ea5e9', href: '/org/integrations' },
+    { id: 'org_github_sync', labelKey: 'settings.github_sync', labelFallback: 'GitHub Sync', icon: 'FolderGit2', color: '#8b5cf6', href: '/org/github-sync' },
+    { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', labelFallback: 'Nextcloud Sync', icon: 'Cloud', color: '#0082C9', href: '/org/nextcloud' },
+    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', labelFallback: 'Meeting Templates', icon: 'FileText', color: '#a855f7', href: '/org/meeting-templates' },
+    { id: 'org_azure', labelKey: 'settings.azure_config', labelFallback: 'Azure Configuration', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
 ];
 
 /**
@@ -87,8 +88,8 @@ export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp', 'org_mcp_acc
 
 /** The phone's extra rows, listed after the web's. */
 export const MOBILE_ORG_SECTIONS: readonly OrgSection[] = [
-    { id: 'theme', labelKey: 'mobile.org.section_theme', label: 'Theme', icon: 'Palette', color: '#ec4899', href: '/org/theme' },
-    { id: 'knowledge_bases', labelKey: 'mobile.org.section_knowledge_bases', label: 'System knowledge bases', icon: 'Library', color: '#0d9488', href: '/org/knowledge-bases' },
+    { id: 'theme', labelKey: 'mobile.org.section_theme', labelFallback: 'Theme', icon: 'Palette', color: '#ec4899', href: '/org/theme' },
+    { id: 'knowledge_bases', labelKey: 'mobile.org.section_knowledge_bases', labelFallback: 'System knowledge bases', icon: 'Library', color: '#0d9488', href: '/org/knowledge-bases' },
 ];
 
 export const ORG_SECTIONS: readonly OrgSection[] = [...WEB_ORG_SECTIONS, ...MOBILE_ORG_SECTIONS];

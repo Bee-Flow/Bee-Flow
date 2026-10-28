@@ -9,9 +9,14 @@
 import React from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { Banner, Text } from '@/shared/ui';
 
 import type { GuardStatus, UserShield } from '../model/types';
+
+const PROFILE_MARKER = '\u0000';
+/** The docker compose profile that installs the detector: an identifier, not copy. */
+const GUARD_PROFILE = 'guard';
 
 export function ShieldBanners({
     saveError,
@@ -22,32 +27,46 @@ export function ShieldBanners({
     guard: GuardStatus | null | undefined;
     shield: UserShield | null | undefined;
 }) {
+    const t = useTranslation();
     const guardMissing = guard && !guard.configured;
     const guardUnreachable = guard?.configured && !guard.reachable;
+    // The profile name is drawn in code type inside the sentence, so the sentence is
+    // translated whole, with a marker where the name goes.
+    const [missingHead = '', missingTail = ''] = t(
+        'mobile.org.shield_no_detector',
+        'No PII detector is installed on this server, so nothing is scanned for personal data — whatever these settings say. An administrator installs it with the {profile} profile.',
+        { profile: PROFILE_MARKER },
+    ).split(PROFILE_MARKER);
     return (
         <>
             {saveError ? <Banner tone="error">{describeError(saveError).message}</Banner> : null}
 
             {guardMissing ? (
                 <Banner tone="warning">
-                    No PII detector is installed on this server, so nothing is scanned for
-                    personal data — whatever these settings say. An administrator installs it
-                    with the <Text variant="code">guard</Text> profile.
+                    {missingHead}
+                    <Text variant="code">{GUARD_PROFILE}</Text>
+                    {missingTail}
                 </Banner>
             ) : guardUnreachable ? (
                 <Banner tone="error">
-                    The PII detector is installed but not answering.{' '}
                     {shield?.piiFailureMode === 'fail_open'
-                        ? 'Your messages are going out unscanned, because you have chosen to send anyway when it is down.'
-                        : 'Messages are being refused rather than sent unscanned.'}
+                        ? t(
+                              'mobile.org.shield_down_open',
+                              'The PII detector is installed but not answering. Your messages are going out unscanned, because you have chosen to send anyway when it is down.',
+                          )
+                        : t(
+                              'mobile.org.shield_down_closed',
+                              'The PII detector is installed but not answering. Messages are being refused rather than sent unscanned.',
+                          )}
                 </Banner>
             ) : null}
 
             {shield?.implicitDefault ? (
                 <Banner tone="info" icon="Shield">
-                    These are Bee Flow&rsquo;s secure defaults, in force because you have never
-                    changed them — not an unconfigured state. Changing anything below saves the
-                    whole set as your own.
+                    {t(
+                        'mobile.org.shield_defaults',
+                        'These are Bee Flow’s secure defaults, in force because you have never changed them — not an unconfigured state. Changing anything below saves the whole set as your own.',
+                    )}
                 </Banner>
             ) : null}
         </>
