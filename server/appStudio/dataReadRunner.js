@@ -15,9 +15,8 @@
  * thing that must never differ between two doors is who may walk through. The
  * table lookup, the `canRead` gate, the compiled access filter and the
  * owner-scoped DB handle all live here exactly once, so a batched read cannot
- * drift from the single read it replaces. Before this, the table lookup was
- * written out six times across two routers — six places for the RLS gate
- * beside it to be forgotten.
+ * drift from the single read it replaces. A table lookup copied into each
+ * router would be one more place for the RLS gate beside it to be forgotten.
  *
  * WHAT STAYS IN THE ROUTERS. Everything about the REQUEST rather than the
  * read: session/visitor auth, app visibility, the rate limiters, the
@@ -140,7 +139,7 @@ function readPlan(ctx, table) {
  *
  * The compiler asks for limit+1 rows so "is there a next page" needs no second
  * query; trimming that extra row and minting the cursor is this function's job
- * and used to be copied into each router.
+ * and must not be copied into each router.
  */
 async function runRecordList(ctx, table, { filters, sort, cursor, limit } = {}) {
     const plan = await readPlan(ctx, table);

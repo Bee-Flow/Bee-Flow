@@ -11,7 +11,7 @@
  *
  * The orphan count is THIS organisation's: memories are joined to their
  * owner and counted only for the org being judged (the 'default' bucket
- * counts the memories of org-less accounts). It used to count every tenant's
+ * counts the memories of org-less accounts). It must not count every tenant's
  * memories on the instance and show that number to each of them.
  */
 

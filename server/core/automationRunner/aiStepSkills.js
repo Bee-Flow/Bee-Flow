@@ -1,5 +1,5 @@
 /**
- * Skills inside an AI step (Studio → Automations, handoff 5, round 3).
+ * Skills inside an AI step (Studio → Automations).
  *
  * `execAi.js` loads the step's skills ONCE and hands the rows to these pure
  * helpers, which answer four questions about them:

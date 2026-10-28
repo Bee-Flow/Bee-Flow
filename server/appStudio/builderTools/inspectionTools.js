@@ -243,9 +243,9 @@ function applyInspectCatalog(args) {
         if (answeredComponents >= INSPECT_CATALOG_MAX_COMPONENTS) { skipped.push(type); continue; }
         // The same reading app_add_components gives a name: "data grid" is
         // data_grid, "datatable" too. Answered under the real type — the
-        // did-you-mean is for what does not resolve at all (before this,
+        // did-you-mean is for what does not resolve at all (otherwise
         // "datatable" was steered to `table`, the static one, while the
-        // add tool would have built a data_grid; caught in review 2026-09-18).
+        // add tool would have built a data_grid).
         const canon = canonicalComponentType(type) || type;
         const entry = renderComponentEntry(canon);
         if (entry) {

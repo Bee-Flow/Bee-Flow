@@ -25,16 +25,16 @@
 const { languageName, copyFor } = require('./../copy');
 // ONE detector for "which columns hold personal data", in core because
 // playbooks/ and compliance/ are both features and neither may require the
-// other (ARCHITECTURE.md). The name patterns that used to sit in this file are
-// there now, beside the value scan and the guard vocabulary they kept
-// disagreeing with.
+// other (ARCHITECTURE.md). The name patterns live beside the value scan
+// and the guard vocabulary, which they would otherwise
+// keep disagreeing with.
 const personalDetector = require('../../core/privacy/personalColumns');
 // And ONE analyser for "where does that personal data then travel", in core
 // for the same reason and for the same second caller: the GDPR checks under
 // compliance/checks/ ask this of what is already running, and a feature may
-// not require a feature. Everything this file used to answer for itself —
+// not require a feature. Everything this file does not answer for itself —
 // which step types leave the building, which are a model, which are the
-// Privacy Shield — lives there now, together with the two things this file
+// Privacy Shield — lives there, together with the two things this file
 // could not say: WHERE the data goes, and whether the shield stands in front
 // of the step it is supposed to protect or behind it.
 const dataFlow = require('../../core/privacy/dataFlow');
@@ -120,7 +120,7 @@ function gatherFacts({ table = null, automations = [], app = null, access = null
     // "supplier" holding company names is not personal data, and a column
     // called "notes" holding e-mail addresses is. The NAMES answer for the
     // columns it could not read — a date, a number, an empty column, or every
-    // column when no guard is installed. Those used to disappear from the
+    // column when no guard is installed. Those would disappear from the
     // review entirely: one scannable text column made the value scan "the"
     // answer for the whole table, so a `date` column called `dob` stopped
     // being personal data the moment a notes column was scanned.
@@ -382,7 +382,7 @@ function staticFindings(facts, locale = 'en') {
                 target: at,
             });
         }
-        // Annex III: a HINT, said as one. The wording used to produce "this may
+        // Annex III: a HINT, said as one. The wording must not produce "this may
         // be a high-risk use of AI" — a legal qualification made by keyword
         // match, wrong in both directions (an automation that merely mentions
         // insurance got it; one doing facial recognition got nothing, because
@@ -724,7 +724,7 @@ function order(findings) {
  * How many rules could actually be asked, and how many of them had something
  * to say.
  *
- * The phase used to show findings and nothing else, so three orange rows read
+ * The phase shows more than findings: on their own, three orange rows read
  * as "three things are broken" rather than "three of twelve checks want
  * attention". In front of a regulation-literate room the number has to be
  * defensible, so a rule counts as RUN only when its preconditions were really
@@ -818,7 +818,7 @@ async function runCompliancePhase({ facts, locale = 'en', frameworkNames = [], u
                 { role: 'system', content: reviewPrompt(locale, frameworkNames) },
                 { role: 'user', content: factsMessage(facts, statics, locale) },
             ], reviewTool(facts.frameworks), { maxTokens: 1800, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0, timeoutMs: budgetMs }), budgetMs);
-            // No structured answer is a FAILURE, not a clean review. It used to
+            // No structured answer is a FAILURE, not a clean review. It must not
             // be indistinguishable from "the reviewer looked and found nothing",
             // which is the one thing this phase must never claim by accident.
             if (!structured) throw new Error('the reviewer gave no structured answer');

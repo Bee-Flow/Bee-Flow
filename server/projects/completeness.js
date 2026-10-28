@@ -237,7 +237,7 @@ function convert(records, kind, target, miss, gapLabel) {
  *
  * AND IT SAYS WHAT IT COULD NOT READ. `unreadable` names the sections this walk
  * had to skip, and the caller folds it into the same `unavailable` list every
- * other gap goes into. Both skips below used to be silent, and silence here is
+ * other gap goes into. Both skips below must not be silent: silence here is
  * the worst possible lie: the export dialog renders an empty "whoever installs
  * this has to supply …" list, and an empty list of things to supply is exactly
  * what a self-contained Solution looks like. "Nobody looked" and "nothing

@@ -20,8 +20,8 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
  *
  * `rootStepId` defaults to the one the paused run recorded (`root_step_id`,
  * automation-multi-trigger-2026-09): an automation entered through a SECONDARY
- * trigger used to resume from the primary one — the approval decision then
- * re-entered a DAG with no replay data on the primary path and drained to
+ * trigger must not resume from the primary one — the approval decision would then
+ * re-enter a DAG with no replay data on the primary path and drain to
  * "success" having dispatched nothing. A caller that knows better (the public
  * form resume reads it off the form session) may still pass it explicitly.
  * `triggerHeaders` do not survive on the row, so `trigger.headers.*` bindings

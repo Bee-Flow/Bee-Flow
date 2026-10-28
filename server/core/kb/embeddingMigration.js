@@ -6,10 +6,10 @@
  *
  * Every local knowledge base shares one column, `kb_chunks.embedding`, with
  * one fixed dimension. Switching the model in Admin ▸ AI Config ▸ Embeddings
- * used to leave that column as it was: a new model with another dimension
- * failed every upload ("expected 768 dimensions, not 1024"), and one with the
- * same dimension silently searched old vectors with new queries. Nothing
- * told the admin that the switch needed a manual re-index and an ALTER.
+ * leaves that column as it was: a new model with another dimension
+ * fails every upload ("expected 768 dimensions, not 1024"), and one with the
+ * same dimension silently searches old vectors with new queries, with
+ * nothing to tell the admin that the switch needs a manual re-index and an ALTER.
  *
  * Now a switch re-embeds what is stored, by itself:
  *

@@ -234,8 +234,8 @@ function dropTables(p) {
  * type or turning a plain column into a relation FK (both need a table
  * rebuild). SQLite is dynamically typed, so a field type change needs no DDL
  * for storage. A stored-computed field added to an already-created table IS
- * materialised now (step 4) — it used to be the documented gap here, and the
- * silence when it hit was the problem: the model listed a field the table
+ * materialised (step 4): left as a documented gap, it would be silent, and the
+ * model would list a field the table
  * never grew.
  *
  * `opts.onlyTableIds` narrows WHICH tables may produce DDL. The diff still runs

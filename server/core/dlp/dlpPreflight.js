@@ -13,7 +13,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * Both paths ran a near-identical ~185-line block: scan the last user message
  * via `dlpRunner.scan`, then proceed / redact / block / pause-to-ask based on
  * the org's `dlpMode`, emitting the same SSE events and writing the same audit
- * rows. A guard fix used to require editing two copies. This module is that one
+ * rows. A guard fix would otherwise require editing two copies. This module is that one
  * copy.
  *
  * Contract (deliberate, so both callers keep their divergent behavior inline):

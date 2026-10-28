@@ -11,8 +11,8 @@ const { validateAndFixBindings, checkLoopBindings } = require('../../bindings');
     // Only the keys the patch names are canonicalised and checked. The rest
     // are the author's own mappings: they stay byte-identical. Re-running the
     // whole merged map through the canonicaliser is how one AI edit of
-    // `subject` used to rewrite a hand-mapped `to` from value[0].from… to the
-    // unreadable value.0.from… (findings C1, 2026-10).
+    // `subject` would rewrite a hand-mapped `to` from value[0].from… to the
+    // unreadable value.0.from….
 /** Applies the binding map onto `next`: a refusal, or null. */
 function patchBindingMap(graph, step, patch, next, { feAfter, draftWrap, inputsMode, patchNotes }) {
     const bindKey = step.type === 'set' ? 'fields' : 'inputs';

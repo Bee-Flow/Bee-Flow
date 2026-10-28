@@ -178,7 +178,7 @@ async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
             // An expanding step still returns fields ABOUT THE PARENT alongside
             // the list — gmail_read hands back the body as well as the
             // attachments. Those belong on the parent, so they are folded there
-            // rather than dropped (they used to be) or copied onto every child.
+            // rather than dropped or copied onto every child.
             const rest = isPlainObject(result)
                 ? Object.fromEntries(Object.entries(result).filter(([k]) => k !== expandFrom))
                 : null;

@@ -44,7 +44,7 @@ const { answerAiStep, prepareAiAnswer } = require('./aiStepAnswer');
 // What ./execIntegrationAction, ./integrationActionGates and ./aiStepGrounding
 // use from the server's large import cycle. They are required HERE and handed
 // over, so those three modules stay out of the cycle (lint:scc-ratchet). The
-// getters are the lazy requires that used to sit inside those modules,
+// getters are the lazy requires of those modules,
 // unchanged: each still loads its module on first use, and a test stub that
 // swaps a module under these exact require strings (same directory, so the
 // same strings) still reaches every call.
@@ -329,8 +329,8 @@ async function execAiStep(step, ctx, runState, mode) {
     const aiGuard = await safety.guardAiInput(messages, policy, auditBase, mode, ctx);
     if (aiGuard.blocked) {
         // Only reachable in dry-run (live throws inside the guard). This return
-        // value used to be ignored entirely, so a dry-run under a `block` policy
-        // sent the raw prompt to the model anyway.
+        // value must not be ignored, or a dry-run under a `block` policy
+        // sends the raw prompt to the model anyway.
         return {
             output: { _guardrailWouldBlock: aiGuard.categories || [] },
             dryRunSynthesised: true, dryRunFallback: 'guardrail_block',

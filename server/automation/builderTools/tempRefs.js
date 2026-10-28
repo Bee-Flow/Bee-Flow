@@ -5,7 +5,7 @@
  * Shared by builder_add_steps (tempIds across a batch) and builder_add_loop
  * (ids across a loop body). The model learns the `$handle` idiom from the
  * batch tool and, measured on real builds, carries it into loop bodies —
- * where it used to be stored verbatim and surface a round later as
+ * where, stored verbatim, it would surface a round later as
  * `ref.unknown_step` on an `lb_…` id the model had never been shown. One
  * resolver, so both places agree on what a handle is and how it fails.
  */
@@ -92,9 +92,9 @@ function mapStepIds(text, rename) {
 function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
     if (typeof value === 'string') {
         // A BARE tempId — `steps.foo` where `foo` is a handle from this very
-        // batch — used to pass through untouched and unwarned, because only
-        // `steps.$foo` is rewritten. The step was then minted as `foo_<hash>`
-        // and the dangling ref surfaced a round later as ref.unknown_step, far
+        // batch — would pass through untouched and unwarned, because only
+        // `steps.$foo` is rewritten. The step would then be minted as `foo_<hash>`
+        // and the dangling ref surface a round later as ref.unknown_step, far
         // from the call that caused it. The handles are right here in idMap, so
         // say so now.
         return mapStepIds(value, (/** @type {string} */ id) => {

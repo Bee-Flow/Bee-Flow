@@ -14,7 +14,7 @@ const { isMissingTable } = require('../../utils/isMissingTable');
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
 // them itself and the cycle does not grow (lint:scc-ratchet). Lazy ones stay
-// lazy: the barrel passes a loader, called where the require used to be.
+// lazy: the barrel passes a loader, called at the point of use.
 // dispatchEmbedTexts is the shared Azure-aware embedding chain (provider →
 // legacy Azure → CPU) from core/embed/dispatch.
 let dispatchEmbedTexts = null;
@@ -125,7 +125,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             [tenantId, kbId, docId]
         );
 
-        // Issue #11: Store original content in documents table for faster reindexing
+        // Store original content in documents table for faster reindexing
         // (avoids needing to reconstruct content from chunks)
         try {
             await client.query(
@@ -134,7 +134,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             );
         } catch (err) { if (!isMissingTable(err)) throw err; log.debug('Column may not exist yet — ignore, migration handles it', err); }
 
-        // Issue #9: Batch INSERT — 10 chunks per statement to reduce round-trips
+        // Batch INSERT — 10 chunks per statement to reduce round-trips
         const BATCH_SIZE = 10;
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
             const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);

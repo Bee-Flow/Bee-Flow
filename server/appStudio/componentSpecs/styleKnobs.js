@@ -192,8 +192,7 @@ function unitSpan(knobName) {
  * The `height` presets a box can be definite BY.
  *
  * 'sm'|'md'|'lg'|'xl' are literal pixel counts (styleResolver HEIGHT_PX), so
- * they are definite wherever they appear. 'fill' is NOT, and used to be listed
- * as if it were: it renders as `h-full` / `flex-1`, and 100% of an indefinite
+ * they are definite wherever they appear. 'fill' is NOT: it renders as `h-full` / `flex-1`, and 100% of an indefinite
  * parent is indefinite — a 'fill' card in an auto-height section has exactly as
  * little height as the section does. So it is definite only inside a chain that
  * already is, which is what `parentDefinite` below now decides.

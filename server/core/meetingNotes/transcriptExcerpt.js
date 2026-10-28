@@ -4,8 +4,8 @@
  *
  * WHY THIS EXISTS
  * A 100-minute meeting is ~154,000 characters (~1,540 chars/minute). The naming
- * step used to send `transcript.substring(0, 60000)` — the first ~39 minutes —
- * and silently discarded the rest. One real meeting introduced everybody at
+ * step must not send just `transcript.substring(0, 60000)` — the first ~39 minutes —
+ * and silently discard the rest.
  * 52:33: the strongest naming evidence in the recording, sitting 13 minutes
  * beyond the cut. People who said their names aloud came back as "Speaker A".
  *

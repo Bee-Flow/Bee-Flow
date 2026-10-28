@@ -23,9 +23,9 @@ const { fallback } = require('../../../utils/bestEffort');
 // the in-pass calls, short enough that the next tick still fetches fresh
 // rows.
 //
-// Phase 4 fix: in-flight dedup. Two concurrent ticks (multi-pod, or a
-// reaper-triggered re-poll) used to issue duplicate fetches because each
-// only saw the empty resolved cache. We now park the in-flight Promise
+// In-flight dedup. Two concurrent ticks (multi-pod, or a
+// reaper-triggered re-poll) would issue duplicate fetches because each
+// only sees the empty resolved cache. So we park the in-flight Promise
 // alongside the cached rows; concurrent callers await the same Promise
 // instead of firing their own request.
 const _ncActivityCache = new Map(); // userId → { ts, rows[], inflight? }

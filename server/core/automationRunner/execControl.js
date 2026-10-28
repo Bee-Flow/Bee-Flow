@@ -65,7 +65,7 @@ async function execWait(step, ctx, runState, mode) {
     }
     // Sleep time must not count against the run's hard-timeout budget (A8):
     // the form offers minutes/hours ("Up to 24 hours") while the default run
-    // budget is ~5 minutes, so any longer Wait used to GUARANTEE the run died
+    // budget is ~5 minutes, so any longer Wait would GUARANTEE the run dies
     // with "Run hard timeout". Extend the deadline by the planned sleep, then
     // sleep in short cancellable chunks so a user's cancel lands within ~5s
     // instead of after the full wait.
@@ -273,7 +273,7 @@ function switchCaseRule(cc, scope, onError, host) {
 
 /**
  * Parse every RULE case once per step, not once per row: a list-mode switch
- * used to re-tokenise each case for every row it offered it. A case whose
+ * would re-tokenise each case for every row it offered it. A case whose
  * rule does not parse keeps its message, and every row it is asked about
  * reports it and does not match, exactly as the per-row parse did.
  */

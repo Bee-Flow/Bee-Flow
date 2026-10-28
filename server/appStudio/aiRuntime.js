@@ -62,7 +62,7 @@ const SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'obj
  * modelSupportsNativeDocuments follows a few lines down, and for the same
  * reason: seeing is a property of the API, not of a model's name.
  *
- * A hand-copied regex used to live here. It drifted exactly the way a copy
+ * A hand-copied regex drifts the way a copy
  * does: it listed `claude-sonnet-4` and a bare `claude-5`, and the model this
  * product actually ships with — `claude-sonnet-5` — matched neither. Every
  * photo in every App Studio AI step was therefore reduced to its OCR text
@@ -164,9 +164,9 @@ async function resolveOwnerModel(app, tierName) {
             : tiers.fast?.modelId ? 'fast'
                 : (Object.keys(tiers).find((k) => tiers[k]?.modelId) || 'fast');
         // Say it out loud. An app asking for a named tier that has no model
-        // configured used to land on whatever was left, silently — which is how
-        // a step written for a reasoning model ended up being answered by a
-        // 0.6B local one, for weeks, with nobody able to tell from the outcome.
+        // configured would otherwise land on whatever was left, silently — which is
+        // how a step written for a reasoning model got answered by a 0.6B local
+        // one, for weeks, with nobody able to tell from the outcome.
         if (asked !== 'auto' && asked !== resolved) {
             log.warn(`[StudioAppAI] app ${app.id} asked for tier "${asked}" — not configured; using "${resolved}" (${tiers[resolved]?.modelId || 'workspace default'})`);
         }
@@ -516,8 +516,8 @@ async function streamChat(app, model, { system, messages }, onEvent) {
  * the system prompt.
  *
  * ── THE VIEWER DECIDES, NOT THE OWNER ───────────────────────────────
- * This used to search as `app.userId` and reason that a viewer therefore
- * "can never reach a KB the owner can't". True, and the wrong bound: it means
+ * Searching as `app.userId` on the reasoning that a viewer "can never reach a
+ * KB the owner can't" is true, and the wrong bound: it means
  * a viewer reaches every base the owner CAN, including the owner's personal
  * drafts and bases shared with a group the viewer is not in. An app published
  * to the whole organisation would answer out of its author's private
@@ -653,8 +653,8 @@ async function extractDocuments(app, descriptors, {
     // `images` is not a preference, it is a requirement: an author writes it
     // because the answer is IN the picture — a title block, a dimension, a tap
     // callout on a technical drawing. Handing that job to a model that cannot
-    // see used to degrade in silence to the PDF's text layer, and the model
-    // then answered confidently about a plate someone was going to cut.
+    // see would degrade in silence to the PDF's text layer, and the model
+    // would then answer confidently about a plate someone was going to cut.
     // Failing loudly is the only honest option; `auto` still degrades, because
     // `auto` is the author saying they do not mind.
     if (mode === 'images' && !vision) {

@@ -9,9 +9,9 @@
 //
 // Every save from the builder PUTs the WHOLE definition (the node inspector
 // merges its patch into the full document client-side), so a single incomplete
-// node used to block every edit anywhere in the flow — you could not even
+// node must not block every edit anywhere in the flow: otherwise you could not even
 // change the trigger's kind while an If node further down still had unwired
-// branches (BFSF-323). The dead-branch rule below even says as much: it was
+// branches. The dead-branch rule below even says as much: it was
 // promoted to an error so the builder "cannot FINALIZE a definitionally broken
 // graph" — finalize, not autosave.
 //

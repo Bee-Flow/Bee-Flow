@@ -2,10 +2,10 @@
 'use strict';
 
 /**
- * Build-time advice for an app_event trigger. The builder used to store
- * `appEvent` and `filter` as given, so an automation on an event nothing
- * produces, an event that does not exist or a filter key nothing reads was
- * accepted and then silently never fired (or fired on everything). These are
+ * Build-time advice for an app_event trigger. Storing
+ * `appEvent` and `filter` as given would let an automation on an event nothing
+ * produces, an event that does not exist or a filter key nothing reads be
+ * accepted and then silently never fire (or fire on everything). These are
  * plain-text WARNINGS in the tool result, never errors: declarations are per
  * install and a half-built trigger is a normal intermediate state.
  */

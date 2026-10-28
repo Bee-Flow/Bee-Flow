@@ -49,8 +49,8 @@ function makeAgentAccess(deps) {
     //      without manage_agents must keep their publish/knowledge flows).
     //   2. Super-admins may modify anything.
     //   3. Everyone else needs the manage_agents permission AND membership in the
-    //      agent's organization. (BFSF-271: previously ANY manage_agents holder
-    //      passed, including users from other orgs — a cross-org IDOR.)
+//      agent's organization. (BFSF-271: ANY manage_agents holder must not pass,
+//      or users from other orgs could modify it — a cross-org IDOR.)
     //   4. Org-less agents (system/swarm/personal drafts) are owner/super-admin only.
     //   5. Agent Editors cannot modify unpublished drafts from others.
     // `ctx` (optional) is a buildCanModifyContext() result for list endpoints.
@@ -67,8 +67,8 @@ function makeAgentAccess(deps) {
 
         const c = ctx || await buildCanModifyContext(userId, req);
 
-        // Non-owners always need manage_agents. Previously enforced ad-hoc by
-        // (most) callers; centralised here so every caller inherits it.
+        // Non-owners always need manage_agents. Centralised here so every caller
+        // inherits it instead of enforcing it ad hoc.
         if (!c.hasManage) return false;
 
         // Org scoping: the requester must belong to the agent's organization.

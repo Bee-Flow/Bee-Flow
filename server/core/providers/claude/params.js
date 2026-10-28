@@ -183,8 +183,8 @@ function buildSdkParams(provider, model, messages, options = {}) {
             // and the OpenAI wire shape `{type:'function',function:{name}}`
             // that openai-style callers and llmClient.forcedToolChoice emit —
             // Anthropic's SDK only understands `{type:'tool',name}`, so a
-            // caller passing the OpenAI shape previously fell through here and
-            // silently ran with tool_choice unset (auto), breaking every
+            // caller passing the OpenAI shape would fall through here and
+            // silently run with tool_choice unset (auto), breaking every
             // forced-structured-output call routed to a Claude model.
             params.tool_choice = { type: "tool", name: forcedName };
         }

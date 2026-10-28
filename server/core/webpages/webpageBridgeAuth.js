@@ -21,10 +21,10 @@ const userStore = require('../../stores/userStore');
 const automationAuth = require('../../auth/automationAuth');
 const webpageStore = require('../../stores/webpageStore');
 
-// Which provider tokens to load. This used to read only the LEGACY
-// `organizations."enabledIntegrations"` column, so an org using the current
-// `org_enabled_integrations` column resolved to an empty list and every
-// Google/Microsoft action on a published page silently lost its token. Shared
+// Which provider tokens to load. This must not read only the LEGACY
+// `organizations."enabledIntegrations"` column, or an org using the current
+// `org_enabled_integrations` column resolves to an empty list and every
+// Google/Microsoft action on a published page silently loses its token. Shared
 // now with the runner and App Studio connectors — see core/enabledIntegrations.js.
 const { resolveEnabledIntegrations } = require('../integrations/enabledIntegrations');
 const log = require('../../telemetry/log');

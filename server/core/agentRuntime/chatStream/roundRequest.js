@@ -144,14 +144,14 @@ async function buildRoundRequest({
     }
 
     // ─── Adapter streaming (SDK providers + self-hosted runtimes) ─────
-    // The self-hosted flavours used to fall through to the raw-fetch
-    // path below, which builds its own body: no max_tokens, no
+    // The self-hosted flavours go through the adapter, not the raw-fetch
+    // path, which builds its own body: no max_tokens, no
     // enable_thinking / reasoning_effort / top_k, no late-system fold,
-    // and it joined the two system halves back into one — so an
-    // agent turn on llama.cpp lost every knob the tier UI sets AND
+    // and it joins the two system halves back into one — so an
+    // agent turn on llama.cpp would lose every knob the tier UI sets AND
     // re-read the whole prompt every turn. LocalProvider.stream has
-    // all of that; the two things the raw path had that the adapter
-    // lacked (client-abort propagation, a hard stall timeout) are
+    // all of that; the two things the raw path has that the adapter
+    // lacks (client-abort propagation, a hard stall timeout) are
     // passed in as adapterOptions.signal / timeoutMs below.
     const providerAdapter = getAdapter(config.providerType, config.url);
     // EU GPT has no /chat/completions at all, so the raw path cannot reach it.

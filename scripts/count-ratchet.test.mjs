@@ -344,6 +344,22 @@ test('dutch-comment reads comments only, and needs two Dutch words on one line',
     assert.strictEqual(budgetOf(dir, 'dutch-comment'), 2);
 });
 
+test('history-comments counts comment lines that narrate history, in source and not in tests or migrations', () => {
+    const dir = sandbox({
+        files: {
+            'a.js': '// This used to read the config twice\nconst a = 1; // previously a string\n/**\n * Fixed in PR #312, round 5.\n */\n',
+            'b.js': '// The config arrives already parsed; parsing it again throws.\nconst before = 1;\n',
+            // Only whole-line comments count (a trailing one above, and code here, do not).
+            'c.js': 'const used_to = "used to";\n',
+            // Migrations narrate a past on purpose; tests are not shipped source.
+            'migrations/m.js': '// previously this column was text\n',
+            'a.test.js': '// used to fail\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'history-comments').code, 0);
+    assert.strictEqual(budgetOf(dir, 'history-comments'), 2);
+});
+
 test('a package without src is scanned from its own directory, and says so', () => {
     const dir = sandbox({ src: false, files: { 'a.test.js': 'require.cache[k] = 1;\n', 'deep/b.test.js': 'require.cache[k] = 1;\n' }, metric: 'module-mock', budget: 1 });
     const r = run(dir, 'module-mock');

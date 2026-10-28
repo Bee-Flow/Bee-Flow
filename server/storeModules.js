@@ -165,8 +165,8 @@ const STORE_MODULES = [
     { name: 'datasetFileStore', file: './stores/datasetFileStore' },
 
     // ── DDL owners found by the registration sweep (U1) ────────────────
-    // Before this section none of these tables existed after a "successful"
-    // `npm run db:migrate`: the no-op runner concealed that 30+ stores were never
+    // Without this section none of these tables exist after a "successful"
+    // `npm run db:migrate`: the no-op runner conceals that 30+ stores are never
     // registered. migrateDb.registration.test.js now keeps the list
     // complete — a new store with CREATE TABLE that is not listed here (or in the
     // exempt list there) is a red test.

@@ -12,7 +12,7 @@
  * fresher and cheap to trust.
  *
  * Backs off for 24 hours after a failed sync. A broken connector (401/404 from
- * the NC proxy, or an unreachable instance) used to be retried and logged at
+ * the NC proxy, or an unreachable instance) would be retried and logged at
  * warn on every tick, on every replica and after every restart, because
  * runFullSync returns before it writes ncLastSyncAt. The backoff reads the
  * org-health row that runFullSync opens on failure (connector.nc_sync_failed,

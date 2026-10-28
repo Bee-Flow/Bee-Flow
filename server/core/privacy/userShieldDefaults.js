@@ -10,7 +10,7 @@
  *
  * SECURE BY DEFAULT (BFSF-289): a personal account that has never opened the
  * Privacy Shield settings is *protected*, not unprotected. A consumer account
- * previously started with `enabled: false`, so every message went to the model
+ * must not start with `enabled: false`: every message would go to the model
  * in the clear until the user found the panel themselves — the opposite of the
  * product's privacy-first promise.
  *

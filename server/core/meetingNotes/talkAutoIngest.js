@@ -110,10 +110,10 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     // Transcribe if the folder-level autoTranscribe is on, OR if WE started this
     // recording via auto-record (an "armed" token) — so auto-record always
     // produces a note even when autoTranscribe is off.
-    // Resolved UNCONDITIONALLY. It used to be read only when autoTranscribe was
-    // off, so a user who armed a room and then turned autoTranscribe ON left the
-    // token armed forever — and turning autoTranscribe back off later silently
-    // resumed transcribing that room.
+    // Resolved UNCONDITIONALLY. Reading it only when autoTranscribe is off would
+    // let a user who armed a room and then turned autoTranscribe ON leave the
+    // token armed forever — and turning autoTranscribe back off later would silently
+    // resume transcribing that room.
     let armed = false;
     try { armed = await require('./talkAutoRecord').isArmed(ownerId, token); } catch (_) { armed = false; }
     if (!settings.autoTranscribe && !armed) return;

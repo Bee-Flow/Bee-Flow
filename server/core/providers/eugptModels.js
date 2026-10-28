@@ -24,7 +24,7 @@
 // bucket and comes back as a 412 PreconditionFailed in XML.
 const EUGPT_BASE_URL = 'https://api.eugpt.ai/v1';
 
-// The base URL this adapter used to seed. providerConfig moves a provider
+// The legacy base URL (once seeded by this adapter). providerConfig moves a provider
 // still saved with it over to EUGPT_BASE_URL.
 const EUGPT_LEGACY_BASE_URL = 'https://chat.eugpt.ai/v1';
 

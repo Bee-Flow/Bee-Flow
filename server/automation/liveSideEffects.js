@@ -98,11 +98,10 @@ function makeLiveSideEffects(deps = {}) {
     /**
      * Tell compliance that this automation's posture just changed.
      *
-     * The Compliance Center used to learn about an automation only from the
-     * 6-hourly sweep in compliance/scheduler.js. Switch an automation on at 09:05
-     * and the sweep that had already run at 06:00 was the last word until
-     * 12:00. Activation is the moment that stops being a build-time detail, so
-     * activation is where the review is asked for.
+     * The 6-hourly sweep in compliance/scheduler.js alone would leave the
+     * Compliance Center blind to an automation switched on at 09:05 until the
+     * 12:00 sweep (the 06:00 one has already run). Activation is the moment that
+     * stops being a build-time detail, so activation is where the review is asked for.
      *
      * FIRE-AND-FORGET, DELIBERATELY. This returns before anything compliance-
      * shaped has happened: the org lookup, the queueing and the checks all run
@@ -145,7 +144,7 @@ function makeLiveSideEffects(deps = {}) {
      * Make sure every `form` trigger in a definition has its public page.
      *
      * The page belongs to the trigger, not to whoever opened the builder panel
-     * that used to mint it. The primary trigger is stored with a NULL
+     * that minted it. The primary trigger is stored with a NULL
      * triggerStepId — the convention loadForm reads. Best-effort: a save must
      * not fail because a link could not be minted.
      */

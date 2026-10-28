@@ -135,7 +135,7 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
     // POST /runs/:runId/approve-step (routes/automation/webhooksAndRunOps.js),
     // which has accepted reason-less rejections since it shipped, and the
     // clients calling it are BROWSERS THAT ARE ALREADY RUNNING. Two of the
-    // three Reject controls in the previously-released SPA send no reason at
+    // three Reject controls in the already-released SPA send no reason at
     // all — ExecutionsTable's ⋯ menu and ExecutionView both call
     // approveStep(id, 'reject') with no third argument, and ApprovalActionBar
     // sends undefined when its optional box is empty. Enforcing this on that

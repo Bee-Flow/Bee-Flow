@@ -47,6 +47,7 @@
     "lint:file-budget": "node scripts/file-budget.mjs server agent-hub desktop guard-service",
     "lint:big-file-ratchet": "node scripts/count-ratchet.mjs big-file agent-hub && node scripts/count-ratchet.mjs big-file server",
     "lint:line-ref-ratchet": "node scripts/count-ratchet.mjs line-ref agent-hub && node scripts/count-ratchet.mjs line-ref server && node scripts/count-ratchet.mjs line-ref mobile",
+    "lint:history-comment-ratchet": "node scripts/count-ratchet.mjs history-comments server",
     "lint:dutch-comment-ratchet": "node scripts/count-ratchet.mjs dutch-comment agent-hub && node scripts/count-ratchet.mjs dutch-comment server",
     "lint:import-zones-ratchet": "node scripts/count-ratchet.mjs import-zones agent-hub",
     "lint:deep-imports-ratchet": "node scripts/count-ratchet.mjs deep-imports agent-hub",

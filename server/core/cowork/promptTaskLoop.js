@@ -13,9 +13,9 @@ const log = require('../../telemetry/log');
 
 // Schedules that fan out across several topics (news digests, multi-source
 // research) routinely chain 6-8 tool calls before producing a final answer.
-// Capping at 5 used to silently truncate them — the loop would exit with no
-// final assistant text and the user got a blank notification. Bumped to 20
-// after Opus 4.7 agent runs were hitting the cap at ~15 rounds.
+// Capping at 5 would silently truncate them — the loop would exit with no
+// final assistant text and the user would get a blank notification. 20 leaves
+// room for Opus 4.7 agent runs, which reach ~15 rounds.
 const MAX_TOOL_ITERATIONS = 20;
 
 /**

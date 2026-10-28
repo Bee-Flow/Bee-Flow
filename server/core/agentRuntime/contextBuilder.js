@@ -80,8 +80,8 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
     systemPrompt += buildResponseLanguageRule();
 
     // ─── Date/time context ───────────────────────────────────────
-    // This is THE line that must never touch the cached half. It used to be
-    // appended to `systemPrompt`, which made every agent request a guaranteed
+    // This is THE line that must never touch the cached half. Appended to
+    // `systemPrompt` it would make every agent request a guaranteed
     // cache miss. Minute resolution (core/llm/clock.js): a self-hosted
     // runtime's prefix cache is a byte match, and a second-resolution clock
     // re-reads the whole prompt on every request.

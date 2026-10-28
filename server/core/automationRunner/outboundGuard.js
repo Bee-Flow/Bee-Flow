@@ -3,10 +3,10 @@
  * Guarded egress for step types that are not catalog tools.
  *
  * http_request, the code step's two bridges and notification delivery all push
- * runState content out of the platform, and all three used to do it with no
+ * runState content out of the platform, and all three would do it with no
  * privacy scan and no ledger row — three ways to send an org's personal data
  * to an arbitrary address invisibly. They go through the same order as an
- * integration_action now: guard → decide what leaves → dispatch → log.
+ * integration_action: guard → decide what leaves → dispatch → log.
  *
  * Shared by execNotification.js, execHttpRequest.js and execCode.js.
  */

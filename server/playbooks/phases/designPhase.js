@@ -34,9 +34,9 @@ const MAX_ELEMENTS = 8;
 // screen and a bullet per section cost characters the prose version did not.
 const MAX_DESIGN_BRIEF_CHARS = 1800;
 // The person's own words, and the brief the app builder will receive — BOTH in
-// full. They used to be cut at 700 characters mid-word, so the designer designed
-// inside a brief whose last screen it had never seen, and then designToBrief
-// told the builder that the design outranks the brief.
+// full. They must not be cut at 700 characters mid-word, or the designer designs
+// inside a brief whose last screen it has never seen, and then designToBrief
+// tells the builder that the design outranks the brief.
 const MAX_ASK_CHARS = 2000;
 // A design that has not answered in this long is a design nobody is waiting
 // for any more: the phase fails cleanly and Retry works.
@@ -156,8 +156,8 @@ function designerUserMessage({ goal, table, sampleRows, approvals, locale, feedb
         const cols = (table.fields || []).map((f) => `${f.name || f.key} (key \`${f.key}\`, ${f.type})`).join(', ');
         lines.push(`Data: a table "${table.name}" with columns ${cols}${Number.isFinite(table.rowCount) ? `; ${table.rowCount} rows today` : ''}.`);
         // The designer is choosing SCREENS, not reading records: it needs the
-        // shape of a row, never its contents. This used to ship two real rows
-        // off the customer's table — the only playbook call that sent personal
+        // shape of a row, never its contents. This must not ship two real rows
+        // off the customer's table — the only playbook call that would send personal
         // values anywhere, in a product whose whole claim is that they stay put.
         // The columns that read as personal data come back as their KIND.
         const sample = redactPersonal(trimRows(sampleRows, table.fields), table.fields);
@@ -182,8 +182,8 @@ function designerUserMessage({ goal, table, sampleRows, approvals, locale, feedb
  * The detector is the ONE in core/privacy/personalColumns.js — the same one
  * the compliance review asks — so the designer and the review cannot disagree
  * about what counts as personal data, and a column added later that reads as
- * personal is covered without a second list to keep in step. It used to be
- * borrowed from compliancePhase.js, which owned a private copy of the patterns.
+ * personal is covered without a second list to keep in step (not borrowed
+ * from compliancePhase.js, which would own a private copy of the patterns).
  *
  * Only the NAMES are asked here, deliberately: this runs while a prompt is
  * being built, and scanning the values would mean a guard round trip per
@@ -241,7 +241,7 @@ function normaliseDesign(raw, locale = null) {
  * The designer's kinds in the BUILDER's own vocabulary.
  *
  * Every value here must be a type the builder will accept verbatim, because the
- * design block tells it the design outranks the brief. `stat` used to render as
+ * design block tells it the design outranks the brief. `stat` must not render as
  * "stat tile", which is not a component type — an invitation to emit `stat_tile`
  * and burn a round on the refusal. Checked against the real registry by
  * `checkElementWords` — the route at load, designPhase.test.js in CI — so the
@@ -301,7 +301,7 @@ function designToBrief(design) {
     const constraintLine = describeScreenConstraints(design.constraints);
     if (constraintLine) lines.push('', `**${constraintLine}**`);
     let text = lines.join('\n');
-    // Whole lines, never a character cut: the block used to end mid-bullet or
+    // Whole lines, never a character cut: the block must not end mid-bullet or
     // mid-"**Principles:**", and the builder is told THIS outranks the brief.
     if (text.length > MAX_DESIGN_BRIEF_CHARS) text = clampToLines(text, MAX_DESIGN_BRIEF_CHARS);
     return text;
@@ -321,7 +321,7 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
     if (!goal) return { ok: false, code: 'goal_missing', error: 'The design phase needs the goal of the app.' };
     let modelId;
     // resolveModelForTierName RETURNS null rather than throwing, so a null id
-    // used to fall through to the provider factory and come back as a generic
+    // would fall through to the provider factory and come back as a generic
     // "could not be reached". Name it here instead.
     // A failure to READ the config is a fixed sentence too: its message is
     // the config store's, not something for the person (../modelFailure.js).

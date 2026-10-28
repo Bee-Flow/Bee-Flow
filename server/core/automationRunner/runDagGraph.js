@@ -96,13 +96,13 @@ function createFanInGate(adj, incoming, reachable, triggerId) {
  * Which nodes may be "filled in" live on a partial run — the ANCESTORS of the
  * partial target, and nothing else.
  *
- * This used to have no ancestry test at all: the predicate was built from
+ * An ancestry test is required: a predicate built from
  * `stillSkipping`, a purely TEMPORAL flag that is true for every node the
- * FIFO walk dequeues before it reaches the target. runDag walks the whole
+ * FIFO walk dequeues before it reaches the target, would not do. runDag walks the whole
  * graph from the trigger, so a replay-less node on a completely unrelated
- * branch — dequeued early simply because it sits close to the root — was
+ * branch — dequeued early simply because it sits close to the root — would be
  * dispatched FOR REAL, in live mode, with its full side effect. Clicking
- * ▶ Execute on one node sent an invoice email from a sibling branch (W3-4).
+ * ▶ Execute on one node would send an invoice email from a sibling branch (W3-4).
  * A prerequisite is an ancestor; nothing else is, so nothing else may
  * dispatch.
  */

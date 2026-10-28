@@ -48,8 +48,8 @@ const PRIORITY = {
     integrations: '0.7',
 };
 
-// Unmapped slugs used to emit no <priority> at all, which is the sitemap-spec
-// default (0.5) — but silently, so a new page never showed up in this file's
+// Unmapped slugs would emit no <priority> at all, which is the sitemap-spec
+// default (0.5) — but silently, so a new page would never show up in this file's
 // diff. Emitting the default explicitly makes the omission visible instead.
 const DEFAULT_PRIORITY = '0.5';
 

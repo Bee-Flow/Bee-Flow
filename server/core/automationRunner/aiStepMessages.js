@@ -41,7 +41,7 @@ function buildAiStepMessages(step, { agent, grounding, effectiveSchema, resolved
         : customSys;
     // kbBlock rides BEFORE the safety tail, same position aiRuntime.js uses —
     // when there is no grounding it is '' and both branches collapse back to
-    // exactly what they were before this feature existed.
+    // exactly what they are without the feature.
     const sys = roleSys
         ? `${roleSys}${stepFraming}${skillBlock}${kbBlock}${memoryBlock}\n\n${safetyTail.trim()}`
         : `You are a step inside a no-code automation.${stepFraming}${skillBlock}${kbBlock}${memoryBlock}${safetyTail}`;
@@ -54,7 +54,7 @@ function buildAiStepMessages(step, { agent, grounding, effectiveSchema, resolved
 
 /**
  * Usage + termination logging (source='automation') — automation LLM spend
- * was previously invisible in ai_usage_log / ai_task_termination_log.
+ * is recorded in ai_usage_log / ai_task_termination_log.
  * @param {boolean} hitIterationCap
  */
 function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap) {

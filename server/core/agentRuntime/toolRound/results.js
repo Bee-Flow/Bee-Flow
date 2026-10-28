@@ -96,8 +96,8 @@ function kbTokenisingOff(dlpShield, r) {
  * Pre-scan tool results for PII, CONCURRENTLY. Resolves to one entry per
  * result (null when not scanned).
  *
- * The redaction scan used to sit inside the sequential result loop, so N
- * tool results meant N serialised guard round-trips of up to
+ * The redaction scan sits here, not inside the sequential result loop, where N
+ * tool results would mean N serialised guard round-trips of up to
  * MAX_TOOL_CONTENT_BYTES each, all on the critical path before the next model
  * round. Hoisting it here overlaps them; the loop stays sequential so
  * ordering, the token map and conversation bookkeeping are untouched.

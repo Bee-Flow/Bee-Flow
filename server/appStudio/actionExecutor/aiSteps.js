@@ -148,7 +148,7 @@ function interpolatePrompt(text, ctx) {
  *
  * An explicit mapping wins, minus any pair naming a column or an output field
  * that no longer exists — a renamed field must not keep writing null into the
- * column it used to fill. When nothing explicit survives (an empty mapping, or
+ * column it filled. When nothing explicit survives (an empty mapping, or
  * one gone entirely stale) each output field falls back to the column of the
  * same name, which is what the inspector seeds and what the AI builder emits.
  * Computed columns are server-managed and never a target.
@@ -331,7 +331,7 @@ async function aiExtractStep(app, model, step, ctx) {
         toolName: 'record_output', toolDescription: 'Return the extracted records as rows.',
     });
 
-    // A model that answers without `rows` used to be indistinguishable from a
+    // A model that answers without `rows` must not look like a
     // document with nothing in it: ok:true, written:0, green toast. That is the
     // single largest silent-loss path in this file, and on a per-drawing loop it
     // is the difference between "this drawing says nothing" and "nobody looked".

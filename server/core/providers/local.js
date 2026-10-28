@@ -310,7 +310,7 @@ class LocalProvider extends BaseProvider {
         if (this.flavor === 'ollama') {
             // `think` is the NATIVE /api/chat field; the OpenAI-compatible
             // route we post to drops it silently, so the tier's Reasoning
-            // Effort used to mean nothing here — including "None", which left
+            // Effort must be sent — including "None"; ignoring it leaves
             // a thinking model burning its whole token budget on reasoning the
             // admin had explicitly switched off. `reasoning_effort` is the
             // field that route actually reads.

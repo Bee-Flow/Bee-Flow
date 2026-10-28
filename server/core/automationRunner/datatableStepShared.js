@@ -17,9 +17,9 @@ const PG = { dialect: 'pg' };
 const MIRROR_WRITE_MAX_PER_STEP = 200;
 const NC_WRITE_MAX_PER_STEP = MIRROR_WRITE_MAX_PER_STEP;
 // Statements one transaction may carry — pgAppEngine.batch refuses more.
-// update_rows/delete_rows used to issue ONE exec per id: 801 round trips and
+// update_rows/delete_rows must not issue ONE exec per id: that is 801 round trips and
 // 801 transactions for 800 rows, with bumpAfterWrite unreachable if the process
-// died half way through.
+// dies half way through.
 const WRITE_CHUNK = 500;
 
 function sources() {

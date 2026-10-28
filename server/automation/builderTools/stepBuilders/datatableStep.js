@@ -119,11 +119,11 @@ function readOnlyTableError(table, op) {
  * The list is the stored form, but the column-keyed object — `{status: "open"}`
  * or `{status: {kind:"literal", value:"open"}}` — is what a model writes when
  * the brief says "where status equals open", and it is what the values map two
- * lines up actually takes. Anything not an array used to become `[]`: the
- * filter was dropped, no error was raised, and the step reported success with
+ * lines up actually takes. Anything not an array must not become `[]`: the
+ * filter would be dropped, no error raised, and the step would report success with
  * no condition on it.
  *
- * Measured 2026-09-16 on a live "Facturen goedkeuren" build, twice: the model
+ * Measured on a live "Facturen goedkeuren" build, twice: the model
  * sent the object form, saw `where: []` in the draft it got back, sent the
  * identical builder_replace_step to fix it — three rounds running, each
  * answered "replaced" — and separately looped four no-op builder_update_steps
@@ -380,7 +380,7 @@ function listDeclaredFields(names) {
  * A values binding that reads `loop.<v>.output.<f>` over a data_extraction
  * fan-out must name a field the extraction DECLARES: the fields ARE its whole
  * output shape, so any other name is empty in every row at run time — and
- * nothing before this said so. The step's own itemVar only; a foreign var is
+ * nothing else says so. The step's own itemVar only; a foreign var is
  * unboundLoopVarError's business. A spelling that fits exactly one declared
  * field (BTW → btw) is corrected and said; anything else is refused with the
  * declared list, so one round fixes it. Unknown shapes (no fan-out, an

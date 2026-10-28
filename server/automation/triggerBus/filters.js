@@ -493,8 +493,8 @@ function matchMeetingProcessedFilter(payload, filter) {
     // ── UNKNOWN NARROWS, HERE TOO ──────────────────────────────────
     // A key that this matcher does not know is NO blank cheque. Without this last step, `{tagIncludes:'sales'}` —
     // a shape that occurs in the wild (core/meetingNotes/meetingUsage.js names it explicitly) — would mean "every
-    // completed meeting note": empty-means-everything plus ignored keys is together fail-open. Before this matcher
-    // the shallow `matchFilter` did the opposite (such filters never fired), so without this an automation that
+    // completed meeting note": empty-means-everything plus ignored keys is together fail-open. The
+    // shallow `matchFilter` does the opposite (such filters never fire), so without this an automation that
     // has already been stored would silently flip from "never" to "always".
     // The mirror side counts too: in `none: [{ tagIncludes: 'geheim' }]` the submatcher must be able to say NO,
     // otherwise that clause excludes everything.

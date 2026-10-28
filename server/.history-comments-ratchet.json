@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of comment lines that narrate history (used to, previously, before this, round N, PR/issue numbers) server may still carry. Lower it with `node scripts/count-ratchet.mjs history-comments server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-28",
+  "count": 1228
+}

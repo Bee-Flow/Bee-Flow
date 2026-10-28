@@ -49,8 +49,8 @@ function runOrgFor(automation, session) {
  * dispatched the run names the one that fired via `rootStepId`. Everything else
  * enters at the primary `definition.trigger`.
  *
- * Hoisted out of the `formBaseTheme` getter it used to live inside, because a
- * second place now needs the same answer (the pinned-sample seeding below) and
+ * Kept out of the `formBaseTheme` getter, because a
+ * second place needs the same answer (the pinned-sample seeding below) and
  * a hand-written copy of this lookup is exactly how the two would come to
  * disagree about which trigger a run belongs to — one serving trigger A's form
  * theme while the other served trigger B's sample.
@@ -146,7 +146,7 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
     // ONE token namespace for the whole run. Every tokenize call is seeded from
     // it, so a value keeps in node 5 the placeholder it got in node 1, and every
     // restore point holds the complete map — a tokenized value can no longer
-    // become unrestorable (which is exactly how `[person_1]` used to end up in
+    // become unrestorable (which is exactly how `[person_1]` would end up in
     // outgoing emails). Container steps shallow-copy ctx, so parallel branches,
     // loop iterations and sub-layers all share this same object.
     //

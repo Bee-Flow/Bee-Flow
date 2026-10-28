@@ -406,7 +406,7 @@ async function readInto(into, key) {
  *
  * A refusal here is NEVER a failed step. The call succeeded and the answer is
  * in hand; a full table or an over-large body means the next run asks again,
- * which is the behaviour before this feature existed. The reason is reported so
+ * which is the behaviour without caching. The reason is reported so
  * the caller can surface it rather than leaving a tick that silently does
  * nothing.
  */

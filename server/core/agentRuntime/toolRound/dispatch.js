@@ -41,9 +41,9 @@ async function dispatchToolCall(rc, deps, { toolCall, toolName, toolArgs, fixedP
 
     const dispatchT0 = Date.now();
     // The wrapped fn NEVER throws through runWithProbe: a
-    // throw used to discard the probe (peer IP, TLS name)
+    // throw would discard the probe (peer IP, TLS name)
     // and with it the audit row — a failed call whose bytes
-    // had already left the box was simply not in the ledger.
+    // had already left the box would simply not be in the ledger.
     const probed = await runWithProbe(async () => {
         const preMeta = resolveIntegration(toolName, toolArgs || {});
         if (preMeta?.isLocal) markLocal(preMeta.label || preMeta.integration);
@@ -194,9 +194,9 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
             onEvent('image', data);
         },
         // Org context — activate_skill (and other org-scoped
-        // tools) need it; was previously only set when a lent
-        // connection overrode it below, which silently broke
-        // dynamic-skill activation on the agent streaming path.
+        // tools) need it; it must be set even when no lent
+        // connection overrides it below, or dynamic-skill activation
+        // silently breaks on the agent streaming path.
         orgId: messageMetadata.orgId || agent.organization_id || null,
         // Per-chat memory controls, for memory_search / memory_remember.
         memoryReadEnabled: messageMetadata.memoryReadEnabled,

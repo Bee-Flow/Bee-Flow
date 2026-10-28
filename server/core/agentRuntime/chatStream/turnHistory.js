@@ -75,11 +75,11 @@ async function assembleTurnHistory({
     //   durableMessages  DURABLE history. Append-only. The ONLY array that
     //                    agentStore.updateConversation ever sees.
     //
-    // They previously were one variable, so `messages = compactedMessages` below
-    // handed the compacted PROMPT to updateConversation — which is a destructive
+    // They must not be one variable: `messages = compactedMessages` below
+    // would hand the compacted PROMPT to updateConversation — which is a destructive
     // full replace (agentConversations.js replaceMessages = DELETE + INSERT).
-    // Every turn past the compaction threshold therefore deleted the oldest turns
-    // from Postgres and replaced them with compaction's synthetic priming pairs.
+    // Every turn past the compaction threshold would then delete the oldest turns
+    // from Postgres and replace them with compaction's synthetic priming pairs.
     //
     // Element objects are SHARED between the two arrays on purpose:
     // hydrateHistoryAttachments replaces array SLOTS (`messages[i] = {...msg}`),
@@ -99,7 +99,7 @@ async function assembleTurnHistory({
     if (historyOverride && Array.isArray(historyOverride)) {
         // Edit / retry: the client sends a TRUNCATED, SLIM history —
         // {role, content, attachments:[{name,type}]} and nothing else. Taking it
-        // verbatim used to be a second data-loss path alongside BFSF-307: because
+        // verbatim is a second data-loss path alongside BFSF-307: because
         // updateConversation is a full replace, persisting the client's copy
         // destroyed, for every earlier turn, the attachment sidecars
         // (storageKey / extractedText / extractionKey), id/parentId, toolHistory,
@@ -127,8 +127,8 @@ async function assembleTurnHistory({
         durableMessages.push(...conversation.messages);
     }
 
-    // Single point of truth for "what gets persisted". Three call sites used to
-    // spell this out independently, which is how they could quietly diverge —
+    // Single point of truth for "what gets persisted". Three call sites that
+    // spell this out independently could quietly diverge —
     // and it gives a test one seam to spy on instead of three.
     const persistDurable = async () => {
         if (isEphemeral) return;

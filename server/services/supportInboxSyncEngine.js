@@ -98,7 +98,7 @@ async function tickOnce() {
  * part of this handshake the DATABASE can undo on its own: it expires after
  * SYNC_LOCK_TTL_MINUTES whether or not this process is still alive.
  *
- * Writing sync_status='syncing' here used to wedge a mailbox permanently: a
+ * Writing sync_status='syncing' here would wedge a mailbox permanently: a
  * SIGKILL / OOM / pod eviction anywhere inside the provider round-trips skips
  * both the catch and the finally, leaving the row at 'syncing' forever, and
  * getDueInboxes() filters those rows out (`AND sync_status != 'syncing'`) — a

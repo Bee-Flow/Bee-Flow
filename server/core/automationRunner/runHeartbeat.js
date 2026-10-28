@@ -23,13 +23,13 @@ const { bestEffort } = require('../../utils/bestEffort');
  * A live run that finds its automation ALREADY RUNNING.
  *
  * The automation-level marker (`automations.last_status = 'running'`) allows one
- * live run at a time, and a second one used to be cancelled on the spot —
+ * live run at a time, and a second one would be cancelled on the spot —
  * "Skipped: automation already running". For a manual click that is the right
  * answer. For an EVENT it is data loss: the Gmail poller has already advanced
  * its cursor, so the mail that arrived while a briefing was running is never
  * triaged. With several triggers on one automation those collisions stop being
- * rare, so event- and webhook-started runs now WAIT for the marker — bounded,
- * polling — and only give up (cancelled, as before) when the window passes.
+ * rare, so event- and webhook-started runs WAIT for the marker — bounded,
+ * polling — and only give up (cancelled) when the window passes.
  *
  * Resumes never wait: a resume continues alongside whatever holds the marker
  * (see the guard in executeAutomation).

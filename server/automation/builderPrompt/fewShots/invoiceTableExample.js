@@ -71,7 +71,7 @@ function invoiceTableExample() {
         { role: 'tool', tool_call_id: 'ex_d1', content: JSON.stringify({ ok: true, todos: [{ i: 0, text: 'Manual trigger', done: false }, { i: 1, text: 'List → read → extract → append rows to Facturen', done: false }, { i: 2, text: 'Dry-run and finalize', done: false }], next: 'Manual trigger' }) },
         // The batch inspect form (samples omitted); the shape strings are the
         // real describeShape() output for these two tools — `items` and
-        // `content` are the two names the model used to guess.
+        // `content` are the two names the model tends to guess.
         {
             role: 'tool', tool_call_id: 'ex_d2',
             content: JSON.stringify({

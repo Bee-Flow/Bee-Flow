@@ -2,11 +2,11 @@
 /**
  * Prompt-facing descriptions of the declared trigger sources.
  *
- * The builder agent's tool schema used to spell the provider and event lists out
- * by hand, and they had rotted: the enum promised Nextcloud events
- * (talk.mention.received, task.due, share.accepted…) that no longer existed, so
- * the model was being invited to author triggers that could never fire.
- * Deriving the text means it cannot drift again.
+ * The builder agent's tool schema must not spell the provider and event lists out
+ * by hand: they rot, and an enum promising Nextcloud events
+ * (talk.mention.received, task.due, share.accepted…) that no longer exist invites
+ * the model to author triggers that could never fire.
+ * Deriving the text means it cannot drift.
  *
  * These are GLOBAL descriptions — TOOL_SCHEMAS is a shared singleton, so
  * anything per-user would leak between sessions. Per-user gating belongs in the

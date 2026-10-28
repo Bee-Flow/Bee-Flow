@@ -24,8 +24,8 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //
-// A mapping that resolves to nothing used to leave no trace: the step got an empty value, the run stayed
-// green, and the person looking at it could only say "it doesn't always work". The runner opens a log around
+// A mapping that resolves to nothing would leave no trace: the step gets an empty value, the run stays
+// green, and the person looking at it can only say "it doesn't always work". The runner opens a log around
 // every step (core/automationRunner/execution.js dispatchStep) and every miss made while it is open lands in
 // it: which input, which path, and where the walk stopped.
 //
@@ -216,7 +216,7 @@ function walkPath(path, root) {
     const v = walkTokens(tokens, root);
     if (v !== undefined) return v;
     // A code step hands on what its code returned under `output.result`
-    // (codeOutput.js). The AI builder used to save `steps.<code>.output.count`
+    // (codeOutput.js). The AI builder can save `steps.<code>.output.count`
     // for `….output.result.count`; such a path finds nothing as written, so
     // it is read the way its author meant. Only on a miss, never instead of a
     // value the path did find.
@@ -544,7 +544,7 @@ function restProbe(layout, from) {
  * JSON.parse would round, `"{{x}}"` holding a list an API wants as text).
  *
  * Only a JSON-shaped body (see jsonTemplateLayout) that the plain templating
- * BROKE is repaired. That used to happen to `{"text":"{{steps.ai.output.summary}}"}`
+ * BROKE is repaired. That happens to `{"text":"{{steps.ai.output.summary}}"}`
  * for every record whose text held a quote, a newline or a backslash, and to
  * `{"v": {{…}}}` for every empty field: an external API answering 400 for
  * SOME records. The repair changes only the placeholders whose old text does

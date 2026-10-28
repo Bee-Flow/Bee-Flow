@@ -33,7 +33,7 @@ function startRetentionAndComplianceJobs() {
     }
     // Monitoring-ledger retention and the PII scan-ledger prune. NOT gated on
     // a module: chat and DLP fill those tables on every install, including
-    // one without Automations, whose runner these passes used to ride.
+    // one without Automations, whose runner these passes do not ride.
     try {
         require('../jobs/platformRetention').start();
     } catch (err) {

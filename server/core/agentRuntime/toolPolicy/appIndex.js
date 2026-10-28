@@ -28,9 +28,9 @@ const log = require('../../../telemetry/log');
 // and friends — and `isToolAllowed` waved it past a curated agent's grants.
 //
 // ── A DEGRADED INDEX IS NOT AN ANSWER ───────────────────────────────
-// This index used to swallow a registry failure and hand back an EMPTY one, at
-// which point every tool was "unattributed" and every per-action grant matched
-// nothing — an agent curated down to `gmail_search` was handed `gmail_compose`
+// This index does not swallow a registry failure and hand back an EMPTY one: then
+// every tool would be "unattributed" and every per-action grant would match
+// nothing — an agent curated down to `gmail_search` would be handed `gmail_compose`
 // and `drive_delete` on the strength of a require that threw. So the index
 // carries `ok`, and every reader that would otherwise conclude "no app claims
 // this name" has to ask whether the registry actually SAID so. `ok` is false

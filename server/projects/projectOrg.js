@@ -5,10 +5,10 @@
  *
  * One answer for every path that compares a person with a project (invites, the
  * member list, filing or creating a document, notebook or meeting in a project,
- * the AI's document tools). They used to compare the account row's own
+ * the AI's document tools). They must not compare the account row's own
  * `organizationId` with the project's, which is '' for an account whose
- * organisation only comes from a group, so those people could be invited but
- * could not file anything.
+ * organisation only comes from a group, or those people can be invited but
+ * cannot file anything.
  */
 
 const log = require('../telemetry/log');

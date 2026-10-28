@@ -53,8 +53,8 @@ function egressMode(policy, destination) {
     const covered = policy.privacyScope === 'all' || isExternal;
     if (!covered) return 'real';
     if (policy.action === 'tokenize') return 'tokens';
-    // 'redact' used to tokenize and then restore everything, so it protected
-    // nothing at all — it only left a guardrail row behind. It masks for real now.
+    // 'redact' masks for real: tokenizing and then restoring everything would
+    // protect nothing at all — it would only leave a guardrail row behind.
     if (policy.action === 'redact') return 'masked';
     return 'real';
 }
@@ -76,11 +76,11 @@ function maskTokens(value) {
 /**
  * Put the real values back, walking the value STRUCTURALLY.
  *
- * This used to serialise the whole value with JSON.stringify, hand the JSON
- * TEXT to restoreTokens and re-parse. restoreTokens is a plain String.replace:
- * it wrote the vault's RAW value straight into the JSON text without
+ * Serialising the whole value with JSON.stringify, handing the JSON
+ * TEXT to restoreTokens and re-parsing would be wrong. restoreTokens is a plain String.replace:
+ * it writes the vault's RAW value straight into the JSON text without
  * JSON-escaping it. Any real value containing a `"`, a backslash, a newline, a
- * tab or any other control character therefore produced BROKEN JSON, JSON.parse
+ * tab or any other control character therefore produces BROKEN JSON, JSON.parse
  * threw, and the `catch (_) { return value; }` handed back the still-tokenized
  * value — so the customer received a literal `[person_1]` / `[address_1]` (a
  * multi-line address is the common case), and a crafted value could inject
@@ -113,7 +113,7 @@ function restoreFromVault(value, vaultMap) {
  * Restoration uses the WHOLE run vault, not just the map of the value that was
  * scanned a moment ago: a placeholder minted by an earlier node is not personal
  * data, so the current step's scan never sees it — that is exactly how
- * `[person_1]` used to be sent to third parties as literal text.
+ * `[person_1]` would be sent to third parties as literal text.
  *
  * @param {object} opts.destination 'external' (default) | 'internal'
  */
@@ -134,8 +134,8 @@ function restoreForRunState(value, ctx) {
 
 // ── egress logging (always the metadata row; scan gated by the org toggle) ──
 //
-// Non-blocking by design: this used to await the full windowed GLiNER scan
-// before returning, and engine.js awaits logEgress — monitoring sat on the
+// Non-blocking by design: this must not await the full windowed GLiNER scan
+// before returning, and engine.js awaits logEgress — monitoring would sit on the
 // critical path of EVERY automation step. The shared logger detaches the
 // scan+insert; this function returns in microseconds.
 /** @param {import('./safety.types').EgressEntry} entry */
@@ -178,11 +178,10 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             ids: {
                 organization_id: auditBase.organization_id,
                 user_id: auditBase.user_id,
-                // Automations are NOT agents. The automation id used to be
-                // stuffed into agent_id here, which polluted every 'agent'
+                // Automations are NOT agents. The automation id is not
+                // stuffed into agent_id here: that would pollute every 'agent'
                 // breakdown with automations; automation_id below is the real
-                // attribution, and historical rows remain classifiable via
-                // automation_id IS NOT NULL.
+                // attribution (automation_id IS NOT NULL classifies the rows).
                 agent_id: null,
                 agent_name: auditBase.agent_name,
                 conversation_id: auditBase.conversation_id,

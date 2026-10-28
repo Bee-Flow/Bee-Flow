@@ -24,10 +24,10 @@ const log = require('../../telemetry/log');
  * Ensure the notebook has a linked KB — auto-create one if needed.
  *
  * The knowledge base belongs to the NOTEBOOK's owner, whoever adds the first
- * source. It used to be created as the uploader's personal base: for a project
- * notebook, a member's first upload made a base the owner's notebook could
- * never attach (the attach is owner-scoped), so the source reported "ready"
- * and was never found. The notebook's own base is then authorised by notebook
+ * source. It is not created as the uploader's personal base: for a project
+ * notebook, a member's first upload would make a base the owner's notebook could
+ * never attach (the attach is owner-scoped), so the source would report "ready"
+ * and never be found. The notebook's own base is authorised by notebook
  * role (notebookKbAccess.js), not by the generic KB ACL.
  *
  * It carries NO organisation. The generic KB ACL lets an org admin read every
@@ -187,10 +187,10 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         // The stored source text + embeddings stay REAL (search recall and the
         // data-owner preview depend on it). We scan the WHOLE source ONCE to mint
         // and PERSIST a token for every PII entity into the notebook's map
-        // (notebooks.pii_token_map, keyed on notebookId). Previously the map was
-        // built piecemeal at query time from whatever chunks a search happened to
-        // retrieve, so a person who never landed in a retrieved chunk had no token
-        // — and the model's `[person_N]` for them leaked into the drafted document
+        // (notebooks.pii_token_map, keyed on notebookId). Building it piecemeal at
+        // query time from whatever chunks a search happened to retrieve would leave
+        // a person who never landed in a retrieved chunk without a token — and the
+        // model's `[person_N]` for them would leak into the drafted document
         // because the restore map didn't contain it. Building it here makes the map
         // complete + stable up front: later turns tokenise retrieved chunks
         // consistently (seeded from this map) and the AI-written document/chat

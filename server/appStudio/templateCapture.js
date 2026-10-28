@@ -473,8 +473,8 @@ function captureTemplate({
     // One sweep, shared with automation export and with Blueprint packaging.
     // It nulls automation references as this module always did, and additionally
     // removes the approver seats and knowledge-base references that NEITHER
-    // export path used to remove — one organisation's user, group and KB ids
-    // were travelling to another's install.
+    // removes the approver seats and knowledge-base references that NEITHER
+    // export path would otherwise remove — one organisation's user, group and KB ids
     const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
     const scrubbed = scrubAppDefinition(def);
     const automationIds = scrubbed

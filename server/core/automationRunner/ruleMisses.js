@@ -3,10 +3,10 @@
  * Rule misses: a path in a Condition, Filter or Switch rule that found
  * nothing on any of the items the rule was asked about.
  *
- * A typo in a rule (`item.atachments`) used to fail silently: the rule was
+ * A typo in a rule (`item.atachments`) would fail silently: the rule was
  * false for every item, the filter kept nothing, and the run stayed green.
  * Mapping misses already land in the binding log (automation/bind.js); a rule
- * miss now lands there too, as one entry `{ kind: 'rule', path, reason, at,
+ * miss lands there too, as one entry `{ kind: 'rule', path, reason, at,
  * found, missing, count, field? }`, so the run panel lists it under
  * "Mappings that found nothing".
  *

@@ -6,7 +6,7 @@
  * Shared by the two places that provision one: POST /api/datatables/managed
  * (a person picks a kind in the Studio) and the spreadsheet document type
  * (core/documents/sheet, which makes the table that holds a sheet's cells).
- * Both used to be one copy of this transaction; a second copy would be a
+ * Both share one copy of this transaction; a second copy would be a
  * second place for the quota lock or the physical DDL to drift.
  *
  * What this does NOT do is decide WHO may make the table or WHERE: the caller

@@ -341,7 +341,7 @@ function stripNeverInstallable(value, parentKey = null) {
  * install a set of entities that do not know about each other, which is the
  * exact failure this format exists to prevent, and it would fail silently.
  *
- * ── Why this module strips, when it used to only inspect ───────────────────
+ * ── Why this module strips, not only inspects ───────────────────
  *
  * The rule this file kept was that a format module must not decide what is
  * safe, because that would be a second scrub list beside

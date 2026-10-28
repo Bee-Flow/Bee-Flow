@@ -95,7 +95,7 @@ function buildRunContext({
         layers: automation.definition?.layers || {},
         // Sub-step recording context. execCallLayer derives a child with
         // prefix '<callStepId>/' + parentStepId; execLoop suppresses for
-        // its body (parity with the previously-unrecorded loop bodies).
+        // its body.
         // Seeded by runPartialInLoopBody so the one body step it runs is
         // recorded under the id the canvas addressed it by ('<loopId>/<stepId>').
         stepRecord: stepRecord || { prefix: '', parentStepId: null, suppress: false },
@@ -159,9 +159,9 @@ async function recordResumeBoundary(deps, { skipUntilStepId, replayState, effect
 async function guardTriggerPayload(deps, { triggerPayload, triggerKind, ctx, runState, effectiveMode, run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle }) {
     const { safety, automationStore, clearRunCancellation } = deps;
     // ── Safety: scan the trigger payload ──────────────────────────────────
-    // The raw webhook body / event payload used to land in runState completely
+    // The raw webhook body / event payload must not land in runState completely
     // unseen — it is the one input to an automation nobody in this org typed, and
-    // it was the only entry point with no guard at all. Scanning it here also
+    // the only entry point that would otherwise have no guard at all. Scanning it here also
     // gives every value in it a stable placeholder for the whole run, and lets
     // a `block` policy stop the run before step 1 does anything.
     //

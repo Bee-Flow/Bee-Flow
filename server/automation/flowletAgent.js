@@ -270,8 +270,8 @@ async function runLayerAgent({
                 temperature: 0.2,
                 tools,
                 toolChoice: 'auto',
-                // Explicit medium thinking (previously unset → provider
-                // defaults varied). The flowlet agent runs on the thinking
+                // Explicit medium thinking (unset, provider defaults vary). The
+                // flowlet agent runs on the thinking
                 // tier — building a whole sub-flow benefits from reasoning.
                 reasoningEffort: 'medium',
             });
@@ -440,10 +440,9 @@ async function runLayersInParallel({
  * Resolve the thinking-tier model for sub-agents, with the fast tier as the
  * CONFIGURED fallback.
  *
- * Returns null when this workspace has neither tier configured. It used to
- * return a hardcoded `gemini-2.0-flash-lite` — not from here, but from
- * `resolveModelForTierName`'s old default fallback, which has been made
- * opt-in (see modelResolver). Callers must handle null with a readable
+ * Returns null when this workspace has neither tier configured; it never
+ * falls back to a hardcoded model. `resolveModelForTierName`'s default
+ * fallback is opt-in (see modelResolver). Callers must handle null with a readable
  * refusal rather than calling a provider with it.
  * @param {{ userOrgId?: string | null, userId?: string | null }} [opts]
  */

@@ -175,8 +175,8 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     const block = knowledgePromptBlock({ topResults, labels: strippedLabels, includeRefs, isStrictKnowledge, anyChunkTruncated });
 
     if (includeRefs && onEvent) {
-        // One citation shape, built in core/kb/citation.js. Four places
-        // used to roll their own here — same idea, three different
+        // One citation shape, built in core/kb/citation.js, rather than a copy
+        // per call site: four copies drifted — same idea, three different
         // heading regexes, and one of them sent the passage under a key
         // the overlay does not read.
         const { toCitations } = require('../kb/citation');
@@ -268,7 +268,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
     // Cap and format. Everything a citation is built from rides along: the
     // ids that make a chip open its passage, the page or row range that makes
     // it checkable, and what a table row pulled in along its relations. These
-    // used to be dropped here, so the ask route's citations arrived with no
+    // must not be dropped here, or the ask route's citations arrive with no
     // document behind them.
     return deduped.slice(0, topK).map(c => ({
         title: c.title || c.source_uri || 'KB',

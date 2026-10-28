@@ -519,8 +519,8 @@ function getClaudeListPrice(modelId) {
 
 /**
  * Fallback tariffs in the exact shape pricingService.FALLBACK_PRICING expects.
- * Before this existed, that map was OpenAI-only, so any Claude model the
- * community pricing database had not picked up yet fell through to the
+ * Without this, that map would be OpenAI-only, so any Claude model the
+ * community pricing database has not picked up yet would fall through to the
  * upper-bound rates.
  */
 function listPricedModels() {

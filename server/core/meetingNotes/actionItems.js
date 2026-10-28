@@ -483,8 +483,8 @@ function hasHumanInput(item) {
  * instead of being quietly stuck onto another action.
  *
  * ── AND A BUCKET WITH MORE THAN ONE CANDIDATE IS NOT EVIDENCE EITHER ─
- * Here it used to say that colliding points matched on order within their bucket, "the narrowest possible
- * place where position still plays a part". That held only as long as a collision was rare. But
+ * Matching colliding points on order within their bucket ("the narrowest possible
+ * place where position still plays a part") holds only as long as a collision is rare. But
  * transcriptArtifacts.js itself describes the degradation in which a transcript has only ONE line start
  * (a solo dictation, or a run in which diarisation falls back to a single label), and then every point gets the
  * same verified stamp and the whole list is one bucket again. A bucket with more than one candidate, on the

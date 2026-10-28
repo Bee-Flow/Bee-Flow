@@ -9,7 +9,7 @@
  *   const RenameBody = bodyOf({ name: worded('A template needs a name.').trim().min(1, '…') }, 'Renaming a template');
  *
  * `bodyOf` / `queryOf` are closed: a key the route does not read is refused
- * by name, with the keys it does take. A misspelled key used to be ignored
+ * by name, with the keys it does take. A misspelled key must not be ignored
  * under a 200, which is how most of the bugs in the validation batches
  * happened (a typo in a narrowing option meant "everyone").
  */
@@ -87,7 +87,7 @@ const choice = (values, message) => z.enum(values, { error: () => message });
 
 /**
  * An on/off flag. Only the booleans and their exact spellings count: the
- * string "false" used to read as true wherever a handler wrote `!!x`.
+ * string "false" would read as true wherever a handler wrote `!!x`.
  * @param {string} message
  */
 const flag = (message) => z.preprocess(

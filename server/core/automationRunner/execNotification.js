@@ -37,7 +37,7 @@ const metaFor = (kind) => ({ ...NOTIFY_META[kind] });
  * 'email' sends via sendRunEmail (which skips without throwing when no service
  * email is configured — a soft skip, reported as not delivered). Unknown
  * channels are filtered AND reported; a step whose channels contain NO known
- * channel throws loudly — it used to "deliver" nothing and record success.
+ * channel throws loudly — it must not "deliver" nothing and record success.
  */
 function notificationChannels(step) {
     const requested = Array.isArray(step.channels) && step.channels.length ? step.channels : ['notification'];

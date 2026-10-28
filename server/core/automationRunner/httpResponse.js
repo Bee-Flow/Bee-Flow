@@ -33,7 +33,7 @@ const HTTP_PARSE_MODES = new Set(['auto', 'never', 'always']);
  *    tail is worse than the text we already have.
  *  - `auto` (the default) only parses when the server SAYS it is JSON, so a
  *    CSV or HTML response gains nothing and its output is byte-for-byte what
- *    it was before this existed.
+ *    it would be without parsing.
  *
  * Semantics deliberately match the `parseJson()` expression function
  * (shared/expr/functions.mjs): strip a BOM, trim, and give up quietly.

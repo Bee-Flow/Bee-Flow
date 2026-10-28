@@ -33,7 +33,7 @@ function buildWritingStyleAddendum() {
  * agent's own prompt can no longer drop it (agent chat never had one). A fixed
  * persona language is "the agent's own instructions" and still wins. Active
  * Memory rides a later, volatile block, often right next to the user's
- * message, so a remembered "language: Dutch" used to beat the old rule; the
+ * message, so a remembered "language: Dutch" would beat the rule; the
  * last sentence takes that away. Byte-stable for the same caching reason.
  */
 const RESPONSE_LANGUAGE_RULE = `

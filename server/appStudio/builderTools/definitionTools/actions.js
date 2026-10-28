@@ -59,7 +59,7 @@ function applySetAction(draftWrap, args) {
     if (!existing) {
         // Key-order-blind: the stored action is canonical, the model's is in
         // whatever order it wrote — a resend with the same content in another
-        // order used to mint a second copy.
+        // order would mint a second copy.
         const sig = canonicalJson(action);
         const twin = Object.entries(draftWrap.def.actions || {}).find(([, a]) => { try { return canonicalJson(a) === sig; } catch (_) { return false; } });
         if (twin) {

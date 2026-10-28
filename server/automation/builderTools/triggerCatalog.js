@@ -8,8 +8,8 @@
  * builder already consumes, so nothing downstream had to change: an integration
  * declares its events once, and both the provider dropdown
  * (builderTools/triggerProviders.js) and the variable picker (here) read the
- * same declaration. Previously the two were separate hardcoded maps kept in
- * sync by a test, which is exactly what drifted.
+ * same declaration, rather than two hardcoded maps kept in sync by a test,
+ * which is exactly what drifts.
  *
  * Hidden events are included: an event can be withdrawn from the dropdown while
  * automations that already use it keep resolving their trigger.output.* paths.

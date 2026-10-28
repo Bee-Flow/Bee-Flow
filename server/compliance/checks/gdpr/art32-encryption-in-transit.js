@@ -6,7 +6,7 @@
  *
  * "Set" means switched ON: TRUST_PROXY=false (or 0, no, off, none) and
  * TLS_TERMINATOR=none say the opposite of what the check attests to, and a
- * bare truthiness test used to read them as "TLS termination detected".
+ * bare truthiness test would read them as "TLS termination detected".
  */
 
 const OFF = /^(0|false|no|off|none)$/i;

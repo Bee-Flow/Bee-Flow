@@ -600,11 +600,11 @@ const SCREEN_SPRINTS = {
             ],
         },
         {
-            // The create form used to sit open at the foot of the screen, so a
-            // page about CHOOSING a sprint always ended in a form for making
-            // one — and its 4+2+2+2 row left a ragged gap. It is the same
-            // pattern the Backlog already uses for "New work item": a button in
-            // the header, the form in a modal.
+            // The create form lives in a modal opened from a header button, not
+            // open at the foot of the screen: a page about CHOOSING a sprint
+            // should not end in a form for making one, and its 4+2+2+2 row left
+            // a ragged gap. It is the same pattern the Backlog uses for "New
+            // work item": a button in the header, the form in a modal.
             id: 'sec_spdlg',
             style: { padding: 0, gap: 3, background: 'none' },
             children: [

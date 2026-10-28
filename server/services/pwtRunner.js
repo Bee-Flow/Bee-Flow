@@ -78,9 +78,9 @@ function getDocker() {
 }
 
 const DOCKER_SOCKET = '/var/run/docker.sock';
-// How long a negative probe is trusted. A `false` used to be cached for the
-// life of the process, so a socket mounted (or a daemon started) after boot
-// was never noticed without a restart.
+// How long a negative probe is trusted. A `false` must not be cached for the
+// life of the process, or a socket mounted (or a daemon started) after boot
+// is never noticed without a restart.
 const DOCKER_UNAVAILABLE_RETRY_MS = (() => {
     const v = Number(process.env.DOCKER_UNAVAILABLE_RETRY_MS);
     return process.env.DOCKER_UNAVAILABLE_RETRY_MS && Number.isFinite(v) && v >= 0 ? v : 30000;

@@ -118,7 +118,7 @@ function layerAwareAnchor(graph, afterStepId, newStepId) {
  * this, "add after X" on a step that already has a successor leaves the old
  * edge in place, so the new step runs in PARALLEL with the old successor and
  * nothing downstream can depend on it — the only way to insert into the middle
- * of a chain used to be remove-and-re-add, which mints a new id and breaks
+ * of a chain is remove-and-re-add, which mints a new id and breaks
  * every downstream reference.
  *
  * Which of the anchor's outgoing edges move: exactly those carrying the SAME
@@ -228,8 +228,8 @@ function allTriggerIds(graph) {
 
 /**
  * Is `id` already taken by a trigger or a step (root, flowlet or loop body)?
- * The tempId collision check used to test the literal 'trg' plus the steps,
- * which missed a re-keyed primary and every additional trigger.
+ * The tempId collision check tests every trigger id plus the steps, not the
+ * literal 'trg' alone, which would miss a re-keyed primary and every additional trigger.
  */
 function isKnownNodeId(graph, id) {
     return allTriggerIds(graph).includes(id) || !!findStepAnywhere(graph, id);

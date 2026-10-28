@@ -4,7 +4,7 @@
  *
  * That route is ~1400 lines of loop: a model round, a tool dispatch, a
  * persist, a validation note, a ladder, an auto-finalize, a naming pass. Its
- * test files used to read the file and pin those seams with regexes over the
+ * test files would have to read the file and pin those seams with regexes over the
  * source, because reaching the `send()` inside the loop means standing up the
  * whole turn — the feature gate, the draft store, the catalogs, a model round
  * and the tool dispatch. This is that scaffolding, once, so the seams can be

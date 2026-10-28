@@ -7,9 +7,9 @@
  *
  * WHO. Everyone who holds the compliance duty in the organisation: an org
  * admin (and the legacy 'admin' spelling), and the DPO. The event handlers
- * used to ask for admins only, so a DPO — the person a DSR or a breach signal
- * is actually for — never heard of either, while the deadline notifier did
- * include them; one query now serves both. A suspended account is not asked.
+ * must not ask for admins only, or a DPO — the person a DSR or a breach signal
+ * is actually for — would never hear of either, while the deadline notifier did
+ * include them; one query serves both. A suspended account is not asked.
  * The org id 'default' is the bucket single-tenant installs live in (users
  * whose organisation is empty), matched the way routes/compliance/shared.js
  * resolves it.

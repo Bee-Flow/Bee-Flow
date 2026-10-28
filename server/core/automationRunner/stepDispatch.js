@@ -288,7 +288,7 @@ function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
         // A mapping that finds nothing while the step runs is written down
         // (bind.js withBindingLog) and reported on the step row, the run's
         // warnings and its summary (bindingMisses.js): an empty value with a
-        // green run used to be all anyone saw. The input snapshot below is
+        // green run would be all anyone sees. The input snapshot below is
         // resolved outside the log, so it does not count twice.
         const bindingLog = [];
         try {

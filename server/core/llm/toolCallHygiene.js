@@ -5,7 +5,7 @@
  *
  * noteRepeatedRejection — the same call, rejected again. A rejected mutator
  * rolls back, so identical arguments against an unchanged draft are rejected
- * identically, and nothing in the result used to say so. Measured with the
+ * identically, and nothing in the result says so. Measured with the
  * fast local model: one byte-identical builder_add_steps sent three rounds
  * running, a builder_update_steps fifteen times before that. The counter
  * lives on the per-turn state object (draftWrap) the route keeps for the

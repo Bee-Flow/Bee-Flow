@@ -137,9 +137,9 @@ async function fileIntakeStep(app, model, step, ctx, helpers) {
     trimForDetail(result, step, { refused, emptyFolders, sheetOnly });
 
     // One line per intake, because "it did nothing" is otherwise invisible:
-    // the step used to report ok:true whether it wrote twenty rows or none, and
-    // an action reading vars.intake.pairs simply looped zero times and carried
-    // on to a cheerful "Klaar".
+    // ok:true alone cannot tell twenty rows from none, and an action reading
+    // vars.intake.pairs would simply loop zero times and carry on to a
+    // cheerful "Klaar".
     const counts = `files=${rows.length} filed=${result.filed} refused=${refused.length} pairs=${pairs.length}`
         + ` written=${written} po=${poEntry ? poSource : 'NO'} sheet=${sheetEntry ? sheetEntry.name : 'NO'}`
         + ` empty=${emptyFolders.length} skipped=${skipped.size} sheetOnly=${sheetOnly.length}`;

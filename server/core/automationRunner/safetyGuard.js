@@ -17,7 +17,7 @@ class GuardrailBlockError extends Error {
 
 function _logGuardrail(auditBase, { violation_type, categories, direction, action_taken, isDryRun, dedupeKey, ctx }) {
     try {
-        // A step retry re-scans the SAME payload, so one finding used to appear
+        // A step retry re-scans the SAME payload, so one finding would appear
         // once per attempt in the dashboard ("4 catches" for one email). Dedupe
         // on the content itself, not on the step: a loop iteration carrying
         // different data is a genuinely new finding and must still count.
@@ -282,7 +282,7 @@ async function guardToolOutput(result, policy, auditBase, mode, ctx = null) {
  *
  * Guards the SYSTEM prompt as well as the user message: an automation's system
  * prompt is `{{…}}`-interpolated from step data, so it routinely carries the
- * very personal data the shield is supposed to catch, and it used to go to the
+ * very personal data the shield is supposed to catch, and it must not go to the
  * model untouched.
  */
 async function guardAiInput(messages, policy, auditBase, mode, ctx = null) {

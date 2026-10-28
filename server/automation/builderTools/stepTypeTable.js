@@ -2,13 +2,13 @@
 /**
  * Which step types can the AI builder AUTHOR, and how? ONE table.
  *
- * Three hand-kept lists used to answer this and had drifted apart: the type enum
+ * Three hand-kept lists would answer this and drift apart: the type enum
  * of builder_add_steps / builder_replace_step (schemas.js), the ADD_FOR_TYPE map
  * the apply paths dispatch on (stepBuilders/index.js), and the step list in the
- * prompt (builderPrompt.js). `guard` and `tokenize` had an apply function and
- * were in no enum and no prompt, `return_to_app` was taught by the prompt and
- * had no tool, and the validator's VALID_STEP_TYPES knew a dozen types none of
- * them mentioned. Now they all read this file:
+ * prompt (builderPrompt.js). Drift looks like `guard` and `tokenize` having an apply function and
+ * being in no enum and no prompt, `return_to_app` being taught by the prompt and
+ * having no tool, and the validator's VALID_STEP_TYPES knowing a dozen types none of
+ * them mention. So they all read this file:
  *
  *   - the batch enum is BATCH_STEP_TYPES, the replace enum REPLACEABLE_STEP_TYPES;
  *   - ADD_FOR_TYPE is built FROM the table and refuses to load when a table entry

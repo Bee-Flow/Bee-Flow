@@ -52,7 +52,7 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     // ── Unicode Smuggling Defense (must run FIRST) ───────────────────
     let processedUserMessage = stripUnicodeSmuggling({ messages, userMessage, onEvent, eventCtx });
 
-    // Resolve the shield once (was previously read 3 times). `resolveShieldFor`
+    // Resolve the shield once, not per check.
     // applies the tier clamps internally, so stale pre-clamp data (e.g.
     // `webSearchGuardEnabled: true` saved before the second-wave tightening)
     // cannot enforce on a community install.

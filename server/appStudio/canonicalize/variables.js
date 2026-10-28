@@ -31,7 +31,7 @@ function slugVariableName(raw) {
 
 /**
  * definition.variables — the declared shared values. EMIT-WHEN-PRESENT: an app
- * with no variables key canonicalizes byte-identically to before this feature
+ * with no variables key canonicalizes byte-identically to a definition from before the key
  * existed, which is what keeps every shipped template's "no structural repairs"
  * contract and every frozen published definition intact.
  * @param {(arg0: string, path: string, arg2: string) => void} push

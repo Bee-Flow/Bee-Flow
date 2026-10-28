@@ -107,7 +107,7 @@ const VALUELESS_OPS = new Set(['isNull', 'isNotNull']);
  * field, so `{{steps.page1.output.nextCursor}}` is how a loop walks a table
  * bigger than one page. Anything that is not a non-empty string is page 1.
  *
- * A bare STRING with a placeholder is that template (the AI builder used to
+ * A bare STRING with a placeholder is that template (the AI builder can
  * store the cursor that way, and the validator and portability read it so);
  * resolveValue would take it for a literal and hand the query the braces.
  */

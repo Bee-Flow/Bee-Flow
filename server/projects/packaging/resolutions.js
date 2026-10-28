@@ -251,8 +251,8 @@ function applyStepResolutions(definition, ref, resolutions) {
 
 // ── Kept after the install: resolutions as `solution_bindings` rows ─────────
 //
-// An install's resolutions used to live for exactly one request. An upgrade
-// then ran with `wiring: null` and a pristine automation came back with its
+// An install's resolutions must outlive the request, or an upgrade
+// would run with `wiring: null` and a pristine automation would come back with its
 // credential and its approver emptied again, because the newer file has the
 // same holes the first one had (design 7, F3). The install therefore writes
 // what it APPLIED as binding rows on the installed project, and an upgrade

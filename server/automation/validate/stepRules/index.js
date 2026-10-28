@@ -54,8 +54,8 @@ function createStepChecker({
     // Per-step validation + reference scoping. `checkStep` holds ALL the
     // per-type field rules and runs for top-level steps AND (via the nested
     // walker below) for every step inside a loop body / parallel branch —
-    // those used to skip per-type validation entirely, so an HTTP Request
-    // with an empty URL nested in a loop activated green and only failed at
+    // those would skip per-type validation entirely, so an HTTP Request
+    // with an empty URL nested in a loop would activate green and only fail at
     // run time (node-audit C3/C4).
     //
     // Edge-dependent rules (condition/switch branch wiring) stay top-level

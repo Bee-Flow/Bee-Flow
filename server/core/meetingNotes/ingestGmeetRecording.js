@@ -117,7 +117,7 @@ async function ingestGmeetRecording(opts) {
         } catch (err) {
             if (err instanceof IngestError) throw err;
             // statSync failing means extraction produced no readable file —
-            // swallowing it used to let the pipeline run on a missing path and
+            // swallowing it would let the pipeline run on a missing path and
             // fail much later with an unclassified error.
             safeUnlink(audioPath);
             throw new IngestError(`Audio extraction produced no readable file: ${err.message}`, { code: 'failed', status: 500 });

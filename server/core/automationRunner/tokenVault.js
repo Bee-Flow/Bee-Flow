@@ -6,8 +6,8 @@ const { bestEffort } = require('../../utils/bestEffort');
 /**
  * Run-scoped PII token vault.
  *
- * Automations used to mint a fresh token namespace per STEP. Two consequences,
- * both live bugs:
+ * Minting a fresh token namespace per STEP has two consequences,
+ * both bugs:
  *   1. `guardToolOutput` dropped its token map, so a tokenized tool result
  *      entered `runState` as a literal `[person_1]` that NOTHING could restore
  *      — it travelled through every downstream node into emails and documents.
