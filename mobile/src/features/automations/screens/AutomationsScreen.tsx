@@ -96,7 +96,7 @@ export function AutomationsScreen() {
                     {AUTOMATION_FILTERS.map((option) => (
                         <Chip
                             key={option.value}
-                            label={option.label}
+                            label={t(option.i18nKey, option.en)}
                             selected={filter === option.value}
                             onPress={() => setFilter(option.value)}
                         />
