@@ -443,7 +443,7 @@ function idFromUnverifiedToken(token) {
  * link is burned here, so past this point the caller held a fresh, unspent link
  * for exactly this request. Every failure is the same 400 `invalid_token`: a
  * probe learns nothing about which part failed. Nothing about the row is
- * logged (BFSF-441) — `row` travels no further than `req.dsrVerified`.
+ * logged — `row` travels no further than `req.dsrVerified`.
  */
 /** @param {VerifyRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 async function requireVerifyToken(req, res, next) {

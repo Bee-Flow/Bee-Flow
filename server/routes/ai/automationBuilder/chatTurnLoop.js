@@ -103,9 +103,9 @@ function parseToolArgs(raw, toolName) {
 
 /**
  * Cross-turn history as the model may see it: user/assistant text only, minus
- * the loop-internal validation notes. UNCAPPED on purpose — this used to end in
- * `.slice(-20)`, and a sliding tail moves the first kept message on every turn,
- * which shifted every byte after the system prompt and broke the prompt-prefix
+ * the loop-internal validation notes. UNCAPPED on purpose — a
+ * `.slice(-20)` sliding tail moves the first kept message on every turn,
+ * which shifts every byte after the system prompt and broke the prompt-prefix
  * cache each time the user replied (~22k tokens re-read per turn on the local
  * box). Length is now bounded at the compose site by the head-anchored
  * `windowHistory` (core/llm/historyWindow.js), which evicts whole blocks from

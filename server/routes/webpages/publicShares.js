@@ -119,7 +119,7 @@ function parseExpiresAt(input) {
 function register(router) {
     // List external shares for a webpage. The owner sees their own shares in full;
     // a non-owner who can READ the page (org/group-published) sees that the page has
-    // links and their status, but not the owner's chosen recipient emails (BFSF-188).
+    // links and their status, but not the owner's chosen recipient emails.
     // Creating/refreshing/revoking links stays owner-only (handlers below).
     router.get('/:id/public-shares', requireAuth, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = sessionUser(req).id;
@@ -135,7 +135,7 @@ function register(router) {
         }
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
         // The exposure rules live in ./webpageShareUrls so they can be tested
-        // without loading this router (BFSF-186). Non-owners list EVERY share
+        // without loading this router. Non-owners list EVERY share
         // on the page — scoping to the caller is what made a colleague's link
         // invisible — but never see the owner's recipient allow-list.
         const shares = await publicShareStore.listSharesForWebpage(

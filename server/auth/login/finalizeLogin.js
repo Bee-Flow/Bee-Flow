@@ -85,12 +85,10 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         return res.status(REFUSAL.status).json(REFUSAL.body);
     }
 
-    // Counted here rather than on entry. It used to fire before every gate
-    // below, so a refused sign-in was recorded as a successful one — harmless
-    // while the gates only slowed people down, actively misleading now that one
-    // of them is a security decision. The unverified/waitlist exits keep their
-    // existing (unrecorded) behaviour; changing those is a metrics question,
-    // not this one.
+    // Counted here rather than on entry: counting before the gates below would
+    // record a refused sign-in as a successful one, which is misleading now that
+    // one of the gates is a security decision. The unverified/waitlist exits are
+    // unrecorded; changing that is a metrics question, not this one.
     recordAuthEvent({ kind: 'login', status: 'ok' });
 
     // ── Block unverified accounts ──

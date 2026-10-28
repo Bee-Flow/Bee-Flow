@@ -346,7 +346,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
 
     // Budget by kind, before any work. A model call gets its own bucket —
     // an action legitimately repeats one per uploaded photo.
-    // Awaited: the Redis-backed limiter decides asynchronously (BFSF-459).
+    // Awaited: the Redis-backed limiter decides asynchronously.
     const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
     if (!(await budget.check(req, res))) return undefined;
 

@@ -134,7 +134,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     ctx.send('tool_start', { name: toolName, args: toolArgs });
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"), the
-    // same check the agent tool loop runs (BFSF-354). Args hold real values
+    // same check the agent tool loop runs. Args hold real values
     // here for every tool except web search, which keeps its tokens.
     const _piiGate = await _checkToolPiiPolicy(toolName, toolArgs, ctx);
     if (_piiGate) {
@@ -458,7 +458,7 @@ function makeStreamCallback(opts) {
             }
             // Restore PII tokens in the reasoning before it reaches the client —
             // the thinking panel is user-visible, so placeholder tokens like
-            // [email_1] must be reversed just like content (BFSF-253). Accumulated
+            // [email_1] must be reversed just like content. Accumulated
             // part.text stays raw; the full text is restored again at persist time.
             send('thinking', { text: streamUntok.restore(data.text), partId: data.partId });
         } else if (type === 'thinking_signature') {

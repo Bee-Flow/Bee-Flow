@@ -172,7 +172,7 @@ router.get('/:id', async (req, res) => {
         return res.status(404).json({ error: 'Agent not found' });
     }
     // `can_edit` lets the client render read-only editors from the same
-    // policy the server enforces (BFSF-271) instead of a local heuristic.
+    // policy the server enforces instead of a local heuristic.
     const canEdit = await canModifyAgent(agent, userId, req);
     const wantsDraft = req.query?.draft === '1' || req.query?.draft === 'true';
     const publishedVersion = Number(agent.published_version) || 0;
@@ -509,8 +509,8 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
     const { newOwnerId } = req.body;
 
     // Authorisation: current owner OR org-admin of agent's org OR super-admin.
-    // BFSF-271: any same-org member with manage_agents used to fall through to
-    // allowed=true here — transfers now require an actual org-admin role.
+    // Transfers require an actual org-admin role: any same-org member with
+    // manage_agents must not fall through to allowed=true here.
     const isSuperAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
     let allowed = isSuperAdmin || agent.owner_id === userId;
     if (!allowed && agent.organization_id) {

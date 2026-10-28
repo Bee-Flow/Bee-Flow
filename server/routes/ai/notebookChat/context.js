@@ -113,8 +113,8 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
     // Send citation sources to frontend
     if (citationSources.length > 0) {
         // The shared citation shape (core/kb/citation.js), which keeps the
-        // `preview` alias for one release. This used to send ONLY
-        // `preview`, so every citation popup showed "No content preview
+        // `preview` alias for one release. Sending ONLY
+        // `preview` would make every citation popup show "No content preview
         // available." — the text was fetched, scored and sent under a key
         // nothing consumed.
         const { toCitations } = require('../../../core/kb/citation');
@@ -124,8 +124,8 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
 }
 
 /**
- * Build document context. We used to hard-truncate at 8000 chars, which
- * silently dropped content for anything longer than ~4 pages. Now we fit
+ * Build document context. A hard truncation at 8000 chars would
+ * silently drop content for anything longer than ~4 pages, so we fit
  * the document into a token budget (~20k tokens ≈ 80k chars) and tell
  * BOTH the AI and the user when truncation happened so neither thinks
  * they've seen the whole thing.

@@ -185,7 +185,7 @@ const TITLE_TEXT = 'An incident needs a title.';
 const CreateIncident = bodyOf({
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(300, 'An incident title is at most 300 characters.'),
     description: worded('description must be text.').nullish(),
-    // The picker in agent-hub offers all four; the store used to know three.
+    // The picker in agent-hub offers all four, so the store must know all four.
     severity: oneOf('severity', SEVERITIES).optional(),
     high_risk: z.boolean({ error: typeError({ invalid: 'high_risk is true or false.' }) }).optional(),
     occurred_at: moment('occurred_at').nullish(),
@@ -427,7 +427,7 @@ router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('
 // Email the org's configured breach recipients about this incident. Internal
 // alerting only — supervisory-authority notification stays a human act.
 //
-// ── BFSF-441: the addresses go to the transport, never to the ledger ────────
+// ── the addresses go to the transport, never to the ledger ────────
 // The recipient addresses are the CHANNEL — they have to reach the mail
 // transport or nothing is delivered. They stop there. What lands in
 // `compliance_evidence` is what an auditor actually needs from this act: that a

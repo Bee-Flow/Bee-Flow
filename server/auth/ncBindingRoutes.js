@@ -209,9 +209,9 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
 //      tenantKey directly — no separate approval step (the code IS the
 //      approval).
 const ORG_TEXT = 'organizationId required';
-// Optional: absent means "my own organisation". A mis-spelled key used to mean
+// Optional: absent means "my own organisation". A mis-spelled key would mean
 // the same thing silently, so a super-admin minting a pairing code FOR another
-// tenant got one for their own instead, and the code looked identical.
+// tenant would get one for their own instead, and the code would look identical.
 const PairingCodeBody = z.object({
     organizationId: worded(ORG_TEXT).trim().min(1, ORG_TEXT).max(200, ORG_TEXT).optional(),
 }).strict();

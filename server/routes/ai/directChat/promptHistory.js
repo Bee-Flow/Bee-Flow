@@ -66,7 +66,7 @@ async function resolveHistory({ req, userId, conversationId, history }) {
 /**
  * Append the history to `messages`, preserving the `attachments` sidecar so
  * the hydrator can rebuild multimodal content (images stay visible across
- * turns). Stripping sidecar fields here is what used to make the AI "lose"
+ * turns). Stripping sidecar fields here would make the AI "lose"
  * uploaded images one turn after the upload.
  * @param {HistoryMessage[]} messages
  * @param {HistoryMessage[] | null} resolvedHistory

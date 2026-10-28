@@ -575,7 +575,7 @@ router.get('/_runs/stream', validate({ query: StreamQuery }), async (/** @type {
     const { openSse } = require('../../core/http/sseHelpers');
     // The head Express's res.set wrote (it appends the charset), and a 25 s
     // `: keepalive` comment: unref'd, and it self-stops on res
-    // close/finish/error — previously a bare setInterval that leaked if
+    // close/finish/error — a bare setInterval would leak if
     // 'close' never fired.
     const { sendRaw, stopHeartbeat } = openSse(res, {
         charset: 'utf-8', viaSetHeader: true, flush: true,

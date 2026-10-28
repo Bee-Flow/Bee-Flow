@@ -279,8 +279,8 @@ async function formPageAudience(id) {
  * The page for a form trigger, made if it is not there yet.
  *
  * A `form` trigger's whole purpose is a public page, so the page exists for as
- * long as the trigger does. This used to be provisioned lazily by the builder
- * panel that displayed the link — which meant the form was published as a side
+ * long as the trigger does. Provisioning it lazily from the builder
+ * panel that displays the link would publish the form as a side
  * effect of an author happening to open that panel, and stopped being published
  * at all once the panel was hidden.
  *

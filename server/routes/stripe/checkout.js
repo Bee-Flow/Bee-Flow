@@ -276,7 +276,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
 
             // Use the real path segment (/app/settings/account/license), not a
             // ?tab= query param — the settings router reads the pathname only, so
-            // the query form dropped the user on Preferences post-payment (BFSF-244).
+            // the query form dropped the user on Preferences post-payment.
             const successUrl = customSuccessUrl || `${origin}${accountLicenseSettingsPath()}?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
             const cancelUrl = `${origin}${accountLicenseSettingsPath()}?checkout=cancelled`;
 
@@ -331,7 +331,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
     } catch (err) {
         if (err instanceof HttpError) throw err;
         log.error('[Stripe] Checkout error:', err);
-        // BFSF-243: never leak raw Stripe internals (param names, request ids)
+        // Never leak raw Stripe internals (param names, request ids)
         // to end users — the full error is already in the server log above.
         // Every stripe-node error class is prefixed 'Stripe' (InvalidRequest,
         // API, Card, Connection, Authentication, ...); all of them can echo

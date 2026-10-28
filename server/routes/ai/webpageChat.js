@@ -131,7 +131,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     // and on a single-slot local model the next message queued behind an answer
     // nobody wanted. The keep-alive holds the stream warm through the NC AppAPI
     // proxy during long, silent webpage builds so it isn't idle-timed-out into
-    // a 504 (BFSF-221).
+    // a 504.
     const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'WebpageChat' });
 
     if (modelTier === 'auto') {
@@ -144,7 +144,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
 
     try {
         // The turn's Privacy Shield: attachment scanning below, and the tool
-        // block lists on the injected passages and in the tool loop (BFSF-354).
+        // block lists on the injected passages and in the tool loop.
         const { resolveShieldFor: _resolveShieldFor } = require('../../core/privacy/orgShield');
         const _psShield = await _resolveShieldFor({ orgId: userOrgForTiers, userId }).catch((e) => fallback('routes/ai/webpageChat:anon', e, null));
         const toolPiiGate = require('../../core/privacy/toolPiiGate');

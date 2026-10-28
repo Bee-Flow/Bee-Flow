@@ -231,7 +231,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
         }
         if (piiError?.privacyUnavailable) {
             // Fail_closed: detection degraded (guard down / model not ready) —
-            // block instead of sending unmasked legal text to the LLM (BFSF-269).
+            // block instead of sending unmasked legal text to the LLM.
             log.warn(`[NotebookChat] 🛑 Privacy protection unavailable (${piiError.degradedReason || 'degraded'}) — blocking (fail_closed)`);
             send('dlp_blocked', {
                 reason: 'pii_unavailable',

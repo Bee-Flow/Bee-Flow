@@ -185,7 +185,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     // browser fetch; without it the turn ran on, tool rounds and all, and on a
     // single-slot local model the next message queued behind an answer nobody
     // wanted) and the keep-alive that stops the Nextcloud AppAPI proxy from
-    // idle-timing a long, silent turn out to a 504 (BFSF-221).
+    // idle-timing a long, silent turn out to a 504.
     const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'TemplateChat' });
 
     try {
@@ -235,7 +235,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
 
                 if (kbResults.length > 0) {
                     // Injected without a tool call, so the Privacy Shield's
-                    // "own server" block list is applied here (BFSF-354).
+                    // "own server" block list is applied here.
                     const { resolveShieldFor } = require('../../core/privacy/orgShield');
                     const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon', e, null));
                     // The "### Source N:" label goes through the same scan.

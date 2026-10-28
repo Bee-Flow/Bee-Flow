@@ -125,9 +125,9 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
  * The `resolveCrypto` options for a conversation.
  *
  * The crypto context comes from the CONVERSATION ROW, never from the caller.
- * That distinction is the whole reason `crypto_scope` is stored: both write
- * paths used to do `resolveCrypto({ userId, encryptionKey })` with the
- * requesting user, so member B replying in member A's thread would re-encrypt
+ * That distinction is the whole reason `crypto_scope` is stored: a write
+ * path doing `resolveCrypto({ userId, encryptionKey })` with the
+ * requesting user would let member B replying in member A's thread re-encrypt
  * every message under B's key and lock A out of their own conversation.
  *
  * For a project-scoped conversation the identity of the requester is irrelevant

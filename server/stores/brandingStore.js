@@ -188,9 +188,9 @@ async function setUserOverride(userId, patch) {
         return Object.keys(existing).length ? existing : null;
     }
     // Merge: partial PATCHes like `{wallpaperPreset: 'sand'}` must not blow
-    // away the user's previously-saved `preset` / `accent`. The old replace
-    // behaviour caused Mood picks to silently revert the theme to the org
-    // default because `preset` disappeared from the override record.
+    // away the user's previously-saved `preset` / `accent`. Replacing
+    // would make Mood picks silently revert the theme to the org
+    // default because `preset` disappears from the override record.
     const merged = { ...existing, ...clean };
     await configStore.setConfig(`branding.user.${userId}`, merged);
     return merged;

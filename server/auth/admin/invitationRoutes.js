@@ -118,9 +118,9 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
         return res.status(409).json({ error: 'A user with this email is already in your organisation' });
     }
 
-    // BFSF-251: seat-cap pre-check. Previously the invite ALWAYS succeeded
-    // and the cap only fired at signup redemption — for the INVITEE, who
-    // then hit a dead-end error the admin never saw. Fail fast here with a
+    // Seat-cap pre-check. Without it the invite would ALWAYS succeed and the
+    // cap would only fire at signup redemption — for the INVITEE, who
+    // then hits a dead-end error the admin never sees. Fail fast here with a
     // structured code so the UI can point the admin at the upgrade flow.
     // Pending (unaccepted, unexpired) invites count toward the cap so an
     // admin can't queue up more redemptions than seats.

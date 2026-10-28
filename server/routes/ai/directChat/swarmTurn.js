@@ -66,8 +66,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         chatSignalsTurn.countFixedTurn({ req, userId, surface: 'direct', outcome: 'unscanned', providerConfig: null });
 
         // SSE handshake: the same head as the regular direct-chat path
-        // (streamTurn.js). No keep-alive here, as before this branch moved
-        // onto openSse.
+        // (streamTurn.js). No keep-alive here.
         const { send } = openSse(res);
 
         // Load (or create) conversation + restore prior Hive Mind state.

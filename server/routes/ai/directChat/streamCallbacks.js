@@ -145,7 +145,7 @@ function persistStreamedImage(turn, data) {
 /** @param {Turn} turn */
 function createStreamCallbacks(turn) {
     const { send } = turn;
-    // BFSF-261: pre-tool preamble text used to glue against the follow-up
+    // pre-tool preamble text used to glue against the follow-up
     // round on the client ("…anything." + "Good, I have…") and vanish from
     // persistence (only the last round's text was saved). Segments record
     // each round's visible text; a lazy separator keeps the live view
@@ -194,7 +194,7 @@ function createStreamCallbacks(turn) {
     const follow = makeStreamCallback({
         ...shared,
         // Wrapped sink: emits one lazy '\n\n' before the first visible
-        // text of a new round (BFSF-261). ONLY the follow-up callback is
+        // text of a new round. ONLY the follow-up callback is
         // wrapped — the primary stream above keeps the raw streamContent.
         streamContent: turn.displaySegments.wrapStreamContent(turn.streamContent, send),
         acceptToolCallEvents: true,

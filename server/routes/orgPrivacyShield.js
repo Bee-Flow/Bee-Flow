@@ -482,7 +482,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
         piiDetectionAction: ['block', 'tokenize', 'warn'].includes(piiDetectionAction) ? piiDetectionAction : 'block',
         // Policy when detection can't fully run (guard unreachable / GLiNER
         // model not ready). Default fail_closed so we never silently send
-        // unmasked text to the LLM (BFSF-269).
+        // unmasked text to the LLM.
         piiFailureMode: piiFailureMode === 'fail_open' ? 'fail_open' : 'fail_closed',
         // Policy for the UNSCANNED part of a large upload (page-cap overflow /
         // scan timeout). Default fail_open preserves today's pass-through for
@@ -652,7 +652,7 @@ router.get('/:orgId/effective', requireAuth, async (/** @type {import('express')
 //  User-level Privacy Shield (Consumer Accounts)
 // ═══════════════════════════════════════
 
-// Secure by default (BFSF-289) — shared with the runtime resolver and the
+// Secure by default — shared with the runtime resolver and the
 // consumer signup paths so the panel can never drift from what actually runs.
 const { USER_SHIELD_DEFAULTS } = require('../core/privacy/userShieldDefaults');
 const { fallback, bestEffort } = require('../utils/bestEffort');
@@ -697,7 +697,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
         return res.json({ ...USER_SHIELD_DEFAULTS, enabled: true, euModeEnabled: true, implicitDefault: true });
     }
     // `implicitDefault` tells the panel these values are the secure
-    // defaults in force rather than a saved choice (BFSF-289), so it can
+    // defaults in force rather than a saved choice, so it can
     // label them instead of pretending the user configured them.
     res.json({ ...USER_SHIELD_DEFAULTS, implicitDefault: true });
 });

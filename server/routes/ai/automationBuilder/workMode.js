@@ -365,7 +365,7 @@ function changedSteps(before = {}, after = {}, pending = []) {
 // A direct build that changes this many steps or more waits for the user's
 // Apply instead of landing in the live draft ("Ask before applying large
 // changes"). A draft without steps is exempt: building a new flow from
-// scratch always changes more than a handful of steps (BFSF-486).
+// scratch always changes more than a handful of steps.
 const LARGE_CHANGE_STEPS = 4;
 
 function isBlankDraft(def) {

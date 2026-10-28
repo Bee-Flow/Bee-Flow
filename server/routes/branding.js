@@ -187,7 +187,7 @@ const upload = multer({
 });
 
 /**
- * Multer's refusals as the client errors they are — they used to reach the terminal handler as 500s.
+ * Multer's refusals as the client errors they are, not 500s from the terminal handler.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next

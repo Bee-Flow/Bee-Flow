@@ -329,12 +329,12 @@ async function processAttachment(att, ctx) {
         // Gmail email: GmailPicker sends the body as plain text (type
         // 'text/plain'). Inject it directly like Google Drive does; otherwise it
         // fell into the generic branch, which base64-decoded the plaintext into
-        // garbage and the model never saw the email (BFSF-87).
+        // garbage and the model never saw the email.
         return handleInlineText(att, ctx, { header: `--- Gmail: ${att.name} ---`, footer: `--- End of ${att.name} ---`, type: 'gmail' });
     }
     if (att.content && att.type && att.type.startsWith('text/') && !String(att.content).startsWith('data:')) {
         // Other plain-text attachments (text/plain, text/markdown...): inline
-        // as text instead of base64-decoding into garbage (BFSF-87).
+        // as text instead of base64-decoding into garbage.
         return handleInlineText(att, ctx, { header: `--- ${att.name} ---`, footer: `--- End of ${att.name} ---`, type: att.type });
     }
     if (att.content) return handleGenericFile(att, ctx);

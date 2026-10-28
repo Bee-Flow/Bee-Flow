@@ -496,7 +496,7 @@ router.post(
             };
 
             // The Privacy Shield's tool block lists ("Outside tools" / "Own
-            // server") apply here as in the agent loop (BFSF-354): a call whose
+            // server") apply here as in the agent loop: a call whose
             // arguments carry a forbidden category is refused, and what the
             // model reads of a result has those categories stripped. Rules in
             // core/privacy/toolPiiGate.js; no shield leaves both lists unapplied.

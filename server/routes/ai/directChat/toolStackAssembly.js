@@ -144,7 +144,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
         // actually has the use_notebooks permission. Without the permission
         // check, a user with no notebook access still received the tools and
         // could trigger a write that force-opened a panel they aren't entitled
-        // to (BFSF-207). This is the authoritative gate — if the tool isn't in
+        // to. This is the authoritative gate — if the tool isn't in
         // the toolset, the model cannot call it.
         const notebooksEnabled = (await configStore.getConfig('feature_notebooks_enabled')) !== false;
         const { hasCapability } = require('../../../core/entitlements/entitlements');
@@ -258,7 +258,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
 
         emitPhaseEnd(send, 'loading_tools', Date.now() - _toolsT);
 
-        // ─── Deterministic notebook-write gate (BFSF-169) ────────────────
+        // ─── Deterministic notebook-write gate ────────────────
         // Two failure modes are guarded here. (1) The notebook system prompt
         // steers Claude toward `notebook_write` when output looks long, and
         // Privacy Shield tokenisation makes a PDF answer look long — so a short

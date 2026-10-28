@@ -292,7 +292,7 @@ async function getShareById(id) {
 
 /**
  * Decrypt the raw tokens for a webpage's non-revoked shares so the route
- * layer can rebuild share URLs for already-authorized readers (BFSF-188).
+ * layer can rebuild share URLs for already-authorized readers.
  * Returns { [shareId]: rawToken }. Legacy rows (NULL cipher) and rows whose
  * cipher no longer decrypts (key rotation) are silently omitted — the share
  * degrades to non-retrievable, it never breaks. Ciphertext stays inside this

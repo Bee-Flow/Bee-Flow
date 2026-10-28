@@ -261,7 +261,7 @@ mock(path.join(SERVER, 'stores/notebookStore'), {
         return true;
     },
 });
-// BFSF-419: a finished journey's result as a Word/PDF download and as a new
+// a finished journey's result as a Word/PDF download and as a new
 // webpage. The renderer and the webpage store have their own tests; here they
 // record what the route asked of them.
 mock(path.join(SERVER, 'core/documents/render/documentRenderer'), {

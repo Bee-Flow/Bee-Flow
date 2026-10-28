@@ -219,7 +219,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
             if (stampVersion !== null) {
                 await c.query('CREATE TABLE IF NOT EXISTS "_meta" (key TEXT PRIMARY KEY, value TEXT)');
                 // GREATEST, not EXCLUDED.value: two replicas can apply plans in
-                // either order, and a slow one finishing second used to stamp
+                // either order, and a slow one finishing second would stamp
                 // the tenant BACKWARDS — the stamp then reads as drift against a
                 // model_version that is actually correct, and the repair path
                 // built on it re-runs a migration that already landed. The

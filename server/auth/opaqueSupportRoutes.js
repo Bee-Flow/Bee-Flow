@@ -81,11 +81,11 @@ async function deletePendingLogin(loginId) {
 // FAKE CREDENTIALS — the "dummy response" login/start always promised
 // ============================================================
 //
-// The unknown-user branch used to answer 401 while a registered account got 200
-// with a loginResponse, and a legacy account got 400 {useLegacy:true}. Three
+// An unknown-user branch answering 401 while a registered account gets 200
+// with a loginResponse, and a legacy account 400 {useLegacy:true}, makes three
 // distinguishable outcomes, one request each: an account-existence oracle that
-// needs no timing measurement at all. Its own comment said "use dummy response —
-// OPAQUE supports this via fake credentials"; the dummy was never built.
+// needs no timing measurement at all. OPAQUE supports a dummy response via fake
+// credentials, which is what the unknown-user branch builds.
 //
 // OPAQUE is designed for exactly this. server.startLogin masks the envelope with
 // a fresh nonce per call, so a response computed from a record the caller cannot
@@ -212,7 +212,7 @@ const envelope = (name) => z.record(z.string(), z.unknown(), { error: typeError(
 // `username` is ACCEPTED AND IGNORED. The shipped web client sends it on both
 // registration steps, and the server deliberately takes the account from the
 // session instead — that substitution is the fix for the takeover this route
-// used to allow. Refusing the key would break that client for no gain; the
+// would otherwise allow. Refusing the key would break that client for no gain; the
 // client should stop sending it, and then it can come out of here.
 const RegisterStartBody = z.object({
     username: worded('A username must be text.').max(200, 'That username is too long.').optional(),

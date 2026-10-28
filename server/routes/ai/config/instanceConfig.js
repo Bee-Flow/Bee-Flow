@@ -351,8 +351,8 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
     if (req.body.pyannoteTranscriptionModel !== undefined) {
         // '' means "choose per meeting language", which is the default and the
         // best answer for most instances. Anything else must be a model
-        // pyannoteAI actually accepts — this used to store whatever string
-        // arrived, so a single typo made EVERY pyannote transcription fail with
+        // pyannoteAI actually accepts — storing whatever string
+        // arrives would let a single typo make EVERY pyannote transcription fail with
         // a 400 until someone noticed.
         const requested = String(req.body.pyannoteTranscriptionModel || '').trim();
         const { TRANSCRIPTION_MODELS, isValidTranscriptionModel } = require('../../../core/voice/pyannoteModels');
@@ -438,7 +438,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @
         await configStore.setConfig('stripe_enabled', stripeEnabled ? 'true' : '');
     }
     if (stripeTaxEnabled !== undefined) {
-        // BFSF-250: automatic_tax is per-subscription — flipping the toggle
+        // automatic_tax is per-subscription — flipping the toggle
         // only affects NEW checkouts. On a false→true transition, backfill
         // the existing active/trialing subscriptions (fire-and-forget, same
         // style as syncSeatQuantityForOrg; idempotent + re-triggerable by
@@ -560,7 +560,7 @@ router.delete('/config/setting/:keyName', requireAuth, async (req, res) => {
 // ─── Test Service Email ──────────────────────────────────────────
 
 // Admin-only: it makes the installation's own service mailbox send mail to any
-// address. It used to take requireAuth alone, so any signed-in user could.
+// address. requireAuth alone would let any signed-in user do it.
 router.post('/config/test-service-email', requireAuth, validate({ body: TestEmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestEmailBody>, import('qs').ParsedQs>} */ req, res) => {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
     const { testRecipient } = req.body;

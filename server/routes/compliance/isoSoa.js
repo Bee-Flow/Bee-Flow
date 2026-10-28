@@ -58,7 +58,7 @@ const SeedBody = bodyOf({
  */
 const SoaPatch = bodyOf({
     // Excluding a control is the SoA's central decision, so it is a boolean
-    // and nothing else: the string 'false' used to leave it applicable.
+    // and nothing else: the string 'false' must not leave it applicable.
     applicable: z.boolean({ error: typeError({ invalid: 'applicable is true or false.' }) }).optional(),
     justification: worded('justification must be text.').trim().max(4000, 'justification is at most 4000 characters.').nullish(),
     how_met: worded('how_met must be text.').trim().max(4000, 'how_met is at most 4000 characters.').nullish(),

@@ -86,7 +86,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
     const isOrgAdmin = await resolveIsOrgAdmin(req);
     const { getAll } = require('../../db');
 
-    // Global search (BFSF-216): when no kb_ids are supplied, search across
+    // Global search: when no kb_ids are supplied, search across
     // every KB the user can access instead of erroring. Explicit ids keep
     // the existing strict per-KB access check. Org admins may search every
     // KB in their org (incl. drafts / group-restricted) — same policy as the

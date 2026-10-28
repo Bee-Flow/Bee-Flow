@@ -202,9 +202,9 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // Via core/enabledIntegrations, NOT by reading a column here. An org's live
     // grants — everything the Integrations admin screen toggles — live in
     // `org_enabled_integrations`; the camelCase `enabledIntegrations` column is
-    // only populated for orgs a super-admin explicitly overrode. This handler
-    // used to read the legacy column alone, so an org carrying a stale override
-    // (say, a nextcloud-only list from an earlier migration) reported that list
+    // only populated for orgs a super-admin explicitly overrode. Reading the
+    // legacy column alone would make an org carrying a stale override
+    // (say, a nextcloud-only list from an earlier migration) report that list
     // as the whole allow-list. The composer's app picker filters its entire
     // catalogue through this value and hides itself when nothing survives — so
     // every Google and Microsoft app silently disappeared from the picker while
@@ -212,9 +212,8 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // resolveOrgIntegrations unions both columns and falls back to the
     // deployment default, and returns null for "no restriction" rather than an
     // empty list, which the client reads as "allow nothing".
-    // One org read for the whole handler: this used to be three separate
-    // userStore.getUser() calls plus a fourth inside the org-id helper, each
-    // free to disagree with the next.
+    // One org read for the whole handler: separate
+    // userStore.getUser() calls would each be free to disagree with the next.
     const { orgId: n8nOrgId, homeOrgId } = await orgScope(req);
 
     let orgEnabledIntegrations = null;
@@ -419,7 +418,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
     // Memory master switch. Stored as a boolean and read back as `!== false`
     // (memoryPolicy.isMemoryEnabledForUser): memory defaults ON, so only an
     // explicit `false` turns it off. The schema guarantees a real boolean —
-    // the text "false" used to be stored here as true.
+    // the text "false" would otherwise be stored here as true.
     if (memoryEnabled !== undefined) {
         await configStore.setConfig(memoryEnabledKey(userId), memoryEnabled);
     }
@@ -438,7 +437,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
     // Learning Center completion map. This blob feeds badge/certificate
     // eligibility, so incoming payloads are sanitized (lesson ids whitelisted
     // against the server catalog, entries shape-checked, size-capped) and MERGED
-    // into the stored map — a stale device can no longer erase another device's
+    // into the stored map — a stale device cannot erase another device's
     // progress. Reset is an explicit flag, since under merge semantics an empty
     // map would be a no-op.
     if (learningProgressReset === true) {

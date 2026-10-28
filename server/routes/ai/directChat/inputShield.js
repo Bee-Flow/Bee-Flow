@@ -69,7 +69,7 @@ async function resolveTurnOrgId(req) {
  * shield; consumer accounts (no org) fall back to their own user-level
  * shield from the personal Privacy Shield settings. Reading only the org key
  * meant typed text went to the model unprotected on personal accounts while
- * their PDFs were redacted (BFSF-290 / BFSF-291).
+ * their PDFs were redacted.
  *
  * Super-admin edge case: req.session.isAdmin users may have no
  * organizationId binding at all (organizationId === '' on the admin seed

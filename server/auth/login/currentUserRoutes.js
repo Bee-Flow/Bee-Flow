@@ -147,7 +147,7 @@ router.get('/user', async (req, res) => {
                     const orgRequired = await resolveOrgMfaRequired(freshUser?.organizationId || null);
                     if (!platformRequired && !orgRequired) return false;
                     if (freshUser?.mfa_enabled) return false;            // already enrolled
-                    // BFSF-255: a connector-hydrated session (password account
+                    // a connector-hydrated session (password account
                     // that connected Google via Settings → Connections) is NOT
                     // an SSO login — connecting Google must never silently
                     // exempt a password account from forced MFA enrollment.

@@ -571,7 +571,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     // Org-scoped custom integrations ('custom:<uuid>': AI-builder rows and the
     // MCP library's remote servers) are never rows of this matrix
     // (capabilityRegistry keeps them out of listCapabilities), so a save cannot
-    // have decided them. Replacing the list wholesale used to revoke every one
+    // have decided them. Replacing the list wholesale would revoke every one
     // of them for "All members" on any unrelated toggle; keep them as stored.
     // Their own surfaces (the MCP library) grant and revoke them.
     let storedIntegrations = [];
@@ -581,7 +581,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     await userStore.setOrgEnabledIntegrations(orgId, [...buckets.integration, ...keptCustom]); // NC bypasses; MCP included
     if (snap.mode !== 'cloud') await userStore.setOrgEnabledBetaFeatures(orgId, buckets.beta); // cloud betas governed
     // Group-scoped betas: the everyone-choice is stored in BOTH modes (on cloud
-    // the subscription stays the ceiling, it just no longer decides who inside
+    // the subscription stays the ceiling, it does not decide who inside
     // the org gets it).
     const prevEveryone = await userStore.getOrgBetaEveryone(orgId);
     const nextEveryone = await nextBetaEveryone(orgId, bound, buckets.beta, entitlements.registry);

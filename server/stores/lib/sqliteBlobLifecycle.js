@@ -38,8 +38,8 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
         } catch (_) { bestEffort('stores/lib/sqliteBlobLifecycle:sizeBytes', _); /* no local file, the cold-replica path follows */ }
         // Cold replica: no handle and no local file, but the entity may be real
         // and LARGE — fall back to the last flushed metadata size so byte
-        // quotas hold on every replica, not only the warm one. (This used to
-        // return 0 here, which silently waived the quota after each restart.)
+        // quotas hold on every replica, not only the warm one. (Returning 0
+        // here would silently waive the quota after each restart.)
         try {
             const res = await runQuery(
                 `SELECT db_size FROM ${metaTable} WHERE id = $1 AND user_id = $2`,

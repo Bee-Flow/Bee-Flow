@@ -133,7 +133,7 @@ async function getEnabledServers() {
 }
 
 // [SEC] Updatable columns come ONLY from this hardcoded allowlist — an arbitrary
-// `updates` key can no longer inject a column name (was `col = key`, M6d).
+// `updates` key cannot inject a column name (M6d).
 const MCP_UPDATE_COLS = {
     name: 'name',
     command: 'command',

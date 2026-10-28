@@ -145,7 +145,7 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json
 //
 // SECURITY: this endpoint is NOT cryptographically authenticated (Pub/Sub OIDC
 // token verification is not yet wired — it needs google-auth-library + the push
-// service-account audience). It is, however, no longer exploitable for a
+// service-account audience). It is, however, not exploitable for a
 // cross-tenant trigger: we have no emailAddress→userId mapping, so userId is
 // always null, and triggerBus.dispatchEvent FAILS CLOSED for user-scoped
 // providers (gmail) when userId is null — it refuses to fan out. The result is

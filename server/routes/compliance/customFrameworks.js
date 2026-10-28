@@ -97,7 +97,7 @@ const CheckRow = z.object({
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(300, 'A title is at most 300 characters.'),
     description: worded('description must be text.').max(4000, 'A description is at most 4000 characters.').nullish(),
     severity: oneOf('severity', SEVERITIES).nullish(),
-    // 'yes' used to import the item as NOT requiring evidence.
+    // 'yes' must not import the item as NOT requiring evidence.
     evidence_required: z.boolean({ error: typeError({ invalid: 'evidence_required is true or false.' }) }).optional(),
     evidenceRequired: z.boolean({ error: typeError({ invalid: 'evidenceRequired is true or false.' }) }).optional(),
     mapped_check_id: worded('mapped_check_id must be a check id.').max(120, 'mapped_check_id is at most 120 characters.').nullish(),

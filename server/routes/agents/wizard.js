@@ -297,7 +297,7 @@ Rules:
  * NULL IS LOAD-BEARING. It is the difference between "the model wrote a role"
  * and "it did not", and the callers branch on exactly that: no fields means the
  * agent keeps the prose prompt as its source (free mode), which is what every
- * plan produced before this schema existed.
+ * plan without the fields does.
  */
 function planPersonaFields(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -323,7 +323,7 @@ function normalizePlan(plan, availableIntegrationIds) {
     if (!Array.isArray(plan.capabilities)) plan.capabilities = [];
     if (!plan.avatar) plan.avatar = '🤖';
 
-    // Model tier recommendation (BFSF-201) — validate against the real,
+    // Model tier recommendation — validate against the real,
     // selectable tiers; null otherwise so the client only applies a real
     // suggestion. Legacy `smart` (older prompt/plan output) maps to its
     // canonical tier `thinking` so the value passes the save-time tier gate.

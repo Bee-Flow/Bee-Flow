@@ -103,7 +103,7 @@ async function openFileInNotebooks(req, res) {
  * The finished journey's result — the closing page's title and markdown, as
  * the RUN recorded them — or null after answering 404.
  *
- * Shared by every "keep this result" route below (BFSF-419). None of them
+ * Shared by every "keep this result" route below. None of them
  * takes the text from the request: the page could send anything, and these
  * routes write a notebook, a webpage or a rendered document from it. Reading
  * the ending back from the run means a visitor keeps exactly what their own

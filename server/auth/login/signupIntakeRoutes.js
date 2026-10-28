@@ -62,14 +62,13 @@ const PendingSignupBody = z.object({
 
 // Get organizations with signup enabled (public, no auth required)
 //
-// M-03: this used to hand every organisation on the instance to any anonymous
+// M-03: this must not hand every organisation on the instance to any anonymous
 // caller. On a multi-tenant SaaS that is the customer list, and it was also a
 // direct attack aid — the ids returned here were exactly what a pentest fed
 // into its cross-tenant attempts (which all correctly failed, but an attacker
 // should not be given the target list for free).
 //
-// The endpoint predates a frontend change: SignupStepOrg.jsx no longer offers
-// self-service "join an existing organisation" at all ("users join an org via an
+// SignupStepOrg.jsx does not offer self-service "join an existing organisation" at all ("users join an org via an
 // email invitation, not by self-selecting it"), so on cloud there is nothing
 // left that needs a directory. It is therefore OFF by default on cloud and ON by
 // default self-hosted, where the instance has a single tenant and listing it

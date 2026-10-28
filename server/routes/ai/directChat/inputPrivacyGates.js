@@ -174,7 +174,7 @@ function handlePiiError(g, piiError) {
     const { send, res } = g;
     if (piiError.privacyUnavailable) {
         // Detection couldn't fully run and the org policy is fail_closed:
-        // block rather than send unmasked text to the LLM (BFSF-269).
+        // block rather than send unmasked text to the LLM.
         log.warn(`[DirectChat] 🛑 Privacy protection unavailable (${piiError.degradedReason || 'degraded'}) — blocking (fail_closed)`);
         // `kind` tells a transient failure ("try again") from an oversized
         // message ("split it up"): only one of them is worth retrying.

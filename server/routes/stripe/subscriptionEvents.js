@@ -459,7 +459,7 @@ async function handleSubscriptionDeleted(subscription) {
  * @param {WebhookSubscription} _subscription
  */
 async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
-    // BFSF-226: a no-card trial that ends without payment (or any never-paid
+    // a no-card trial that ends without payment (or any never-paid
     // subscription) should drop the org back to the capped Free plan rather than
     // be left `cancelled` (locked-out / unlimited if the row is later cleared).
     // A previously-paid subscription that the customer actively cancelled keeps

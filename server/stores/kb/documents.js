@@ -151,7 +151,7 @@ function makeDocumentFns(ctx) {
                 await assertKbWrite(owner.knowledge_base_id, ['documents'], managedWrite, { carryOnly: true });
             }
             // Snapshot first so the row can be recovered via listDeletedDocuments.
-            // The route handlers used to do this themselves; moving the call here
+            // Doing this here, not in each route handler,
             // guarantees the snapshot also runs for background callers (reindex
             // cleanup, legacy bulk paths). Pass skipSnapshot:true when the caller
             // has already snapshotted to avoid double-writes.

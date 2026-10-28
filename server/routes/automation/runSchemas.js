@@ -52,7 +52,7 @@ const SEED_TEXT = 'seedRunId is the id of a run of this automation.';
 const PARTIAL_TEXT = 'mode is "only", "from" or "upTo".';
 const PartialRunBody = bodyOf({
     ...RUN_SHAPE,
-    // An enum, not a fall-back: `upto` for `upTo` used to run ONLY that step
+    // An enum, not a fall-back: `upto` for `upTo` would run ONLY that step
     // instead of everything leading to it, and answer 200 either way.
     mode: z.enum(['only', 'from', 'upTo'], { error: () => PARTIAL_TEXT }).default('only'),
     // Re-run from a chosen run: take the replay from exactly that run (see

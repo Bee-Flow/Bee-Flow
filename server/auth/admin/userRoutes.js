@@ -439,7 +439,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     }
 });
 
-// Reset a user's two-factor authentication (BFSF-274). Org admins over their
+// Reset a user's two-factor authentication. Org admins over their
 // own members (enforced by requireOrgAdminForUser) or super-admins. Clears
 // enrollment entirely; because `require_mfa_for_password_accounts` defaults
 // on, the user is forced to re-enroll at their next login — so this unlocks a

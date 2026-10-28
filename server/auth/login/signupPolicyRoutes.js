@@ -38,17 +38,17 @@ const wordedEnum = (values, message) => z.enum(values, { error: () => message })
 
 /**
  * Every field the admin console can change here, and every value each one may
- * take. All optional — this is a partial save — but nothing is dropped any
- * more, which is the whole point:
+ * take. All optional — this is a partial save — but nothing is dropped,
+ * which is the whole point:
  *
- * every setting used to be written only `if (typeof x === 'boolean')` or
- * `if (['off','allowlist','blocklist'].includes(x))`, and anything else was
- * DISCARDED under a 200. So `geoMode: 'blocklst'` left geo-blocking off while
+ * writing a setting only `if (typeof x === 'boolean')` or
+ * `if (['off','allowlist','blocklist'].includes(x))` would DISCARD anything
+ * else under a 200. So `geoMode: 'blocklst'` left geo-blocking off while
  * the console reported it saved, `allowOrgSignups: "false"` left signups open,
  * and `geoCountries: ['NLD','BE']` silently dropped NL — which in allowlist
  * mode locks out the country the admin was trying to admit, and in blocklist
  * mode fails to block it. A control an administrator believes is on and which
- * is not is worse than no control, so these now refuse instead.
+ * is not is worse than no control, so these refuse instead.
  */
 const SignupSettingsBody = z.object({
     allowOrgSignups: flag('allowOrgSignups'),

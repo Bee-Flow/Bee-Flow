@@ -110,7 +110,7 @@ function makeCatalogFns(ctx) {
             }
             const usageJson = Array.isArray(usageContexts) ? JSON.stringify(usageContexts) : null;
             // categoryId: undefined = leave as-is, explicit null = clear back to
-            // NULL (BFSF-214) — COALESCE alone can't express the clear, so a
+            // NULL — COALESCE alone can't express the clear, so a
             // boolean flag drives a CASE for that column.
             const clearCategory = categoryId === null;
             return getOne(

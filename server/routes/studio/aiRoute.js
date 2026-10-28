@@ -312,7 +312,7 @@ function buildRouteTool(availableKinds) {
  * allow-list: (a) the caller's own text, (b) the available kinds with their
  * fixed blurbs. Nothing else is in scope here — no org, no user, no inventory
  * — and nothing else can be added by accident, because there is no context
- * object being filtered down. (BFSF-441.)
+ * object being filtered down.
  * @param {string} text
  * @param {string[]} availableKinds
  */

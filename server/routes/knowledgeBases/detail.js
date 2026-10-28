@@ -61,7 +61,7 @@ const CONTEXT_TEXT = `A usage context is one of: ${CONTEXTS.join(', ')}.`;
 const UpdateKbBody = orEmpty(z.object({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT).max(200, 'A name is at most 200 characters.').optional(),
     description: worded('A description must be text.').optional(),
-    // null clears the category (the store's CASE). An empty string used to be
+    // null clears the category (the store's CASE). An empty string must not be
     // WRITTEN as the category id — one no category has.
     categoryId: worded(CATEGORY_TEXT).trim().min(1, CATEGORY_TEXT).nullable().optional(),
     icon: worded('An icon must be text.').trim().max(64, 'An icon is at most 64 characters.').optional(),
@@ -81,7 +81,7 @@ const UpdateKbBody = orEmpty(z.object({
 const PUBLISHED_TEXT = 'Say whether the knowledge base is published: isPublished is true or false.';
 const GROUP_TEXT = 'Each shared group is the id of a group.';
 const PublishBody = orEmpty(z.object({
-    // Required: a publish body without it used to UNPUBLISH the base.
+    // Required: a publish body without it must not UNPUBLISH the base.
     isPublished: z.boolean({ error: PUBLISHED_TEXT }),
     // `[]` is the documented "whole organisation"; a blank entry is refused
     // rather than dropped, because dropping the only one is `[]` as well.
@@ -122,7 +122,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
     const documents = await kbStore.listDocuments(kb.id);
     // The single-KB query (getKB) doesn't compute the chunk/document
     // aggregates that the list endpoint does, so the detail header showed
-    // "0 chunks" even for indexed docs (BFSF-213). They are counted in SQL
+    // "0 chunks" even for indexed docs. They are counted in SQL
     // rather than summed over `documents`, which is one capped page —
     // and they count ACTIVE rows only, so a failed or duplicate row never
     // inflates the header.

@@ -364,7 +364,7 @@ async function migrateConversationIfNeeded(conversationId, type, messagesArray, 
         [conversationId]
     );
     if (existing) {
-        // BFSF-179: heal the stuck messages_migrated flag. The Phase-4
+        // Heal the stuck messages_migrated flag. The Phase-4
         // dual-write (replaceMessages) populates this table on every message,
         // so rows existing here doesn't mean the flag was ever set — leaving
         // recent conversations permanently flagged unmigrated and excluded
