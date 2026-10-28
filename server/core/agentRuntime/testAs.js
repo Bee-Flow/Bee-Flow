@@ -170,8 +170,7 @@ function mayNameGroup(group, { orgIds, ownGroups = [] } = {}) {
 const MAX_SIMULATABLE_GROUPS = 200;
 
 /**
- * @typedef {Object} ListSimulatableGroupsArgs
- * @property {string} [userId]
+ * @typedef {{ userId?: string }} ListSimulatableGroupsArgs
  */
 /**
  * The groups this person may preview an agent as — the picker behind
@@ -213,11 +212,9 @@ async function listSimulatableGroups({ userId, orgIds, deps = {} } = {}) {
 /**
  * Turn a caller-supplied `asGroup` into a simulation, or refuse.
  *
- * @param {object} p
- * @param {string} p.groupId   raw, from the request body
- * @param {string} p.userId    the person pressing the button
- * @param {Set|null} p.orgIds  `resolveUserOrgIds(req)`; null = super admin
- * @param {object} [p.deps]    { getGroup, resolveUserGroups } — tests only
+ * @param {{ groupId: string, userId: string, orgIds: Set<string>|null, deps?: TestAsDeps }} p `groupId`: raw, from
+ *   the request body; `userId`: the person pressing the button; `orgIds`: `resolveUserOrgIds(req)`;
+ *   null = super admin; `deps`: { getGroup, resolveUserGroups } — tests only
  * @returns {Promise<{ok:true, testAs:object}|{ok:false, status:number, code:string, error:string}>}
  */
 async function resolveTestAs({ groupId, userId, orgIds, deps = {} } = {}) {
@@ -284,12 +281,9 @@ async function resolveTestAs({ groupId, userId, orgIds, deps = {} } = {}) {
  * second time — never widened, see the module header.
  *
  * @param {string[]} kbIds
- * @param {object} p
- * @param {string} p.userId    the real asker; unchanged by the simulation
- * @param {object} [p.testAs]  raw metadata value, coerced here
- * @param {string} [p.context] for the log line ('agent_chat', 'kb_search', …)
- * @param {string} [p.agentId]
- * @param {object} [p.deps]
+ * @param {{ userId: string, testAs?: unknown, context?: string, agentId?: string | null, deps?: TestAsDeps }} p
+ *   `userId`: the real asker; unchanged by the simulation; `testAs`: raw metadata value, coerced here;
+ *   `context`: for the log line ('agent_chat', 'kb_search', …)
  */
 async function visibleKbIdsFor(kbIds, {
     userId, testAs = null, context = 'retrieval', agentId = null, deps = {},
@@ -333,11 +327,10 @@ async function visibleKbIdsFor(kbIds, {
  * different question than the one asked. But it has to be SAID — nine green
  * answers from an agent that group cannot reach is a fact worth knowing.
  *
- * @param {object} agent      the concept row (owner_id, organization_id,
- *                            is_published, shared_groups)
- * @param {object} testAs
- * @param {object} p
- * @param {Set|null} [p.orgIds]  the asker's orgs; used when the group has none
+ * @param {{ owner_id?: string, organization_id?: string | null, is_published?: boolean, shared_groups?: unknown } | null} agent
+ *   the concept row (owner_id, organization_id, is_published, shared_groups)
+ * @param {unknown} testAs  raw, coerced here
+ * @param {{ orgIds?: Set<string>|null, deps?: TestAsDeps }} p `orgIds`: the asker's orgs; used when the group has none
  * @returns {{visible:boolean, reason:string}}
  */
 function audienceForTestAs(agent, testAs, { orgIds = null, deps = {} } = {}) {
@@ -379,12 +372,8 @@ function audienceForTestAs(agent, testAs, { orgIds = null, deps = {} } = {}) {
  * refuses; there is no branch where a caller asked for a simulation and gets a
  * plain run.
  *
- * @param {object} p
- * @param {*} p.asGroup          req.body.asGroup
- * @param {string} p.userId
- * @param {Set|null} p.orgIds
- * @param {boolean} p.canEdit    "Test as" is an editor's tool, not a chatter's
- * @param {object} [p.deps]
+ * @param {{ asGroup: unknown, userId: string, orgIds: Set<string>|null, canEdit: boolean, deps?: TestAsDeps }} p
+ *   `asGroup`: req.body.asGroup; `canEdit`: "Test as" is an editor's tool, not a chatter's
  */
 async function gateTestAsRequest({ asGroup, userId, orgIds, canEdit, deps = {} } = {}) {
     if (asGroup === undefined || asGroup === null || asGroup === '' || asGroup === false) {
@@ -408,12 +397,14 @@ module.exports = {
 };
 
 /**
- * @typedef {object} TestAsDeps  injection points, tests only
- * @property {typeof import('../../stores/userStore').getAllGroups} [getAllGroups]
- * @property {(id: string) => Promise<any>} [getGroup]
- * @property {(uid: string) => Promise<string[]>} [resolveUserGroups]
- * @property {typeof import('../kb/askerContext').askerContext} [askerContext]
- * @property {typeof import('../kb/kbVisibility')} [kbVisibility]
- * @property {object} [kbStore]
- * @property {typeof import('../../auth/audience').canSeePublished} [canSeePublished]
+ * Injection points, tests only.
+ * @typedef {{
+ *   getAllGroups?: typeof import('../../stores/userStore').getAllGroups,
+ *   getGroup?: (id: string) => Promise<any>,
+ *   resolveUserGroups?: (uid: string) => Promise<string[]>,
+ *   askerContext?: typeof import('../kb/askerContext').askerContext,
+ *   kbVisibility?: typeof import('../kb/kbVisibility'),
+ *   kbStore?: Partial<typeof import('../../stores/knowledgeBases')>,
+ *   canSeePublished?: typeof import('../../auth/audience').canSeePublished,
+ * }} TestAsDeps
  */

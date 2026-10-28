@@ -186,7 +186,7 @@ function languageNameOf(code) {
  * shape, and every field it cannot read comes back EMPTY rather than absent —
  * so no reader downstream has to defend against a half-persona.
  *
- * @param {*} raw
+ * @param {unknown} raw
  * @returns {{persona: object, warnings: string[]}}
  */
 function normalisePersona(raw) {
@@ -291,13 +291,12 @@ const UNKNOWN_LINES = Object.freeze({
  *
  * `mode:'free'` returns the free text verbatim — it IS the prompt.
  *
- * @param {object} persona
- * @param {object} [opts]
- * @param {string} [opts.handoffLabel] The VERIFIED name of the hand-off
- *   automation. Without it a `handoff` persona renders the HONEST line instead:
- *   the caller is the only one that can check that the automation exists, is
- *   active and belongs to the agent's owner, and a prompt that tells the model
- *   to use an action it was never given is an instruction to hallucinate one.
+ * @param {Persona} persona
+ * @param {{ handoffLabel?: string }} [opts] `handoffLabel`: The VERIFIED name of the hand-off
+ *   automation. Without it a `handoff` persona renders the HONEST line instead: the caller is the only
+ *   one that can check that the automation exists, is active and belongs to the agent's owner, and a
+ *   prompt that tells the model to use an action it was never given is an instruction to hallucinate
+ *   one
  * @returns {string} '' when there is nothing to say — see the note at
  *   `renderedPromptFor` about what a caller must do with that.
  */
@@ -434,13 +433,12 @@ function renderedPromptFor(persona, opts = {}) {
  *             existing grant is never rewritten — the owner's `confirm` there
  *             outranks this default.
  *
- * @param {object} config
- * @param {object} persona
- * @param {object} [opts]
- * @param {string|null} [opts.handoffAutomationId] The hand-off automation id AFTER
- *   the caller checked that it exists, is active and belongs to the agent's
- *   OWNER. Null/absent ⇒ no grant is written. There is no "unknown" case that
- *   writes one: this module cannot check, so it never assumes.
+ * @param {PersonaConfig} config
+ * @param {Persona} persona
+ * @param {{ handoffAutomationId?: string|null }} [opts] `handoffAutomationId`: The hand-off automation
+ *   id AFTER the caller checked that it exists, is active and belongs to the agent's OWNER. Null/absent
+ *   ⇒ no grant is written. There is no "unknown" case that writes one: this module cannot check, so it
+ *   never assumes
  * @returns {{config: object, warnings: string[]}}
  */
 function applyPersonaToConfig(config, persona, opts = {}) {
@@ -518,20 +516,22 @@ module.exports = {
 };
 
 /**
- * @typedef {object} Persona
- * @property {string} who
- * @property {{ chips: string[], text: string }} tone
- * @property {string[]} does
- * @property {string[]} doesNot
- * @property {{ mode: string, automationId: string|null }} unknown
- * @property {string|null} language
- * @property {string} mode
- * @property {string} freeText
+ * @typedef {{
+ *   who: string,
+ *   tone: { chips: string[], text: string },
+ *   does: string[],
+ *   doesNot: string[],
+ *   unknown: { mode: string, automationId: string|null },
+ *   language: string|null,
+ *   mode: string,
+ *   freeText: string,
+ * }} Persona
  */
 
 /**
- * @typedef {object} PersonaConfig
- * @property {boolean} [strictKnowledge]
- * @property {string[]} [enabledIntegrations]
- * @property {Record<string, any>} [tools]
+ * @typedef {{
+ *   strictKnowledge?: boolean,
+ *   enabledIntegrations?: string[],
+ *   tools?: Record<string, any>,
+ * }} PersonaConfig
  */

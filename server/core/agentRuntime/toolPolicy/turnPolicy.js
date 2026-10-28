@@ -33,12 +33,11 @@ const { fallback } = require('../../../utils/bestEffort');
  * so every one of its calls dispatches exactly as it does today — draft cards
  * and all.
  *
- * @param {object} opts
- * @param {object} opts.agentConfig     the RUNTIME agent config
- * @param {Array}  opts.tools           the assembled tool definitions
- * @param {boolean} [opts.unattended]   nobody is watching this run
- * @param {any} [opts.automationConfirms]  toolName → 'direct'|'ask' for
- *   granted automations (their effect comes from the definition, not the name)
+ * @param {{ agentConfig: { tools?: unknown, [key: string]: unknown } | null | undefined, tools: Array, unattended?: boolean,
+ *   automationConfirms?: Map<string, string> | null }} opts
+ *   `agentConfig`: the RUNTIME agent config; `tools`: the assembled tool definitions; `unattended`:
+ *   nobody is watching this run; `automationConfirms`: toolName → 'direct'|'ask' for granted
+ *   automations (their effect comes from the definition, not the name)
  * @returns {{allowedToolNames: Set<string>, confirmByTool: Map<string,string>,
  *            effectByTool: Map<string,string>, gatedTools: Set<string>,
  *            enforceNames: boolean, unattended: boolean,

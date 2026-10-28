@@ -186,17 +186,15 @@ function agentLocalRegexConfig(agent, globalConfig) {
  * debug logging — those diverge per surface (the agent path sets a flag and
  * continues; the routes end the SSE stream) and must not be unified.
  *
- * @param {Object}   p
- * @param {string}   p.text         Text to SCAN (also the default redact base).
- * @param {string}   [p.redactBase] Text to redact into when it differs from the
- *   scan text (the agent path scans the raw message but redacts the already
- *   PII-tokenised copy). Defaults to `text`.
- * @param {RegexGuardConfig | null} p.regexConfig  Merged shield/local config ({enabled, scope, action, rulesWithNames}).
- * @param {string}   p.scope        Which scope flag to honour ('userInput' | 'agentOutput' | ...).
- * @param {import('./chatStream/turnState').OnEvent} [p.emit]       (type, data) => void — onEvent (agent) / send (route).
- * @param {Object}   [p.audit]      Base fields for logGuardrailEvent. Omit to skip the audit row
- *   (the direct-chat path deliberately does not log regex events).
- * @param {string}   [p.direction]  Audit direction ('input' | 'output'). Default 'input'.
+ * @param {{ text: string, redactBase?: string, regexConfig: RegexGuardConfig | null, scope: string,
+ *   emit?: import('./chatStream/turnState').OnEvent, audit?: Record<string, unknown>, direction?: string }} p `text`:
+ *   Text to SCAN (also the default redact base); `redactBase`: Text to redact into when it differs from
+ *   the scan text (the agent path scans the raw message but redacts the already PII-tokenised copy).
+ *   Defaults to `text`; `regexConfig`: Merged shield/local config ({enabled, scope, action,
+ *   rulesWithNames}); `scope`: Which scope flag to honour ('userInput' | 'agentOutput' | ...); `emit`:
+ *   (type, data) => void — onEvent (agent) / send (route); `audit`: Base fields for logGuardrailEvent.
+ *   Omit to skip the audit row (the direct-chat path deliberately does not log regex events);
+ *   `direction`: Audit direction ('input' | 'output'). Default 'input'
  * @returns {{action:'pass'|'redact'|'block', processedText:string, ruleNames:(string|null)}}
  */
 function applyRegexGuardrails({ text, redactBase, regexConfig, scope, emit, audit, direction = 'input' }) {

@@ -60,7 +60,7 @@ function createSkillActivationHandler({
         skillApps.allowedApps.push(...newApps);
         try {
             const { getIntegrationTools } = require('../../integrations/integrationTools');
-            const fresh = await getIntegrationTools(/** @type {any} */ ({
+            const fresh = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({
                 userId,
                 session: userAuth?.session,
                 isAdmin: userAuth?.session?.user?.isAdmin || false,

@@ -29,13 +29,11 @@ const { _providerForApp } = require('./connectionLending');
  * never throws, and returns a NEW object — the caller decides whether to write
  * it back (`PUT` does, `getForRuntime` uses it for this turn only).
  *
- * @param {object} config                 the agent config (not mutated)
- * @param {object} [opts]
- * @param {string} [opts.agentId]         the lend grant's resource id
- * @param {string} [opts.ownerId]         the agent owner (the grantor)
- * @param {Set<string>|null} [opts.lentProviders]  providers with a live lend
- *   grant for this agent. Pass null/undefined and every `actAs:'owner'` is
- *   downgraded — fail closed, because "I could not check" is not "yes".
+ * @param {{ tools?: unknown, [key: string]: unknown } | null | undefined} config  the agent config (not mutated)
+ * @param {{ agentId?: string, ownerId?: string, lentProviders?: Set<string>|null }} [opts] `agentId`:
+ *   the lend grant's resource id; `ownerId`: the agent owner (the grantor); `lentProviders`: providers
+ *   with a live lend grant for this agent. Pass null/undefined and every `actAs:'owner'` is downgraded
+ *   — fail closed, because "I could not check" is not "yes"
  * @returns {{tools: object|null, warnings: string[], changed: boolean}}
  */
 function normaliseToolsConfig(config, opts = {}) {
