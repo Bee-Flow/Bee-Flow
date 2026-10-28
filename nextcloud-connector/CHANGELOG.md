@@ -9,6 +9,17 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-10-28
+
+### Security
+- **Request handling is updated to body-parser 2.4.0 and qs 6.16.1.** Both fix ways in which a specially crafted request could keep the connector busy.
+
+### Fixed
+- **"Clear organisation cache" on the setup page now reports the name of the Bee Flow organisation the connector is linked to.** The name in its result was always empty.
+
+### Changed
+- **The connector's log lines share one structured format**, so they are easier to search and to send to a log system.
+
 ## [1.6.3] - 2026-10-21
 
 ### Security
