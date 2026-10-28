@@ -74,9 +74,19 @@ one_batch() {
   echo "-- tests"
   nearby_tests > "$WORK/$label.tests.txt"
   if [ -s "$WORK/$label.tests.txt" ]; then
-    if ! (cd server && NODE_ENV=test node --test $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.txt" 2>&1); then
-      grep -E "^# (tests|pass|fail)" "$WORK/$label.testrun.txt" | tr '\n' ' ' | tee -a "$LOG"; echo "tests failed: reverting" | tee -a "$LOG"; git checkout -- server; return 4; fi
+    (cd server && NODE_ENV=test node --test $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.txt" 2>&1)
     grep -E "^# (tests|pass|fail)" "$WORK/$label.testrun.txt" | tr '\n' ' ' | tee -a "$LOG"; echo
+    if grep -qE '^not ok' "$WORK/$label.testrun.txt"; then
+      # A test that fails on HEAD as well (one that needs Postgres, say) is not this round's
+      # doing: the same files run once more on the untouched tree, and only a failure that is
+      # new counts. The round's edits wait in a stash meanwhile.
+      grep -E '^not ok' "$WORK/$label.testrun.txt" | sed -E 's/^not ok [0-9]+ - //' | sort > "$WORK/$label.failed.txt"
+      git stash push -q -- server && (cd server && NODE_ENV=test node --test $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.head.txt" 2>&1); git stash pop -q
+      grep -E '^not ok' "$WORK/$label.testrun.head.txt" | sed -E 's/^not ok [0-9]+ - //' | sort > "$WORK/$label.failed.head.txt"
+      local new; new=$(comm -23 "$WORK/$label.failed.txt" "$WORK/$label.failed.head.txt")
+      if [ -n "$new" ]; then echo "tests failed that pass on HEAD: reverting" | tee -a "$LOG"; echo "$new" | head -5 | tee -a "$LOG"; git checkout -- server; return 4; fi
+      echo "$(wc -l < "$WORK/$label.failed.head.txt") test(s) fail on HEAD too (not this round's): ignored" | tee -a "$LOG"
+    fi
   fi
   echo "-- ratchets and check:fast"
   node scripts/count-ratchet.mjs jsdoc-loose-type server > "$WORK/$label.loose.txt" 2>&1 || { tail -1 "$WORK/$label.loose.txt" | tee -a "$LOG"; echo "loose-type ratchet rose: reverting" | tee -a "$LOG"; git checkout -- server; return 5; }
