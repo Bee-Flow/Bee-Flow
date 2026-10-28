@@ -13,16 +13,19 @@
 /**
  * Build a parameterized UPDATE.
  *
- * @param {object} p
- * @param {string} p.table                  Table name (a literal from the call site).
- * @param {Record<string, unknown>} [p.updates]  jsKey → value; only keys present in columnMap are used.
- * @param {Record<string, ColumnSpec>} [p.columnMap]  jsKey → 'db_col' | { col, cast?:'jsonb', transform?:(v)=>v }.
- * @param {Array<{ col: string, value: unknown }>} [p.where]  AND-joined; cols are call-site literals.
- * @param {Array<string>} [p.extraSet]      verbatim SET fragments (e.g. 'updated_at = NOW()', 'version = version + 1').
- *                                          Only appended when ≥1 mapped column changed.
- * @param {boolean} [p.quoteCols]           double-quote SET/WHERE column identifiers (userStore family).
- * @param {string | null} [p.returning]     RETURNING clause body (e.g. '*').
- * @param {number}  [p.startIdx]            first placeholder index (default 1).
+ * @param {{
+ *   table: string, updates?: Record<string, unknown>, columnMap?: Record<string, ColumnSpec>,
+ *   where?: Array<{ col: string, value: unknown }>, extraSet?: Array<string>, quoteCols?: boolean,
+ *   returning?: string | null, startIdx?: number,
+ * }} p
+ *   table: Table name (a literal from the call site).
+ *   updates: jsKey → value; only keys present in columnMap are used.
+ *   columnMap: jsKey → 'db_col' | { col, cast?:'jsonb', transform?:(v)=>v }.
+ *   where: AND-joined; cols are call-site literals.
+ *   extraSet: verbatim SET fragments (e.g. 'updated_at = NOW()', 'version = version + 1'). Only appended when ≥1
+ *     mapped column changed.
+ *   quoteCols: double-quote SET/WHERE column identifiers (userStore family).
+ *   returning: RETURNING clause body (e.g. '*'). startIdx: first placeholder index (default 1).
  * @returns {{ sql: string, params: unknown[] } | null}  null when no mapped column changed.
  */
 function buildUpdate({ table, updates = {}, columnMap = {}, where = [], extraSet = [], quoteCols = false, returning = null, startIdx = 1 }) {

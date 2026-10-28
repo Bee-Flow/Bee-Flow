@@ -62,7 +62,7 @@ function settingsWithTabs(settings, tabs) {
 
 /**
  * Create-time rules for a spreadsheet; the caller has established the type.
- * @param {any} input  the document being validated, mutated in place
+ * @param {import('../documentStore').DocumentInput} input  the document being validated, mutated in place
  * @param {(message: string) => Error} failure
  */
 function applySheetRules(input, failure) {

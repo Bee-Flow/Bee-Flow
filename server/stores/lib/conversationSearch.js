@@ -26,7 +26,7 @@ const log = require('../../telemetry/log');
 // require from here would pull this file into it.
 
 /**
- * @typedef {object} ConversationSearchSpec
+ * @typedef ConversationSearchSpec
  * @property {string} table           conversation table (agent_conversations | direct_conversations)
  * @property {'agent'|'direct'} kind  title AAD type
  * @property {string} cols            leading row columns, before messages_json / messages_migrated
@@ -38,7 +38,7 @@ const log = require('../../telemetry/log');
  */
 
 /**
- * @typedef {object} ConversationSearchDeps
+ * @typedef ConversationSearchDeps
  * @property {(sql: string, params: any[]) => Promise<any[]>} getAll
  * @property {(args: { userId: string, encryptionKey: any }) => Promise<any>} resolveCrypto
  * @property {(stored: any, id: string, type: string, ctx: any) => any} openTitle
@@ -72,7 +72,7 @@ const DIRECT_SEARCH = {
  * @param {string} userId
  * @param {string} query
  * @param {{ agentId?: string, startDate?: string, endDate?: string }} filters
- * @param {any} encryptionKey
+ * @param {string | Buffer | null | undefined} encryptionKey  the caller's session DEK, if any
  * @returns {Promise<{ results: any[], searchCtx: any }>}
  */
 async function searchConversationRows(spec, deps, userId, query, filters, encryptionKey) {

@@ -19,7 +19,7 @@
  * - A string → JSON.parse, or `fallback` on parse error.
  * - null/undefined/other → `v ?? fallback`.
  * @param {*} v
- * @param {*} [fallback]
+ * @param {unknown} [fallback]
  */
 function parseJSON(v, fallback) {
     if (Array.isArray(v) || (typeof v === 'object' && v !== null)) return v;
@@ -32,8 +32,8 @@ function parseJSON(v, fallback) {
 /**
  * As parseJSON, but a column that yields a bare scalar gets the fallback: the
  * caller asked for an object or an array and a number is not one.
- * @param {*} v
- * @param {*} [fallback]
+ * @param {unknown} v
+ * @param {unknown} [fallback]
  */
 function parseJSONObject(v, fallback) {
     if (Array.isArray(v) || (typeof v === 'object' && v !== null)) return v;
@@ -57,7 +57,7 @@ function fromJsonb(v) {
  * Parse a JSON string, returning `fallback` on any error. Unlike parseJSON this
  * does NOT object/array-passthrough — it always attempts JSON.parse.
  * @param {string} s
- * @param {*} [fallback]
+ * @param {unknown} [fallback]
  */
 function safeParse(s, fallback) {
     try { return JSON.parse(s); } catch { return fallback; }

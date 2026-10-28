@@ -30,7 +30,7 @@ class CollabStoreError extends Error {
     }
 }
 
-/** @param {string | number | Date} v */
+/** @param {string | number | Date | null} v */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 /** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
@@ -47,7 +47,7 @@ function toBuffer(v) {
 /**
  * A document row. Blobs (`snapshot`, `checkpointSnapshot`) are included only
  * when the query selected them, still sealed.
- * @param {any} r
+ * @param {DbRow.CollabDocs | null | undefined} r
  */
 function rowToDoc(r) {
     if (!r) return null;

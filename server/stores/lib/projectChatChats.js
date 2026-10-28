@@ -120,7 +120,7 @@ function makeChatReads(db, ready) {
  *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
- * @param {Function} getChat
+ * @param {ReturnType<typeof makeChatReads>['getChat']} getChat
  */
 function makeChatWrites(db, ready, getChat) {
     /**

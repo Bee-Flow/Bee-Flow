@@ -42,7 +42,7 @@ const arr = (v) => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : []
 /**
  * A DATE column as 'YYYY-MM-DD'. node-postgres builds a DATE as local
  * midnight, a TIMESTAMPTZ as an instant; strings pass through.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function dayString(v) {
@@ -71,7 +71,7 @@ function dayString(v) {
 
 /**
  * A TIMESTAMPTZ as its exact ISO string (the notice version), or null.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function isoInstant(v) {
@@ -90,7 +90,7 @@ function setAndNotFuture(v, now) {
 
 /**
  * An https URL of at most 500 characters, else null.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function httpsUrl(v) {
@@ -140,7 +140,7 @@ function normScope(scope) {
 
 /**
  * Does the consent's scope cover what is (or would be) counted?
- * @param {any} scope
+ * @param {unknown} scope
  * @param {{ surfaces: string[], signals: string[], retentionDays: number }} wanted
  */
 function scopeCovers(scope, { surfaces, signals, retentionDays }) {
