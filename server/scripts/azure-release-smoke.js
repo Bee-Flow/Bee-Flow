@@ -45,7 +45,8 @@ async function main() {
         queryParameters: { 'api-version': '2024-11-30', outputContentFormat: 'markdown' },
     });
     assert.equal(initial.status, '202');
-    const poller = await documentSdk.getLongRunningPoller(documents, initial);
+    // PollerLike extends Promise<TResult>: awaiting it would hand back the final response, not the poller.
+    const poller = documentSdk.getLongRunningPoller(documents, initial);
     const analyzed = await poller.pollUntilDone({ abortSignal: AbortSignal.timeout(180000) });
     assert.match(analyzed.body.analyzeResult.content, /Bee Flow/i);
     const speech = require('microsoft-cognitiveservices-speech-sdk');
