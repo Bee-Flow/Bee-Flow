@@ -8,7 +8,7 @@
  * The real router and the real tenant resolver (connectorJwt) run; only the
  * config store is an in-memory map.
  *
- * Run: cd server && node --test auth/connectorRotateKey.test.js
+ * Run: cd server && node --test auth/connector/rotateKey.test.js
  */
 
 const test = require('node:test');
@@ -16,9 +16,9 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const express = require('express');
 
-const configStore = require('../stores/configStore');
-const userStore = require('../stores/userStore');
-const { _resolveTenant, invalidateTenantKeyCache } = require('./connectorJwt');
+const configStore = require('../../stores/configStore');
+const userStore = require('../../stores/userStore');
+const { _resolveTenant, invalidateTenantKeyCache } = require('../connectorJwt');
 
 const PREFIX = 'connector_tenant_key_';
 const OLD_KEY = 'old-tenant-key-for-org1-32-bytes-xx';
@@ -32,7 +32,7 @@ configStore.getSecretFresh = async (k) => secrets[k] || null;
 configStore.setSecret = async (k, v) => { secrets[k] = v || null; };
 userStore.logAccessAudit = async (...args) => { audits.push(args); };
 
-const router = require('./connectorBootstrap');
+const router = require('../connectorBootstrap');
 
 /**
  * @param {Record<string, unknown>} payload
