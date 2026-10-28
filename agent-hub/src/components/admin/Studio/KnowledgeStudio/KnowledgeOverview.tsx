@@ -2,6 +2,7 @@ import { CircleAlert, Loader2, Plus, Search } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { freshnessOf, TONE, type FreshnessKb } from './freshness';
 import { knowledgeApi, type KbSuggestion, type KbUsageSummary, type KnowledgeBase } from './knowledgeApi';
+import { sharedGroupsOf } from './sharedGroups';
 import { nOf } from './plural';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';
@@ -239,7 +240,7 @@ function KbRow({ t, rel, kb, categoryName, usage, onOpen }: KbRowProps) {
 
 /** "persoonlijk" · "organisatie" · "groepen X, Y" — the same words as the capsule. */
 function audienceWord(t: TranslateFn, kb: KnowledgeBase) {
-    const groups = Array.isArray(kb.shared_groups) ? kb.shared_groups : [];
+    const groups = sharedGroupsOf(kb);
     if (groups.length > 0) return t('visibility.groups', 'Groups').toLowerCase();
     if (kb.is_published) return t('visibility.entire_org', 'Entire organisation').toLowerCase();
     return t('visibility.personal', 'Personal').toLowerCase();
