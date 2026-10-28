@@ -29,6 +29,7 @@ const { ocsSucceeded } = require('./ocs');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { singleFlight } = require('./singleFlight');
 
 /**
  * Is this caller presenting the AppAPI shared secret?
@@ -327,13 +328,29 @@ async function registerEmbedScript() {
 // "Sync now", Deck stays on the activity poller, and Talk is handled by the
 // Talk-bot webhook rather than an event subscription.
 async function registerEventListeners() {
-    const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
     const { registerTalkBot } = require('./talkBot');
-    const { registerTaskProcessing } = require('./taskProcessing');
-    const { registerFilesActions } = require('./filesActions');
     // Independent of the webhook registration: Talk bots are a different
     // mechanism with a different failure mode (Talk simply not installed).
     await registerTalkBot().catch(err => log.warn(`[Init] Talk bot registration failed: ${errMessage(err)}`));
+    await registerTenantKeyDependents();
+    log.info('[Init] Real-time user/group sync is not available via webhooks '
+        + '(Nextcloud\'s User/Group events are not webhook-compatible); the periodic '
+        + 'sync backstop and manual "Sync now" remain in use.');
+}
+
+// The registrations that need a tenant key: the Assistant (Task Processing)
+// providers, the Files actions and the webhook rows (whose secret derives from
+// the key). They run from /init and again every time a key becomes active
+// (bootstrap.onTenantKeyReady): a key that arrives after boot (an emailed code
+// entered later, a pairing code, a Bee Flow server that was down at boot) used
+// to leave Nextcloud with no Bee Flow provider and no Files entries until a
+// restart, and a CHANGED key left every webhook row sending the old secret.
+// Coalesced: a call during a run for the same key joins it.
+const registerTenantKeyDependents = singleFlight(async () => {
+    if (!config.tenantKey) return;
+    const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
+    const { registerTaskProcessing } = require('./taskProcessing');
+    const { registerFilesActions } = require('./filesActions');
     await registerTaskProcessing().catch(err => log.warn(`[Init] Task Processing registration failed: ${errMessage(err)}`));
     // AppAPI mounts its Files plugin only if some ExApp has registered a file
     // action, so this call is what puts Bee Flow in the right-click menu at all.
@@ -343,14 +360,13 @@ async function registerEventListeners() {
         return { ok: false };
     });
     if (!result.ok) {
-        // Bootstrap may still be in flight, or the admin may not have enabled
-        // webhook_listeners yet. Keep trying quietly in the background.
+        // The admin may not have enabled webhook_listeners yet. Keep trying
+        // quietly in the background.
         startRetry();
     }
-    log.info('[Init] Real-time user/group sync is not available via webhooks '
-        + '(Nextcloud\'s User/Group events are not webhook-compatible); the periodic '
-        + 'sync backstop and manual "Sync now" remain in use.');
-}
+}, () => config.tenantKey);
+
+require('./bootstrap').onTenantKeyReady(registerTenantKeyDependents);
 
 // Reports init progress to AppAPI. Spec: PUT /ocs/v2.php/apps/app_api/ex-app/status
 // with `{progress: 0-100, error?: string}`. AppAPI's `waitInitStepFinish`
@@ -379,6 +395,7 @@ async function reportInitProgress(percent, errorMessage) {
 module.exports = {
     registerLifecycle,
     runInitInBackground,
+    registerTenantKeyDependents,
     registerTopMenu,
     registerEmbedScript,
     INIT_UNTRUSTED_LIMIT,

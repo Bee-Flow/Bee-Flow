@@ -98,7 +98,7 @@ const { errMessage, errCode, errText } = require('./errors');
  * @property {string} error
  * @property {string | null} remediation
  * @property {string} lastAttemptAt
- * @property {string} nextRetryAt
+ * @property {string | null} nextRetryAt  null when no automatic retry is scheduled
  */
 
 const CACHE_FILE = 'tenant-key.json';
@@ -107,6 +107,12 @@ const ERROR_FILE = 'bootstrap-last-error.json';
 const POLL_INTERVAL_MS = 30_000;
 const POLL_JITTER_MS = 5_000;
 const POLL_GRACE_AFTER_EXPIRY_MS = 5 * 60_000;
+// A failed first bootstrap (Bee Flow server down, egress blocked, DNS not
+// ready) is retried on its own: AppAPI only calls /init on install and
+// upgrade, so without this the connector stayed keyless until a restart.
+// First delay, doubling per failure up to BOOTSTRAP_RETRY_MAX_MS; 0 = off.
+const BOOTSTRAP_RETRY_MS = parseInt(process.env.BEEFLOW_BOOTSTRAP_RETRY_MS || '60000', 10);
+const BOOTSTRAP_RETRY_MAX_MS = 15 * 60_000;
 
 /**
  * @returns {Promise<TenantCache | null>}
@@ -535,6 +541,75 @@ function armTaskPolling() {
     }
 }
 
+// Everything that needs a tenant key and was skipped without one (Assistant
+// providers, Files actions, webhook rows whose secret derives from the key)
+// subscribes here. Fired every time a key becomes active: at boot from the
+// cache, after a provision, an email verification, a pairing code, a server
+// switch or a rotation. Listeners run in the background and must be
+// idempotent; heartbeat.js coalesces its registrations.
+/** @type {Array<() => unknown>} */
+const _tenantKeyListeners = [];
+
+/** @param {() => unknown} listener */
+function onTenantKeyReady(listener) {
+    _tenantKeyListeners.push(listener);
+}
+
+function tenantKeyReady() {
+    stopBootstrapRetry();
+    armTaskPolling();
+    for (const listener of _tenantKeyListeners) {
+        try {
+            Promise.resolve(listener()).catch(err => log.warn(`[Bootstrap] tenant-key listener failed: ${errMessage(err)}`));
+        } catch (err) {
+            log.warn(`[Bootstrap] tenant-key listener failed: ${errMessage(err)}`);
+        }
+    }
+}
+
+/** @type {NodeJS.Timeout | null} */
+let _bootstrapRetryTimer = null;
+let _bootstrapRetryAttempts = 0;
+
+function stopBootstrapRetry() {
+    if (_bootstrapRetryTimer) clearTimeout(_bootstrapRetryTimer);
+    _bootstrapRetryTimer = null;
+    _bootstrapRetryAttempts = 0;
+}
+
+// A rejection that will not change by asking again (bad pairing code,
+// provisioning closed, signature refused) waits for the admin instead.
+/** @param {unknown} err */
+function isRetryableBootstrapError(err) {
+    const status = err instanceof Error ? err.status : undefined;
+    return !status || status >= 500 || status === 408 || status === 429;
+}
+
+/** @param {unknown} err */
+function scheduleBootstrapRetry(err) {
+    if (_bootstrapRetryTimer || config.tenantKey || !config.isAutoTenantKey) return;
+    if (!(BOOTSTRAP_RETRY_MS > 0) || !isRetryableBootstrapError(err)) {
+        if (lastErrorState) {
+            lastErrorState = { ...lastErrorState, nextRetryAt: null };
+            writeErrorFile(lastErrorState).catch(() => {});
+        }
+        return;
+    }
+    const delay = Math.min(BOOTSTRAP_RETRY_MS * 2 ** _bootstrapRetryAttempts, BOOTSTRAP_RETRY_MAX_MS);
+    _bootstrapRetryAttempts += 1;
+    if (lastErrorState) {
+        lastErrorState = { ...lastErrorState, nextRetryAt: new Date(Date.now() + delay).toISOString() };
+        writeErrorFile(lastErrorState).catch(() => {});
+    }
+    _bootstrapRetryTimer = setTimeout(() => {
+        _bootstrapRetryTimer = null;
+        if (config.tenantKey || pendingState?.status === 'awaiting_email_verification') return;
+        log.info(`[Bootstrap] retrying the bootstrap (attempt ${_bootstrapRetryAttempts + 1})`);
+        bootstrapIfNeeded().catch(e => log.warn(`[Bootstrap] retry failed: ${errMessage(e)}`));
+    }, delay);
+    _bootstrapRetryTimer.unref?.();
+}
+
 /**
  * @param {SaasBootstrapResponse} json
  * @param {string | undefined} ncInstanceId
@@ -561,7 +636,7 @@ async function applyTenantKeyResponse(json, ncInstanceId) {
     });
     await deletePendingFile();
     pendingState = null;
-    armTaskPolling();
+    tenantKeyReady();
 }
 
 // Poll the SaaS for an approved binding. Spawned in the background when the
@@ -730,6 +805,7 @@ function bootstrapIfNeeded() {
     if (_bootstrapInFlight) return _bootstrapInFlight;
     _bootstrapInFlight = (async () => {
         try { return await _provisionFlow(); }
+        catch (err) { scheduleBootstrapRetry(err); throw err; }
         finally { _bootstrapInFlight = null; }
     })();
     return _bootstrapInFlight;
@@ -761,7 +837,7 @@ async function _provisionFlow() {
         }
         await clearErrorFile();
         log.info(`[Bootstrap] Loaded cached tenant key for org ${cached.organizationId}`);
-        armTaskPolling();
+        tenantKeyReady();
         return;
     }
 
@@ -924,6 +1000,7 @@ async function _provisionFlow() {
         try { parsed = JSON.parse(errBody); } catch (_) { /* not JSON */ }
         const msg = parsed?.error || errBody.slice(0, 200);
         const e = new Error(`Bootstrap rejected by SaaS (HTTP ${res.status}): ${msg}`);
+        e.status = res.status;
         if (parsed?.code) e.code = parsed.code;
         if (parsed?.remediation) e.remediation = parsed.remediation;
         await recordBootstrapError(e, 'saas_post', { remediation: parsed?.remediation });
@@ -1076,6 +1153,7 @@ async function requestVerificationCode({ uid, email, displayName }) {
 
 module.exports = {
     bootstrapIfNeeded,
+    onTenantKeyReady,
     fetchCapabilities,
     getPendingState,
     getLastErrorState,
