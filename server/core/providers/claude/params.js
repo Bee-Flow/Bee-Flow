@@ -93,7 +93,7 @@ function stripUnsupportedSchemaKeywords(node) {
     return out;
 }
 
-/** @param {any} provider @param {string} model @param {any} [options] */
+/** @param {import('../claude')} provider @param {string} model @param {import('../claude').ClaudeOptions} [options] */
 function buildThinking(provider, model, options = {}) {
     if (!provider.supportsReasoning(model)) return undefined;
 
@@ -119,7 +119,7 @@ function buildThinking(provider, model, options = {}) {
     return { thinking: { type: "adaptive", display: THINKING_DISPLAY }, effort };
 }
 
-/** @param {any} provider @param {string} model @param {any[]} messages @param {any} [options] */
+/** @param {import('../claude')} provider @param {string} model @param {any[]} messages @param {any} [options] */
 function buildSdkParams(provider, model, messages, options = {}) {
     // Resolved first: whether thinking is on decides whether stored
     // thinking blocks are worth replaying into the history at all.

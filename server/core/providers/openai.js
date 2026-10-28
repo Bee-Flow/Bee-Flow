@@ -51,12 +51,10 @@ class OpenAIProvider extends BaseProvider {
 
     /**
      * @param {string} apiKey
-     * @param {object} [options]
-     * @param {string} [options.baseUrl] - custom endpoint. Used for proxies and
-     *   for EU regional processing (https://eu.api.openai.com/v1). Ignoring it
-     *   would silently send EU-configured traffic to the US endpoint.
-     * @param {boolean} [options.euResidency] - force the EU endpoint even when
-     *   the provider record still carries the default URL.
+     * @param {{ baseUrl?: string, euResidency?: boolean }} [options] `baseUrl`: custom endpoint. Used
+     *   for proxies and for EU regional processing (https://eu.api.openai.com/v1). Ignoring it would
+     *   silently send EU-configured traffic to the US endpoint; `euResidency`: force the EU endpoint
+     *   even when the provider record still carries the default URL
      */
     createClient(apiKey, options = {}) {
         // The CJS build exports the class itself; the .d.ts only declares it as `default`.

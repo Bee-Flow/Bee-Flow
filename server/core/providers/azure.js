@@ -155,9 +155,8 @@ class AzureProvider extends OpenAIProvider {
 
     /**
      * @param {string} apiKey
-     * @param {object} [options]
-     * @param {string} [options.baseUrl] - the resource endpoint from AI Settings → Providers
-     * @param {string} [options.endpoint] - same, older spelling
+     * @param {{ baseUrl?: string, endpoint?: string }} [options] `baseUrl`: the resource endpoint from
+     *   AI Settings → Providers; `endpoint`: same, older spelling
      */
     createClient(apiKey, options = {}) {
         const endpoint = options.baseUrl || options.endpoint || process.env.AZURE_OPENAI_ENDPOINT;

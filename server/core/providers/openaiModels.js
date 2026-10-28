@@ -586,25 +586,10 @@ module.exports = {
  *                          than derived, because the discount is NOT uniform:
  *                          0.1x on the GPT-5/5.6/6 line, 0.25x on o4-mini,
  *                          0.5x on o3-mini.
- * @typedef {object} OpenAIModelEntry
- * @property {string} [name]
- * @property {string} [cat]
- * @property {string} [family]
- * @property {string} [desc]
- * @property {number} [context]
- * @property {number} [maxInput]
- * @property {number} [maxOutput]
- * @property {readonly string[] | null} [efforts]
- * @property {string | null} [defaultEffort]
- * @property {boolean} [vision]
- * @property {boolean} [tools]
- * @property {boolean} [toolsRequireResponses]
- * @property {boolean} [audio]
- * @property {boolean} [temperature]
- * @property {boolean} [verbosity]
- * @property {string} [cacheTtlParam]
- * @property {{ input: number, cachedInput: number, output: number }} [price]
- * @property {string} [cutoff]
- * @property {string} [released]
- * @property {{ sunset: string, replacement: string }} [deprecated]
+ * @typedef {{ name?: string, cat?: string, family?: string, desc?: string, context?: number,
+ *   maxInput?: number, maxOutput?: number, efforts?: readonly string[] | null, defaultEffort?: string | null,
+ *   vision?: boolean, tools?: boolean, toolsRequireResponses?: boolean, audio?: boolean,
+ *   temperature?: boolean, verbosity?: boolean, cacheTtlParam?: string,
+ *   price?: { input: number, cachedInput: number, output: number }, cutoff?: string, released?: string,
+ *   deprecated?: { sunset: string, replacement: string } }} OpenAIModelEntry
  */
