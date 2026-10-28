@@ -90,14 +90,16 @@ export async function pairNextcloud(target: string, deps: PairingDeps): Promise<
 /** The part of `fetch` the hand-over needs; the main window's session provides it. */
 export type SessionFetch = (
     url: string,
-    init: { method: string; headers: Record<string, string>; body?: string },
+    init: { method: string; headers: Record<string, string>; body?: string; credentials: 'include' },
 ) => Promise<{ ok: boolean; status: number; json?: () => Promise<unknown> }>;
 
 /**
  * Hand the app password to the user's own Bee Flow server.
  *
  * The request rides the main window's session, so it carries the user's
- * existing sign-in and no separate token is needed.
+ * existing sign-in and no separate token is needed. `credentials: 'include'`
+ * is what makes it carry the sign-in: Electron's session fetch sends the
+ * session's cookies only when asked to.
  */
 export async function sendAppPasswordToServer(credential: LoginFlowCredential, base: string, fetch: SessionFetch, log: Pick<PairingLog, 'warn'>): Promise<boolean> {
     try {
@@ -105,6 +107,7 @@ export async function sendAppPasswordToServer(credential: LoginFlowCredential, b
             method: 'POST',
             headers: { 'Content-Type': 'application/json', [CLIENT_HEADER]: CLIENT_KIND },
             body: JSON.stringify({ username: credential.loginName, password: credential.appPassword, url: credential.server }),
+            credentials: 'include',
         });
         if (!response.ok) {
             log.warn('Nextcloud', `the Bee Flow server refused the app password (HTTP ${response.status})`);
@@ -126,6 +129,7 @@ export async function fetchServerNextcloudUrl(base: string, fetch: SessionFetch,
         const response = await fetch(joinServerUrl(base, '/auth/app-password-status'), {
             method: 'GET',
             headers: { [CLIENT_HEADER]: CLIENT_KIND },
+            credentials: 'include',
         });
         if (!response.ok || !response.json) return null;
         const body = await response.json();
