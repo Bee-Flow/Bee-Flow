@@ -40,14 +40,11 @@ const log = require('../../telemetry/log');
  * Run the agent runtime's input-PII passage over `messages` when the org has
  * opted in. Mutates the last user message on a masking action.
  *
- * @param {object} opts
- * @param {string|null} opts.orgId  The ALREADY-resolved effective org
- *   (executeTask's userOrgForTier, the compose route's userOrgId). Callers
- *   never resolve a second time for this check.
- * @param {string|null} opts.userId The owner; doubles as the token-vault id,
- *   mirroring the agent path's `userAuth.userId`.
- * @param {Array<{role:string, content:any}>} opts.messages The outbound
- *   message array; the last entry is the user input to scan.
+ * @param {{ orgId: string|null, userId: string|null, messages: Array<{role:string, content:any}> }} opts
+ *   `orgId`: The ALREADY-resolved effective org (executeTask's userOrgForTier, the compose route's
+ *   userOrgId). Callers never resolve a second time for this check; `userId`: The owner; doubles as the
+ *   token-vault id, mirroring the agent path's `userAuth.userId`; `messages`: The outbound message array;
+ *   the last entry is the user input to scan
  * @returns {Promise<{tokenizedText:string, tokenMap:Object, entities:Array<unknown>}|null>}
  *   The masking result when PII was tokenized (the message is already
  *   rewritten); null when nothing was masked or the shield did not apply.

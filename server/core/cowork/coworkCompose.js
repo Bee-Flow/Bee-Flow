@@ -124,19 +124,12 @@ function titleFromBrief(brief) {
  * support — is dropped.
  */
 /**
- * @typedef {object} ModelSpec  what the model replied; every field is untrusted
- * @property {string} [agentId]
- * @property {string} [agentQuote]
- * @property {string} [repeatInterval]
- * @property {unknown} [daysOfWeek]
- * @property {string} [timeOfDay]
- * @property {string} [title]
- * @property {string} [prompt]
+ * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
+ *   timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
+ *   what the model replied; every field is untrusted
  */
 /**
- * @typedef {object} ComposeOpts
- * @property {string} [brief]
- * @property {{ id: string, name?: string, description?: string }[]} [agents]
+ * @typedef {{ brief?: string, agents?: { id: string, name?: string, description?: string }[] }} ComposeOpts
  */
 
 /**
