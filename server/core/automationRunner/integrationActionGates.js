@@ -158,18 +158,19 @@ module.exports = { assertStepToolPermitted, resolveLendingIdentity, resolveDurab
 
 /**
  * What execAi.js hands the integration-action modules (its integrationActionDeps).
- * @typedef {object} IntegrationActionDeps
- * @property {typeof import('./safety')} safety
- * @property {typeof import('./integrationCachePolicy').envFlagOn} envFlagOn
- * @property {typeof import('./shared').isEmptyToolResult} isEmptyToolResult
- * @property {typeof import('./shared').isToolErrorResult} isToolErrorResult
- * @property {typeof import('./shared').isEnvironmentToolError} isEnvironmentToolError
- * @property {typeof import('./shared').enrichNextcloudError} enrichNextcloudError
- * @property {typeof import('./shared').stepInputsSynthetic} stepInputsSynthetic
- * @property {() => typeof import('./integrationCachePolicy')} integrationCachePolicy
- * @property {() => typeof import('../tools/toolDispatcher')} toolDispatcher
- * @property {() => typeof import('../integrations/integrationTools')} integrationTools
- * @property {() => typeof import('../integrations/connectionResolution')} connectionResolution
+ * @typedef {{
+ *   safety: typeof import('./safety'),
+ *   envFlagOn: typeof import('./integrationCachePolicy').envFlagOn,
+ *   isEmptyToolResult: typeof import('./shared').isEmptyToolResult,
+ *   isToolErrorResult: typeof import('./shared').isToolErrorResult,
+ *   isEnvironmentToolError: typeof import('./shared').isEnvironmentToolError,
+ *   enrichNextcloudError: typeof import('./shared').enrichNextcloudError,
+ *   stepInputsSynthetic: typeof import('./shared').stepInputsSynthetic,
+ *   integrationCachePolicy: () => typeof import('./integrationCachePolicy'),
+ *   toolDispatcher: () => typeof import('../tools/toolDispatcher'),
+ *   integrationTools: () => typeof import('../integrations/integrationTools'),
+ *   connectionResolution: () => typeof import('../integrations/connectionResolution'),
+ * }} IntegrationActionDeps
  */
 
 /**

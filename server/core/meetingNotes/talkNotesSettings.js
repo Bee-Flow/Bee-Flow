@@ -210,4 +210,6 @@ module.exports = {
  *   insightsPerPersonStats?: boolean | null }} TalkNotesPatch
  */
 
-/** @typedef {{ orgId?: string | null, userId?: string | null }} ResolveTalkNotesSettingsArgs */
+/**
+ * @typedef {{ orgId?: string | null, userId?: string | null }} ResolveTalkNotesSettingsArgs
+ */

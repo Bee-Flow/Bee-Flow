@@ -58,7 +58,7 @@ function maxErrors() {
 /**
  * Every concrete place a field path points at: `items[].category` over a list
  * of three gives `items[0].category` … `items[2].category`.
- * @param {any} obj
+ * @param {unknown} obj
  * @param {string} field
  * @returns {Array<{ path: string, keys: Array<string|number>, value: any }>}
  */

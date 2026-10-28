@@ -18,7 +18,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * @param {Buffer} buffer - Raw file content
  * @param {string} mimeType - File MIME type
  * @param {string} filename - Original filename (for logging / headers)
- * @param {Object} [options] - Parsing options (e.g. returnHtml)
+ * @param {{ returnHtml?: boolean }} [options] - Parsing options
  * @returns {Promise<string>} Extracted text content
  */
 async function parseDocument(buffer, mimeType, filename, options = {}) {

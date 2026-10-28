@@ -175,7 +175,8 @@ function supportsParallelToolCalls(effort) {
  *
  * A caller can still force a retention explicitly via `promptCacheRetention`.
  *
- * @returns {object} params to merge into the request body (may be empty)
+ * @returns {{ prompt_cache_options?: { ttl: string }, prompt_cache_retention?: string }} params to merge into the
+ *   request body (may be empty)
  * @param {string} model
  */
 function cacheTtlParams(model, options = {}) {

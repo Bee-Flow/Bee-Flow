@@ -72,7 +72,10 @@ function categoryTableDigest() {
     return _catTableDigest;
 }
 
-/** @typedef {{ text: string, categories?: string[] | undefined, threshold: number | undefined, engineFingerprint: string, scope?: string | undefined }} ScanKeyArgs */
+/**
+ * @typedef {{ text: string, categories?: string[] | undefined, threshold: number | undefined,
+ *   engineFingerprint: string, scope?: string | undefined }} ScanKeyArgs
+ */
 /**
  * @param {ScanKeyArgs} param0
  */

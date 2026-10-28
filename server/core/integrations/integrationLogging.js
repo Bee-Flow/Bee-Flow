@@ -108,7 +108,9 @@ async function _orgForUser(userId) {
     return orgId;
 }
 
-/** @typedef {{ toolName?: string | null, userId: unknown, orgId: unknown, session: unknown }} _resolveIntegrationCtxArgs */
+/**
+ * @typedef {{ toolName?: string | null, userId: unknown, orgId: unknown, session: unknown }} _resolveIntegrationCtxArgs
+ */
 /**
  * @param {_resolveIntegrationCtxArgs} param0
  */
@@ -187,35 +189,25 @@ function _stringifyPayload(toolArgs, result) {
 /**
  * Log one outbound tool call. Returns immediately; all I/O is detached.
  *
- * @param {object} o
- * @param {string}  o.toolName
- * @param {object}  [o.toolArgs]
- * @param {*}       [o.result]        Tool result (scanned when monitoring is on).
- * @param {Error|string} [o.error]    Marks the row status 'error'.
- * @param {boolean} [o.blocked]       Marks the row status 'blocked' (guardrail refusal).
- * @param {object}  [o.probe]         outboundProbe snapshot: `peers` plus the legacy
- *                                    single-destination fields (see outboundProbe.js).
- * @param {string}  o.source          'agent_stream' | 'direct_chat' | 'automation'.
- * @param {string}  [o.model]
- * @param {number}  [o.durationMs]    Wall-clock around the tool dispatch.
- * @param {object}  o.ids             organization_id, user_id, agent_id, agent_name,
- *                                    conversation_id, automation_id, run_id, step_id,
- *                                    acting_user_id, connection_id, grant_id.
- * @param {boolean} [o.isDryRun]
- * @param {boolean} [o.servedFromCache] The answer was replayed from the durable
- *                                    response cache — the row is kept (the org
- *                                    does use this processor) but flagged, so
- *                                    the Art-44 transfer count can exclude it.
- * @param {object}  [o.shield]        Pre-resolved shield/policy. When ABSENT the
- *                                    org's shield config is fetched (chat paths).
- *                                    Shape: { monitorIntegrations, piiDetectionConfidenceThreshold }.
- * @param {object}  [o.session]       Express session (Nextcloud base URL).
- * @param {Function}[o.fullScan]      async (text, threshold) → {hasPii, entities}|null.
- *                                    Overrides the default single-call GLiNER scan
- *                                    (chatStream reuses its pre-scan; automations
- *                                    scan in windows).
- * @param {object}  [o.preResolvedMeta] resolveIntegration output, when the caller
- *                                    already has one WITH ctx applied.
+ * @param {{ toolName: string, toolArgs?: unknown, result?: unknown, error?: Error|string, blocked?: boolean,
+ *   probe?: unknown, source: string, model?: string | null, durationMs?: number,
+ *   ids: Record<string, unknown>, isDryRun?: boolean, servedFromCache?: boolean,
+ *   shield?: { monitorIntegrations?: boolean, piiDetectionConfidenceThreshold?: number }, session?: Express.Session,
+ *   fullScan?: (text: string, threshold?: number) => Promise<{ hasPii?: boolean, entities?: unknown[] } | null>,
+ *   preResolvedMeta?: Record<string, unknown> | null }} o
+ *   `result`: Tool result (scanned when monitoring is on); `error`: Marks the row status 'error';
+ *   `blocked`: Marks the row status 'blocked' (guardrail refusal); `probe`: outboundProbe snapshot:
+ *   `peers` plus the legacy single-destination fields (see outboundProbe.js); `source`: 'agent_stream'
+ *   | 'direct_chat' | 'automation'; `durationMs`: Wall-clock around the tool dispatch; `ids`:
+ *   organization_id, user_id, agent_id, agent_name, conversation_id, automation_id, run_id, step_id,
+ *   acting_user_id, connection_id, grant_id; `servedFromCache`: The answer was replayed from the
+ *   durable response cache — the row is kept (the org does use this processor) but flagged, so the
+ *   Art-44 transfer count can exclude it; `shield`: Pre-resolved shield/policy. When ABSENT the org's
+ *   shield config is fetched (chat paths). Shape: { monitorIntegrations,
+ *   piiDetectionConfidenceThreshold }; `session`: Express session (Nextcloud base URL); `fullScan`:
+ *   async (text, threshold) → {hasPii, entities}|null. Overrides the default single-call GLiNER scan
+ *   (chatStream reuses its pre-scan; automations scan in windows); `preResolvedMeta`:
+ *   resolveIntegration output, when the caller already has one WITH ctx applied
  */
 function logToolEgress(o) {
     // Stringify synchronously: callers mutate tool results after this call

@@ -20,6 +20,8 @@ const { buildJsonLd } = require('./jsonld');
 const { buildPublicPath } = require('./publicPath');
 const { buildFontsHead } = require('./fonts');
 
+/** @typedef {import('../../stores/cms/shared').CmsDoc} CmsDoc */
+
 // Search engines truncate around these; the numbers are a budget, not a rule.
 // Kept identical to the counters in the editor (SeoSection.jsx) so authors
 // never see a title survive the editor and still get clamped here.
@@ -42,21 +44,18 @@ function absolute(origin, urlOrPath) {
 }
 
 /**
- * @param {object} ctx
- * @param {string} ctx.origin      e.g. https://beeflow.nl (no trailing slash)
- * @param {string} ctx.slug        '' for the homepage
- * @param {string} ctx.locale      the locale being served
- * @param {string} ctx.defaultLocale
- * @param {string[]} ctx.locales   every locale the site publishes
- * @param {any} ctx.page        the resolved CMS page
- * @param {any} ctx.design      site design (favicon, logo)
- * @param {string} ctx.siteName
- * @param {string} [ctx.ogType]          'website' (default) or 'article' (blog post)
- * @param {any} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
- * @param {any[]} [ctx.extraJsonLd]   extra graph nodes (BlogPosting, Blog)
- * @param {Array<{ name: string, path: string }>} [ctx.breadcrumbTrail] replaces the Home › page crumbs
- * @param {string[]} [ctx.extraLinks]    pre-built <link> tags (the blog's RSS alternate)
- * @param {string} [ctx.shareImageVersion] publish-time token: pages without an og:image get the generated card (/api/cms/og/…)
+ * @param {{ origin: string, slug: string, locale: string, defaultLocale: string, locales: string[],
+ *   page: CmsDoc, design: CmsDoc, siteName: string, ogType?: string,
+ *   article?: { publishedTime: string, modifiedTime: string, author: string, tags?: string[] },
+ *   extraJsonLd?: any[], breadcrumbTrail?: Array<{ name: string, path: string }>, extraLinks?: string[],
+ *   shareImageVersion?: string }} ctx
+ *   `origin`: e.g. https://beeflow.nl (no trailing slash); `slug`: '' for the homepage; `locale`: the
+ *   locale being served; `locales`: every locale the site publishes; `page`: the resolved CMS page;
+ *   `design`: site design (favicon, logo); `ogType`: 'website' (default) or 'article' (blog post);
+ *   `article`: → article:* tags; `extraJsonLd`: extra graph nodes (BlogPosting, Blog);
+ *   `breadcrumbTrail`: replaces the Home › page crumbs; `extraLinks`: pre-built <link> tags (the blog's
+ *   RSS alternate); `shareImageVersion`: publish-time token: pages without an og:image get the
+ *   generated card (/api/cms/og/…)
  * @returns {string} tags to splice into <head>
  */
 function buildHead(ctx) {

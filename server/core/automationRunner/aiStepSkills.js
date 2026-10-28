@@ -96,13 +96,11 @@ function skillOutputSchema(skill) {
 /**
  * The schema this step answers in, and where it came from.
  *
- * @param {object} args
- * @param {*}        args.stepSchema     `step.outputSchema` (wins when set)
- * @param {object|null} args.skillSchema the leading skill's schema (skillOutputSchema)
- * @param {string[]} args.inferredFields fields later steps read off this step
- * @param {object|null} [args.inferredSchema] the JSON Schema those reads imply
- *   (aiOutputInference.inferAiStepOutputSchema): nested records and lists,
- *   so a field read as `a.b[0].c` is not asked for as text
+ * @param {{ stepSchema?: SchemaLike, skillSchema?: object|null, inferredFields?: string[], inferredSchema?: object|null }} [args]
+ *   `stepSchema` is `step.outputSchema` (wins when set); `skillSchema` the leading skill's schema
+ *   (skillOutputSchema); `inferredFields` the fields later steps read off this step; `inferredSchema`
+ *   the JSON Schema those reads imply (aiOutputInference.inferAiStepOutputSchema): nested records
+ *   and lists, so a field read as `a.b[0].c` is not asked for as text
  * @returns {{ schema: object|null, source: 'step'|'skill'|'inferred'|null, declared: boolean }}
  *   `declared` is true when the author (or the skill) promised the shape, so a
  *   prose answer is a failure rather than something to wrap.

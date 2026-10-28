@@ -341,8 +341,8 @@ async function upload(g, file, buffer, { ifMatch = null, contentType = null } = 
 }
 
 /**
- * @param {object} cred
- * @param {object} [ctx]
+ * @param {import('../../../../../integrations/msGraphClient').MsSession} cred
+ * @param {unknown} [ctx]  unused (the FileApi signature)
  */
 function makeApi(cred, ctx = {}) {
     void ctx;

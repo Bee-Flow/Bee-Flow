@@ -71,11 +71,9 @@ function buildReportBody({ type, websiteId, window: w, timezone = 'UTC', filters
 }
 
 /**
- * @param {object} deps
- * @param {{ getConfig: Function }} deps.configStore
- * @param {{ isConfigured: Function, KEY_URL: string }} deps.umamiClient
- * @param {() => Promise<string|null>} deps.getLiveSiteId
- * @param {RegExp} deps.siteIdRe
+ * @param {{ configStore: { getConfig: Function },
+ *   umamiClient: { isConfigured: Function, KEY_URL: string },
+ *   getLiveSiteId: () => Promise<string|null>, siteIdRe: RegExp }} deps
  */
 function createAnalyticsQueries({ configStore, umamiClient, getLiveSiteId, siteIdRe }) {
     /** @param {string} key */

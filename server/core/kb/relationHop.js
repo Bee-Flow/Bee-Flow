@@ -301,16 +301,11 @@ function applyToAnchor(anchor, fwd, rev, present, limits, stats) {
  * Expand the table-row hits among `results` by one hop, in place.
  *
  * @param {Array<any>} results  retrieval rows, after `enrichWithDocumentFacts`
- * @param {object} opts
- * @param {string[]} opts.kbIds
- * @param {string}   [opts.query]      the question, for text ranking
- * @param {string}   [opts.vectorStr]  its embedding as a pgvector literal, for vector ranking
- * @param {Function} [opts.getClient]  test seam
- * @param {any}   [opts.limits]     test seam
- * @param {any}   [opts.log]        test seam
+ * @param {ExpandOptions} opts  `query` is the question, for text ranking; `vectorStr` its embedding as a
+ *   pgvector literal, for vector ranking; getClient, limits and log are test seams
  * @returns {Promise<{anchors:number, forward:number, reverse:number}>}
  */
-async function expandRelations(results, opts = /** @type {any} */ ({})) {
+async function expandRelations(results, opts = /** @type {ExpandOptions} */ ({})) {
     const limits = { ...LIMITS, ...(opts.limits || {}) };
     const log = opts.log || ((m) => telemetryLog.info(`[LocalKBSearch] ${m}`));
     const kbIds = Array.isArray(opts.kbIds) ? opts.kbIds.filter(Boolean).map(String) : [];
@@ -356,6 +351,11 @@ module.exports = {
 };
 
 /** @typedef {typeof LIMITS} HopLimits */
+
+/**
+ * @typedef {{ kbIds: string[], query?: string, vectorStr?: string, getClient?: typeof import('../../db').getClient,
+ *   limits?: Partial<typeof LIMITS>, log?: (message: string) => void }} ExpandOptions
+ */
 
 /** @typedef {{ column: string | null, table: string, rowId: string, label: string | null }} ForwardTarget */
 

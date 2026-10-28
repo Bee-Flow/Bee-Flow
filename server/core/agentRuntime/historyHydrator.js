@@ -163,9 +163,8 @@ async function attachmentsToContentBlocks(attachments, userId) {
  * pass `skipLast: false` to hydrate every message.
  *
  * @param {Array}   messages - Message array being built for the LLM
- * @param {object}  [opts]
- * @param {string}  [opts.userId]   - Needed for lazy base64→RustFS fallback
- * @param {boolean} [opts.skipLast=true] - Leave the final message alone
+ * @param {{ userId?: string, skipLast?: boolean }} [opts] `userId`: Needed for lazy base64→RustFS
+ *   fallback; `skipLast`: Leave the final message alone (default true)
  * @returns {Promise<Array>} the same `messages` array (mutated)
  */
 async function hydrateHistoryAttachments(messages, opts = {}) {

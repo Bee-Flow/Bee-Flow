@@ -188,7 +188,7 @@ async function readTextOrThrowOversize(resp, { byteCap, what, envName }) {
      */
     const tooBig = (size) => {
         const e = new Error(`${what} is too large to index (${size}; limit ${(byteCap / 1048576).toFixed(0)} MB). An admin can raise the limit with the ${envName} environment variable (0 = no limit).`);
-        /** @type {any} */ (e).oversize = true;
+        /** @type {Error & { oversize?: boolean }} */ (e).oversize = true;
         return e;
     };
     if (byteCap === Infinity) return resp.text();

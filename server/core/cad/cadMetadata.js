@@ -117,7 +117,7 @@ function capSummary(text) {
 
 /**
  * @param {string} text
- * @param {object} meta
+ * @param {Record<string, unknown>} meta
  * @returns {{ kind: 'text', text: string, source: 'cad', meta: object }}
  */
 function result(text, meta) {

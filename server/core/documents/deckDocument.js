@@ -85,24 +85,28 @@ function deckFromDocument(doc, values = null, { sectionOverrides = {} } = {}) {
 }
 
 /**
+ * @typedef {{ document: import('../../stores/documentStore').DocumentView, values?: any|null, format?: 'pptx'|'pdf'|'html',
+ *   orgId?: string|null, marking?: any|null, resolveImage?: ((ref: unknown) => Promise<string|null>) | null,
+ *   draft?: { bodyHtml?: unknown, settings?: Record<string, unknown> } | null,
+ *   sectionOverrides?: Record<string, any>, assertFilled?: boolean }} RenderDeckArgs
+ */
+
+/**
  * Render a presentation document.
  *
- * @param {object} args
- * @param {any}  args.document   a documentStore document (docType 'presentation')
- * @param {any|null} [args.values]  placeholder values; null = render the outline as written
- * @param {'pptx'|'pdf'|'html'} [args.format]  html = the on-screen slide viewer
- * @param {string|null} [args.orgId]   whose house style
- * @param {any|null} [args.marking] AI-content marking, or null
- * @param {Function} [args.resolveImage] how image references become bytes (presentationRenderer.makeUserImageResolver)
- * @param {any} [args.draft]  unsaved settings to preview with (the editor's look tab), merged over the stored ones
- * @param {Record<string, any>} [args.sectionOverrides]  per-section overrides for this render
- * @param {boolean} [args.assertFilled]  refuse to render with unfilled required placeholders (default true)
+ * @param {RenderDeckArgs} [args]  `document` is a documentStore document (docType 'presentation');
+ *   `values` the placeholder values (null = render the outline as written); `format` html = the
+ *   on-screen slide viewer; `orgId` whose house style; `marking` the AI-content marking, or null;
+ *   `resolveImage` how image references become bytes (presentationRenderer.makeUserImageResolver);
+ *   `draft` unsaved settings to preview with (the editor's look tab), merged over the stored ones;
+ *   `sectionOverrides` per-section overrides for this render; `assertFilled` refuses to render
+ *   with unfilled required placeholders (default true)
  * @returns {Promise<any>} presentationRenderer's result plus `fill` and `deck`
  */
 async function renderDeckDocument({
     document: doc, values = null, sectionOverrides = {}, format = 'pptx', orgId = null, marking = null,
     resolveImage = null, draft = null, assertFilled = true,
-} = /** @type {any} */ ({})) {
+} = /** @type {RenderDeckArgs} */ ({})) {
     const source = draft && typeof draft === 'object'
         ? { ...doc, ...(typeof draft.bodyHtml === 'string' ? { bodyHtml: draft.bodyHtml } : {}), settings: { ...(doc.settings || {}), ...(draft.settings || {}) } }
         : doc;
@@ -134,17 +138,12 @@ function deckDocumentUrl(id) {
  * rebuilt later. Best effort: the file the caller made already exists, and a
  * library hiccup must not turn "here is your deck" into an error.
  *
- * @param {object} args
- * @param {string} [args.userId]  the library owner
- * @param {string} [args.title]
- * @param {string} [args.description]
- * @param {string} [args.source]
- * @param {any} args.deck      a normalised deck (renderPresentation returns it)
- * @param {any} [args.theme]   the per-deck look overrides it was built with
- * @param {boolean} [args.houseStyle]  false = built without the house style
+ * @param {KeepDeckArgs} [args]  `userId` is the library owner; `deck` a normalised deck (renderPresentation
+ *   returns it); `theme` the per-deck look overrides it was built with; `houseStyle` false = built
+ *   without the house style
  * @returns {Promise<{documentId:string, url:string, name:string}|null>}
  */
-async function keepDeckInLibrary({ userId, deck, title = '', theme = null, houseStyle = true, description = '', source = '' } = /** @type {any} */ ({})) {
+async function keepDeckInLibrary({ userId, deck, title = '', theme = null, houseStyle = true, description = '', source = '' } = /** @type {KeepDeckArgs} */ ({})) {
     if (!userId || !deck) return null;
     try {
         const { deckToMarkdown } = require('./deckModel');
@@ -166,5 +165,10 @@ async function keepDeckInLibrary({ userId, deck, title = '', theme = null, house
         return null;
     }
 }
+
+/**
+ * @typedef {{ userId?: string, title?: string, description?: string, source?: string,
+ *   deck: ReturnType<typeof import('./deckModel').normalizeDeck>, theme?: object | null, houseStyle?: boolean }} KeepDeckArgs
+ */
 
 module.exports = { DECK_DOC_TYPE, isDeckDocument, deckOverridesOf, deckFromDocument, renderDeckDocument, keepDeckInLibrary, deckDocumentUrl };

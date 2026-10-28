@@ -69,19 +69,16 @@ function isProjectFilesKb(kb, project) {
 /**
  * The bases a MEMBER may search in one of the project's chats.
  *
- * @param {any} project  getProject() shape: knowledgeBaseIds, filesKbId, organizationId
- * @param {object} p
- * @param {(ids: string[]) => Promise<string[]>} p.filterAttached
- *        the asker's own filter for the attached bases (visibleKbIdsFor,
- *        filterKbIdsForUser, ...). Called with the files base taken out.
- * @param {boolean} [p.includeFiles=true]
- *        false where the asker is not a real member, e.g. a "Test as · group"
- *        preview: a simulated group member is nobody's colleague.
- * @param {{ kbStore?: { getKB: (id: string) => Promise<any> } }} [p.deps]
+ * @param {{ id?: string, knowledgeBaseIds?: unknown, filesKbId?: unknown, organizationId?: string | null } | null} project
+ *   getProject() shape: knowledgeBaseIds, filesKbId, organizationId
+ * @param {SearchableArgs} p  `filterAttached` is the asker's own filter for the attached bases
+ *   (visibleKbIdsFor, filterKbIdsForUser, ...), called with the files base taken out; `includeFiles`
+ *   (default true) is false where the asker is not a real member, e.g. a "Test as · group" preview:
+ *   a simulated group member is nobody's colleague.
  * @returns {Promise<string[]>} the files base first (when kept), then the
  *          attached bases that survived the asker's filter, in stored order
  */
-async function searchableProjectKbIds(project, { filterAttached, includeFiles = true, deps = {} } = /** @type {any} */ ({})) {
+async function searchableProjectKbIds(project, { filterAttached, includeFiles = true, deps = {} } = /** @type {SearchableArgs} */ ({})) {
     if (!project) return [];
     const filesKbId = filesKbIdOf(project);
     const stored = Array.isArray(project.knowledgeBaseIds) ? project.knowledgeBaseIds : [];
@@ -116,3 +113,8 @@ module.exports = {
     isProjectFilesKb,
     searchableProjectKbIds,
 };
+
+/**
+ * @typedef {{ filterAttached: (ids: string[]) => Promise<string[]>, includeFiles?: boolean,
+ *   deps?: { kbStore?: { getKB: (id: string) => Promise<any> } } }} SearchableArgs
+ */

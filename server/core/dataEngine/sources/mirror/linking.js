@@ -32,12 +32,9 @@ const log = require('../../../../telemetry/log');
 /**
  * Create every planned mirror, EMPTY, in its own transaction.
  *
- * @param {object} args
- * @param {{kind,id}} args.scope
- * @param {object} args.principal            { userId }
- * @param {string} args.KIND                 the managed kind
- * @param {Array}  args.plans                [{ key, name, description, … }]
- * @param {(plan:object) => object} args.sourceFor   the `source` block for a plan
+ * @param {{ scope: {kind,id}, principal: { userId: string }, KIND: string, plans: Array, sourceFor: (plan:object) => object }} args
+ *   `principal`: { userId }; `KIND`: the managed kind; `plans`: [{ key, name, description, … }];
+ *   `sourceFor`: the `source` block for a plan
  * @returns {Promise<{ created: Array<{plan, table}>, partial: boolean, warnings: string[] }>}
  *   throws when the FIRST table fails (nothing made yet: the route answers the error itself)
  */
@@ -159,13 +156,12 @@ async function kickFirstSyncs(scope, tables, syncRows, TAG) {
  * everything. A target may be a mirror of another kind — `siblingsOf` lists
  * every mirror in the scope — but never one in another scope.
  *
- * @param {object} datatable
+ * @param {{ id: string, scope: { kind: 'org'|'user', id: string }, source?: { relations?: Array<{ kind?: string }>, [key: string]: unknown } }} datatable
  * @param {Array} relations  [{ targetDatatableId, localFieldId, targetFieldId }]
- * @param {object} deps
- * @param {(scope) => Promise<{byId:Map}>} deps.siblingsOf
- * @param {(targetId, localFieldId, targetFieldId) => string} deps.matchFieldIdFor
- * @param {Function} deps.Err            the kind's SourceError class
- * @param {string} deps.rejectedCode     the kind's "did not accept this" code
+ * @param {{ siblingsOf: (scope) => Promise<{byId:Map}>,
+ *   matchFieldIdFor: (targetId, localFieldId, targetFieldId) => string,
+ *   Err: new (status: number, code: string, message: string) => Error, rejectedCode: string }} deps
+ *   `Err`: the kind's SourceError class; `rejectedCode`: the kind's "did not accept this" code
  */
 async function setRelations(datatable, relations, { siblingsOf, matchFieldIdFor, Err, rejectedCode }) {
     const scope = datatable.scope;

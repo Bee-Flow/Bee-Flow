@@ -109,9 +109,8 @@ function textReason(text, terms) {
 /**
  * Find the marks on one page.
  * @param {Record<string, any>} page       analyzePage() output
- * @param {object} [opts]
- * @param {string[]} [opts.terms]       normalised customer terms (user-given + derived)
- * @param {Map<number,string>} [opts.aiMarks]  object id → category the AI assigned
+ * @param {{ terms?: string[], aiMarks?: Map<number,string> }} [opts] `terms`: normalised customer terms
+ *   (user-given + derived); `aiMarks`: object id → category the AI assigned
  * @returns {{ marks: Array<{id: number, category: string, text?: string}>, blocked: Array<{id: number, category: string, text?: string}> }}
  */
 function detectMarks(page, { terms = [], aiMarks = new Map() } = {}) {

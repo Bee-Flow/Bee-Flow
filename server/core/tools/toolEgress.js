@@ -33,15 +33,10 @@ function defaultLogToolEgress(o) {
 
 /**
  * The part of the dispatch context the egress row reads.
- * @typedef {object} ToolEgressContext
- * @property {false | { source?: string, model?: string | null, isDryRun?: boolean, ids?: Record<string, unknown> }} [egress]  `false`: not a transfer anyone asked for
- * @property {string | null} [askerUserId]
- * @property {string | null} [userId]
- * @property {string | null} [orgId]
- * @property {string | null} [agentId]
- * @property {string | null} [conversationId]
- * @property {string | null} [automationId]
- * @property {Express.Session | null} [session]
+ * `egress`: `false`: not a transfer anyone asked for.
+ * @typedef {{ egress?: false | { source?: string, model?: string | null, isDryRun?: boolean, ids?: Record<string, unknown> },
+ *   askerUserId?: string | null, userId?: string | null, orgId?: string | null, agentId?: string | null,
+ *   conversationId?: string | null, automationId?: string | null, session?: Express.Session | null }} ToolEgressContext
  */
 
 /**

@@ -71,7 +71,7 @@ function isSpreadsheetName(name) {
 
 /**
  * @param {string} name  one of PROVIDERS
- * @returns {object} the provider module
+ * @returns {typeof import('./googleDrive') | typeof import('./oneDrive') | typeof import('./nextcloudFiles')} the provider module
  * @throws {Error} for a name outside PROVIDERS (a programming error, not a user one)
  */
 function providerFor(name) {

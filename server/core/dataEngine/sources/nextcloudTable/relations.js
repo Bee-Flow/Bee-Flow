@@ -36,7 +36,7 @@ function labelFieldFor(rel, target) {
 
 /**
  * @param {{kind:string,id:string}} scope
- * @param {object} source    the mirror's `source` (relations + columnMap)
+ * @param {Parameters<typeof mirror.buildRelationIndexes>[1]} source    the mirror's `source` (relations + columnMap)
  * @returns {Promise<{ relationIndexes:Map<string, Map<string, string>>, labelIndexes:Map<string, Map<string, string|null>>, warnings:string[] }>}
  */
 function buildRelationIndexes(scope, source) {

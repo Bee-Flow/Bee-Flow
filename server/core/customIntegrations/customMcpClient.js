@@ -361,10 +361,9 @@ async function getPooledClient(integration, mcp, secretObject, userId, connectio
  * cap-enforce them, disconnect. Used by the builder's review/test step
  * (works on the WORKING definition copy).
  *
- * @param {object} integration   shaped org_custom_integrations row (kind='mcp_remote')
- * @param {object} [opts]
- * @param {object|null} [opts.secretObject]  decrypted credential for the auth header;
- *                                           null probes unauthenticated
+ * @param {McpIntegration} integration   shaped org_custom_integrations row (kind='mcp_remote')
+ * @param {{ secretObject?: SecretObject }} [opts]
+ *   `secretObject`: decrypted credential for the auth header; null probes unauthenticated
  * @returns {Promise<{ tools: Array<{name,description,inputSchema}>, warnings: string[] }>}
  */
 async function discoverTools(integration, { secretObject = null } = {}) {
@@ -393,9 +392,9 @@ async function discoverTools(integration, { secretObject = null } = {}) {
  * the org connection's credential, reusing a pooled connection, and
  * returning scrubbed text capped at MAX_RESULT_CHARS.
  *
- * @param {any} integration  shaped row; the ACTIVATED definition is preferred
+ * @param {McpIntegration} integration  shaped row; the ACTIVATED definition is preferred
  * @param {string} rawToolName  remote tool name, or the prefixed cint_<slug>_<name>
- * @param {object} args         tool arguments (already schema-checked upstream)
+ * @param {Record<string, unknown>} args         tool arguments (already schema-checked upstream)
  * @param {string} userId       running user (pool identity + BYO resolution)
  */
 async function callTool(integration, rawToolName, args, userId) {

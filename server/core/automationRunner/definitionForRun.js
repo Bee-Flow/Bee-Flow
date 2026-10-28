@@ -87,7 +87,13 @@ function withWorkingSettings(live, working) {
     return out;
 }
 
-/** @typedef {{ mode?: string | undefined, triggerKind?: string | null | undefined, isTest?: boolean | undefined }} IsTestRunArgs */
+/**
+ * @typedef {{
+ *   mode?: string | undefined,
+ *   triggerKind?: string | null | undefined,
+ *   isTest?: boolean | undefined,
+ * }} IsTestRunArgs
+ */
 /**
  * True when this run executes the working copy.
  * @param {IsTestRunArgs} [param0]

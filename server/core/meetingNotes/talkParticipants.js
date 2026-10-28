@@ -32,13 +32,11 @@
 /**
  * The participant count that can be established WITHOUT an extra Talk call.
  *
- * @param {object} p
- * @param {any|null} p.room      a row from `nextcloud_talk_list_rooms`
- * @param {any|null} p.meeting   the calendar appointment (talkCalendar), or null
- * @param {string} p.autoRecordScope 'calendar' | 'all'
+ * @param {CountArgs} p  `room` is a row from `nextcloud_talk_list_rooms`; `meeting` the calendar
+ *   appointment (talkCalendar), or null; `autoRecordScope` 'calendar' | 'all'
  * @returns {number|null} the count, or null if it cannot be known from here
  */
-function knownParticipantCount({ room = null, meeting = null, autoRecordScope = 'calendar' } = /** @type {any} */ ({})) {
+function knownParticipantCount({ room = null, meeting = null, autoRecordScope = 'calendar' } = /** @type {CountArgs} */ ({})) {
     const meetingPrefs = require('../../stores/meetingPrefsStore');
 
     // 1. The calendar — but only if the engine looks at it too.
@@ -54,5 +52,7 @@ function knownParticipantCount({ room = null, meeting = null, autoRecordScope = 
 
     return null;
 }
+
+/** @typedef {{ room?: any|null, meeting?: any|null, autoRecordScope?: string }} CountArgs */
 
 module.exports = { knownParticipantCount };

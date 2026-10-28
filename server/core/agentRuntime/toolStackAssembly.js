@@ -96,7 +96,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
             const session = userAuth?.session;
-            const integrationResult = await getIntegrationTools(/** @type {any} */ ({
+            const integrationResult = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({
                 userId,
                 session,
                 isAdmin: session?.user?.isAdmin || false,

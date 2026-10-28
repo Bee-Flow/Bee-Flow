@@ -249,7 +249,7 @@ function makeSheetImport(deps = {}) {
                 } catch (e) {
                     // The document exists and owns the first table: keep it
                     // with that one tab and give the others back.
-                    const err = /** @type {any} */ (e);
+                    const err = /** @type {Error | null | undefined} */ (e);
                     log.warn(`[sheetImport] tabs could not be saved, kept the first one: ${err?.message}`);
                     for (const id of tableIds.slice(1)) await cells().dropSheetTable(userId, id).catch((/** @type {unknown} */ e) => bestEffort('core/documents/sheetImport:importWorkbook', e));
                     tableIds.length = 1;

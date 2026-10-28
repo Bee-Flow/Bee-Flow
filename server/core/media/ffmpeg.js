@@ -37,16 +37,10 @@ function getFfmpegPath() {
 /**
  * Argument list for a single-input audio conversion to a file.
  *
- * @param {object} o
- * @param {string} o.input
- * @param {string} o.output
- * @param {number} [o.channels]       `-ac`
- * @param {number} [o.sampleRate]     `-ar`
- * @param {string} [o.codec]          `-acodec`
- * @param {string[]} [o.filters]      joined into one `-filter:a`
- * @param {string} [o.format]         `-f`
- * @param {number} [o.durationSec]    `-t` (hard clip)
- * @param {string[]} [o.outputOptions] appended verbatim before the target
+ * @param {{ input: string, output: string, channels?: number, sampleRate?: number, codec?: string,
+ *   filters?: string[], format?: string, durationSec?: number, outputOptions?: string[] }} o
+ *   `channels`: `-ac`; `sampleRate`: `-ar`; `codec`: `-acodec`; `filters`: joined into one `-filter:a`;
+ *   `format`: `-f`; `durationSec`: `-t` (hard clip); `outputOptions`: appended verbatim before the target
  * @returns {string[]}
  */
 function buildAudioArgs({ input, output, channels, sampleRate, codec, filters, format, durationSec, outputOptions }) {

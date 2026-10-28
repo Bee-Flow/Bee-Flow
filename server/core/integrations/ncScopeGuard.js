@@ -202,7 +202,8 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
  * caller usually holds a session and not an org id, and dropping the org
  * ceiling would quietly enforce only half the scope.
  *
- * @param {Function} run  invoked only if the call is allowed
+ * @template T
+ * @param {() => Promise<T>} run  invoked only if the call is allowed
  * @returns the executor's result, filtered — or the structured denial
  */
 async function guardedNcCall(toolName, toolArgs, /** @type {{ userId: string, session?: import('../entitlements/entitlementTypes').SessionLike | null, orgId?: string | null, agentId?: string | null }} */ { userId, session = null, orgId = null, agentId = null }, run) {

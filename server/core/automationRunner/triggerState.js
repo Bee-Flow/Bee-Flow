@@ -41,13 +41,14 @@ function scheduleMeta(schedule, enteredTrigger) {
 }
 
 /**
- * @param {object} opts
- * @param {object|null} opts.enteredTrigger  the trigger node the run entered through (resolveEnteredTrigger)
- * @param {string}      opts.triggerKind     how the run was dispatched: manual | manual_step | dry_run | schedule | app_event | webhook | form | agent_call | studio_app …
- * @param {*}           opts.triggerPayload  the raw payload (becomes `output`; `{}` when absent)
- * @param {object|null} opts.triggerHeaders  webhook/form headers (ride at `headers`, never inside output)
- * @param {object|null} opts.schedule        the secondary-schedule row that fired ({ id, cron, tz, scheduledFor }), if any
- * @param {number}      opts.startedAt       epoch ms the run started
+ * @param {{ enteredTrigger?: object|null, triggerKind?: string, triggerPayload?: unknown,
+ *   triggerHeaders?: object|null, schedule?: object|null, startedAt?: number }} [opts]
+ *   `enteredTrigger`: the trigger node the run entered through (resolveEnteredTrigger); `triggerKind`: how
+ *   the run was dispatched: manual | manual_step | dry_run | schedule | app_event | webhook | form |
+ *   agent_call | studio_app …; `triggerPayload`: the raw payload (becomes `output`; `{}` when absent);
+ *   `triggerHeaders`: webhook/form headers (ride at `headers`, never inside output); `schedule`: the
+ *   secondary-schedule row that fired ({ id, cron, tz, scheduledFor }), if any; `startedAt`: epoch ms the
+ *   run started
  */
 function buildTriggerState({
     enteredTrigger = null, triggerKind = 'manual', triggerPayload = null,

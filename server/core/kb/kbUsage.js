@@ -36,7 +36,7 @@ const KINDS = Object.freeze(['agent', 'automation', 'app', 'webpage', 'project',
 
 /**
  * @param {string} name
- * @param {any} [client]
+ * @param {typeof pool} [client]
  */
 async function tableExists(name, client) {
     try {
@@ -145,8 +145,7 @@ const SCANS = Object.freeze({
  * Who uses this knowledge base?
  *
  * @param {string} kbId
- * @param {object} [opts]
- * @param {any} [opts.db]    injection seam for the tests
+ * @param {{ db?: typeof pool }} [opts]  `db` is an injection seam for the tests
  * @returns {Promise<{ rows: Array<{ kind: string, id: string, title: string | null, role: string, ownerId: string | null, lastAt: Date | string | null }>, partial: string[] }>}
  *          `partial` names the kinds that could NOT be answered — a table that
  *          is absent, or a query that failed. A caller must treat a non-empty

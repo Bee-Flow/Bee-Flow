@@ -49,20 +49,16 @@ const MAX_ROUNDS = 200;
  * Does NOT remove the SOURCE itself: that is a decision of the caller, and it should only be taken
  * once `complete` is true.
  *
- * @param {object} p
- * @param {any} p.kbStore                stores/knowledgeBases (or a double)
- * @param {Function} p.deleteDocumentChunks core/kb/kbIngestionHelpers.deleteDocumentChunks
- * @param {string} p.kbId                   knowledge base in which the source sits
- * @param {string} p.sourceId               `kb_sources.id`
- * @param {string} p.tenantId               owner of the knowledge base (`knowledge_bases.tenant_id`)
- * @param {number} [p.pageSize=200]         documents per round
- * @param {number} [p.maxRounds=200]        hard upper bound on the number of rounds
+ * @param {PurgeSourceArgs} p  `kbStore` is stores/knowledgeBases (or a double); `deleteDocumentChunks`
+ *   core/kb/kbIngestionHelpers.deleteDocumentChunks; `kbId` the knowledge base in which the source sits;
+ *   `sourceId` the `kb_sources.id`; `tenantId` the owner of the knowledge base (`knowledge_bases.tenant_id`);
+ *   `pageSize` documents per round (default 200); `maxRounds` a hard upper bound on the rounds (default 200)
  * @returns {Promise<{deleted: number, errors: Array<{documentId: string, error: string}>, complete: boolean}>}
  */
 async function purgeSourceDocuments({
     kbStore, deleteDocumentChunks, kbId, sourceId, tenantId,
     pageSize = PAGE, maxRounds = MAX_ROUNDS,
-} = /** @type {any} */ ({})) {
+} = /** @type {PurgeSourceArgs} */ ({})) {
     // Without the two, nothing can be cleaned up. Throw instead of an empty-and-done answer:
     // the latter would let the caller remove the source while not a single chunk has gone yet.
     if (!kbStore || typeof kbStore.listDocuments !== 'function') {
@@ -119,3 +115,9 @@ async function purgeSourceDocuments({
 }
 
 module.exports = { purgeSourceDocuments, PAGE, MAX_ROUNDS };
+
+/**
+ * @typedef {{ kbStore: Partial<typeof import('../../stores/knowledgeBases')>,
+ *   deleteDocumentChunks: typeof import('./kbReingest').deleteDocumentChunks, kbId: string, sourceId: string,
+ *   tenantId: string, pageSize?: number, maxRounds?: number }} PurgeSourceArgs
+ */

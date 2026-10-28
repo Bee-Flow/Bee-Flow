@@ -65,7 +65,7 @@ const DEFAULTS = Object.freeze({
 
 /**
  * @param {{ on: (arg0: string, arg1: () => void) => void; }} req
- * @param {any} res
+ * @param {import('http').ServerResponse} res
  * @param {{
  *   cursor: number,
  *   head: () => Promise<number>,
@@ -97,9 +97,9 @@ async function openCursorStream(req, res, opts) {
     const closeHandlers = [];
     /** @type {Array<() => void>} */
     const drainHandlers = [];
-    /** @type {any} */
+    /** @type {ReturnType<typeof setTimeout> | null} */
     let pollTimer = null;
-    /** @type {any} */
+    /** @type {ReturnType<typeof setInterval> | null} */
     let recheckTimer = null;
     /** @type {() => void} */
     let stopHeartbeat = () => {};

@@ -178,7 +178,7 @@ async function readAiReuse(plan) {
  * the organisation's policy without the 30 second memo first: invalidation is
  * in-process only, so a replica that has not seen "switch it off" would
  * otherwise refill the table behind the admin.
- * @param {any} plan
+ * @param {Awaited<ReturnType<typeof planAiReuse>>} plan
  * @param {{ answer: { content: string|null, structured: object|null }, userId?: string }} args
  */
 function rememberAiAnswer(plan, { answer, userId }) {

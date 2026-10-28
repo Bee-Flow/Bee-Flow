@@ -154,12 +154,12 @@ async function describe(session, principal, scope, { provider, fileId, driveId =
 /**
  * Link one or more sheets as mirrors in `scope`.
  *
- * @param {object} args
- * @param {{kind,id}} args.scope
- * @param {object} args.principal   resolveDatatablePrincipal's answer (userId, orgId)
- * @param {object} args.session     the caller's request session
- * @param {Array}  args.tables      [{ provider, fileId, driveId?, path?, sheet?, headerRow?, keyColumn?, columns?, sharedWriteOptIn?, name?, key?, description? }]
- * @param {Array}  [args.relations] [{ from:{provider,fileId,sheet,col}, to:{provider,fileId,sheet,col} }]
+ * @param {{ scope: {kind,id}, principal: Awaited<ReturnType<typeof import('../../../../auth/datatableAccess').resolveDatatablePrincipal>>,
+ *   session: Express.Session, tables: Array, relations?: Array }} args
+ *   `principal`: resolveDatatablePrincipal's answer (userId, orgId); `session`: the caller's request
+ *   session; `tables`: [{ provider, fileId, driveId?, path?, sheet?, headerRow?, keyColumn?, columns?,
+ *   sharedWriteOptIn?, name?, key?, description? }]; `relations`: [{ from:{provider,fileId,sheet,col},
+ *   to:{provider,fileId,sheet,col} }]
  * @returns {Promise<{ datatables:Array, warnings:string[], partial:boolean }>}
  */
 async function linkSpreadsheets({ scope, principal, session, tables, relations = [] }) {

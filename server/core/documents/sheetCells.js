@@ -134,8 +134,8 @@ function cellsOfRows(rows) {
 
 /** The optimistic-lock token as the compiler compares it: an ISO string. */
 const stamp = (/** @type {unknown} */ v) => (v instanceof Date ? v.toISOString() : String(v));
-const isUniqueViolation = (/** @type {any} */ e) => e && (e.code === '23505' || /unique|duplicate key/i.test(String(e.message || '')));
-const isRowConflict = (/** @type {any} */ e) => e && e.status === 409 && e.code === 'row_conflict';
+const isUniqueViolation = (/** @type {{ code?: unknown, message?: unknown } | null | undefined} */ e) => e && (e.code === '23505' || /unique|duplicate key/i.test(String(e.message || '')));
+const isRowConflict = (/** @type {{ status?: unknown, code?: unknown } | null | undefined} */ e) => e && e.status === 409 && e.code === 'row_conflict';
 
 /**
  * @param {object} [deps]
@@ -154,7 +154,7 @@ function makeSheetCells(deps = {}) {
     const provision = (/** @type {any} */ o) => (deps.provision || require('../dataEngine/provisionManagedTable').provisionManagedTable)(o);
     const userScope = (/** @type {string} */ userId) => (deps.userScope || require('../../stores/datatableStore').userScope)(userId);
     const spec = () => (deps.spec || require('../dataEngine/dataModel/managedTables').managedKindSpec)('document_sheet');
-    const drop = (/** @type {string} */ id, /** @type {any} */ scope) => (deps.drop || require('../../stores/datatableDbStore').dropDatatable)(id, scope);
+    const drop = (/** @type {string} */ id, /** @type {{ kind: 'org'|'user', id: string }} */ scope) => (deps.drop || require('../../stores/datatableDbStore').dropDatatable)(id, scope);
     const localize = (/** @type {unknown} */ e, /** @type {string} */ userId) => (deps.localize || require('../dataEngine/datatableLimits').localizeQuotaError)(e, userId);
 
     /**

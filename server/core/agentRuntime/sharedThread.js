@@ -51,7 +51,7 @@ async function setupSharedThreadTurnLock({ conversation, isEphemeral, userId, _p
                 if (!claim.acquired) {
                     throw Object.assign(
                         new Error('Another member is asking the AI in this conversation. Try again in a moment.'),
-                        { code: 'TURN_BUSY', holderUserId: /** @type {any} */ (claim).holder?.holderUserId || null }
+                        { code: 'TURN_BUSY', holderUserId: /** @type {{ holder?: { holderUserId?: string | null } | null }} */ (claim).holder?.holderUserId || null }
                     );
                 }
                 _turnLock = { conversationId: conversation.id, runId };

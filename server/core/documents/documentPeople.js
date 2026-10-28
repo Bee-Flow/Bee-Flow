@@ -13,7 +13,7 @@
 
 const MAX_PEOPLE = 100;
 
-/** @param {any} user */
+/** @param {{ firstName?: unknown, lastName?: unknown, displayName?: unknown, username?: unknown }} user */
 function displayNameOf(user) {
     const full = [user.firstName, user.lastName].filter((v) => typeof v === 'string' && v.trim()).join(' ');
     const name = (typeof user.displayName === 'string' && user.displayName.trim()) || full || user.username;

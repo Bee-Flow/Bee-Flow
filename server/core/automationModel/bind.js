@@ -253,13 +253,11 @@ function walkRelativePath(path, value) {
 /**
  * Resolve a single binding object against the runState.
  * @param {*} binding — { kind, ... } or a raw literal
- * @param {object} runState — { trigger, steps, loop, vars, secrets }
- * @param {object} [opts]
- * @param {'text'|'json'|'markdown'} [opts.listAs] - how a `template` binding writes a list
- *                  of plain values (see interpolateTemplate; default 'text')
- * @param {boolean} [opts.allowSecrets] - when false, secrets root is replaced
- *                  with an empty object so user-visible templates can't
- *                  echo secrets back to the chat or notification body.
+ * @param {BindRunState} runState — { trigger, steps, loop, vars, secrets }
+ * @param {{ listAs?: 'text'|'json'|'markdown', allowSecrets?: boolean }} [opts]  `listAs`: how a `template`
+ *   binding writes a list of plain values (see interpolateTemplate; default 'text'); `allowSecrets`: when
+ *   false, secrets root is replaced with an empty object so user-visible templates can't echo secrets
+ *   back to the chat or notification body.
  */
 function resolveValue(binding, runState, opts = {}) {
     const { allowSecrets = false } = opts;
@@ -390,25 +388,19 @@ function resolveTemplatePath(trimmed, runState, opts = {}) {
  * `listAs: 'json'` (http_request url/headers/body, a prompt, a code step's
  * inputs) and keeps every list as JSON.
  *
- * @param {object} [opts]
- * @param {'text'|'json'|'markdown'} [opts.listAs] - how a list of plain values
- *   is written: 'text' (default) comma-separated, 'json' as JSON, 'markdown' as
- *   bullets (same as `listAsMarkdown: true`).
- * @param {boolean} [opts.leaveUnresolved] - when true, a `{{token}}` whose
- *   path resolves to `undefined` is returned VERBATIM (braces and all)
- *   rather than blanked. Used for AI-step prompts so a literal `{{...}}`
- *   the builder typed (and any not-yet-available reference) isn't silently
- *   deleted from the instruction text. Default false keeps the historical
- *   blank-on-miss behaviour for notification/stop_error callers.
- * @param {string} [opts.field] - the setting this text fills (`body`, `url`),
- *   named by a miss in the binding log when no input name is known.
- * @param {boolean} [opts.listAsMarkdown] - when true, a path that resolves to
- *   an array of plain values renders as a markdown bullet list instead of as
- *   a comma-separated line. Used ONLY for the human-readable text of a form
- *   page, which IS rendered as markdown: a step that produced a list of
- *   findings put `["Productaanbod van RVS platen…","Algemene bedrijfspresentatie…"]`,
- *   brackets and quotes and all, on a page a customer reads. Opt-in: every
- *   other slot reads the list on one line.
+ * @param {{ listAs?: 'text'|'json'|'markdown', leaveUnresolved?: boolean, field?: string,
+ *   listAsMarkdown?: boolean }} [opts] `listAs`: how a list of plain values is written: 'text'
+ *   (default) comma-separated, 'json' as JSON, 'markdown' as bullets (same as `listAsMarkdown: true`);
+ *   `leaveUnresolved`: when true, a `{{token}}` whose path resolves to `undefined` is returned VERBATIM
+ *   (braces and all) rather than blanked. Used for AI-step prompts so a literal `{{...}}` the builder
+ *   typed (and any not-yet-available reference) isn't silently deleted from the instruction text.
+ *   Default false keeps the historical blank-on-miss behaviour for notification/stop_error callers;
+ *   `field`: the setting this text fills (`body`, `url`), named by a miss in the binding log when no
+ *   input name is known; `listAsMarkdown`: when true, a path that resolves to an array of plain values
+ *   renders as a markdown bullet list instead of as a comma-separated line. Used ONLY for the
+ *   human-readable text of a form page, which IS rendered as markdown: a step that produced a list of
+ *   findings put `["Productaanbod van RVS platen…","Algemene bedrijfspresentatie…"]`, brackets and
+ *   quotes and all, on a page a customer reads. Opt-in: every other slot reads the list on one line
  */
 function interpolateTemplate(template, runState, opts = {}) {
     const { leaveUnresolved = false, listAsMarkdown = false } = opts;
@@ -561,7 +553,7 @@ function restProbe(layout, from) {
  * a miss is logged once.
  *
  * @param {string} template
- * @param {object} runState
+ * @param {BindRunState} runState
  * @param {{ contentType?: string, field?: string }} [opts]
  */
 function interpolateJsonBody(template, runState, opts = {}) {

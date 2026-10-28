@@ -116,17 +116,15 @@ function _atSentenceStart(text, at) {
 /**
  * Find the occurrences of already-found names that no span covers yet.
  *
- * @param {object} args
- * @param {string} args.text  The text the spans index into.
- * @param {Array<{category?: string, label?: string, offset?: number, length?: number, text?: string}>} args.spans
- *   Detected spans, already disjoint (`resolveSpanOverlaps`).
- * @param {Array<[string, unknown]>} [args.seedEntries]  `[token, value]` pairs of the
- *   conversation map / vault seed: a name found in an earlier turn is swept too.
- * @param {(span: object) => string} args.categoryKeyOf  Span → token category key.
- * @param {Set<string>} args.particles  Lower-case words that carry no identity.
- * @param {Array<{offset?: number, length?: number}>} [args.reserved]  Ranges the
- *   caller handles itself after tokenizing (a blocked tool-result value is
- *   replaced by literal match): never swept, and not a source of names.
+ * @param {{ text: string,
+ *   spans: Array<{category?: string, label?: string, offset?: number, length?: number, text?: string}>,
+ *   seedEntries?: Array<[string, unknown]>, categoryKeyOf: (span: object) => string, particles: Set<string>,
+ *   reserved?: Array<{offset?: number, length?: number}> }} args `text`: The text the spans index into;
+ *   `spans`: Detected spans, already disjoint (`resolveSpanOverlaps`); `seedEntries`: `[token, value]`
+ *   pairs of the conversation map / vault seed: a name found in an earlier turn is swept too;
+ *   `categoryKeyOf`: Span → token category key; `particles`: Lower-case words that carry no identity;
+ *   `reserved`: Ranges the caller handles itself after tokenizing (a blocked tool-result value is
+ *   replaced by literal match): never swept, and not a source of names
  * @returns {SweptSpan[]} New spans, disjoint from `spans`, from `reserved` and
  *   from each other, in no particular order.
  */

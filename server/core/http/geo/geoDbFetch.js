@@ -126,13 +126,8 @@ async function _download(kind, month, fetchImpl, timeoutMs) {
 /**
  * Make sure `dir` holds a current City and ASN edition.
  *
- * @param {object} opts
- * @param {string} opts.dir
- * @param {Array<'city'|'asn'>} [opts.kinds]
- * @param {Date} [opts.now]
- * @param {boolean} [opts.force]     download even when the current month is present
- * @param {FetchImpl} [opts.fetchImpl]
- * @param {number} [opts.timeoutMs]
+ * @param {{ dir: string, kinds?: Array<'city'|'asn'>, now?: Date, force?: boolean, fetchImpl?: FetchImpl,
+ *   timeoutMs?: number }} opts `force`: download even when the current month is present
  * @returns {Promise<Array<{kind:string, month:string, file:string, downloaded:boolean}>>}
  */
 async function fetchGeoDb({ dir, kinds = ['city', 'asn'], now = new Date(), force = false, fetchImpl = fetch, timeoutMs = 10 * 60 * 1000 }) {

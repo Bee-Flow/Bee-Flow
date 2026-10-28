@@ -402,10 +402,10 @@ async function isLocalModel(modelId) {
  * Classify a message using heuristic shortcut → cache → LLM.
  *
  * @param {string} message
- * @param {Object} tiers - Tier config map (key → { modelId, ... })
- * @param {Object} [opts]
- * @param {string|null} [opts.userOrgId] - Org ID for EU-mode tier overrides and the Privacy Shield
- * @param {string|null} [opts.userId] - User ID, for a personal account's own Privacy Shield
+ * @param {Record<string, { modelId?: string, [key: string]: unknown } | null | undefined> | null | undefined} tiers - Tier config map (key → { modelId, ... })
+ * @param {{ userOrgId?: string|null, userId?: string|null }} [opts] `userOrgId`: Org ID for EU-mode
+ *   tier overrides and the Privacy Shield; `userId`: User ID, for a personal account's own Privacy
+ *   Shield
  * @returns {Promise<{tier: string, method: string, reason: string}>}
  */
 async function classifyWithLLM(message, tiers, { userOrgId = null, userId = null } = {}) {

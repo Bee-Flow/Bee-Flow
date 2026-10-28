@@ -39,9 +39,9 @@ const CHECK_KEYS = Object.freeze({
 });
 const FALLBACK_KEYS = Object.freeze(['kind', 'fields']);
 
-/** @param {any} v @returns {boolean} */
+/** @param {unknown} v @returns {boolean} */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-/** @param {any} v @returns {boolean} */
+/** @param {unknown} v @returns {boolean} */
 const present = (v) => v !== undefined && v !== null;
 
 /**
@@ -55,7 +55,7 @@ const present = (v) => v !== undefined && v !== null;
  * A field path as segments, or null when it is not one: 1..4 segments joined
  * by '.', each a name of 1..100 characters without '.', '[' or ']',
  * optionally suffixed '[]' (every item of that list); 200 characters at most.
- * @param {any} path
+ * @param {unknown} path
  * @returns {ParsedFieldPath | null}
  */
 function parseFieldPath(path) {
@@ -76,7 +76,7 @@ function parseFieldPath(path) {
 /**
  * Why a run path is unusable, or null when it is fine. 'secrets' is named
  * apart because it is a refusal on principle, not a typo.
- * @param {any} value
+ * @param {unknown} value
  * @returns {null | 'type' | 'empty' | 'long' | 'braces' | 'syntax' | 'secrets' | 'root'}
  */
 function runPathFault(value) {
@@ -94,7 +94,7 @@ function runPathFault(value) {
 
 /**
  * Whether a path inside one list item is readable ("id", "name.en", "[0]").
- * @param {any} value
+ * @param {unknown} value
  */
 function itemPathFault(value) {
     if (typeof value !== 'string') return 'type';
@@ -105,7 +105,7 @@ function itemPathFault(value) {
     return parsePath(p.startsWith('[') ? `$${p}` : `$.${p}`) ? null : 'syntax';
 }
 
-/** A top-level output field name: what a fallback value is filed under. @param {any} name */
+/** A top-level output field name: what a fallback value is filed under. @param {unknown} name */
 function isFieldName(name) {
     return typeof name === 'string' && name.length >= 1 && name.length <= MAX_SEGMENT_CHARS && !/[.[\]]/.test(name);
 }

@@ -264,8 +264,7 @@ function runSerialized(fn) {
  * Transcribe an audio file on the NPU.
  *
  * @param {string} audioPath              Absolute path; any format ffmpeg reads.
- * @param {object} [options]
- * @param {string} [options.language]     BCP-47 hint; unknown/absent = auto-detect.
+ * @param {{ language?: string }} [options] `language`: BCP-47 hint; unknown/absent = auto-detect
  * @returns {Promise<{text, segments, language, durationSec, provider}|null>}
  *          null when the service is disabled, unreachable, or the attempt
  *          failed — the caller then falls back to the CPU model.

@@ -78,7 +78,7 @@ function computeEmbeddingCost(tokenCount = 0) {
 
 /**
  * Get all current rates (defaults merged with overrides).
- * @returns {object} rate map
+ * @returns {Record<string, number>} rate map
  */
 function getAllRates() {
     const overrides = getOverrides();

@@ -152,12 +152,10 @@ async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'documen
  * without the pwt-runner container still gets a (plainer) PDF. The caller is
  * told which one it got via `degraded`.
  *
- * @param {object} args
- * @param {string} args.html   a full <!DOCTYPE html> document (see services/documentCompose.js)
- * @param {string} [args.title]
- * @param {object} [args.marking]  AI Act Art. 50 marking, as resolveMarking returns it
- * @param {number} [args.timeoutMs]
- * @param {boolean} [args.allowFallback]  false = throw instead of degrading to the plain PDF
+ * @param {{ html: string, title?: string, marking?: import('./documentRenderer').AiMarking | null, timeoutMs?: number, allowFallback?: boolean }} args
+ *   `html`: a full <!DOCTYPE html> document (see services/documentCompose.js); `marking`: AI Act Art.
+ *   50 marking, as resolveMarking returns it; `allowFallback`: false = throw instead of degrading to
+ *   the plain PDF
  * @returns {Promise<{buffer: Buffer, contentType: string, extension: string, degraded: boolean, marking: object|null}>}
  */
 async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeoutMs = 60_000, allowFallback = true } = {}) {

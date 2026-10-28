@@ -37,7 +37,8 @@ const sha256 = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex'
 
 /**
  * The legacy term's own identity: its id, or a digest of what it matched.
- * @param {any} term  a stored customSensitiveTerms entry (object or bare string)
+ * @param {string | { id?: unknown, label?: unknown, pattern?: unknown } | null | undefined} term  a stored
+ *   customSensitiveTerms entry (object or bare string)
  */
 function legacyTermKey(term) {
     if (term && typeof term === 'object' && typeof term.id === 'string' && term.id) return term.id;
@@ -48,7 +49,7 @@ function legacyTermKey(term) {
 
 /**
  * @param {string} orgId
- * @param {any} term
+ * @param {Parameters<typeof legacyTermKey>[0]} term
  */
 function legacyTypeId(orgId, term) {
     return `cdt_${sha256(`${orgId}\0${legacyTermKey(term)}`).slice(0, 10)}`;

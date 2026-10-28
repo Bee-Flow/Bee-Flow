@@ -84,7 +84,7 @@ function createTables(p) {
     for (const [id, nt] of p.newTables) {
         if (!p.inScope(id) || !p.physical.has(id)) continue;
         if (!p.oldTables.has(id) || p.materialised.has(id)) {
-            p.plan.push(ddlForTable(nt, /** @type {any} */ ({ tableKeyById: p.newKeyById, dialect: p.dialect })));
+            p.plan.push(ddlForTable(nt, /** @type {Parameters<typeof ddlForTable>[1]} */ ({ tableKeyById: p.newKeyById, dialect: p.dialect })));
         }
     }
 }

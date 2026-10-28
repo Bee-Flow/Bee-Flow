@@ -10,15 +10,19 @@
  * session. Everything else is proposed. Golf 2 covers pages; any other
  * docType keeps today's behaviour (false).
  *
- * @param {{ doc: { docType?: string, projectId?: string|null, visibility?: string, sharing?: { audience?: string } },
- *           createdInThisChat?: boolean, liveSession?: boolean }} input
+ * @param {SuggestInput} input
  */
-function shouldSuggest({ doc, createdInThisChat = false, liveSession = false } = /** @type {any} */ ({})) {
+function shouldSuggest({ doc, createdInThisChat = false, liveSession = false } = /** @type {SuggestInput} */ ({})) {
     if (!doc) return false;
     if (doc.docType && doc.docType !== 'page') return false;
     const audience = doc.sharing?.audience || (doc.visibility === 'team' ? 'organisation' : 'private');
     const directOk = createdInThisChat === true && !doc.projectId && audience === 'private' && !liveSession;
     return !directOk;
 }
+
+/**
+ * @typedef {{ doc: { docType?: string, projectId?: string|null, visibility?: string, sharing?: { audience?: string } },
+ *   createdInThisChat?: boolean, liveSession?: boolean }} SuggestInput
+ */
 
 module.exports = { shouldSuggest };

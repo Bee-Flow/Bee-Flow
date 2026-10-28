@@ -88,25 +88,22 @@ function featureToolsets() {
 /**
  * Build the list of integration tools available for the current user.
  * 
- * @param {object} options
- * @param {string}  options.userId       - Current user ID
- * @param {Partial<Express.Session>} [options.session] - Express session (for OAuth tokens)
- * @param {boolean} [options.isAdmin]    - Whether user is admin
- * @param {import('./integrationToolFeatures').AgentConfig | null} [options.agentConfig] - The agent's runtime config (its per-action grants narrow the toolbelt)
- * @param {string | null} [options.agentId]
- * @param {boolean} [options.automationStep] - An automation step asks: strict app gating, no skill-scoped extras
- * @param {{ ownerUserId?: string, resourceType?: string | null, resourceId?: string | null } | null} [options.connectionPolicy] - Connection lending on a shared resource run
- * @param {string[]|null} [options.enabledAppsOverride] - Stands in for the
- *   user's workspace-wide enabled-apps preference for this call. Used by a
- *   cowork item that carries its own, narrower list: the run may only touch
- *   what that item allows, regardless of what the user has on elsewhere.
- *   Goes through the SAME gate as the stored preference, so the
- *   AUTO_ENABLED_APPS carve-out and every entitlement/credential check below
- *   still apply — it narrows the user layer, it can never widen anything.
- * @param {string[]|null} [options.extraEnabledApps] - App ids allowed by an
- *   active skill (skill-scoped enablement). INVARIANT: this bypasses ONLY the
- *   per-user enabled-apps preference — it must never widen org entitlements
- *   or skip credential/session checks.
+ * @param {{ userId: string, session?: Partial<Express.Session>, isAdmin?: boolean,
+ *   agentConfig?: import('./integrationToolFeatures').AgentConfig | null, agentId?: string | null,
+ *   automationStep?: boolean,
+ *   connectionPolicy?: { ownerUserId?: string, resourceType?: string | null, resourceId?: string | null } | null,
+ *   enabledAppsOverride?: string[]|null, extraEnabledApps?: string[]|null }} options `userId`: Current
+ *   user ID; `session`: Express session (for OAuth tokens); `isAdmin`: Whether user is admin;
+ *   `agentConfig`: The agent's runtime config (its per-action grants narrow the toolbelt);
+ *   `automationStep`: An automation step asks: strict app gating, no skill-scoped extras;
+ *   `connectionPolicy`: Connection lending on a shared resource run; `enabledAppsOverride`: Stands in
+ *   for the user's workspace-wide enabled-apps preference for this call. Used by a cowork item that
+ *   carries its own, narrower list: the run may only touch what that item allows, regardless of what
+ *   the user has on elsewhere. Goes through the SAME gate as the stored preference, so the
+ *   AUTO_ENABLED_APPS carve-out and every entitlement/credential check below still apply — it narrows
+ *   the user layer, it can never widen anything; `extraEnabledApps`: App ids allowed by an active skill
+ *   (skill-scoped enablement). INVARIANT: this bypasses ONLY the per-user enabled-apps preference — it
+ *   must never widen org entitlements or skip credential/session checks
  * @returns {Promise<{ tools: import('../agentRuntime/chatStream/turnState').ToolDef[], n8nOrgId: string | null }>}
  */
 async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {

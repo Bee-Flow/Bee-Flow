@@ -114,7 +114,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
 async function injectSkills({ agent, tools, userId, messageMetadata, forceDynamicSkills }) {
     const sessionSkillIds = Array.isArray(messageMetadata?.activeSkillIds) ? messageMetadata.activeSkillIds : [];
     const attachedSkillIds = Array.isArray(agent?.config?.attachedSkillIds) ? agent.config.attachedSkillIds : [];
-    const skillInjection = await buildSkillInjection(/** @type {any} */ ({
+    const skillInjection = await buildSkillInjection(/** @type {Parameters<typeof buildSkillInjection>[0]} */ ({
         sessionSkillIds,
         attachedSkillIds,
         orgId: messageMetadata?.orgId,

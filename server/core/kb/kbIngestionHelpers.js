@@ -55,29 +55,22 @@ async function findActiveByHash(kbId, hash) {
  * @param {string}  title     — document title
  * @param {string}  sourceType — 'text' | 'web' | 'upload' | 'notebook_source' | …
  * @param {string|null} sourceUri — source identifier (filename, URL, source ID)
- * @param {object}  [options]
- * @param {boolean} [options.skipDedup=false] - skip deduplication check
- * @param {string}  [options.lang='auto']    - language hint
- * @param {object}  [options.metadata]       - rich metadata (sender, threadId, …)
- * @param {number}  [options.simhashDistance=3]
- * @param {string}  [options.sourceId]       - kb_sources.id the document belongs to
- * @param {string}  [options.externalId]     - id in the external system (NC fileid, row id, URL, …)
- * @param {Date|string} [options.sourceModifiedAt]
- * @param {number}  [options.sizeBytes]      - defaults to the UTF-8 size of `content`
- * @param {string}  [options.mime]
- * @param {number}  [options.pageCount]
- * @param {number}  [options.sheetCount]
- * @param {ExtractedPage[] | null} [options.pages] - the extractor's pages, so each chunk carries the page it starts on
- * @param {{ orgId?: string | null, userId?: string | null, pages?: ExtractedPage[] | null } | null} [options.privacy] - the Privacy Shield at ingest (K4); null opts out
- * @param {string}  [options.createdBy]      - user id (null for engine-driven ingests)
- * @param {'processed'|'redacted'} [options.status='processed'] - K4 passes 'redacted'
- * @param {string}  [options.piiStatus]      - 'none'|'found'|'redacted'|'unscanned'
- * @param {object}  [options.piiCategories]
- * @param {string}  [options.extractSummary]
- * @param {'throw'|'record'} [options.onFailure='throw'] - 'record' keeps a
- *   documents row with status 'skipped' | 'error' | 'duplicate' (+ status_reason)
- *   and RESOLVES with { document, chunks:0, status, error } instead of throwing,
- *   so a source refresh can keep going and the UI can show "36 of 38 processed".
+ * @param {{ skipDedup?: boolean, lang?: string, metadata?: Record<string, unknown>, simhashDistance?: number,
+ *   sourceId?: string, externalId?: string, sourceModifiedAt?: Date|string, sizeBytes?: number, mime?: string,
+ *   pageCount?: number, sheetCount?: number, pages?: ExtractedPage[] | null,
+ *   privacy?: { orgId?: string | null, userId?: string | null, pages?: ExtractedPage[] | null } | null,
+ *   createdBy?: string, status?: 'processed'|'redacted', piiStatus?: string, piiCategories?: string[] | null,
+ *   extractSummary?: string, onFailure?: 'throw'|'record' }} [options] `skipDedup`: skip deduplication
+ *   check (default false); `lang`: language hint (default 'auto'); `metadata`: rich metadata (sender,
+ *   threadId, …); `simhashDistance`: defaults to 3; `sourceId`: kb_sources.id the document belongs to;
+ *   `externalId`: id in the external system (NC fileid, row id, URL, …); `sizeBytes`: defaults to the
+ *   UTF-8 size of `content`; `pages`: the extractor's pages, so each chunk carries the page it starts
+ *   on; `privacy`: the Privacy Shield at ingest (K4); null opts out; `createdBy`: user id (null for
+ *   engine-driven ingests); `status`: K4 passes 'redacted' (default 'processed'); `piiStatus`:
+ *   'none'|'found'|'redacted'|'unscanned'; `onFailure`: 'record' keeps a documents row with status
+ *   'skipped' | 'error' | 'duplicate' (+ status_reason) and RESOLVES with { document, chunks:0, status,
+ *   error } instead of throwing, so a source refresh can keep going and the UI can show "36 of 38
+ *   processed" (default 'throw')
  *
  * Duplicates: an exact or near match INSIDE the same source is refused as
  * before (DUPLICATE / NEAR_DUPLICATE, alias row recorded with status
@@ -272,8 +265,10 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
  * 'skipped' | 'error', so the source shows the file and why it is missing.
  * Never throws on a bad reason; the row is the point.
  *
- * @param {object} p — { tenantId, kbId, title, sourceType, sourceUri, status='error',
- *   error (Error|string) | reason, sourceId, externalId, sizeBytes, mime, createdBy, metadata }
+ * @param {{ tenantId: string, kbId: string, title: string, sourceType: string, sourceUri?: string | null,
+ *   status?: 'error'|'skipped', error?: Error | string | null, reason?: string | null, sourceId?: string,
+ *   externalId?: string, sizeBytes?: number, mime?: string, createdBy?: string | null,
+ *   metadata?: Record<string, unknown> | null }} p  `status` defaults to 'error'; `reason` wins over `error`
  */
 async function recordFailedDocument({ tenantId, kbId, title, sourceType, sourceUri = null, status = 'error', error = null, reason = null, metadata = null, ...extra } = {}) {
     const st = status === 'skipped' ? 'skipped' : 'error';

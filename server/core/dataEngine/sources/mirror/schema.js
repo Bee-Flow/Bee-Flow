@@ -33,10 +33,9 @@ const PG = { dialect: 'pg' };
 
 /**
  * @param {{kind:string,id:string}} scope
- * @param {object} datatable        the mirror's datatables row
+ * @param {{ id: string, name: string, rowScope?: string, [key: string]: unknown }} datatable        the mirror's datatables row
  * @param {Array}  nextFields       the adapter's derived field list (deriveFields)
- * @param {object} [opts]
- * @param {Array}  [opts.retyped]   old fields to DROP first (same column, new type)
+ * @param {{ retyped?: Array }} [opts] `retyped`: old fields to DROP first (same column, new type)
  * @returns {Promise<{ modelVersion:number }>}
  */
 async function reconcileMirrorSchema(scope, datatable, nextFields, { retyped = [] } = {}) {

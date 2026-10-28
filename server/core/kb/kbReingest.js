@@ -20,13 +20,9 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * and that error lands in `errors` of purgeSourceDocuments, which yields `complete: false` and leaves
  * the source row in place.
  *
- * @param {object} [opts]
- * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
- *   instead of warning.
- * @param {Function} [opts.deleteLocal] test seam for localKBIngest.deleteChunksLocally
- * @param {string} kbId
- * @param {string} docId
- * @param {string} tenantId
+ * @param {{ strict?: boolean, deleteLocal?: typeof import('./localKBIngest').deleteChunksLocally }} [opts]  `strict`
+ *   (default false): throw if the remote cleanup is not demonstrably done, instead of warning;
+ *   `deleteLocal` a test seam for localKBIngest.deleteChunksLocally
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -91,9 +87,9 @@ async function assertKbDocumentsWrite(kbId, managedWrite) {
  * @param {string} kbId
  * @param {string} docId
  * @param {string} content
- * @param {object} [options] - same keys as ingestDocument: title, lang, metadata,
- *   externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount, status,
- *   piiStatus, piiCategories, extractSummary, onFailure ('throw' | 'record')
+ * @param {NonNullable<Parameters<typeof import('./kbIngestionHelpers').ingestDocument>[6]> & { title?: string,
+ *   managedWrite?: { deploymentId?: string } | null }} [options] - the keys of ingestDocument's options
+ *   (lang, metadata, externalId, …, onFailure), the title, and a deployment's write capability
  * @returns {Promise<{document: object, chunks: number, status: string, error?: string}>}
  */
 async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
@@ -189,8 +185,8 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
  * @param {string} kbId     — knowledge base ID
  * @param {string} docId    — document ID
  * @param {string} tenantId — user ID
- * @param {object} opts     — optional flags
- * @param {boolean} opts.skipSnapshot — skip the kb_document_versions snapshot.
+ * @param {{ skipSnapshot?: boolean, managedWrite?: { deploymentId?: string } | null }} [opts]  `skipSnapshot`:
+ *   skip the kb_document_versions snapshot.
  *   Pass true when the caller has already snapshotted (route handlers do, to
  *   carry the user id) AND for every SOURCE-DRIVEN removal (a file vanished
  *   from the folder, a row from the table, a page from the crawl, a re-index):

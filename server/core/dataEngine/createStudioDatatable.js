@@ -38,7 +38,18 @@ function defaultDeps() {
     };
 }
 
-/** @typedef {{ ownerUserId: string, description?: string, hasManageDatatables?: boolean, exactKey?: boolean, principal: unknown, name: unknown, key?: unknown, fields: unknown }} CreateStudioDatatableArgs */
+/**
+ * @typedef {{
+ *   ownerUserId: string,
+ *   description?: string,
+ *   hasManageDatatables?: boolean,
+ *   exactKey?: boolean,
+ *   principal: unknown,
+ *   name: unknown,
+ *   key?: unknown,
+ *   fields: unknown,
+ * }} CreateStudioDatatableArgs
+ */
 /**
  * @param {CreateStudioDatatableArgs} param0
  */

@@ -575,7 +575,7 @@ async function executePublishSessionSkill({
     const src = (sessionSkills || []).find(s => s.id === skillId);
     if (!src) return { error: `Session skill not found: ${skillId}` };
 
-    const created = await skillStore.createSkill(/** @type {any} */ ({
+    const created = await skillStore.createSkill(/** @type {Parameters<typeof skillStore.createSkill>[0]} */ ({
         orgId,
         userId,
         name: sanitizeText(args?.name, 120) || src.name,

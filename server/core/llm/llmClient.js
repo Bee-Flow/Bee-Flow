@@ -52,7 +52,7 @@ const chatVia = (rateLimit, adapter, apiKey, baseUrl, modelId, messages, options
  *   list every caller passes, 'required' is exactly "call that tool" on all
  *   of them and the object form is never the better choice.
  *
- * @param {any} adapter   - resolved provider adapter instance
+ * @param {import('../providers/base')} adapter   - resolved provider adapter instance
  * @param {string} toolName  - the function name to force
  * @returns {any|string}  - object form, or 'required' for the Google family
  *                             and the self-hosted runtimes

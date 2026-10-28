@@ -176,7 +176,7 @@ function get(path, query) {
 /**
  * POST passthrough — report endpoints compute, they do not persist.
  * @param {string} path
- * @param {object} [body]
+ * @param {Record<string, unknown>} [body]
  */
 function post(path, body) {
     return api('POST', path, { body });

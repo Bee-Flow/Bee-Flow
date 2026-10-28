@@ -150,7 +150,7 @@ function entriesOfValue(value, opts, out = []) {
 
 /**
  * Does `value` hold a number the source does not support?
- * @param {any} value
+ * @param {unknown} value
  * @param {Float64Array} sorted from collectSourceNumbers
  * @param {{ tolerance?: number, ignoreUpTo?: number, percent?: boolean, ignoreDates?: boolean }} [opts]
  */

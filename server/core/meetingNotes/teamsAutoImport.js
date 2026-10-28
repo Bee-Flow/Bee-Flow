@@ -323,4 +323,6 @@ module.exports = { init, discover, processDue, processJobInline, findArtifact, N
  * @typedef {Awaited<ReturnType<typeof import('../../auth/microsoftSessionHydration').resolveMicrosoftSession>>} MicrosoftSession
  */
 
-/** @typedef {{ limit?: number }} ProcessDueArgs */
+/**
+ * @typedef {{ limit?: number }} ProcessDueArgs
+ */

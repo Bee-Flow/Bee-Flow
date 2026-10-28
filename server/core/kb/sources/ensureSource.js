@@ -29,11 +29,9 @@
  *
  * @param {string} kbId
  * @param {string} kind — a KbSourcesStore.SOURCE_KINDS value
- * @param {object} [opts]
- * @param {string} [opts.name]
- * @param {object} [opts.config] - stored on create
- * @param {object|null} [opts.configMatch] - JSON subset that identifies "the same" source
- * @param {string|null} [opts.createdBy]
+ * @param {{ name?: string, config?: Record<string, unknown>, configMatch?: Record<string, unknown> | null,
+ *   createdBy?: string | null }} [opts]  `config` is stored on create; `configMatch` the JSON subset that
+ *   identifies "the same" source
  * @returns {Promise<object|null>} the mapped source row, or null when unavailable
  */
 const log = require('../../../telemetry/log');

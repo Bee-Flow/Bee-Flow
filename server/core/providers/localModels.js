@@ -281,7 +281,7 @@ function normalizeLocalModelId(modelId) {
  * Always returns an object — an unrecognised id still gets a sensible label.
  *
  * @param {string} modelId  raw id as reported by the runtime
- * @param {any} [hints]  runtime-reported extras, e.g. Ollama's
+ * @param {{ parameterSize?: string, quantization?: string, capabilities?: unknown }} [hints]  runtime-reported extras, e.g. Ollama's
  *   { parameterSize: '30B', quantization: 'Q4_K_M', capabilities: ['vision','tools','thinking'] }
  * @returns {{id, name, family, cat, reasoning, vision, tools, embedding, thinkingMinTemperature: number|null, local: true}}
  */

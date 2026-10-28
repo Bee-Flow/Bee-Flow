@@ -15,7 +15,7 @@ function ruleKeys(rule, keys = new Set()) {
  * @param {string | Buffer<ArrayBufferLike> | AnyNode | AnyNode[]} html
  */
 function parse(html) {
-    return cheerio.load(html || '', /** @type {any} */ ({ xmlMode: true, decodeEntities: false }), false);
+    return cheerio.load(html || '', /** @type {import('cheerio').CheerioOptions} */ ({ xmlMode: true, decodeEntities: false }), false);
 }
 /**
  * @param {string} message

@@ -24,9 +24,9 @@ function _defaultStableStringify(value) {
 /**
  * @template {{ id?: string, name?: string, function?: { name?: string, arguments?: string } }} T
  * @param {T[]} toolCalls - OpenAI-format tool calls: { id, function: { name, arguments } }
- * @param {Object} [opts]
- * @param {(toolName: string) => boolean} [opts.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
- * @param {(value: unknown) => string} [opts.stableStringify] - deterministic serializer for the args key
+ * @param {{ isSideEffect?: (toolName: string) => boolean, stableStringify?: (value: unknown) => string }} [opts]
+ *   `isSideEffect`: (toolName) => boolean; defaults to sideEffectMap; `stableStringify`: deterministic
+ *   serializer for the args key
  * @returns {{ kept: T[], dropped: number }}
  */
 function dedupeSideEffectToolCalls(toolCalls, opts = {}) {

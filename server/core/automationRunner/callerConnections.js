@@ -197,7 +197,7 @@ async function failRunBeforeSteps(deps, { error, run, heartbeatTimer, startedAt,
  * place (stored on ctx.callerOnly by the caller), or `{ failedRow }` when a
  * live run was refused. Every failure to build the identity fails closed.
  *
- * @param {any} deps
+ * @param {CallerDeps} deps
  * @param {{ callerUserId: string|null, missingStarter?: boolean, automation: any, runOrgId: string|null,
  *           effectiveMode: string, locked?: boolean, failCtx: any }} args
  */

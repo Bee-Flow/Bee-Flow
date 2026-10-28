@@ -397,11 +397,10 @@ async function readInto(into, key) {
 /**
  * Remember an answer as a ROW.
  *
- * @param {object} plan          the lookup plan
- * @param {object} out           the PRE-guard response — what decides eligibility
+ * @param {HttpCachePlan | null} plan          the lookup plan
+ * @param {HttpOut} out           the PRE-guard response — what decides eligibility
  * @param {unknown} storedValue   the POST-guard response — what is actually written
- * @param {object} [opts]
- * @param {string[]} [opts.secretValues]  every secret this run can see
+ * @param {{ secretValues?: string[] }} [opts]  `secretValues`: every secret this run can see
  * @returns {Promise<{stored: boolean, reason?: string, errorClass?: string, message?: string}|null>}
  *
  * A refusal here is NEVER a failed step. The call succeeded and the answer is
@@ -806,17 +805,18 @@ module.exports = {
 
 /**
  * What `lookup` decides before dispatch.
- * @typedef {object} HttpCachePlan
- * @property {ReturnType<typeof import('./runContext').buildRunContext>['_toolMemo'] | null} memo
- * @property {string} memoKey
- * @property {number | undefined} memoTtlMs
- * @property {string} userId
- * @property {string} hostname
- * @property {string} method
- * @property {string} parsedOrigin
- * @property {string} parsedPath
- * @property {{ store: typeof import('../../stores/integrationCacheStore'), key: string, organizationId: string, stepTtlSeconds: number | null, ttlSeconds: number } | null} durable
- * @property {Awaited<ReturnType<typeof openInto>> | null} into
- * @property {{ tier: string, out: HttpOut } | null} served
- * @property {{ out: HttpOut, headers: Record<string, string> } | null} revalidate
+ * @typedef {{
+ *   memo: ReturnType<typeof import('./runContext').buildRunContext>['_toolMemo'] | null,
+ *   memoKey: string,
+ *   memoTtlMs: number | undefined,
+ *   userId: string,
+ *   hostname: string,
+ *   method: string,
+ *   parsedOrigin: string,
+ *   parsedPath: string,
+ *   durable: { store: typeof import('../../stores/integrationCacheStore'), key: string, organizationId: string, stepTtlSeconds: number | null, ttlSeconds: number } | null,
+ *   into: Awaited<ReturnType<typeof openInto>> | null,
+ *   served: { tier: string, out: HttpOut } | null,
+ *   revalidate: { out: HttpOut, headers: Record<string, string> } | null,
+ * }} HttpCachePlan
  */

@@ -45,7 +45,15 @@ function ingestError(message, meta) {
 const MAX_AUDIO_BYTES = 500 * 1024 * 1024;
 const MAX_SHARED_WITH = 50;
 
-/** @typedef {{ orgId?: string | null, userId: string, meetingId: string, artifactKind: string, artifactId: string }} TeamsSourceUriArgs */
+/**
+ * @typedef {{
+ *   orgId?: string | null,
+ *   userId: string,
+ *   meetingId: string,
+ *   artifactKind: string,
+ *   artifactId: string,
+ * }} TeamsSourceUriArgs
+ */
 /**
  * Dedup key of one Teams artifact (recording or transcript) for one owner scope.
  * @param {TeamsSourceUriArgs} param0
@@ -55,17 +63,12 @@ function teamsSourceUri({ orgId, userId, meetingId, artifactKind, artifactId }) 
 }
 
 /**
- * @param {object} opts
- * @param {string} opts.userId
- * @param {object} opts.session          Microsoft session or shim
- * @param {string|null} [opts.orgId]
- * @param {string} opts.meetingId        Graph onlineMeeting id
- * @param {{ kind: 'recording'|'transcript', id: string }} opts.artifact
- * @param {string|null} [opts.title]     calendar subject (title hint)
- * @param {string} [opts.language]
- * @param {string} [opts.contextTerms]
- * @param {Array<{email?: string|null, displayName?: string|null}>} [opts.attendees]
- * @param {object} [opts.accessCtx]      for a dedup hit the caller must be able to read
+ * @param {{ userId: string, session: import('../../integrations/msGraphClient').MsSession, orgId?: string|null, meetingId: string,
+ *   artifact: { kind: 'recording'|'transcript', id: string }, title?: string|null, language?: string,
+ *   contextTerms?: string, attendees?: Array<{email?: string|null, displayName?: string|null}>,
+ *   accessCtx?: import('../../stores/transcription/acl').ReadAclCtx }} opts `session`: Microsoft session or shim; `meetingId`: Graph onlineMeeting
+ *   id; `title`: calendar subject (title hint); `accessCtx`: for a dedup hit the caller must be able to
+ *   read
  */
 async function ingestTeamsMeeting(opts) {
     const {

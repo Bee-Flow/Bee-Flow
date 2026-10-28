@@ -34,7 +34,9 @@ const MANIFEST = {
 // Researcher prompt template. Each researcher gets the same body but a
 // different "angle" so the parallel workers actually diverge instead of
 // duplicating each other's work.
-/** @typedef {{ angle: string }} ResearcherPromptArgs */
+/**
+ * @typedef {{ angle: string }} ResearcherPromptArgs
+ */
 /**
  * @param {ResearcherPromptArgs} param0
  */

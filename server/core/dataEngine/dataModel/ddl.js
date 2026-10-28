@@ -204,7 +204,7 @@ function columnDef(field, tableKeyById, dialect) {
  * Both are CREATE INDEX IF NOT EXISTS, so re-emitting them on an existing table
  * (a schema save, the repair button) is a no-op.
  *
- * @param {object} table
+ * @param {{ id: string, key: string, fields?: import('./migrationShape').ModelField[] }} table
  * @param {{ tableKeyById?: Map<string,string>, rowScope?: 'all'|'own', dialect?: 'pg'|'sqlite' }} [ctx]
  *   id→key map so same-db relations resolve to a real FOREIGN KEY (omit for a
  *   standalone, FK-less table), plus the table's row scope, plus the dialect

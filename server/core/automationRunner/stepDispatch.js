@@ -233,10 +233,9 @@ async function handleStepFailure(deps, err, f) {
  * recurses through it) calls to execute a single step.
  *
  * @param {any} deps  execution.js's RUN_DEPS
- * @param {object} args
- * @param {any} args.run   the run row (its id addresses the cancel flag)
- * @param {AbortSignal} args.cancelSignal  the run's in-process cancel signal
- * @param {any} args.runPolicy  the automation's run policy (default retry)
+ * @param {{ run: import('./runSetup').RunRow, cancelSignal: AbortSignal, runPolicy: import('./runPolicy').RunPolicy }} args
+ *   `run` is the run row (its id addresses the cancel flag), `cancelSignal` the run's in-process
+ *   cancel signal, `runPolicy` the automation's run policy (default retry)
  */
 function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
     const { isCancelRequested } = deps;

@@ -337,7 +337,7 @@ function _resolveCard(modelName, ctx = {}) {
  * tariffs → community pricing data → null
  *
  * @param {string} modelName
- * @param {any} [facts]  `{ at | timestamp, provider | provider_type, service_tier, traffic_type }`:
+ * @param {UsageFacts} [facts]  `{ at | timestamp, provider | provider_type, service_tier, traffic_type }`:
  *   the call's timestamp (default now) and provider/tier, to pick the catalogue
  *   card in force at that moment
  * @returns {{ input: number, output: number } | null}  prices per 1M tokens
@@ -629,7 +629,7 @@ function resolveBilledModel(model, providerType) {
  * @param {number} cachedTokens - Input tokens served from cache
  * @param {number} cacheCreationTokens - Anthropic cache write tokens
  * @param {string|null} cacheTtl - '5m' or '1h' — only meaningful for Anthropic cache writes
- * @param {object} [facts] - timestamp, service_tier, inference_geo, cache_creation_5m/1h_tokens, ...
+ * @param {UsageFacts} [facts] - timestamp, service_tier, inference_geo, cache_creation_5m/1h_tokens, ...
  *   (see rateUsage); without it the call is rated now, at the standard tier
  * @returns {number} cost in the currency of the price source (USD, except Scaleway: EUR)
  */
@@ -769,43 +769,20 @@ module.exports = {
 
 /**
  * One model's list rates from one source at one moment.
- * @typedef {object} RateCard
- * @property {string} kind
- * @property {string} source
- * @property {string} currency
- * @property {string | null} catalogVersion
- * @property {string | null} validFrom
- * @property {'exact'|'list'|'estimated'|'unknown'|'local'} basis
- * @property {number} input
- * @property {number} output
- * @property {number | null} cacheRead
- * @property {number | null} cacheWrite5m
- * @property {number | null} cacheWrite1h
- * @property {{ threshold: number, rates: Record<string, number> } | null} longCtx
- * @property {boolean} tierPriced
- * @property {Record<string, { input: number, output: number, cacheRead?: number }> | null} tierRates
- * @property {Record<string, number> & { geo?: Record<string, number> } | null} multipliers
- * @property {Rates} legacy
+ * @typedef {{ kind: string, source: string, currency: string, catalogVersion: string | null,
+ *   validFrom: string | null, basis: 'exact'|'list'|'estimated'|'unknown'|'local', input: number,
+ *   output: number, cacheRead: number | null, cacheWrite5m: number | null, cacheWrite1h: number | null,
+ *   longCtx: { threshold: number, rates: Record<string, number> } | null, tierPriced: boolean,
+ *   tierRates: Record<string, { input: number, output: number, cacheRead?: number }> | null,
+ *   multipliers: Record<string, number> & { geo?: Record<string, number> } | null, legacy: Rates }} RateCard
  */
 
 /**
  * The billing facts of one call (a usageStore log entry).
- * @typedef {object} UsageFacts
- * @property {string} [model]
- * @property {string | number | Date | null} [timestamp]
- * @property {string | number | Date | null} [at]
- * @property {string} [provider_type]
- * @property {string} [provider]
- * @property {number} [prompt_tokens]
- * @property {number} [completion_tokens]
- * @property {number} [cached_tokens]
- * @property {number} [cache_creation_tokens]
- * @property {number} [cache_creation_5m_tokens]
- * @property {number} [cache_creation_1h_tokens]
- * @property {string | null} [cache_ttl]
- * @property {boolean} [cache_creation_ttl_assumed]
- * @property {boolean} [prompt_includes_cache]
- * @property {string | null} [service_tier]
- * @property {string | null} [traffic_type]
- * @property {string | null} [inference_geo]
+ * @typedef {{ model?: string, timestamp?: string | number | Date | null, at?: string | number | Date | null,
+ *   provider_type?: string, provider?: string, prompt_tokens?: number, completion_tokens?: number,
+ *   cached_tokens?: number, cache_creation_tokens?: number, cache_creation_5m_tokens?: number,
+ *   cache_creation_1h_tokens?: number, cache_ttl?: string | null, cache_creation_ttl_assumed?: boolean,
+ *   prompt_includes_cache?: boolean, service_tier?: string | null, traffic_type?: string | null,
+ *   inference_geo?: string | null }} UsageFacts
  */

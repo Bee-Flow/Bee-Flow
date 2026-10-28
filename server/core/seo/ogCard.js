@@ -53,7 +53,7 @@ function luminance(h) {
 const inkFor = (bg) => (luminance(bg) > 0.4 ? '#151515' : '#ffffff');
 
 /** @param {unknown} v */
-const templateOf = (v) => (TEMPLATES.includes(/** @type {any} */ (v)) ? /** @type {string} */ (v) : DEFAULT_TEMPLATE);
+const templateOf = (v) => (TEMPLATES.includes(/** @type {string} */ (v)) ? /** @type {string} */ (v) : DEFAULT_TEMPLATE);
 
 /**
  * The palette of one template from the site's colours.

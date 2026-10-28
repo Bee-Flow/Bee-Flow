@@ -79,7 +79,7 @@ function _categoriesOf(shield) {
 }
 
 /**
- * @param {object} [overrides] resolveShieldFor, detectWithLedger, store (object
+ * @param {Partial<ReturnType<typeof _defaults>>} [overrides] resolveShieldFor, detectWithLedger, store (object
  *   or thunk), normalizeCategory, kindOfCategory, coalesceMs
  */
 function makeContentSignals(overrides = {}) {

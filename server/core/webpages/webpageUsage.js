@@ -275,8 +275,7 @@ const SCANS = Object.freeze({
  *                          Solution — a real dependency that drops out of the
  *                          list as a CONFIRMED zero instead of as a gap. `id`
  *                          carries the rest.
- * @param {object} [opts]
- * @param {object} [opts.db]  injection point for the tests
+ * @param {{ db?: Pick<typeof pool, 'query'> }} [opts] `db`: injection point for the tests
  * @returns {Promise<{rows: Array, partial: string[], sources: object, complete: boolean}>}
  *          `partial` names the kinds that could NOT be answered. Non-empty
  *          means "I do not know" — never "there is nothing".

@@ -78,10 +78,8 @@ const _kicks = new Map();
  * the response that prompted it has already gone out, and a failure here
  * lands on the sync state for the owner to see.
  *
- * @param {object} deps
- * @param {(table:object, opts:object) => Promise<unknown>} deps.syncRows
- * @param {(table:object) => boolean} deps.isMirror   "is this one of mine?"
- * @param {string} deps.TAG                           log prefix
+ * @param {{ syncRows: (table:object, opts:object) => Promise<unknown>, isMirror: (table:object) => boolean,
+ *   TAG: string }} deps `isMirror`: "is this one of mine?"; `TAG`: log prefix
  * @returns {(datatable:{ id:string, scope?:{kind:'org'|'user',id:string}, syncState?:object, source?:object }, opts?:{reason?:string, delayMs?:number}) => boolean}
  *   whether a refresh was scheduled
  */

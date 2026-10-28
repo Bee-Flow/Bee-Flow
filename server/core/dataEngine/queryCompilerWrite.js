@@ -10,8 +10,8 @@ const { CompileError, assertRowsWritable, qi, assertTableMeta, fieldMap, coerceV
  * set id/created_at/updated_at/created_by/org_id (those keys are dropped).
  * Returns { sql, params, id, createdAt } (createdAt: the stamp written to
  * created_at and updated_at).
- * @param {*} tableMeta
- * @param {*} values
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {object | null | undefined} values  validated here
  * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileInsert(tableMeta, values, {
@@ -63,10 +63,10 @@ function compileInsert(tableMeta, values, {
  * Deliberately opt-in: action sequences (update_record steps) stay
  * last-write-wins because they are server-authoritative flows with no user
  * holding a stale copy; the record API + inline grid edits pass the token.
- * @param {*} tableMeta
- * @param {*} id
- * @param {*} values
- * @param {*} accessFilter
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {unknown} id  validated here
+ * @param {object | null | undefined} values  validated here
+ * @param {import('./queryCompiler').AccessFilter} accessFilter
  * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpdate(tableMeta, id, values, accessFilter, {
@@ -150,10 +150,10 @@ function compileDelete(tableMeta, id, accessFilter, opts = {}) {
  * Postgres only. SQLite spells the upsert differently enough that a
  * one-dialect-tested statement would be a guess, and the only storage this is
  * reachable from is a datatable, which is always Postgres.
- * @param {*} tableMeta
+ * @param {import('./queryCompiler').TableMeta} tableMeta
  * @param {string | number} keyFieldName
- * @param {*} values
- * @param {*} accessFilter
+ * @param {object | null | undefined} values  validated here
+ * @param {import('./queryCompiler').AccessFilter} accessFilter
  * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
@@ -218,10 +218,10 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
  *
  * The access filter guards the update half exactly as in compileUpsertByKey.
  * Postgres only, for the same reason.
- * @param {*} tableMeta
- * @param {*} id
- * @param {*} values
- * @param {*} accessFilter
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {unknown} id  validated here
+ * @param {object | null | undefined} values  validated here
+ * @param {import('./queryCompiler').AccessFilter} accessFilter
  * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpsertById(tableMeta, id, values, accessFilter, {

@@ -91,19 +91,13 @@ function reasonFor(kb, userId, orgIds) {
  * actually read.
  *
  * @param {string[]} kbIds
- * @param {object} p
- * @param {string|null} p.userId      the ASKER — never the object's owner
- *                                    unless the surface says so
- * @param {Set<string>} p.orgIds      always a Set; empty, never null
- * @param {string[]} [p.userGroups]
- * @param {string} [p.context]        for the log line ('agent_chat', 'kb_search', …)
- * @param {string} [p.agentId]
- * @param {any} [p.deps]
+ * @param {UserFilterArgs} p  `userId` is the ASKER — never the object's owner unless the surface says
+ *   so; `orgIds` always a Set, empty, never null; `context` for the log line ('agent_chat', 'kb_search', …)
  * @returns {Promise<string[]>} the ids that survive, in the order given
  */
 async function filterKbIdsForUser(kbIds, {
     userId, orgIds, userGroups = [], context = 'retrieval', agentId = null, deps = {},
-} = /** @type {any} */ ({})) {
+} = /** @type {UserFilterArgs} */ ({})) {
     const ids = Array.isArray(kbIds) ? kbIds.filter(id => typeof id === 'string' && id) : [];
     if (ids.length === 0) return [];
 
@@ -164,16 +158,11 @@ async function filterKbIdsForUser(kbIds, {
  * has to say so at the call site where somebody will read it.
  *
  * @param {string[]} kbIds
- * @param {object} p
- * @param {Set<string>} p.orgIds            always a Set; empty, never null
- * @param {boolean} [p.requireOrgMatch=true]
- * @param {string} [p.agentId]
- * @param {string} [p.context]
- * @param {any} [p.deps]
+ * @param {PublicFilterArgs} p  `orgIds` is always a Set, empty, never null; `requireOrgMatch` defaults to true
  */
 async function filterKbIdsForPublicAnswer(kbIds, {
     orgIds, requireOrgMatch = true, agentId = null, context = 'public', deps = {},
-} = /** @type {any} */ ({})) {
+} = /** @type {PublicFilterArgs} */ ({})) {
     const ids = Array.isArray(kbIds) ? kbIds.filter(id => typeof id === 'string' && id) : [];
     if (ids.length === 0) return [];
     const store = deps.kbStore || kbStore;
@@ -240,17 +229,12 @@ const GROUP_MEMBER = Symbol('kb-visibility:group-member');
  *     `tenant_id` is null, and not for one that arrives without the column.
  *
  * @param {string[]} kbIds
- * @param {object} p
- * @param {Set<string>} p.orgIds  the orgs the simulated member belongs to;
- *                                always a Set, empty rather than null
- * @param {string} p.groupId
- * @param {string} [p.agentId]
- * @param {string} [p.context]
- * @param {any} [p.deps]
+ * @param {GroupMemberFilterArgs} p  `orgIds` are the orgs the simulated member belongs to; always a Set,
+ *   empty rather than null
  */
 async function filterKbIdsForGroupMember(kbIds, {
     orgIds, groupId, agentId = null, context = 'test_as', deps = {},
-} = /** @type {any} */ ({})) {
+} = /** @type {GroupMemberFilterArgs} */ ({})) {
     const ids = Array.isArray(kbIds) ? kbIds.filter(id => typeof id === 'string' && id) : [];
     // No group is not "every group": it is a simulation nobody can evaluate.
     if (ids.length === 0 || typeof groupId !== 'string' || !groupId) return [];
@@ -295,6 +279,14 @@ function sharedGroupsOf(kb) {
         return [];
     }
 }
+
+/**
+ * @typedef {{ kbStore?: Partial<typeof import('../../stores/knowledgeBases')> }} VisibilityDeps  test seam
+ * @typedef {{ userId: string|null, orgIds: Set<string>, userGroups?: string[], context?: string, agentId?: string | null,
+ *   deps?: VisibilityDeps }} UserFilterArgs
+ * @typedef {{ orgIds: Set<string>, requireOrgMatch?: boolean, agentId?: string | null, context?: string, deps?: VisibilityDeps }} PublicFilterArgs
+ * @typedef {{ orgIds: Set<string>, groupId: string, agentId?: string | null, context?: string, deps?: VisibilityDeps }} GroupMemberFilterArgs
+ */
 
 module.exports = {
     filterKbIdsForUser, filterKbIdsForEmbed, filterKbIdsForPublicAnswer,

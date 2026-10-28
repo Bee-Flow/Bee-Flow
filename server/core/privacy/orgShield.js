@@ -363,8 +363,8 @@ function classifyToolClass(toolName, toolArgs = {}) {
  *
  * @param {string} toolName
  * @param {string[]} detectedCategories  canonical PII category ids (entity.category)
- * @param {any} policy                resolved toolPiiPolicy from resolveOrgShield
- * @param {any} [toolArgs]            the call's arguments (see classifyToolClass)
+ * @param {Record<string, { blockCategories?: string[] } | undefined> | null | undefined} policy  resolved toolPiiPolicy
+ * @param {Record<string, unknown>} [toolArgs]            the call's arguments (see classifyToolClass)
  * @returns {{ blocked: boolean, blockedCategories: string[], toolClass: string }}
  */
 function isBlockedForTool(toolName, detectedCategories, policy, toolArgs = {}) {

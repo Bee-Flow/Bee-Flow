@@ -161,7 +161,7 @@ function isDynamicSkill(skill, forceDynamicSkills = false) {
 /**
  * What ONE skill grants while it is active. Pure — reads the mapped row.
  *
- * @param {Object} skill  a mapped skill row (stores/skillStore.js mapRow)
+ * @param {NonNullable<ReturnType<typeof import('../../stores/skill/rows').mapRow>>} skill  a mapped skill row (stores/skillStore.js mapRow)
  * @returns {{ automationIds: string[], tableRefs: Array<{id:string,scope:'own',readOnly:true}>, kbIds: string[] }}
  */
 function skillGrantsOf(skill) {
@@ -278,13 +278,11 @@ function recordSkillActivations(skillIds, { agentId = null, conversationId = nul
 /**
  * Resolve merged skill ids into prompt text + tool registration data.
  *
- * @param {Object}   opts
- * @param {string[]} opts.sessionSkillIds  — user-toggled skills (activeSkillIds)
- * @param {string[]} opts.attachedSkillIds — agent.config.attachedSkillIds
- * @param {string}   opts.orgId
- * @param {string}   opts.userId
- * @param {string}   [opts.agentId]        — for the skill_activations row ("last used by")
- * @param {string}   [opts.conversationId] — dedupes the static write to one per conversation
+ * @param {{ sessionSkillIds: string[], attachedSkillIds: string[], orgId: string, userId: string,
+ *   agentId?: string, conversationId?: string }} opts `sessionSkillIds`: user-toggled skills
+ *   (activeSkillIds); `attachedSkillIds`: agent.config.attachedSkillIds; `agentId`: for the
+ *   skill_activations row ("last used by"); `conversationId`: dedupes the static write to one per
+ *   conversation
  * @returns {Promise<{
  *   systemPromptAddendum: string,
  *   tools: Array,

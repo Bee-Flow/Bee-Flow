@@ -43,12 +43,11 @@ function isShieldActive(shield) {
 }
 
 /**
- * @param {object} p
- * @param {string} [p.providerType]       The stored provider type of the turn's model.
- * @param {boolean} [p.supportsDocuments] adapter.supportsDocuments(modelId).
- * @param {boolean} [p.shieldActive]      Privacy Shield active for this turn (any mode).
- * @param {boolean} [p.tokenised]         The extracted text was tokenised/redacted.
- * @param {number} [p.bytes]              Decoded PDF size in bytes.
+ * @param {{ providerType?: string, supportsDocuments?: boolean, shieldActive?: boolean, tokenised?: boolean,
+ *   bytes?: number }} p `providerType`: The stored provider type of the turn's model;
+ *   `supportsDocuments`: adapter.supportsDocuments(modelId); `shieldActive`: Privacy Shield active for
+ *   this turn (any mode); `tokenised`: The extracted text was tokenised/redacted; `bytes`: Decoded PDF
+ *   size in bytes
  * @returns {{ send: boolean, reason: string | null }}
  */
 function nativePdfDecision({ providerType, supportsDocuments, shieldActive, tokenised, bytes }) {
@@ -71,16 +70,9 @@ function acceptsNativePdf(p) {
  * is logged, without the filename). `base64Data` is the bare base64 payload,
  * no data-URL prefix.
  *
- * @param {object} p
- * @param {{ supportsDocuments?: (modelId: string) => boolean } | null | undefined} p.adapter
- * @param {string} p.modelId
- * @param {string} [p.providerType]
- * @param {boolean} [p.shieldActive]
- * @param {boolean} [p.tokenised]
- * @param {string} p.base64Data
- * @param {string} [p.mediaType]
- * @param {string} [p.filename]
- * @param {string} [p.tag]  Log prefix, e.g. 'DirectChat'.
+ * @param {{ adapter: { supportsDocuments?: (modelId: string) => boolean } | null | undefined, modelId: string,
+ *   providerType?: string, shieldActive?: boolean, tokenised?: boolean, base64Data: string,
+ *   mediaType?: string, filename?: string, tag?: string }} p `tag`: Log prefix, e.g. 'DirectChat'
  */
 function nativePdfPart({ adapter, modelId, providerType, shieldActive, tokenised, base64Data, mediaType, filename, tag = 'NativePdf' }) {
     const supportsDocuments = typeof adapter?.supportsDocuments === 'function' && !!adapter.supportsDocuments(modelId);

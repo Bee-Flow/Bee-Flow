@@ -54,10 +54,9 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
 }
 
 /**
- * @param {object} p
- * @param {{ items?: Array<{id: string, type: string, preview: string}> }} [p.usedOut]
- *   optional: receives the memories injected this turn (also sent to the client
- *   as the `memory_used` event), so the turn can persist them on the message.
+ * @param {{ usedOut?: { items?: Array<{id: string, type: string, preview: string}> } }} p
+ *   `usedOut`: optional: receives the memories injected this turn (also sent to the client as the
+ *   `memory_used` event), so the turn can persist them on the message
  */
 async function resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut, conversationId = null }) {
     // ============ MEMORY INTEGRATION ============

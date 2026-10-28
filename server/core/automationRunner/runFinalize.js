@@ -134,7 +134,7 @@ async function writeTerminalRow(deps, { run, firstRunNeedsConfirm, runStatus, fi
 }
 
 /**
- * @param {any} deps  execution.js's RUN_DEPS
+ * @param {RunDeps} deps  execution.js's RUN_DEPS
  * @param {any} outcome  what raceRunDag answered
  * @returns {Promise<any>} the run row, with `lastOutput` attached
  */

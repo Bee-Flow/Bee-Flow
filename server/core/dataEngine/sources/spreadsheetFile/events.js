@@ -161,7 +161,7 @@ async function stale(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);
     // makeSync documents its result as a plain object; kickStale is built by mirror/staleness.
-    if (fresh) /** @type {any} */ (require('./sync')).kickStale(fresh, { reason, delayMs: 0 });
+    if (fresh) /** @type {import('../mirror/syncPipeline').MirrorSync} */ (require('./sync')).kickStale(fresh, { reason, delayMs: 0 });
 }
 
 /**

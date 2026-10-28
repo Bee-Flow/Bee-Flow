@@ -18,7 +18,7 @@ const { MASK_VALUES } = require('./httpAuth');
 const PUBLIC_VALUES = Symbol.for('beeflow.automation.publicValues');
 const MAX_DEPTH = 8;
 
-/** @param {any} node @param {Set<string>} into @param {number} depth */
+/** @param {unknown} node @param {Set<string>} into @param {number} depth */
 function collectTokens(node, into, depth) {
     if (!node || typeof node !== 'object' || depth > MAX_DEPTH) return;
     if (Array.isArray(node)) {
@@ -33,14 +33,14 @@ function collectTokens(node, into, depth) {
 
 /**
  * Remember the room tokens a finished nextcloud_talk_* step emitted.
- * @param {any} runState @param {{ tool?: string }} step @param {any} output
+ * @param {RunMarkers | null | undefined} runState @param {{ tool?: string }} step @param {unknown} output
  */
 function notePublicValues(runState, step, output) {
     if (!runState || typeof step?.tool !== 'string' || !step.tool.startsWith('nextcloud_talk_')) return;
     collectTokens(output, (runState[PUBLIC_VALUES] ||= new Set()), 0);
 }
 
-/** @param {any} runState @returns {string[]} */
+/** @param {RunMarkers | null | undefined} runState @returns {string[]} */
 function publicValuesFor(runState) {
     return [...(runState?.[PUBLIC_VALUES] || [])];
 }
@@ -48,10 +48,13 @@ function publicValuesFor(runState) {
 /**
  * The Symbol-keyed run markers a layer sub-state must share BY REFERENCE with
  * its parent (credential mask needles and public values).
- * @param {any} runState
+ * @param {RunMarkers & { [MASK_VALUES]?: unknown }} runState
  */
 function sharedRunMarkers(runState) {
     return { [MASK_VALUES]: runState[MASK_VALUES], [PUBLIC_VALUES]: runState[PUBLIC_VALUES] };
 }
 
 module.exports = { sharedRunMarkers, PUBLIC_VALUES, notePublicValues, publicValuesFor };
+
+/** A run state as far as these markers go: the Set under the Symbol key, beside the run's own keys. */
+/** @typedef {{ [PUBLIC_VALUES]?: Set<string>, [key: string]: unknown }} RunMarkers */

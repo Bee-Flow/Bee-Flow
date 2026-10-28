@@ -57,7 +57,9 @@ async function loadGroupTierRule(userId) {
     return { user, tierPermittedByGroups };
 }
 
-/** @typedef {{ userId?: string | undefined, session?: Express.Session, taskType?: string }} GetPermittedTierKeysArgs */
+/**
+ * @typedef {{ userId?: string | undefined, session?: Express.Session, taskType?: string }} GetPermittedTierKeysArgs
+ */
 /**
  * @param {GetPermittedTierKeysArgs} param0
  */

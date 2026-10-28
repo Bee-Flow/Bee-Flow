@@ -180,22 +180,14 @@ const over = (/** @type {number} */ used, /** @type {number} */ add, /** @type {
  * Refuse a write that would take a tenant outside its envelope.
  *
  * @param {{kind:'org'|'user', id:string}} scope
- * @param {object}  [opts]
- * @param {QuotaTable|null}  [opts.table]  the `datatables` row being written to, for
- *                                    the per-table row cap. Omit for a create.
- * @param {number}  [opts.addRows]    rows this operation would add (0 for an
- *                                    update or a delete — neither can overflow).
- * @param {number}  [opts.addTables]  tables a person (or their automation,
- *                                    app, link …) would add.
- * @param {number}  [opts.addSheetTables]  spreadsheet tabs a document would
- *                                    add (`document_sheet` tables), counted
- *                                    on their own cap — see the header.
- * @param {ScopeUsage|null}  [opts.usage]  pre-read usage, when the caller already
- *                                    holds it under a lock (createDatatable
- *                                    counts tables inside its own transaction,
- *                                    where the model row is FOR UPDATE-held —
- *                                    counting outside it let two replicas both
- *                                    see 49).
+ * @param {{ table?: QuotaTable|null, addRows?: number, addTables?: number, addSheetTables?: number,
+ *   usage?: ScopeUsage|null }} [opts] `table`: the `datatables` row being written to, for the per-table
+ *   row cap. Omit for a create; `addRows`: rows this operation would add (0 for an update or a delete —
+ *   neither can overflow); `addTables`: tables a person (or their automation, app, link …) would add;
+ *   `addSheetTables`: spreadsheet tabs a document would add (`document_sheet` tables), counted on their
+ *   own cap — see the header; `usage`: pre-read usage, when the caller already holds it under a lock
+ *   (createDatatable counts tables inside its own transaction, where the model row is FOR UPDATE-held —
+ *   counting outside it let two replicas both see 49)
  * @throws a 409 quota error; returns the usage it read otherwise.
  * @returns {Promise<ScopeUsage>}
  */

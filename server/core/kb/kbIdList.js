@@ -29,7 +29,7 @@ const MAX_ATTACHED_KB_IDS = 50;
  * something the caller did not pass in, and an unreadable input (a string, an
  * object, null) becomes an EMPTY list rather than passing itself through.
  *
- * @param {*} ids
+ * @param {unknown} ids
  * @param {{max?: number}} [opts]
  * @returns {string[]}
  */

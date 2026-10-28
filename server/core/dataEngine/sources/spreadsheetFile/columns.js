@@ -173,13 +173,14 @@ function keyTitleFor(described) {
 
 /**
  * @param {SheetColumn[]} columns   [{ col, header, type?, formula?, options?, numFmt?, format?, dateFormat? }] in sheet order
- * @param {object} [ctx]
- * @param {ExistingField[]}  [ctx.existingFields]      the mirror's current fields (identity + kept keys)
- * @param {Record<string, ColumnMapEntry>} [ctx.existingColumnMap]   the mirror's current source.columnMap (prior cols, types, hashes)
- * @param {DeclaredRelation[]}  [ctx.declaredRelations]   [{ targetDatatableId, targetKey, targetName, localFieldId, targetFieldId }]
- * @param {number|null} [ctx.keyCol]         0-based column of the key column (required:true)
- * @param {Record<string, { type?: string } | string>} [ctx.overrides]           { [fieldId|headerHash]: { type } } — retypes from the wizard / PUT /:id/source
- * @param {Set<string>} [ctx.reservedKeys]   keys this mirror must not use
+ * @param {{ existingFields?: ExistingField[], existingColumnMap?: Record<string, ColumnMapEntry>,
+ *   declaredRelations?: DeclaredRelation[], keyCol?: number|null,
+ *   overrides?: Record<string, { type?: string } | string>, reservedKeys?: Set<string> }} [ctx]
+ *   `existingFields`: the mirror's current fields (identity + kept keys); `existingColumnMap`: the
+ *   mirror's current source.columnMap (prior cols, types, hashes); `declaredRelations`: [{
+ *   targetDatatableId, targetKey, targetName, localFieldId, targetFieldId }]; `keyCol`: 0-based column
+ *   of the key column (required:true); `overrides`: { [fieldId|headerHash]: { type } } — retypes from
+ *   the wizard / PUT /:id/source; `reservedKeys`: keys this mirror must not use
  * @returns {{ fields:MirrorField[], columnMap:Record<string, ColumnMapEntry>, relations:Array<{ fieldId: string, kind: string, targetDatatableId: string, localFieldId: string, targetFieldId: string }>, warnings:string[], changes:string[], retyped:ExistingField[], keyFieldId:string|null }}
  */
 function fieldsFromSheet(columns, {

@@ -115,7 +115,7 @@ function restoreFromVault(value, vaultMap) {
  * data, so the current step's scan never sees it — that is exactly how
  * `[person_1]` would be sent to third parties as literal text.
  *
- * @param {object} opts.destination 'external' (default) | 'internal'
+ * The options' `destination` is 'external' (default) | 'internal'.
  */
 function prepareForEgress(value, policy, ctx, { destination = 'external' } = {}) {
     const mode = egressMode(policy, destination);

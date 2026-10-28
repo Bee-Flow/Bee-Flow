@@ -196,10 +196,9 @@ async function resolveUncached(d, userId, provider, { session }) {
 /**
  * @param {string} userId
  * @param {'google'|'microsoft'} provider
- * @param {object} [opts]
- * @param {SessionLike|null} [opts.session]  the caller's live session, when on a request path
- * @param {string|null} [opts.orgId]    accepted for symmetry with resolveLinker; the vault scope comes from the user row
- * @param {boolean} [opts.fresh]        skip the memo (a re-link, a "try again")
+ * @param {{ session?: SessionLike|null, orgId?: string|null, fresh?: boolean }} [opts] `session`: the
+ *   caller's live session, when on a request path; `orgId`: accepted for symmetry with resolveLinker;
+ *   the vault scope comes from the user row; `fresh`: skip the memo (a re-link, a "try again")
  * @returns {Promise<object>} the session-shaped shim with save()
  * @throws {SpreadsheetSourceError} 403 provider_not_connected
  */

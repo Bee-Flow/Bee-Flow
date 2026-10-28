@@ -98,11 +98,10 @@ function _applyToContent(content, replace, role) {
 /**
  * Re-tokenise every string about to be handed to the LLM.
  *
- * @param {object} params
- * @param {string|null} params.conversationId   Used to look up the conv token map. null/empty → no-op.
- * @param {string|null} params.systemPrompt     Outbound system prompt (re-tokenised in place).
- * @param {Array}       params.messages         Outbound `messages` array. Each entry's `content`
- *                                              (string or content-block array) is re-tokenised.
+ * @param {{ conversationId: string|null, systemPrompt: string|null, messages: Array }} params
+ *   `conversationId`: Used to look up the conv token map. null/empty → no-op; `systemPrompt`: Outbound
+ *   system prompt (re-tokenised in place); `messages`: Outbound `messages` array. Each entry's
+ *   `content` (string or content-block array) is re-tokenised
  * @returns {{ systemPrompt: string|null, messages: Array }}
  */
 function applyTokenMapToOutbound({ conversationId, systemPrompt, messages }) {

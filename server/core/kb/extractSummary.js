@@ -79,16 +79,13 @@ function withTimeout(promise, ms, label) {
 /**
  * Summarise one document.
  *
- * @param {object} p
- * @param {string} p.text        the text as STORED (post-shield, see header)
- * @param {string} [p.title]
- * @param {string} [p.language]  the org's language, so the label matches the UI
- * @param {any} [p.deps]      injection seam for the tests
+ * @param {SummariseArgs} p  `text` is the text as STORED (post-shield, see header); `language` the org's
+ *   language, so the label matches the UI; `deps` an injection seam for the tests
  * @returns {Promise<{summary: string, topics: string[]}|null>} null on ANY
  *          failure — no provider, no model, a timeout, a refusal, a malformed
  *          tool call. The caller stores the document either way.
  */
-async function summarise({ text, title = '', language = 'English', deps = {} } = /** @type {any} */ ({})) {
+async function summarise({ text, title = '', language = 'English', deps = {} } = /** @type {SummariseArgs} */ ({})) {
     const body = String(text || '').trim();
     if (body.length < 40) return null; // nothing to say about a line of text
 
@@ -168,3 +165,9 @@ function withOverlap(summary, overlapSourceName) {
 }
 
 module.exports = { summarise, normalise, withOverlap, PREFIX_CHARS, TIMEOUT_MS, MAX_SUMMARY_CHARS, TOOL };
+
+/**
+ * @typedef {{ text: string, title?: string, language?: string, deps?: { llmClient?: typeof import('../llm/llmClient'),
+ *   resolveAgentModel?: typeof import('../agentRuntime/modelResolver').resolveAgentModel,
+ *   getAIConfig?: typeof import('../aiAgent').getAIConfig } }} SummariseArgs
+ */

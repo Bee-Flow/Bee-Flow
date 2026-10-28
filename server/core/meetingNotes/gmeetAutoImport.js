@@ -430,7 +430,9 @@ async function processClaimedJob(job) {
     await processJobInline({ job, session: buildVaultSession(auth), settings });
 }
 
-/** @typedef {{ limit?: number }} ProcessDueArgs */
+/**
+ * @typedef {{ limit?: number }} ProcessDueArgs
+ */
 /**
  * Phase B — claim + process due jobs. Runs OUTSIDE the discovery lock (claims
  * are FOR UPDATE SKIP LOCKED, so every pod may run this concurrently).

@@ -959,40 +959,19 @@ module.exports = {
 };
 
 /**
- * @typedef {object} BfAttribute
- * @property {string} name
- * @property {boolean} required
- * @property {string[]} [aliases]
- * @property {string} means
- * @property {string[]} [values]
- * @property {string} [default]
- * @property {number} [max]
- * @property {{ attr: string, notOneOf?: string[] }} [requiredWhen]
+ * @typedef {{ name: string, required: boolean, aliases?: string[], means: string, values?: string[],
+ *   default?: string, max?: number, requiredWhen?: { attr: string, notOneOf?: string[] } }} BfAttribute
  */
 
 /**
- * @typedef {object} BfSurface
- * @property {string} state
- * @property {string} why
- * @property {string} [message]
- * @property {string} [notice]
+ * @typedef {{ state: string, why: string, message?: string, notice?: string }} BfSurface
  */
 
 /**
- * @typedef {object} BfBinding
- * @property {string} kind
- * @property {string} from
- * @property {string} gate
- * @property {string} [fallback]
+ * @typedef {{ kind: string, from: string, gate: string, fallback?: string }} BfBinding
  */
 
 /**
- * @typedef {object} BfElement
- * @property {string} tag
- * @property {string} summary
- * @property {boolean} needsJs
- * @property {BfAttribute[]} attributes
- * @property {{ rowsMax: number }} [reads]
- * @property {BfBinding} [binding]
- * @property {Record<string, BfSurface>} surfaces
+ * @typedef {{ tag: string, summary: string, needsJs: boolean, attributes: BfAttribute[],
+ *   reads?: { rowsMax: number }, binding?: BfBinding, surfaces: Record<string, BfSurface> }} BfElement
  */

@@ -156,7 +156,7 @@ async function executeSetAiTask(toolName, toolArgs, context) {
             return { error: `Maximum number of cowork items reached (${maxTasks}). The user needs to delete or pause an existing one first.` };
         }
         // createSchedule's optional fields (toolsEnabled, agentId, ...) are not declared optional.
-        const task = await coworkStore.createSchedule(/** @type {any} */ ({
+        const task = await coworkStore.createSchedule(/** @type {Parameters<typeof coworkStore.createSchedule>[0]} */ ({
             userId,
             title: toolArgs.title,
             prompt: toolArgs.prompt,

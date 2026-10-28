@@ -57,14 +57,10 @@ const MAX_PER_ITEM = 1000;
 const PROTECTED_SOURCES = new Set(['named', 'created', 'restore', 'pre_restore']);
 
 /**
- * @typedef {object} VersionRow
- * @property {string} id
- * @property {string|number|Date} createdAt
- * @property {string} [source]
- * @property {string|null} [name]
- * @property {boolean} [pinned]
- * @property {boolean} [referenced]   the caller knows something points at it
- * @property {boolean} [hidden]       not shown in the history list (folded into a later version)
+ * @typedef {{ id: string, createdAt: string|number|Date, source?: string, name?: string|null,
+ *   pinned?: boolean, referenced?: boolean, hidden?: boolean }} VersionRow
+ *   `referenced`: the caller knows something points at it; `hidden`: not shown in the history list (folded
+ *   into a later version)
  */
 
 /**

@@ -27,13 +27,11 @@ function text(v) {
 }
 
 /**
- * @param {object} p
- * @param {any} p.snapshot  the published snapshot
- * @param {Array<{id: string, slug: string, title: string, excerpt?: string, tags?: Array<{label: string}>}>} p.posts visible posts, already localized
- * @param {Array<{id: string, title: string, description: string}>} p.integrations
- * @param {string} p.locale
- * @param {string} p.defaultLocale
- * @param {string[]} [p.locales] every locale the site publishes (default first)
+ * @param {{ snapshot: import('../../stores/cms/shared').CmsDoc | null | undefined,
+ *   posts: Array<{id: string, slug: string, title: string, excerpt?: string, tags?: Array<{label: string}>}>,
+ *   integrations: Array<{id: string, title: string, description: string}>, locale: string, defaultLocale: string,
+ *   locales?: string[] }} p `snapshot`: the published snapshot; `posts`: visible posts, already localized;
+ *   `locales`: every locale the site publishes (default first)
  * @returns {{ locale: string, entries: Array<{k: string, t: string, d: string, u: string, g: string[]}> }}
  */
 function buildSearchIndex({ snapshot, posts, integrations, locale, defaultLocale, locales = [defaultLocale] }) {

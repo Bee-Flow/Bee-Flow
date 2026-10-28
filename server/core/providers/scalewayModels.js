@@ -461,21 +461,8 @@ module.exports = {
  * `price` is Scaleway's published list price per 1M tokens (EUR), used only as
  * a fallback for models the community pricing database has not picked up yet.
  *
- * @typedef {object} ScalewayModelEntry
- * @property {string} org
- * @property {string} name
- * @property {string} cat
- * @property {string} [desc]
- * @property {number} [context]
- * @property {number} [maxOutput]
- * @property {boolean} [reasoning]
- * @property {boolean} [vision]
- * @property {boolean} [tools]
- * @property {boolean} [embedding]
- * @property {boolean} [audio]
- * @property {readonly string[]} [effort]
- * @property {boolean} [parallelToolCalls]
- * @property {boolean} serverless
- * @property {string} [status]
- * @property {{ input: number, output: number, cacheRead?: number } | null} [price]
+ * @typedef {{ org: string, name: string, cat: string, desc?: string, context?: number, maxOutput?: number,
+ *   reasoning?: boolean, vision?: boolean, tools?: boolean, embedding?: boolean, audio?: boolean,
+ *   effort?: readonly string[], parallelToolCalls?: boolean, serverless: boolean, status?: string,
+ *   price?: { input: number, output: number, cacheRead?: number } | null }} ScalewayModelEntry
  */

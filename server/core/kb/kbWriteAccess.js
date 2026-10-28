@@ -52,14 +52,11 @@ const REASONS = Object.freeze({
  * May `userId` write into this knowledge base?
  *
  * @param {string} kbId
- * @param {object} p
- * @param {string|null} p.userId    the identity the WRITE happens under
- * @param {Set<string>} p.orgIds    always a Set; empty, never null
- * @param {boolean} [p.canManage]   does this person hold `manage_knowledge`?
- * @param {any} [p.deps]
+ * @param {WriteAccessArgs} p  `userId` is the identity the WRITE happens under; `orgIds` always a Set,
+ *   empty, never null; `canManage`: does this person hold `manage_knowledge`?
  * @returns {Promise<{ok: boolean, reason?: string, kb?: any}>}
  */
-async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {} } = /** @type {any} */ ({})) {
+async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {} } = /** @type {WriteAccessArgs} */ ({})) {
     if (!kbId) return { ok: false, reason: REASONS.UNKNOWN };
     const store = deps.kbStore || kbStore;
 
@@ -151,3 +148,7 @@ function messageFor(reason, kbName = null) {
 }
 
 module.exports = { canWriteToKb, canOwnerWriteToKb, messageFor, REASONS };
+
+/**
+ * @typedef {{ userId: string|null, orgIds: Set<string>, canManage?: boolean, deps?: { kbStore?: Partial<typeof kbStore>, [key: string]: unknown } }} WriteAccessArgs
+ */

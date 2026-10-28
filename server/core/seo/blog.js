@@ -63,7 +63,9 @@ function postPath(locale, slug, defaultLocale) {
     return buildPublicPath(locale, `${BLOG_BASE}/${slug}`, defaultLocale);
 }
 
-/** @typedef {{ tag?: string, page?: number | undefined }} IndexQueryArgs */
+/**
+ * @typedef {{ tag?: string, page?: number | undefined }} IndexQueryArgs
+ */
 /**
  * The blog's index page query string for paging / a tag filter.
  * @param {IndexQueryArgs} param0
@@ -78,7 +80,7 @@ function indexQuery({ tag, page = undefined }) {
 
 /**
  * <head> for a blog URL.
- * @param {any} ctx  { origin, eff, locale, defaultLocale, locales, siteName }
+ * @param {{ origin: string, eff: CmsDoc, locale: string, defaultLocale: string, locales: string[], siteName: string }} ctx
  */
 function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }) {
     const blog = eff.blog;
@@ -252,7 +254,8 @@ function xmlText(v) {
 /**
  * RSS 2.0 for the newest posts of one locale.
  * @param {any[]} posts summaries WITH body (getLatestPublishedPosts withBody)
- * @param {any} opts { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }
+ * @param {{ origin: string, siteName: string, title: string, description?: string, locale: string, defaultLocale: string,
+ *   lastBuildDate?: string | null }} opts
  */
 function buildFeed(posts, { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }) {
     const self = `${origin}${feedPath(locale, defaultLocale)}`;

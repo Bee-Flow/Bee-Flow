@@ -268,16 +268,11 @@ function emitHeading(text, out, depth, state) {
 }
 
 /**
- * @param {object[]} blocks   page.blocks, already locale-resolved
- * @param {object} opts
- * @param {string} [opts.fallbackTitle] used as the h1 when no block supplies one
- * @param {{ header?: unknown, footer?: unknown } | null} [opts.chrome] site header/footer, for the navigation links
- * @returns {string} HTML for the inside of #root
- */
-/**
- * @param {Array<Record<string, any>>} blocks
+ * @param {Array<Record<string, any>>} blocks   page.blocks, already locale-resolved
  * @param {{ fallbackTitle?: string, chrome?: { header?: unknown, footer?: unknown } | null }} [opts]
- * @returns {string}
+ *   `fallbackTitle`: used as the h1 when no block supplies one; `chrome`: site header/footer, for the
+ *   navigation links
+ * @returns {string} HTML for the inside of #root
  */
 function renderBlocks(blocks, opts = {}) {
     return renderBlocksWithHints(blocks, opts).html;

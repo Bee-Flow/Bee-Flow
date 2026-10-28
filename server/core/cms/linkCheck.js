@@ -22,19 +22,14 @@ const URL_KEYS = new Set(['privacyUrl', 'href', 'url']);
 const STATIC_PATHS = new Set(['sitemap.xml', 'robots.txt', 'llms.txt', 'favicon.ico']);
 
 /**
- * @typedef {object} Link
- * @property {string} where  readable location, e.g. "page home > blocks[2] > cta.link"
- * @property {'page' | 'path' | 'external'} type
- * @property {string} target a page id, a site path or an absolute URL
+ * @typedef {{ where: string, type: 'page' | 'path' | 'external', target: string }} Link
+ *   `where`: readable location, e.g. "page home > blocks[2] > cta.link"; `target`: a page id, a site path
+ *   or an absolute URL
  */
 
 /**
- * @typedef {object} Problem
- * @property {string} where
- * @property {string} url    as written, without query string or fragment
- * @property {string} code
- * @property {string} problem
- * @property {'error' | 'warning'} severity
+ * @typedef {{ where: string, url: string, code: string, problem: string, severity: 'error' | 'warning' }} Problem
+ *   `url`: as written, without query string or fragment
  */
 
 /** @param {unknown} v @returns {v is Record<string, any>} */
