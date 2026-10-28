@@ -11,6 +11,7 @@
  */
 
 import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
+import { pick } from '../lang';
 
 interface Skill {
     id: string;
@@ -80,7 +81,7 @@ const SKILLS = (): Skill[] => ([
             'Anything mentioning a deadline is surfaced first, regardless of bucket.',
         ],
         examples: [],
-        dynamicActivation: { enabled: true, keywords: ['tender', 'aanbesteding', 'rfp', 'bid'] },
+        dynamicActivation: { enabled: true, keywords: ['tender', 'rfp', 'bid', 'proposal'] },
         isShared: true,
         sharedGroups: ['grp_sales'],
         workflow: null,
@@ -103,16 +104,25 @@ const SKILLS = (): Skill[] => ([
     },
     {
         id: 'skl_demo_dutch',
-        name: 'Nederlandse zakelijke brief',
+        name: pick({ en: 'Dutch business letter', nl: 'Nederlandse zakelijke brief' }),
         icon: '📧',
-        description: 'Formele Nederlandse correspondentie met de juiste aanhef en afsluiting.',
-        instructions: 'Gebruik "u" tenzij expliciet anders gevraagd. Begin met "Geachte heer/mevrouw" wanneer de naam onbekend is, anders met de achternaam.\n\nVermijd letterlijk vertaald Engels. "Please find attached" wordt "In de bijlage vindt u", niet "Vind alstublieft bijgevoegd".',
-        rules: [
-            'Datum voluit: 3 maart 2026, niet 03-03-2026.',
-            'Sluit af met "Met vriendelijke groet" en een witregel voor de naam.',
-        ],
+        description: pick({ en: 'Formal Dutch correspondence with the right salutation and closing.', nl: 'Formele Nederlandse correspondentie met de juiste aanhef en afsluiting.' }),
+        instructions: pick({
+            en: 'Use the formal "u" unless explicitly asked otherwise. Open with "Geachte heer/mevrouw" when the name is unknown, otherwise with the surname.\n\nAvoid literally translated English. "Please find attached" becomes "In de bijlage vindt u", not "Vind alstublieft bijgevoegd".',
+            nl: 'Gebruik "u" tenzij expliciet anders gevraagd. Begin met "Geachte heer/mevrouw" wanneer de naam onbekend is, anders met de achternaam.\n\nVermijd letterlijk vertaald Engels. "Please find attached" wordt "In de bijlage vindt u", niet "Vind alstublieft bijgevoegd".',
+        }),
+        rules: pick({
+            en: [
+                'Write the date in full: 3 March 2026, not 03-03-2026.',
+                'Close with "Met vriendelijke groet" and a blank line before the name.',
+            ],
+            nl: [
+                'Datum voluit: 3 maart 2026, niet 03-03-2026.',
+                'Sluit af met "Met vriendelijke groet" en een witregel voor de naam.',
+            ],
+        }),
         examples: [],
-        dynamicActivation: { enabled: true, keywords: ['brief', 'nederlands', 'geachte'] },
+        dynamicActivation: { enabled: true, keywords: pick({ en: ['letter', 'dutch', 'geachte'], nl: ['brief', 'nederlands', 'geachte'] }) },
         isShared: true,
         sharedGroups: ['grp_support'],
         workflow: null,

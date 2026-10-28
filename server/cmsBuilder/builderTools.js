@@ -271,8 +271,8 @@ async function applyReorderPages(draftWrap, args) {
 // (hard reject, before any I/O) and the returned summary is read back from
 // the PERSISTED doc — see applyUpdateDesign.
 //
-// logo/favicon are deliberately not patchable: they are uploaded asset keys
-// and the standing prompt rule is "NEVER invent asset keys".
+// logo/favicon are patchable only as an uploaded image that exists in the
+// asset store (see builderToolsDesign.js); an invented key is rejected.
 
 // ── Dispatcher ───────────────────────────────────────────────────────
 

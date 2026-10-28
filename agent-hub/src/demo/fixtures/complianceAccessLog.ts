@@ -18,6 +18,8 @@
  * as eight unlabelled pills with duplicate React keys.
  */
 
+import { AGENT } from './common';
+
 export interface AccessAuditRow {
     id: number;
     organization_id: string;
@@ -48,16 +50,16 @@ export function accessAuditSeed(org: string, now: number = Date.now()): AccessAu
     const refused = (reason: string) => ({ method: 'password', reason, knownAccount: false, identifierFingerprint: FINGERPRINT, ip: '45.13.xxx.xxx' });
     // [id, action, target_type, target_id, changed_by, ms ago, new_values]
     const rows: [number, string, string, string, string, number, Record<string, unknown>][] = [
-        [9, 'login_succeeded', 'user', 'u_marieke', 'u_marieke', HOUR_MS, { method: 'sso', ip: '82.94.xxx.xxx' }],
-        [8, 'dsr.subject_viewed', 'dsr_request', '2417', 'u_marieke', 2 * HOUR_MS, { request_type: 'access' }],
-        [7, 'dsr.discovery_run', 'dsr_request', '2417', 'u_marieke', 2 * HOUR_MS + 60_000, { request_type: 'access' }],
+        [9, 'login_succeeded', 'user', 'u_alex', 'u_alex', HOUR_MS, { method: 'sso', ip: '82.94.xxx.xxx' }],
+        [8, 'dsr.subject_viewed', 'dsr_request', '2417', 'u_alex', 2 * HOUR_MS, { request_type: 'access' }],
+        [7, 'dsr.discovery_run', 'dsr_request', '2417', 'u_alex', 2 * HOUR_MS + 60_000, { request_type: 'access' }],
         [6, 'login_failed', 'login_identifier', FINGERPRINT, 'anonymous', 9 * HOUR_MS, refused('invalid_credentials')],
-        [5, 'login_succeeded', 'user', 'u_farah', 'u_farah', 11 * HOUR_MS, { method: 'sso', ip: '82.94.xxx.xxx' }],
-        [4, 'dsr.dossier_exported', 'dsr_request', '2415', 'u_marieke', 21 * DAY_MS, { audience: 'internal file' }],
-        [3, 'studio_app_published', 'studio_app', 'app_intake', 'u_joost', 26 * DAY_MS, { appName: 'Polisintake' }],
+        [5, 'login_succeeded', 'user', 'u_robin', 'u_robin', 11 * HOUR_MS, { method: 'sso', ip: '82.94.xxx.xxx' }],
+        [4, 'dsr.dossier_exported', 'dsr_request', '2415', 'u_alex', 21 * DAY_MS, { audience: 'internal file' }],
+        [3, 'studio_app_published', 'studio_app', 'app_intake', 'u_sam', 26 * DAY_MS, { appName: AGENT.intake }],
         // passwordLoginRoutes: a sign-in refused by the login throttle.
         [2, 'login_blocked', 'login_identifier', FINGERPRINT, 'anonymous', 31 * DAY_MS, refused('throttled')],
-        [1, 'studio_app_public_page_created', 'studio_app', 'app_intake', 'u_joost', 40 * DAY_MS, { appName: 'Polisintake', audience: 'public link' }],
+        [1, 'studio_app_public_page_created', 'studio_app', 'app_intake', 'u_sam', 40 * DAY_MS, { appName: AGENT.intake, audience: 'public link' }],
     ];
     return rows.map(([id, action, target_type, target_id, changed_by, ms, new_values]) => ({
         id, organization_id: org, action, target_type, target_id, changed_by, old_values: null, new_values,

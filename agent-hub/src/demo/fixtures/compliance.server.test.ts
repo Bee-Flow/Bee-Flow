@@ -88,10 +88,10 @@ describe('compliance demo — the incident register as incidentStore keeps it', 
     it('a note joins the log, and recording the authority notification empties a GDPR breach\'s deadline', () => {
         const c = ctx({ params: { id: '31' } });
         const noted = routes['PATCH /api/compliance/incidents/:id']({ ...c, body: { note: 'Called the broker again.' } }) as Row;
-        expect((noted.notes as Row[]).at(-1)).toMatchObject({ by: 'u_marieke', text: 'Called the broker again.' });
+        expect((noted.notes as Row[]).at(-1)).toMatchObject({ by: 'u_alex', text: 'Called the broker again.' });
         const filed = routes['PATCH /api/compliance/incidents/:id']({ ...c, body: { status: 'authority_notified', authority_reference: 'AP-1' } }) as Row;
         expect(filed.authority_notified_at).toBeTruthy();
-        expect(filed.authority_notified_by).toBe('u_marieke');
+        expect(filed.authority_notified_by).toBe('u_alex');
         expect(filed.deadline_at).toBeNull();
     });
 
@@ -193,8 +193,8 @@ describe('compliance demo — the access log', () => {
     it('filters by action list and by actor, like routes/compliance/accessAudit.js', () => {
         const byAction = call<{ entries: Row[] }>('GET /api/compliance/access-audit', { query: new URLSearchParams('action=login_failed,login_blocked') });
         expect(byAction.entries.map(e => e.action).sort()).toEqual(['login_blocked', 'login_failed']);
-        const byActor = call<{ entries: Row[] }>('GET /api/compliance/access-audit', { query: new URLSearchParams('actor=u_joost') });
-        expect(byActor.entries.every(e => e.changed_by === 'u_joost')).toBe(true);
+        const byActor = call<{ entries: Row[] }>('GET /api/compliance/access-audit', { query: new URLSearchParams('actor=u_sam') });
+        expect(byActor.entries.every(e => e.changed_by === 'u_sam')).toBe(true);
         expect(byActor.entries.length).toBe(2);
     });
 });

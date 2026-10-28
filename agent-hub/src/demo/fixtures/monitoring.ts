@@ -21,6 +21,7 @@
  * Everything is invented, and the totals reconcile.
  */
 
+import { pick } from '../lang';
 import { COMMON_ROUTES } from './common';
 
 const dayKey = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
@@ -91,17 +92,17 @@ const TIMELINE = () => {
 
 const USERS = () => ([
     { user_id: 'demo-user', display_name: 'Demo user', username: 'demo', calls: 604, prompt_tokens: 452_100, completion_tokens: 176_300 },
-    { user_id: 'u_sanne', display_name: 'Sanne de Vries', username: 'sanne', calls: 548, prompt_tokens: 411_800, completion_tokens: 160_400 },
-    { user_id: 'u_ruben', display_name: 'Ruben Bakker', username: 'ruben', calls: 497, prompt_tokens: 370_200, completion_tokens: 144_700 },
-    { user_id: 'u_iris', display_name: 'Iris Hoekstra', username: 'iris', calls: 441, prompt_tokens: 335_100, completion_tokens: 130_900 },
-    { user_id: 'u_daan', display_name: 'Daan Willemsen', username: 'daan', calls: 356, prompt_tokens: 271_600, completion_tokens: 106_100 },
-    { user_id: 'u_mees', display_name: 'Mees Koster', username: 'mees', calls: 235, prompt_tokens: 190_900, completion_tokens: 72_100 },
+    { user_id: 'u_casey', display_name: 'Casey Hayes', username: 'casey', calls: 548, prompt_tokens: 411_800, completion_tokens: 160_400 },
+    { user_id: 'u_taylor', display_name: 'Taylor Rivera', username: 'taylor', calls: 497, prompt_tokens: 370_200, completion_tokens: 144_700 },
+    { user_id: 'u_quinn', display_name: 'Quinn Ellis', username: 'quinn', calls: 441, prompt_tokens: 335_100, completion_tokens: 130_900 },
+    { user_id: 'u_riley', display_name: 'Riley Fox', username: 'riley', calls: 356, prompt_tokens: 271_600, completion_tokens: 106_100 },
+    { user_id: 'u_avery', display_name: 'Avery Stone', username: 'avery', calls: 235, prompt_tokens: 190_900, completion_tokens: 72_100 },
 ]);
 
 const AGENTS = () => ([
     { agent_id: 'agent_demo_support', agent_name: 'Support drafter', name: 'Support drafter', calls: 731, prompt_tokens: 583_900, completion_tokens: 228_500 },
     { agent_id: 'agent_demo_kb', agent_name: 'Knowledge answers', name: 'Knowledge answers', calls: 688, prompt_tokens: 570_800, completion_tokens: 223_300 },
-    { agent_id: 'agent_demo_linkedin', agent_name: 'LinkedIn Schrijver', name: 'LinkedIn Schrijver', calls: 402, prompt_tokens: 337_000, completion_tokens: 131_900 },
+    { agent_id: 'agent_demo_linkedin', agent_name: pick({ en: 'LinkedIn writer', nl: 'LinkedIn Schrijver' }), name: pick({ en: 'LinkedIn writer', nl: 'LinkedIn Schrijver' }), calls: 402, prompt_tokens: 337_000, completion_tokens: 131_900 },
     { agent_id: 'agent_demo_tender', agent_name: 'Tender triage', name: 'Tender triage', calls: 355, prompt_tokens: 322_900, completion_tokens: 126_300 },
     { agent_id: 'agent_demo_notes', agent_name: 'Meeting summariser', name: 'Meeting summariser', calls: 288, prompt_tokens: 245_200, completion_tokens: 95_900 },
     { agent_id: null, agent_name: 'Direct chat', name: 'Direct chat', calls: 217, prompt_tokens: 206_700, completion_tokens: 80_800 },
@@ -212,11 +213,11 @@ const G_ACTIONS = () => ([
 
 const G_BY_USER = () => ([
     { user_id: 'demo-user', display_name: 'Demo user', pii: 284, moderation: 1, regex: 0, total: 285, last_event: dayKey(0) },
-    { user_id: 'u_sanne', display_name: 'Sanne de Vries', pii: 241, moderation: 0, regex: 0, total: 241, last_event: dayKey(0) },
-    { user_id: 'u_ruben', display_name: 'Ruben Bakker', pii: 198, moderation: 2, regex: 0, total: 200, last_event: dayKey(1) },
-    { user_id: 'u_iris', display_name: 'Iris Hoekstra', pii: 167, moderation: 0, regex: 0, total: 167, last_event: dayKey(1) },
-    { user_id: 'u_daan', display_name: 'Daan Willemsen', pii: 106, moderation: 1, regex: 0, total: 107, last_event: dayKey(2) },
-    { user_id: 'u_mees', display_name: 'Mees Koster', pii: 46, moderation: 0, regex: 0, total: 46, last_event: dayKey(3) },
+    { user_id: 'u_casey', display_name: 'Casey Hayes', pii: 241, moderation: 0, regex: 0, total: 241, last_event: dayKey(0) },
+    { user_id: 'u_taylor', display_name: 'Taylor Rivera', pii: 198, moderation: 2, regex: 0, total: 200, last_event: dayKey(1) },
+    { user_id: 'u_quinn', display_name: 'Quinn Ellis', pii: 167, moderation: 0, regex: 0, total: 167, last_event: dayKey(1) },
+    { user_id: 'u_riley', display_name: 'Riley Fox', pii: 106, moderation: 1, regex: 0, total: 107, last_event: dayKey(2) },
+    { user_id: 'u_avery', display_name: 'Avery Stone', pii: 46, moderation: 0, regex: 0, total: 46, last_event: dayKey(3) },
 ]);
 
 const G_TIMELINE = () => {
@@ -231,13 +232,13 @@ const G_TIMELINE = () => {
 
 const G_RECENT = () => ([
     { id: 'gev_1', timestamp: dayKey(0), user_id: 'demo-user', display_name: 'Demo user', violation_type: 'pii', violation_categories: 'person_name, email', action_taken: 'tokenise', direction: 'outbound', source: 'direct_chat', agent_name: 'Support drafter', model: 'claude-sonnet-5', conversation_id: 'conv_demo_1' },
-    { id: 'gev_2', timestamp: dayKey(0), user_id: 'u_sanne', display_name: 'Sanne de Vries', violation_type: 'pii', violation_categories: 'iban', action_taken: 'tokenise', direction: 'outbound', source: 'automation', agent_name: 'Tender triage', model: 'gpt-5', conversation_id: 'conv_demo_2' },
-    { id: 'gev_3', timestamp: dayKey(0), user_id: 'u_ruben', display_name: 'Ruben Bakker', violation_type: 'pii', violation_categories: 'bsn', action_taken: 'redact', direction: 'outbound', source: 'agent', agent_name: 'Knowledge answers', model: 'claude-sonnet-5', conversation_id: 'conv_demo_3' },
-    { id: 'gev_4', timestamp: dayKey(1), user_id: 'u_iris', display_name: 'Iris Hoekstra', violation_type: 'pii', violation_categories: 'person_name, address, phone_number', action_taken: 'tokenise', direction: 'outbound', source: 'support_inbox', agent_name: 'Support drafter', model: 'qwen3-8b (local)', conversation_id: 'conv_demo_4' },
-    { id: 'gev_5', timestamp: dayKey(1), user_id: 'u_daan', display_name: 'Daan Willemsen', violation_type: 'moderation', violation_categories: 'harassment', action_taken: 'block', direction: 'inbound', source: 'direct_chat', agent_name: '', model: 'gpt-5', conversation_id: 'conv_demo_5' },
+    { id: 'gev_2', timestamp: dayKey(0), user_id: 'u_casey', display_name: 'Casey Hayes', violation_type: 'pii', violation_categories: 'iban', action_taken: 'tokenise', direction: 'outbound', source: 'automation', agent_name: 'Tender triage', model: 'gpt-5', conversation_id: 'conv_demo_2' },
+    { id: 'gev_3', timestamp: dayKey(0), user_id: 'u_taylor', display_name: 'Taylor Rivera', violation_type: 'pii', violation_categories: 'bsn', action_taken: 'redact', direction: 'outbound', source: 'agent', agent_name: 'Knowledge answers', model: 'claude-sonnet-5', conversation_id: 'conv_demo_3' },
+    { id: 'gev_4', timestamp: dayKey(1), user_id: 'u_quinn', display_name: 'Quinn Ellis', violation_type: 'pii', violation_categories: 'person_name, address, phone_number', action_taken: 'tokenise', direction: 'outbound', source: 'support_inbox', agent_name: 'Support drafter', model: 'qwen3-8b (local)', conversation_id: 'conv_demo_4' },
+    { id: 'gev_5', timestamp: dayKey(1), user_id: 'u_riley', display_name: 'Riley Fox', violation_type: 'moderation', violation_categories: 'harassment', action_taken: 'block', direction: 'inbound', source: 'direct_chat', agent_name: '', model: 'gpt-5', conversation_id: 'conv_demo_5' },
     { id: 'gev_6', timestamp: dayKey(1), user_id: 'demo-user', display_name: 'Demo user', violation_type: 'pii', violation_categories: 'api_key', action_taken: 'block', direction: 'outbound', source: 'automation', agent_name: 'Meeting summariser', model: 'mistral-large', conversation_id: 'conv_demo_6' },
-    { id: 'gev_7', timestamp: dayKey(2), user_id: 'u_sanne', display_name: 'Sanne de Vries', violation_type: 'pii', violation_categories: 'email', action_taken: 'ask_user', direction: 'outbound', source: 'notebook', agent_name: '', model: 'claude-sonnet-5', conversation_id: 'conv_demo_7' },
-    { id: 'gev_8', timestamp: dayKey(2), user_id: 'u_mees', display_name: 'Mees Koster', violation_type: 'pii', violation_categories: 'person_name', action_taken: 'tokenise', direction: 'outbound', source: 'agent', agent_name: 'LinkedIn Schrijver', model: 'gpt-5', conversation_id: 'conv_demo_8' },
+    { id: 'gev_7', timestamp: dayKey(2), user_id: 'u_casey', display_name: 'Casey Hayes', violation_type: 'pii', violation_categories: 'email', action_taken: 'ask_user', direction: 'outbound', source: 'notebook', agent_name: '', model: 'claude-sonnet-5', conversation_id: 'conv_demo_7' },
+    { id: 'gev_8', timestamp: dayKey(2), user_id: 'u_avery', display_name: 'Avery Stone', violation_type: 'pii', violation_categories: 'person_name', action_taken: 'tokenise', direction: 'outbound', source: 'agent', agent_name: 'LinkedIn Schrijver', model: 'gpt-5', conversation_id: 'conv_demo_8' },
 ]);
 
 /* ── Integrations & egress ────────────────────────────────────────────

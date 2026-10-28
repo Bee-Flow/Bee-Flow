@@ -66,7 +66,7 @@ touching the current draft.
 | --- | --- |
 | Sites | `cms_list_sites`, `cms_duplicate_site`, `cms_list_templates` |
 | Pages and blocks | `cms_list_site`, `cms_get_page`, `cms_create_page`, `cms_update_page_meta`, `cms_update_page_seo`, `cms_add_blocks`, `cms_update_block`, `cms_remove_block`, `cms_reorder_blocks`, `cms_set_homepage`, `cms_reorder_pages`, `cms_delete_page` |
-| Site chrome | `cms_update_header_nav`, `cms_get_site_settings`, `cms_update_site_settings` (header, footer, cookie banner, announcement bar, Google Analytics id, site name), `cms_update_design` (colours, fonts, layout) |
+| Site chrome | `cms_update_header_nav`, `cms_get_site_settings`, `cms_update_site_settings` (header, footer, cookie banner, announcement bar, Google Analytics id, site name), `cms_update_design` (colours, fonts, layout, logo and favicon from an uploaded image) |
 | Translations | `cms_get_locale_overrides`, `cms_set_locale_override` |
 | Blog | `cms_list_posts`, `cms_get_post`, `cms_create_post`, `cms_update_post`, `cms_delete_post`, `cms_set_post_translation`, `cms_update_blog_settings` (see [Blog posts](#blog-posts)) |
 | Media | `cms_list_assets`, `cms_request_upload`, `cms_upload_status` |

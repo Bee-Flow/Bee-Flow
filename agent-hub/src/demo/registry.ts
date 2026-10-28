@@ -22,6 +22,7 @@
 import { lazy } from 'react';
 import scopedStorage from '../utils/scopedStorage';
 import type { DemoRoutes } from './demoTransport';
+import { pick } from './lang';
 
 export const DEMO_FEATURES = {
     automations: {
@@ -69,7 +70,7 @@ export const DEMO_FEATURES = {
             // Pinned. useOrgShield refuses to guess which organisation it is
             // editing, and without a picker a guess would be invisible and
             // writable. Must match the org in fixtures/privacyShield.js.
-            orgId: 'org_demo_vandael',
+            orgId: 'org_demo_meridian',
             // No URL sync. The editor normally keeps the active tab in a query
             // param; inside the marketing page's iframe that would write to a
             // URL it does not own. `null` switches it to local state.
@@ -86,7 +87,7 @@ export const DEMO_FEATURES = {
         label: 'Agent editor',
         blurb: 'Open an assistant and change its instructions, model or knowledge. Sample assistants; nothing is saved.',
         appPath: '/app/studio/agents',
-        expectText: 'LinkedIn Schrijver',
+        expectText: pick({ en: 'LinkedIn writer', nl: 'LinkedIn Schrijver' }),
         Component: lazy(() => import('../components/agents/AgentStudio/index')),
         loadFixtures: () => import('./fixtures/agents'),
         props: {
@@ -205,7 +206,7 @@ export const DEMO_FEATURES = {
     compliance: {
         id: 'compliance',
         label: 'Compliance Center',
-        blurb: 'A fictional Dutch insurance intermediary, graded against 44 checks across GDPR, the EU AI Act and ISO 27001 — with the DSR inbox, breach register, ROPA and Statement of Applicability behind the score.',
+        blurb: 'A fictional insurance intermediary, graded against 44 checks across GDPR, the EU AI Act and ISO 27001 — with the DSR inbox, breach register, ROPA and Statement of Applicability behind the score.',
         appPath: '/app/settings/organisation/compliance',
         // A check TITLE, not the score. The ring renders from `overview`
         // alone, so pinning a number would pass while the 44-row check list

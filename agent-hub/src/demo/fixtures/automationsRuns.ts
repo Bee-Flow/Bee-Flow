@@ -18,7 +18,7 @@
  */
 
 import { daysAgo, minutesAgo } from './common';
-import { LOTTE, MARK, ME, PIETER, SANNE, ref, type DemoPerson } from './automationsPeople';
+import { LOTTE, MARK, ME, JORDAN, CASEY, ref, type DemoPerson } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
 type Outcome = { code: string; params: Obj; text: string };
@@ -143,8 +143,8 @@ export function seedRuns(): DemoRun[] {
         { id: 'run_demo_sr_09', automationId: SR, version: 5, status: 'error', isTest: true, ...manual, startedBy: ME, startedAt: minutesAgo(22), durationMs: 9_400,
             steps: 'SSSSSSE', outcome: stoppedAt('Post to finance', 'notify_finance', 'validation', 'a setting has a value this step cannot use'), failure: POST_FAILED },
         { id: 'run_demo_sr_08', automationId: SR, version: 3, status: 'awaiting_approval', isTest: false, ...manual, startedBy: MARK, startedAt: minutesAgo(103), durationMs: null,
-            steps: 'SSSSAP', outcome: waitingFor('Ask finance to approve', 'approve_summary', SANNE.name, 1), approvalId: 'appr_demo_sr_08' },
-        { id: 'run_demo_sr_07', automationId: SR, version: 3, status: 'success', isTest: false, triggerKind: 'agent_call', howStarted: 'agent', startedBy: SANNE, startedAt: hoursAgo(26), durationMs: 734_000,
+            steps: 'SSSSAP', outcome: waitingFor('Ask finance to approve', 'approve_summary', CASEY.name, 1), approvalId: 'appr_demo_sr_08' },
+        { id: 'run_demo_sr_07', automationId: SR, version: 3, status: 'success', isTest: false, triggerKind: 'agent_call', howStarted: 'agent', startedBy: CASEY, startedAt: hoursAgo(26), durationMs: 734_000,
             steps: 'SSSSSS', outcome: listFound('Sum totals per vendor', 'total_per_vendor', 5, 'vendors') },
         { id: 'run_demo_sr_06', automationId: SR, version: 3, status: 'error', isTest: false, ...manual, startedBy: MARK, startedAt: hoursAgo(51), durationMs: 1_240,
             steps: 'EPPPPP', outcome: stoppedAt('Search AI/SaaS billing emails', 'search_invoices', 'auth_expired', 'the Gmail sign-in has expired'), failure: GMAIL_EXPIRED },
@@ -156,9 +156,9 @@ export function seedRuns(): DemoRun[] {
             steps: 'PPPPPP', outcome: SKIPPED_BUSY },
         { id: 'run_demo_sr_02', automationId: SR, version: 3, status: 'success', isTest: false, ...manual, startedBy: LOTTE, startedAt: hoursAgo(98.1), durationMs: 1_265_000,
             steps: 'SSSSSS', outcome: listFound('Sum totals per vendor', 'total_per_vendor', 4, 'vendors') },
-        { id: 'run_demo_sr_01', automationId: SR, version: 3, status: 'success', isTest: false, ...manual, startedBy: SANNE, startedAt: hoursAgo(147), durationMs: 911_000,
+        { id: 'run_demo_sr_01', automationId: SR, version: 3, status: 'success', isTest: false, ...manual, startedBy: CASEY, startedAt: hoursAgo(147), durationMs: 911_000,
             steps: 'SSSSSS', outcome: listFound('Sum totals per vendor', 'total_per_vendor', 5, 'vendors', 1) },
-        { id: 'run_demo_sr_00', automationId: SR, version: 3, status: 'success', isTest: false, ...manual, startedBy: SANNE, startedAt: daysAgo(9), durationMs: 688_000,
+        { id: 'run_demo_sr_00', automationId: SR, version: 3, status: 'success', isTest: false, ...manual, startedBy: CASEY, startedAt: daysAgo(9), durationMs: 688_000,
             steps: 'SSSSSS', outcome: listFound('Sum totals per vendor', 'total_per_vendor', 5, 'vendors') },
         { id: 'run_demo_sr_b2', automationId: SR, version: 1, status: 'success', isTest: false, ...manual, startedBy: ME, startedAt: daysAgo(16), durationMs: 540_000,
             steps: 'SSSSSS', outcome: listFound('Sum totals per vendor', 'total_per_vendor', 4, 'vendors') },
@@ -169,7 +169,7 @@ export function seedRuns(): DemoRun[] {
         { id: 'run_demo_in_05', automationId: IN, version: 3, status: 'success', isTest: false, triggerKind: 'app_event', howStarted: 'file', startedBy: null, startedAt: minutesAgo(37), durationMs: 64_000,
             steps: 'SSS', outcome: fileResult('Classify the document', 'classify', 'Contract-VanDijk-2026.pdf'), triggerPayload: clientFile('Contract-VanDijk-2026.pdf') },
         { id: 'run_demo_in_04', automationId: IN, version: 3, status: 'awaiting_approval', isTest: false, triggerKind: 'app_event', howStarted: 'file', startedBy: null, startedAt: hoursAgo(5), durationMs: null,
-            steps: 'SSA', outcome: waitingFor('Ask the account manager to confirm', 'ask_review', 'L. Bakker and Account managers', 2),
+            steps: 'SSA', outcome: waitingFor('Ask the account manager to confirm', 'ask_review', 'L. Rivera and Account managers', 2),
             approvalId: 'appr_demo_in_04', triggerPayload: clientFile('Framework-agreement-Meridian.pdf') },
         { id: 'run_demo_in_03', automationId: IN, version: 3, status: 'success', isTest: false, triggerKind: 'app_event', howStarted: 'file', startedBy: null, startedAt: hoursAgo(27), durationMs: 2_100,
             steps: 'SS', outcome: fileResult('Classify the document', 'classify', 'Invoice-2026-0917.pdf'), triggerPayload: clientFile('Invoice-2026-0917.pdf') },
@@ -184,7 +184,7 @@ export function seedRuns(): DemoRun[] {
             steps: 'SS', outcome: finishedWith('Gather open actions', 'gather') },
         { id: 'run_demo_dg_02', automationId: DG, version: 3, status: 'success', isTest: false, triggerKind: 'schedule', howStarted: 'schedule', startedBy: null, startedAt: daysAgo(12), durationMs: 12_800,
             steps: 'SS', outcome: finishedWith('Gather open actions', 'gather') },
-        { id: 'run_demo_dg_01', automationId: DG, version: 5, status: 'success', isTest: true, triggerKind: 'manual', howStarted: 'manual', startedBy: PIETER, startedAt: daysAgo(2), durationMs: 11_500,
+        { id: 'run_demo_dg_01', automationId: DG, version: 5, status: 'success', isTest: true, triggerKind: 'manual', howStarted: 'manual', startedBy: JORDAN, startedAt: daysAgo(2), durationMs: 11_500,
             steps: 'SS', outcome: finishedWith('Gather open actions', 'gather') },
     ];
 }
@@ -197,11 +197,11 @@ const statusesOf = (run: DemoRun) => [...run.steps].map(c => LETTER[c] || 'pendi
 
 /** Outputs for the steps the spend report's run engine (automations.js) does not know. */
 const SAMPLES: Record<string, { stepType: string; input: unknown; output: unknown }> = {
-    approve_summary: { stepType: 'approval', input: { assignee: SANNE.name, prompt: 'This week’s AI/SaaS spend summary is ready. Send it to finance?' }, output: { decision: 'approved', decidedBy: SANNE.name } },
+    approve_summary: { stepType: 'approval', input: { assignee: CASEY.name, prompt: 'This week’s AI/SaaS spend summary is ready. Send it to finance?' }, output: { decision: 'approved', decidedBy: CASEY.name } },
     classify: { stepType: 'ai_step', input: { modelTier: 'fast' }, output: { text: 'contract' } },
     route: { stepType: 'switch', input: { on: 'contract' }, output: { branch: 'contract' } },
     ask_review: { stepType: 'approval', input: { assignee: LOTTE.name }, output: { decision: 'approved', decidedBy: LOTTE.name } },
-    gather: { stepType: 'ai_step', input: { modelTier: 'fast' }, output: { text: 'Open actions from last week:\n- Send the Q3 forecast to the board (P. Visser)\n- Renew the Meridian Cloud contract (M. Jansen)\n- Book a venue for the team day (L. Bakker)' } },
+    gather: { stepType: 'ai_step', input: { modelTier: 'fast' }, output: { text: 'Open actions from last week:\n- Send the Q3 forecast to the board (P. Hale)\n- Renew the Meridian Cloud contract (A. Brooks)\n- Book a venue for the team day (L. Rivera)' } },
     send: { stepType: 'notification', input: { channel: 'email', to: 'team@example.com' }, output: { delivered: false, to: 'team@example.com', demo: 'No email was sent. The demo has no network access.' } },
 };
 

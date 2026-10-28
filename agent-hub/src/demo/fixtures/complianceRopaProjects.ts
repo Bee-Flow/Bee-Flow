@@ -46,6 +46,8 @@ interface ProjectRegistration {
 
 export interface RopaProjectsState { projects: ProjectSignal[]; registrations: ProjectRegistration[] }
 
+import { pick } from '../lang';
+
 type Body = { purpose?: unknown; lawful_basis?: unknown; retention_days?: unknown } | null;
 type Ctx = { state: { ropaProjects: RopaProjectsState }; params: { projectId: string }; body: Body };
 
@@ -53,14 +55,14 @@ type Ctx = { state: { ropaProjects: RopaProjectsState }; params: { projectId: st
 export function ropaProjectsSeed(now: number = Date.now()): RopaProjectsState {
     return {
         projects: [
-            { project_id: 'prj_schadedossiers', name: 'Schadedossiers 2026', kinds: ['address', 'health', 'name'], sources: ['files', 'threads'] },
-            { project_id: 'prj_makelaars', name: 'Makelaarsoverleg', kinds: ['email', 'name', 'phone'], sources: ['comments', 'threads'] },
+            { project_id: 'prj_schadedossiers', name: pick({ en: 'Claim files 2026', nl: 'Schadedossiers 2026' }), kinds: ['address', 'health', 'name'], sources: ['files', 'threads'] },
+            { project_id: 'prj_makelaars', name: pick({ en: 'Broker meeting', nl: 'Makelaarsoverleg' }), kinds: ['email', 'name', 'phone'], sources: ['comments', 'threads'] },
         ],
         registrations: [{
             subject_kind: 'project', subject_id: 'prj_schadedossiers',
             purpose: 'Handling claim files with the insurers we work for, including medical reports for disability claims.',
             lawful_basis: 'contract', retention_days: 730,
-            confirmed_by: 'u_marieke', confirmed_at: new Date(now - 40 * DAY_MS).toISOString(),
+            confirmed_by: 'u_alex', confirmed_at: new Date(now - 40 * DAY_MS).toISOString(),
         }],
     };
 }
@@ -169,7 +171,7 @@ export function ropaProjectRoutes(onChange: (state: Ctx['state'], projectId: str
             const purpose = typeof body?.purpose === 'string' && body.purpose.trim() ? body.purpose.trim().slice(0, 1000) : null;
             const registration: ProjectRegistration = {
                 subject_kind: 'project', subject_id: params.projectId, purpose, lawful_basis: basis,
-                retention_days: (days as number | null | undefined) ?? null, confirmed_by: 'u_marieke', confirmed_at: new Date().toISOString(),
+                retention_days: (days as number | null | undefined) ?? null, confirmed_by: 'u_alex', confirmed_at: new Date().toISOString(),
             };
             state.ropaProjects = { ...s, registrations: [registration, ...s.registrations.filter(r => r.subject_id !== params.projectId)] };
             onChange(state, params.projectId);

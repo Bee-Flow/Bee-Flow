@@ -85,7 +85,7 @@ describe('automations demo: runs', () => {
     it('says who a waiting run waits on, and remembers a reminder', async () => {
         const { call } = demo();
         const { body } = await call(`${SR}/runs?status=awaiting_approval`);
-        expect(body.runs[0].outcome.params.who).toBe('S. de Boer');
+        expect(body.runs[0].outcome.params.who).toBe('S. Hayes');
         const first = await call(`/api/automation/approvals/${body.runs[0].approvalId}/remind`, { method: 'POST' });
         const again = await call(`/api/automation/approvals/${body.runs[0].approvalId}/remind`, { method: 'POST' });
         expect(first.status).toBe(200);
@@ -148,7 +148,7 @@ describe('automations demo: settings', () => {
 
     it('shares with a group and a person', async () => {
         const { body } = await demo().call(`${SR}/shares`);
-        expect(body.shares.map((s: Json) => [s.name, s.role])).toEqual([['Finance', 'run'], ['S. de Boer', 'edit']]);
+        expect(body.shares.map((s: Json) => [s.name, s.role])).toEqual([['Finance', 'run'], ['S. Hayes', 'edit']]);
         expect(body.sharingAvailable).toBe(true);
     });
 

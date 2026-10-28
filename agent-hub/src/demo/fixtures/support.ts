@@ -19,6 +19,7 @@
  */
 
 import { COMMON_ROUTES, daysAgo } from './common';
+import { pick } from '../lang';
 
 interface Inbox {
     id: string;
@@ -102,8 +103,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_sso',
         inbox_id: INBOX_ID,
         subject: 'SSO login fails for three colleagues',
-        requester_email: 'marieke.jansen@northwind-logistics.example',
-        requester_name: 'Marieke Jansen',
+        requester_email: 'alex.brooks@northwind-logistics.example',
+        requester_name: 'Alex Brooks',
         status: 'awaiting_agent',
         priority: 'high',
         tags: ['sso', 'bug'],
@@ -117,8 +118,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_export',
         inbox_id: INBOX_ID,
         subject: 'Can we export a knowledge base to a file?',
-        requester_email: 'p.dewit@stadsarchief.example',
-        requester_name: 'Pieter de Wit',
+        requester_email: 'j.morgan@city-archive.example',
+        requester_name: 'Jordan Morgan',
         status: 'awaiting_agent',
         priority: 'normal',
         tags: ['how-to'],
@@ -132,8 +133,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_dpa',
         inbox_id: INBOX_ID,
         subject: 'DPA signature + sub-processor list for procurement',
-        requester_email: 'inkoop@gemeente-veendaal.example',
-        requester_name: 'Inkoop Veenendaal',
+        requester_email: 'purchasing@city-hall.example',
+        requester_name: 'Procurement office',
         status: 'awaiting_agent',
         priority: 'urgent',
         tags: ['legal', 'procurement'],
@@ -147,8 +148,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_whisper',
         inbox_id: INBOX_ID,
         subject: 'Meeting transcription stops after ~40 minutes',
-        requester_email: 'tech@bureau-lindgren.example',
-        requester_name: 'Bureau Lindgren',
+        requester_email: 'tech@bureau-harbor.example',
+        requester_name: 'Harbor Consulting',
         status: 'awaiting_user',
         priority: 'normal',
         tags: ['meeting-notes'],
@@ -162,8 +163,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_quota',
         inbox_id: INBOX_ID,
         subject: 'Raise the monthly automation run limit',
-        requester_email: 'ops@helderwerk.example',
-        requester_name: 'Helderwerk Ops',
+        requester_email: 'ops@clearwork.example',
+        requester_name: 'Clearwork Ops',
         status: 'awaiting_user',
         priority: 'low',
         tags: ['billing'],
@@ -177,8 +178,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_selfhost',
         inbox_id: INBOX_ID,
         subject: 'Docker Compose: guard container will not start',
-        requester_email: 'infra@kwadrant-it.example',
-        requester_name: 'Kwadrant IT',
+        requester_email: 'infra@quadrant-it.example',
+        requester_name: 'Quadrant IT',
         status: 'resolved',
         priority: 'normal',
         tags: ['self-hosting'],
@@ -192,8 +193,8 @@ const THREADS = (): Thread[] => ([
         id: 'sth_demo_onboarding',
         inbox_id: INBOX_ID,
         subject: 'Onboarding session for eight new colleagues',
-        requester_email: 'hr@veldkamp-groep.example',
-        requester_name: 'Veldkamp Groep',
+        requester_email: 'hr@fieldstone-groep.example',
+        requester_name: 'Fieldstone Group',
         status: 'resolved',
         priority: 'normal',
         tags: ['onboarding'],
@@ -206,7 +207,7 @@ const THREADS = (): Thread[] => ([
     {
         id: 'sth_demo_newsletter',
         inbox_id: INBOX_ID,
-        subject: 'Uw factuur staat klaar — Hostbase B.V.',
+        subject: pick({ en: 'Your invoice is ready — Hostbase Ltd', nl: 'Uw factuur staat klaar — Hostbase Ltd' }),
         requester_email: 'noreply@hostbase.example',
         requester_name: 'Hostbase',
         status: 'open',
@@ -229,7 +230,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_sso: [
         {
             id: 'smg_sso_1', thread_id: 'sth_demo_sso', author_kind: 'customer',
-            author_display: 'Marieke Jansen', email: 'marieke.jansen@northwind-logistics.example',
+            author_display: 'Alex Brooks', email: 'alex.brooks@northwind-logistics.example',
             body: 'Since Monday three of my colleagues cannot sign in with Microsoft. They get sent back to the login screen with no error. I can still get in, and so can everyone who uses a password. We are on the enterprise plan.\n\nHappy to send screenshots if that helps.',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(1),
@@ -237,13 +238,13 @@ const MESSAGES = (): Record<string, Message[]> => ({
         {
             id: 'smg_sso_2', thread_id: 'sth_demo_sso', author_kind: 'agent',
             author_display: 'Demo user', email: 'support@example.com',
-            body: 'Thanks Marieke — that pattern (silent bounce back to login, only for some accounts) usually means those three are on a different identity provider domain than the one bound to your organisation.\n\nCould you check whether their addresses end in a different domain from yours? And could you send the approximate time one of them last tried, so I can find it in the audit log?',
+            body: 'Thanks Alex — that pattern (silent bounce back to login, only for some accounts) usually means those three are on a different identity provider domain than the one bound to your organisation.\n\nCould you check whether their addresses end in a different domain from yours? And could you send the approximate time one of them last tried, so I can find it in the audit log?',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(1),
         },
         {
             id: 'smg_sso_3', thread_id: 'sth_demo_sso', author_kind: 'customer',
-            author_display: 'Marieke Jansen', email: 'marieke.jansen@northwind-logistics.example',
+            author_display: 'Alex Brooks', email: 'alex.brooks@northwind-logistics.example',
             body: 'You are right — all three are @northwind-fleet.example, we acquired them last year. The rest of us are @northwind-logistics.example. Tried again just now, about 09:15.',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(0),
@@ -259,7 +260,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_export: [
         {
             id: 'smg_exp_1', thread_id: 'sth_demo_export', author_kind: 'customer',
-            author_display: 'Pieter de Wit', email: 'p.dewit@stadsarchief.example',
+            author_display: 'Jordan Morgan', email: 'j.morgan@city-archive.example',
             body: 'We need to hand our knowledge base to an external auditor. Is there a way to get the whole thing out as files, rather than them needing an account?',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(0),
@@ -268,8 +269,11 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_dpa: [
         {
             id: 'smg_dpa_1', thread_id: 'sth_demo_dpa', author_kind: 'customer',
-            author_display: 'Inkoop Veenendaal', email: 'inkoop@gemeente-veendaal.example',
-            body: 'Voor de aanbesteding hebben wij een ondertekende verwerkersovereenkomst nodig, plus een actuele lijst van sub-verwerkers en de vestigingslanden. Kunt u die aanleveren?\n\nDeadline is aanstaande vrijdag.',
+            author_display: 'Procurement office', email: 'purchasing@city-hall.example',
+            body: pick({
+                en: 'For the tender we need a signed data processing agreement, plus a current list of sub-processors and the countries they operate in. Can you provide those?\n\nThe deadline is this coming Friday.',
+                nl: 'Voor de aanbesteding hebben wij een ondertekende verwerkersovereenkomst nodig, plus een actuele lijst van sub-verwerkers en de vestigingslanden. Kunt u die aanleveren?\n\nDeadline is aanstaande vrijdag.',
+            }),
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(3),
         },
@@ -284,7 +288,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_whisper: [
         {
             id: 'smg_wsp_1', thread_id: 'sth_demo_whisper', author_kind: 'customer',
-            author_display: 'Bureau Lindgren', email: 'tech@bureau-lindgren.example',
+            author_display: 'Harbor Consulting', email: 'tech@bureau-harbor.example',
             body: 'Transcription of our longer sessions cuts off around the 40 minute mark. Shorter meetings are fine. Self-hosted, GPU box.',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(4),
@@ -300,7 +304,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_quota: [
         {
             id: 'smg_qta_1', thread_id: 'sth_demo_quota', author_kind: 'customer',
-            author_display: 'Helderwerk Ops', email: 'ops@helderwerk.example',
+            author_display: 'Clearwork Ops', email: 'ops@clearwork.example',
             body: 'We are hitting the monthly run limit around the 20th. What are the options?',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(5),
@@ -316,7 +320,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_selfhost: [
         {
             id: 'smg_shs_1', thread_id: 'sth_demo_selfhost', author_kind: 'customer',
-            author_display: 'Kwadrant IT', email: 'infra@kwadrant-it.example',
+            author_display: 'Quadrant IT', email: 'infra@quadrant-it.example',
             body: 'guard-service exits immediately on startup. Everything else in the compose file comes up fine.',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(8),
@@ -330,7 +334,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
         },
         {
             id: 'smg_shs_3', thread_id: 'sth_demo_selfhost', author_kind: 'customer',
-            author_display: 'Kwadrant IT', email: 'infra@kwadrant-it.example',
+            author_display: 'Quadrant IT', email: 'infra@quadrant-it.example',
             body: 'Disk. The volume was 2 GB. Resized and it came straight up. Thanks.',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(6),
@@ -339,7 +343,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
     sth_demo_onboarding: [
         {
             id: 'smg_onb_1', thread_id: 'sth_demo_onboarding', author_kind: 'customer',
-            author_display: 'Veldkamp Groep', email: 'hr@veldkamp-groep.example',
+            author_display: 'Fieldstone Group', email: 'hr@fieldstone-groep.example',
             body: 'Eight people starting in March. Can you run a session for them?',
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(12),
@@ -356,7 +360,10 @@ const MESSAGES = (): Record<string, Message[]> => ({
         {
             id: 'smg_nws_1', thread_id: 'sth_demo_newsletter', author_kind: 'customer',
             author_display: 'Hostbase', email: 'noreply@hostbase.example',
-            body: 'Uw maandelijkse factuur is beschikbaar in het klantportaal.\n\nDit bericht is automatisch verzonden.',
+            body: pick({
+                en: 'Your monthly invoice is available in the customer portal.\n\nThis message was sent automatically.',
+                nl: 'Uw maandelijkse factuur is beschikbaar in het klantportaal.\n\nDit bericht is automatisch verzonden.',
+            }),
             internal_note: false, attachments: [], kb_citations: [],
             created_at: daysAgo(1),
         },
@@ -365,7 +372,7 @@ const MESSAGES = (): Record<string, Message[]> => ({
 
 const TEAMMATES = (): Teammate[] => ([
     { id: 'demo-user', username: 'demo', displayName: 'Demo user', email: 'demo@example.com' },
-    { id: 'demo-colleague', username: 'sanne', displayName: 'Sanne de Vries', email: 'sanne@example.com' },
+    { id: 'demo-colleague', username: 'casey', displayName: 'Casey Hayes', email: 'casey@example.com' },
 ]);
 
 const TAGS = (): Tag[] => ([

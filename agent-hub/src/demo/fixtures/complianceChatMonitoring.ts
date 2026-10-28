@@ -3,7 +3,7 @@
  * chatMonitoring.js `buildView` answers for an organisation that never set
  * them up.
  *
- * Van Dael Assurantiën has not opted in, so the Settings card shows the
+ * Meridian Insurance has not opted in, so the Settings card shows the
  * set-up path and nothing was ever counted: no DPIA for it, no works-council
  * decision, no notice, and every contributor band is the smallest one. The
  * two checks that judge chat signals read "not applicable" for the same

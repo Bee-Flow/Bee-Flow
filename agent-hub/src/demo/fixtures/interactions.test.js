@@ -110,12 +110,12 @@ describe('refining an agent', () => {
         const res = refine('Antwoord altijd in het Nederlands, tenzij anders gevraagd');
         expect(res.plan.systemPrompt).not.toBe(CURRENT);
         expect(res.plan.systemPrompt).toContain(CURRENT);          // keeps what was there
-        expect(res.plan.systemPrompt).toMatch(/Nederlands/);
+        expect(res.plan.systemPrompt).toMatch(/Dutch/);
     });
 
     it('recognises a tone request rather than pasting it verbatim', () => {
         const res = refine('Make the tone more friendly');
-        expect(res.plan.systemPrompt).toMatch(/toon warm en toegankelijk/i);
+        expect(res.plan.systemPrompt).toMatch(/warm and approachable/i);
     });
 
     it('falls back to appending an unrecognised request as an explicit rule', () => {

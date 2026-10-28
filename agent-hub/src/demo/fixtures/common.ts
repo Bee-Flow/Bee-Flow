@@ -11,6 +11,8 @@
  * components render their normal, unlocked layout.
  */
 
+import { pick } from '../lang';
+
 // Every capability id the two seeded demos can touch. Kept as a plain list
 // rather than "return true for everything" so adding a demo forces a
 // deliberate decision about what it is allowed to show.
@@ -146,6 +148,16 @@ export const COMMON_ROUTES = {
         },
         default: 'fast',
     }),
+};
+
+/**
+ * Names of the sample agents the insurer-flavoured demos (Privacy Shield,
+ * Compliance) share, in the language of the page that frames the demo.
+ */
+export const AGENT = {
+    claims: pick({ en: 'Claims assessment', nl: 'Schadebeoordeling' }),
+    intake: pick({ en: 'Policy intake', nl: 'Polisintake' }),
+    complaints: pick({ en: 'Complaint file', nl: 'Klachtdossier' }),
 };
 
 /** Deterministic ids — a demo must render identically on every visit. */

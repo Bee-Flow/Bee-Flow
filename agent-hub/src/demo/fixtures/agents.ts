@@ -15,6 +15,7 @@
  */
 
 import { COMMON_ROUTES, daysAgo } from './common';
+import { pick } from '../lang';
 
 interface DemoAgent {
     id: string;
@@ -98,11 +99,18 @@ function agent({ id, name, description, avatar, model, systemPrompt, category = 
         // The chips a user sees before they type anything. An empty list made
         // the panel look half-built; these also demonstrate what a good
         // starter prompt is — a task, not a greeting.
-        starter_prompts: [
-            'Schrijf een post over onze nieuwe integratie met Microsoft 365',
-            'Herschrijf deze tekst korter en zonder jargon',
-            'Bedenk drie invalshoeken voor een post over dataveiligheid',
-        ],
+        starter_prompts: pick({
+            en: [
+                'Write a post about our new Microsoft 365 integration',
+                'Rewrite this text shorter and without jargon',
+                'Come up with three angles for a post about data security',
+            ],
+            nl: [
+                'Schrijf een post over onze nieuwe integratie met Microsoft 365',
+                'Herschrijf deze tekst korter en zonder jargon',
+                'Bedenk drie invalshoeken voor een post over dataveiligheid',
+            ],
+        }),
         shared_groups: [],
         embed_enabled: false,
         threads_enabled: true,
@@ -121,55 +129,91 @@ const LINKEDIN_AGENT_ID = 'agent_demo_linkedin';
 const AGENTS = (): DemoAgent[] => ([
     agent({
         id: LINKEDIN_AGENT_ID,
-        name: 'LinkedIn Schrijver',
-        description: 'Ik help je pakkende LinkedIn-posts te schrijven en verbeteren, afgestemd op jullie merkstem en doelgroep.',
-        avatar: '\u270D\uFE0F',
+        name: pick({ en: 'LinkedIn writer', nl: 'LinkedIn Schrijver' }),
+        description: pick({
+            en: 'I help you write and improve punchy LinkedIn posts, matched to your brand voice and audience.',
+            nl: 'Ik help je pakkende LinkedIn-posts te schrijven en verbeteren, afgestemd op jullie merkstem en doelgroep.',
+        }),
+        avatar: '✍️',
         model: 'fast',
-        systemPrompt: [
-            'Je bent de LinkedIn-contentschrijver voor ons bedrijf. Je helpt bij het schrijven en verbeteren van LinkedIn-posts die passen bij onze merkstem: professioneel, toegankelijk en energiek.',
-            '',
-            'Vraag door naar het onderwerp, de doelgroep en het gewenste doel van de post (bijv. naamsbekendheid, engagement, thought leadership) als dit niet duidelijk is.',
-            '',
-            'Schrijf posts met een sterke opening (hook), een heldere kern met concrete waarde, en een duidelijke call-to-action. Gebruik geen overdreven jargon of clich\u00e9s, en vermijd overmatig gebruik van hashtags of emoji\'s tenzij expliciet gevraagd.',
-            '',
-            'Blijf altijd binnen de scope van LinkedIn-contentcreatie.',
-        ].join('\n'),
+        systemPrompt: pick({
+            en: [
+                'You are the LinkedIn content writer for our company. You help write and improve LinkedIn posts that fit our brand voice: professional, approachable and energetic.',
+                '',
+                'Ask about the topic, the audience and the goal of the post (for example awareness, engagement, thought leadership) when this is not clear.',
+                '',
+                'Write posts with a strong opening (hook), a clear core with concrete value, and a clear call to action. Avoid heavy jargon and clichés, and avoid overusing hashtags or emoji unless explicitly asked.',
+                '',
+                'Always stay within the scope of LinkedIn content creation.',
+            ],
+            nl: [
+                'Je bent de LinkedIn-contentschrijver voor ons bedrijf. Je helpt bij het schrijven en verbeteren van LinkedIn-posts die passen bij onze merkstem: professioneel, toegankelijk en energiek.',
+                '',
+                'Vraag door naar het onderwerp, de doelgroep en het gewenste doel van de post (bijv. naamsbekendheid, engagement, thought leadership) als dit niet duidelijk is.',
+                '',
+                'Schrijf posts met een sterke opening (hook), een heldere kern met concrete waarde, en een duidelijke call-to-action. Gebruik geen overdreven jargon of clichés, en vermijd overmatig gebruik van hashtags of emoji\'s tenzij expliciet gevraagd.',
+                '',
+                'Blijf altijd binnen de scope van LinkedIn-contentcreatie.',
+            ],
+        }).join('\n'),
         createdAt: daysAgo(38),
         updatedAt: daysAgo(2),
     }),
     agent({
         id: 'agent_demo_contracts',
-        name: 'Contractvragen',
-        description: 'Beantwoordt vragen over onze eigen contracten en algemene voorwaarden, met bronvermelding.',
-        avatar: '\uD83D\uDCC4',
+        name: pick({ en: 'Contract questions', nl: 'Contractvragen' }),
+        description: pick({
+            en: 'Answers questions about our own contracts and general terms, with source references.',
+            nl: 'Beantwoordt vragen over onze eigen contracten en algemene voorwaarden, met bronvermelding.',
+        }),
+        avatar: '📄',
         model: 'standard',
         published: true,
-        systemPrompt: 'Je beantwoordt vragen over onze contracten uitsluitend op basis van de aangesloten kennisbank. Citeer altijd de clausule waarop je je baseert. Als het antwoord niet in de bronnen staat, zeg dat dan expliciet in plaats van te gokken.',
+        systemPrompt: pick({
+            en: 'You answer questions about our contracts solely on the basis of the connected knowledge base. Always cite the clause you rely on. If the answer is not in the sources, say so explicitly instead of guessing.',
+            nl: 'Je beantwoordt vragen over onze contracten uitsluitend op basis van de aangesloten kennisbank. Citeer altijd de clausule waarop je je baseert. Als het antwoord niet in de bronnen staat, zeg dat dan expliciet in plaats van te gokken.',
+        }),
         createdAt: daysAgo(96),
         updatedAt: daysAgo(11),
     }),
     agent({
         id: 'agent_demo_onboarding',
         name: 'Onboarding buddy',
-        description: 'Answers the questions every new colleague asks in their first two weeks.',
-        avatar: '\uD83E\uDDED',
+        description: pick({
+            en: 'Answers the questions every new colleague asks in their first two weeks.',
+            nl: 'Beantwoordt de vragen die elke nieuwe collega in de eerste twee weken stelt.',
+        }),
+        avatar: '🧭',
         model: 'fast',
         published: true,
-        systemPrompt: 'You help new colleagues find their way. Answer from the handbook knowledge base, keep it short, and link to the source page. If something looks out of date, say so rather than repeating it confidently.',
+        systemPrompt: pick({
+            en: 'You help new colleagues find their way. Answer from the handbook knowledge base, keep it short, and link to the source page. If something looks out of date, say so rather than repeating it confidently.',
+            nl: 'Je helpt nieuwe collega\'s hun weg te vinden. Antwoord vanuit de kennisbank met het handboek, houd het kort en verwijs naar de bronpagina. Lijkt iets verouderd, zeg dat dan in plaats van het stellig te herhalen.',
+        }),
         createdAt: daysAgo(150),
         updatedAt: daysAgo(30),
     }),
 ]);
 
 const SKILLS = (): DemoSkill[] => ([
-    { id: 'skill_demo_tone', name: 'Merkstem', description: 'Onze schrijfregels: actief, concreet, geen superlatieven.', updatedAt: daysAgo(20) },
-    { id: 'skill_demo_review', name: 'Post-review checklist', description: 'Loopt een concept na op hook, waarde en call-to-action.', updatedAt: daysAgo(41) },
+    {
+        id: 'skill_demo_tone',
+        name: pick({ en: 'Brand voice', nl: 'Merkstem' }),
+        description: pick({ en: 'Our writing rules: active, concrete, no superlatives.', nl: 'Onze schrijfregels: actief, concreet, geen superlatieven.' }),
+        updatedAt: daysAgo(20),
+    },
+    {
+        id: 'skill_demo_review',
+        name: pick({ en: 'Post review checklist', nl: 'Post-review checklist' }),
+        description: pick({ en: 'Checks a draft for hook, value and call to action.', nl: 'Loopt een concept na op hook, waarde en call-to-action.' }),
+        updatedAt: daysAgo(41),
+    },
 ]);
 
 const KBS = (): DemoKb[] => ([
-    { id: 'kb_demo_brand', name: 'Merk & tone of voice', documentCount: 12, chunkCount: 148, updatedAt: daysAgo(20) },
-    { id: 'kb_demo_contracts', name: 'Contracten', documentCount: 87, chunkCount: 2431, updatedAt: daysAgo(4) },
-    { id: 'kb_demo_handbook', name: 'Personeelshandboek', documentCount: 34, chunkCount: 612, updatedAt: daysAgo(66) },
+    { id: 'kb_demo_brand', name: pick({ en: 'Brand & tone of voice', nl: 'Merk & tone of voice' }), documentCount: 12, chunkCount: 148, updatedAt: daysAgo(20) },
+    { id: 'kb_demo_contracts', name: pick({ en: 'Contracts', nl: 'Contracten' }), documentCount: 87, chunkCount: 2431, updatedAt: daysAgo(4) },
+    { id: 'kb_demo_handbook', name: pick({ en: 'Staff handbook', nl: 'Personeelshandboek' }), documentCount: 34, chunkCount: 612, updatedAt: daysAgo(66) },
 ]);
 
 export function createState(): AgentsState {
@@ -192,23 +236,38 @@ function refineInstructions(currentPrompt: string, ask: string): string {
     const RULES: { match: RegExp; line: string }[] = [
         {
             match: /nederlands|dutch|in het nl/,
-            line: 'Antwoord altijd in het Nederlands, tenzij de gebruiker expliciet om een andere taal vraagt.',
+            line: pick({
+                en: 'Always answer in Dutch, unless the user explicitly asks for another language.',
+                nl: 'Antwoord altijd in het Nederlands, tenzij de gebruiker expliciet om een andere taal vraagt.',
+            }),
         },
         {
             match: /vriendelijk|friendly|informal|warmer|toon|tone/,
-            line: 'Houd de toon warm en toegankelijk: schrijf zoals een behulpzame collega, zonder joviaal of populair te worden.',
+            line: pick({
+                en: 'Keep the tone warm and approachable: write like a helpful colleague, without becoming jovial or casual.',
+                nl: 'Houd de toon warm en toegankelijk: schrijf zoals een behulpzame collega, zonder joviaal of populair te worden.',
+            }),
         },
         {
             match: /samenvat|summar|afsluit|conclusion/,
-            line: 'Sluit elk antwoord af met een korte samenvatting van maximaal twee zinnen.',
+            line: pick({
+                en: 'End every answer with a short summary of at most two sentences.',
+                nl: 'Sluit elk antwoord af met een korte samenvatting van maximaal twee zinnen.',
+            }),
         },
         {
             match: /kort|beknopt|concise|shorter|brief/,
-            line: 'Houd antwoorden beknopt: kom meteen ter zake en laat opvulzinnen weg.',
+            line: pick({
+                en: 'Keep answers concise: get to the point and leave out filler sentences.',
+                nl: 'Houd antwoorden beknopt: kom meteen ter zake en laat opvulzinnen weg.',
+            }),
         },
         {
             match: /bron|citat|cite|source/,
-            line: 'Vermeld bij elke feitelijke bewering de bron waarop je je baseert; als die er niet is, zeg dat expliciet.',
+            line: pick({
+                en: 'State the source you rely on for every factual claim; if there is none, say so explicitly.',
+                nl: 'Vermeld bij elke feitelijke bewering de bron waarop je je baseert; als die er niet is, zeg dat expliciet.',
+            }),
         },
     ];
 

@@ -31,7 +31,7 @@ describe('compliance demo — chat signals, switched off', () => {
         const view = parseConfig(chatMonitoringView(createState().settings));
         expect(view.dpoRecorded).toBe(true);
         expect(view.privacyNoticeUrlSet).toBe(true);
-        expect(view.template).toEqual({ dpoContact: 'privacy@vandael.example', dsrUrl: 'https://vandael.example/dsr', shieldLogRetentionDays: 400 });
+        expect(view.template).toEqual({ dpoContact: 'privacy@meridian.example', dsrUrl: 'https://meridian.example/dsr', shieldLogRetentionDays: 400 });
         const bare = parseConfig(chatMonitoringView({}));
         expect(bare.dpoRecorded).toBe(false);
         expect(bare.privacyNoticeUrlSet).toBe(false);

@@ -581,11 +581,11 @@ test('cms_update_design: schema in the roster; deep-merge patch persists through
     assert.strictEqual(TOOL_SCHEMAS.length, 13, 'CLOSED SET — 13 tools');
     assert.ok(!schema.function.parameters.required, 'every field is optional (it is a patch)');
     assert.match(schema.function.description, /DEEP-MERGE PATCH/i, 'schema teaches patch semantics');
-    // logo/favicon are uploaded asset keys — never settable by the model.
+    // logo/favicon: only an uploaded image that exists in the asset store.
     const props = Object.keys(schema.function.parameters.properties).sort();
     assert.deepStrictEqual(props, [
-        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'fontsPatch', 'gradient',
-        'grain', 'layoutPatch', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
+        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'favicon', 'fontsPatch', 'gradient',
+        'grain', 'layoutPatch', 'logo', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
     ], props.join(','));
     assert.deepStrictEqual(schema.function.parameters.properties.preset.enum, THEME_PRESET_IDS);
 
