@@ -270,19 +270,6 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/search', 9],
     ['src/features/security', 30],
     ['src/features/settings', 21],
-    // Not new debt: the sitemap's destination labels and hints, moved out of
-    // features/shell (98) when the drawer replaced the More tab. The shell
-    // itself is now clean, and the move left 16 fewer strings than it took.
-    // +16, two literals (label and hint) per new row: src/meta/routes.test.ts
-    // requires a sitemap row for every screen, and a row has no other
-    // spelling. PR4b added eight: Datatables, Studio Documents, Playbooks,
-    // Runs & log and the four Meeting Notes tools. The same PR took 110
-    // strings off other lines (webpages and projects cleared, recording
-    // 125 -> 100, documents 16 -> 10), so the ledger as a whole fell.
-    // +2: the App Studio coming-soon row (label and hint; the web has no key
-    // for either).
-    ['src/features/sitemap', 100],
-
     // 33 -> 30: the self-help group (its heading and two rows) went through t()
     // when "What changed recently" moved to the native release notes.
     ['src/features/support', 30],

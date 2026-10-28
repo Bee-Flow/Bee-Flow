@@ -35,6 +35,20 @@ describe('visibleDestinations', () => {
         expect(visibleDestinations(member, 'feiten').map((d) => d.id)).not.toContain('memory');
     });
 
+    it('finds a row whose words are the phone’s own by what the reader sees', () => {
+        // A `mobile.sitemap.*` key is translated the same way as the web's:
+        // the Dutch label and hint are what the reader types, English still works.
+        const dutch: Record<string, string> = {
+            'mobile.sitemap.support.label': 'Hulp en ondersteuning',
+            'mobile.sitemap.support.hint': 'Stel een vraag en volg het antwoord',
+        };
+        const t = (key: string, fallback: string) => dutch[key] ?? fallback;
+        expect(visibleDestinations(member, 'ondersteuning', t).map((d) => d.id)).toContain('support');
+        expect(visibleDestinations(member, 'vraag', t).map((d) => d.id)).toContain('support');
+        expect(visibleDestinations(member, 'ticket', t).map((d) => d.id)).toContain('support');
+        expect(visibleDestinations(member, 'ondersteuning').map((d) => d.id)).not.toContain('support');
+    });
+
     it('still finds the retired tabs by the words people used for them', () => {
         expect(visibleDestinations(member, 'transcribe').map((d) => d.id)).toContain('record');
         expect(visibleDestinations(member, 'library').map((d) => d.id)).toContain('library');

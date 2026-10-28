@@ -1,5 +1,6 @@
 /**
- * The nineteen keys the sitemap borrows from the web, held to their source.
+ * The keys the sitemap borrows from the web (nineteen `sidebar.*` and `settings.*`
+ * ones, and the page titles of the other screens), held to their source.
  *
  * The sitemap (`nav/destinations/`) deliberately labels its destinations with
  * the WEB's own keys (`sidebar.agents`, `settings.appearance`) rather than
@@ -36,7 +37,29 @@ import { DESTINATIONS } from './destinations';
 
 const client = readDict(CLIENT_DICT);
 const server = readDict(SERVER_DICT);
-const keyed = DESTINATIONS.filter((d) => d.i18nKey);
+const keyed = DESTINATIONS.filter((d) => d.i18nKey && !d.i18nKey.startsWith('mobile.'));
+
+describe('every row says its words through a key', () => {
+    it('has a key for its label and one for its hint', () => {
+        const without = DESTINATIONS.filter((d) => !d.i18nKey || !d.hintKey).map((d) => d.id);
+        expect(without).toEqual([]);
+    });
+
+    it('uses a key of the web’s, or one of its own shape: mobile.sitemap.<id>.label / .hint', () => {
+        // The web has no key for these words, so the row's is its own and says
+        // so. Another area's `mobile.*` key, or a typo, would be a key nobody
+        // can ever fill; the words the web does have are borrowed below, and
+        // i18nGuard.test.ts holds every borrowed key to both dictionaries.
+        const strays = DESTINATIONS.flatMap((d) => [d.i18nKey as string, d.hintKey as string])
+            .filter((key) => key.startsWith('mobile.') && !/^mobile\.sitemap\.[a-z0-9_]+\.(label|hint)$/.test(key));
+        expect(strays).toEqual([]);
+    });
+
+    it('gives no two rows the same own key', () => {
+        const own = DESTINATIONS.flatMap((d) => [d.i18nKey as string, d.hintKey as string]).filter((k) => k.startsWith('mobile.'));
+        expect(own).toHaveLength(new Set(own).size);
+    });
+});
 
 describe('the sitemap keys the phone borrows from the web', () => {
     it('reads both dictionaries, so nothing below can pass vacuously', () => {
@@ -61,15 +84,6 @@ describe('the sitemap keys the phone borrows from the web', () => {
             expect(id).toBeTruthy();
         },
     );
-
-    it('every borrowed key is a namespace the web really owns', () => {
-        // A key invented here would resolve to its own English fallback and
-        // match nothing a Dutch user types into the search field — the exact
-        // failure types.ts's `i18nKey` comment warns about. Both prefixes are
-        // frozen families (I18N-CONVENTIES §1.4).
-        const strays = keyed.filter((d) => !/^(sidebar|settings)\./.test(d.i18nKey as string));
-        expect(strays.map((d) => d.i18nKey)).toEqual([]);
-    });
 });
 
 /**
@@ -119,7 +133,7 @@ describe('the English on the phone against the English in the browser', () => {
 });
 
 describe('the hints the phone borrows from the web', () => {
-    const hinted = DESTINATIONS.filter((d) => d.hintKey);
+    const hinted = DESTINATIONS.filter((d) => d.hintKey && !d.hintKey.startsWith('mobile.'));
 
     it('borrows some, so this block cannot pass vacuously', () => {
         expect(hinted.length).toBeGreaterThanOrEqual(2);
