@@ -92,6 +92,9 @@ async function existingTitlesFor(userId, d) {
  * @param {any} s a normalised suggestion
  */
 function withoutContacts(s) {
+    /**
+     * @param {string} v
+     */
     const clean = (v) => (typeof v === 'string' ? maskContacts(v, { words: true }) : v);
     return { ...s, title: clean(s.title), description: clean(s.description), buildPrompt: clean(s.buildPrompt) };
 }
@@ -206,6 +209,7 @@ async function runIdeasScan(input, overrides = null) {
             send('scan_step', { tool: name, integration, phase: 'done', ok: false });
             return r.refusal ? JSON.stringify({ error: r.refusal.modelError }) : `Error: ${r.error && r.error.message}`;
         }
+        /** @type {string} */
         let guardedText;
         let categories = [];
         let blocked = false;
@@ -230,6 +234,7 @@ async function runIdeasScan(input, overrides = null) {
     const callOpts = signal ? { ...CALL_OPTIONS, signal } : { ...CALL_OPTIONS };
     let rounds = 0;
     let structured = null;
+    /** @type {string | null} */
     let content = null;
     let usage = null;
     send('phase', { phase: 'scanning' });

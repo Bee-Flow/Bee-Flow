@@ -43,7 +43,7 @@ async function buildToolCatalog({ userId, session, isAdmin = false }) {
         }
         return { availableTools, toolRequiredParams };
     } catch (e) {
-        log.warn('[provisionAutomation] tool catalog build failed; activating without tool checks:', e.message);
+        log.warn('[provisionAutomation] tool catalog build failed; activating without tool checks:', /** @type {Error} */ (e).message);
         return { availableTools: null, toolRequiredParams: null };
     }
 }
@@ -92,12 +92,13 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
      * a lookup outage must not make every automation unactivatable, and the real
      * gate is `resolveStepAgent` at run time.
      */
+    /** @type {Set<string> | null} */
     let availableAgents = null;
     try {
         const { agentCatalogForOwner } = require('../core/automationModel/agentCatalog');
         availableAgents = await agentCatalogForOwner(def, a.userId || userId);
     } catch (e) {
-        log.warn('[provisionAutomation] agent catalog build failed; activating without the agent check:', e.message);
+        log.warn('[provisionAutomation] agent catalog build failed; activating without the agent check:', /** @type {Error} */ (e).message);
         availableAgents = null;
     }
 
@@ -139,7 +140,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
         // backstop, but a switch that silently arms a dead automation is the
         // failure this exists to prevent.
         if (e && e.details) throw e;
-        log.warn('[provisionAutomation] knowledge-base check unavailable:', e.message);
+        log.warn('[provisionAutomation] knowledge-base check unavailable:', /** @type {Error} */ (e).message);
     }
     const automation = await automationStore.updateAutomation(automationId, {
         isActive: true, isDraft: false, needsFirstRunConfirm: false,
@@ -152,7 +153,10 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
     return { automation, warnings: v.warnings || [] };
 }
 
-/** Tear down a provisioned automation: remove its subscriptions, then delete it. */
+/**
+ * Tear down a provisioned automation: remove its subscriptions, then delete it.
+ * @param {string} automationId
+ */
 async function teardownAutomation(automationId) {
     if (!automationId) return false;
     try { await automationStore.deleteSubscriptionsForAutomation(automationId); } catch (err) { bestEffort('automation/provisionAutomation:teardownAutomation', err); /* ignore */ }
