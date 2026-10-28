@@ -134,7 +134,7 @@ function _communityAccepts(storedTypes, incoming) {
  * id would otherwise let one org's list select another org's type.
  * @param {string} orgId
  * @param {string[]} ids
- * @param {any} configStore
+ * @param {Partial<typeof import('../../../stores/configStore')> | null | undefined} configStore
  */
 async function _idsOwnedElsewhere(orgId, ids, configStore) {
     const taken = new Set();

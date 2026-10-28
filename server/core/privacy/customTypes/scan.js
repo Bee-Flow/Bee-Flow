@@ -200,8 +200,8 @@ async function _scanOnce(text, plan, threshold, opts) {
  * @param {string} text
  * @param {string[]} enabledCategories
  * @param {number} threshold
- * @param {any} plan  planScan() result
- * @param {object} [opts]
+ * @param {NonNullable<Awaited<ReturnType<typeof import('./plan').planScan>>>} plan  planScan() result
+ * @param {Parameters<typeof _scanOnce>[3]} [opts]
  */
 async function detectWithCustomTypes(text, enabledCategories, threshold, plan, opts = {}) {
     const t0 = Date.now();
