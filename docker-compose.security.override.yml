@@ -38,24 +38,21 @@ services:
       # Sends real attack traffic — only enable for targets you own/are
       # authorized to test (the per-scan authorization attestation still applies).
       - SECURITY_ALLOW_ACTIVE_SCAN=true
-      # Per-engine images (pre-pulled locally).
-      - SECURITY_SCANNER_ZAP_IMAGE=ghcr.io/zaproxy/zaproxy:stable
-      - SECURITY_SCANNER_NUCLEI_IMAGE=projectdiscovery/nuclei:latest
-      - SECURITY_SCANNER_TESTSSL_IMAGE=drwetter/testssl.sh:latest
+      # Per-engine images and the ZAP control relay are pinned by digest in
+      # scanRunner.service.js. Override one only to test another build:
+      # SECURITY_SCANNER_{ZAP,NUCLEI,TESTSSL}_IMAGE, SECURITY_ZAP_RELAY_IMAGE.
       # Per-engine container resource caps + timeout.
       - SECURITY_SCANNER_MEMORY_MB=1536
       - SECURITY_SCANNER_CPUS=1.0
       - SECURITY_SCANNER_TIMEOUT_MS=900000
       # ── AI agent mode (live, Claude-driven scan + terminal) ──────────────
-      # Claude drives a long-lived ZAP daemon (REST API) + a free-form tools
-      # sandbox step-by-step, streaming each action/scanstat/terminal event.
+      # Claude drives one toolbox container (the tools + an in-container ZAP
+      # daemon) step-by-step, streaming each action/scanstat/terminal event.
       - SECURITY_AGENT_MAX_STEPS=40
       - SECURITY_ZAP_BOOT_TIMEOUT_MS=120000
       - SECURITY_TERMINAL_TIMEOUT_MS=30000
       # Locally-built sandbox image (docker build -t beeflow-security-tools:latest server/terminal-runner)
       - SECURITY_TOOLS_IMAGE=beeflow-security-tools:latest
-      - SECURITY_TOOLS_MEMORY_MB=768
-      - SECURITY_TOOLS_CPUS=0.5
       # ── Claude Code subscription (OAuth) — LOCAL DEV ONLY ────────────────
       # Inert unless BEEFLOW_CLAUDE_CODE_OAUTH=1 is set in .env. When on, the Claude
       # provider authenticates with your Claude Code Pro/Max subscription instead of an
