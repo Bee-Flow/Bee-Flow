@@ -83,9 +83,9 @@ function isPinned(app, toolNames, triggerProvider) {
 /**
  * Rank the apps a user may run, most relevant first.
  *
- * @param {any} catalog      from buildCatalogForUser
+ * @param {import('./catalogRender').PromptCatalog} catalog      from buildCatalogForUser
  * @param {string} userMessage  this turn's message
- * @param {any} draft        the automation being built (its apps get pinned)
+ * @param {import('../builderTools/draftGraph').DraftGraph} draft        the automation being built (its apps get pinned)
  * @returns {Promise<object>}   the catalogue with `apps` reordered (never filtered
  *                              by relevance), unavailable apps removed
  */

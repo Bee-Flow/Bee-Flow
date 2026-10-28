@@ -137,7 +137,7 @@ async function provisionSubscription(sub, session) {
             log.warn(`[TriggerBus] MS Graph subscribe failed for ${sub.id}: ${r.status} ${text.slice(0, 200)}`);
             return null;
         }
-        const data = /** @type {any} */ (await r.json().catch(() => ({})));
+        const data = /** @type {{ id?: string, expirationDateTime?: string }} */ (await r.json().catch(() => ({})));
         if (!data?.id) {
             log.warn(`[TriggerBus] MS Graph subscribe returned no id for ${sub.id}`);
             return null;
