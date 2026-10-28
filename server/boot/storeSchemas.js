@@ -1,9 +1,9 @@
 /**
  * boot/storeSchemas.js — the server's one call to "create the store schemas".
  *
- * WHY THIS EXISTS. Requiring a store used to run DDL: every store ended with
- * `initDB().catch(...)` at module level, so `require('../stores/userStore')`
- * from a script, a test or a route file issued CREATE TABLE against whatever
+ * WHY THIS EXISTS. Requiring a store must not run DDL: were every store to end with
+ * `initDB().catch(...)` at module level, `require('../stores/userStore')`
+ * from a script, a test or a route file would issue CREATE TABLE against whatever
  * database that process happened to point at. Schema creation is a decision
  * the server makes at boot, not a side effect of reading a module.
  *

@@ -27,7 +27,7 @@
  *                                             the verdict is unassessed, not
  *                                             fine)
  *   traffic below MIN_TRAFFIC               → not_applicable (nothing shown
- *                                             yet — this used to be a `pass`,
+ *                                             yet — this must not be a `pass`,
  *                                             i.e. a green for "could not judge")
  *   traffic, but zero guardrail events      → warn
  *   traffic and guardrail events            → pass

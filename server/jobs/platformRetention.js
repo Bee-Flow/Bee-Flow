@@ -14,7 +14,7 @@
  *      cheap, so two pods running it at once is harmless: no lock.
  *
  * ── WHY THIS IS NOT ON THE AUTOMATION RUNNER'S TICK ─────────────────
- * Both used to ride processRunRetention in core/automationRunner/scheduler/
+ * Both must not ride processRunRetention in core/automationRunner/scheduler/
  * ticks.js. That tick is `moduleGatedTick('automation', …)`, and the whole
  * runner only starts when `isModuleAvailable('automation')`. The tables these
  * passes bound are fed by chat and DLP traffic, which keeps flowing on an

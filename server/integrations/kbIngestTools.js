@@ -294,7 +294,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
          */
         /**
          * ── SCREENED HERE, BEFORE ANYTHING IS DELETED ────────────────
-         * The screen used to be handed DOWN to ingestDocument, on both paths.
+         * The screen is not handed DOWN to ingestDocument, on both paths.
          * On the refresh path that is a data-loss bug: `_refreshInPlace`
          * deletes the existing document first (with skipSnapshot, so there is
          * no version to restore) and ingests second — so a refusal landing in

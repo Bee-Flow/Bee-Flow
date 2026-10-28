@@ -32,8 +32,8 @@ function toRecipientList(value) {
 
 /**
  * Build the Graph message resource shared by send, reply and save-draft.
- * One builder on purpose: the send path used to be the only one that carried
- * bccRecipients, so replies and saved drafts silently dropped a BCC the user
+ * One builder on purpose: the send path must not be the only one that carries
+ * bccRecipients, or replies and saved drafts silently drop a BCC the user
  * had typed and the draft card had shown them.
  * @param {OutlookDraft} draft
  * @returns {GraphMessageOut}
@@ -123,9 +123,9 @@ async function sendOutlookMessage(draft, message, session, base) {
                 message: {
                     toRecipients: message.toRecipients,
                     ccRecipients: message.ccRecipients || [],
-                    // The reply payload used to forward to/cc only, so a BCC
-                    // on a reply was thrown away after the card had displayed
-                    // it and the send was reported as succeeded.
+                    // The reply payload must not forward to/cc only, or a BCC
+                    // on a reply is thrown away after the card has displayed
+                    // it and the send is reported as succeeded.
                     bccRecipients: message.bccRecipients || [],
                 },
                 comment: draft.body,

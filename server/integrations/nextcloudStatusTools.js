@@ -100,8 +100,8 @@ function mapStatus(s) {
 
 /**
  * `clearAt` as epoch seconds. Unparsable and past values are refused here:
- * Nextcloud answers a past time with a 400 that used to be reported as an
- * unknown status, and an unparsable one used to be dropped silently.
+ * Nextcloud answers a past time with a 400 that must not be reported as an
+ * unknown status, and an unparsable one must not be dropped silently.
  * @param {string | number | null | undefined} raw
  * @param {number} [now]
  */

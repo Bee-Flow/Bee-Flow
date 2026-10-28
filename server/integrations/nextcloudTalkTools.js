@@ -540,7 +540,7 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
                     // first-class field. Talk's provider puts it in
                     // attributes.conversation; the resourceUrl (/call/<token>)
                     // is the fallback. Without it a hit cannot be placed in a
-                    // room, which is why this tool used to be refused outright
+                    // room, which is why this tool would be refused outright
                     // whenever a user had narrowed Talk to specific rooms.
                     token: e.attributes?.conversation
                         ?? (/\/call\/([A-Za-z0-9]+)/.exec(e.resourceUrl || '')?.[1] ?? null),

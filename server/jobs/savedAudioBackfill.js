@@ -4,7 +4,7 @@
  *
  * WHY THIS EXISTS
  * `audio_storage_key` is written once, at note creation. If object storage was
- * unreachable at that moment (a pod that booted during a RustFS restart used to
+ * unreachable at that moment (a pod that booted during a RustFS restart would
  * stay "storage unavailable" for its entire life), the note got a NULL key. The
  * local `audio_path` is per-pod and has no volume behind it on the SaaS, so the
  * recording then died with the pod — and re-transcribe answered "Saved audio not

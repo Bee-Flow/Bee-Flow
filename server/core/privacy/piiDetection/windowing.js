@@ -35,7 +35,7 @@ function windowText(text) {
  * this scan costs, and therefore how long a caller should expect to wait.
  *
  * Exported because the chat runtimes render this to the user ("part 2/6") and
- * used to reimplement the arithmetic inline; two copies of a formula that
+ * must not reimplement the arithmetic inline; two copies of a formula that
  * depends on MAX_REQUEST_CHARS *and* WINDOW_OVERLAP_CHARS is one copy too many.
  */
 function windowCountFor(text) {

@@ -250,8 +250,8 @@ async function handle(res, authError, what, opts = {}) {
  * then by the same accent/punctuation-blind key column titles use). Every
  * miss is a soft error that lists what IS there, so an automation — or the
  * model building one — can correct itself. A title is what the user knows;
- * the id is what the API wants. Before this, a builder briefed with "the
- * table Facturen" had no way to find the id at build time and guessed 1.
+ * the id is what the API wants. Without this, a builder briefed with "the
+ * table Facturen" has no way to find the id at build time and guesses 1.
  */
 async function resolveTableId(api, ncFetch, authError, raw) {
     if (raw === undefined || raw === null || raw === '') {

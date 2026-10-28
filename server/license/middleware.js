@@ -139,8 +139,8 @@ async function resolveBestTierForRequest(req) {
         return value;
     }
 
-    // Parallelise per-org tier lookups. Previously sequential (N awaits
-    // for N orgs). For users in many groups this was a noticeable per-
+    // Parallelise per-org tier lookups: sequential would be N awaits
+    // for N orgs, and for users in many groups a noticeable per-
     // request cost.
     const orgTiers = {};
     const orgIdsArray = [...candidateOrgIds].filter(Boolean);

