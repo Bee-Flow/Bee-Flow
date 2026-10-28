@@ -124,6 +124,6 @@ test('a quick fix that types a parameter whose slot a caller contradicted is ref
     const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required']));
     assert.equal(refuse('/**\n * @param {string} col\n * @param {string | number} val\n */\n'), true);
     assert.equal(refuse('/**\n * @param {string} col\n */\n'), false);
-    assert.equal(refuse('/** @param {number} [a] */\n'), false); // required is not a quick-fix ban
+    assert.equal(refuse('/** @param {number} a */\n'), true); // required: the quick fix would write it as required
     assert.equal(quickFixRefuser(ts, sf, new Set())('/** @param {string} val */'), false);
 });

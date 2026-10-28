@@ -164,11 +164,17 @@ test('calleeSlotOfDiagnostic: an argument that does not fit, or a call with too 
     const inStore = svc.service.getSemanticDiagnostics(svc.at('store.js'));
     const arg = inStore.find((d) => d.code === 2345);
     assert.ok(arg, 'TS2345 on add(\'x\', true)');
-    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.js'), arg), { file: svc.at('store.js'), slot: 'add#0|#1' });
+    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.js'), arg), { file: svc.at('store.js'), slot: 'add#0|#1', declared: true });
     const inTest = svc.service.getSemanticDiagnostics(svc.at('store.test.js'));
     const arity = inTest.find((d) => d.code === 2554);
     assert.ok(arity, 'TS2554 on two(\'only\')');
-    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.test.js'), arity), { file: svc.at('store.js'), slot: 'two#0|#1' });
+    assert.deepEqual(calleeSlotOfDiagnostic(ts, program, svc.at('store.test.js'), arity), { file: svc.at('store.js'), slot: 'two#0|#1', declared: true });
+    // a library method on a variable the inference typed: the variable's slot, in the caller's file
+    const svc2 = serviceOver({ 'rows.js': "'use strict';\n/** @param {boolean} flag */\nfunction f(flag) {\n    /** @type {(string | number)[]} */\n    const params = ['a']; params.push(flag); return params;\n}\nmodule.exports = { f };\n" }, { allowJs: true, checkJs: true, noImplicitAny: true, module: ts.ModuleKind.Node16, moduleResolution: ts.ModuleResolutionKind.Node16 });
+    const program2 = svc2.service.getProgram();
+    const push = svc2.service.getSemanticDiagnostics(svc2.at('rows.js')).find((d) => d.code === 2345);
+    assert.ok(push, 'TS2345 on params.push(flag)');
+    assert.deepEqual(calleeSlotOfDiagnostic(ts, program2, svc2.at('rows.js'), push), { file: svc2.at('rows.js'), slot: 'var:params@f#0', declared: true });
     // another code is not this function's business
     assert.equal(calleeSlotOfDiagnostic(ts, program, svc.at('store.js'), { ...arg, code: 2339 }), null);
 });

@@ -693,6 +693,30 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
 // that was wrong (a demand or a fixture is only a lower bound), and is redone
 // without that source.
 
+/** Whether a variable declaration carries a type: a TypeScript annotation, or a JSDoc type tag on it or on its statement. */
+export function varDeclared(ts, decl) {
+    const stmt = decl.parent && decl.parent.parent;
+    return !!(decl.type || ts.getJSDocType(decl) || (stmt && ts.isVariableStatement(stmt) && ts.getJSDocType(stmt)));
+}
+
+/** The slot of a variable the inference types from its uses (`var:<name>@<enclosing function>`). */
+export function varSlot(ts, decl, fkeys) {
+    return ts.isIdentifier(decl.name) ? `var:${decl.name.text}@${enclosingKey(ts, decl, fkeys)}` : null;
+}
+
+/**
+ * A `var` edit, recorded under its slot so a caller's diagnostic can reject it (a typed
+ * empty array `(string | number)[]` that a later push hands a boolean). Without ctx the
+ * edit is written as before. Returns false when the slot is banned.
+ */
+function pushVarEdit(ts, ctx, sf, d, type, edits) {
+    const slot = ctx ? varSlot(ts, d, ctx.fkeys) : null;
+    if (slot && !ctx.allowed(slot, 'var')) return false;
+    if (slot) ctx.chosen.push({ slot, source: 'var' });
+    edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${type}`, kind: 'var', type, host: d.parent.parent.getStart(sf) });
+    return true;
+}
+
 function enclosingKey(ts, node, fkeys) {
     for (let n = node.parent; n; n = n.parent) if (fkeys.has(n)) return fkeys.get(n);
     return '';
@@ -752,8 +776,9 @@ export function slotOfDiagnostic(ts, program, abs, d) {
  * does not fit the parameter (TS2345) or a call with fewer arguments than the parameters
  * made required (TS2554). `slotOfDiagnostic` sees the argument and lands on the caller's
  * own variable; the slot to reject is the callee's parameter, which may sit in another
- * file (a colocated test calls the store it tests). Returns { file, slot } for a callee
- * declared as a function, or null.
+ * file (a colocated test calls the store it tests). Returns { file, slot, declared } for a
+ * callee declared as a function (`declared`: its parameter carries a type in the current
+ * text), the variable's slot for a library method called on a variable, or null.
  */
 export function calleeSlotOfDiagnostic(ts, program, abs, d) {
     if (d.code !== 2345 && d.code !== 2554) return null;
@@ -781,11 +806,21 @@ export function calleeSlotOfDiagnostic(ts, program, abs, d) {
     const sig = checker.getResolvedSignature(call);
     let decl = sig && sig.declaration;
     if (!decl) { const sym = checker.getSymbolAtLocation(call.expression); decl = sym && sym.valueDeclaration; }
-    if (!decl || !(ts.isFunctionDeclaration(decl) || ts.isArrowFunction(decl) || ts.isFunctionExpression(decl) || ts.isMethodDeclaration(decl) || ts.isConstructorDeclaration(decl))) return null;
+    if (!decl) return null;
+    // A method of the standard library on a variable the inference typed (`params.push(x)`
+    // with `params` typed from its earlier pushes): the variable's slot, in this file.
+    if (/\/typescript\/lib\/lib\.[^/]*\.d\.ts$/.test(decl.getSourceFile().fileName)) {
+        if (!ts.isPropertyAccessExpression(call.expression) || !ts.isIdentifier(call.expression.expression)) return null;
+        const sym = checker.getSymbolAtLocation(call.expression.expression); const vd = sym && sym.valueDeclaration;
+        if (!vd || !ts.isVariableDeclaration(vd) || vd.getSourceFile() !== sf) return null;
+        const slot = varSlot(ts, vd, functionKeys(ts, sf));
+        return slot ? { file: sf.fileName, slot, declared: varDeclared(ts, vd) } : null;
+    }
+    if (!(ts.isFunctionDeclaration(decl) || ts.isArrowFunction(decl) || ts.isFunctionExpression(decl) || ts.isMethodDeclaration(decl) || ts.isConstructorDeclaration(decl))) return null;
     const dsf = decl.getSourceFile();
     const key = functionKeys(ts, dsf).get(decl);
     if (!key || index >= decl.parameters.length) return null;
-    return { file: dsf.fileName, slot: `${key}|#${index}` };
+    return { file: dsf.fileName, slot: `${key}|#${index}`, declared: hasDeclaredType(ts, decl.parameters[index]) };
 }
 
 // ------------------------------------------------------------ observed types
@@ -869,7 +904,7 @@ function observedText(observed, key, slot, named) {
  * it gets the whole shape: the literal's members plus each later one as
  * optional, or Record<string, T> for an empty literal filled by key.
  */
-function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
+function inferExpandos(ts, checker, sf, abs, imports, edits, report, ctx = null) {
     const decls = [];
     const visit = (n) => {
         if (ts.isVariableDeclaration(n) && !hasDeclaredType(ts, n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) decls.push(n);
@@ -928,7 +963,7 @@ function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
             text = `{ ${members.join('; ')} }`;
         } else { report.push(`${label}: named and computed members mixed`); continue; }
         if (text.length > 2 * MAX_TYPE) { report.push(`${label}: shape too long`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}`, kind: 'var', type: text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of local) imports.set(l[0], l[1]);
         report.push(`${label}: ${text}`);
     }
@@ -943,7 +978,7 @@ const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
  *  - `let ro = null; ... ro = new ResizeObserver(...)`: the union of what is
  *    assigned, null included.
  */
-function inferLearned(ts, checker, sf, abs, imports, edits, report) {
+function inferLearned(ts, checker, sf, abs, imports, edits, report, ctx = null) {
     const consts = []; const lets = []; const catches = []; const arrays = [];
     const visit = (n) => {
         if (ts.isVariableDeclaration(n) && !hasDeclaredType(ts, n) && ts.isIdentifier(n.name) && n.initializer) {
@@ -975,7 +1010,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (!props.every((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))) continue;
         const t = unionText(ts, checker, props.map((p) => checker.getTypeAtLocation(ts.isPropertyAssignment(p) ? p.initializer : p.name)), d, abs, imports);
         if (!t) { report.push(`lookup ${d.name.text}: value type not writable`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: Record<string, ${t.text}>`, kind: 'var', type: `Record<string, ${t.text}>`, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, `Record<string, ${t.text}>`, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`lookup ${d.name.text}: Record<string, ${t.text}>`);
     }
@@ -1002,7 +1037,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (d.initializer) useful.push(checker.getNullType());
         const t = unionText(ts, checker, useful, d, abs, imports);
         if (!t) continue;
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${t.text}`, kind: 'var', type: t.text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, t.text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`let ${d.name.text}: ${t.text}`);
     }
@@ -1032,7 +1067,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         const t = unionText(ts, checker, types, d, abs, imports);
         if (!t) { report.push(`array ${d.name.text}: element type not writable [${unionText.why}]`); continue; }
         const text = /[|&]/.test(t.text) && !/^\(.*\)$/.test(t.text) ? `(${t.text})[]` : `${t.text}[]`;
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}`, kind: 'var', type: text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`array ${d.name.text}: ${text}`);
     }
@@ -1087,8 +1122,8 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
     const fkeys = functionKeys(ts, sf);
     const allowed = (slot, source) => !banned.has(`${slot}|${source}`);
     inferHooks(ts, service, program, checker, sf, abs, report, edits, imports, observed, named, { fkeys, allowed, chosen });
-    inferExpandos(ts, checker, sf, abs, imports, edits, report);
-    inferLearned(ts, checker, sf, abs, imports, edits, report);
+    inferExpandos(ts, checker, sf, abs, imports, edits, report, { fkeys, allowed, chosen });
+    inferLearned(ts, checker, sf, abs, imports, edits, report, { fkeys, allowed, chosen });
     for (const fn of fns) {
         const nameNode = nameNodeOf(ts, fn);
         if (!nameNode) continue; // inline callbacks: contextually typed, or the codefix pass takes them

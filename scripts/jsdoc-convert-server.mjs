@@ -32,7 +32,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
-import { applyEdits, calleeSlotOfDiagnostic, functionKeys, inferFile, MISFIT, resetCaches, setSiteFilter, slotOfDiagnostic } from './ts-callsite-types.mjs';
+import { applyEdits, calleeSlotOfDiagnostic, functionKeys, hasDeclaredType, inferFile, varDeclared, MISFIT, resetCaches, setSiteFilter, slotOfDiagnostic } from './ts-callsite-types.mjs';
 import { createService, forbiddenInsert, fixRound } from './ts-convert-codefix.mjs';
 import { compile } from './ts-equivalence.mjs';
 
@@ -116,20 +116,38 @@ export function colocatedTests(abs) {
 
 /**
  * The names of the parameters whose slot is banned for the quick fix (`<fn>#<n>|#<i>|quickfix`
- * in `bans`), and a refuser that drops a quick fix writing a `@param` tag for one of them.
- * A caller contradicted the type TypeScript inferred from the body; the slot stays open.
+ * in `bans`, or `|required`: a caller leaves the argument out, and the quick fix would write
+ * it as required), and a refuser that drops a quick fix writing a `@param` tag for one of
+ * them. A caller contradicted the type TypeScript inferred from the body; the slot stays open.
  */
 export function quickFixRefuser(ts, sf, bans) {
     const names = new Set();
     if (sf && bans) {
         const byKey = new Map([...functionKeys(ts, sf)].map(([fn, key]) => [key, fn]));
         for (const b of bans) {
-            const m = /^(.+)\|#(\d+)\|quickfix$/.exec(b); if (!m) continue;
+            const m = /^(.+)\|#(\d+)\|(?:quickfix|required)$/.exec(b); if (!m) continue;
             const fn = byKey.get(m[1]); const p = fn && fn.parameters[Number(m[2])];
             if (p && ts.isIdentifier(p.name)) names.add(p.name.text);
         }
     }
     return (text) => [...names].some((n) => new RegExp('@param\\s*\\{[^]*?\\}\\s*\\[?' + n + '\\b').test(text));
+}
+
+/**
+ * Whether a slot (`<fn>#<n>|#<i>` or `var:<name>@<fn>#<n>`) already carried a type in `text`,
+ * the file as it was before the run: then the run did not write that type.
+ */
+export function slotDeclaredIn(ts, text, slot) {
+    const sf = ts.createSourceFile('x.js', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const byKey = new Map([...functionKeys(ts, sf)].map(([fn, key]) => [key, fn]));
+    const m = /^(.+)\|#(\d+)$/.exec(slot);
+    if (m) { const fn = byKey.get(m[1]); const p = fn && fn.parameters[Number(m[2])]; return !!p && hasDeclaredType(ts, p); }
+    const v = /^var:([\w$]+)@(.*)$/.exec(slot);
+    if (!v) return false;
+    let found = false;
+    const visit = (n) => { if (found) return; if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === v[1] && varDeclared(ts, n)) found = true; ts.forEachChild(n, visit); };
+    visit(sf);
+    return found;
 }
 
 /** Puts `// @typecheck` on the first line that may hold it (after a shebang). */
@@ -237,9 +255,15 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
             if (callee && bans.has(callee.file)) {
                 // Too few arguments: the parameter is optional, whatever the type says.
                 if (d.code === 2554) { ban(callee.file, `${callee.slot}|required`); continue; }
-                // A slot the inference did not type got its type from TypeScript's quick fix.
-                const source = chosen.get(callee.file).get(callee.slot) || 'quickfix';
-                ban(callee.file, `${callee.slot}|${source}`);
+                const source = chosen.get(callee.file).get(callee.slot);
+                if (source) { ban(callee.file, `${callee.slot}|${source}`); continue; }
+                // No inference source: either TypeScript's quick fix typed the slot (reject that
+                // next time), or the type was there before the run and it is the ARGUMENT that
+                // changed (a variable the run typed): then the argument's slot is the one to reject.
+                if (!slotDeclaredIn(ts, originals.get(callee.file) || '', callee.slot)) { ban(callee.file, `${callee.slot}|quickfix`); continue; }
+                if (!bans.has(f)) continue;
+                const arg = slotOfDiagnostic(ts, program, f, d); const argSource = arg && chosen.get(f).get(arg);
+                if (arg && argSource) ban(f, `${arg}|${argSource}`);
                 continue;
             }
             if (!MISFIT.has(d.code) || !bans.has(f)) continue;
