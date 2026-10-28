@@ -24,6 +24,7 @@ const log = require('../../telemetry/log');
 
 const MAX_REMOVED_LISTED = 100; // the result rides in every later step's body
 const AI_CATEGORIES = ['person', 'company', 'contact', 'address'];
+/** @type {Record<string, string>} */
 const CATEGORY_LABELS = { person: 'Person', company: 'Company', contact: 'Contact details', address: 'Address', logo: 'Logo' };
 
 const AI_SYSTEM = `You help remove identifying information from a document before it is sent to a third party (for example a technical drawing going to a supplier).
@@ -85,7 +86,7 @@ async function aiMarks(app, runs, terms, aiRuntime = require('../aiRuntime')) {
             toolDescription: 'List the text runs that identify a person or the owning company.',
         }));
     } catch (e) {
-        log.warn(`[redact_pdf] app ${app.id}: AI check failed: ${e && e.message}`);
+        log.warn(`[redact_pdf] app ${app.id}: AI check failed: ${e && /** @type {Error} */ (e).message}`);
         return { marks: [], warning: 'The AI check failed, so only the built-in rules were applied.' };
     }
     const byRef = new Map(runs.map((r) => [r.ref, r]));
@@ -116,6 +117,7 @@ async function redactPdfStep(app, model, step, ctx) {
 
     const { redactPdf, listTextRuns, PdfRedactionError } = require('../../core/documents/pdfRedaction/redactPdf');
     const terms = parseTerms(resolveBinding(step.terms, ctx, scope));
+    /** @type {string[]} */
     const warnings = [];
     let result;
     try {
@@ -130,7 +132,7 @@ async function redactPdfStep(app, model, step, ctx) {
         result = await redactPdf(buffer, { terms, aiMarks: flagged });
         warnings.unshift(...result.warnings);
     } catch (e) {
-        if (e instanceof PdfRedactionError) return { ok: false, error: e.message, code: `redact_${e.code}` };
+        if (e instanceof PdfRedactionError) return { ok: false, error: /** @type {Error} */ (e).message, code: `redact_${e.code}` };
         throw e;
     }
 
