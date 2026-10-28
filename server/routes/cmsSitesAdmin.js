@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CMS site management (the /sites routes with no /admin equivalent): list,
  * create, rename, duplicate and delete sites, and export / import a site as a
@@ -119,7 +119,9 @@ async function exportSiteHandler(/** @type {import('express').Request} */ req, /
 async function importSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         let exportData = null;
+        /** @type {{ key: string; buffer: Buffer; }[]} */
         let assets = [];
+        /** @type {string[]} */
         let skippedEntries = [];
 
         if (req.file?.buffer) {
@@ -157,8 +159,8 @@ async function importSiteHandler(/** @type {import('express').Request} */ req, /
             assetsReused: assetResult.reused,
         });
     } catch (err) {
-        log.error('[CMS] import error:', err.message);
-        throw new HttpError(400, 'bad_request', err.message);
+        log.error('[CMS] import error:', /** @type {Error} */ (err).message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (err).message);
     }
 }
 
@@ -175,7 +177,7 @@ async function createSiteHandler(/** @type {import('express').Request} */ req, /
         const { name } = req.body || {};
         const created = await cmsStore.createProject({ name });
         res.status(201).json(created);
-    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
+    } catch (err) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (err).message); }
 }
 
 async function renameSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
@@ -186,7 +188,7 @@ async function renameSiteHandler(/** @type {import('express').Request} */ req, /
         }
         const updated = await cmsStore.renameProject(req.siteId, name.trim());
         res.json({ success: true, site: updated });
-    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
+    } catch (err) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (err).message); }
 }
 
 // Duplicate a site into a new version of the same version group. Deep-
@@ -196,7 +198,7 @@ async function duplicateSiteHandler(/** @type {import('express').Request} */ req
     try {
         const created = await cmsStore.duplicateProject(req.siteId);
         res.status(201).json(created);
-    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
+    } catch (err) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (err).message); }
 }
 
 async function deleteSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
@@ -212,7 +214,7 @@ async function deleteSiteHandler(/** @type {import('express').Request} */ req, /
         // can't surface a deleted site's stale Umami data via its fallback path.
         await cmsAnalytics.forgetSite(req.siteId);
         res.json({ success: true });
-    } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
+    } catch (err) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (err).message); }
 }
 module.exports = {
     importJsonParser,

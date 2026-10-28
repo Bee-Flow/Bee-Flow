@@ -62,7 +62,7 @@ async function describeDrift(scope, table) {
 }
 
 function register(router) {
-    router.get('/:id/health', requireDatatableGrade('owner'), validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id/health', requireDatatableGrade('owner'), validate({ query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
         try {
             res.json(await describeDrift(req.datatableScope, req.datatable));
         } catch (e) {
@@ -84,7 +84,7 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: NOTHING, query: NO_QUERY }),
-        async (req, res) => {
+        async (req, /** @type {import('express').Response} */ res) => {
             try {
                 const scope = req.datatableScope;
                 const scopeKey = req.datatableScopeKey;

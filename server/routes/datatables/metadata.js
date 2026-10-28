@@ -109,7 +109,7 @@ async function managedOf(table) {
             projectId: table.projectId, kind: 'datatable', entityId: table.id,
         });
     } catch (e) {
-        log.warn('[datatables] managed lookup failed:', e.message);
+        log.warn('[datatables] managed lookup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }

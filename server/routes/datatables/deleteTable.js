@@ -62,7 +62,7 @@ function register(router) {
                         const link = /** @type {{ unlinked?: (datatable: typeof req.datatable) => Promise<unknown> }} */ (adapter.link);
                         if (link && typeof link.unlinked === 'function') await link.unlinked(req.datatable);
                     } catch (e) {
-                        log.warn('[datatables] unlink hook failed:', e && e.message);
+                        log.warn('[datatables] unlink hook failed:', e && /** @type {Error} */ (e).message);
                     }
                 }
                 res.json({ ok: true });

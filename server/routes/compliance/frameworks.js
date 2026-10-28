@@ -177,7 +177,7 @@ function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryR
  * @param {string} orgId
  * @param {string} id
  */
-async function _buildOne(orgId, id, req) {
+async function _buildOne(orgId, id, /** @type {import('express').Request} */ req) {
     const [policy, latest] = await Promise.all([
         frameworkPolicy.resolve(orgId, { req }),
         complianceStore.getLatestPerCheck(orgId).catch((e) => fallback('routes/compliance/frameworks:_buildOne', e, [])),
@@ -194,7 +194,7 @@ async function _buildOne(orgId, id, req) {
 /**
  * @param {string} orgId
  */
-async function _customList(orgId, latest, req) {
+async function _customList(orgId, latest, /** @type {import('express').Request} */ req) {
     const store = _customStore();
     if (!store) return [];
     let unlocked = false;

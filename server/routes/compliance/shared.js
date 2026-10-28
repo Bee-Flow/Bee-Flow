@@ -1,3 +1,4 @@
+/** @typedef {import('../../auth/orgScope').OrgScopeRequest} OrgScopeRequest */
 // @typecheck
 /**
  * Compliance routes — shared helpers.
@@ -20,6 +21,9 @@ const { fallback } = require('../../utils/bestEffort');
 // The HOME org, read through auth/orgScope.js. 'default' is the single-tenant
 // install's org key, not an error signal — see resolveOrgIdStrict for the
 // routes that must not accept it.
+/**
+ * @param {OrgScopeRequest | null} req
+ */
 async function resolveOrgId(req) {
     return (await orgScope(req)).homeOrgId || 'default';
 }
@@ -31,6 +35,7 @@ const REGULATION_KEY = { GDPR: 'gdpr', AIA: 'aia', ISO27001: 'iso' };
 // the UI can say "N verified automatically · M self-attested" instead of
 // presenting attested declarations as verified facts.
 function computeVerificationSummary(results) {
+    /** @type {Record<string, { total: number; pass: number; }>} */
     const summary = {
         automated: { total: 0, pass: 0 },
         attestation: { total: 0, pass: 0 },
@@ -49,13 +54,16 @@ function computeVerificationSummary(results) {
 // Strict org resolution for routes whose data is org-scoped by contract: a
 // session without an organisation gets 403 `no_organisation` instead of the
 // silent 'default' fallback resolveOrgId keeps for legacy callers.
+/**
+ * @param {OrgScopeRequest | null} req
+ */
 async function resolveOrgIdStrict(req) {
     return (await orgScope(req)).homeOrgId;
 }
 
 // Express helper around resolveOrgIdStrict: sends the 403 and returns null
 // when the org is missing, so handlers read `const orgId = await requireOrgId(req, res); if (!orgId) return;`.
-async function requireOrgId(req, res) {
+async function requireOrgId(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const orgId = await resolveOrgIdStrict(req);
     if (!orgId) {
         res.status(403).json({ error: 'no_organisation' });
@@ -68,6 +76,9 @@ async function requireOrgId(req, res) {
 // `check.frameworks[]` (home article + ISO controls + explicit extra tags). For
 // ISO27001 this is the SoA join (control 'A.5.20' → checks that count for it);
 // for every other regulation it answers "which checks cover Art. 21(2)(d)".
+/**
+ * @param {string} [code]
+ */
 function checksByFrameworkRef(code = 'ISO27001') {
     const map = {};
     for (const c of registry.getAll()) {
@@ -112,6 +123,9 @@ async function activeResultsFilter(orgId, opts = {}) {
 // Clause 4–10 conformity pack — the Stage-1 deliverable. Collects what the
 // tooling can PROVE per clause and says "not recorded" where it cannot; the
 // ISMS process stores (risks, audits, reviews) plug in as they ship.
+/**
+ * @param {string} orgId
+ */
 async function _buildClauseConformity(orgId) {
     const [docs, soaStats, latest, history, settings] = await Promise.all([
         ismsDocStore.listDocs(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity', e, [])),
@@ -121,10 +135,13 @@ async function _buildClauseConformity(orgId) {
         complianceStore.getSettings(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity#5', e, {})),
     ]);
     const published = docs.filter(d => d.status === 'published');
+    /**
+     * @param {string} slug
+     */
     const doc = (slug) => published.find(d => d.slug === slug) || null;
-    const lastRun = latest.length ? latest.reduce((m, r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
+    const lastRun = latest.length ? latest.reduce((/** @type {number} */ m, /** @type {{ run_at: number; }} */ r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
     const operatingSince = history.length ? history[0].captured_at : null;
-    const isoResults = latest.filter(r => r.regulation === 'ISO27001');
+    const isoResults = latest.filter((/** @type {{ regulation: string; }} */ r) => r.regulation === 'ISO27001');
 
     // ISMS process stores land later in the ISO build; read them lazily so
     // this statement upgrades itself the moment they exist.
@@ -137,6 +154,9 @@ async function _buildClauseConformity(orgId) {
         ncs = await auditStore.listNonconformities(orgId);
     } catch (err) { fallback('routes/compliance/shared:_buildClauseConformity#7', err); /* not shipped yet */ }
 
+    /**
+     * @param {string | number | Date} d
+     */
     const fmtDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
     const clauses = [];
     const infosec = doc('information-security-policy');

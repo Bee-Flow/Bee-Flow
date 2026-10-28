@@ -266,7 +266,7 @@ router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compli
         res.json({ ok: true, result });
     } catch (e) {
         if (e && e.status && e.body) return res.status(e.status).json(e.body);
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 

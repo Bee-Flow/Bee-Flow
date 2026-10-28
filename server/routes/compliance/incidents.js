@@ -232,7 +232,7 @@ const NoBody = bodyOf({});
  * 409 framework_disabled when the org has not enabled the CRA framework.
  * @param {string} orgId
  */
-async function _requireCra(req, orgId, res) {
+async function _requireCra(/** @type {import('express').Request} */ req, orgId, /** @type {import('express').Response} */ res) {
     const active = await frameworkPolicy.activeRegulations(orgId, { req });
     if (active.has('CRA')) return true;
     res.status(409).json({ error: 'framework_disabled', regulation: 'CRA', framework: 'cra' });
