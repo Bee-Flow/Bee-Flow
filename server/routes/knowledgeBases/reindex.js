@@ -88,7 +88,7 @@ router.post('/:id/reindex', requireAuth, requirePermission('manage_knowledge'), 
             });
         } catch (e) {
             results.failed += 1;
-            results.details.push({ source_id: source.id, name: source.name, status: 'error', reason: e.message });
+            results.details.push({ source_id: source.id, name: source.name, status: 'error', reason: /** @type {Error} */ (e).message });
         }
     }
 

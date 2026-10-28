@@ -238,7 +238,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
             const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
             if (resumed > 0) log.info(`[MicrosoftConnector] resumed ${resumed} automation(s) for user ${userId}`);
         } catch (e) {
-            log.warn(`[MicrosoftConnector] resume-automations failed: ${e.message}`);
+            log.warn(`[MicrosoftConnector] resume-automations failed: ${/** @type {Error} */ (e).message}`);
         }
 
         try {
@@ -251,7 +251,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
                 secretMeta: { source: 'connector', email: email || null, scope: tokenData.scope || null },
             });
         } catch (e) {
-            log.warn(`[MicrosoftConnector] connection metadata row skipped: ${e.message}`);
+            log.warn(`[MicrosoftConnector] connection metadata row skipped: ${/** @type {Error} */ (e).message}`);
         }
 
         // Hydrate the live session so tools light up without a re-login — but
@@ -267,7 +267,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         log.info(`[MicrosoftConnector] Connected for user ${userId}`);
         res.send(callbackHTML(email ? `Connected as ${email}!` : 'Microsoft 365 connected!', true));
     } catch (err) {
-        log.error('[MicrosoftConnector] Token exchange error:', err.message);
+        log.error('[MicrosoftConnector] Token exchange error:', /** @type {Error} */ (err).message);
         res.send(callbackHTML('Microsoft connection failed. Please try again.', false));
     }
 });

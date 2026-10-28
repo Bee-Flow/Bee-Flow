@@ -96,6 +96,11 @@ function rpcResult(id, result) {
     return { jsonrpc: '2.0', id, result };
 }
 
+/**
+ * @param {string | number | null | undefined} id
+ * @param {number} code
+ * @param {string} message
+ */
 function rpcError(id, code, message) {
     return { jsonrpc: '2.0', id, error: { code, message } };
 }
@@ -105,6 +110,7 @@ function rpcError(id, code, message) {
  * authenticated /api/automation route). Checked per call rather than per
  * connection: a long-lived MCP client would otherwise keep building after the
  * org's access was withdrawn.
+ * @param {string} userId
  */
 async function assertEntitled(userId) {
     const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
@@ -113,7 +119,7 @@ async function assertEntitled(userId) {
         ok = await userHasBetaFeature(userId, 'automations');
     } catch (e) {
         // Fail CLOSED. An entitlement lookup that errors is not permission.
-        log.warn(`[automations-mcp] entitlement check failed for user=${userId}: ${e.message}`);
+        log.warn(`[automations-mcp] entitlement check failed for user=${userId}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
     // Without this line the symptom is an empty tool list and no explanation
@@ -198,9 +204,9 @@ async function handleRpc(message, userId, access = null, deps = {}) {
                 // callTool is contracted not to throw; this is belt-and-braces,
                 // and it still comes back as a tool error the agent can read
                 // rather than a transport failure it cannot.
-                log.error('[automations-mcp] tool error:', err.message);
+                log.error('[automations-mcp] tool error:', /** @type {Error} */ (err).message);
                 return rpcResult(id, {
-                    content: [{ type: 'text', text: `Tool execution failed: ${err.message}` }],
+                    content: [{ type: 'text', text: `Tool execution failed: ${/** @type {Error} */ (err).message}` }],
                     isError: true,
                 });
             }
@@ -228,7 +234,7 @@ router.post('/', express.json({ limit: '8mb' }), async (req, res) => {
             const out = await handleRpc(message, userId, access);
             if (out) responses.push(out);
         } catch (err) {
-            log.error('[automations-mcp] handler error:', err.message);
+            log.error('[automations-mcp] handler error:', /** @type {Error} */ (err).message);
             // Only a request is answered — not even an error goes back to a notification.
             if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
         }

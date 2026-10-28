@@ -132,7 +132,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
         const perKb = await require('../../stores/kbSources').countsByKb([kb.id]);
         sourceCount = Number((perKb[kb.id] || {}).sourceCount || 0);
     } catch (e) {
-        log.warn('[KB] Source count unavailable for KB detail:', e.message);
+        log.warn('[KB] Source count unavailable for KB detail:', /** @type {Error} */ (e).message);
     }
     res.json({
         ...kb,
@@ -328,7 +328,7 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
             }
         }
     } catch (e) {
-        log.warn('[KB] Search-service chunk cleanup failed:', e.message);
+        log.warn('[KB] Search-service chunk cleanup failed:', /** @type {Error} */ (e).message);
     }
 
     // Delete chunks from local vector store
@@ -336,7 +336,7 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
         const { deleteChunksLocally } = require('../../core/kb/localKBIngest');
         await deleteChunksLocally(kb.tenant_id, kb.id);
     } catch (e) {
-        log.warn('[KB] Local chunk cleanup failed:', e.message);
+        log.warn('[KB] Local chunk cleanup failed:', /** @type {Error} */ (e).message);
     }
 
     await kbStore.deleteKB(kb.id);
@@ -351,12 +351,13 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
      * and a scrub that ran first and then failed to delete would have
      * detached every consumer from a base that is still there.
      */
+    /** @type {Record<string, number> | null} */
     let scrubbed = null;
     try {
         const { scrubReferences } = require('../../core/kb/kbUsage');
         scrubbed = await scrubReferences(kb.id);
     } catch (e) {
-        log.warn('[KB] Reference scrub failed:', e.message);
+        log.warn('[KB] Reference scrub failed:', /** @type {Error} */ (e).message);
     }
 
     /**
@@ -373,7 +374,7 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
     try {
         await require('../../stores/datatableStore').purgeUsageFor('kb', kb.id);
     } catch (e) {
-        log.warn('[KB] datatable usage purge failed:', e.message);
+        log.warn('[KB] datatable usage purge failed:', /** @type {Error} */ (e).message);
     }
     res.json({ success: true, scrubbed });
 });

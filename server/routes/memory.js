@@ -564,7 +564,7 @@ router.delete('/:id', validate({ query: DeleteQuery }), /** @param {import('expr
         try {
             await lifecycle().restorePredecessorOf(req.params.id);
         } catch (err) {
-            log.warn(`[memory] predecessor of ${req.params.id} not restored: ${err.message}`);
+            log.warn(`[memory] predecessor of ${req.params.id} not restored: ${/** @type {Error} */ (err).message}`);
         }
     }
     await memoryStore.deleteMemory(req.params.id);
@@ -707,7 +707,7 @@ If unsure, use "fact".
                 }
             } catch (e) {
                 skipped++;
-                log.warn('[memory/import] insert failed:', e.message);
+                log.warn('[memory/import] insert failed:', /** @type {Error} */ (e).message);
             }
         }
 

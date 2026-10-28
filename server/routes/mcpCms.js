@@ -144,6 +144,7 @@ function buildRuntime() {
  */
 function makeRouter(injected = {}) {
     const router = express.Router();
+    /** @type {{ mcp: object; receiver: object; } | null} */
     let runtime = null;
     const getRuntime = () => {
         if (!runtime) runtime = (injected.runtime || buildRuntime)();
@@ -210,7 +211,7 @@ function makeRouter(injected = {}) {
                 const out = await getRuntime().mcp.handleRpc(message, ctx);
                 if (out) responses.push(out);
             } catch (err) {
-                log.error('[cms-mcp] handler error:', err.message);
+                log.error('[cms-mcp] handler error:', /** @type {Error} */ (err).message);
                 // Only a request is answered — not even an error goes back to a notification.
                 if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
             }

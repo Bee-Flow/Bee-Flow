@@ -28,6 +28,7 @@ const { fallback } = require('../../utils/bestEffort');
  * little text do we fall back to the headless browser path in
  * fetchUrlContent (which runs its own screening again), so a JS-rendered page
  * still works without giving up the guard on the normal path.
+ * @param {string} url
  */
 async function fetchPageForSource(url) {
     const { htmlToMarkdown } = require('../../utils/htmlToMarkdown');
@@ -57,7 +58,7 @@ async function fetchPageForSource(url) {
     } catch (e) {
         // Keep the reason: if the fallback also fails, this is the message worth showing.
         content = '';
-        if (/private\/loopback|metadata endpoint|Only HTTP|Invalid URL/i.test(e.message)) throw e;
+        if (/private\/loopback|metadata endpoint|Only HTTP|Invalid URL/i.test(/** @type {Error} */ (e).message)) throw e;
     }
 
     if (!content || content.trim().length < 20) {
@@ -162,7 +163,7 @@ async function createMeetingTagSource(res, { kb, name, cfg, userId, refreshPatch
         visible = await require('../../stores/transcriptionStore')
             .listByTag(tag, userId, { orgIds: [...asker.orgIds], userGroupIds: asker.userGroups, limit: 1 });
     } catch (e) {
-        log.warn('[KB] meeting tag probe failed:', e.message);
+        log.warn('[KB] meeting tag probe failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'tag_probe_failed', 'Could not check that tag right now.');
     }
     if (visible.length === 0) {
@@ -251,14 +252,15 @@ async function createUploadSource(res, { kb, name, userId, refreshPatch }) {
 async function createWebpageSource(res, next, { kb, name, cfg, userId, refreshPatch }) {
     const url = cfg.url;
     const crawl = cfg.crawl || null;
+    /** @type {{ content: string; title: string; resolvedUrl: string; }} */
     let page;
     try {
         page = await fetchPageForSource(url);
     } catch (e) {
-        if (/Invalid URL|Only HTTP|private\/loopback|metadata endpoint/i.test(e.message)) {
-            return res.status(400).json({ error: e.message, code: 'url_rejected' });
+        if (/Invalid URL|Only HTTP|private\/loopback|metadata endpoint/i.test(/** @type {Error} */ (e).message)) {
+            return res.status(400).json({ error: /** @type {Error} */ (e).message, code: 'url_rejected' });
         }
-        return next(new HttpError(502, 'fetch_failed', e.message));
+        return next(new HttpError(502, 'fetch_failed', /** @type {Error} */ (e).message));
     }
     const source = await kbSourcesStore.create({
         knowledgeBaseId: kb.id, kind: 'webpage',
@@ -326,9 +328,9 @@ async function createSource(req, res, next) {
     } catch (e) {
         if (e instanceof HttpError) return next(e);
         if (e.code === 'invalid_kind' || e.code === 'invalid_refresh_mode' || e.code === 'kb_required') {
-            return res.status(400).json({ error: e.message, code: e.code });
+            return res.status(400).json({ error: /** @type {Error} */ (e).message, code: e.code });
         }
-        log.error('[KB] Create source error:', e.message);
+        log.error('[KB] Create source error:', /** @type {Error} */ (e).message);
         next(e);
     }
 }

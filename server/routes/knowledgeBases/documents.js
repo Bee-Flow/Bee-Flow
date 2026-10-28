@@ -157,7 +157,7 @@ router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage
             await deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
             deleted++;
         } catch (err) {
-            errors.push({ docId, error: err.message });
+            errors.push({ docId, error: /** @type {Error} */ (err).message });
         }
     }
     res.json({ deleted, errors });

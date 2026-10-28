@@ -72,7 +72,7 @@ async function projectSummaryFor(nb, userId) {
         if (!p) return null;
         return { id: p.id, name: p.name, kind: p.kind ?? null, color: p.color || null, icon: p.icon || null, role };
     } catch (err) {
-        log.warn('[Notebooks] project summary unavailable', { notebookId: nb.id, error: err.message });
+        log.warn('[Notebooks] project summary unavailable', { notebookId: nb.id, error: /** @type {Error} */ (err).message });
         return null;
     }
 }
@@ -207,7 +207,7 @@ router.get('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} 
                 : m));
         }
     } catch (e) {
-        log.warn('[Notebooks] token restore on conversation load failed:', e.message);
+        log.warn('[Notebooks] token restore on conversation load failed:', /** @type {Error} */ (e).message);
     }
     res.json({ messages: outMessages, locked });
 });
@@ -244,7 +244,7 @@ async function keepConflictCopy(notebookId, userId, documentContent) {
         });
         return kept.id;
     } catch (err) {
-        log.error('[Notebooks] could not keep the conflicting copy as a version', { notebookId, error: err.message });
+        log.error('[Notebooks] could not keep the conflicting copy as a version', { notebookId, error: /** @type {Error} */ (err).message });
         return null;
     }
 }
@@ -330,7 +330,7 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, /** @p
                 }
             }
         } catch (vErr) {
-            log.warn('[Notebooks] Auto-version failed:', vErr.message);
+            log.warn('[Notebooks] Auto-version failed:', /** @type {Error} */ (vErr).message);
         }
     }
     if (typeof name === 'string' && name !== nb.name) {

@@ -212,7 +212,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
             const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
             if (resumed > 0) log.info(`[GoogleConnector] resumed ${resumed} automation(s) for user ${userId}`);
         } catch (e) {
-            log.warn(`[GoogleConnector] resume-automations failed: ${e.message}`);
+            log.warn(`[GoogleConnector] resume-automations failed: ${/** @type {Error} */ (e).message}`);
         }
 
         // Metadata row in the named-connections layer — without it the
@@ -229,7 +229,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
                 secretMeta: { source: 'connector', email: email || null, scope: tokenData.scope || null },
             });
         } catch (e) {
-            log.warn(`[GoogleConnector] connection metadata row skipped: ${e.message}`);
+            log.warn(`[GoogleConnector] connection metadata row skipped: ${/** @type {Error} */ (e).message}`);
         }
 
         // Hydrate the LIVE session so chat tools work immediately — but never
@@ -244,7 +244,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         log.info(`[GoogleConnector] Connected for user ${userId}`);
         res.send(callbackHTML(email ? `Connected as ${email}!` : 'Google Workspace connected!', true));
     } catch (err) {
-        log.error('[GoogleConnector] Token exchange error:', err.message);
+        log.error('[GoogleConnector] Token exchange error:', /** @type {Error} */ (err).message);
         res.send(callbackHTML('Google connection failed. Please try again.', false));
     }
 });

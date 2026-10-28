@@ -227,7 +227,7 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
         res.json({ activated, status });
     } catch (e) {
         // Verification failures carry a code we want to surface to the UI
-        if (e.code) return res.status(400).json({ error: e.message, code: e.code });
+        if (e.code) return res.status(400).json({ error: /** @type {Error} */ (e).message, code: e.code });
         log.error('[License] activate error:', e);
         next(e);
     }

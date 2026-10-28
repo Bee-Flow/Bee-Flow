@@ -73,6 +73,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
     const maxPagesCapped = requestedMax > MAX_SITEMAP_PAGES;
 
     // Validate URL
+    /** @type {URL} */
     let parsedUrl;
     try {
         parsedUrl = new URL(url);
@@ -125,7 +126,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
                 await processSitemap(nested, allUrls, visitedSitemaps, limit);
             }
         } catch (e) {
-            log.warn(`[KB] Sitemap fetch failed for ${sitemapUrl}: ${e.message}`);
+            log.warn(`[KB] Sitemap fetch failed for ${sitemapUrl}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -252,7 +253,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
             log.info(`[KB] Sitemap page ${i + 1}/${pageUrls.length}: ${pageTitle} (${result.chunks} chunks)`);
         } catch (e) {
             results.errors++;
-            results.details.push({ url: pageUrl, status: 'error', reason: e.message });
+            results.details.push({ url: pageUrl, status: 'error', reason: /** @type {Error} */ (e).message });
         }
     }
 

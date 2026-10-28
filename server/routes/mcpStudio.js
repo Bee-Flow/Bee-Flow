@@ -107,6 +107,7 @@ function rpcError(id, code, message) {
  * every /api/studio-apps route). Checked per call rather than per connection:
  * a long-lived MCP client would otherwise keep building after the licence that
  * permitted it lapsed.
+ * @param {string} userId
  */
 async function assertCapability(userId) {
     const { hasCapability } = require('../core/entitlements/entitlements');
