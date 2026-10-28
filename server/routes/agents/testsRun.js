@@ -22,8 +22,7 @@ const MAX_ANSWER_STREAMED = 8000;
 const MAX_GRADE_TOKENS = 400;
 
 /**
- * @typedef {Object} BuildTestResultRecordArgs
- * @property {number} index
+ * @typedef {{ index: number }} BuildTestResultRecordArgs
  */
 /**
  * Split one graded turn into what is STORED (`item`, written to
@@ -64,10 +63,9 @@ function buildTestResultRecord({ verdict, test, facts, index, turn }) {
 }
 
 /**
- * @typedef {Object} RunOneTestArgs
- * @property {string} userId
- * @property {string | null} [orgId]
- * @property {AbortSignal} signal
+ * @typedef {{ userId: string,
+ *   orgId?: string | null,
+ *   signal: AbortSignal }} RunOneTestArgs
  */
 /**
  * One test: a real turn, then the facts, then — only if the facts left

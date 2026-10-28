@@ -270,11 +270,10 @@ module.exports = { makeUpdateAgentHandler };
 
 /**
  * @typedef {import('./crud').AgentRow} LoadedAgent
- * @typedef {object} UpdateDeps
- * @property {import('./crud').CrudRouter['canModifyAgent']} canModifyAgent
- * @property {(res: import('express').Response) => unknown} sendAgentNotEditable
- * @property {(config: unknown) => string|null} rejectUnsafeConfigKeys
- * @property {import('./crud').CrudRouter['validateAgentConfigReferences']} validateAgentConfigReferences
- * @property {import('./crud').CrudRouter['applyConfigValidation']} applyConfigValidation
- * @property {typeof import('../../auth').resolveUserOrgIds} resolveUserOrgIds
+ * @typedef {{ canModifyAgent: import('./crud').CrudRouter['canModifyAgent'],
+ *   sendAgentNotEditable: (res: import('express').Response) => unknown,
+ *   rejectUnsafeConfigKeys: (config: unknown) => string|null,
+ *   validateAgentConfigReferences: import('./crud').CrudRouter['validateAgentConfigReferences'],
+ *   applyConfigValidation: import('./crud').CrudRouter['applyConfigValidation'],
+ *   resolveUserOrgIds: typeof import('../../auth').resolveUserOrgIds }} UpdateDeps
  */

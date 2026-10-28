@@ -81,10 +81,9 @@ function memberView(conversation, access) {
 }
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getConversationById]        agentStore.getConversationById
- * @param {Function} [deps.resolveConversationAccess]  conversationAccess.resolveConversationAccess
- * @param {Function} [deps.getEffectiveUserId]         utils/routeHelpers.getEffectiveUserId
+ * @param {{ getConversationById?: typeof import('../../stores/agentStore').getConversationById,
+ *   resolveConversationAccess?: typeof import('../../stores/agent/conversationAccess').resolveConversationAccess,
+ *   getEffectiveUserId?: typeof import('../../utils/routeHelpers').getEffectiveUserId }} [deps]
  */
 function makeReadAgentConversation(deps = {}) {
     const getConversationById = (/** @type {Parameters<typeof import('../../stores/agentStore').getConversationById>} */ ...a) => (deps.getConversationById

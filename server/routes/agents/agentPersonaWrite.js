@@ -98,17 +98,13 @@ async function ensureHandoffBinding(agent, automation, { actorId = null, session
  * things it is the source of: the system prompt and a small, additive set of
  * config keys.
  *
- * @param {object} agent   the agent being written (needs `owner_id`)
+ * @param {import('./crud').AgentRow} agent   the agent being written (needs `owner_id`)
  * @param {unknown} rawPersona   whatever the client sent
  * @param {object|undefined} config  the config the SAME request is writing, or
  *   undefined when it is not writing one
- * @param {object} [opts]
- * @param {string} [opts.sentSystemPrompt] the `systemPrompt` field of the SAME
- *   request, when it sent one. Only an UPDATE passes it — a create has no
- *   stored state to compare against.
- * @param {string} [opts.actorId] the person saving; without one a hand-off
- *   automation that is not bound to the agent is dropped instead of linked.
- * @param {object} [opts.session] their session, for the edit-rights checks.
+ * @param {{ sentSystemPrompt?: string, // the `systemPrompt` field of the SAME request, when it sent one. Only an UPDATE passes it — a create has no stored state to compare against.
+ *   actorId?: string, // the person saving; without one a hand-off automation that is not bound to the agent is dropped instead of linked.
+ *   session?: import('express').Request['session'] }} [opts]  session: their session, for the edit-rights checks.
  * @returns {Promise<{persona: object, config: object|undefined, systemPrompt: string|null, warnings: string[]}>}
  *   `systemPrompt` is null for "leave the stored prompt alone" — see
  *   `renderedPromptFor`; `config` comes back untouched when the request did not

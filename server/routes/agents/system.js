@@ -59,12 +59,11 @@ const IdentityBody = bodyOf({
 const DesignerBody = bodyOf({ message: worded('Message is required').min(1, 'Message is required') });
 
 /**
- * @param {Object} opts
- * @param {string}   opts.agentId       - System agent ID
- * @param {string}   opts.tier          - Model tier to use (e.g. 'smart', 'thinking')
- * @param {number}   opts.maxTokens     - Max tokens for the LLM call
- * @param {Function} opts.buildPrompt   - (body) => user message string
- * @param {Function} opts.parseResult   - (content, body) => response JSON
+ * @param {{ agentId: string, // - System agent ID
+ *   tier: string, // - Model tier to use (e.g. 'smart', 'thinking')
+ *   maxTokens: number, // - Max tokens for the LLM call
+ *   buildPrompt: (body: Record<string, string | null | undefined>) => string, // - the user message, from the validated body
+ *   parseResult: (content: string, body: Record<string, string | null | undefined>) => unknown }} opts  parseResult: - the response JSON
  *
  * The per-endpoint body check is a zod schema on the
  * route (`validate({ body: … })`), so a refusal names the field.
