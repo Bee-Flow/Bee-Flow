@@ -245,9 +245,6 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/documents', 10],
     ['src/features/mcp', 33],
     ['src/features/memory', 24],
-    // 34 -> 33: the row body's "Tap to read the full result", with the reauth
-    // note that now names the connector.
-    ['src/features/notifications', 33],
     ['src/features/search', 9],
     ['src/features/security', 30],
     ['src/features/settings', 21],
@@ -267,9 +264,6 @@ const UNCONVERTED = new Map<string, number>([
     // 33 -> 30: the self-help group (its heading and two rows) went through t()
     // when "What changed recently" moved to the native release notes.
     ['src/features/support', 30],
-    // 40 -> 38: the task sheet's actions and toasts went through t() when its
-    // Delete learned to ask first.
-    ['src/features/tasks', 38],
     // 16 -> 13: the template chat's words, when it learned to avoid the keyboard.
     ['src/features/templates', 13],
     ['src/features/voice', 8],

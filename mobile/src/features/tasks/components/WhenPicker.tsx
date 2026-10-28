@@ -17,32 +17,37 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { absoluteTime, pad } from '@/features/automations';
 import { Chip, Icon, IconButton, Text } from '@/shared/ui';
 
 interface Preset {
-    label: string;
+    /** The chip's words travel as data; the component renders them through t(). */
+    word: { i18nKey: string; en: string };
     build: () => Date;
 }
 
 const PRESETS: Preset[] = [
-    { label: 'In an hour', build: () => addMinutes(new Date(), 60) },
-    { label: 'This evening', build: () => atTime(new Date(), 18, 0, true) },
-    { label: 'Tomorrow 09:00', build: () => atTime(addDays(new Date(), 1), 9, 0, false) },
-    { label: 'Next week', build: () => atTime(addDays(new Date(), 7), 9, 0, false) },
+    { word: { i18nKey: 'cowork.when.preset_in_1h', en: 'In an hour' }, build: () => addMinutes(new Date(), 60) },
+    { word: { i18nKey: 'mobile.tasks.when_evening', en: 'This evening' }, build: () => atTime(new Date(), 18, 0, true) },
+    { word: { i18nKey: 'mobile.tasks.when_tomorrow', en: 'Tomorrow 09:00' }, build: () => atTime(addDays(new Date(), 1), 9, 0, false) },
+    { word: { i18nKey: 'mobile.tasks.when_next_week', en: 'Next week' }, build: () => atTime(addDays(new Date(), 7), 9, 0, false) },
 ];
 
 export function WhenPicker({
     value,
     onChange,
-    label = 'When',
+    label,
 }: {
     value: Date;
     onChange: (next: Date) => void;
+    /** Defaults to "When". */
     label?: string;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
+    const heading = label ?? t('automations.notify.when', 'When');
     const iso = value.toISOString();
     const inPast = isPast(value);
 
@@ -51,7 +56,7 @@ export function WhenPicker({
     return (
         <View style={{ gap: theme.spacing.md }}>
             <Text variant="caption" tone="secondary" weight="medium">
-                {label}
+                {heading}
             </Text>
 
             <ScrollView
@@ -60,7 +65,7 @@ export function WhenPicker({
                 contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.lg }}
             >
                 {PRESETS.map((preset) => (
-                    <Chip key={preset.label} label={preset.label} onPress={() => onChange(preset.build())} />
+                    <Chip key={preset.word.i18nKey} label={t(preset.word.i18nKey, preset.word.en)} onPress={() => onChange(preset.build())} />
                 ))}
             </ScrollView>
 
@@ -76,7 +81,7 @@ export function WhenPicker({
                 <Text variant="subheading">{absoluteTime(iso)}</Text>
                 <Text variant="caption" tone={inPast ? 'warning' : 'tertiary'}>
                     {inPast
-                        ? 'That moment has passed — it will fire on the next scheduler tick.'
+                        ? t('mobile.tasks.when_passed', 'That moment has passed — it will fire on the next scheduler tick.')
                         : value.toLocaleDateString(undefined, {
                               weekday: 'long',
                               day: 'numeric',
@@ -87,19 +92,19 @@ export function WhenPicker({
 
             <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
                 <Adjuster
-                    label="Day"
+                    label={t('mobile.tasks.when_day', 'Day')}
                     value={value.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                     onDown={() => shift((d) => addDays(d, -1))}
                     onUp={() => shift((d) => addDays(d, 1))}
                 />
                 <Adjuster
-                    label="Hour"
+                    label={t('mobile.tasks.when_hour', 'Hour')}
                     value={pad(value.getHours())}
                     onDown={() => shift((d) => addMinutes(d, -60))}
                     onUp={() => shift((d) => addMinutes(d, 60))}
                 />
                 <Adjuster
-                    label="Minute"
+                    label={t('mobile.tasks.when_minute', 'Minute')}
                     value={pad(value.getMinutes())}
                     onDown={() => shift((d) => addMinutes(d, -5))}
                     onUp={() => shift((d) => addMinutes(d, 5))}
@@ -120,6 +125,7 @@ function Adjuster({
     onDown: () => void;
     onUp: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     return (
         <View
@@ -137,7 +143,7 @@ function Adjuster({
         >
             <IconButton
                 icon={<Icon name="ChevronUp" size={18} color={theme.colors.textPrimary} />}
-                accessibilityLabel={`Later ${label.toLowerCase()}`}
+                accessibilityLabel={t('mobile.tasks.when_later', 'Later {part}', { part: label.toLowerCase() })}
                 onPress={onUp}
             />
             <Text variant="subheading">{value}</Text>
@@ -146,7 +152,7 @@ function Adjuster({
             </Text>
             <IconButton
                 icon={<Icon name="ChevronDown" size={18} color={theme.colors.textPrimary} />}
-                accessibilityLabel={`Earlier ${label.toLowerCase()}`}
+                accessibilityLabel={t('mobile.tasks.when_earlier', 'Earlier {part}', { part: label.toLowerCase() })}
                 onPress={onDown}
             />
         </View>

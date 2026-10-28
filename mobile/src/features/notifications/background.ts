@@ -42,6 +42,9 @@ import { announcementBody, moreWaiting } from './model/format';
 import { loadNotificationPrefs, type NotificationPrefs } from './model/prefs';
 import type { AppNotification } from './model/types';
 
+/** The product's name, not copy: it is the same in every language. */
+const PRODUCT_NAME = 'Bee Flow';
+
 export const NOTIFICATION_POLL_TASK = 'beeflow.notifications.poll';
 
 /** Ids already surfaced on this device, so a poll never repeats itself. */
@@ -292,7 +295,7 @@ export async function pollForNewNotifications(): Promise<PollOutcome> {
         const rest = announceable.length - individually.length;
         await Notifications.scheduleNotificationAsync({
             content: {
-                title: 'Bee Flow',
+                title: PRODUCT_NAME,
                 body: moreWaiting(rest, translate),
                 data: { notificationId: null, link: null },
             },

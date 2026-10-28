@@ -19,6 +19,7 @@ import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, type TextInput } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Chip, Sheet, Text, TextField, useToast } from '@/shared/ui';
 
@@ -26,17 +27,20 @@ import { WhenPicker } from './WhenPicker';
 import { useCreateTask } from '../hooks/mutations';
 import { REPEAT_INTERVALS, type RepeatInterval } from '../model/types';
 
-const REPEAT_LABELS: Record<RepeatInterval | 'once', string> = {
-    once: 'Once',
-    hourly: 'Hourly',
-    daily: 'Daily',
-    weekdays: 'Weekdays',
-    weekly: 'Weekly',
-    biweekly: 'Every 2 weeks',
-    monthly: 'Monthly',
-    quarterly: 'Every 3 months',
-    yearly: 'Yearly',
+/** The labels travel as data; the chips render them through t(). */
+const REPEAT_LABELS: Record<RepeatInterval | 'once', { i18nKey: string; en: string }> = {
+    once: { i18nKey: 'cowork.repeat.once', en: 'Once' },
+    hourly: { i18nKey: 'automations.cadence_hourly', en: 'Hourly' },
+    daily: { i18nKey: 'automations.cadence_daily', en: 'Daily' },
+    weekdays: { i18nKey: 'automations.repeating.cadenceWeekdays', en: 'Weekdays' },
+    weekly: { i18nKey: 'automations.cadence_weekly', en: 'Weekly' },
+    biweekly: { i18nKey: 'cowork.repeat.biweekly', en: 'Every 2 weeks' },
+    monthly: { i18nKey: 'automations.cadence_monthly', en: 'Monthly' },
+    quarterly: { i18nKey: 'mobile.tasks.repeat_quarterly', en: 'Every 3 months' },
+    yearly: { i18nKey: 'mobile.tasks.repeat_yearly', en: 'Yearly' },
 };
+
+const repeatLabel = (t: TranslateFn, key: RepeatInterval | 'once') => t(REPEAT_LABELS[key].i18nKey, REPEAT_LABELS[key].en);
 
 const makeStyles = (theme: Theme) =>
     StyleSheet.create({
@@ -45,6 +49,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
 
@@ -68,7 +73,7 @@ export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () 
 
     const mutation = useCreateTask({
         onSuccess: () => {
-            toast(startNow ? 'Task created and started' : 'Task created', 'success');
+            toast(startNow ? t('mobile.tasks.created_started', 'Task created and started') : t('mobile.tasks.created', 'Task created'), 'success');
             reset();
             onClose();
         },
@@ -91,11 +96,11 @@ export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () 
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="New task"
-            subtitle="A prompt Bee Flow runs for you on a schedule. Results arrive in notifications."
+            title={t('mobile.tasks.new_task', 'New task')}
+            subtitle={t('mobile.tasks.sheet_subtitle', 'A prompt Bee Flow runs for you on a schedule. Results arrive in notifications.')}
             footer={
                 <Button
-                    label="Create task"
+                    label={t('mobile.tasks.create', 'Create task')}
                     onPress={submit}
                     disabled={!canSubmit}
                     loading={mutation.isPending}
@@ -109,10 +114,10 @@ export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () 
             ) : null}
 
             <TextField
-                label="Name"
+                label={t('common.name', 'Name')}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="Monday news digest"
+                placeholder={t('mobile.tasks.name_placeholder', 'Monday news digest')}
                 autoCapitalize="sentences"
                 // Next moves on to the prompt, keeping the keyboard up. The
                 // prompt is multi-line, so its return key is a new line.
@@ -123,32 +128,32 @@ export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () 
 
             <TextField
                 ref={promptField}
-                label="What should it do?"
+                label={t('mobile.tasks.prompt_label', 'What should it do?')}
                 value={prompt}
                 onChangeText={setPrompt}
-                placeholder="Summarise this week's industry news in five bullets."
+                placeholder={t('mobile.tasks.prompt_placeholder', "Summarise this week's industry news in five bullets.")}
                 multiline
                 maxLines={6}
                 autoCapitalize="sentences"
-                hint="Written as if you were asking in chat."
+                hint={t('mobile.tasks.prompt_hint', 'Written as if you were asking in chat.')}
             />
 
-            <WhenPicker value={when} onChange={setWhen} label="First run" />
+            <WhenPicker value={when} onChange={setWhen} label={t('mobile.tasks.first_run', 'First run')} />
 
             <View style={styles.group}>
                 <Text variant="caption" tone="secondary" weight="medium">
-                    Repeat
+                    {t('automations.repeat', 'Repeat')}
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                     <Chip
-                        label={REPEAT_LABELS.once}
+                        label={repeatLabel(t, 'once')}
                         selected={repeat === null}
                         onPress={() => setRepeat(null)}
                     />
                     {REPEAT_INTERVALS.map((interval) => (
                         <Chip
                             key={interval}
-                            label={REPEAT_LABELS[interval]}
+                            label={repeatLabel(t, interval)}
                             selected={repeat === interval}
                             onPress={() => setRepeat(interval)}
                         />
@@ -157,7 +162,7 @@ export function TaskSheet({ visible, onClose }: { visible: boolean; onClose: () 
             </View>
 
             <Chip
-                label={startNow ? 'Will also run right away' : 'Also run it right away'}
+                label={startNow ? t('mobile.tasks.also_now_on', 'Will also run right away') : t('mobile.tasks.also_now', 'Also run it right away')}
                 selected={startNow}
                 onPress={() => setStartNow((v) => !v)}
             />

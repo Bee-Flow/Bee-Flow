@@ -12,6 +12,7 @@ import { describeError } from '@/core/api/errors';
 import { timeAgo, useTranslation, type TranslateFn } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { absoluteTime, previewValue } from '@/features/automations';
+import { nOf } from '@/shared/lib/plural';
 import { useConfirm } from '@/shared/patterns';
 import { Button, Sheet, Text, useToast } from '@/shared/ui';
 
@@ -26,7 +27,9 @@ const makeStyles = (theme: Theme) =>
     });
 
 function lastRunLine(task: AiTask, t: TranslateFn): string {
-    const total = task.runCount ? ` · ${task.runCount} runs in total` : '';
+    const total = task.runCount
+        ? ` · ${nOf(t, 'mobile.tasks.runs_total', task.runCount, ['{count} run in total', '{count} runs in total'])}`
+        : '';
     return `${t('mobile.tasks.last_run', 'Last run {when}', { when: timeAgo(task.lastRunAt, { suffix: true }) })}${total}`;
 }
 
@@ -38,7 +41,7 @@ function TaskDetails({ task }: { task: AiTask }) {
         <>
             <View style={styles.block}>
                 <Text variant="label" tone="tertiary">
-                    IT ASKS
+                    {t('mobile.tasks.section_asks', 'IT ASKS')}
                 </Text>
                 <Text variant="body" selectable>
                     {task.prompt}
@@ -47,10 +50,12 @@ function TaskDetails({ task }: { task: AiTask }) {
 
             <View style={styles.block}>
                 <Text variant="label" tone="tertiary">
-                    SCHEDULE
+                    {t('mobile.tasks.section_schedule', 'SCHEDULE')}
                 </Text>
                 <Text variant="body">
-                    {task.repeatInterval ? `Repeats ${task.repeatInterval}` : 'Runs once'}
+                    {task.repeatInterval
+                        ? t('mobile.tasks.repeats', 'Repeats {interval}', { interval: task.repeatInterval })
+                        : t('automations.runs_once', 'Runs once')}
                     {task.timezone ? ` · ${task.timezone}` : ''}
                 </Text>
                 {task.lastRunAt ? (
@@ -63,7 +68,7 @@ function TaskDetails({ task }: { task: AiTask }) {
             {lastResult ? (
                 <View style={styles.block}>
                     <Text variant="label" tone="tertiary">
-                        LAST ANSWER
+                        {t('mobile.tasks.section_answer', 'LAST ANSWER')}
                     </Text>
                     <View style={styles.answer}>
                         <Text variant="body" tone="secondary" selectable>

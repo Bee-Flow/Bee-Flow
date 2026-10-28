@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useUserRefresh } from '@/shared/patterns';
 import { ErrorState, ListSkeleton, Screen, ScreenHeader, useToast } from '@/shared/ui';
 
@@ -31,14 +32,15 @@ import type { AiTask, AiTaskList, Reminder } from '../model/types';
 
 /** The one-tap writes on the lists, toasting the way this screen always has. */
 function useListActions() {
+    const t = useTranslation();
     const { toast } = useToast();
     const onError = (error: Error) => toast(describeError(error).message, 'error');
-    const complete = useCompleteReminder({ onSuccess: () => toast('Done', 'success'), onError });
+    const complete = useCompleteReminder({ onSuccess: () => toast(t('automations.sharing.done', 'Done'), 'success'), onError });
     const runNow = useRunTaskNow({
         // The answer does NOT come back on this response — it is written to
         // notifications when the run finishes. Saying so is the difference
         // between a confirmation and a lie.
-        onSuccess: () => toast('Started — the result lands in your notifications'),
+        onSuccess: () => toast(t('mobile.tasks.started', 'Started — the result lands in your notifications')),
         onError,
     });
     return { complete, runNow };
@@ -92,6 +94,7 @@ function TasksBody({
 }
 
 export function TasksScreen() {
+    const t = useTranslation();
     const [tab, setTab] = useState<TasksTab>('tasks');
     const [taskSheet, setTaskSheet] = useState(false);
     const [reminderSheet, setReminderSheet] = useState(false);
@@ -105,7 +108,7 @@ export function TasksScreen() {
 
     return (
         <Screen edges={['top', 'bottom']}>
-            <ScreenHeader title="Tasks and reminders" />
+            <ScreenHeader title={t('mobile.tasks.title', 'Tasks and reminders')} />
 
             <TasksTabs
                 tab={tab}
@@ -128,7 +131,7 @@ export function TasksScreen() {
             />
 
             <NewItemButton
-                label={tab === 'tasks' ? 'New task' : 'New reminder'}
+                label={tab === 'tasks' ? t('mobile.tasks.new_task', 'New task') : t('mobile.tasks.new_reminder', 'New reminder')}
                 disabled={tab === 'tasks' && atLimit}
                 onPress={() => (tab === 'tasks' ? setTaskSheet(true) : setReminderSheet(true))}
             />

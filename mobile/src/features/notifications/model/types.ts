@@ -8,6 +8,7 @@
  * gets to route on is `category`, `task_id` and `link`.
  */
 
+import { translate } from '@/core/i18n';
 import type { IconName } from '@/shared/ui';
 
 /**
@@ -59,7 +60,10 @@ export interface NotificationListResponse {
     notifications: AppNotification[];
 }
 
-/** How a category presents itself. Ported from agent-hub's NotificationCenter. */
+/**
+ * How a category presents itself. Ported from agent-hub's NotificationCenter.
+ * The label is a getter below, so it is looked up when it is shown.
+ */
 export interface CategoryPresentation {
     label: string;
     /** The web's glyph for the category (NotificationCenter's CATEGORY_CONFIG). */
@@ -68,16 +72,16 @@ export interface CategoryPresentation {
 }
 
 export const CATEGORY_PRESENTATION: Record<string, CategoryPresentation> = {
-    info: { label: 'Info', icon: 'Info', tone: 'accent' },
-    heads_up: { label: 'Heads up', icon: 'TriangleAlert', tone: 'warning' },
-    urgent: { label: 'Urgent', icon: 'CircleAlert', tone: 'error' },
-    ai_task: { label: 'Automation', icon: 'Bot', tone: 'neutral' },
+    info: { get label() { return translate('automation_editor.return_to_app.tone_info', 'Info'); }, icon: 'Info', tone: 'accent' },
+    heads_up: { get label() { return translate('mobile.notifications.cat_heads_up_label', 'Heads up'); }, icon: 'TriangleAlert', tone: 'warning' },
+    urgent: { get label() { return translate('automations.notify.urgency_urgent', 'Urgent'); }, icon: 'CircleAlert', tone: 'error' },
+    ai_task: { get label() { return translate('automations.versions.automationRow', 'Automation'); }, icon: 'Bot', tone: 'neutral' },
     // 'cowork' is its own category rather than reusing 'ai_task' because the
     // client labels ai_task "Automation" — a different feature, in a different
     // part of the app — and a cowork result announced itself under someone
     // else's name. Keep the two apart.
-    cowork: { label: 'Cowork', icon: 'Handshake', tone: 'neutral' },
-    learning: { label: 'Learning', icon: 'GraduationCap', tone: 'warning' },
+    cowork: { get label() { return translate('sidebar.cowork', 'Cowork'); }, icon: 'Handshake', tone: 'neutral' },
+    learning: { get label() { return translate('mobile.notifications.cat_learning_label', 'Learning'); }, icon: 'GraduationCap', tone: 'warning' },
 };
 
 export function presentationFor(category: string | null | undefined): CategoryPresentation {
