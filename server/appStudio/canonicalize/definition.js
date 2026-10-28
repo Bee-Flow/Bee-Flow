@@ -160,7 +160,7 @@ function canonicalizeAppDefinition(input) {
     out.roles = cleanRoles(input.roles, push);
 
     // variables (v2.2 — EMIT-WHEN-PRESENT, like design/nav). An app that
-    // declares none must round-trip to exactly the bytes it had before this
+    // declares none must round-trip to exactly the bytes it had before the key
     // key existed, so an empty result omits the key entirely.
     const variables = cleanVariables(input.variables, push);
     if (variables.length) out.variables = variables;

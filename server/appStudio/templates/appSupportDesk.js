@@ -458,12 +458,11 @@ module.exports = {
                                 style: { span: 9, gap: 3, padding: 3, height: 'fill' },
                                 children: [
                                     {
-                                        // The SUBJECT is the page title. It used to be
-                                        // a labelled field inside a record_detail —
-                                        // which is precisely why a conversation view
-                                        // read like a form: the most important string
-                                        // on screen wore a "Subject:" label and the
-                                        // heading said "Conversation".
+                                        // The SUBJECT is the page title, not a labelled
+                                        // field inside a record_detail: there the most
+                                        // important string on screen wears a "Subject:"
+                                        // label, the heading says "Conversation", and a
+                                        // conversation view reads like a form.
                                         id: 'cmp_sdhead', type: 'page_header',
                                         props: {
                                             title: 'Conversation', subtitle: null, icon: 'Mail', showDivider: true,
@@ -1190,7 +1189,7 @@ module.exports = {
                         },
                         output: 'text',
                         // Bare tier name: the tier map is keyed that way, and a
-                        // `tier:`-prefixed value used to miss and quietly demote
+                        // `tier:`-prefixed value would miss and quietly demote
                         // this to the standard model.
                         modelTier: 'thinking',
                         knowledgeBaseIds: [],

@@ -98,7 +98,7 @@ async function scanSheets(app, files, pairs, { mailbox }) {
         // Naming the parts beats being big; among sheets that name the same
         // parts the WIDER table wins, because that is the one that still has a
         // thickness column. With nothing read at all every rank collapses to
-        // the size rule this used to be.
+        // the plain size rule.
         const rank = (f) => [f.scan ? f.scan.hits : 0, f.scan ? f.scan.columns : 0, sizeOfDescriptor(f)];
         const better = (a, b) => {
             const ra = rank(a);

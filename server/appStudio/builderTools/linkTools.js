@@ -5,7 +5,7 @@
  * app_link_datatable is how the model puts a table that already exists — a
  * Nextcloud Tables mirror the owner linked in Studio > Datatables, or any
  * organisation table — into the app's data model: as a table whose rows stay
- * where they are and are read live. Before this the only way in was a
+ * where they are and are read live. The only other way in is a
  * hand-written PUT /schema; the model could neither name such a table nor
  * see that one was linked, so a small model briefed with "the table Facturen"
  * had nowhere to go but app_upsert_table and app_seed_records — fictional

@@ -361,7 +361,7 @@ async function runAutomationStep(app, step, ctx) {
     // A pause on an approval step is NOT a failure — it is the automation working
     // as designed. Hand the app its durable handle (approvalId) so a sequence
     // can store it, show it, or branch on `result.status` with a condition
-    // step; before this the app got an abort and a danger toast.
+    // step, instead of an abort and a danger toast.
     if (run && run.status === 'awaiting_approval') {
         let approvalId = null;
         if (run.awaitingStepId) {

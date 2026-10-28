@@ -75,7 +75,7 @@ function buildServerScope(ctx) {
         item: ctx.item,
         index: ctx.index,
         // The trigger's value (kanban drop target, onChange's new value) — a
-        // declared root that used to be hardcoded undefined, so `expr: 'value'`
+        // declared root, not hardcoded undefined, so `expr: 'value'`
         // silently read nothing in every server step. Client-supplied at the
         // same trust level as `item`.
         value: ctx.value,

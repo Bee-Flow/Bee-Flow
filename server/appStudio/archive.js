@@ -2,8 +2,7 @@
 /**
  * Opening a customer's archive — what kind is it, and what is inside.
  *
- * The intake used to know exactly one container: a zip, opened inline. That is
- * the shape most orders arrive in and it is not the only one. A forwarded mail
+ * A zip is the shape most orders arrive in and it is not the only one. A forwarded mail
  * carries a zip inside a zip; a Windows user who "zipped the project folder"
  * sends a .7z because that is what their context menu offered; a Linux customer
  * sends a .tar.gz; and somebody eventually sends an archive with a password on

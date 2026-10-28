@@ -124,7 +124,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
     // widens" is load-bearing on THIS side, because what comes back is written
     // to the row, and it has two doors. A value the clamp cannot read (a bare
     // string where a list of actions belongs) grants nothing and says so in
-    // `warnings`, where it used to become `'*'` — the whole app, persisted, on
+    // `warnings`, never as `'*'` — the whole app, persisted, on
     // a client's typo. An app past the size bound does the same: it is kept as
     // `{actions: []}` rather than DROPPED, because a missing entry reads as
     // "every action of this app" to every reader in toolPolicy, so truncating
@@ -134,7 +134,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
     // and so a legacy editor that rebuilds `config` from a fixed field list
     // cannot silently resurrect a value the runtime would refuse.
     //
-    // Skipped entirely when there is no map: an agent from before this feature
+    // Skipped entirely when there is no map: an agent that predates the map
     // must not acquire one just by being saved.
     if (config.tools && typeof config.tools === 'object') {
         try {

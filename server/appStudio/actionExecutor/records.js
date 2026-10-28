@@ -12,15 +12,15 @@
  * datatable outside the app: then it goes to the datatable path at the bottom of this file,
  * `datatableDbStore` on the scope key and the datatable quota.
  *
- * THE SPLIT SITS ON THE NODE ITSELF, not only in the three step handlers. That used to be
- * the case here too, and it made the node the second write path that the header below
- * precisely excludes: `writeRecord` and `writeRecordBatch` wrote a linked table
- * unconditionally to the app's own storage. Everything that did NOT come in via
- * create_record/update_record/delete_record went through there: the record API
+ * THE SPLIT SITS ON THE NODE ITSELF, not only in the three step handlers. Were it only
+ * there, the node would be the second write path that the header below
+ * precisely excludes: `writeRecord` and `writeRecordBatch` would write a linked table
+ * unconditionally to the app's own storage. Everything that does NOT come in via
+ * create_record/update_record/delete_record goes through there: the record API
  * (POST/PATCH/DELETE /:id/data/tables/:tableId/records), ai_extract writeTo, file_intake,
  * dataset_query, the send_email log row, the approval hook, connectorSync and
- * templateInstall. With three consequences at once: a `mode:'read'` link was writable, the
- * viewer's grade was never looked up, and the row landed in a shadow table that the READ path
+ * templateInstall. With three consequences at once: a `mode:'read'` link would be writable, the
+ * viewer's grade would never be looked up, and the row would land in a shadow table that the READ path
  * (dataReadRunner.readPlan → the datatable) never queries. `success:true`, and the row
  * afterwards visible nowhere.
  *

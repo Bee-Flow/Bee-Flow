@@ -3,8 +3,8 @@
  * nextcloudMenuSync.js — tell the org's Nextcloud connector "the app menu
  * changed, sync now".
  *
- * An owner who ticks "Show in the Nextcloud app menu" used to wait for the
- * connector's poll (every few minutes) before the icon existed, with nothing
+ * Without this, an owner who ticks "Show in the Nextcloud app menu" waits for the
+ * connector's poll (every few minutes) before the icon exists, with nothing
  * telling them whether it had worked. This module closes that gap: it POSTs
  * the connector's `/hooks/studio-menus`, the connector reconciles against
  * AppAPI right then, and the answer says whether the OCS rows now exist —

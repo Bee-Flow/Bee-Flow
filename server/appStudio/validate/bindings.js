@@ -26,7 +26,7 @@ const {
 // (shared/expr/path.mjs): `items.0.name` and `items[0].name` alike,
 // `body["@odata.nextLink"]`, `fields["Story Points"]`, `headers.Content-Type`,
 // `rows[*].title`, `headers[name="Subject"].value`. A dotted-identifier regex
-// here used to refuse what the live preview had just resolved (a 422 on save),
+// here would refuse what the live preview had just resolved (a 422 on save),
 // and left keys like `@odata.nextLink` unbindable.
 /**
  * @param {string} at

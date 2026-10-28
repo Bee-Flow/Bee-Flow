@@ -564,9 +564,9 @@ module.exports = {
                     // final-check findings all hang off a conversation by
                     // thread_key (text), which no child mode can follow — so
                     // each is declared as a dependent that ages out on its own
-                    // date column. This closes what used to be a KNOWN GAP:
-                    // planRetention now purges these rows on the same 365-day
-                    // promise instead of leaving them behind as orphans.
+                    // date column. planRetention purges these rows on the
+                    // same 365-day promise instead of leaving them behind as
+                    // orphans.
                     dependents: [
                         { tableId: 'tbl_qiline', retentionField: 'toegevoegd_op' },
                         { tableId: 'tbl_qiact', retentionField: 'at' },

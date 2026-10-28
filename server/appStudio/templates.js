@@ -14,7 +14,7 @@
  *   seed      — { [tableId]: Row[] } demo rows (≤50/table). A Row is a
  *               { fieldKey: value } map; a `$id` key is a LOCAL alias (never a
  *               column) and a relation value of { $ref: '<alias>' } points at a
- *               previously-seeded row in the referenced table. templateInstall
+ *               already-seeded row in the referenced table. templateInstall
  *               seeds PARENT tables first and rewrites $ref → the parent's real
  *               rec_ id. Every row is written through actionExecutor.writeRecord
  *               (RLS + quotas asserted; created_by = the owner).
@@ -96,7 +96,7 @@ const TEMPLATES = [
     // ------------------------------------------------------------------
     // 14-20. The COMPLIANCE set.
     //
-    // Every template before this one is a business app: forms, tickets, a CRM,
+    // Every template above this one is a business app: forms, tickets, a CRM,
     // a board. All of them are perfectly good, and all of them are things you
     // could also build in a US SaaS. None of them says why this product exists.
     //

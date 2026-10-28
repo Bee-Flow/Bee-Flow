@@ -160,16 +160,15 @@ async function applyApplyTemplate(draftWrap, args) {
     }
 
     /*
-     * THE DEFINITION, WHICH USED TO BE LEFT BEHIND.
+     * THE DEFINITION MUST COME ALONG WITH THE DATA.
      *
-     * This tool installed only the DATA side and then re-read the app's
-     * definition from the store — which, on the fresh draft it insists on, is
-     * still one empty screen. So applying a 7-screen template over MCP produced
-     * an app with all its tables, all its rows, its roles and its connector, and
-     * nothing to look at. The docstring above has always said "deep-clones the
-     * definition"; only the REST create-from-template path actually did it,
-     * which is why the product UI never showed the hole.
-     *
+     * Installing only the DATA side and then re-reading the app's
+     * definition from the store would find, on the fresh draft this tool insists
+     * on, still one empty screen. Applying a 7-screen template over MCP would
+     * produce an app with all its tables, all its rows, its roles and its
+     * connector, and nothing to look at. The docstring above says "deep-clones
+     * the definition"; the REST create-from-template path does exactly that,
+     * which is why the product UI never shows the hole.
      * Same three steps as routes/studioApps.js: deep-clone (the built-in
      * TEMPLATES constant is shared and must never be mutated), keep the name the
      * app already has, canonicalize.

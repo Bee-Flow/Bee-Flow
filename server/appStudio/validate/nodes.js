@@ -372,7 +372,7 @@ function validateAdvancedSizing(style, path, ctx, {
     // between that cell and the children: a pane's is `h-full` always, a card's
     // and a container's only when they are filling. So a card at `height:'md'`
     // is a real 200px box whose children still have nothing to measure against
-    // — which is the case this used to accept and the browser used to collapse.
+    // — and the browser collapses them.
     //
     // Rejected rather than shipped silent, and each message names the move that
     // fixes it, because which move that is depends on WHY the parent is no good.
@@ -523,7 +523,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
 
     // Per-row actions (data_grid rowActions / repeater itemActions) are UI
     // wiring exactly like events — the runtime runs their actionId on click and
-    // collectReferencedActions counts them as reachability. A typo here used to
+    // validate clean and render a button that silently does nothing (and feed
     // validate clean and render a button that silently did nothing (and fed
     // garbage into the reached-set). Empty string stays legal: it is the
     // inspector's deliberate "not wired yet" state, guarded at runtime.
@@ -587,7 +587,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     // role "submit" only excuses a button that is actually INSIDE a form: the
     // runtime gives it type="submit" and no onClick, so one placed in a page
     // header (next to the form, not in it) has no form to submit and is exactly
-    // as dead as the case above — it just used to be exempt from being told so.
+    // as dead as the case above — and is flagged the same way.
     //
     // This is the one app-validator record that reaches the shared "needs
     // attention" list (core/findings/finding.js), so it carries the two Finding

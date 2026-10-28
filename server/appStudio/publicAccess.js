@@ -142,7 +142,7 @@ function canonLookOverride(raw, SPEC, path, push, isValid, skip = []) {
  * homeScreenId and the nav tree.
  *
  * Returns null when the block is absent or unusable, so the key stays absent
- * and an app that never opted in canonicalizes byte-identically to before this
+ * and an app that never opted in canonicalizes byte-identically to a definition from before the
  * feature existed.
  * @param {(arg0: string, path: string, arg2: string) => void} push
  */

@@ -577,7 +577,7 @@ function validateAppDefinition(def, opts = {}) {
     // set while walking to decide whether a `vars.<name>` read is a typo.
     const varWrites = collectVariableWrites(def);
     // The check stays OFF for an app that declares nothing, so no existing
-    // app gains a warning it did not have before this feature.
+    // app gains a warning it did not have before the check existed.
     const knownVars = declaredVars.size
         ? new Set([...declaredVars.keys(), ...varWrites.names, ...RESERVED_VARIABLE_NAMES])
         : null;
