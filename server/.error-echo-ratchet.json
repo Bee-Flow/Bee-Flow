@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of responses that echo an error object's own message server may still carry. Lower it with `node scripts/count-ratchet.mjs error-echo server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-24",
-  "count": 2
+  "_generated": "2026-10-28",
+  "count": 0
 }
