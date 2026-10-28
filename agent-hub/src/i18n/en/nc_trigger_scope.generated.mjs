@@ -8,5 +8,5 @@
 export default {
     "nc_trigger_scope.label": "Colleagues",
     "nc_trigger_scope.include_colleagues": "Also react to events of colleagues",
-    "nc_trigger_scope.hint": "Off: only what you do yourself starts this automation. On: a colleague's message, card, row, form submission or file change starts it too, but only when it is about a room, board, table, form or file you can see in Nextcloud yourself.",
+    "nc_trigger_scope.hint": "Off: only what you do yourself starts this automation. On: a colleague's message, card, row, form submission, file change or calendar event starts it too, but only when it is about a room, board, table, form, file or calendar you can see in Nextcloud yourself.",
 };

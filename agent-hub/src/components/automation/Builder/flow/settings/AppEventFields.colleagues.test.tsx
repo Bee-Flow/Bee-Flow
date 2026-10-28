@@ -15,7 +15,7 @@ const catalog = {
             id: 'nextcloud', label: 'Nextcloud', defaultEvent: 'talk.message.received',
             events: [
                 { id: 'talk.message.received', label: 'Talk message received', deliverability: 'ok', colleagues: true },
-                { id: 'calendar.event.created', label: 'Calendar event created', deliverability: 'ok' },
+                { id: 'file.tagged', label: 'File tagged', deliverability: 'ok' },
             ],
         }],
     }],
@@ -51,7 +51,7 @@ describe('AppEventFields: colleagues switch', () => {
     });
 
     it('is absent where the event stays with the person who caused it', () => {
-        setup('calendar.event.created');
+        setup('file.tagged');
         expect(screen.queryByRole('checkbox', { name: /Also react to events of colleagues/i })).toBeNull();
     });
 });

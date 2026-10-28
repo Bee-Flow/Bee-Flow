@@ -100,7 +100,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     },
     'nextcloud.calendar.event.created': {
         group: 'nc-cal',
-        filters: ['calendarId'],
+        filters: ['calendarId', 'includeColleagues (true = also others\' changes in calendars the owner can see)'],
         fields: ['uid', 'calendarUri'],
         // calendarUri: automationEventsWebhook.js normalisePayload sets it on every calendar.* envelope.
         extraFields: ['calendarUri'],

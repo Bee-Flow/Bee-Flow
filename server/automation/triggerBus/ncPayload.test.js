@@ -70,6 +70,13 @@ test('old keys survive as they were: the poller keeps activityId / objectName / 
     assert.strictEqual(renamed.sourceId, 437);
 });
 
+test('kind: what Nextcloud said (connector 1.6.6+, #407) wins over the guess', () => {
+    assert.strictEqual(normaliseFilePayload({ ...WEBHOOK_FILE, path: '/Projects/README', name: 'README', extension: null, nodeType: 'file' }).kind, 'file');
+    assert.strictEqual(normaliseFilePayload({ ...WEBHOOK_FILE, path: '/Projects/v1.2', name: 'v1.2', extension: '2', nodeType: 'folder' }).kind, 'folder');
+    assert.strictEqual(normaliseFilePayload({ ...WEBHOOK_FILE, path: '/Projects/README', name: 'README', extension: null, nodeType: null }).kind, 'folder', 'unknown: the guess');
+    assert.strictEqual(normaliseFilePayload({ ...WEBHOOK_FILE, nodeType: 'symlink' }).kind, 'file', 'only file or folder is taken');
+});
+
 test('kind follows one rule for both producers (the webhook used to call everything a file)', () => {
     assert.strictEqual(normaliseFilePayload({ ...WEBHOOK_FILE, path: '/Invoices', name: 'Invoices', extension: null, kind: 'file' }).kind, 'folder');
     assert.strictEqual(_ncNormaliseActivity({ id: 1, type: 'file_created', objectName: '/Invoices' }, {}).kind, 'folder');

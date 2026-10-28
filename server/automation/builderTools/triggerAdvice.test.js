@@ -39,10 +39,10 @@ test('calendar.event.upcoming: an out-of-range leadMinutes is said, not silently
 });
 
 test('includeColleagues (#191): accepted where a colleague\'s event can be checked, explained where it has no effect', () => {
-    for (const event of ['talk.message.received', 'forms.submitted', 'deck.card.moved', 'tables.row.updated', 'file.renamed']) {
+    for (const event of ['talk.message.received', 'forms.submitted', 'deck.card.moved', 'tables.row.updated', 'file.renamed', 'calendar.event.created', 'calendar.event.changed']) {
         assert.deepStrictEqual(appEventWarnings(nc(event, { includeColleagues: true })), [], event);
     }
-    assert.ok(appEventWarnings(nc('calendar.event.created', { includeColleagues: true })).some(m => /stays with the person who caused it/.test(m)));
+    assert.ok(appEventWarnings(nc('file.tagged', { includeColleagues: true })).some(m => /stays with the person who caused it/.test(m)));
     assert.ok(appEventWarnings(nc('file.new', { includeColleagues: true })).some(m => /activity feed/.test(m)));
     assert.ok(!appEventWarnings(nc('file.new', { includeColleagues: true })).some(m => /"includeColleagues"/.test(m)), 'one explanation, not also an unknown-key line');
 });
