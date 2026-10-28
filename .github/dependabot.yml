@@ -127,6 +127,10 @@ updates:
       root-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -230,6 +234,9 @@ updates:
       # <6.1.0, no TS 7 JS API before 7.1). Lift with agent-hub's entry.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   - package-ecosystem: npm
@@ -241,6 +248,10 @@ updates:
       connector-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
   - package-ecosystem: npm
@@ -268,6 +279,10 @@ updates:
       satellites-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Node 22 runtime (.nvmrc): @types/node follows the runtime major (see /server).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
   # The shared browser pod. Its playwright moves by hand with the server's and
