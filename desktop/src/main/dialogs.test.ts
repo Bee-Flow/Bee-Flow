@@ -33,6 +33,8 @@ describe('pairingOutcome', () => {
         assert.equal(message.type, 'info');
         assert.match(message.detail, /beeflow:\/\/nextcloud\?server=/);
         assert.match(message.detail, /desktop client/);
+        assert.match(message.detail, /Settings, Nextcloud, "Nextcloud address"/);
+        assert.doesNotMatch(message.detail, /Integrations/);
     });
     it('shows any other failure as an error with its words', () => {
         assert.deepEqual(pairingOutcome({ ok: false, error: 'Login timed out' }), {

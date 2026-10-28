@@ -439,6 +439,7 @@ export class DesktopApp {
             bridge: this.nextcloud,
             storeAppPassword: (appPassword) => this.secrets.set('nextcloud.appPassword', appPassword),
             serverUrl: () => this.settings.get().server.url,
+            savedAddress: () => this.settings.get().nextcloud.serverUrl,
             mainSessionFetch: () => {
                 if (!this.mainWindow || this.mainWindow.isDestroyed()) return null;
                 const { session: windowSession } = this.mainWindow.webContents;

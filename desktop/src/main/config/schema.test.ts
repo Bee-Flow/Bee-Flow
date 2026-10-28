@@ -144,3 +144,25 @@ describe('settingsForServerPage', () => {
         assert.deepEqual(full.server.recent, ['https://other-employer.example'], 'the original is not touched');
     });
 });
+
+describe('nextcloud.serverUrl', () => {
+    it('defaults to empty', () => {
+        assert.equal(defaultSettings('linux').nextcloud.serverUrl, '');
+    });
+    it('is normalised like a Nextcloud address', () => {
+        const at = (serverUrl: unknown) => normaliseSettings({ nextcloud: { serverUrl } }, 'linux').nextcloud.serverUrl;
+        assert.equal(at(' cloud.example.com/ '), 'https://cloud.example.com');
+        assert.equal(at('https://cloud.example.com/nc/'), 'https://cloud.example.com/nc');
+        assert.equal(at('http://192.168.1.5:8080'), 'http://192.168.1.5:8080');
+        assert.equal(at('http://cloud.example.com'), '');
+        assert.equal(at('https://ada:pw@cloud.example.com'), '');
+        assert.equal(at('ftp://cloud.example.com'), '');
+        assert.equal(at(42), '');
+    });
+    it('rejects an unusable address in a patch with a plain message, and clears with an empty one', () => {
+        const current = mergeSettings(defaultSettings('linux'), { nextcloud: { serverUrl: 'cloud.example.com' } }, 'linux');
+        assert.equal(current.nextcloud.serverUrl, 'https://cloud.example.com');
+        assert.throws(() => mergeSettings(current, { nextcloud: { serverUrl: 'http://cloud.example.com' } }, 'linux'), /not a usable Nextcloud address/);
+        assert.equal(mergeSettings(current, { nextcloud: { serverUrl: '' } }, 'linux').nextcloud.serverUrl, '');
+    });
+});

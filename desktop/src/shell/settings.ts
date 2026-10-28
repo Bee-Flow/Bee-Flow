@@ -108,6 +108,22 @@ bindText('nc-save-folder', (s) => s.nextcloud.saveFolder, (value) => api.setting
 
 const ncStatusLine = byId<HTMLElement>('nc-status');
 
+const ncAddress = byId<HTMLInputElement>('nc-address');
+readers.push((s) => {
+    if (document.activeElement !== ncAddress) ncAddress.value = s.nextcloud.serverUrl;
+});
+byId('nc-address-save').addEventListener('click', async () => {
+    try {
+        const saved = await api.settings.patch({ nextcloud: { serverUrl: ncAddress.value.trim() } });
+        ncAddress.value = saved.nextcloud.serverUrl;
+        setStatus(ncStatusLine, saved.nextcloud.serverUrl ? 'Address saved.' : 'Address cleared.', 'ok');
+    } catch (error) {
+        // Electron prefixes a rejected invoke with "Error invoking remote method …: Error:".
+        const message = error instanceof Error ? error.message.replace(/^.*?Error: /, '') : String(error);
+        setStatus(ncStatusLine, message, 'error');
+    }
+});
+
 byId('nc-refresh').addEventListener('click', async () => {
     setStatus(ncStatusLine, 'Looking for the Nextcloud desktop client…');
     const status = await api.nextcloud.refresh();

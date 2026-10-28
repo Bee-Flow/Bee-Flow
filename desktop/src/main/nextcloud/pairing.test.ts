@@ -60,26 +60,34 @@ describe('resolvePairingTarget', () => {
     const server = async () => 'https://server.example.com';
 
     it('takes the hint first', async () => {
-        assert.deepEqual(await resolvePairingTarget('asked.example.com', accounts, server), { ok: true, url: 'https://asked.example.com', source: 'hint' });
+        assert.deepEqual(await resolvePairingTarget('asked.example.com', accounts, '', server), { ok: true, url: 'https://asked.example.com', source: 'hint' });
     });
     it('does not fall back when the hint is unusable', async () => {
-        assert.deepEqual(await resolvePairingTarget('javascript:alert(1)', accounts, server), { ok: false, error: INVALID_PAIRING_ADDRESS });
+        assert.deepEqual(await resolvePairingTarget('javascript:alert(1)', accounts, '', server), { ok: false, error: INVALID_PAIRING_ADDRESS });
     });
     it('then the first usable desktop-client account', async () => {
-        assert.deepEqual(await resolvePairingTarget(undefined, [{ url: 'ftp://x' }, ...accounts], server), { ok: true, url: 'https://known.example.com', source: 'desktop-client' });
+        assert.deepEqual(await resolvePairingTarget(undefined, [{ url: 'ftp://x' }, ...accounts], '', server), { ok: true, url: 'https://known.example.com', source: 'desktop-client' });
+    });
+    it('then the address saved in Settings, before the server lookup', async () => {
+        let asked = false;
+        const spy = async () => ((asked = true), 'https://server.example.com');
+        assert.deepEqual(await resolvePairingTarget(undefined, [], 'cloud.example.org/', spy), { ok: true, url: 'https://cloud.example.org', source: 'saved' });
+        assert.equal(asked, false);
+        assert.deepEqual(await resolvePairingTarget(undefined, accounts, 'cloud.example.org', spy), { ok: true, url: 'https://known.example.com', source: 'desktop-client' });
+        assert.deepEqual(await resolvePairingTarget(undefined, [], 'ftp://bad', server), { ok: true, url: 'https://server.example.com', source: 'server' });
     });
     it('then the Nextcloud of the Bee Flow server', async () => {
-        assert.deepEqual(await resolvePairingTarget('', [], server), { ok: true, url: 'https://server.example.com', source: 'server' });
+        assert.deepEqual(await resolvePairingTarget('', [], '', server), { ok: true, url: 'https://server.example.com', source: 'server' });
     });
     it('rejects an unusable or failing server answer and then has no target', async () => {
         const none = { ok: false, error: NO_PAIRING_TARGET };
-        assert.deepEqual(await resolvePairingTarget(undefined, [], async () => 'http://public.example.com'), none);
-        assert.deepEqual(await resolvePairingTarget(undefined, [], async () => null), none);
-        assert.deepEqual(await resolvePairingTarget(undefined, [], async () => Promise.reject(new Error('x'))), none);
+        assert.deepEqual(await resolvePairingTarget(undefined, [], '', async () => 'http://public.example.com'), none);
+        assert.deepEqual(await resolvePairingTarget(undefined, [], '', async () => null), none);
+        assert.deepEqual(await resolvePairingTarget(undefined, [], '', async () => Promise.reject(new Error('x'))), none);
     });
     it('does not ask the server when an earlier source answered', async () => {
         let asked = false;
-        await resolvePairingTarget(undefined, accounts, async () => ((asked = true), null));
+        await resolvePairingTarget(undefined, accounts, '', async () => ((asked = true), null));
         assert.equal(asked, false);
     });
 });

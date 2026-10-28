@@ -10,7 +10,8 @@
  */
 
 import { CLIENT_HEADER, CLIENT_KIND } from '../security/sessionHeaders.ts';
-import { hostKind, serverUrl as joinServerUrl } from '../server/url.ts';
+import { serverUrl as joinServerUrl } from '../server/url.ts';
+import { INVALID_NEXTCLOUD_ADDRESS, parseNextcloudUrl } from './address.ts';
 import type { LoginFlowCredential } from './loginFlow.ts';
 
 export type PairingResult = { ok: true; server: string; loginName: string; storedOnServer: boolean } | { ok: false; error: string };
@@ -32,44 +33,23 @@ export interface PairingDeps {
 
 export const NO_PAIRING_TARGET = 'Bee Flow does not know which Nextcloud to sign in to.';
 
-/**
- * A Nextcloud address from a link, the Bee Flow server or a person: http(s)
- * only, no embedded credentials. Plain http is accepted for this computer and
- * private networks only; a bare host gets https. Returns the origin plus path
- * without a trailing slash, or null.
- */
-export function parseNextcloudUrl(raw: unknown): string | null {
-    if (typeof raw !== 'string') return null;
-    const text = raw.trim();
-    if (!text || text.length > 2048) return null;
-    let url: URL;
-    try {
-        url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`);
-    } catch {
-        return null;
-    }
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-    if (!url.hostname || url.username || url.password) return null;
-    if (url.protocol === 'http:') {
-        const kind = hostKind(url.hostname);
-        if (kind !== 'loopback' && kind !== 'private') return null;
-    }
-    return url.origin + url.pathname.replace(/\/+$/, '');
-}
+export { INVALID_NEXTCLOUD_ADDRESS, parseNextcloudUrl };
 
-export type PairingTarget = { ok: true; url: string; source: 'hint' | 'desktop-client' | 'server' } | { ok: false; error: string };
+export type PairingTarget = { ok: true; url: string; source: 'hint' | 'desktop-client' | 'saved' | 'server' } | { ok: false; error: string };
 
-export const INVALID_PAIRING_ADDRESS = 'That is not a usable Nextcloud address. Use an https:// address (plain http only works for this computer or a private network).';
+export const INVALID_PAIRING_ADDRESS = INVALID_NEXTCLOUD_ADDRESS;
 
 /**
  * The Nextcloud to pair with, in order: the address asked for, the first
- * account the Nextcloud desktop client knows, the Nextcloud the user's own
+ * account the Nextcloud desktop client knows, the address saved in Settings,
+ * the Nextcloud the user's own
  * Bee Flow server is connected to. An address asked for that is not usable is
  * an error, not a reason to quietly pick another one.
  */
 export async function resolvePairingTarget(
     hint: string | undefined,
     accounts: readonly { url: string }[],
+    saved: string,
     fromServer: () => Promise<string | null>,
 ): Promise<PairingTarget> {
     if (hint?.trim()) {
@@ -80,6 +60,8 @@ export async function resolvePairingTarget(
         const url = parseNextcloudUrl(account.url);
         if (url) return { ok: true, url, source: 'desktop-client' };
     }
+    const savedUrl = parseNextcloudUrl(saved);
+    if (savedUrl) return { ok: true, url: savedUrl, source: 'saved' };
     const url = parseNextcloudUrl(await fromServer().catch(() => null));
     return url ? { ok: true, url, source: 'server' } : { ok: false, error: NO_PAIRING_TARGET };
 }

@@ -23,6 +23,8 @@ export interface NextcloudHost {
     /** Keep the app password in the OS keyring; false when that is not possible. */
     storeAppPassword(appPassword: string): Promise<boolean>;
     serverUrl(): string;
+    /** The Nextcloud address saved in Settings; '' when none. */
+    savedAddress(): string;
     /** The main window's session fetch; null when there is no live main window. */
     mainSessionFetch(): SessionFetch | null;
     openExternal(url: string): Promise<void>;
@@ -73,7 +75,7 @@ export class NextcloudActions {
 
     /** Run Login Flow v2 and hand the credential to the Bee Flow server (see nextcloud/pairing.ts). */
     async pair(serverUrlHint?: string): Promise<PairingResult> {
-        const target = await resolvePairingTarget(serverUrlHint, this.current.accounts, () => this.serverNextcloud());
+        const target = await resolvePairingTarget(serverUrlHint, this.current.accounts, this.host.savedAddress(), () => this.serverNextcloud());
         if (!target.ok) return target;
         this.host.log.info('Nextcloud', `pairing with ${target.url} (${target.source})`);
         return pairNextcloud(target.url, {

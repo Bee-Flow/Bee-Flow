@@ -40,6 +40,7 @@ function setup(overrides: Partial<NextcloudHost> = {}) {
             return true;
         },
         serverUrl: () => 'https://bee.example',
+        savedAddress: () => '',
         mainSessionFetch: () => async (url, init) => {
             sent.push({ url, init });
             return { ok: true, status: 200 };

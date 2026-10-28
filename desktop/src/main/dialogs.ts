@@ -44,7 +44,7 @@ export function pairingOutcome(result: PairingResult): InfoMessage {
             message: NO_PAIRING_TARGET,
             detail:
                 'Open a beeflow://nextcloud?server=<your Nextcloud address> link, for example beeflow://nextcloud?server=https://cloud.example.com, ' +
-                'or install the Nextcloud desktop client and add your account there. You can also save the address in Bee Flow under Settings, Integrations.',
+                'or install the Nextcloud desktop client and add your account there. Or save the address under Settings, Nextcloud, "Nextcloud address".',
         };
     }
     return { type: 'error', title: 'Nextcloud was not linked', message: 'Bee Flow could not link your Nextcloud account.', detail: result.error };
