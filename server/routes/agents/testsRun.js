@@ -123,7 +123,7 @@ async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, si
     }
 }
 
-async function runTests(req, res) {
+async function runTests(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     let headersSent = false;
     let sendEvent = () => {};
     /** @type {() => void | null} */

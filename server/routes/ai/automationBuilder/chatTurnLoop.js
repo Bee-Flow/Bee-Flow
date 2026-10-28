@@ -81,6 +81,9 @@ function renderValidationNote(validation, { tested = false } = {}) {
     return null;
 }
 
+/**
+ * @param {string} toolName
+ */
 function mutates(toolName) {
     // builder_inspect_tool, builder_summarise, builder_request_dry_run,
     // and builder_finalize are all non-mutating from the draft definition's

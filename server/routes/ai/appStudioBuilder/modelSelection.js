@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/llm/modelCache').AIConfig} AIConfig */
 // @typecheck
 /**
  * App Studio Builder — which model serves this turn.
@@ -32,9 +33,12 @@ const { applyBuilderTierFloor } = require('../builderShared');
 const log = require('../../../telemetry/log');
 
 async function resolveBuilderModel({ userOrgForTiers, userId, session = null, continueToken, priorSnapshot, modelTier }) {
+    /** @type {string} */
     let resolvedTier;
+    /** @type {string | null} */
     let modelId;
     let tier = {};
+    /** @type {AIConfig} */
     let cfg;
     // The map this person picks from: EU-aware base tiers plus the global and
     // org custom tiers -- the same one the builder's dropdown and the automation

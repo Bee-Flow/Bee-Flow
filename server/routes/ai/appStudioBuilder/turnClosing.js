@@ -94,6 +94,7 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     // The gate is app_dry_run's STATIC pass: the same data-aware
     // validateAppDefinition an auto-finalize must clear; the DATA pass is
     // skipped — 0-rows would only warn anyway.
+    /** @type {{ token: string; nextPhase: { index: number; label: string | null; }; }} */
     let continuation = null;
     let budgetExhausted = false;
     const budgetOut = turn.iter >= iterationBudget;

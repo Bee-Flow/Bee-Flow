@@ -38,6 +38,9 @@ const systemHelperLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const text = (name) => worded(`${name} must be text.`).nullish();
 const PROMPT_TEXT = 'System prompt is required to generate identity';
 
@@ -183,7 +186,7 @@ router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, 
     } catch (error) {
         log.error('[PromptDesigner] Error:', error);
         if (res.headersSent) {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (error).message })}\n\n`);
             res.end();
         } else {
             next(error);

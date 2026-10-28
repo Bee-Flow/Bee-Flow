@@ -73,6 +73,7 @@ async function resolvePersonaAndConfig(/** @type {import('express').Request} */ 
     let configToSave = config;
     let saveWarnings = [];
     let personaToSave;              // undefined ⇒ preserve the column
+    /** @type {string | null} */
     let personaPrompt = null;       // null ⇒ keep the caller's systemPrompt
     if (hasPersona) {
         if (persona === null) {

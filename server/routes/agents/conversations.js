@@ -78,7 +78,7 @@ const WorkspaceBody = z.object({
 // though the chat-stream endpoint correctly blocks them from sending.
 const { canReadAgent } = require('./crud');
 
-async function requireAgentReadAccess(req, res, agent) {
+async function requireAgentReadAccess(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, agent) {
     const userId = getEffectiveUserId(req);
     if (!agent.is_published && !req.session?.user?.id) {
         res.status(401).json({ error: 'Not authenticated' });

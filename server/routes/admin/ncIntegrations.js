@@ -87,7 +87,9 @@ router.get('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
     // Showing anything else here would be the panel lying about access the
     // user still has — which is exactly what it did while the toggles wrote
     // a column nothing enforced.
+    /** @type {string[]} */
     let enabled;
+    /** @type {boolean} */
     let usingDefaults;
     const scopeDoc = await ncScope.getOrgScopeDoc(o.id).catch((e) => fallback('routes/admin/ncIntegrations:anon', e, null));
     if (scopeDoc?.integrations) {
