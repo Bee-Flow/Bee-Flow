@@ -241,7 +241,7 @@ router.get('/', (req, res) => {
 router.get('/status', requireNcAdmin, (req, res) => {
     const stored = setupConfig.get();
     res.json({
-        envOverridden: !!process.env.BEEFLOW_API_BASE_URL,
+        envOverridden: config.apiBaseUrlLocked,
         envApiBaseUrl: process.env.BEEFLOW_API_BASE_URL || null,
         active: config.apiBaseUrl,
         chosen: stored,
@@ -391,6 +391,13 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
     }
     config.nextcloudPublicUrl = saved.publicNcUrl || null;
 
+    // The webhook rows carry this URL: move them to it now (in place, the old
+    // rows would otherwise keep firing), whether or not the re-bootstrap below
+    // succeeds. A successful re-bootstrap refreshes them again with its key.
+    require('./webhookListeners').ensureWebhookListeners().catch((/** @type {unknown} */ err) => {
+        log.warn(`[Setup] webhook rows not moved to the new public URL: ${errMessage(err)}`);
+    });
+
     // Drop the cached tenant key + retry bootstrap with the new public URL
     // so the admin sees a clear success/new error within ~5s instead of
     // restarting the container manually.
@@ -424,6 +431,7 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
         }
     }
 
+    const previousChoice = setupConfig.get();
     let saved;
     try {
         saved = setupConfig.save({ mode, apiBaseUrl });
@@ -431,18 +439,17 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
         return res.status(400).json({ error: errMessage(err) });
     }
 
-    // Apply to the live process so the SPA sees it on the next API call —
-    // saves a container restart for the typical change.
-    config.apiBaseUrl = saved.apiBaseUrl;
-
-    // If the SaaS target changed, the existing tenant key is for a different
-    // service and must be discarded. Trigger a fresh bootstrap in the
-    // background so the user can keep clicking through the SPA.
-    if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
-        bootstrap.invalidateAndRebootstrap().catch(err => {
-            log.warn('[Setup] re-bootstrap failed (non-fatal):', errMessage(err));
-        });
-    }
+    // Switch the live process (the API proxy reads config.apiBaseUrl per
+    // request) and re-bootstrap against the new server in the background so
+    // the admin can keep clicking: the old key belongs to the old server. A
+    // failed switch puts everything back, the saved choice included, so the
+    // next restart does not move to a server the connector has no key for.
+    bootstrap.invalidateAndRebootstrap({ apiBaseUrl: saved.apiBaseUrl }).catch(err => {
+        log.warn(`[Setup] switch to ${saved.apiBaseUrl} failed, staying on ${config.apiBaseUrl}: ${errMessage(err)}`);
+        try { setupConfig.restoreApiChoice(previousChoice); } catch (e) {
+            log.warn(`[Setup] could not restore the saved server choice: ${errMessage(e)}`);
+        }
+    });
 
     const probeRes = await probe(saved.apiBaseUrl).catch(() => null);
     res.json({ saved, probe: probeRes, restartRequired: false });
@@ -476,27 +483,25 @@ function rebindFailed(res, caught, action, uid, remediation) {
     });
 }
 
-// Rotate the per-install tenant key — drop the cached key + run a fresh
-// bootstrap against the same SaaS so the org binding survives but every
-// downstream signature changes. Surfaced via the "Rotate tenant key"
-// button in NC admin settings (declarativeSettings.js). Synchronous: the
-// caller blocks until SaaS responds so the UI can show success or the
-// concrete remediation in one click. invalidateAndRebootstrap() rolls back
-// to the previous key on failure so a momentary SaaS outage can't strand
-// the install.
+// Rotate the per-install tenant key: the Bee Flow server issues a new key
+// and the old one stops working, for when the current key is suspected
+// leaked. The org binding survives. Synchronous, so the "Rotate tenant key"
+// button on the /setup page shows the outcome in one click. It used to
+// re-bootstrap, which always got the SAME key back, and reported it as new.
 router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     log.info(`[Setup] tenant-key rotation requested by uid=${log.ref(uid)}`);
     try {
-        await bootstrap.invalidateAndRebootstrap();
+        const { previousFingerprint, fingerprint } = await bootstrap.rotateTenantKey();
         log.info(`[Setup] tenant-key rotated by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
             organizationId: config.organizationId,
-            tenantKeyFingerprint: tenantKeyFingerprint(),
+            previousTenantKeyFingerprint: previousFingerprint,
+            tenantKeyFingerprint: fingerprint,
         });
     } catch (err) {
-        rebindFailed(res, err, `tenant-key rotation`, uid, 'Check connector logs for the SaaS response, then retry.');
+        rebindFailed(res, err, `tenant-key rotation`, uid, 'The current key is unchanged. Check the connector logs for the Bee Flow server response, then retry.');
     }
 });
 
@@ -517,6 +522,9 @@ router.post('/clear-cache', requireNcAdmin, limits.rebind, express.json(), async
         log.info(`[Setup] organisation cache cleared by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
+            // The server wants the emailed code before it binds: the embedded
+            // app now shows the code screen.
+            verificationPending: !config.tenantKey,
             organizationId: config.organizationId,
             organizationName: config.organizationName,
             tenantKeyFingerprint: tenantKeyFingerprint(),

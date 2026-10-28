@@ -41,6 +41,19 @@ beforeEach(() => {
 });
 
 describe('KnowledgeDetail', () => {
+    it('shares with a group by sending real group ids when the server sends shared_groups as JSON text', async () => {
+        const user = userEvent.setup();
+        // knowledge_bases.shared_groups is TEXT: GET /api/kb/:id sends '["g1"]', not an array.
+        // Spreading that string put '[', '"', ... into the publish body.
+        asMock(knowledgeApi.get).mockResolvedValue({ ...KB, organization_id: 'org1', is_published: true, shared_groups: '["g1"]' });
+        asMock(knowledgeApi.setPublished).mockResolvedValue({ success: true });
+        render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" canManage orgGroups={[{ id: 'g1', name: 'Sales' }, { id: 'g2', name: 'Support' }]} />);
+        await screen.findByTestId('kb-detail-page');
+        await user.click(screen.getByTestId('visibility-capsule'));
+        await user.click(await screen.findByRole('checkbox', { name: /Support/ }));
+        await waitFor(() => expect(knowledgeApi.setPublished).toHaveBeenCalledWith('kb1', { isPublished: true, sharedGroups: ['g1', 'g2'] }));
+    });
+
     it('opens the tab it was deep-linked to', async () => {
         render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" tab="usage" />);
         await screen.findByTestId('kb-detail-page');

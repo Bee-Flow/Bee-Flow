@@ -10,10 +10,11 @@
  *   PUT  /enabled?...   — MUST answer 200; carries no side effect beyond a log
  *                         line. It deliberately does NOT unregister anything:
  *                         AppAPI sends no auth header here either, so wiring
- *                         `unregisterEventListeners` onto it would hand every
- *                         container on the docker network a teardown primitive
- *                         for the customer's Nextcloud registrations. Teardown
- *                         happens on SIGTERM instead (server.js gracefulShutdown).
+ *                         a teardown onto it would hand every container on the
+ *                         docker network a teardown primitive for the
+ *                         customer's Nextcloud registrations. Nothing tears down
+ *                         on SIGTERM either (shutdown.js); AppAPI cleans up on
+ *                         a real uninstall.
  *
  * Why /init returns immediately: AppAPI's `--wait-finish` polls the status
  * field and blocks until init=100 or an error appears. If /init does work
@@ -28,6 +29,8 @@ const { ocsSucceeded } = require('./ocs');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { singleFlight } = require('./singleFlight');
+const { TOP_MENU_NAME } = require('./filesActions');
 
 /**
  * Is this caller presenting the AppAPI shared secret?
@@ -271,7 +274,7 @@ async function registerTopMenu() {
         method: 'POST',
         headers: appApiHeaders(),
         body: JSON.stringify({
-            name: 'main',
+            name: TOP_MENU_NAME,
             displayName: 'Bee Flow',
             icon: 'img/app.svg',
             adminRequired: 0,
@@ -299,7 +302,7 @@ async function registerEmbedScript() {
         headers: appApiHeaders(),
         body: JSON.stringify({
             type: 'top_menu',
-            name: 'main',
+            name: TOP_MENU_NAME,
             path: 'js/embed',
             afterAppId: '',
         }),
@@ -326,13 +329,29 @@ async function registerEmbedScript() {
 // "Sync now", Deck stays on the activity poller, and Talk is handled by the
 // Talk-bot webhook rather than an event subscription.
 async function registerEventListeners() {
-    const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
     const { registerTalkBot } = require('./talkBot');
-    const { registerTaskProcessing } = require('./taskProcessing');
-    const { registerFilesActions } = require('./filesActions');
     // Independent of the webhook registration: Talk bots are a different
     // mechanism with a different failure mode (Talk simply not installed).
     await registerTalkBot().catch(err => log.warn(`[Init] Talk bot registration failed: ${errMessage(err)}`));
+    await registerTenantKeyDependents();
+    log.info('[Init] Real-time user/group sync is not available via webhooks '
+        + '(Nextcloud\'s User/Group events are not webhook-compatible); the periodic '
+        + 'sync backstop and manual "Sync now" remain in use.');
+}
+
+// The registrations that need a tenant key: the Assistant (Task Processing)
+// providers, the Files actions and the webhook rows (whose secret derives from
+// the key). They run from /init and again every time a key becomes active
+// (bootstrap.onTenantKeyReady): a key that arrives after boot (an emailed code
+// entered later, a pairing code, a Bee Flow server that was down at boot) used
+// to leave Nextcloud with no Bee Flow provider and no Files entries until a
+// restart, and a CHANGED key left every webhook row sending the old secret.
+// Coalesced: a call during a run for the same key joins it.
+const registerTenantKeyDependents = singleFlight(async () => {
+    if (!config.tenantKey) return;
+    const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
+    const { registerTaskProcessing } = require('./taskProcessing');
+    const { registerFilesActions } = require('./filesActions');
     await registerTaskProcessing().catch(err => log.warn(`[Init] Task Processing registration failed: ${errMessage(err)}`));
     // AppAPI mounts its Files plugin only if some ExApp has registered a file
     // action, so this call is what puts Bee Flow in the right-click menu at all.
@@ -342,27 +361,13 @@ async function registerEventListeners() {
         return { ok: false };
     });
     if (!result.ok) {
-        // Bootstrap may still be in flight, or the admin may not have enabled
-        // webhook_listeners yet. Keep trying quietly in the background.
+        // The admin may not have enabled webhook_listeners yet. Keep trying
+        // quietly in the background.
         startRetry();
     }
-    log.info('[Init] Real-time user/group sync is not available via webhooks '
-        + '(Nextcloud\'s User/Group events are not webhook-compatible); the periodic '
-        + 'sync backstop and manual "Sync now" remain in use.');
-}
+}, () => config.tenantKey);
 
-async function unregisterEventListeners() {
-    const { unregisterWebhookListeners } = require('./webhookListeners');
-    const { unregisterTalkBot } = require('./talkBot');
-    const { unregisterTaskProcessing } = require('./taskProcessing');
-    const { unregisterFilesActions } = require('./filesActions');
-    await Promise.allSettled([
-        unregisterWebhookListeners(),
-        unregisterTalkBot(),
-        unregisterTaskProcessing(),
-        unregisterFilesActions(),
-    ]);
-}
+require('./bootstrap').onTenantKeyReady(registerTenantKeyDependents);
 
 // Reports init progress to AppAPI. Spec: PUT /ocs/v2.php/apps/app_api/ex-app/status
 // with `{progress: 0-100, error?: string}`. AppAPI's `waitInitStepFinish`
@@ -390,8 +395,8 @@ async function reportInitProgress(percent, errorMessage) {
 
 module.exports = {
     registerLifecycle,
-    unregisterEventListeners,
     runInitInBackground,
+    registerTenantKeyDependents,
     registerTopMenu,
     registerEmbedScript,
     INIT_UNTRUSTED_LIMIT,

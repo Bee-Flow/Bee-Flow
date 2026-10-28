@@ -456,7 +456,9 @@ test('notify-recipients: a mail failure is a refusal — 502, no stamp, no evide
     assert.equal(res.body.code, 'notification_failed');
     // An SMTP rejection quotes the address it bounced on. That string is a
     // response body away from the browser and a log line away from the disk.
-    const seen = JSON.stringify(res.body);
+    // The correlation id is a random UUID, so it can contain any digits: leave it out.
+    const { correlationId: _correlationId, ...bodyWithoutId } = res.body;
+    const seen = JSON.stringify(bodyWithoutId);
     assert.ok(!seen.includes('@'), 'the transport message is not reflected back');
     assert.ok(!seen.includes('acme.example'));
     assert.ok(!seen.includes('550'));

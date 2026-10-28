@@ -61,6 +61,7 @@ const {
 const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
 const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
 const { NC_SUBJECT_PROBLEM_CODES, runBootstrapBranches } = require('./connector/bootstrapBranches');
+const { resolveConnectorBearer, registerRotateKeyRoute } = require('./connector/rotateKey.mts');
 
 // Bootstrap is unauthenticated by design (the connector has no SaaS creds
 // at this point). Rate-limit per source IP so an attacker can't flood the
@@ -510,24 +511,10 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
 // are ignored. Always 204 on success — the connector treats this as
 // fire-and-forget and must never block on it.
 router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb' }), async (req, res) => {
-    const authHeader = String(req.headers['authorization'] || '');
-    if (!authHeader.toLowerCase().startsWith('bearer ')) {
-        return res.status(401).json({ error: 'Missing bearer token' });
-    }
-    const token = authHeader.slice(7).trim();
-    if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
-        return res.status(401).json({ error: 'Invalid connector token' });
-    }
-    let resolved = null;
-    try {
-        const { _resolveTenant } = require('./connectorJwt');
-        resolved = await _resolveTenant(token);
-    } catch (_) {
-        resolved = null;
-    }
-    if (!resolved) {
+    const resolved = await resolveConnectorBearer(req);
+    if ('error' in resolved) {
         // No emit here — see header comment (spam protection).
-        return res.status(401).json({ error: 'Connector token rejected: no matching tenant key' });
+        return res.status(401).json({ error: resolved.error });
     }
     const orgId = resolved.orgId;
 
@@ -558,6 +545,8 @@ router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb
     }
     return res.status(204).end();
 });
+
+registerRotateKeyRoute(router);
 
 module.exports = Object.assign(router, { helpers: {
     NC_INTEGRATIONS,

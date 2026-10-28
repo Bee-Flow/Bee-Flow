@@ -11,6 +11,8 @@ import { denseInputClass } from '../flow/settings/formStyles';
 
 export interface FieldKeyOption {
     key: string;
+    /** Friendly name shown next to the key when it differs from it. */
+    label?: string;
     sample?: unknown;
 }
 
@@ -136,6 +138,7 @@ export default function FieldKeyCombobox({
                             className={`w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs hover:bg-[var(--bg-secondary)] ${trimmed === o.key ? 'bg-[var(--bg-secondary)]' : ''}`}
                         >
                             <span className="font-mono text-[var(--text-primary)] truncate">{o.key}</span>
+                            {o.label && o.label !== o.key && <span className="text-[var(--text-secondary)] truncate">{o.label}</span>}
                             <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate max-w-[140px]">{previewValue(o.sample, 24)}</span>
                         </button>
                     ))}

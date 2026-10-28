@@ -10,7 +10,8 @@ import { Table2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { columnTypeKind, opTakesList, opTakesNoValue } from '@/components/admin/Studio/Datatables/datatableDisplay';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ForEachSection, retryIsSet } from './collectionEditors';
+import type { ActionCatalog } from './actionEditors/integrationActionFields';
+import { ForEachSection, retryIsSet, type StepEditorProps } from './collectionEditors';
 import { RetrySection } from './collectionEditors/RetrySection';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
@@ -42,7 +43,8 @@ const TEXTUAL = new Set(['text', 'richtext', 'select', 'multiselect', 'relation'
 const ORDERED = new Set(['number', 'date', 'datetime']);
 const TEXT_ONLY = ['contains', 'notContains', 'startsWith', 'endsWith'];
 
-function opsForType(type) {
+type DtColumn = { key: string; type: string; name?: string };
+function opsForType(type: string | null) {
     if (!type) return OPS;
     if (TEXTUAL.has(type)) return OPS.filter(o => !['gt', 'gte', 'lt', 'lte', 'between'].includes(o.op));
     if (ORDERED.has(type)) return OPS.filter(o => !TEXT_ONLY.includes(o.op));
@@ -50,10 +52,10 @@ function opsForType(type) {
     return OPS;
 }
 
-/** @param {{ draft: unknown, set: unknown, groups: unknown, onFocusField?: unknown, previewSample?: unknown, errorSections?: Set<string>, catalog?: object | null }} props */ export default function DatatableFields({
+export default function DatatableFields({
     draft, set, groups, onFocusField, previewSample,
     errorSections = new Set(), catalog = null,
-}) {
+}: StepEditorProps & { catalog?: ActionCatalog | null }) {
     const { t } = useTranslation();
     const tables = useMemo(() => (catalog?.datatables || []), [catalog]);
     const ops = useMemo(() => (catalog?.datatableOps || []), [catalog]);
@@ -61,15 +63,13 @@ function opsForType(type) {
         () => tables.find(t => t.id === draft.datatableId) || null,
         [tables, draft.datatableId],
     );
-    const columns = useMemo(() => table?.columns || [], [table]);
+    const columns = useMemo(() => (table?.columns || []) as DtColumn[], [table]);
     // Dragging a value from inside each row of a list ("Lines ▸ Sku") into a
     // column means a row per line: the step runs once per item.
     const forEach = useForEachRequest(draft, set);
     const columnOptions = useMemo(
-        () => columns.map(c => ({ value: c.key, label: c.name || c.key })),
-        [columns],
-    );
-    const typeOf = (key) => columns.find(c => c.key === key)?.type || null;
+        () => columns.map(c => ({ key: c.key, label: c.name || c.key })), [columns]);
+    const typeOf = (key: string | undefined) => columns.find(c => c.key === key)?.type || null;
 
     const op = draft.op || 'find_rows';
     // count_rows READS — it is not a write, and it needs no values and no
@@ -85,18 +85,18 @@ function opsForType(type) {
     const showWhere = op !== 'add_row' || (Array.isArray(draft.where) && draft.where.length > 0);
     // Two tables with the same name are told apart by their key and size.
     const dupNames = useMemo(() => {
-        const seen = new Map();
+        const seen = new Map<string, number>();
         for (const t of tables) seen.set(t.name, (seen.get(t.name) || 0) + 1);
         return new Set([...seen].filter(([, n]) => n > 1).map(([name]) => name));
     }, [tables]);
 
     const where = Array.isArray(draft.where) ? draft.where : [];
-    const setWhere = (next) => set('where', next);
+    const setWhere = (next: unknown[]) => set('where', next);
     const values = (draft.values && typeof draft.values === 'object') ? draft.values : {};
     // compileRecordList honours sort[0] ONLY, so the control offers ONE column.
     // A second entry would read as "sorted by two columns" and be ignored.
     const sortEntry = (Array.isArray(draft.sort) ? draft.sort : [])[0] || null;
-    const setSort = (field, dir) => set('sort', field ? [{ field, dir: dir || 'desc' }] : []);
+    const setSort = (field: string | undefined, dir?: string) => set('sort', field ? [{ field, dir: dir || 'desc' }] : []);
 
     return (
         <>

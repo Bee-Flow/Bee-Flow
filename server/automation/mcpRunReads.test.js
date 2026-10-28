@@ -505,3 +505,40 @@ test('placeholderize does not mutate its input and keeps credential markers', ()
     assert.deepEqual(_test.placeholderize(input), { a: '«string:4»', b: ['«string:1»', '«number»'], c: '«redacted:key»' });
     assert.equal(JSON.stringify(input), frozen);
 });
+
+// ── group-only members ─────────────────────────────────────────────────────
+
+function groupWorld(resolveOrgs) {
+    return makeRunReads({
+        store: {
+            getAutomation: async (id) => ({ id, userId: OWNER, organizationId: ORG }),
+            getRun: async () => run(),
+            getRunsInChain: async () => [run()],
+            getRunStepsForChain: async () => [step()],
+            getRunFullOutput: async () => null,
+            listRunsForAutomation: async () => ({ runs: [run()], nextCursor: null }),
+        },
+        // No home organisation: the account reaches its tenant through a group only.
+        getUser: async () => ({ id: OWNER, organizationId: '', groups: ['g1'] }),
+        resolveOrgs,
+    });
+}
+
+test('a group-only member reads the runs of their own automation in a group org', async () => {
+    const reads = groupWorld(async () => ({ primary: ORG, all: [ORG] }));
+    const res = await reads.call('automations_list_runs', { automationId: 'auto_1' }, { userId: OWNER });
+    assert.equal(res.code, undefined);
+    assert.equal(res.runs.length, 1);
+});
+
+test('a member whose orgs do not include the automation org gets 404', async () => {
+    const reads = groupWorld(async () => ({ primary: 'org_x', all: ['org_x'] }));
+    const res = await reads.call('automations_list_runs', { automationId: 'auto_1' }, { userId: OWNER });
+    assert.equal(res.code, 'not_found');
+});
+
+test('an org resolution that throws denies', async () => {
+    const reads = groupWorld(async () => { throw new Error('groups unreadable'); });
+    const res = await reads.call('automations_list_runs', { automationId: 'auto_1' }, { userId: OWNER });
+    assert.equal(res.code, 'not_found');
+});

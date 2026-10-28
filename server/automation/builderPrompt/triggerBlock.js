@@ -76,26 +76,26 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     'nextcloud.file.deleted': { group: 'nc-file' },
     'nextcloud.file.renamed': { group: 'nc-file' },
     'nextcloud.file.tagged': {
-        filters: ['tagId (numeric, from nextcloud_list_tags)'],
+        filters: ['tagId (the numeric id from nextcloud_list_tags, or the tag name)'],
         fields: ['fileId', 'tagId'],
         // nextcloud_read_file takes a path, and this payload has none (ids
         // only) — the full schema's "read it by fileId" advice was wrong.
-        note: 'ids only — no path, no tag name.',
+        note: 'the payload has ids only — no path, no tag name.',
     },
     'nextcloud.forms.submitted': {
-        filters: ['formId'],
+        filters: ['formId', 'includeColleagues (true = also others\' submissions; off = only the owner\'s own)'],
         fields: ['formId', 'submissionId'],
         note: 'the answers are NOT in the payload: follow with nextcloud_forms_get_submissions.',
     },
     'nextcloud.tables.row.added': {
         group: 'nc-tables',
-        filters: ['tableId', 'columnId + valueEquals', 'changedOnly'],
+        filters: ['tableId', 'columnId + valueEquals', 'changedOnly', 'includeColleagues (true = also others\' edits)'],
         note: 'without columnId, valueEquals / valueContains / changedOnly hold when ANY column satisfies them.',
         fields: ['tableId', 'rowId', 'values (keyed by numeric column id)'],
     },
     'nextcloud.tables.row.updated': { group: 'nc-tables' },
     'nextcloud.calendar.event.upcoming': {
-        filters: ['leadMinutes', 'calendarId', 'summaryContains'],
+        filters: ['leadMinutes', 'calendarId (omit = every calendar)', 'summaryContains'],
         fields: ['uid', 'summary', 'startsAt', 'endsAt', 'attendees'],
     },
     'nextcloud.calendar.event.created': {
@@ -108,7 +108,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     },
     'nextcloud.calendar.event.changed': { group: 'nc-cal' },
     'nextcloud.talk.message.received': {
-        filters: ['roomToken', 'messageContains', 'excludeOwnMessages'],
+        filters: ['roomToken', 'messageContains', 'excludeOwnMessages', 'includeColleagues (true = also other members\' messages; off = only the owner\'s own)'],
         fields: ['messageId', 'roomToken', 'actor', 'message'],
         note: 'the Bee Flow bot must be in the room; say so.',
     },
@@ -118,7 +118,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         note: 'an EVENT, not an approval gate (use builder_add_approval for that); the bot must be in the room.',
     },
     'nextcloud.deck.card.created': {
-        group: 'nc-deck', filters: ['boardId', 'stackId', 'titleContains'], fields: ['cardId', 'boardId', 'stackId', 'title', 'done'],
+        group: 'nc-deck', filters: ['boardId', 'stackId', 'titleContains', 'includeColleagues (true = also others\' changes on boards the owner can open)'], fields: ['cardId', 'boardId', 'stackId', 'title', 'done'],
         // fromStackId/toStackId are read by the deck.card.moved matcher against
         // payload.previousStackId / payload.stackId (filters.js, fixed 2026-09-17).
         note: 'deck.card.moved also filters fromStackId / toStackId (the list it left / landed in) and carries previousStackId.',

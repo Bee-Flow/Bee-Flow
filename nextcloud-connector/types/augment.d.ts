@@ -27,6 +27,13 @@ declare module 'node:http' {
     beeflow?: BeeflowContext;
     __beeflowRetried?: boolean;
     __shellNext?: () => void;
+    /** The connector-local path of a shell request, before the proxy rewrote req.url to /embed/... */
+    __shellUrl?: string;
+    /** The outbound request the API proxy opened for this request (headers timeout). */
+    __beeflowProxyReq?: import('node:http').ClientRequest;
+    __beeflowHeadersTimer?: ReturnType<typeof setTimeout>;
+    /** The headers timeout answered while the request still waited for a socket. */
+    __beeflowTimedOut?: boolean;
   }
 }
 

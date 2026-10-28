@@ -11,6 +11,8 @@
  */
 
 const { PUSH_PENDING } = require('../deliverableEvents');
+const { COLLEAGUE_SWITCH_EVENTS } = require('../triggerBus/ncVisibility.mts');
+const { upcomingMaxLeadMinutes } = require('../triggerBus/pollers/nextcloud');
 const { fallback } = require('../../utils/bestEffort');
 
 // Keys the rich filter DSL (triggers/dslFilters.js) adds on top of any event.
@@ -38,7 +40,7 @@ const NEXTCLOUD_FILTER_KEYS = {
     'calendar.event.created': CALENDAR_KEYS,
     'calendar.event.changed': CALENDAR_KEYS,
     'calendar.event.deleted': CALENDAR_KEYS,
-    'calendar.event.upcoming': [...CALENDAR_KEYS, 'leadMinutes', 'includeAllDay', 'calendar'],
+    'calendar.event.upcoming': [...CALENDAR_KEYS, 'leadMinutes', 'includeAllDay', 'calendar', 'calendars'],
     'talk.message.received': TALK_MESSAGE_KEYS,
     'talk.mention.received': TALK_MESSAGE_KEYS,
     'talk.reaction.added': ['roomToken', 'roomNameContains', 'actorEquals', 'reaction', 'includeRemoved'],
@@ -54,6 +56,12 @@ const NEXTCLOUD_FILTER_KEYS = {
     'deck.card.completed': DECK_KEYS,
     'deck.card.moved': [...DECK_KEYS, 'fromStackId', 'toStackId'],
 };
+
+// `includeColleagues` (#191): the events a colleague's automation may receive
+// after a per-event visibility check (triggerBus/ncVisibility.mts).
+for (const event of COLLEAGUE_SWITCH_EVENTS) {
+    if (NEXTCLOUD_FILTER_KEYS[event]) NEXTCLOUD_FILTER_KEYS[event] = [...NEXTCLOUD_FILTER_KEYS[event], 'includeColleagues'];
+}
 
 /** @param {unknown} v */
 function isNumericId(v) {
@@ -74,11 +82,27 @@ function filterWarnings(provider, event, filter) {
     /** @type {string[]} */
     const out = [];
     const unknown = Object.keys(f).filter(k => !known.includes(k) && !DSL_KEYS.includes(k));
+    if (unknown.includes('includeColleagues')) {
+        out.push(event === 'file.new' || event === 'file.changed'
+            ? `filter.includeColleagues has no effect on ${provider}.${event}: this trigger reads the owner's own activity feed, which already lists colleagues' changes to files the owner can see.`
+            : `filter.includeColleagues has no effect on ${provider}.${event}: it stays with the person who caused it, because Bee Flow cannot check that a colleague may see it in Nextcloud. Colleagues' events can reach: ${[...COLLEAGUE_SWITCH_EVENTS].join(', ')}.`);
+        unknown.splice(unknown.indexOf('includeColleagues'), 1);
+    }
     if (unknown.length) {
         out.push(`filter key${unknown.length > 1 ? 's' : ''} ${unknown.map(k => `"${k}"`).join(', ')} not read for ${provider}.${event} and will be ignored. Filters this event understands: ${known.join(', ')}.`);
     }
-    if ((event === 'file.tagged' || event === 'file.untagged') && f.tagId !== undefined && f.tagId !== null && f.tagId !== '' && !isNumericId(f.tagId)) {
-        out.push('filter.tagId must be the numeric Nextcloud tag id (one value): a tag name or a list never matches. Use tagName for a name.');
+    if ((event === 'file.tagged' || event === 'file.untagged') && f.tagId !== undefined && f.tagId !== null && f.tagId !== ''
+        && !isNumericId(f.tagId) && typeof f.tagId !== 'string') {
+        out.push('filter.tagId must be one Nextcloud tag: its numeric id or its name. A list never matches; use any: [{ tagId: … }, …] for several tags.');
+    }
+    if (event === 'calendar.event.upcoming' && f.leadMinutes !== undefined && f.leadMinutes !== null && f.leadMinutes !== '') {
+        const lead = Number(f.leadMinutes);
+        const max = upcomingMaxLeadMinutes();
+        if (!Number.isFinite(lead) || lead < 1) {
+            out.push(`filter.leadMinutes must be a number of minutes, at least 1 (got ${JSON.stringify(f.leadMinutes)}); the trigger uses 15.`);
+        } else if (max > 0 && lead > max) {
+            out.push(`filter.leadMinutes ${lead} is above this install's maximum of ${max} minutes (AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES); the trigger fires ${max} minutes before the start instead.`);
+        }
     }
     if ((event === 'calendar.event.created' || event === 'calendar.event.changed' || event === 'calendar.event.deleted') && f.summaryContains) {
         out.push('filter.summaryContains never matches on calendar.event.created / changed / deleted: the pushed event carries no summary. Filter on calendarId, or add a condition step after reading the event.');

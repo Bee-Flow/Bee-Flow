@@ -1,5 +1,5 @@
 /**
- * The datatable editor held to the web's (datatableEditors.jsx): the operator
+ * The datatable editor held to the web's (datatableEditors.tsx): the operator
  * list is its OPS, and `opsForType` is cut out and run beside the port for
  * every column type; "no value" is the Studio's opTakesNoValue. Then what an
  * edit saves — including the two keys the web's form shows but never saves
@@ -15,7 +15,13 @@ import type { FlowNode } from '@/features/flow-editor/bindings';
 import { DATATABLE_FORM, OPS, opChoices, opNeeds, opsForType, opTakesNoValue, setSort, sortEntry, tableOption } from './datatableModel';
 
 const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
-const src = fs.readFileSync(path.join(AGENT_HUB, 'components/automation/Builder/flow/settings/datatableEditors.jsx'), 'utf8');
+/* eslint-disable-next-line @typescript-eslint/no-require-imports */
+const ts = require('typescript') as typeof import('typescript');
+// The web file is TypeScript: strip the types first, so the pieces below run as JS.
+const src = ts.transpileModule(
+    fs.readFileSync(path.join(AGENT_HUB, 'components/automation/Builder/flow/settings/datatableEditors.tsx'), 'utf8'),
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.Preserve }, fileName: 'datatableEditors.tsx' },
+).outputText;
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const display = require(path.join(AGENT_HUB, 'components/admin/Studio/Datatables/datatableDisplay.ts'));
 
@@ -28,7 +34,7 @@ const web = new Function(
     `${between('const OPS = [', '];')}\n${between('const TEXTUAL', ';')}\n${between('const ORDERED', ';')}\n${between('const TEXT_ONLY', ';')}\n${between('function opsForType(', '\n}\n')}\nreturn { OPS, opsForType };`,
 )();
 
-describe('the datatable editor against datatableEditors.jsx', () => {
+describe('the datatable editor against datatableEditors.tsx', () => {
     it('offers the web’s operators, in its words', () => {
         expect(OPS.map((o) => [o.op, o.label[1]])).toEqual(web.OPS.map((o: { op: string; label: string }) => [o.op, o.label]));
     });

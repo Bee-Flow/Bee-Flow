@@ -194,27 +194,29 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
     if (!event) return res.status(400).json({ error: 'Missing event' });
 
     // Resolve the Bee Flow user from the NC uid via the user store —
-    // the same mapping `ncUserGroupSync` maintains. If the uid hasn't
-    // been provisioned yet, the event can't reach an automation; ack
-    // so the connector doesn't retry.
+    // the same mapping `ncUserGroupSync` maintains. A uid with no Bee Flow
+    // user (a guest, a bot, a federated or not-yet-provisioned account)
+    // leaves the actor unknown; the event still fans out, checked.
     const userStore = require('../../stores/userStore');
     const user = ncUid
         ? await userStore.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/automation/events:anon#2', e, null))
         : null;
 
-    // The event reaches only the actor's own subscriptions (userId below), so
-    // for a resolved actor it IS their own action: stamp the flags the
-    // excludeOwnUploads / excludeOwnMessages filters read (the poller sets
-    // isOwnAction itself; webhook and bot payloads carried neither flag).
-    const pushPayload = user?.id ? { isOwn: true, isOwnAction: true, ...(payload || {}) } : (payload || {});
+    // The resolved user is the ACTOR, not a subscriber: the event fans out
+    // over the org, the actor's own automations receive it, and a colleague's
+    // automation only when its trigger opted in and Nextcloud confirms, as that
+    // colleague, that they can see the room / board / table / form / file
+    // (triggerBus/dispatch.js + ncVisibility.mts). isOwn / isOwnAction are
+    // stamped per subscription there. The payload is brought to its canonical
+    // shape there as well (ncPayload.mts), the same one the poller emits.
     await triggerBus.dispatchEvent({
         provider: 'nextcloud',
         event,
-        payload: pushPayload,
-        userId: user?.id || null,
-        // Carry the org so background side-effects (e.g. Talk recording
-        // auto-ingest) can resolve org-scoped settings even when the
-        // ncUid → Bee Flow user mapping failed (bot/federated actor).
+        payload: payload || {},
+        actorUserId: user?.id || null,
+        // The org scopes the fan-out, and lets background side-effects (e.g.
+        // Talk recording auto-ingest) resolve org-scoped settings even when
+        // the ncUid → Bee Flow user mapping failed (bot/federated actor).
         orgId: org.id,
     });
 

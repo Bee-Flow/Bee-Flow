@@ -322,13 +322,13 @@ test('a list from a step that does not exist is flagged, wherever the settings r
     for (const id of ['ghost', 'ghost2', 'ghost3', 'ghost4']) assert.match(unknown, new RegExp(`"${id}"`), id);
 });
 
-test('a list from a step further down the flow warns that it has not run yet', () => {
+test('a list from a step further down the flow is refused: it has not run yet', () => {
     const later = { id: 'late', type: 'integration_action', tool: 'gmail_search', inputs: { query: { kind: 'literal', value: 'y' } } };
     const definition = def({ enumFrom: [{ field: 'category', ref: 'steps.late.output.rows' }] });
     definition.steps.push(later);
     definition.edges.push({ from: 'ai', to: 'late' });
-    const { warnings } = findings(definition);
-    assert.ok(warnings.some((w) => w.code === 'ref.forward' && /late/.test(w.message)));
+    const { errors } = findings(definition);
+    assert.ok(errors.some((w) => w.code === 'ref.forward' && /late/.test(w.message)));
 });
 
 test('an import that renames the steps takes the settings along', () => {

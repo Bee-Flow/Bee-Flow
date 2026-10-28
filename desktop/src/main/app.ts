@@ -24,11 +24,13 @@ import { buildMenu } from './menu.ts';
 import { NextcloudBridge } from './nextcloud/bridge.ts';
 import { NextcloudActions, type NextcloudHost } from './nextcloudActions.ts';
 import type { PairingResult } from './nextcloud/pairing.ts';
+import { pageFetch } from './nextcloud/pageFetch.ts';
 import { nextcloudSummary } from './nextcloud/summary.ts';
 import { noNextcloudFolder } from './dialogs.ts';
 import { chromiumFetch } from './server/chromiumFetch.ts';
 import { probeServer, type ProbeOptions } from './server/probe.ts';
 import { isServerNavigation, isUnencrypted, titleSuffix } from './server/serverPage.ts';
+import { workspaceUrl } from './server/url.ts';
 import { createPermissionHandlers, type PermissionPrompt } from './security/permissions.ts';
 import { permissionDecision, senderTrust, type PolicyContext } from './security/policy.ts';
 import { withClientHeader } from './security/sessionHeaders.ts';
@@ -289,8 +291,6 @@ export class DesktopApp {
             void this.unreachable.show(description);
         });
         window.webContents.setZoomLevel(settings.appearance.zoomLevel);
-        // Plain http to another machine works, and says so where it cannot be
-        // missed: the page sets the title, this appends to it.
         // What the window shows is said where it cannot be missed: plain http
         // to another machine, and any page that is not the workspace (a
         // sign-in provider, mid-sign-in) by its host — the window has no
@@ -314,7 +314,7 @@ export class DesktopApp {
     /** Point the main window at the server, or at the first-run picker. */
     private async loadWorkspace(window: BrowserWindow): Promise<void> {
         const url = this.settings.get().server.url;
-        this.load(window, url || shellPageUrl('welcome'));
+        this.load(window, url ? workspaceUrl(url) : shellPageUrl('welcome'));
     }
 
     /**
@@ -407,7 +407,7 @@ export class DesktopApp {
 
         this.log.info('Server', `now pointing at ${probe.url}`);
         this.broadcast(EVENT.serverChanged, probe.url);
-        this.load(this.mainWindow, probe.url);
+        this.load(this.mainWindow, workspaceUrl(probe.url));
         this.tray.refresh();
         this.restartOffer.offer(probe.url);
         return probe;
@@ -440,10 +440,10 @@ export class DesktopApp {
             bridge: this.nextcloud,
             storeAppPassword: (appPassword) => this.secrets.set('nextcloud.appPassword', appPassword),
             serverUrl: () => this.settings.get().server.url,
+            savedAddress: () => this.settings.get().nextcloud.serverUrl,
             mainSessionFetch: () => {
                 if (!this.mainWindow || this.mainWindow.isDestroyed()) return null;
-                const { session: windowSession } = this.mainWindow.webContents;
-                return (url, init) => windowSession.fetch(url, init);
+                return pageFetch(this.mainWindow.webContents);
             },
             openExternal: (url) => shell.openExternal(url),
             openPath: (folder) => shell.openPath(folder),
@@ -473,7 +473,7 @@ export class DesktopApp {
             loadMain: (url) => this.load(this.mainWindow, url),
             quickAsk: (text) => this.quickAsk.toggle(text),
             setServer: (url) => this.setServer(url),
-            pairNextcloud: (server) => this.pairNextcloud(server),
+            pairNextcloud: (server) => this.nc.pairAndReport(server),
             revealPath: (target) => void this.revealPath(target),
             broadcast: (channel, payload) => this.broadcast(channel, payload),
         });
@@ -595,7 +595,7 @@ export class DesktopApp {
             reload: () => this.mainWindow?.webContents.reload(),
             checkForUpdates: () => void this.checkForUpdatesInteractive(),
             openNextcloudFolder: () => void this.nc.openFolder(),
-            pairNextcloud: () => void this.pairNextcloud(),
+            pairNextcloud: () => void this.nc.pairAndReport(),
             refreshNextcloud: () => void this.refreshNextcloud(),
             attachFromNextcloud: () => void this.attachFromNextcloud(),
             showLogs: () => void shell.showItemInFolder(this.log.file),

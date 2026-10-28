@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Vertex AI Provider Adapter
  *
@@ -139,6 +140,11 @@ class GoogleVertexProvider extends GoogleProvider {
         }
     }
 
+    /** Seam for tests: the v1alpha client Lyria needs. */
+    _createMusicClient(GoogleGenAI, clientConfig) {
+        return new GoogleGenAI(clientConfig);
+    }
+
     /**
      * Generate music via Vertex AI (Lyria RealTime).
      */
@@ -166,7 +172,7 @@ class GoogleVertexProvider extends GoogleProvider {
 
         // We need a custom client for music (v1alpha), so we replicate parent logic
         // with Vertex credentials
-        const ai = new GoogleGenAI(clientConfig);
+        const ai = this._createMusicClient(GoogleGenAI, clientConfig);
 
         const durationMs = (options.durationSeconds || 10) * 1000;
         const bpm = options.bpm || 90;
@@ -174,11 +180,39 @@ class GoogleVertexProvider extends GoogleProvider {
 
         log.info(`[GoogleVertex] Music generation: "${log.textForLog(prompt)}" (${durationMs / 1000}s, ${bpm} BPM)`);
 
+        /** @type {Buffer[]} */
         const audioChunks = [];
+        /** @type {import('@google/genai').LiveMusicSession | null} */
+        let session = null;
+        /** @type {NodeJS.Timeout | undefined} */
+        let timer;
 
         try {
-            const session = await ai.live.music.connect({
+            // The SDK streams through callbacks (there is no session.receive()).
+            // `done` settles when the duration timer fires or the socket closes;
+            // an error before any audio rejects it, an error after keeps the partial audio.
+            /** @type {(() => void) | undefined} */
+            let finish;
+            /** @type {((e: Error) => void) | undefined} */
+            let fail;
+            const done = new Promise((resolve, reject) => { finish = () => resolve(undefined); fail = reject; });
+
+            session = await ai.live.music.connect({
                 model: 'models/lyria-realtime-exp',
+                callbacks: {
+                    onmessage: (message) => {
+                        for (const c of message.serverContent?.audioChunks || []) {
+                            if (c.data) audioChunks.push(Buffer.from(c.data, 'base64'));
+                        }
+                    },
+                    onerror: (e) => {
+                        const msg = String((e && 'message' in e && e.message) || e);
+                        log.error('[GoogleVertex] Lyria RealTime error:', msg);
+                        if (audioChunks.length === 0) fail?.(new Error(msg));
+                        else finish?.();
+                    },
+                    onclose: () => finish?.(),
+                },
             });
 
             const weightedPrompts = options.weightedPrompts || [
@@ -190,21 +224,17 @@ class GoogleVertexProvider extends GoogleProvider {
                 musicGenerationConfig: { bpm, temperature },
             });
 
-            await session.play();
+            session.play();
 
-            const timeout = setTimeout(() => {
-                try { session.close(); } catch (e) { bestEffort('core/providers/googleVertex:GoogleVertexProvider.generateMusic#2', e); /* ignore */ }
-            }, durationMs);
-
-            for await (const message of session.receive()) {
-                const chunk = message.serverContent?.audioChunks?.[0]?.data;
-                if (chunk) audioChunks.push(Buffer.from(chunk, 'base64'));
-            }
-
-            clearTimeout(timeout);
+            timer = setTimeout(() => finish?.(), durationMs);
+            await done;
         } catch (err) {
-            log.error('[GoogleVertex] Lyria RealTime error:', err.message);
-            if (audioChunks.length === 0) throw new Error(`Music generation failed: ${err.message}`);
+            const msg = /** @type {Error} */ (err).message;
+            log.error('[GoogleVertex] Lyria RealTime error:', msg);
+            if (audioChunks.length === 0) throw new Error(`Music generation failed: ${msg}`);
+        } finally {
+            clearTimeout(timer);
+            try { session?.close(); } catch (e) { bestEffort('core/providers/googleVertex:GoogleVertexProvider.generateMusic#2', e); /* ignore */ }
         }
 
         if (audioChunks.length === 0) return { audioBase64: null, mimeType: 'audio/wav' };

@@ -64,7 +64,7 @@
     "src/components/automation/Builder/flow/edges.tsx": 522,
     "src/components/automation/Builder/flow/inlineFlowlets.ts": 730,
     "src/components/automation/Builder/flow/nodeDefs.ts": 740,
-    "src/components/automation/Builder/flow/settings/datatableEditors.jsx": 428,
+    "src/components/automation/Builder/flow/settings/datatableEditors.tsx": 428,
     "src/components/automation/Builder/flow/settings/FormBuilderFields.jsx": 913,
     "src/components/automation/Builder/flow/settings/ParseJsonFields.tsx": 401,
     "src/components/automation/Builder/flow/settings/triggerFilters.tsx": 614,

@@ -7,10 +7,12 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // how many rows were added below the existing ones.
         shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean', appended: 'integer|undefined' },
         sample: { success: true, path: '/Reports/invoices.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', bytes: 5120, created: true, updated: false },
+        echo: { path: 'path' },
     },
     nextcloud_create_document: {
         shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean' },
         sample: { success: true, path: '/Reports/summary.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytes: 8192, created: true, updated: false },
+        echo: { path: 'path' },
     },
     nextcloud_create_presentation: {
         // `webUrl` is the Nextcloud deep link that opens the deck in Nextcloud
@@ -18,6 +20,7 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // without a public base URL).
         shape: { success: 'boolean', path: 'string', contentType: 'string', bytes: 'integer', created: 'boolean', updated: 'boolean', fileId: 'string|null', webUrl: 'string|null', slideCount: 'integer', warnings: 'string[]' },
         sample: { success: true, path: '/Presentations/q3-review.pptx', contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', bytes: 61440, created: true, updated: false, fileId: '4711', webUrl: 'https://cloud.example.org/f/4711', slideCount: 7, warnings: [] },
+        echo: { path: 'path' },
     },
     create_presentation: {
         shape: { success: 'boolean', downloadUrl: 'string', filename: 'string', size: 'integer', slideCount: 'integer', houseStyle: 'boolean', warnings: 'string[]' },
@@ -34,6 +37,7 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // Returns the raw Deck card JSON (POST .../cards). Demo write tool.
         shape: { id: 'integer', title: 'string', description: 'string', stackId: 'integer', type: 'string', order: 'integer', archived: 'boolean', duedate: 'string|null', createdAt: 'integer', lastModified: 'integer' },
         sample: { id: 4521, title: 'Follow up with Nextcloud', description: '', stackId: 34, type: 'plain', order: 999, archived: false, duedate: null, createdAt: Math.floor(Date.now() / 1000), lastModified: Math.floor(Date.now() / 1000) },
+        echo: { title: 'title', description: 'description', stackId: 'stackId', duedate: 'duedate' },
     },
 
     // ── Nextcloud reads (added 2026-09-11) ────────────────────────
@@ -60,10 +64,12 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // by whatever the upstream AI step happened to call the field.
         shape: { tableId: 'integer', count: 'integer', columns: 'array of { id, title, type, subtype, mandatory, selectionOptions (selection columns: [{ id, label }]), numberDecimals (number columns) }' },
         sample: { tableId: 4, count: 2, columns: [{ id: 1, title: 'Datum', type: 'datetime', subtype: 'date', mandatory: false }, { id: 2, title: 'Leverancier', type: 'text', subtype: 'line', mandatory: false }] },
+        echo: { tableId: 'tableId' },
     },
     nextcloud_tables_create: {
         shape: { success: 'boolean', table: 'object { id, title, emoji, ownership, isShared, archived, rowsCount, columnsCount }' },
         sample: { success: true, table: { id: 7, title: 'Facturen', emoji: '🧾', ownership: 'admin', isShared: false, archived: false, rowsCount: 0, columnsCount: 0 } },
+        echo: { 'table.title': 'title', 'table.emoji': 'emoji' },
     },
     nextcloud_tables_create_row: {
         shape: { success: 'boolean', row: 'object { id, tableId, createdBy, createdAt, values }', warnings: 'array of string|undefined (e.g. a number was rounded)' },
@@ -82,6 +88,7 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // over `.files`, a field that does not exist. Read off the executor.
         shape: { path: 'string', count: 'integer', items: 'array of { name, path, type ("file"|"folder"), size, contentType, modified, fileId }' },
         sample: { path: '/Invoices', count: 1, items: [{ name: 'Invoice-2026-001.pdf', path: '/Invoices/Invoice-2026-001.pdf', type: 'file', size: 51200, contentType: 'application/pdf', modified: 'Thu, 10 Sep 2026 09:00:00 GMT', fileId: '1234' }] },
+        echo: { path: 'path' },
     },
     nextcloud_read_file: {
         // fileOperations.js: rich documents (PDF/DOCX/XLSX) also carry
@@ -92,6 +99,7 @@ const OUTPUT_SCHEMAS_PART_2 = {
         // branch.
         shape: { path: 'string', size: 'integer', contentType: 'string', extractedVia: 'string|undefined', truncated: 'boolean', content: 'string', meta: 'object|undefined' },
         sample: { path: '/Invoices/Invoice-2026-001.pdf', size: 51200, contentType: 'application/pdf', extractedVia: 'pdf-text-layer', truncated: false, content: 'INVOICE\nVendor: Acme BV\nAmount: EUR 1.240,00\nDue: 2026-10-01', meta: { pages: 2 } },
+        echo: { path: 'path' },
     },
     nextcloud_talk_list_rooms: {
         // { count, rooms } — the array is under `rooms`, so a forEach binds
@@ -102,12 +110,15 @@ const OUTPUT_SCHEMAS_PART_2 = {
         sample: { count: 1, rooms: [{ token: '78dp7n2a', type: 2, name: 'Ops', description: '', unreadMessages: 0, unreadMention: false, lastActivity: Math.floor(Date.now() / 1000), lastMessage: { id: 91, actor: 'Alice', message: 'Morning', timestamp: Math.floor(Date.now() / 1000) }, participantType: 1, canStartCall: true, readOnly: 0, hasCall: false, callFlag: 0, callRecording: 0, callStartTime: 0, objectType: '', objectId: '' }] },
     },
     nextcloud_deck_list_boards: {
-        shape: { count: 'integer', boards: 'array of { id, title, color, archived, stacks }' },
-        sample: { count: 1, boards: [{ id: 2, title: 'Demo Ops', color: '0082c9', archived: false, stacks: [{ id: 5, title: 'Inbox' }] }] },
+        // No stacks here: the handler maps each board to these fields only.
+        // A board's columns come from nextcloud_deck_list_stacks.
+        shape: { count: 'integer', boards: 'array of { id, title, color, archived, labels: [{ id, title, color }], permissions, owner }' },
+        sample: { count: 1, boards: [{ id: 2, title: 'Demo Ops', color: '0082c9', archived: false, labels: [{ id: 1, title: 'Urgent', color: 'ff0000' }], permissions: { PERMISSION_READ: true, PERMISSION_EDIT: true, PERMISSION_MANAGE: true, PERMISSION_SHARE: true }, owner: 'alice' }] },
     },
     nextcloud_deck_list_stacks: {
         shape: { boardId: 'integer', count: 'integer', stacks: 'array of { id, title, order, cardCount }' },
         sample: { boardId: 2, count: 2, stacks: [{ id: 5, title: 'Inbox', order: 0, cardCount: 3 }, { id: 6, title: 'Done', order: 1, cardCount: 7 }] },
+        echo: { boardId: 'boardId' },
     },
 
     // ── GitHub writes ─────────────────────────────────────────────

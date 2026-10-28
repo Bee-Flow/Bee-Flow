@@ -3,32 +3,30 @@
 // Split out of guardInstaller.js (file budget): the Redis half of the guard pair.
 
 /**
- * @param {import('./docker/dockerKit').DockerClient} docker
- * @param {string} name
+ * The redis-server arguments of the guard's cache. Not persisted: no RDB
+ * snapshots (`--save ''`), no AOF, and no volume. It holds caches only (the
+ * PII result cache, which keeps no span text), so a restart costs a few
+ * misses, and nothing in it ever reaches a disk.
  */
-async function ensureVolume(docker, name) {
-    try {
-        await docker.getVolume(name).inspect();
-        return;
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
-    await docker.createVolume({ Name: name });
-}
+const REDIS_CMD = Object.freeze([
+    'redis-server',
+    '--maxmemory', '256mb',
+    '--maxmemory-policy', 'allkeys-lru',
+    '--save', '',
+    '--appendonly', 'no',
+]);
 
 /**
- * The guard's Redis cache container, on the guard network, with its own volume.
+ * The guard's Redis cache container, on the guard network, without a volume.
  * @param {import('./docker/dockerKit').DockerClient} docker
- * @param {{ container: string, volume: string, network: string }} names
+ * @param {{ container: string, network: string }} names
  */
-async function startRedis(docker, { container: containerName, volume, network }) {
-    await ensureVolume(docker, volume);
+async function startRedis(docker, { container: containerName, network }) {
     const container = await docker.createContainer({
         name: containerName,
         Image: 'redis:7-alpine',
-        Cmd: ['redis-server', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru'],
+        Cmd: [...REDIS_CMD],
         HostConfig: {
-            Binds: [`${volume}:/data`],
             RestartPolicy: { Name: 'unless-stopped' },
             NetworkMode: network,
         },
@@ -45,4 +43,4 @@ async function startRedis(docker, { container: containerName, volume, network })
     await container.start();
 }
 
-module.exports = { startRedis, ensureVolume };
+module.exports = { startRedis, REDIS_CMD };

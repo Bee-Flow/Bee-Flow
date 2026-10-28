@@ -12,7 +12,7 @@
  *
  * SUBS is the live array getSubscriptionsForProvider answers (tests may splice
  * it); dispatchedRuns collects the automation ids executeAutomation was called
- * with.
+ * with, dispatchedPayloads the trigger payload each run received.
  * @param {string} resolved
  */
 
@@ -39,14 +39,17 @@ function installDispatchStubs() {
     cacheStub(require.resolve('../stores/userStore'), { getUser: async (uid) => USERS[uid] || null });
 
     const dispatchedRuns = [];
+    /** @type {{ automationId: string, payload: Record<string, any> }[]} */
+    const dispatchedPayloads = [];
     cacheStub(require.resolve('../core/automationRunner'), {
-        executeAutomation: async (automation) => {
+        executeAutomation: async (automation, opts) => {
             dispatchedRuns.push(automation.id);
+            dispatchedPayloads.push({ automationId: automation.id, payload: opts?.triggerPayload });
             return { id: `run-${automation.id}` };
         },
     });
 
-    return { SUBS, USERS, dispatchedRuns, storePath };
+    return { SUBS, USERS, dispatchedRuns, dispatchedPayloads, storePath };
 }
 
 /** dispatch.js runs executeAutomation fire-and-forget (setImmediate): give it a turn. */

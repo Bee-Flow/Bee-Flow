@@ -544,7 +544,7 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
         await ensureImage(docker, 'redis:7-alpine', 'redis:7-alpine');
         _setProgress('starting', { message: 'Starting Redis cache…', percent: null });
         await removeContainerIfExists(docker, REDIS_CONTAINER);
-        await startGuardRedis(docker, { container: REDIS_CONTAINER, volume: REDIS_VOLUME, network: GUARD_NETWORK });
+        await startGuardRedis(docker, { container: REDIS_CONTAINER, network: GUARD_NETWORK });
 
         // resolveGuardImage emits its own pull/build progress events.
         stage = 'guard-image';

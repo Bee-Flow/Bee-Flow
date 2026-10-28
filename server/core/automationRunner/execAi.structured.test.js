@@ -106,3 +106,29 @@ test('one usage row, from the structured call', async () => {
     assert.strictEqual(h.usageRows[0].prompt_tokens, 10);
     assert.strictEqual(h.usageRows[0].source, 'automation');
 });
+
+// ── #200: a tool loop that writes does not start on a hole ──────────────────
+// The model writes with what the prompt and inputs gave it, so a step offered
+// a tool with a side effect fails, before the model is asked, when they read a
+// field that is not there on a step that ran (./blankInputs). Tools that only
+// read, a dry run and an optional trigger field keep running.
+
+const WRITES = [{ type: 'function', function: { name: 'nextcloud_notes_create' } }];
+const READS = [{ type: 'function', function: { name: 'kb_search' } }];
+const ran = () => runStateWith({ ev: { summary: 'Standup' } });
+const toolStep = (prompt, tools, inputs = {}) => step({ outputSchema: undefined, prompt, inputs, _tools: tools });
+
+test('a side-effect tool on offer: a prompt or template input with a hole stops the step before the model', async () => {
+    const blank = (/** @type {any} */ e) => e.errorClass === 'binding_unresolved' && /Nothing was sent/.test(e.message) && /steps\.ev\.output\.event\.summary/.test(e.message);
+    await assert.rejects(() => execAiStep(toolStep('Post: {{steps.ev.output.event.summary}}', WRITES), CTX, ran(), 'live'), blank);
+    await assert.rejects(() => execAiStep(toolStep('Post it.', WRITES, { s: { kind: 'template', value: '{{steps.ev.output.event.summary}}' } }), CTX, ran(), 'live'), blank);
+    assert.strictEqual(h.chatCalls.length + h.forcedCalls.length, 0, 'the model is never asked');
+});
+
+test('the same step with the field there, read-only tools, a dry run, an optional trigger field: the model is asked', async () => {
+    await execAiStep(toolStep('Post: {{steps.ev.output.summary}}', WRITES), CTX, ran(), 'live');
+    await execAiStep(toolStep('Find: {{steps.ev.output.event.summary}}', READS), CTX, ran(), 'live');
+    await execAiStep(toolStep('Post: {{steps.ev.output.event.summary}}', WRITES), CTX, ran(), 'dry_run');
+    await execAiStep(toolStep('Post: {{trigger.output.nickname}}', WRITES), CTX, ran(), 'live');
+    assert.strictEqual(h.chatCalls.length, 4);
+});

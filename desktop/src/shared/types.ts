@@ -236,6 +236,8 @@ export interface DesktopSettings {
         socketPath: string;
         /** Where "Save to Nextcloud" drops files. '' means ask every time. */
         saveFolder: string;
+        /** The Nextcloud to link when the desktop client is not installed. '' means none. */
+        serverUrl: string;
         watchedFolders: WatchedFolder[];
     };
 }

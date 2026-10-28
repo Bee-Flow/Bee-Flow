@@ -53,6 +53,11 @@ const config = require('./config');
 const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const log = require('./log');
 
+// The top-menu entry heartbeat.js registers. AppAPI's embedded page needs a
+// registered entry name in the URL (/embedded/<appId>/<name>), so it is also
+// what a Files action redirects to.
+const TOP_MENU_NAME = 'main';
+
 const UI_API = '/ocs/v2.php/apps/app_api/api/v2/ui/files-actions-menu';
 const UI_API_V1 = '/ocs/v2.php/apps/app_api/api/v1/ui/files-actions-menu';
 
@@ -228,8 +233,11 @@ function registerRoutes(app) {
             // to a Bee Flow that has nothing to work on.
             return res.json({});
         }
-        // '' is the SPA root; AppAPI appends ?fileIds=<comma-separated>.
-        return res.json({ redirect_handler: '' });
+        // The registered top-menu entry: AppAPI builds
+        // /apps/app_api/embedded/<appId>/<redirect_handler>?fileIds=<ids>, and
+        // its route needs a non-empty, registered name there. '' gave
+        // /embedded/bee_flow/, a Nextcloud 404 page for all three entries.
+        return res.json({ redirect_handler: TOP_MENU_NAME });
     });
 }
 
@@ -242,4 +250,5 @@ module.exports = {
     ACTIONS,
     RETIRED_ACTION_NAMES,
     HANDLER_PATH,
+    TOP_MENU_NAME,
 };

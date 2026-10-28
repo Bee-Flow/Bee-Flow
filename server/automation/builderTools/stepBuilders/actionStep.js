@@ -5,7 +5,7 @@
  */
 
 const { isSideEffect } = require('../../sideEffectMap');
-const { newId, appendAfter } = require('../draftGraph');
+const { newId, appendAfter, lastStepId } = require('../draftGraph');
 const { fieldsAtRef, checkLoopRef, describeItem } = require('../outputFields');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
 const { inspectGateError } = require('../inspection');
@@ -162,9 +162,12 @@ function applyAddAction(draft, rawArgs, draftWrap) {
     // twice. Requiring inputs keeps the guard on the cases where "identical"
     // provably means "the same call".
     const hasInputs = inputs && Object.keys(inputs).length > 0;
-    const dup = (onOwnBranch || !hasInputs) ? null : findDuplicateAction(draft, args.tool, inputs);
+    // A re-read after a step that changed something is not a duplicate:
+    // the guard looks at the graph between the existing call and this one.
+    const dup = (onOwnBranch || !hasInputs) ? null
+        : findDuplicateAction(draft, args.tool, inputs, { anchorId: args.afterStepId || (draft.trigger ? lastStepId(draft) : null) });
     if (dup) {
-        return { error: `This draft already has step "${dup.id}" calling ${args.tool} with identical inputs — adding it again would run the same call twice. Reference "${dup.id}" downstream (steps.${dup.id}.output.…) instead. If you really need a second, distinct call, change an input.` };
+        return { error: `This draft already has step "${dup.id}" calling ${args.tool} with identical inputs, and nothing between the two changes anything — adding it again would run the same call twice. Reference "${dup.id}" downstream (steps.${dup.id}.output.…) instead. A re-read after a step that writes is allowed: append it after that step (afterStepId).` };
     }
     const step = {
         id: newId('a'),

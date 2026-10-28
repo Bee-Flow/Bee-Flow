@@ -152,6 +152,16 @@ export function isSameServer(a: string, b: string): boolean {
     return left.ok && right.ok && left.url === right.url;
 }
 
+/**
+ * Where the main window opens: the workspace at `/app`, not the server's root.
+ * The root may serve the instance's public product website, which is a page
+ * for visitors, not the app. The saved server URL never carries `/app`
+ * (normaliseServerUrl strips it), so appending it cannot double it.
+ */
+export function workspaceUrl(base: string): string {
+    return serverUrl(base, '/app');
+}
+
 /** Build a URL under the server, e.g. apiUrl('https://x', '/api/health'). */
 export function serverUrl(base: string, pathSuffix: string): string {
     const trimmed = base.replace(/\/+$/, '');

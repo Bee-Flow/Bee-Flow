@@ -368,3 +368,10 @@ test('own use reports no grant rather than a stale one', async () => {
     const r = await resolveHttpAuthHeaders({ connectionId: 'cid-own' }, ctx);
     assert.strictEqual(r.grantId, null);
 });
+
+test('oauth2_cc cache key differs for updatedAt values 1 ms apart', () => {
+    const { cacheKey } = require('./httpAuth')._internals;
+    const a = cacheKey({ id: 'c1', updatedAt: new Date('2026-01-01T00:00:00.000Z') });
+    const b = cacheKey({ id: 'c1', updatedAt: new Date('2026-01-01T00:00:00.001Z') });
+    assert.notEqual(a, b);
+});

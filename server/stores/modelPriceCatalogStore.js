@@ -60,9 +60,14 @@ async function _initDB() {
         // One card per (provider, model, tier, start): the append-only key.
         `CREATE UNIQUE INDEX IF NOT EXISTS uq_model_price_catalog_card ON model_price_catalog(provider, model_id, tier, valid_from)`,
         `CREATE INDEX IF NOT EXISTS idx_model_price_catalog_model ON model_price_catalog(lower(model_id))`,
-        // Defence in depth next to the importer's own validation (idempotent).
-        { sql: `ALTER TABLE model_price_catalog ADD CONSTRAINT chk_model_price_catalog_rates CHECK (input >= 0 AND output >= 0 AND (valid_to IS NULL OR valid_to > valid_from))`,
-          tolerate: ['42710', '42P07'], reden: 'constraint already exists on a re-run' },
+        // Defence in depth next to the importer's own validation. Postgres has
+        // no ADD CONSTRAINT IF NOT EXISTS; checking first keeps a re-run from
+        // logging a (tolerated) duplicate_object error on every boot.
+        `DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_model_price_catalog_rates') THEN
+                ALTER TABLE model_price_catalog ADD CONSTRAINT chk_model_price_catalog_rates CHECK (input >= 0 AND output >= 0 AND (valid_to IS NULL OR valid_to > valid_from));
+            END IF;
+        END $$`,
     ]);
     priceCatalog.setRefresher(loadAll);
     await refreshIndex();

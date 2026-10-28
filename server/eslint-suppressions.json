@@ -1816,7 +1816,7 @@
   },
   "automation/triggerBus/filters.js": {
     "complexity": {
-      "count": 6
+      "count": 5
     }
   },
   "automation/triggerBus/filtersTables.js": {

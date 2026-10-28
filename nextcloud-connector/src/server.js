@@ -98,7 +98,7 @@ app.use('/', require('./eventsWebhook'));
 // Routes auth-checked by appApiAuthMiddleware above (admin only via NC).
 const setupConfig = require('./setupConfig');
 const stored = setupConfig.init(config.persistentStorage);
-if (stored && !process.env.BEEFLOW_API_BASE_URL && stored.apiBaseUrl) {
+if (stored && !config.apiBaseUrlLocked && stored.apiBaseUrl) {
     config.apiBaseUrl = stored.apiBaseUrl;
     log.info(`[Setup] applying user-chosen apiBaseUrl: ${config.apiBaseUrl} (${stored.mode})`);
 }
@@ -370,22 +370,8 @@ if (process.env.HP_SHARED_KEY) {
     });
 }
 
-// Best-effort unregister of NC event-listeners on shutdown so stale
-// subscriptions don't accumulate after restarts. Re-registered on next
-// /init by registerEventListeners().
-let _shuttingDown = false;
-/** @param {string} signal */
-async function gracefulShutdown(signal) {
-    if (_shuttingDown) return;
-    _shuttingDown = true;
-    log.info(`[BeeFlowConnector] ${signal} — unregistering NC event listeners`);
-    try {
-        const { unregisterEventListeners } = require('./heartbeat');
-        await unregisterEventListeners();
-    } catch (err) {
-        log.warn(`[BeeFlowConnector] Unregister failed: ${errMessage(err)}`);
-    }
-    process.exit(0);
-}
+// A stop is not an uninstall: exit without unregistering anything (see
+// shutdown.js for what the old teardown did to the Talk bot).
+const gracefulShutdown = require('./shutdown').createShutdownHandler();
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
