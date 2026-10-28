@@ -6,7 +6,9 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
+import { nOf } from '@/shared/lib/plural';
 import { Card, Divider, Icon, ListRow, Section, type IconName } from '@/shared/ui';
 
 import { ProfileToolRows } from './ProfileToolRows';
@@ -14,6 +16,7 @@ import { useAgentTools } from '../hooks/queries';
 import type { Agent } from '../model/types';
 
 export function ProfileCapabilities({ agent }: { agent: Agent }) {
+    const t = useTranslation();
     const theme = useTheme();
     const tools = useAgentTools(agent.id);
     const toolCount = (tools.data ?? []).length;
@@ -24,12 +27,15 @@ export function ProfileCapabilities({ agent }: { agent: Agent }) {
     );
 
     return (
-        <Section title="What it can use" subtitle="Tools and knowledge this agent reaches for on its own">
+        <Section
+            title={t('mobile.agents.capabilities.title', 'What it can use')}
+            subtitle={t('mobile.agents.capabilities.subtitle', 'Tools and knowledge this agent reaches for on its own')}
+        >
             <Card padded={false}>
                 {toolCount === 0 && knowledgeCount === 0 && skillCount === 0 ? (
                     <ListRow
-                        title="Just the model"
-                        subtitle="No tools or knowledge bases are attached — it answers from what the model knows plus what you send it."
+                        title={t('mobile.agents.capabilities.just_model', 'Just the model')}
+                        subtitle={t('mobile.agents.capabilities.just_model_hint', 'No tools or knowledge bases are attached — it answers from what the model knows plus what you send it.')}
                     />
                 ) : (
                     <>
@@ -38,11 +44,11 @@ export function ProfileCapabilities({ agent }: { agent: Agent }) {
                             <>
                                 {toolCount > 0 ? <Divider inset={theme.spacing.lg} /> : null}
                                 <ListRow
-                                    title={knowledgeCount === 1 ? '1 knowledge base' : `${knowledgeCount} knowledge bases`}
+                                    title={nOf(t, 'mobile.agents.capabilities.knowledge_count', knowledgeCount, ['{count} knowledge base', '{count} knowledge bases'])}
                                     subtitle={
                                         agent.config.strictKnowledge
-                                            ? 'It answers only from these, and says so when it cannot.'
-                                            : 'Searched first, then combined with what the model knows.'
+                                            ? t('mobile.agents.capabilities.knowledge_strict', 'It answers only from these, and says so when it cannot.')
+                                            : t('mobile.agents.capabilities.knowledge_loose', 'Searched first, then combined with what the model knows.')
                                     }
                                     leading={icon('BookOpen')}
                                 />
@@ -52,8 +58,8 @@ export function ProfileCapabilities({ agent }: { agent: Agent }) {
                             <>
                                 <Divider inset={theme.spacing.lg} />
                                 <ListRow
-                                    title={skillCount === 1 ? '1 skill' : `${skillCount} skills`}
-                                    subtitle="Extra instructions loaded when they are relevant."
+                                    title={nOf(t, 'mobile.agents.capabilities.skill_count', skillCount, ['{count} skill', '{count} skills'])}
+                                    subtitle={t('mobile.agents.capabilities.skills_hint', 'Extra instructions loaded when they are relevant.')}
                                     leading={icon('Zap')}
                                 />
                             </>

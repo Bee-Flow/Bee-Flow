@@ -3,6 +3,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Badge, Text } from '@/shared/ui';
 
@@ -16,6 +17,7 @@ const makeStyles = (theme: Theme) => ({
 });
 
 export function ProfileHero({ agent }: { agent: Agent }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.hero}>
@@ -30,11 +32,11 @@ export function ProfileHero({ agent }: { agent: Agent }) {
             ) : null}
             <View style={styles.badges}>
                 {agent.is_published ? (
-                    <Badge label="Shared with your organisation" tone="accent" />
+                    <Badge label={t('mobile.agents.badge_shared', 'Shared with your organisation')} tone="accent" />
                 ) : (
-                    <Badge label="Private to you" />
+                    <Badge label={t('mobile.agents.badge_private_to_you', 'Private to you')} />
                 )}
-                {agent.config.strictKnowledge ? <Badge label="Knowledge only" /> : null}
+                {agent.config.strictKnowledge ? <Badge label={t('mobile.agents.badge_knowledge_only', 'Knowledge only')} /> : null}
             </View>
         </View>
     );

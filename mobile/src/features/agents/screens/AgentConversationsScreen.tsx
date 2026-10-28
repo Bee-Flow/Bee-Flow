@@ -63,7 +63,7 @@ export function AgentConversationsScreen({ id }: { id: string }) {
 
     const renderItem = ({ item }: { item: AgentConversationSummary }) => (
         <ListRow
-            title={item.title || 'Untitled chat'}
+            title={item.title || t('sidebar.untitled_chat', 'Untitled chat')}
             subtitle={t('mobile.agents.started_when', 'Started {when}', { when: timeAgo(item.created_at, { suffix: true }) })}
             meta={timeAgo(item.updated_at)}
             wrapTitle
@@ -84,19 +84,19 @@ export function AgentConversationsScreen({ id }: { id: string }) {
         <Screen edges={['top', 'bottom']}>
             <Stack.Screen options={{ headerShown: false }} />
             <ScreenHeader
-                title="Conversations"
+                title={t('mobile.agents.conversations_title', 'Conversations')}
                 subtitle={agent.data?.name ?? undefined}
                 actions={
                     <IconButton
                         icon={<Icon name="SquarePen" size={20} color={theme.colors.textPrimary} />}
-                        accessibilityLabel="Start a new conversation"
+                        accessibilityLabel={t('mobile.agents.new_conversation', 'Start a new conversation')}
                         onPress={startNew}
                     />
                 }
             />
             {(query.data ?? []).length > 0 ? (
                 <View style={styles.search}>
-                    <SearchField value={search} onChangeText={setSearch} placeholder="Search these conversations" />
+                    <SearchField value={search} onChangeText={setSearch} placeholder={t('mobile.agents.search_conversations', 'Search these conversations')} />
                 </View>
             ) : null}
             {query.isLoading ? (
@@ -106,13 +106,13 @@ export function AgentConversationsScreen({ id }: { id: string }) {
             ) : items.length === 0 ? (
                 <EmptyState
                     icon="MessageSquare"
-                    title={search.trim() ? 'Nothing matches that' : 'No conversations yet'}
+                    title={search.trim() ? t('mobile.agents.nothing_matches', 'Nothing matches that') : t('mobile.agents.no_conversations', 'No conversations yet')}
                     message={
                         search.trim()
-                            ? 'Titles are generated after the first exchange, so a very new chat may not be searchable yet.'
-                            : 'Ask this agent something and the conversation is kept here.'
+                            ? t('mobile.agents.search_empty_hint', 'Titles are generated after the first exchange, so a very new chat may not be searchable yet.')
+                            : t('mobile.agents.no_conversations_hint', 'Ask this agent something and the conversation is kept here.')
                     }
-                    actionLabel={search.trim() ? 'Clear search' : 'Start a conversation'}
+                    actionLabel={search.trim() ? t('automations.mapping.clear_search', 'Clear search') : t('mobile.agents.start_conversation', 'Start a conversation')}
                     onAction={search.trim() ? () => setSearch('') : startNew}
                 />
             ) : (

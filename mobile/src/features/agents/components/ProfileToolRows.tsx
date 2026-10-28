@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Divider, Icon, ListRow } from '@/shared/ui';
 
@@ -10,6 +11,7 @@ import { toolLabel } from '../model/format';
 import type { Agent } from '../model/types';
 
 export function ProfileToolRows({ agent }: { agent: Agent }) {
+    const t = useTranslation();
     const theme = useTheme();
     const tools = useAgentTools(agent.id);
     const components = useAgentComponents();
@@ -22,7 +24,7 @@ export function ProfileToolRows({ agent }: { agent: Agent }) {
                         title={toolLabel(tool.componentId, components.data ?? [])}
                         subtitle={
                             tool.params && Object.keys(tool.params).length > 0
-                                ? 'Pre-configured by the agent’s author'
+                                ? t('mobile.agents.tool_preconfigured', 'Pre-configured by the agent’s author')
                                 : undefined
                         }
                         leading={<Icon name="Wrench" size={18} color={theme.colors.textMuted} />}

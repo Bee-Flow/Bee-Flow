@@ -24,11 +24,14 @@
  *      Alert.alert('Delete?', '…')    a system dialog
  *      toast('Task deleted')          the in-app toast
  *
- *    Areas that still carry hard-coded text are on the UNCONVERTED ledger with
- *    their exact count, so an unconverted screen cannot gain strings and a
- *    converted one cannot lose its translation. An area that is on NO ledger
- *    line must be clean — so a new directory starts translated rather than
- *    starting as debt somebody has to notice.
+ *    The UNCONVERTED ledger is empty: every area renders its strings through
+ *    t(), so a new string anywhere fails. The ledger is kept, with its exact
+ *    counts and its "does not rot" test, for the day a screen has to land
+ *    before its translation does: a line is a debt with a number on it, so an
+ *    unconverted screen cannot gain strings and a converted one cannot lose its
+ *    translation. An area that is on NO ledger line must be clean — so a new
+ *    directory starts translated rather than starting as debt somebody has to
+ *    notice.
  *
  * 2. EVERY BORROWED KEY EXISTS IN BOTH ENGLISH DICTIONARIES, or is on the
  *    PENDING_KEYS ledger with a reason. The phone reads the SERVER's
@@ -229,9 +232,6 @@ const UNCONVERTED = new Map<string, number>([
     // 24 -> 22: the avatar picker's "Photos not allowed" dialog, gone with the
     // media-library permission the Photo Picker never needed.
     ['src/features/account', 22],
-    // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
-    // through t() when the long-press menu became the kit's ActionMenu.
-    ['src/features/agents', 33],
     // 15 -> 8: the decision's status word, its clock line and its facts went
     // through t() when a deadline stopped reading "Expires: now".
     ['src/features/approvals', 8],
@@ -559,16 +559,20 @@ describe('no hard-coded user-facing text outside the ledger', () => {
         },
     );
 
-    it.each([...UNCONVERTED.keys()].sort())(
-        '%s is still on the ledger, at exactly the recorded count',
-        (area) => {
-            const actual = (byArea.get(area) ?? []).length;
-            const recorded = UNCONVERTED.get(area) as number;
-            // Equality, not "<=": the number is the debt, and a number that is
-            // allowed to be stale stops being a measurement.
-            expect({ area, actual }).toEqual({ area, actual: recorded });
-        },
-    );
+    // jest-each refuses an empty table, and an empty ledger is the goal.
+    const ledgered = [...UNCONVERTED.keys()].sort();
+    if (ledgered.length > 0) {
+        it.each(ledgered)(
+            '%s is still on the ledger, at exactly the recorded count',
+            (area) => {
+                const actual = (byArea.get(area) ?? []).length;
+                const recorded = UNCONVERTED.get(area) as number;
+                // Equality, not "<=": the number is the debt, and a number that is
+                // allowed to be stale stops being a measurement.
+                expect({ area, actual }).toEqual({ area, actual: recorded });
+            },
+        );
+    }
 
     it('the ledger does not rot', () => {
         const done = [...UNCONVERTED.keys()].filter((a) => (byArea.get(a) ?? []).length === 0);

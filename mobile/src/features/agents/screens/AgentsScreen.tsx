@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Screen, ScreenHeader, Segmented } from '@/shared/ui';
 
@@ -27,23 +28,28 @@ const makeStyles = (theme: Theme) => ({
 });
 
 export function AgentsScreen() {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const router = useRouter();
     const [tab, setTab] = useState<Tab>('agents');
 
     return (
         <Screen edges={['top', 'bottom']}>
-            <ScreenHeader title="Agents" subtitle="Purpose-built assistants" actions={<NewAgentButton />} />
+            <ScreenHeader
+                title={t('store.title', 'Agents')}
+                subtitle={t('mobile.agents.subtitle', 'Purpose-built assistants')}
+                actions={<NewAgentButton />}
+            />
             <View style={styles.switch}>
                 {/* A single choice, so a segmented control — two chips would
                     announce a multi-select. */}
                 <Segmented
-                    accessibilityLabel="Agents or recent chats"
+                    accessibilityLabel={t('mobile.agents.switch_label', 'Agents or recent chats')}
                     value={tab}
                     onChange={setTab}
                     options={[
-                        { value: 'agents', label: 'Agents' },
-                        { value: 'chats', label: 'Recent chats' },
+                        { value: 'agents', label: t('store.title', 'Agents') },
+                        { value: 'chats', label: t('mobile.agents.recent_chats', 'Recent chats') },
                     ]}
                 />
             </View>

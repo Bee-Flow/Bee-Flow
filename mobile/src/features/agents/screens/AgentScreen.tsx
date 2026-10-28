@@ -16,6 +16,7 @@
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { ErrorState, LoadingState, Screen } from '@/shared/ui';
 
 import { AgentChat } from '../components/AgentChat';
@@ -32,6 +33,7 @@ export interface AgentScreenProps {
 }
 
 export function AgentScreen({ id, c, q }: AgentScreenProps) {
+    const t = useTranslation();
     const router = useRouter();
     // Seeded from the route and then owned locally: the server assigns the id
     // of a new chat mid-stream, and rewriting the URL then would remount this.
@@ -48,7 +50,7 @@ export function AgentScreen({ id, c, q }: AgentScreenProps) {
         // GET /agents/:id answers 404 for an agent that exists but is out of
         // reach, so "not found" and "not yours" are the same response by
         // design — do not promise the user a way in.
-        <ErrorState error={new Error('This agent is not available to you.')} onRetry={() => void query.refetch()} />
+        <ErrorState error={new Error(t('mobile.agents.not_available', 'This agent is not available to you.'))} onRetry={() => void query.refetch()} />
     ) : chatting ? (
         <AgentChat agent={agent} conversationId={conversationId} onConversationId={setConversationId} initialText={q ?? ''} />
     ) : (
