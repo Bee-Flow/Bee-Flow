@@ -19,7 +19,7 @@ const webpageStore = require('../../../stores/webpageStore');
 function createValidationRepair({ send, webpageId, userId }, turn) {
     const { liveFiles, dirtySlots, touchedExtraPaths } = turn;
 
-    // ── Post-generation validation (BFSF-222) ─────────────────────────
+    // ── Post-generation validation ─────────────────────────
     // Runs ONCE at end-of-turn (the model returned no tool calls): scans
     // the in-memory html + touched extras for broken anchors and wrong/
     // missing images. When error-severity findings exist it returns a

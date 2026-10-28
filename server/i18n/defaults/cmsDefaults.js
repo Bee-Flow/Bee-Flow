@@ -682,7 +682,7 @@ const BLOCK_DEFAULTS = {
         emptyText: '',
     },
 
-    // Animated product mockup (issue 244): a tilted app panel where `prompt`
+    // Animated product mockup: a tilted app panel where `prompt`
     // types itself and `steps` appear one by one. All text, so it translates and
     // needs no video. `role` is 'user' | 'assistant' | 'card' (denylisted).
     'product-mockup': {
@@ -699,7 +699,7 @@ const BLOCK_DEFAULTS = {
         ],
     },
 
-    // Horizontal snap carousel of large gradient cards (issue 244). `gradient`
+    // Horizontal snap carousel of large gradient cards. `gradient`
     // is 'primary' | 'accent' | 'mix' | 'dark'; the colours come from the theme.
     'card-carousel': {
         eyebrow: '',
@@ -791,7 +791,7 @@ const BLOCK_TYPES = [
     // imported into an older deployment drops them.
     { type: 'story-header',     label: 'Customer story header', icon: 'Quote',  category: 'Trust' },
     { type: 'customer-stories', label: 'Customer stories',      icon: 'Users',  category: 'Trust' },
-    // Same rollback caveat: motion blocks (issue 244).
+    // Same rollback caveat: motion blocks.
     { type: 'product-mockup', label: 'Product mockup',  icon: 'AppWindow',          category: 'Content' },
     { type: 'card-carousel',  label: 'Card carousel',   icon: 'Layers',  category: 'Content' },
     // Same rollback caveat: an export with these blocks imported into an older

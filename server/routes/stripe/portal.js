@@ -43,7 +43,7 @@ const PortalBody = bodyOf({
 // ── POST /portal — Create a Stripe Customer Portal Session ───────────────────
 // Supports both organization and consumer users
 
-// BFSF-241: the portal is only useful for customers with a paid(ish) billing
+// The portal is only useful for customers with a paid(ish) billing
 // relationship — trial/free customers get a Stripe customer id early
 // (trialService, org checkout pre-create) and used to reach an empty portal
 // showing globally-enabled payment methods (Pix/Kakao Pay/Amazon Pay) that

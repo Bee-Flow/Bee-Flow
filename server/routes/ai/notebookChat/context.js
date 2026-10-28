@@ -71,7 +71,7 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
                     title: resolveSourceName(c.title),
                 }));
                 // Injected without a tool call, so the "own server" block
-                // list applies as it does to notebook_kb_search (BFSF-354),
+                // list applies as it does to notebook_kb_search,
                 // before the tokenisation below. The citations stay real.
                 kbContext = await toolPiiGate.stripInjectedText(kbResult.contextPrompt, { shield: orgShieldConfig, tag: 'NotebookChat' });
                 log.info(`[NotebookChat] Injected ${kbResult.chunks.length} KB chunks for notebook ${notebook.id}`);

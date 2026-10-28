@@ -75,7 +75,7 @@ function resetStreamedOutput(turn) {
 }
 
 /**
- * BFSF-261: release any held untokeniser tail into THIS round's text and
+ * Release any held untokeniser tail into THIS round's text and
  * record it before the reset wipes it, so the pre-tool preamble survives into
  * persistence and is separated from the follow-up text in the live view.
  * @param {Turn} turn

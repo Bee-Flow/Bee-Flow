@@ -226,7 +226,7 @@ async function setupTurn(turn) {
     }
     const turnMode = approvedPlan ? 'build' : workMode;
     // A new or empty draft is built directly: the size check is for
-    // changes to a flow that already exists (BFSF-486).
+    // changes to a flow that already exists.
     const bufferedBuild = turnMode === 'build' && alwaysPlanLarge && !approvedPlan && !isBlankDraft(draftWrap.def);
     const permissionMode = bufferedBuild ? 'approve' : turnMode;
     const isolated = turnMode !== 'build' || bufferedBuild;
@@ -248,7 +248,7 @@ async function setupTurn(turn) {
     // A proposal from an earlier turn that still waits for Apply. An
     // isolated turn works ON it, so the agent's draft view shows what it
     // staged and a follow-up adds to the proposal instead of starting over
-    // from the live draft (BFSF-486). The live draft stays the base.
+    // from the live draft. The live draft stays the base.
     const savedProposal = pendingProposal(snapshot?.proposal, baseDraft);
     const reviewOutcome = snapshot?.reviewOutcome || null;
     // ── The question round of a plan ──

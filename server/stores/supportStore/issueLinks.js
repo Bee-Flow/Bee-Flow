@@ -22,7 +22,7 @@ const { initDB } = require('./schema');
  * The snapshot fields are the baseline the sync engine diffs against, so the
  * caller passes them as a tick would read them (supportIssueSync.linkBaseline).
  * `commentsSeeded` says the latest comment was read: without it the first
- * tick only records the baseline and flags nothing (BFSF-446). A re-link
+ * tick only records the baseline and flags nothing. A re-link
  * leaves an existing row's snapshot alone.
  */
 async function linkIssue({
@@ -131,7 +131,7 @@ async function listDistinctLinkedIssues() {
  *
  * The diff is per link, not per issue: one issue gets linked to several
  * tickets at different times, and linking it to a new ticket must not make the
- * older ones look moved (BFSF-446). A link moves when
+ * older ones look moved. A link moves when
  *   - its state changes from one it already had (a link that never had a
  *     state is on its first sync, which is not news), or
  *   - the issue resolves on a link that already had a state or a baseline, or

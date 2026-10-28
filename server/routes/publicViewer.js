@@ -730,7 +730,7 @@ router.get('/:token/extras/*path', async (req, res) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // Revalidate instead of blindly caching for 5 minutes: after an owner
         // re-snapshots an updated page, returning viewers were stuck with the old
-        // extra assets (images/fonts) until the window lapsed (BFSF-190). An
+        // extra assets (images/fonts) until the window lapsed. An
         // ETag on the snapshot bytes lets unchanged assets still 304 cheaply.
         // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a cache validator over our own bytes, not a security hash
         const _etag = obj.bytes ? `"${require('crypto').createHash('sha1').update(obj.bytes).digest('hex')}"` : null;

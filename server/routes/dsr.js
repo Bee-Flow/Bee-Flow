@@ -24,7 +24,7 @@
  * (mounted with `gate: null` in featureMap). GDPR requires the channel to be
  * reachable; admin endpoints stay enterprise-only.
  *
- * BFSF-441: the subject's address appears in exactly two places — the audited
+ * The subject's address appears in exactly two places — the audited
  * detail (GET /:id) and the letters e-mailed to the subject. Lists, evidence,
  * notifications and the export carry the masked form, built from allow-lists
  * (compliance/dsr/mask.js). The downloadable dossier gets the STRICTER of the

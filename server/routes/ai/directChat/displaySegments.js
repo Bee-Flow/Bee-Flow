@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * Direct-chat display segments (BFSF-261, part a).
+ * Direct-chat display segments.
  *
  * In the streamed tool loop, text the model emits BEFORE a tool call (the
  * "Ik zoek het even voor je op." preamble) is streamed live, then the server

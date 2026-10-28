@@ -334,7 +334,7 @@ async function run(req, res) {
         ];
 
         // The Privacy Shield tool block lists ("Outside tools" / "Own server")
-        // hold in a test turn as in the real turn it rehearses (BFSF-354): a
+        // hold in a test turn as in the real turn it rehearses: a
         // refused call never runs, and what the model reads of a passage has
         // the forbidden categories stripped. A failed lookup leaves the lists
         // unapplied, as a missing shield does in every other tool loop.

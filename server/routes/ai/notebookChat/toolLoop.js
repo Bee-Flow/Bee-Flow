@@ -82,7 +82,7 @@ function buildChatOptions({ tiers, resolvedTier, requestedEffort }) {
         // Pass an explicit reasoning effort. Without it, Claude 4.x adaptive
         // thinking defaults to 'medium' and can burn the entire (fast-tier,
         // 4096-token) budget on thinking, ending the stream with EMPTY content
-        // and no document edit — the "stuck in reasoning" symptom (BFSF-177).
+        // and no document edit — the "stuck in reasoning" symptom.
         reasoningEffort: requestedEffort || tierSettings.reasoningEffort || tierDefaults.reasoningEffort || 'low',
     };
     // Give thinking + answer headroom so a low tier doesn't share a tiny pot.

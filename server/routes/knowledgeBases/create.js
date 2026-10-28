@@ -75,7 +75,7 @@ router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ 
     res.status(201).json(kb);
 });
 
-// Duplicate a Knowledge Base's structure (BFSF-217). Copies the KB shell —
+// Duplicate a Knowledge Base's structure. Copies the KB shell —
 // name ("Copy of …"), description, category, icon and usage contexts — into a
 // new manual KB owned by the requester. Documents are NOT copied (their chunks
 // + embeddings live in the search service); the user adds/swaps sources for the

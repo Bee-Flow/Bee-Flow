@@ -62,7 +62,7 @@ async function closeTurn(turn) {
         const finalCheck = validateDefinition(draftWrap.def, { deliverableEvents: getDeliverableEvents() });
         const def = draftWrap.def;
         const hasTrigger = !!def?.trigger;
-        // A note (BFSF-411) is a canvas annotation, not a step the
+        // A note is a canvas annotation, not a step the
         // automation runs — a draft the model only ever left a sticky note
         // on (never adding real work) must not read as "has a step" and
         // get auto-finalized as if it were a working automation.
@@ -140,7 +140,7 @@ async function closeTurn(turn) {
         // A large change becomes the same one-click proposal approve mode
         // makes (Apply / Discard on the card). It used to become a plan
         // listing the changes, and approving that plan threw the staged
-        // definition away and had the agent build it all again (BFSF-486).
+        // definition away and had the agent build it all again.
         // A turn that worked on a waiting proposal never commits by
         // itself: that proposal's changes have not been approved.
         // A new table never commits by itself: creating it is the user's Apply.

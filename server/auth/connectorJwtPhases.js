@@ -56,7 +56,7 @@ function _resolveRequesterNcUid(req, payload) {
 }
 
 // The NC identity stored on the session: the user row's own nc_uid, then the
-// signed `sub`, and only last the unsigned header (BFSF-377).
+// signed `sub`, and only last the unsigned header.
 function _resolveSessionNcUid(user, req, payload) {
     return user?.nc_uid || _resolveRequesterNcUid(req, payload) || null;
 }

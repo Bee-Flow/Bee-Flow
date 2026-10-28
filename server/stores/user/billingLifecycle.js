@@ -241,7 +241,7 @@ async function expireOverdueTrials() {
     );
     for (const row of orgsExpiring) {
         try {
-            // BFSF-226: an expired no-card trial drops to the capped Free plan
+            // An expired no-card trial drops to the capped Free plan
             // (usable) rather than `suspended` (locked-out). downgradeOrgToFreePlan
             // invalidates the PAYG cache and audits the transition. The primary
             // path is the Stripe `subscription.deleted` webhook; this tick is the
@@ -325,7 +325,7 @@ async function getDefaultOrgPlanId() {
 }
 
 /**
- * Downgrade an org to the capped Free plan (BFSF-226). Used when a no-card
+ * Downgrade an org to the capped Free plan. Used when a no-card
  * trial expires or a never-paid Stripe subscription is deleted, so the org
  * lands on a usable, capped plan instead of being left unlimited (no row) or
  * locked-out (suspended/cancelled).
@@ -333,7 +333,7 @@ async function getDefaultOrgPlanId() {
  * Keeps stripe_customer_id so a later upgrade reuses the same customer; clears
  * the dead subscription/trial/schedule bookkeeping. setOrgSubscription's
  * plan-change path clears stale per-org limit overrides so the Free plan caps
- * govern (BFSF-245). Best-effort: returns the resolved subscription, or null
+ * govern. Best-effort: returns the resolved subscription, or null
  * if no default plan exists (logged) so callers can fall back.
  * @param {string} orgId
  */

@@ -131,7 +131,7 @@ const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 const { canAccessKB, resolveIsOrgAdmin } = require('../../support/kbAccess');
 
 /**
- * Management check for KB settings mutations (BFSF-214). Mirrors the
+ * Management check for KB settings mutations. Mirrors the
  * publish route's owner-or-manager policy but adds same-org scoping.
  * Does NOT grant content read access — GET/document/search routes keep
  * canAccessKB.

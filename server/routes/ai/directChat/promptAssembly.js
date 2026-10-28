@@ -22,7 +22,7 @@ const {
 const { resolveHistory, appendHistory } = require('./promptHistory');
 
 /**
- * The stable head of the system prompt. BFSF-261: the style layer is appended
+ * The stable head of the system prompt. the style layer is appended
  * unconditionally (custom admin prompts included). `basePrompt` opens the
  * CACHED system block, so it carries no date: `Today is …` used to sit here,
  * ahead of the tool hint, and rewrote the whole prefix at midnight. It now

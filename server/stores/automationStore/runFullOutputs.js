@@ -1,7 +1,7 @@
 // @typecheck strict
 /**
  * runFullOutputs.js — the full copy of a step output the run history had to
- * truncate (BFSF-435, BFSF-402).
+ * truncate.
  *
  * automation_run_steps.output_json holds at most 256 KB per payload; above
  * that, payloadTruncation swaps the whole value for a sentinel. That keeps the

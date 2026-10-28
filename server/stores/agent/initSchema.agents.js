@@ -27,7 +27,7 @@ async function createAgentCategories() {
     )`);
     await runDdl('agentSchema', [
         `CREATE INDEX IF NOT EXISTS idx_agent_categories_org ON agent_categories(organization_id)`,
-        // BFSF-272: case-insensitive uniqueness per org so duplicate categories
+        // case-insensitive uniqueness per org so duplicate categories
         // ("Sales" vs "sales") stop accumulating. Installs that already contain
         // duplicates must NOT fail db:migrate; runDdl reports that 23505 loudly
         // (failures list) but not fatally. The loose migration

@@ -19,7 +19,7 @@ module.exports = {
     ...require('./automationStore/evolutions'),
     ...require('./automationStore/steps'),
     ...require('./automationStore/runs'),
-    // Full copies of step outputs the run history truncated (BFSF-435).
+    // Full copies of step outputs the run history truncated.
     ...require('./automationStore/runFullOutputs'),
     // Durations of recent legs (the public form poll's typical-duration hint).
     ...require('./automationStore/runDurations'),

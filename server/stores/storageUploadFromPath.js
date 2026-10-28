@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * Upload a file from disk without holding it whole in memory (issue #286).
+ * Upload a file from disk without holding it whole in memory.
  * Lives next to storageStore.js, which wires it with its own primitives so the
  * store keeps a single owner of the S3 client and the local-mode layout.
  */

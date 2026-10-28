@@ -64,7 +64,7 @@ const MIGRATIONS = [
     // rather than through the legacy-name fallback.
     'datatable-schema-rename-2026-09',
     // Address a datatable by (scope_kind, scope_id) instead of by organisation,
-    // so an account with no organisation can own a PERSONAL table (BFSF-412).
+    // so an account with no organisation can own a PERSONAL table.
     // MUST come before datatable-field-ids-2026-09: that one reaches the rows
     // through the engine, and the engine now addresses a tenant by its scope
     // key — which does not exist until the columns below do.
@@ -97,11 +97,11 @@ const MIGRATIONS = [
     // applied after approval as a new version, watched by a canary, rolled back
     // on regression. See automation/evolution.js.
     'automation-evolution-2026-09',
-    // BFSF-440: the trigger sample vault's table never had a writer or a
+    // The trigger sample vault's table never had a writer or a
     // reader. automation-extras-2026-06 above no longer creates it; this drops
     // it on installs that still carry it, and is a probe-only no-op after that.
     'drop-automation-trigger-samples-2026-09',
-    // BFSF-435: the full copy of a step output the run history truncated, so a
+    // The full copy of a step output the run history truncated, so a
     // run that resumes after a form page or an approval gets it back.
     'automation-run-full-outputs-2026-09',
     // Studio → Automations handoff 5: the live/working split (+ one-time

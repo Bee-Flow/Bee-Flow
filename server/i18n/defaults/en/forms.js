@@ -23,7 +23,7 @@ module.exports = {
     'forms.studio.last_submission': 'last {when}',
     'forms.studio.submissions': '{count} submission',
     'forms.studio.submissions_plural': '{count} submissions',
-    // The closing page's "keep this result" bar (BFSF-419).
+    // The closing page's "keep this result" bar.
     'forms.result.download_txt': 'Download as .txt',
     'forms.result.download_docx': 'Download as Word',
     'forms.result.download_pdf': 'Download as PDF',

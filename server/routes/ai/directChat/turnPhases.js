@@ -82,7 +82,7 @@ async function runSetupPhases(turn, body) {
     // when Gmail/Drive tools were present. That module does not exist, so the
     // require always threw MODULE_NOT_FOUND and the catch silently swallowed
     // it: dead code that injected nothing, which also let the model believe a
-    // generic document-conversion tool existed (BFSF-127). Removed. The real
+    // generic document-conversion tool existed. Removed. The real
     // path for Gmail attachments is gmail_read_attachment; the system prompt
     // steers the model there (see GMAIL/ATTACHMENT note).
     return true;

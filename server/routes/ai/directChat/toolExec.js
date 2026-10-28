@@ -54,7 +54,7 @@ function compactToolResultForLLM(toolResult) {
     if (toolResult._action === 'workspace_update' && toolResult.message) {
         return { action: 'notebook_updated', message: toolResult.message };
     }
-    // BFSF-208: keep the (potentially large) revert content out of the LLM context.
+    // Keep the (potentially large) revert content out of the LLM context.
     if (toolResult._nbWriteFailed) {
         const { _nbWriteFailed, _revertContent, ...rest } = toolResult;
         return rest;
@@ -106,7 +106,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the
-    // [email_1] placeholder (BFSF-171). Search queries keep their
+    // [email_1] placeholder. Search queries keep their
     // tokens so PII isn't leaked to external search providers.
     if (!/^(agent_search|web_search|search|brave_search|browse_web|read_url)$/i.test(toolName || '')) {
         try {
@@ -115,7 +115,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         } catch (err) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall#2', err); /* best-effort */ }
     }
 
-    // Notebook-write gate (BFSF-169). Enforced here rather than by removing
+    // Notebook-write gate. Enforced here rather than by removing
     // the tools from the turn's tool list, so the tool list — and therefore the
     // provider's cached prompt prefix — stays stable across the conversation.
     // See ./notebookWriteGate.js.

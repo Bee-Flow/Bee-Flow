@@ -139,7 +139,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     // upstream gateway (Nextcloud AppAPI proxy / HaRP / ingress, ~30–60s idle
     // timeout) drops the connection and the embedded app sees a false 504
     // while the agent is still building — and never receives the thinking
-    // stream. Same class as the chat/notebook fix (BFSF-221). The heartbeat
+    // stream. Same class as the chat/notebook fix. The heartbeat
     // auto-stops on res close/finish/error.
     const { send: sendRaw, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
     // The build loop writes through `send`. When an admin has configured a

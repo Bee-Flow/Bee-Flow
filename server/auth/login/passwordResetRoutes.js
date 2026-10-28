@@ -70,7 +70,7 @@ router.post('/forgot-password', forgotPasswordIpLimiter, forgotPasswordTargetLim
         const appPaths = require('../../utils/appPaths');
         // Point at the SPA login route, which reads `?reset=<token>` and shows the
         // "set new password" form (LoginPage.jsx). `/?reset=` lands on the marketing
-        // homepage, which ignores the param, so recovery silently dead-ends (BFSF-239).
+        // homepage, which ignores the param, so recovery silently dead-ends.
         //
         // Built through appPaths like the verification and invite redirects,
         // not by hand: this link sits in mailboxes for an hour at a time, and

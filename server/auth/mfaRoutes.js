@@ -23,7 +23,7 @@ const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
-// BFSF-274: brute-force protection on the code-verifying endpoints. Keyed by
+// Brute-force protection on the code-verifying endpoints. Keyed by
 // the authenticated user (these routes sit behind requireAuth), IP fallback.
 // 10 attempts / 15 min leaves ample room for fat-fingered codes while making
 // a 6-digit search infeasible.
@@ -32,7 +32,7 @@ const mfaCodeLimiter = perUserRateLimit({ windowMs: 15 * 60_000, max: 10 });
 // How long a pending setup secret stays reusable. Within this window /setup
 // returns the SAME secret instead of minting a new one — re-mounting the
 // settings screen (or cancelling and reopening setup) must never silently
-// desync the QR on screen from the secret in the session (BFSF-274: that
+// desync the QR on screen from the secret in the session (that
 // desync makes every entered code "Invalid").
 const SETUP_SECRET_TTL_MS = 10 * 60_000;
 
@@ -270,8 +270,8 @@ router.post('/disable', requireAuth, mfaCodeLimiter, validate({ body: ProofBody 
 });
 
 // Re-issue recovery codes (invalidates the old set). Accepts the same proof as
-// /disable. BFSF-274: this endpoint was TOTP-only while the UI invited either,
-// so users entering a recovery code got "Invalid code" and burned through their
+// /disable. It must accept a recovery code as well as TOTP, since the UI invites
+// either: otherwise users entering one get "Invalid code" and burn through their
 // remaining codes. A recovery code spent as proof is replaced by the new set in
 // the same write, so a failure midway never costs the user a code without
 // giving new ones.
@@ -291,7 +291,7 @@ router.post('/recovery-codes/regenerate', requireAuth, mfaCodeLimiter, validate(
     res.json({ success: true, recoveryCodes: plain });
 });
 
-// ── AI setup assistant (BFSF-274 follow-up) ─────────────────────────────────
+// ── AI setup assistant ─────────────────────────────────
 // Answers questions during 2FA enrollment ("which app do I need?", "my code
 // keeps being rejected"). SECURITY BOUNDARY: the assistant must never see the
 // user's on-screen MFA material. That is enforced structurally — the client

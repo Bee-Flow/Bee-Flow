@@ -47,7 +47,7 @@ router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), 
 
 // Review actions clear the saved proposal/plan and record what the user did
 // with it, so the agent's next turn is told (workMode.reviewStatusNote) instead
-// of guessing whether its staged changes went live (BFSF-486). Applying a
+// of guessing whether its staged changes went live. Applying a
 // definition still goes through the ordinary automation editor's save and
 // validation. `applyProposal` records that the user pressed Apply; when the
 // proposal also creates tables (pendingDatatables) it is where they are made

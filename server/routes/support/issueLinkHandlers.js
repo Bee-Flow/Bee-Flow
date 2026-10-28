@@ -76,7 +76,7 @@ async function saveConnection(req, res) {
         await configStore.setSecret(ytc.SERVICE_PROJECT_KEY, String(project || '').trim());
     }
     if (includeSubject !== undefined) {
-        // BFSF-441: the subject is the one customer string that may go out,
+        // The subject is the one customer string that may go out,
         // and only when the org said so. Now a real boolean.
         await configStore.setConfig(SUBJECT_KEY, includeSubject ? 'true' : 'false');
     }

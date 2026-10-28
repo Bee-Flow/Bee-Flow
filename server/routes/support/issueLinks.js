@@ -69,7 +69,7 @@ const ConnectionBody = bodyOf({
     url: worded('url must be a YouTrack URL.').nullish(),
     token: worded('token must be text.').nullish(),
     project: worded('project must be a project short name.').nullish(),
-    // Only a real false keeps the ticket subject out of YouTrack (BFSF-441).
+    // Only a real false keeps the ticket subject out of YouTrack.
     includeSubject: z.boolean({ error: typeError({ invalid: 'includeSubject is true or false.' }) }).optional(),
 });
 
@@ -148,7 +148,7 @@ function register(router) {
     router.post('/threads/:id/issues/create', requireStaffSupport, validate({ body: CreateIssueBody }), L.createIssue);
     router.post('/threads/:id/issues/refresh', requireStaffSupport, validate({ body: NoBody }), L.refreshIssues);
 
-    // ── Escalation (BFSF-447) ─────────────────────────────────────────────
+    // ── Escalation ─────────────────────────────────────────────
     /**
      * Escalate: one action, a required reason, one entry in the trail. The
      * reason is mandatory — an escalation with no stated why is the thing
@@ -156,7 +156,7 @@ function register(router) {
      */
     router.post('/threads/:id/escalate', requireStaffSupport, validate({ body: EscalateBody }), E.escalate);
 
-    // ── Chat notifications (BFSF-448 / BFSF-449) ──────────────────────────
+    // ── Chat notifications ──────────────────────────
     router.get('/notifications', requireStaffSupport, E.getNotifications);
     router.put('/notifications', requireStaffSupport, validate({ body: NotificationsBody }), E.saveNotifications);
     router.post('/notifications/test', requireStaffSupport, validate({ body: NoBody }), E.testNotification);

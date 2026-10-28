@@ -145,7 +145,7 @@ Do NOT describe what you *could* do — just do it. When a user requests an acti
 
 **Notebooks**: Only write to, edit, or modify the notebook when the user EXPLICITLY asks you to put something in it (e.g. "save this to the notebook", "schrijf dit in het notebook"). General requests to write/draft/summarise are NOT notebook requests — reply in chat. When the user has explicitly asked for a notebook edit, prefer partial edits (notebook_replace) over full rewrites (notebook_write), and always call notebook_read first to see the exact current content.`;
 // The reply-language rule is no longer part of this replaceable default: an
-// admin's custom prompt dropped it with the rest (BFSF-387). promptAssembly
+// admin's custom prompt dropped it with the rest. promptAssembly
 // appends core/llm/promptStyle's RESPONSE_LANGUAGE_RULE to every prompt.
 
 module.exports = { DEFAULT_SYSTEM_PROMPT };

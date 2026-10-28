@@ -47,7 +47,7 @@ async function buildTurnContext({
             if (kbResult.chunks.length > 0) {
                 citationSources = kbResult.citations;
                 // Injected without a tool call, so the "own server" block
-                // list applies as it does to webpage_kb_search (BFSF-354).
+                // list applies as it does to webpage_kb_search.
                 // What the model reads; the citations stay the user's own.
                 kbContext = await toolPiiGate.stripInjectedText(kbResult.contextPrompt, { shield: _psShield, tag: 'WebpageChat' });
             }

@@ -10,7 +10,7 @@
  * feature, so a Community deployment gets 403 feature_locked here rather than
  * a missing mount.
  *
- * Personal data: the export carries the attester's user id only (BFSF-441) —
+ * Personal data: the export carries the attester's user id only —
  * never a name or e-mail.
  *
  * ── What a caller may send ──────────────────────────────────

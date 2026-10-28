@@ -242,7 +242,7 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
 
     // Ownership, super-admin bypass, the manage_agents requirement, org
     // scoping, and the agent_editor/unpublished-draft rule are all handled
-    // by canModifyAgent (BFSF-271) — no extra inline permission check needed.
+    // by canModifyAgent — no extra inline permission check needed.
     if (!(await canModifyAgent(agent, userId, req))) {
         return res.status(403).json({
             error: 'You do not have permission to edit this agent.',

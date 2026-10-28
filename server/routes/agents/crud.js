@@ -53,7 +53,7 @@ router.get('/categories', async (req, res) => {
     res.json(categories);
 });
 
-// BFSF-272: category mutations are org-scoped. resolveUserOrgIds returns null
+// Category mutations are org-scoped. resolveUserOrgIds returns null
 // only for super-admins (skip the check); org categories require membership;
 // org-less (global) categories are manageable only by org-less requesters —
 // mirrors who can create them.
@@ -66,7 +66,7 @@ async function canManageCategory(req, category) {
 
 // Create a new category. Idempotent on a case-insensitive duplicate: returns
 // the EXISTING row with `existing: true` so clients select it instead of
-// stacking "Sales" next to "sales" (BFSF-272).
+// stacking "Sales" next to "sales".
 router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, icon, color } = req.body;
     const orgIds = await resolveUserOrgIds(req);

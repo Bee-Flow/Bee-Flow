@@ -36,7 +36,7 @@ async function dispatchToolCall(turn, round, tc) {
     const { args, truncated } = parseToolArgs(tc.function.arguments, name);
     let toolResult;
     // Set when an org tool ran, so the model's copy of its
-    // result goes through the tool block lists (BFSF-354).
+    // result goes through the tool block lists.
     let shieldModelCopy = false;
     if (await handleRouteTool(turn, round, tc, name, args, truncated)) return;
     // A finalize on an untitled draft names it first (persistDraft

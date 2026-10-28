@@ -40,7 +40,7 @@ async function getMemoryStats(userId) {
  * How many live memories Bee Flow holds about one user — every project and
  * agent included, superseded/expired rows excluded. Read by the DSR discovery
  * scan (compliance/dsr/discovery.js), which reports the COUNT and never the
- * contents (BFSF-441).
+ * contents.
  * @param {string} userId
  * @returns {Promise<number>}
  */

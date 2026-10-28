@@ -7,7 +7,7 @@
  *
  * ── ONLY "NOTHING" MEANS "EVERYTHING" ───────────────────────────────
  * Leaving kb_ids out is a real request: the mobile app's global search sends
- * `kb_ids: []` on purpose (BFSF-216). The old `Array.isArray(kb_ids) ? … : []`
+ * `kb_ids: []` on purpose. The old `Array.isArray(kb_ids) ? … : []`
  * made every OTHER shape mean the same thing, so one id sent as a string, the
  * camelCase `kbIds`, or `['']` from a picker with nothing picked all searched
  * every base the caller can reach, under a 200 that looked like the narrow

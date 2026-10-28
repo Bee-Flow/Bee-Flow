@@ -1,6 +1,6 @@
 // @typecheck noImplicitAny
 /**
- * Google Workspace connector routes (BFSF-255) — mounted at
+ * Google Workspace connector routes — mounted at
  * /api/integrations/google.
  *
  * Before this, Google tokens ONLY existed as a by-product of Google-SSO

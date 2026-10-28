@@ -179,7 +179,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     // The auth router is mounted at `/auth` (server/index.js), NOT `/api/auth`,
     // so the redeem endpoint lives at `/auth/redeem-invite/:token`. Using the
     // wrong prefix here produced a raw "Cannot GET /api/auth/redeem-invite/..."
-    // 404 for every invited user (BFSF-240).
+    // 404 for every invited user.
     const inviteUrl = `${clientHost}/auth/redeem-invite/${invitation.token}`;
 
     // Get org name and inviter display name

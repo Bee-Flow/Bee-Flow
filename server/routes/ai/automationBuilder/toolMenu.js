@@ -95,7 +95,7 @@ async function buildToolMenu(turn) {
     // The webpage tools above are the org's own tools (the dispatcher's
     // webpage_db_query / webpage_file_read / ...), called here on behalf of
     // the builder's model. The Privacy Shield tool block lists ("Outside
-    // tools" / "Own server") hold for them as in direct chat (BFSF-354):
+    // tools" / "Own server") hold for them as in direct chat:
     // the turn's shield, resolved on the first such call only. A failed
     // lookup leaves the lists unapplied, as a missing shield does. The web
     // research tools (agent_search, read_url) go through the same gate.
