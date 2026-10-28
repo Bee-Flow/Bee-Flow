@@ -1,3 +1,4 @@
+/** @typedef {import('../integrations/nextcloudClient.types').NcAuth} NcAuth */
 /**
  * approvalDelivery — putting an approval card where the approver already is.
  *
@@ -106,6 +107,8 @@ function talkCardText(announcement) {
 /**
  * `text` cut to at most `max` UTF-16 units, ending in '…' when cut. Never
  * splits a surrogate pair, so an emoji at the cut does not become mojibake.
+ * @param {string} text
+ * @param {number} max
  */
 function clampText(text, max) {
     if (text.length <= max) return text;
@@ -222,6 +225,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
 
     try {
         const { TALK_V1 } = talkBot;
+        /** @type {{ message: string; silent: boolean; replyTo?: number }} */
         const body = { message: String(message || ''), silent: !!silent };
         if (Number.isFinite(Number(replyTo)) && Number(replyTo) > 0) body.replyTo = Number(replyTo);
         const res = await ctx.fetch(`${ctx.baseUrl}${TALK_V1}/chat/${encodeURIComponent(roomToken)}?format=json`, {
@@ -236,7 +240,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
         const id = data?.ocs?.data?.id;
         return { ok: true, via: 'user', roomToken, messageId: id != null ? String(id) : null };
     } catch (e) {
-        return { ok: false, via: 'user', error: e.message };
+        return { ok: false, via: 'user', error: /** @type {Error} */ (e).message };
     }
 }
 

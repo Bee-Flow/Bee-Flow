@@ -144,7 +144,7 @@ async function nudgeToApp({ delivery, approval, reason }) {
             message: `${reason}\n👉 ${approvalLink(approval.id)}`,
         });
     } catch (e) {
-        log.warn(`[ApprovalReactions] reply failed for ${approval.id}: ${e.message}`);
+        log.warn(`[ApprovalReactions] reply failed for ${approval.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -244,8 +244,8 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
         }
         return { counted: ok, outcome: ok ? 'vote_recorded' : 'decide_refused', code, decision: body?.decision || null };
     } catch (e) {
-        log.warn(`[ApprovalReactions] reaction handling failed: ${e.message}`);
-        return verdict('error', { error: e.message });
+        log.warn(`[ApprovalReactions] reaction handling failed: ${/** @type {Error} */ (e).message}`);
+        return verdict('error', { error: /** @type {Error} */ (e).message });
     }
 }
 
@@ -287,7 +287,7 @@ async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => D
     try {
         deliveries = /** @type {Delivery[]} */ (await automationStore.getPendingTalkDeliveries(limit));
     } catch (e) {
-        log.warn(`[ApprovalReactions] poll query failed: ${e.message}`);
+        log.warn(`[ApprovalReactions] poll query failed: ${/** @type {Error} */ (e).message}`);
         return { checked: 0, counted: 0 };
     }
     if (!deliveries.length) return { checked: 0, counted: 0 };

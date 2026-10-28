@@ -29,7 +29,7 @@ async function recordDeploymentOutcome(approval) {
     try {
         await require('../stores/solutionStageStore').recordDeploymentDecision(approval);
     } catch (e) {
-        log.warn(`[approvalService] deployment decision for ${approval.id} not recorded (reconcile will retry): ${e.message}`);
+        log.warn(`[approvalService] deployment decision for ${approval.id} not recorded (reconcile will retry): ${/** @type {Error} */ (e).message}`);
     }
 }
 

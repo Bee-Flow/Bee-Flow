@@ -1,3 +1,4 @@
+/** @typedef {import('../core/agentRuntime/chatStream/turnState').ToolDef} ToolDef */
 // @typecheck
 /**
  * The builder's app/action catalog — "what can this user wire up?".
@@ -71,6 +72,7 @@ async function buildCatalogForUser(userId, session) {
         // The resolved tool DEFINITIONS, kept beside the names for the
         // auto-derived app_event providers (builderPickerCatalog.js). Attached
         // below as a non-enumerable property: only that one reader wants them.
+        /** @type {ToolDef[]} */
         let userToolDefs = [];
         try {
             // `automationStep: true` because design time must equal run time: it is

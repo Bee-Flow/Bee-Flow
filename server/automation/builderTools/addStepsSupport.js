@@ -204,8 +204,11 @@ function missingRefMessage(missing, entries, i, at, idMap) {
 
 /** Resolve $tempId wiring fields in place; returns the first error, or null. */
 function resolveWires(spec, idMap, at) {
+    /**
+     * @type {string | null}
+     */
 let wireErr = null;
-const resolveWire = (val, field) => {
+const resolveWire = (/** @type {string} */ val, /** @type {string} */ field) => {
     if (typeof val === 'string' && val.startsWith('$')) {
         const real = idMap[val.slice(1)];
         if (!real) { wireErr = wireErr || `${at}: ${field} "${val}" is not an EARLIER entry's tempId.`; return val; }

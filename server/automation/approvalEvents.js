@@ -71,7 +71,7 @@ function dispatch(event, payload, approval) {
             : dispatchEvent({ provider: 'approvals', event, payload, userId: approval.ownerId });
         Promise.resolve(p).catch(e => log.warn(`[ApprovalEvents] ${event} dispatch failed: ${e.message}`));
     } catch (e) {
-        log.warn(`[ApprovalEvents] ${event} dispatch failed: ${e.message}`);
+        log.warn(`[ApprovalEvents] ${event} dispatch failed: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -120,7 +120,7 @@ function feed(kind, approval, extra = {}) {
         }, { label: 'ApprovalEvents' })).catch(e =>
             log.warn(`[ApprovalEvents] ${kind} feed failed: ${e.message}`));
     } catch (e) {
-        log.warn(`[ApprovalEvents] ${kind} feed failed: ${e.message}`);
+        log.warn(`[ApprovalEvents] ${kind} feed failed: ${/** @type {Error} */ (e).message}`);
     }
 }
 
