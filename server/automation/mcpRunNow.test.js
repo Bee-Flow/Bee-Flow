@@ -26,11 +26,13 @@ const PRIVATE = 'jan@example.test';
 function setup({
     automation = {}, role = 'owner', orgs = ['org_a'], chargeOk = true, runResult = /** @type {any} */ ({ id: 'run_1', status: 'success' }),
     runner = null, notice = { applies: false, seen: false },
+    // The definition gate has its own tests below; null = the real validator.
+    validate = () => ({ ok: true }),
 } = {}) {
     const calls = { run: [], audit: [], charge: [], notice: 0 };
     const stored = {
         id: 'auto_1', userId: 'u1', organizationId: 'org_a', kind: 'automation', isActive: true, version: 3,
-        definition: { trigger: { id: 'trg', kind: 'manual' }, steps: [] }, ...automation,
+        definition: { trigger: { id: 'trg', kind: 'manual' }, steps: [], edges: [] }, ...automation,
     };
     const runNow = makeRunNow({
         store: { getAutomation: async (id) => (id === stored.id ? stored : null) },
@@ -50,6 +52,7 @@ function setup({
         describeNoticeFor: async () => { calls.notice += 1; return notice; },
         charge: async (name, key, cost, max) => { calls.charge.push({ name, key, cost, max }); return chargeOk ? { ok: true } : { ok: false, retryAfter: 12 }; },
         audit: async (...args) => { calls.audit.push(args); },
+        ...(validate ? { validate } : {}),
     });
     return { calls, runNow, stored };
 }
@@ -135,6 +138,7 @@ test('a group-only member (no home organisation) reaches the automation of a gro
         describeNoticeFor: async () => ({ applies: false }),
         charge: async () => ({ ok: true }),
         audit: async () => {},
+        validate: () => ({ ok: true }),
     });
     assert.equal((await s.call('automations_run', { automationId: 'auto_1' }, ctx)).runId, 'r9');
 });
@@ -310,4 +314,61 @@ test('a view share is refused with automation_run_forbidden; edit and run shares
     assert.equal(viewer.calls.audit.length, 0, 'a refusal writes no run audit row');
     assert.equal((await run(setup({ role: 'edit' }), {})).status, 'started');
     assert.equal((await run(setup({ role: 'run' }), {})).status, 'started');
+});
+
+// ── #200: the copy the run executes must validate ──────────────────────────
+
+/** A saved working copy with an expr binding that does not parse (an object literal). */
+const brokenDef = () => ({
+    trigger: { id: 'trg', kind: 'manual' },
+    steps: [{
+        id: 'a1', type: 'integration_action', tool: 'nextcloud_tables_create_row',
+        inputs: { tableId: { kind: 'literal', value: 1 }, values: { kind: 'expr', value: '({ Name: trigger.output.name })' } },
+    }],
+    edges: [{ from: 'trg', to: 'a1' }],
+});
+
+test('an active automation whose working copy has validation errors is refused, with the errors, and nothing starts', async () => {
+    const s = setup({ automation: { definition: brokenDef(), isDraft: true }, validate: null });
+    const out = await run(s, {});
+    assert.equal(out.code, 'automation_invalid');
+    assert.match(out.error, /does not validate/);
+    assert.ok(Array.isArray(out.validationErrors) && out.validationErrors.length > 0);
+    assert.ok(out.validationErrors.some((e) => e.code === 'expr.parse'));
+    assert.ok(out.validationErrors.every((e) => typeof e.code === 'string' && typeof e.message === 'string'));
+    assert.equal(s.calls.run.length, 0);
+    assert.equal(s.calls.audit.length, 0);
+    assert.equal(s.calls.charge.length, 0);
+});
+
+test('a definition that validates runs through the real validator', async () => {
+    const s = setup({ validate: null });
+    assert.equal((await run(s, {})).status, 'started');
+});
+
+test('the gate validates the copy the run executes, not the stored working copy', async () => {
+    const seen = [];
+    const live = { trigger: { id: 'trg', kind: 'manual' }, steps: [], edges: [] };
+    const s = setup({
+        automation: { definition: brokenDef() },
+        validate: (def) => { seen.push(def); return { ok: true }; },
+    });
+    // automationForRun picks the live copy; the stub in setup returns the row itself,
+    // so swap it for one that hands back the live definition.
+    const runNow = makeRunNow({
+        store: { getAutomation: async () => s.stored },
+        access: { roleFor: async () => ({ role: 'owner' }) },
+        roleSatisfies,
+        getUser: async (id) => ({ id, organizationId: 'org_a' }),
+        resolveOrgs: async () => ({ primary: 'org_a', all: ['org_a'] }),
+        runner: { executeAutomation: async (a, o) => { await o.onRunCreated({ id: 'r2' }); return { id: 'r2', status: 'success' }; } },
+        automationForRun: (a) => ({ ...a, definition: live, runsLiveVersion: true }),
+        entry: require('../core/automationRunner/entryPoint'),
+        describeNoticeFor: async () => ({ applies: false }),
+        charge: async () => ({ ok: true }),
+        audit: async () => {},
+        validate: (def) => { seen.push(def); return { ok: true }; },
+    });
+    assert.equal((await runNow.call('automations_run', { automationId: 'auto_1' }, ctx)).runId, 'r2');
+    assert.deepEqual(seen, [live]);
 });

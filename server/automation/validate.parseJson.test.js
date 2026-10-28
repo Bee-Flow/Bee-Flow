@@ -117,13 +117,13 @@ test('absent sourceRef → parse_json.source_defaulted warning; non-string → e
     assert.ok(codes(err.errors).includes('parse_json.source_ref_shape'));
 });
 
-test('sourceRef participates in ref checks: unknown step → error, forward ref → warning', () => {
+test('sourceRef participates in ref checks: unknown step → error, forward ref → error', () => {
     const unknown = validateDefinition(defWith({
         id: 'p1', type: 'parse_json', sourceRef: 'steps.ghost.output.body', fields: [{ name: 'a', path: 'x' }],
     }));
     assert.ok(codes(unknown.errors).includes('ref.unknown_step'));
 
-    // p1 references a step wired AFTER it → forward-ref warning.
+    // p1 references a step wired AFTER it → forward-ref error.
     const fwd = validateDefinition({
         trigger: { id: 'trg', kind: 'manual' },
         steps: [
@@ -132,7 +132,7 @@ test('sourceRef participates in ref checks: unknown step → error, forward ref 
         ],
         edges: [{ from: 'trg', to: 'p1' }, { from: 'p1', to: 'late' }],
     });
-    assert.ok(codes(fwd.warnings).includes('ref.forward'));
+    assert.ok(codes(fwd.errors).includes('ref.forward'));
 });
 
 test('an on_error edge FROM a parse_json step is accepted (no error, no unlikely warning)', () => {

@@ -20,4 +20,6 @@ registerIntegrationClients({
     nextcloudTables: () => require('./nextcloudTablesTools'),
     nextcloudTalk: () => require('./nextcloudTalkTools'),
     nextcloudCalendar: () => require('./nextcloudCalendarTools'),
+    nextcloudDeck: () => require('./nextcloudDeckTools'),
+    nextcloudFiles: () => require('./nextcloudTools'),
 });

@@ -22,9 +22,12 @@
  *   msGraph             graphRequest, graphFetch, GRAPH_BASE
  *   nextcloud           resolveAuth, resolveNcBinding, isConnected, webdavRoot, downloadBinary
  *   nextcloudWebdav     joinDavPath, parsePropfind, PROPFIND_BODY
- *   nextcloudTables     TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn, mapTable
+ *   nextcloudTables     TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn, mapTable,
+ *                       executeNextcloudTablesTool
  *   nextcloudTalk       executeNextcloudTalkTool, getTalkRecordingCapability
  *   nextcloudCalendar   executeNextcloudCalendarTool
+ *   nextcloudDeck       executeNextcloudDeckTool
+ *   nextcloudFiles      the Files / tags family executor (nextcloudTools.js)
  */
 
 'use strict';

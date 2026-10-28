@@ -95,22 +95,37 @@ function saveSecret(secret) {
     }
 }
 
+/** @returns {Promise<Response>} */
+function postRegistration() {
+    return withWarmupRetry(() => fetch(`${config.nextcloudUrl}${TALK_BOT_API}`, {
+        method: 'POST',
+        headers: appApiHeaders(),
+        body: JSON.stringify({ name: BOT_NAME, route: BOT_ROUTE, description: BOT_DESCRIPTION }),
+        signal: AbortSignal.timeout(5_000),
+    }), { label: 'talk-bot', budgetMs: 30_000 });
+}
+
 /**
  * Register the bot with Talk (via AppAPI) and keep the secret it returns.
- * Idempotent: re-registering the same (appId, route) reuses the existing
- * secret upstream rather than minting a new one.
+ *
+ * NOT idempotent upstream: AppAPI mints a new secret on every registration,
+ * and Talk refuses a bot whose URL is already registered with another secret
+ * (an OCS 500, "Bot with the same URL and a different secret is already
+ * registered"; the cause is only in Nextcloud's log). So on every start after
+ * the first, the POST fails (#281):
+ *   - with a stored secret, that is the bot Talk already has: keep it. Deleting
+ *     it to re-register would also drop the bot from every conversation it was
+ *     added to (the same reason a container stop no longer unregisters it,
+ *     see shutdown.js).
+ *   - without one (fresh volume), the registered bot is unusable to us (no
+ *     secret to verify deliveries or sign replies with): remove it and
+ *     register again.
  */
 async function registerTalkBot() {
-    const url = `${config.nextcloudUrl}${TALK_BOT_API}`;
     /** @type {Response} */
     let res;
     try {
-        res = await withWarmupRetry(() => fetch(url, {
-            method: 'POST',
-            headers: appApiHeaders(),
-            body: JSON.stringify({ name: BOT_NAME, route: BOT_ROUTE, description: BOT_DESCRIPTION }),
-            signal: AbortSignal.timeout(5_000),
-        }), { label: 'talk-bot', budgetMs: 30_000 });
+        res = await postRegistration();
     } catch (err) {
         log.warn(`[TalkBot] registration request failed: ${errMessage(err)}`);
         return { ok: false, reason: 'request-failed' };
@@ -122,10 +137,24 @@ async function registerTalkBot() {
         log.info('[TalkBot] Talk is not installed on this Nextcloud — chat triggers unavailable.');
         return { ok: false, reason: 'talk-missing' };
     }
+    if (!res.ok && loadSecret()) {
+        log.info(`[TalkBot] already registered (Nextcloud answered HTTP ${res.status} to a re-registration); keeping the stored secret.`);
+        return { ok: true, reason: 'kept-existing' };
+    }
     if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        log.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
-        return { ok: false, reason: `http-${res.status}` };
+        log.info(`[TalkBot] registration refused (HTTP ${res.status}) and no stored secret: removing the existing bot and registering again. Conversations that had the bot must add it again.`);
+        await unregisterTalkBot();
+        try {
+            res = await postRegistration();
+        } catch (err) {
+            log.warn(`[TalkBot] registration request failed: ${errMessage(err)}`);
+            return { ok: false, reason: 'request-failed' };
+        }
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            log.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
+            return { ok: false, reason: `http-${res.status}` };
+        }
     }
 
     const body = /** @type {{ ocs?: { data?: { secret?: string } } } | null} */ (await res.json().catch(() => null));
@@ -307,21 +336,20 @@ function mapActivity(body) {
 
 const AGENT_TASK_TYPE = 'core:contextagent:interaction';
 
-// Does this message @mention the bot? Prefer Talk's structured mention
-// parameters (the accurate "@" signal); fall back to the bot name appearing in
-// the raw text so it still works if a delivery omits parameters.
+// Does this message @mention the bot? Talk's structured mention parameters are
+// the accurate "@" signal. Only a message that carries NO mention at all falls
+// back to the text, and then only to a literal "@Bee Flow": "the Bee Flow
+// report is late" used to start an agent run as that user and post the answer
+// to the room.
 /** @param {{ parameters?: Record<string, unknown> | null, message?: string } | null | undefined} payload */
 function mentionsBot(payload) {
     const params = payload?.parameters;
-    if (params && typeof params === 'object') {
-        for (const v of Object.values(params)) {
-            if (v && typeof v === 'object' && 'name' in v
-                && String(v.name || '').toLowerCase() === BOT_NAME.toLowerCase()) {
-                return true;
-            }
-        }
+    const mentions = params && typeof params === 'object' ? Object.values(params) : [];
+    if (mentions.length) {
+        return mentions.some(v => v && typeof v === 'object' && 'name' in v
+            && String(v.name || '').toLowerCase() === BOT_NAME.toLowerCase());
     }
-    return /(^|\s)@?bee\s*flow\b/i.test(String(payload?.message || ''));
+    return /(^|\s)@bee\s*flow\b/i.test(String(payload?.message || ''));
 }
 
 // Recover the question from a mention message: drop Talk's {mention-…}
@@ -504,27 +532,38 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
     const sig = crypto.createHmac('sha256', config.tenantKey)
         .update(`${ts}\nPOST\n${apiPath}\n${payloadBody}`).digest('hex');
 
-    try {
-        const r = await fetch(`${config.apiBaseUrl}${apiPath}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Beeflow-Source': 'nextcloud-connector',
-                'X-Beeflow-NC-Instance-Id': config.ncInstanceId,
-                'X-Beeflow-Sig': `${ts}.${sig}`,
-            },
-            body: payloadBody,
-            signal: AbortSignal.timeout(10_000),
-        });
-        if (!r.ok) {
-            const t = await r.text().catch(() => '');
-            log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
-        }
-    } catch (err) {
-        log.warn(`[TalkBot] forward failed: ${errMessage(err)}`);
-    }
+    // Answer Talk first, forward afterwards. The forward may take up to 10 s,
+    // which can outlast the time Talk (through AppAPI's bot proxy) gives a
+    // webhook before it counts the delivery as failed; the outcome of the
+    // forward is only ever logged, so Talk has nothing to wait for.
     res.json({ ok: true, event: mapped.event });
+    forwardToBeeFlow(apiPath, payloadBody, `${ts}.${sig}`, /** @type {string} */ (config.ncInstanceId))
+        .catch(err => log.warn(`[TalkBot] forward failed: ${errMessage(err)}`));
 });
+
+/**
+ * @param {string} apiPath
+ * @param {string} payloadBody
+ * @param {string} signature
+ * @param {string} ncInstanceId
+ */
+async function forwardToBeeFlow(apiPath, payloadBody, signature, ncInstanceId) {
+    const r = await fetch(`${config.apiBaseUrl}${apiPath}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Beeflow-Source': 'nextcloud-connector',
+            'X-Beeflow-NC-Instance-Id': ncInstanceId,
+            'X-Beeflow-Sig': signature,
+        },
+        body: payloadBody,
+        signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
+    }
+}
 
 module.exports = Object.assign(router, {
     registerTalkBot,

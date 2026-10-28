@@ -97,8 +97,7 @@ function trigger() {
     assert.ok(r.errors.find(e => e.code === 'step.unknown_type'));
 }
 
-// ── Forward ref to a real step still warns (not error) ──────────────────
-// "future" step EXISTS in the def but appears after `n1` in topo order.
+// ── Forward ref to a real step (after `n1` in topo order): error at activate, warning in a draft ──
 {
     const def = {
         trigger: trigger(),
@@ -108,9 +107,9 @@ function trigger() {
         ],
         edges: [{ from: 'trg', to: 'n1' }, { from: 'n1', to: 'future' }],
     };
-    const r = validateDefinition(def);
-    assert.strictEqual(r.ok, true, 'forward refs to real steps only warn');
-    assert.ok(r.warnings.find(w => w.code === 'ref.forward'), 'expected ref.forward warning');
+    const r = validateDefinition(def), draft = validateDefinition(def, { stage: 'draft' });
+    assert.ok(!r.ok && r.errors.find(w => w.code === 'ref.forward'), 'a forward ref blocks finalize and go-live');
+    assert.ok(draft.ok && draft.warnings.find(w => w.code === 'ref.forward' && w.blockedAt === 'activate'), 'a draft still saves');
 }
 
 // ── Ref to a step that DOESN'T exist → error with did-you-mean hint ─────

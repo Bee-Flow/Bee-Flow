@@ -185,6 +185,24 @@ async function getOrMintTenantKey(orgId) {
     return stored || candidate;
 }
 
+// Replace an org's tenant key with a fresh one. The old key stops verifying
+// at once on this replica (the cache is invalidated) and within the key-cache
+// TTL on the others. Used by POST /auth/connector/rotate-key, which the
+// connector calls for its "Rotate tenant key" button: getOrMintTenantKey
+// above always hands back the existing key, so re-bootstrapping never
+// rotated anything.
+/**
+ * @param {string} orgId
+ * @returns {Promise<string>} the new key
+ */
+async function rotateTenantKey(orgId) {
+    const key = crypto.randomBytes(32).toString('base64url');
+    await configStore.setSecret(`${TENANT_KEY_PREFIX}${orgId}`, key);
+    invalidateTenantKeyCache(orgId);
+    log.info(`[ConnectorBootstrap] Rotated the tenant key for org ${orgId}`);
+    return key;
+}
+
 // Promote / create the NC admin user inside an org. Used by the fresh-org
 // branch and the approval handler.
 /**
@@ -334,6 +352,7 @@ module.exports = {
     resolveProvisioningMode,
     slugify,
     getOrMintTenantKey,
+    rotateTenantKey,
     ensureOrgAdminUser,
     _selectSecondaryAdmins,
     ensureAdditionalOrgAdmins,

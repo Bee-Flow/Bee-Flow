@@ -124,6 +124,22 @@ module.exports = {
             note: 'orgRoutes.js — same requireStrictOrgAdmin gate; reports the in-memory backfill job state for that org.',
         },
 
+        // ── Nextcloud connector, server to server: no session at all ──
+        // The caller is the connector ExApp, authenticated by a bearer JWT
+        // signed with its org's tenant key. resolveConnectorBearer
+        // (auth/connector/rotateKey.mts) finds the org whose key verifies the
+        // token and answers 401 otherwise; the org is never taken from input.
+        'POST /auth/connector/status': {
+            enforcement: 'handler',
+            note: 'connectorBootstrap.js — the connector\'s phone-home health report. resolveConnectorBearer(req) 401s unless a tenant key verifies the bearer token; the report is recorded for that org only, and an unverified body records nothing.',
+            verifiedBy: 'auth/connectorBootstrap.orgHealth.test.js',
+        },
+        'POST /auth/connector/rotate-key': {
+            enforcement: 'handler',
+            note: 'auth/connector/rotateKey.mts — replaces the tenant key of the org whose CURRENT key signed the bearer token (resolveConnectorBearer, 401 otherwise). The token must also carry purpose "connector:rotate-tenant-key" (403 otherwise) and expire within 120 s, so a captured per-user connector token cannot rotate.',
+            verifiedBy: 'auth/connector/rotateKey.test.js',
+        },
+
         // ── Org-admin over the caller's OWN org (no path parameter) ───
         'GET /auth/admin/connector-health/mine': {
             enforcement: 'handler',

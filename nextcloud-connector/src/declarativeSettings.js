@@ -146,8 +146,9 @@ let _lastApplied = null;
 let _envPinLogged = false;
 
 async function applyStoredValuesIfChanged() {
-    // Precedence: an explicit BEEFLOW_API_BASE_URL env var is a deliberate
-    // admin lock and wins over the picker — the same rule bootstrap and
+    // Precedence: a BEEFLOW_API_BASE_URL naming a server other than Cloud is
+    // a deliberate admin lock (config.apiBaseUrlLocked; AppAPI always injects
+    // the Cloud default, which is not a lock) and wins over the picker — the same rule bootstrap and
     // server.js already enforce (server.js only applies a stored apiBaseUrl
     // when the env is unset). Without this guard the poll fought the env pin:
     // it kept trying to switch to the stored value every interval, and each
@@ -155,7 +156,7 @@ async function applyStoredValuesIfChanged() {
     // e.g. a `http://localhost:3001` typed into the form on a box whose
     // container reaches the host at a LAN IP, which strands the app keyless
     // for the width of every retry.
-    if (process.env.BEEFLOW_API_BASE_URL) {
+    if (config.apiBaseUrlLocked) {
         if (!_envPinLogged) {
             log.info(`[Settings] BEEFLOW_API_BASE_URL is set (${process.env.BEEFLOW_API_BASE_URL}) — the admin picker is informational and will not repoint the connector.`);
             _envPinLogged = true;
@@ -183,25 +184,20 @@ async function applyStoredValuesIfChanged() {
     }
 
     log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl} → ${target}`);
-    const previousUrl = config.apiBaseUrl;
-    config.apiBaseUrl = target;
 
     // Try the new target. If bootstrap fails (e.g. Cloud picked from a
     // localhost-only sandbox NC, or a typo in the self-hosted URL), the
-    // bootstrap layer rolls back its tenant key — we mirror that here by
-    // restoring the previous apiBaseUrl so the next API request keeps
-    // working against the old, healthy target instead of stranding the
-    // user with a blank app.
+    // bootstrap layer rolls back the key AND the server URL, so the next API
+    // request keeps working against the old, healthy target. A server that
+    // wants the emailed code first counts as applied: the switch is pending
+    // on that server, and polling again would only open another pending
+    // binding there every minute (until it answers 429).
     let rebootstrapOk = true;
     try {
-        const bootstrap = require('./bootstrap');
-        if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
-            await bootstrap.invalidateAndRebootstrap();
-        }
+        await require('./bootstrap').invalidateAndRebootstrap({ apiBaseUrl: target });
     } catch (err) {
         rebootstrapOk = false;
-        config.apiBaseUrl = previousUrl;
-        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${errMessage(err)}`);
+        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${config.apiBaseUrl}. Detail: ${errMessage(err)}`);
     }
 
     if (rebootstrapOk) {

@@ -18,11 +18,13 @@
  *           checking the interface first; registering an incompatible class
  *           makes Nextcloud fatal inside a background job.
  *
- * Events arrive for bot/federated actors with no userId, so fan-out is scoped
- * by organisation. The catalog payload is guarded byte-for-byte by
+ * Push events fan out over the organisation, a colleague's automation only
+ * after a visibility check (triggerBus/ncVisibility.mts, `colleagues: true`).
+ * The catalog payload is guarded byte-for-byte by
  * triggerRegistry.golden.test.js — regenerate the golden when editing this file.
  */
 const { FILE_EVENTS } = require('../nextcloudFileEvents');
+const { withColleagues } = require('../../triggerBus/ncVisibility.mts');
 
 module.exports = { TRIGGER_SOURCES: [{
         id: 'nextcloud',
@@ -113,21 +115,11 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'calendar.event.upcoming',
                 label: 'Calendar event upcoming (lead-time before start)',
-                fields: [
-                    'uid',
-                    'calendarId',
-                    'summary',
-                    'startsAt',
-                    'endsAt',
-                    'location',
-                    'attendees',
-                    'minutesUntilStart',
-                    'actor',
-                    'datetime',
-                ],
+                fields: ['uid', 'calendarId', 'calendarUri', 'summary', 'startsAt', 'endsAt', 'location', 'attendees', 'minutesUntilStart', 'actor', 'datetime'],
                 sample: {
                     uid: 'evt-9f2a',
                     calendarId: 'personal',
+                    calendarUri: 'personal',
                     summary: 'Kickoff with Nextcloud',
                     startsAt: '2026-05-13T15:00:00+02:00',
                     endsAt: '2026-05-13T15:30:00+02:00',
@@ -382,7 +374,7 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'talk.message.received',
                 label: 'Talk message received',
-                fields: ['messageId', 'roomToken', 'roomName', 'actor', 'actorName', 'message', 'isMarkdown', 'inReplyTo', 'datetime'],
+                fields: ['messageId', 'roomToken', 'roomName', 'actor', 'actorName', 'message', 'isMarkdown', 'inReplyTo', 'isOwn', 'datetime'],
                 sample: {
                     messageId: 88123,
                     roomToken: 'a1b2c3d4',
@@ -392,6 +384,7 @@ module.exports = { TRIGGER_SOURCES: [{
                     message: 'Can someone post the latest invoice summary?',
                     isMarkdown: true,
                     inReplyTo: null,
+                    isOwn: false,
                     datetime: '2026-05-13T12:30:00Z',
                 },
                 scope: 'org',
@@ -402,7 +395,7 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'talk.reaction.added',
                 label: 'Talk reaction added',
-                fields: ['messageId', 'roomToken', 'roomName', 'actor', 'actorName', 'reaction', 'removed', 'datetime'],
+                fields: ['messageId', 'roomToken', 'roomName', 'actor', 'actorName', 'reaction', 'removed', 'isOwn', 'datetime'],
                 sample: {
                     messageId: 88123,
                     roomToken: 'a1b2c3d4',
@@ -411,6 +404,7 @@ module.exports = { TRIGGER_SOURCES: [{
                     actorName: 'Alice',
                     reaction: '\u{1F44D}',
                     removed: false,
+                    isOwn: false,
                     datetime: '2026-05-13T12:31:00Z',
                 },
                 scope: 'org',
@@ -418,5 +412,5 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'push',
                 },
             },
-        ],
+        ].map(withColleagues),
     }] };

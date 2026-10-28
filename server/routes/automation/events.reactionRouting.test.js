@@ -188,12 +188,15 @@ test('an ingest failure never fails the ack — Talk marks a slow bot unhealthy'
     require.cache[ingestPath].exports.handleTalkReaction = saved;
 });
 
-test('a push from a resolved actor is stamped as the actor\'s own action (excludeOwn* filters)', async () => {
+test('a push from a resolved actor names the ACTOR, never a subscriber (#191): the org fan-out stamps isOwn per subscription', async () => {
     rec.dispatched = []; rec.reactions = [];
     await handler(signedReq({ event: 'file.deleted', ncUid: 'ada', payload: { path: '/x.txt' } }), makeRes());
     await drain();
     assert.equal(rec.dispatched.length, 1);
-    assert.equal(rec.dispatched[0].payload.isOwn, true);
-    assert.equal(rec.dispatched[0].payload.isOwnAction, true);
-    assert.equal(rec.dispatched[0].payload.path, '/x.txt');
+    const call = rec.dispatched[0];
+    assert.equal(call.actorUserId, 'u_lead');
+    assert.equal(call.userId, undefined, 'the actor must not narrow the fan-out to their own subscriptions');
+    assert.ok(call.orgId, 'the org scopes the fan-out');
+    assert.equal(call.payload.path, '/x.txt');
+    assert.equal(call.payload.isOwn, undefined, 'own-flags are per subscription (dispatch.js), not per event');
 });

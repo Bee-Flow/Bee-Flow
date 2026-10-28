@@ -86,6 +86,7 @@ const NAMESPACES = {
     "mfa":             require('./mfa.js'),
     "modules":         require('./modules.js'),
     "nc_scope":        require('./nc_scope.js'),
+    "nc_trigger_scope": require('./nc_trigger_scope.js'),
     "notebooks":       require('./notebooks.js'),
     "notification":    require('./notification.js'),
     "notifications":   require('./notifications.js'),

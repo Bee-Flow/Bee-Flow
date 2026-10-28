@@ -11,13 +11,13 @@ name = "beeflow-guard-service"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "fastapi==0.143.0",
+  "fastapi==0.162.0",
   "uvicorn[standard]==0.54.0",
   "pydantic==2.14.1",
-  "pydantic-settings==2.15.0",
+  "pydantic-settings==2.16.1",
   "httpx==0.28.1",
   "redis==8.1.0",
-  "certifi==2026.10.19",
+  "certifi==2026.10.23",
   # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
   # PINNED: every eval baseline records the library version in its provenance;
   # a floating floor let a rebuild silently drift the engine underneath the

@@ -23,12 +23,28 @@ test('an unknown event and an unknown provider warn', () => {
     assert.ok(appEventWarnings({ provider: 'nope-provider', event: 'x' }).some(m => /No integration/.test(m)));
 });
 
-test('unknown filter keys, a non-numeric tagId and summaryContains on calendar.event.created warn', () => {
+test('unknown filter keys, a list as tagId and summaryContains on calendar.event.created warn', () => {
     assert.ok(appEventWarnings(nc('file.new', { bogusKey: 1 })).some(m => /"bogusKey"/.test(m)));
-    assert.ok(appEventWarnings(nc('file.tagged', { tagId: 'invoice' })).some(m => /numeric/.test(m)));
-    assert.ok(appEventWarnings(nc('file.tagged', { tagId: ['1', '2'] })).some(m => /numeric/.test(m)));
+    // A tag name is a valid tagId now (#193): looked up when the event arrives.
+    assert.deepStrictEqual(appEventWarnings(nc('file.tagged', { tagId: 'invoice' })), []);
+    assert.ok(appEventWarnings(nc('file.tagged', { tagId: ['1', '2'] })).some(m => /A list never matches/.test(m)));
     assert.deepStrictEqual(appEventWarnings(nc('file.tagged', { tagId: 7 })), []);
     assert.ok(appEventWarnings(nc('calendar.event.created', { summaryContains: 'Review' })).some(m => /summaryContains/.test(m)));
+});
+
+test('calendar.event.upcoming: an out-of-range leadMinutes is said, not silently clamped', () => {
+    assert.deepStrictEqual(appEventWarnings(nc('calendar.event.upcoming', { leadMinutes: 600, calendars: ['work'] })), []);
+    assert.ok(appEventWarnings(nc('calendar.event.upcoming', { leadMinutes: 99999 })).some(m => /above this install's maximum/.test(m)));
+    assert.ok(appEventWarnings(nc('calendar.event.upcoming', { leadMinutes: 0 })).some(m => /at least 1/.test(m)));
+});
+
+test('includeColleagues (#191): accepted where a colleague\'s event can be checked, explained where it has no effect', () => {
+    for (const event of ['talk.message.received', 'forms.submitted', 'deck.card.moved', 'tables.row.updated', 'file.renamed']) {
+        assert.deepStrictEqual(appEventWarnings(nc(event, { includeColleagues: true })), [], event);
+    }
+    assert.ok(appEventWarnings(nc('calendar.event.created', { includeColleagues: true })).some(m => /stays with the person who caused it/.test(m)));
+    assert.ok(appEventWarnings(nc('file.new', { includeColleagues: true })).some(m => /activity feed/.test(m)));
+    assert.ok(!appEventWarnings(nc('file.new', { includeColleagues: true })).some(m => /"includeColleagues"/.test(m)), 'one explanation, not also an unknown-key line');
 });
 
 test('propose / add / update trigger carry the warnings in _warnings', () => {
