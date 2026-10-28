@@ -163,6 +163,7 @@ function formatNote(note) {
  * @param {Express.Session} session
  */
 async function executeKeepTool(toolName, args, session) {
+    /** @type {KeepClient} */
     let keep;
     try {
         keep = await createKeepClient(session);

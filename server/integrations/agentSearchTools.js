@@ -98,7 +98,7 @@ async function executeAgentSearchTool(toolName, args) {
     try {
         configUrl = !envUrl ? await configStore.getConfig('agent_search_url') : null;
     } catch (cfgErr) {
-        log.warn(`[AgentSearch] Config lookup failed (agent_search_url), using env only: ${cfgErr.message}`);
+        log.warn(`[AgentSearch] Config lookup failed (agent_search_url), using env only: ${/** @type {Error} */ (cfgErr).message}`);
     }
     const searchUrl = envUrl || configUrl;
     log.info(`[AgentSearch] URL resolved: "${searchUrl}" (source: ${envUrl ? 'env SEARCH_SERVICE_URL' : configUrl ? 'admin config (agent_search_url)' : 'NONE'})`);
@@ -120,7 +120,7 @@ async function executeAgentSearchTool(toolName, args) {
     try {
         defaults = (await configStore.getConfig('agent_search_defaults')) || {};
     } catch (cfgErr) {
-        log.warn(`[AgentSearch] Config lookup failed (agent_search_defaults), using built-in defaults: ${cfgErr.message}`);
+        log.warn(`[AgentSearch] Config lookup failed (agent_search_defaults), using built-in defaults: ${/** @type {Error} */ (cfgErr).message}`);
     }
 
     // Determine effective mode. WEB-ONLY: this tool has no agent context, so it
@@ -160,7 +160,7 @@ async function executeAgentSearchTool(toolName, args) {
         try {
             serperKey = await configStore.getSecret('serper_api_key');
         } catch (cfgErr) {
-            log.warn(`[AgentSearch] Secret lookup failed (serper_api_key): ${cfgErr.message}`);
+            log.warn(`[AgentSearch] Secret lookup failed (serper_api_key): ${/** @type {Error} */ (cfgErr).message}`);
         }
         /** @type {Record<string, string>} */
         const headers = { 'Content-Type': 'application/json' };
@@ -243,9 +243,9 @@ ${sourcesList}
         return markdown;
 
     } catch (err) {
-        log.error(`[AgentSearch] ERROR: ${err.message}`);
-        log.error(`[AgentSearch] Stack:`, err.stack);
-        return `Search failed: ${err.message}`;
+        log.error(`[AgentSearch] ERROR: ${/** @type {Error} */ (err).message}`);
+        log.error(`[AgentSearch] Stack:`, /** @type {Error} */ (err).stack);
+        return `Search failed: ${/** @type {Error} */ (err).message}`;
     }
 }
 
@@ -285,7 +285,7 @@ async function executeWebSearch(toolName, args) {
             }
         }
     } catch (cfgErr) {
-        log.warn(`[AgentSearch] provider routing failed, using service path: ${cfgErr.message}`);
+        log.warn(`[AgentSearch] provider routing failed, using service path: ${/** @type {Error} */ (cfgErr).message}`);
     }
     return await executeAgentSearchTool(toolName, args);
 }

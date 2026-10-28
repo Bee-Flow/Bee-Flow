@@ -206,6 +206,7 @@ async function executeDocsTool(toolName, args, session) {
             const tabs = res.data.tabs || [];
 
             let text = '';
+            /** @type {string[]} */
             const tabNames = [];
 
             if (tabs.length > 0) {
