@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Card, Divider, Section, Spinner, Text } from '@/shared/ui';
 
@@ -28,6 +29,7 @@ function RunsBody({ automationId, runs }: { automationId: string; runs: RunsQuer
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const router = useRouter();
+    const t = useTranslation();
 
     if (runs.isLoading) {
         return (
@@ -41,7 +43,7 @@ function RunsBody({ automationId, runs }: { automationId: string; runs: RunsQuer
             <View style={styles.padded}>
                 <Banner
                     tone="error"
-                    action={<Button label="Retry" variant="ghost" onPress={() => void runs.refetch()} />}
+                    action={<Button label={t('automation_editor.run_retry', 'Retry')} variant="ghost" onPress={() => void runs.refetch()} />}
                 >
                     {describeError(runs.error).message}
                 </Banner>
@@ -52,8 +54,10 @@ function RunsBody({ automationId, runs }: { automationId: string; runs: RunsQuer
         return (
             <View style={styles.padded}>
                 <Text variant="body" tone="tertiary">
-                    This automation has never run. Press “Run now” to try it — a
-                    manual run does everything a real one does.
+                    {t(
+                        'mobile.automations.never_run',
+                        'This automation has never run. Press “Run now” to try it — a manual run does everything a real one does.',
+                    )}
                 </Text>
             </View>
         );
@@ -75,12 +79,13 @@ function RunsBody({ automationId, runs }: { automationId: string; runs: RunsQuer
 
 export function RecentRunsSection({ automationId, runs }: { automationId: string; runs: RunsQuery }) {
     const router = useRouter();
+    const t = useTranslation();
     return (
         <Section
-            title="Recent runs"
+            title={t('mobile.automations.recent_runs', 'Recent runs')}
             action={
                 <Button
-                    label="See all"
+                    label={t('project_home.overview.see_all', 'See all')}
                     variant="ghost"
                     onPress={() => router.push(`/automations/${automationId}/runs`)}
                 />

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useUserRefresh } from '@/shared/patterns';
 import { Chip, EmptyState, ErrorState, InsetDivider, ListSkeleton, Screen, ScreenHeader } from '@/shared/ui';
@@ -13,12 +14,12 @@ import { useAutomation, useRunHistory } from '../hooks/queries';
 import { useRunStream } from '../hooks/useRunStream';
 
 /** The statuses worth filtering by. `status` is a CSV query param server-side. */
-const FILTERS: { label: string; value: string | undefined }[] = [
-    { label: 'All', value: undefined },
-    { label: 'Failed', value: 'error' },
-    { label: 'Finished', value: 'success' },
-    { label: 'Running', value: 'running,queued' },
-    { label: 'Waiting', value: 'awaiting_approval,awaiting_form' },
+const FILTERS: { i18nKey: string; en: string; value: string | undefined }[] = [
+    { i18nKey: 'runs.tab.filter_all', en: 'All', value: undefined },
+    { i18nKey: 'runs.tab.filter_failed', en: 'Failed', value: 'error' },
+    { i18nKey: 'runs.log.filter_finished', en: 'Finished', value: 'success' },
+    { i18nKey: 'runs.tab.filter_running', en: 'Running', value: 'running,queued' },
+    { i18nKey: 'approvals.status_pending', en: 'Waiting', value: 'awaiting_approval,awaiting_form' },
 ];
 
 const makeStyles = (theme: Theme) =>
@@ -31,6 +32,7 @@ export function RunListScreen({ automationId }: { automationId: string }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const router = useRouter();
+    const t = useTranslation();
     const [status, setStatus] = useState<string | undefined>(undefined);
 
     const automation = useAutomation(automationId);
@@ -55,13 +57,17 @@ export function RunListScreen({ automationId }: { automationId: string }) {
         body = (
             <EmptyState
                 icon="Clock"
-                title={status ? 'Nothing in that state' : 'No runs yet'}
+                title={
+                    status
+                        ? t('mobile.automations.runs.no_match', 'Nothing in that state')
+                        : t('mobile.automations.runs.none', 'No runs yet')
+                }
                 message={
                     status
-                        ? 'Try another filter to see what this automation has done.'
-                        : 'Run it once and its history starts here — every step, every timing, every error.'
+                        ? t('mobile.automations.runs.no_match_hint', 'Try another filter to see what this automation has done.')
+                        : t('mobile.automations.runs.none_hint', 'Run it once and its history starts here — every step, every timing, every error.')
                 }
-                actionLabel={status ? 'Show all runs' : undefined}
+                actionLabel={status ? t('mobile.automations.runs.show_all', 'Show all runs') : undefined}
                 onAction={status ? () => setStatus(undefined) : undefined}
             />
         );
@@ -92,13 +98,13 @@ export function RunListScreen({ automationId }: { automationId: string }) {
 
     return (
         <Screen edges={['top', 'bottom']}>
-            <ScreenHeader title="Run history" subtitle={automation.data?.automation.title ?? undefined} />
+            <ScreenHeader title={t('automation_editor.run_history', 'Run history')} subtitle={automation.data?.automation.title ?? undefined} />
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
                 {FILTERS.map((filter) => (
                     <Chip
-                        key={filter.label}
-                        label={filter.label}
+                        key={filter.i18nKey}
+                        label={t(filter.i18nKey, filter.en)}
                         selected={status === filter.value}
                         onPress={() => setStatus(filter.value)}
                     />

@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { InlineMarkdown } from '@/shared/markdown';
 import { Button, Card, Text, useToast } from '@/shared/ui';
@@ -25,6 +26,7 @@ const makeStyles = (theme: Theme) =>
 export function AwaitingApprovalCard({ run, onDecided }: { run: AutomationRun; onDecided: () => void }) {
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
+    const t = useTranslation();
     const mutation = useDecideRunStep(run.id, onDecided, {
         onError: (error) => toast(describeError(error).message, 'error'),
     });
@@ -35,28 +37,33 @@ export function AwaitingApprovalCard({ run, onDecided }: { run: AutomationRun; o
                 <View style={styles.heading}>
                     <StatusIcon status={run.status} />
                     <Text variant="subheading" style={styles.title}>
-                        Waiting for your decision
+                        {t('mobile.automations.approval.waiting', 'Waiting for your decision')}
                     </Text>
                 </View>
                 <InlineMarkdown
                     variant="caption"
                     tone="tertiary"
-                    value={run.summary ?? 'This run paused at a step that needs a person to say yes before it continues.'}
+                    value={
+                        run.summary ??
+                        t('mobile.automations.approval.default_summary', 'This run paused at a step that needs a person to say yes before it continues.')
+                    }
                 />
                 {run.awaitingStepExpiresAt ? (
                     <Text variant="caption" tone="warning">
-                        Expires {absoluteTime(run.awaitingStepExpiresAt).toLowerCase()}
+                        {t('mobile.automations.approval.expires', 'Expires {time}', {
+                            time: absoluteTime(run.awaitingStepExpiresAt).toLowerCase(),
+                        })}
                     </Text>
                 ) : null}
                 <View style={styles.actions}>
                     <Button
-                        label="Approve"
+                        label={t('approvals.approve', 'Approve')}
                         onPress={() => mutation.mutate('approve')}
                         loading={mutation.isPending}
                         style={styles.action}
                     />
                     <Button
-                        label="Reject"
+                        label={t('approvals.reject', 'Reject')}
                         variant="danger"
                         onPress={() => mutation.mutate('reject')}
                         disabled={mutation.isPending}

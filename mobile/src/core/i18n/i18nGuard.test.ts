@@ -247,7 +247,9 @@ const UNCONVERTED = new Map<string, number>([
     // copy added no strings and two older literals went with the rewrite.
     // 50 -> 34: the schedule picker's labels, hints, preview lines and toast, and
     // the weekday chips, went through t() (the web's schedule words are borrowed).
-    ['src/features/automations', 34],
+    // 34 -> 9: the run screens' actions, approval card, step and history headings,
+    // run-list filters, empty states and toasts went through t().
+    ['src/features/automations', 9],
     // 25 -> 17: the schedule screen's labels and toasts went through t() when
     // its Delete learned to ask first.
     ['src/features/cowork', 17],
