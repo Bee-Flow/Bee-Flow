@@ -2,7 +2,8 @@
 # Mechanical JSDoc rounds over server/ by tooling, one local commit per batch that passes
 # every gate. The loop .claude/handoff/ts-conversion/SERVER.md describes by hand, with the
 # gates a round must pass before it may be committed:
-#   write      scripts/jsdoc-convert-server.mjs --write --mark   (comments only)
+#   write      scripts/jsdoc-convert-server.mjs --write --mark   (comments only), then
+#              scripts/jsdoc-express-params.mjs and, for stores, scripts/jsdoc-row-types.mjs
 #   prove      scripts/ts-behaviour-diff.mjs: no compiled line changed
 #   settle     npm run typecheck; scripts/typecheck-settle.mjs reverts the files whose new types broke it
 #   promote    server/scripts/typecheck.mjs --promote
@@ -47,6 +48,12 @@ one_batch() {
   echo "-- write"
   node --max-old-space-size=${JSDOC_ROUND_HEAP:-9000} scripts/jsdoc-convert-server.mjs --batch "$chunk" --write --mark > "$WORK/$label.write.json" 2> "$WORK/$label.write.err" || { echo "write failed" | tee -a "$LOG"; tail -3 "$WORK/$label.write.err"; git checkout -- server; return 1; }
   grep -E "errors under" "$WORK/$label.write.err" | tee -a "$LOG"
+  # Two targeted passes after the general inference, each checked in memory by its own tool
+  # (an edit stays only when the file's diagnostics do not rise): Express handler parameters
+  # that nothing types (req, res, next) and the database row a store mapper reads.
+  node --max-old-space-size=6000 scripts/jsdoc-express-params.mjs --batch "$chunk" --write > "$WORK/$label.express.json" 2> "$WORK/$label.express.err" || echo "express-params pass failed (ignored): $(tail -1 "$WORK/$label.express.err")" | tee -a "$LOG"
+  if grep -q '^server/stores/' "$chunk"; then node --max-old-space-size=6000 scripts/jsdoc-row-types.mjs --batch "$chunk" --write > "$WORK/$label.rows.json" 2> "$WORK/$label.rows.err" || echo "row-types pass failed (ignored): $(tail -1 "$WORK/$label.rows.err")" | tee -a "$LOG"; fi
+  for j in express rows; do [ -s "$WORK/$label.$j.json" ] && node -e "const j=require(process.argv[1]);console.log('$j: '+(j.kept??0)+' kept, '+(j.dropped??0)+' dropped')" "$WORK/$label.$j.json" | tee -a "$LOG"; done
   echo "-- behaviour diff"
   if ! node scripts/ts-behaviour-diff.mjs --base HEAD --paths server --quiet > "$WORK/$label.bdiff.txt" 2>&1; then tail -2 "$WORK/$label.bdiff.txt" | tee -a "$LOG"; echo "compiled program changed: reverting" | tee -a "$LOG"; git checkout -- server; return 2; fi
   echo "-- typecheck + settle"
