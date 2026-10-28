@@ -6,7 +6,7 @@ const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts')
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Every schema is `.strict()`, and on the LIST routes that is the point: a
-// misspelled filter used to be dropped, and a list that quietly drops a
+// misspelled filter would be dropped, and a list that quietly drops a
 // narrowing parameter answers a wider question than the one it was asked —
 // the same failure the trigger-source check in crud.js exists to prevent.
 

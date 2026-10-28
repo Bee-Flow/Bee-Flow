@@ -24,7 +24,7 @@ const log = require('../../telemetry/log');
 
 // The confirmation is the only thing this route takes, and it is taken from
 // BOTH places because a DELETE is routinely sent without a body. Strict on
-// both: `?confirmbreaking=true` used to be dropped, which reads as "no" on the
+// both: `?confirmbreaking=true` would be dropped, which reads as "no" on the
 // one request where "no" costs the person a second trip through the dialog.
 const DeleteBody = bodyOf({ confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional() });
 

@@ -9,7 +9,7 @@
  * ── WHAT A CALLER MAY SEND ──────────────────────────────────────────
  * Every query and body is `.strict()`, and every filter value is checked
  * against what the store can actually filter on. The store DROPS a filter it
- * does not recognise, so before this a list narrowed to failures answered with
+ * does not recognise, so a list narrowed to failures would answer with
  * everything: `?status=eror` (every status filtered out, so no status clause)
  * and `?staus=error` (an unknown key) both returned the whole knowledge base.
  * `?dateFrom=yesterday` reached Postgres as a timestamp cast and came back as
@@ -17,7 +17,7 @@
  *
  * Bulk delete refuses more than 200 ids instead of deleting the first 200 and
  * answering 200 for the lot. And its ids must be document ids (the column is
- * a UUID); anything else used to reach Postgres and come back inside the
+ * a UUID); anything else would reach Postgres and come back inside the
  * `errors` list with the database's own message in it.
  *
  * `:id` and `:docId` are not checked here — see the header of ./detail.js.

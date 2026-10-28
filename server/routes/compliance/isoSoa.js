@@ -13,8 +13,8 @@
  * `applicable:'false'` (the string) is not a boolean, so the control stayed
  * APPLICABLE while the screen said excluded.
  *
- * The schema is also the allow-list the store used to need: a key outside it
- * is now a 400 naming the key, instead of a column the editor does not own
+ * The schema is also the allow-list: a key outside it
+ * is a 400 naming the key, instead of a column the editor does not own
  * being quietly dropped.
  */
 

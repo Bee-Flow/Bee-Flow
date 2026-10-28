@@ -9,7 +9,7 @@
  * must be refused, not silently dropped from the filter list — the store
  * drops what it does not recognise, and with nothing left in the list it
  * adds no clause at all, so a typo'd `?status=eror` came back with every
- * document under a 200. Each route used to carry its own copy of this check;
+ * document under a 200. A copy of this check per route would drift apart;
  * one implementation here is the one the store's vocabulary can drift under
  * without the two routes drifting from each other.
  */

@@ -6,7 +6,7 @@
  *   GET    /_trash       the caller's trashed automations, with their purge date
  *   POST   /:id/restore  take one out again, PAUSED
  *
- * A delete used to be final and took every run with it (the FKs cascade). Now
+ * A delete would be final and take every run with it (the FKs cascade). Instead
  * the automation is switched off, its remote event subscriptions are revoked
  * (a provider-side subscription would otherwise keep firing at nobody) and it
  * waits in the trash for TRASH_RETENTION_DAYS with its runs, answers tables

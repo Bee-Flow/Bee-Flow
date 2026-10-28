@@ -61,7 +61,7 @@ const GRANTEE_ID_TEXT = 'Say who to share with';
 const GRADE_TEXT = 'Choose read or read-and-write';
 const GrantBody = bodyOf({
     granteeType: choice(['user', 'group'], GRANTEE_TEXT),
-    // `grantee_id` is NOT NULL, so a grant with no grantee used to come back
+    // `grantee_id` is NOT NULL, so a grant with no grantee would come back
     // as a bare 500 "Could not share the datatable" from a constraint nobody
     // outside this file can read.
     granteeId: idText(GRANTEE_ID_TEXT),

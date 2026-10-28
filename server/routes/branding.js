@@ -36,7 +36,7 @@
  * JSON body" before this router runs, so the web's clearUserOverride() never
  * cleared anything. A DELETE needs no body to say "nothing". `PUT /user` with
  * NO body still clears as well: that is what the phone's clearUserBranding()
- * sends (its client drops a null body), and it used to get a 200 that cleared
+ * sends (its client drops a null body), and it must not get a 200 that clears
  * nothing.
  *
  * ── The wallpaper file ──────────────────────────────────────────────
@@ -52,7 +52,7 @@
  * never from the name; SVG, which can carry script, is not on it; and every
  * wallpaper is served nosniff and sandboxed, which also defuses anything
  * stored before this. A refused upload is a 400 (a file too big a 413), not
- * the 500 a filter error used to become.
+ * a 500 from a filter error.
  */
 
 const express = require('express');
@@ -70,8 +70,8 @@ const { HttpError } = require('../core/http/errors');
 // Async middleware in Node 22 — if `requireAdmin`'s internal hasPermission()
 // rejects, the unhandled-rejection default exits the process, which produces
 // ERR_EMPTY_RESPONSE on the open socket. Wrap auth middleware so a rejection
-// reaches the terminal error handler instead. It used to answer here, with
-// 'Auth check failed: ' + the error's own message — the raw text of whatever
+// reaches the terminal error handler instead. It must not answer here with
+// 'Auth check failed: ' + the error's own message — that is the raw text of whatever
 // the permission lookup threw, database errors included, in the 500 body.
 /**
  * @param {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => unknown} middleware

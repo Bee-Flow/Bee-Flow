@@ -193,8 +193,7 @@ const aiTranslateLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
 // ── Live-site selection ──────────────────────────────────────────
 //
-// "Live" used to be a global on/off flag (cms_enabled). Now it's per-
-// project and mutually exclusive: at most one project can be live at a
+// "Live" is per-project and mutually exclusive (not a global on/off flag): at most one project can be live at a
 // time, and the live URL serves *that* project. Other projects stay
 // editable in the admin without affecting the public site.
 //

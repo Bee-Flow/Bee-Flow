@@ -53,7 +53,7 @@ router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (/** @typ
     }
 
     const wh = await automationStore.createWebhook(a.id, triggerStepId);
-    // Absolute, not the relative path this used to return: the client shows
+    // Absolute, not a relative path: the client shows
     // this URL for the user to paste into an external system, so a
     // path-only value is unusable.
     res.json({ webhook: { ...wh, url: webhookUrlForSlug(wh.id, req) }, url: webhookUrlForSlug(wh.id, req) });
