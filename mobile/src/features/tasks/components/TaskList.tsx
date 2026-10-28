@@ -3,6 +3,7 @@
 import React from 'react';
 import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { EmptyState, InsetDivider } from '@/shared/ui';
 
@@ -29,6 +30,7 @@ export function TaskList({
     runningId: string | null;
     onCreate: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
 
     return (
@@ -47,9 +49,9 @@ export function TaskList({
             ListEmptyComponent={
                 <EmptyState
                     icon="Cpu"
-                    title="No tasks yet"
-                    message="A task is a prompt Bee Flow runs on a schedule — a Monday news digest, a daily lead report. The answer arrives in your notifications."
-                    actionLabel="New task"
+                    title={t('mobile.tasks.empty_title', 'No tasks yet')}
+                    message={t('mobile.tasks.empty_body', 'A task is a prompt Bee Flow runs on a schedule — a Monday news digest, a daily lead report. The answer arrives in your notifications.')}
+                    actionLabel={t('mobile.tasks.new_task', 'New task')}
                     onAction={onCreate}
                 />
             }

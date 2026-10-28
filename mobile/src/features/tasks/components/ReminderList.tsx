@@ -3,6 +3,7 @@
 import React from 'react';
 import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { EmptyState, InsetDivider } from '@/shared/ui';
 
@@ -26,6 +27,7 @@ export function ReminderList({
     onComplete: (id: string) => void;
     onCreate: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
 
     return (
@@ -44,9 +46,9 @@ export function ReminderList({
             ListEmptyComponent={
                 <EmptyState
                     icon="Bell"
-                    title="Nothing to remember"
-                    message="Set one and Bee Flow will notify you when the time comes — on every device you are signed in to."
-                    actionLabel="New reminder"
+                    title={t('mobile.tasks.reminders_empty_title', 'Nothing to remember')}
+                    message={t('mobile.tasks.reminders_empty_body', 'Set one and Bee Flow will notify you when the time comes — on every device you are signed in to.')}
+                    actionLabel={t('mobile.tasks.new_reminder', 'New reminder')}
                     onAction={onCreate}
                 />
             }

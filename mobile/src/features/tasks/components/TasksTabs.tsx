@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Segmented } from '@/shared/ui';
 
@@ -39,17 +40,18 @@ export function TasksTabs({
     /** Set once the cap is reached; shown on the tasks side only. */
     maxTasks: number | null;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <>
             <View style={styles.tabs}>
                 <Segmented
-                    accessibilityLabel="Tasks or reminders"
+                    accessibilityLabel={t('mobile.tasks.tabs_label', 'Tasks or reminders')}
                     value={tab}
                     onChange={onChange}
                     options={[
-                        { value: 'tasks', label: counted('Tasks', taskCount) },
-                        { value: 'reminders', label: counted('Reminders', reminderCount) },
+                        { value: 'tasks', label: counted(t('tasks.title', 'Tasks'), taskCount) },
+                        { value: 'reminders', label: counted(t('mobile.tasks.reminders', 'Reminders'), reminderCount) },
                     ]}
                 />
             </View>
@@ -57,7 +59,7 @@ export function TasksTabs({
             {tab === 'tasks' && maxTasks !== null ? (
                 <View style={styles.limit}>
                     <Banner tone="warning">
-                        {`You have all ${maxTasks} tasks your organisation allows. Pause or delete one to make room.`}
+                        {t('mobile.tasks.limit', 'You have all {max} tasks your organisation allows. Pause or delete one to make room.', { max: maxTasks })}
                     </Banner>
                 </View>
             ) : null}

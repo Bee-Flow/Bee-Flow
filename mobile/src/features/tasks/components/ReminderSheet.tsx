@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Chip, Sheet, Text, TextField, useToast } from '@/shared/ui';
 
@@ -22,11 +23,12 @@ import { WhenPicker } from './WhenPicker';
 import { useSaveReminder } from '../hooks/mutations';
 import type { Reminder } from '../model/types';
 
-const REPEATS: { value: string | null; label: string }[] = [
-    { value: null, label: 'Once' },
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
+/** The labels travel as data; RepeatChoice renders them through t(). */
+const REPEATS: { value: string | null; label: { i18nKey: string; en: string } }[] = [
+    { value: null, label: { i18nKey: 'cowork.repeat.once', en: 'Once' } },
+    { value: 'daily', label: { i18nKey: 'automations.cadence_daily', en: 'Daily' } },
+    { value: 'weekly', label: { i18nKey: 'automations.cadence_weekly', en: 'Weekly' } },
+    { value: 'monthly', label: { i18nKey: 'automations.cadence_monthly', en: 'Monthly' } },
 ];
 
 const makeStyles = (theme: Theme) =>
@@ -43,17 +45,18 @@ function defaultWhen(): Date {
 }
 
 function RepeatChoice({ value, onChange }: { value: string | null; onChange: (next: string | null) => void }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.group}>
             <Text variant="caption" tone="secondary" weight="medium">
-                Repeat
+                {t('automations.repeat', 'Repeat')}
             </Text>
             <View style={styles.chips}>
                 {REPEATS.map((option) => (
                     <Chip
-                        key={option.label}
-                        label={option.label}
+                        key={option.label.i18nKey}
+                        label={t(option.label.i18nKey, option.label.en)}
                         selected={value === option.value}
                         onPress={() => onChange(option.value)}
                     />
@@ -100,13 +103,14 @@ export function ReminderSheet({
     onClose: () => void;
     reschedule?: Reminder | null;
 }) {
+    const t = useTranslation();
     const { toast } = useToast();
     const editing = Boolean(reschedule);
     const draft = useReminderDraft(visible, reschedule);
 
     const mutation = useSaveReminder(reschedule, {
         onSuccess: () => {
-            toast(editing ? 'Reminder moved' : 'Reminder set', 'success');
+            toast(editing ? t('mobile.tasks.reminder_moved', 'Reminder moved') : t('mobile.tasks.reminder_set', 'Reminder set'), 'success');
             onClose();
         },
     });
@@ -122,11 +126,11 @@ export function ReminderSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title={editing ? 'Move reminder' : 'New reminder'}
-            subtitle={editing ? reschedule?.title : 'Bee Flow will notify you when the time comes.'}
+            title={editing ? t('mobile.tasks.move_reminder', 'Move reminder') : t('mobile.tasks.new_reminder', 'New reminder')}
+            subtitle={editing ? reschedule?.title : t('mobile.tasks.reminder_subtitle', 'Bee Flow will notify you when the time comes.')}
             footer={
                 <Button
-                    label={editing ? 'Move it' : 'Set reminder'}
+                    label={editing ? t('mobile.tasks.move_it', 'Move it') : t('mobile.tasks.set_reminder', 'Set reminder')}
                     onPress={submit}
                     disabled={!(editing || draft.title.trim().length > 0)}
                     loading={mutation.isPending}
@@ -140,17 +144,17 @@ export function ReminderSheet({
             {!editing ? (
                 <>
                     <TextField
-                        label="Remind me to"
+                        label={t('mobile.tasks.remind_me_to', 'Remind me to')}
                         value={draft.title}
                         onChangeText={draft.setTitle}
-                        placeholder="Send the quarterly report"
+                        placeholder={t('mobile.tasks.remind_placeholder', 'Send the quarterly report')}
                         autoCapitalize="sentences"
                     />
                     <TextField
-                        label="Notes"
+                        label={t('mobile.tasks.notes', 'Notes')}
                         value={draft.message}
                         onChangeText={draft.setMessage}
-                        placeholder="Optional"
+                        placeholder={t('mobile.tasks.optional', 'Optional')}
                         multiline
                         maxLines={4}
                         autoCapitalize="sentences"
@@ -158,7 +162,7 @@ export function ReminderSheet({
                 </>
             ) : null}
 
-            <WhenPicker value={draft.when} onChange={draft.setWhen} label={editing ? 'Move to' : 'When'} />
+            <WhenPicker value={draft.when} onChange={draft.setWhen} label={editing ? t('mobile.tasks.move_to', 'Move to') : t('automations.notify.when', 'When')} />
 
             {!editing ? <RepeatChoice value={draft.repeat} onChange={draft.setRepeat} /> : null}
         </Sheet>
