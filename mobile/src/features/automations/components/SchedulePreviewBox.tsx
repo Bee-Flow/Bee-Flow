@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Spinner, Text } from '@/shared/ui';
 
@@ -34,13 +35,14 @@ export interface PreviewState {
 function NextRuns({ preview }: { preview: PreviewState }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
 
     if (preview.isFetching) {
         return (
             <View style={styles.working}>
                 <Spinner />
                 <Text variant="caption" tone="tertiary">
-                    Working out the next runs…
+                    {t('mobile.automations.schedule.working', 'Working out the next runs…')}
                 </Text>
             </View>
         );
@@ -62,19 +64,20 @@ function NextRuns({ preview }: { preview: PreviewState }) {
     if (preview.data && !preview.data.valid) {
         return (
             <Text variant="caption" tone="error">
-                {preview.data.error ?? 'The server could not read that schedule.'}
+                {preview.data.error ?? t('mobile.automations.schedule.unreadable', 'The server could not read that schedule.')}
             </Text>
         );
     }
     return (
         <Text variant="caption" tone="tertiary">
-            The next run times will be confirmed when you save.
+            {t('mobile.automations.schedule.confirmed_on_save', 'The next run times will be confirmed when you save.')}
         </Text>
     );
 }
 
 export function SchedulePreviewBox({ cron, tz, preview }: { cron: string; tz: string; preview: PreviewState }) {
     const styles = useThemedStyles(makeStyles);
+    useTranslation();
     return (
         <View accessibilityLiveRegion="polite" style={styles.box}>
             <Text variant="caption" weight="medium">

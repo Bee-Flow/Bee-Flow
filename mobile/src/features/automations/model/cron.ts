@@ -9,6 +9,8 @@
  * SchedulePicker.tsx.
  */
 
+import { translate } from '@/core/i18n';
+
 export type SimpleScheduleKind = 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
 
 export interface SimpleSchedule {
@@ -31,15 +33,22 @@ export const DEFAULT_SIMPLE_SCHEDULE: SimpleSchedule = {
     day: 1,
 };
 
-export const WEEKDAY_NAMES = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-] as const;
+/** A word that travels with its key: the picker's chip and the sentence's day. */
+export interface Word {
+    i18nKey: string;
+    en: string;
+}
+
+/** Sunday first, as cron counts. `short` is the web's chip word; `long` is for the sentence. */
+export const WEEKDAYS: readonly { short: Word; long: Word }[] = [
+    { short: { i18nKey: 'automations.schedule.day_sun', en: 'Sun' }, long: { i18nKey: 'mobile.automations.weekday.sunday', en: 'Sunday' } },
+    { short: { i18nKey: 'automations.schedule.day_mon', en: 'Mon' }, long: { i18nKey: 'mobile.automations.weekday.monday', en: 'Monday' } },
+    { short: { i18nKey: 'automations.schedule.day_tue', en: 'Tue' }, long: { i18nKey: 'mobile.automations.weekday.tuesday', en: 'Tuesday' } },
+    { short: { i18nKey: 'automations.schedule.day_wed', en: 'Wed' }, long: { i18nKey: 'mobile.automations.weekday.wednesday', en: 'Wednesday' } },
+    { short: { i18nKey: 'automations.schedule.day_thu', en: 'Thu' }, long: { i18nKey: 'mobile.automations.weekday.thursday', en: 'Thursday' } },
+    { short: { i18nKey: 'automations.schedule.day_fri', en: 'Fri' }, long: { i18nKey: 'mobile.automations.weekday.friday', en: 'Friday' } },
+    { short: { i18nKey: 'automations.schedule.day_sat', en: 'Sat' }, long: { i18nKey: 'mobile.automations.weekday.saturday', en: 'Saturday' } },
+];
 
 export function cronFromSimple(s: SimpleSchedule): string {
     const m = clamp(s.minute, 0, 59);
@@ -105,22 +114,30 @@ function dayShape(m: number, h: number, dom: string, dow: string): SimpleSchedul
 
 /** Human text for any cron. Falls back to the expression itself, verbatim. */
 export function describeCron(cron: string | null | undefined, tz?: string | null): string {
-    if (!cron) return 'On a schedule that has not been set';
+    if (!cron) return translate('mobile.automations.cron.unset', 'On a schedule that has not been set');
     const simple = simpleFromCron(cron);
     const zone = tz ? ` (${tz})` : '';
-    if (!simple) return `On a custom schedule: ${cron}${zone}`;
-    const at = `${pad(simple.hour)}:${pad(simple.minute)}`;
+    if (!simple) return translate('mobile.automations.cron.custom', 'On a custom schedule: {cron}', { cron }) + zone;
+    const time = `${pad(simple.hour)}:${pad(simple.minute)}`;
+    return sentence(simple, time) + zone;
+}
+
+/** The shape's sentence, without the zone. */
+function sentence(simple: SimpleSchedule, time: string): string {
     switch (simple.kind) {
         case 'hourly':
-            return `Every hour at :${pad(simple.minute)}${zone}`;
+            return translate('automations.schedule.every_hour_at', 'Every hour at :{minute}', { minute: pad(simple.minute) });
         case 'daily':
-            return `Every day at ${at}${zone}`;
+            return translate('automations.schedule.every_day_at', 'Every day at {time}', { time });
         case 'weekdays':
-            return `Every weekday at ${at}${zone}`;
-        case 'weekly':
-            return `Every ${WEEKDAY_NAMES[simple.weekday] ?? 'week'} at ${at}${zone}`;
+            return translate('automations.schedule.every_weekday_at', 'Every weekday at {time}', { time });
+        case 'weekly': {
+            const day = WEEKDAYS[simple.weekday]?.long;
+            const named = day ? translate(day.i18nKey, day.en) : translate('automations.settings.freq_week', 'week');
+            return translate('mobile.automations.cron.weekly', 'Every {day} at {time}', { day: named, time });
+        }
         case 'monthly':
-            return `Day ${simple.day} of each month at ${at}${zone}`;
+            return translate('mobile.automations.cron.monthly', 'Day {day} of each month at {time}', { day: simple.day, time });
     }
 }
 

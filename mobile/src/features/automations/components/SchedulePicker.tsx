@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button } from '@/shared/ui';
 
@@ -39,6 +40,7 @@ export function SchedulePicker({
     onSave: (cron: string) => void;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const parsed = simpleFromCron(cron);
     /** A pattern the picker cannot represent stays untouched until asked. */
     const [replacingCustom, setReplacingCustom] = useState(false);
@@ -65,7 +67,7 @@ export function SchedulePicker({
         <View style={styles.root}>
             {replacingCustom ? (
                 <Banner tone="warning">
-                    Saving replaces the custom pattern. The old expression is not kept.
+                    {t('mobile.automations.schedule.replaces_custom', 'Saving replaces the custom pattern. The old expression is not kept.')}
                 </Banner>
             ) : null}
 
@@ -73,7 +75,7 @@ export function SchedulePicker({
 
             <SchedulePreviewBox cron={nextCron} tz={tz} preview={preview} />
 
-            <Button label="Save schedule" onPress={() => onSave(nextCron)} loading={saving} fullWidth size="lg" />
+            <Button label={t('mobile.automations.schedule.save', 'Save schedule')} onPress={() => onSave(nextCron)} loading={saving} fullWidth size="lg" />
         </View>
     );
 }

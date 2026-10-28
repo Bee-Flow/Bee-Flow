@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, IconButton, Text } from '@/shared/ui';
 
@@ -39,6 +40,7 @@ export function Stepper({
 }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     return (
         <View style={[styles.root, style]}>
             <Text variant="caption" tone="secondary" weight="medium">
@@ -52,13 +54,13 @@ export function Stepper({
             >
                 <IconButton
                     icon={<Icon name="Minus" size={18} color={theme.colors.textPrimary} />}
-                    accessibilityLabel={`Decrease ${label.toLowerCase()}`}
+                    accessibilityLabel={t('mobile.automations.stepper.decrease', 'Decrease {label}', { label: label.toLowerCase() })}
                     onPress={onDecrement}
                 />
                 <Text variant="heading">{value}</Text>
                 <IconButton
                     icon={<Icon name="Plus" size={18} color={theme.colors.textPrimary} />}
-                    accessibilityLabel={`Increase ${label.toLowerCase()}`}
+                    accessibilityLabel={t('mobile.automations.stepper.increase', 'Increase {label}', { label: label.toLowerCase() })}
                     onPress={onIncrement}
                 />
             </View>

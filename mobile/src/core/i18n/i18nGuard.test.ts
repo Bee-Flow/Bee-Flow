@@ -245,7 +245,9 @@ const UNCONVERTED = new Map<string, number>([
     // 52 -> 50: the run-access hint (automations.run.viewOnlyHint) and the
     // Run now / Run again accessibility hints go through t(), so the viewer
     // copy added no strings and two older literals went with the rewrite.
-    ['src/features/automations', 50],
+    // 50 -> 34: the schedule picker's labels, hints, preview lines and toast, and
+    // the weekday chips, went through t() (the web's schedule words are borrowed).
+    ['src/features/automations', 34],
     // 25 -> 17: the schedule screen's labels and toasts went through t() when
     // its Delete learned to ask first.
     ['src/features/cowork', 17],
