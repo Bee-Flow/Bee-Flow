@@ -70,13 +70,13 @@ async function _readKnownKeys() {
     } catch (_) { return {}; }
 }
 
+const ts = (s) => (s ? Date.parse(s) || 0 : 0); // epoch ms; missing or unparsable = 0, the oldest
 async function _writeKnownKeys(map) {
     try {
-        // Prune stale entries, then LRU-cap on lastUsedAt.
         const now = Date.now();
         const entries = Object.entries(map)
-            .filter(([, v]) => v && v.pem && (now - Date.parse(v.lastUsedAt || v.firstSeenAt || 0)) < KNOWN_KEYS_STALE_MS)
-            .sort((a, b) => Date.parse(b[1].lastUsedAt || 0) - Date.parse(a[1].lastUsedAt || 0))
+            .filter(([, v]) => v && v.pem && (now - ts(v.lastUsedAt || v.firstSeenAt)) < KNOWN_KEYS_STALE_MS)
+            .sort((a, b) => ts(b[1].lastUsedAt) - ts(a[1].lastUsedAt))
             .slice(0, KNOWN_KEYS_MAX);
         await configStore().setConfig(KNOWN_KEYS_CONFIG_KEY, Object.fromEntries(entries));
     } catch (err) { bestEffort('license/verify:writeKnownKeys', err); }
@@ -396,7 +396,7 @@ module.exports = {
     EXPECTED_ISSUER,
     FULL_TIER_ISSUER,
     TIER_HIERARCHY,
-    _setPublicKeyForTesting,
+    _setPublicKeyForTesting, _writeKnownKeys,
     // Additive reuse primitives (see block above):
     base64UrlDecode,
     resolvePublicKeyByKid,
