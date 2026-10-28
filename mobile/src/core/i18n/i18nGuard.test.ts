@@ -266,7 +266,9 @@ const UNCONVERTED = new Map<string, number>([
     // note that now names the connector.
     ['src/features/notifications', 33],
     ['src/features/org', 73],
-    ['src/features/recording', 98],
+    // 98 -> 68: the capture form's labels, hints and the transcription
+    // languages, and the details sheet's actions, went through t().
+    ['src/features/recording', 68],
     ['src/features/search', 9],
     ['src/features/security', 30],
     ['src/features/settings', 21],
