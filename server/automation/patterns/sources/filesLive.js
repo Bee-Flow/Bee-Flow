@@ -55,8 +55,8 @@ function fileEvent(f, win) {
 const ARRIVAL_SUBJECT_RE = /\b(?:moved|renamed|copied|restored|verplaatst|hernoemd|gekopieerd|teruggezet)\b/i;
 
 /**
- * @param {any} type
- * @param {any} subject
+ * @param {unknown} type
+ * @param {unknown} subject
  * @returns {'file.created'|'file.changed'|null}
  */
 function classifyActivity(type, subject) {

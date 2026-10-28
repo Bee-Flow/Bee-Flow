@@ -52,7 +52,7 @@ function checkToolResult(result, tool) {
 
 /**
  * Epoch ms from a Date, an ISO/RFC 2822 string, or unix seconds/ms.
- * @param {any} v
+ * @param {unknown} v
  * @returns {number} NaN when unparseable
  */
 function toMs(v) {

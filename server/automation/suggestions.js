@@ -320,6 +320,7 @@ function validateAndRepairSuggestion(raw, { availableIntegrationIds, existingTit
  * Validate+repair a whole batch: drop malformed/duplicate elements, suppress
  * cross-suggestion duplicates, sort activity-grounded ideas first, and cap to
  * `max`.
+ * @param {unknown} rawArray @param {{ availableIntegrationIds?: Iterable<string>, existingTitles?: string[], max?: number, activityIndex?: ReturnType<typeof buildActivityIndex> | null }} [opts]
  */
 function normaliseSuggestions(rawArray, { availableIntegrationIds, existingTitles = [], max = DEFAULT_MAX_SUGGESTIONS, activityIndex = null } = {}) {
     if (!Array.isArray(rawArray)) return [];
