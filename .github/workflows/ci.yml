@@ -253,6 +253,8 @@ jobs:
               - 'server/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{gen-api-reference.mjs,api-reference-walk.cjs}'
+              - 'docs/static/openapi.json'
               - 'scripts/eslint/**'
               - 'docs/docs/**'
               - 'components/**'
@@ -602,6 +604,13 @@ jobs:
       # tsc, and the number of such files may only rise (phase 6.4).
       - name: Typecheck (files marked // @typecheck)
         run: npm run typecheck
+      # The API reference in docs/ is read from the running app's router (every
+      # route, its gates, its zod request schemas). It needs this job's server
+      # install, so check:fast leaves it out. Stale after a route change?
+      # `npm run gen:api-reference` and commit.
+      - name: API reference is current
+        working-directory: .
+        run: node scripts/gen-api-reference.mjs --check
       # A merge in which "the second wins" drops keys without a conflict git
       # shows. Every key the PR base has must still exist, or be listed in
       # server/i18n/defaults/removed-keys.txt. The checkout is shallow, so the

@@ -122,7 +122,7 @@ Audio bytes never hit the LLM provider — only transcripts do.
 
 ## Server endpoint
 
-Internally the SPA POSTs to `/api/voice/turn` with the recorded blob and recent message history. The server orchestrates STT → guardrails → agent → TTS and streams back.
+Internally the SPA POSTs to `/ai/voice/turn` with the recorded blob and recent message history. The server orchestrates STT → guardrails → agent → TTS and streams back.
 
 ## Where to next
 

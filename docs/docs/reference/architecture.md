@@ -129,10 +129,10 @@ The default knowledge-base pipeline, web search and reranking all run in-process
 ## Key request flow — a chat turn
 
 ```
-1. Browser POST /ai/chat with { agentId, messages }
+1. Browser POST /agents/:id/chat/stream with { message, conversationId }
    │
    ▼
-2. Server: validates JWT → resolves user, org, agent, tier
+2. Server: checks the session → resolves user, org, agent, tier
    │
    ▼
 3. Server: runs Privacy Shield scan on the prompt

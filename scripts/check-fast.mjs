@@ -59,6 +59,7 @@ export const DENYLIST = new Map([
     ['lint:deps', 'npm audit: needs the network'],
     ['lint:deps:test', 'unit tests of audit-ratchet.mjs (~8 s); `npm run test:scripts` runs them'],
     ['lint:budget', 'full eslint over agent-hub and server (~3 min), needs their node_modules'],
+    ['lint:api-reference', 'loads the server app to read its routes: needs server/node_modules (~4 s); ci.yml\'s server-checks job runs it'],
     ['lint:bundle', 'needs a production build of agent-hub'],
     ['lint:entry-budget', 'needs a production build of agent-hub'],
     ['lint:coverage', 'needs a coverage run of each package'],

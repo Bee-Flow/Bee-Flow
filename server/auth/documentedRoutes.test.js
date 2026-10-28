@@ -37,6 +37,12 @@ function documentedAuthPaths() {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) { walk(full); continue; }
             if (!entry.name.endsWith('.md') && !entry.name.endsWith('.mdx')) continue;
+            // The endpoint reference is generated from the running app's router
+            // (scripts/gen-api-reference.mjs, kept current by lint:api-reference), so it
+            // cannot name a route that is not served. This test's static read of the auth
+            // tree does not see every mount (the /auth/mfa/* routes), and would call them
+            // missing.
+            if (path.relative(DOCS, full).startsWith(path.join('api', 'reference'))) continue;
             const src = fs.readFileSync(full, 'utf8');
             for (const m of src.matchAll(/\/auth\/[a-zA-Z0-9/_:-]+/g)) {
                 // Trailing punctuation from prose and table cells, and the
