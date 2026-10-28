@@ -45,6 +45,7 @@ function toToolParameters(schema) {
     if (SCHEMA_KEYWORDS.some((k) => k in schema)) return null;
     const keys = Object.keys(schema);
     if (!keys.length) return null;
+    /** @type {Record<string, { type: string; format: string; } | { type: string; }>} */
     const properties = {};
     for (const k of keys) {
         const v = schema[k];
@@ -97,6 +98,7 @@ function listValuesOf(spec, runState) {
  */
 function resolveLists(entries, runState, { mode, ctx }) {
     const cap = enumCap();
+    /** @type {{ field: string; ignoreCase: boolean; allowEmpty: boolean; ok: boolean; values: string[]; sendable: boolean; }[]} */
     const out = [];
     for (const e of entries || []) {
         if (mode === 'dry_run' && refIsSynthetic(e.ref, runState, ctx || {})) continue;

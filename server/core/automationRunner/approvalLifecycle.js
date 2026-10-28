@@ -74,7 +74,7 @@ async function snapshotAttachments(run, attachmentFileIds, expiresAt) {
         }
         return out.length ? out : null;
     } catch (e) {
-        log.warn(`[ApprovalLifecycle] attachment snapshot failed: ${e.message}`);
+        log.warn(`[ApprovalLifecycle] attachment snapshot failed: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -195,7 +195,7 @@ async function createApprovalOnPause({ automation, run, err }) {
         }
         return approval;
     } catch (e) {
-        log.warn(`[ApprovalLifecycle] could not create approval row for run ${run.id}: ${e.message}`);
+        log.warn(`[ApprovalLifecycle] could not create approval row for run ${run.id}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -214,7 +214,7 @@ async function approvalNotificationTargets(approval, automation) {
             const ids = await panelRecipientIds(approval.approvers);
             if (ids.length) return { link, userIds: ids };
         } catch (e) {
-            log.warn(`[ApprovalLifecycle] panel recipient resolve failed: ${e.message}`);
+            log.warn(`[ApprovalLifecycle] panel recipient resolve failed: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (approval?.assigneeUserId) return { link, userIds: [approval.assigneeUserId] };
@@ -223,7 +223,7 @@ async function approvalNotificationTargets(approval, automation) {
             const { ids } = await groupMemberIds(approval.assigneeGroupId);
             if (ids.length) return { link, userIds: ids };
         } catch (e) {
-            log.warn(`[ApprovalLifecycle] group member resolve failed: ${e.message}`);
+            log.warn(`[ApprovalLifecycle] group member resolve failed: ${/** @type {Error} */ (e).message}`);
         }
     }
     return { link, userIds: [automation.userId] };
@@ -247,7 +247,7 @@ async function announceExpiredApproval(ap) {
         try {
             await require('../../stores/solutionStageStore').recordDeploymentDecision(ap);
         } catch (e) {
-            log.warn(`[ApprovalLifecycle] expired deployment approval ${ap.id} not recorded: ${e.message}`);
+            log.warn(`[ApprovalLifecycle] expired deployment approval ${ap.id} not recorded: ${/** @type {Error} */ (e).message}`);
         }
     }
     // Owner + whoever was asked (assignee, group, or every panel seat),
@@ -294,7 +294,7 @@ async function expireApprovalsForReapedRuns(reapedRuns) {
     try {
         expired = await automationStore.expireApprovalsForRuns(reapedRuns.map(r => r.id));
     } catch (e) {
-        log.warn(`[ApprovalLifecycle] expiry sweep failed: ${e.message}`);
+        log.warn(`[ApprovalLifecycle] expiry sweep failed: ${/** @type {Error} */ (e).message}`);
         return;
     }
     for (const ap of expired) await announceExpiredApproval(ap);
@@ -325,7 +325,7 @@ async function reminderRecipientIds(ap) {
             for (const id of await automationStore.listOrgAdminIds(ap.organizationId, GROUP_NOTIFY_CAP)) {
                 if (id !== requester) recipients.add(id);
             }
-        } catch (e) { log.warn(`[ApprovalLifecycle] org admins for reminder ${ap.id}: ${e.message}`); }
+        } catch (e) { log.warn(`[ApprovalLifecycle] org admins for reminder ${ap.id}: ${/** @type {Error} */ (e).message}`); }
     }
     return [...recipients];
 }
@@ -417,14 +417,14 @@ async function remindAndEscalateDueApprovals() {
     const { notifyApproval, automationForApproval } = runnerPort('approvals');
     let due = [];
     try { due = await automationStore.markDueApprovalReminders(); }
-    catch (e) { log.warn(`[ApprovalLifecycle] reminder sweep failed: ${e.message}`); }
+    catch (e) { log.warn(`[ApprovalLifecycle] reminder sweep failed: ${/** @type {Error} */ (e).message}`); }
     for (const ap of due) {
         await sendApprovalReminder(ap).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:remindAndEscalateDueApprovals', e));
     }
 
     let escalated = [];
     try { escalated = await automationStore.markDueApprovalEscalations(); }
-    catch (e) { log.warn(`[ApprovalLifecycle] escalation sweep failed: ${e.message}`); }
+    catch (e) { log.warn(`[ApprovalLifecycle] escalation sweep failed: ${/** @type {Error} */ (e).message}`); }
     for (const ap of escalated) {
         await automationStore.appendApprovalAudit({
             approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
@@ -460,7 +460,7 @@ async function expireOverdueAppApprovals() {
     try {
         expired = await automationStore.expireOverduePendingApprovals();
     } catch (e) {
-        log.warn(`[ApprovalLifecycle] app-approval expiry sweep failed: ${e.message}`);
+        log.warn(`[ApprovalLifecycle] app-approval expiry sweep failed: ${/** @type {Error} */ (e).message}`);
         return;
     }
     for (const ap of expired) await announceExpiredApproval(ap);

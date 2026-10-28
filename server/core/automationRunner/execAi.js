@@ -136,7 +136,7 @@ async function loadPermittedTiers(step, ctx) {
         const { getPermittedTierKeys } = require('../entitlements/userTiers');
         return await getPermittedTierKeys({ userId: ctx.userId, session: ctx.session, taskType: 'automation' });
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: permitted-tier lookup failed (${e.message}) — skipping entitlement gate`);
+        log.warn(`[AutomationRunner] ai_step ${step.id}: permitted-tier lookup failed (${/** @type {Error} */ (e).message}) — skipping entitlement gate`);
         return null;
     }
 }
@@ -165,6 +165,9 @@ async function resolveAiStepTier(step, ctx) {
     // NEVER silently fall through to the global default model — reclassify
     // via 'auto' so the pick stays within the user's own tier set.
     const permittedTiers = await loadPermittedTiers(step, ctx);
+    /**
+     * @param {string} k
+     */
     const isPermitted = (k) => !permittedTiers || permittedTiers.has(k);
     if (resolvedTier !== 'auto' && (!tiers[resolvedTier] || !isPermitted(resolvedTier))) {
         log.warn(`[AutomationRunner] ai_step ${step.id}: modelTier "${resolvedTier}" is not available to this user — falling back to auto`);
