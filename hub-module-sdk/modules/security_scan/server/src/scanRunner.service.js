@@ -10,9 +10,18 @@
  * about one container story across both runners.
  *
  * Isolation guarantees:
- *   • Containers attach ONLY to SCAN_NETWORK — never beeflow-network — so an
- *     off-the-shelf scanner image driven against an attacker-supplied target
- *     cannot reach postgres, rustfs, redis, the guard, or the API server.
+ *   • Scanner and toolbox containers attach ONLY to SCAN_NETWORK — never
+ *     beeflow-network — so an off-the-shelf scanner image driven against an
+ *     attacker-supplied target cannot reach postgres, rustfs, redis, the guard,
+ *     or the API server.
+ *   • The API server never joins SCAN_NETWORK (and leaves it when an older
+ *     version left it attached). When it runs in a container it reaches the
+ *     toolbox's ZAP API through a per-toolbox relay: a socat container on
+ *     CONTROL_NETWORK (Internal, no egress; only the server and relays) and on
+ *     SCAN_NETWORK, that forwards one port to one target and runs as nobody
+ *     with every capability dropped, a read-only root and IP forwarding off.
+ *     A native server reaches ZAP via a port published on 127.0.0.1.
+ *   • Scanner images are pinned by digest (each overridable by env).
  *   • Memory / CPU / PID caps + a reaper bound the blast radius and guarantee
  *     cleanup even if the worker crashes mid-scan.
  *   • This module never reads the scanner report files — it only runs the
@@ -47,11 +56,12 @@ const { errMessage, statusCodeOf } = require('./errors');
  * @typedef {{ baseUrl: string, apiKey: string }} ZapEndpoint
  *
  * A running toolbox: the agent's shell, its ZAP daemon, and the way to tear both down.
- * @typedef {{ zap: ZapEndpoint, containerId: string, exec: ExecFn, cleanup: () => Promise<void> }} ToolboxHandle
+ * @typedef {{ zap: ZapEndpoint, containerId: string, relayContainerId?: string | null, exec: ExecFn, cleanup: () => Promise<void> }} ToolboxHandle
  * @typedef {'zap' | 'nuclei' | 'testssl'} ScanEngine
  */
 
 const SCAN_NETWORK = 'beeflow-scan-net';
+const CONTROL_NETWORK = 'beeflow-scan-ctl';
 const LABEL_KIND = 'bf.kind';
 const LABEL_KIND_VALUE = 'scan-runner';
 const LABEL_SCAN = 'bf.scanId';
@@ -68,27 +78,46 @@ const MEMORY_MB = parseInt(process.env.SECURITY_SCANNER_MEMORY_MB || '1536', 10)
 const CPUS = parseFloat(process.env.SECURITY_SCANNER_CPUS || '1.0');
 const MAX_AGE_MS = parseInt(process.env.SECURITY_SCANNER_MAX_AGE_MS || '3600000', 10); // 60 min — full scans are slow
 
-// Agent-mode (live, AI-driven) extras. The ZAP daemon + the free-form tools
-// sandbox are long-lived containers driven by the agent; they carry the same
-// bf.scanId label so killScan()/reapStaleRunners() tear them down too.
+// Agent-mode (live, AI-driven) extras. The toolbox (tools + in-container ZAP
+// daemon) is a long-lived container driven by the agent; it carries the same
+// bf.scanId label so killScan()/reapStaleRunners() tear it down too.
 // ZAP 2.17 daemon cold-boot loads every passive/active rule + the callback
 // service before the REST port opens — that's ~60-90s on a cold container, so
 // the readiness budget is generous.
 const ZAP_BOOT_TIMEOUT_MS = parseInt(process.env.SECURITY_ZAP_BOOT_TIMEOUT_MS || '120000', 10);
 const TOOLS_IMAGE = process.env.SECURITY_TOOLS_IMAGE || 'beeflow-security-tools:latest';
-const TOOLS_MEMORY_MB = parseInt(process.env.SECURITY_TOOLS_MEMORY_MB || '768', 10);
-const TOOLS_CPUS = parseFloat(process.env.SECURITY_TOOLS_CPUS || '0.5');
 
-// Default images per engine. Each can be overridden via its env var.
+// Default images per engine, pinned by digest so a re-tagged upstream image
+// never changes what runs. Each can be overridden via its env var. To move a
+// pin: `docker buildx imagetools inspect <repo>:<tag>` and copy the Digest.
+/** @type {Record<string, string>} */
+const PINNED_IMAGES = {
+    // ghcr.io/zaproxy/zaproxy:stable as of 2026-10-28
+    zap: 'ghcr.io/zaproxy/zaproxy@sha256:030d3df57735dacbb83464854758e674dd9ad01d79d12a129a8e58b1fd384238',
+    // projectdiscovery/nuclei:v3.11.1
+    nuclei: 'projectdiscovery/nuclei@sha256:582d5546902e67052097cb2d07296c642d50a1afc5e44623cb038845df9a32eb',
+    // drwetter/testssl.sh:latest as of 2026-10-28
+    testssl: 'drwetter/testssl.sh@sha256:80f7320a16127f0294c90c2a5fa4e518a48eecda1b94766ed4717b41cb6bc178',
+    // alpine/socat:1.8.1.3, the ZAP control relay
+    relay: 'alpine/socat@sha256:603174b77eebaba25ba8f8ebb15e1234d6600409554e95d6fb203fd106150287',
+};
 /** @type {Record<string, string>} */
 const DEFAULT_IMAGES = {
-    zap: process.env.SECURITY_SCANNER_ZAP_IMAGE || 'ghcr.io/zaproxy/zaproxy:stable',
-    nuclei: process.env.SECURITY_SCANNER_NUCLEI_IMAGE || 'projectdiscovery/nuclei:latest',
-    testssl: process.env.SECURITY_SCANNER_TESTSSL_IMAGE || 'drwetter/testssl.sh:latest',
+    zap: process.env.SECURITY_SCANNER_ZAP_IMAGE || PINNED_IMAGES.zap,
+    nuclei: process.env.SECURITY_SCANNER_NUCLEI_IMAGE || PINNED_IMAGES.nuclei,
+    testssl: process.env.SECURITY_SCANNER_TESTSSL_IMAGE || PINNED_IMAGES.testssl,
 };
+const RELAY_IMAGE = process.env.SECURITY_ZAP_RELAY_IMAGE || PINNED_IMAGES.relay;
+
+// Tests swap the docker client and the in-container probe (see __test below).
+/** @type {(() => DockerClient) | null} */
+let _dockerOverride = null;
+/** @type {boolean | null} */
+let _inContainerOverride = null;
 
 /** @returns {DockerClient} */
 function getDocker() {
+    if (_dockerOverride) return _dockerOverride();
     return new Docker({ socketPath: '/var/run/docker.sock' });
 }
 
@@ -112,6 +141,7 @@ async function dockerAvailable() {
 }
 
 function isServerInContainer() {
+    if (_inContainerOverride !== null) return _inContainerOverride;
     try {
         if (fs.existsSync('/.dockerenv')) return true;
     } catch (_) { /* ignore */ }
@@ -245,6 +275,91 @@ async function ensureScanNetwork(docker) {
         if (statusCodeOf(err) !== 404) throw err;
     }
     await docker.createNetwork({ Name: SCAN_NETWORK, Driver: 'bridge' });
+}
+
+/**
+ * The control network: Internal (no gateway, no egress), and only the API
+ * server and the ZAP relays join it. Scanners and the toolbox never do.
+ * @param {DockerClient} docker
+ */
+async function ensureControlNetwork(docker) {
+    try {
+        await docker.getNetwork(CONTROL_NETWORK).inspect();
+        return;
+    } catch (err) {
+        if (statusCodeOf(err) !== 404) throw err;
+    }
+    await docker.createNetwork({ Name: CONTROL_NETWORK, Driver: 'bridge', Internal: true });
+}
+
+/** Inside docker the hostname is the container id. */
+function selfContainerId() {
+    return process.env.HOSTNAME || require('os').hostname();
+}
+
+/**
+ * Wire the API server's own container for a toolbox: join CONTROL_NETWORK
+ * (to reach the relays) and leave SCAN_NETWORK, which an older version of this
+ * module joined. Both are idempotent; "already connected" and "not connected"
+ * are success. Only meaningful in the in-container case.
+ * @param {DockerClient} docker
+ */
+async function wireSelfForControl(docker) {
+    const self = selfContainerId();
+    try { await docker.getNetwork(CONTROL_NETWORK).connect({ Container: self }); } catch (_) { /* already connected */ }
+    try { await docker.getNetwork(SCAN_NETWORK).disconnect({ Container: self, Force: true }); } catch (_) { /* not connected */ }
+}
+
+/**
+ * Start the ZAP control relay for one toolbox: a socat container on
+ * CONTROL_NETWORK and SCAN_NETWORK that forwards its port to the toolbox's ZAP
+ * port and nothing else. The server reaches ZAP at http://<relay>:<port>
+ * without ever sharing a network with the toolbox. Hardened: nobody user,
+ * every capability dropped, read-only root, no IP forwarding (so the toolbox
+ * cannot route raw packets through it to the control network), small caps.
+ * @param {DockerClient} docker
+ * @param {{ name: string, target: string, port: number, labels: Record<string, string> }} options
+ * @returns {Promise<{ containerId: string, host: string, cleanup: () => Promise<void> }>}
+ */
+async function startZapRelay(docker, { name, target, port, labels }) {
+    if (!(await imageExists(docker, RELAY_IMAGE))) await pullImage(docker, RELAY_IMAGE, null);
+    await removeContainerIfExists(docker, name);
+    const container = await docker.createContainer({
+        name,
+        Image: RELAY_IMAGE,
+        Cmd: [`TCP-LISTEN:${port},fork,reuseaddr`, `TCP:${target}:${port}`],
+        User: '65534:65534',
+        Labels: labels,
+        ExposedPorts: { [`${port}/tcp`]: {} },
+        NetworkingConfig: { EndpointsConfig: { [CONTROL_NETWORK]: {} } },
+        HostConfig: {
+            NetworkMode: CONTROL_NETWORK,
+            Memory: 64 * 1024 * 1024,
+            NanoCpus: Math.round(0.25 * 1e9),
+            PidsLimit: 64,
+            Init: true,
+            AutoRemove: false,
+            ReadonlyRootfs: true,
+            CapDrop: ['ALL'],
+            SecurityOpt: ['no-new-privileges'],
+            Sysctls: { 'net.ipv4.ip_forward': '0' },
+            RestartPolicy: { Name: 'no' },
+        },
+    });
+    let cleaned = false;
+    const cleanup = async () => {
+        if (cleaned) return; cleaned = true;
+        try { await container.stop({ t: 2 }); } catch (_) {}
+        try { await container.remove({ force: true }); } catch (_) {}
+    };
+    try {
+        await docker.getNetwork(SCAN_NETWORK).connect({ Container: container.id });
+        await container.start();
+        return { containerId: container.id, host: `${name}:${port}`, cleanup };
+    } catch (e) {
+        await cleanup();
+        throw e;
+    }
 }
 
 /**
@@ -445,7 +560,10 @@ async function reapStaleRunners(isScanActive = null) {
         // Never reap a container that's actively driving a scan right now (cold
         // or adopted) — these are tracked in-process by containerId.
         const activeIds = new Set();
-        for (const h of _activeToolboxes.values()) { if (h?.containerId) activeIds.add(h.containerId); }
+        for (const h of _activeToolboxes.values()) {
+            if (h?.containerId) activeIds.add(h.containerId);
+            if (h?.relayContainerId) activeIds.add(h.relayContainerId);
+        }
         const now = Date.now();
         for (const c of containers) {
             if (activeIds.has(c.Id)) continue;
@@ -479,22 +597,6 @@ async function reapStaleRunners(isScanActive = null) {
 // ── Agent mode: long-lived ZAP daemon + free-form tools sandbox ─────────────
 
 /**
- * Join the API/worker's own container to SCAN_NETWORK so it can reach the ZAP
- * daemon / tools sandbox by container name (the in-container case). Idempotent —
- * a second connect throws and is ignored. Native (non-container) workers reach
- * the daemon via a published 127.0.0.1 port instead, so this is a no-op there.
- * @param {DockerClient} docker
- */
-async function connectSelfToNetwork(docker) {
-    try {
-        const os = require('os');
-        const selfId = os.hostname(); // inside docker this is the container id
-        const net = docker.getNetwork(SCAN_NETWORK);
-        try { await net.connect({ Container: selfId }); } catch (_) { /* already connected */ }
-    } catch (_) { /* best-effort */ }
-}
-
-/**
  * Resolve the free-form tools sandbox image (SECURITY_TOOLS_IMAGE, default a
  * locally-built tag). Use it if present locally; otherwise try a registry pull;
  * otherwise fail loudly with the build command. Cached after first success.
@@ -516,23 +618,6 @@ async function resolveToolsImage(onLine) {
     }
     _toolsImageResolved = TOOLS_IMAGE;
     return TOOLS_IMAGE;
-}
-
-/**
- * @param {import('dockerode').HostConfig} [extra]
- * @returns {import('dockerode').HostConfig}
- */
-function toolsHostConfig(extra = {}) {
-    return {
-        Memory: Math.max(128, TOOLS_MEMORY_MB) * 1024 * 1024,
-        NanoCpus: Math.round(Math.max(0.25, TOOLS_CPUS) * 1e9),
-        PidsLimit: 256,
-        Init: true,
-        AutoRemove: false,
-        SecurityOpt: ['no-new-privileges'],
-        RestartPolicy: { Name: 'no' },
-        ...extra,
-    };
 }
 
 /**
@@ -558,166 +643,18 @@ async function _awaitDaemonReady(baseUrl, apiKey, timeoutMs) {
     throw new Error(`ZAP daemon not ready within ${timeoutMs}ms (${lastErr})`);
 }
 
-/**
- * Start a long-lived ZAP daemon container exposing the ZAP REST API, with a
- * per-scan api.key (never logged). Returns { baseUrl, apiKey, containerId,
- * cleanup }. Reachable via the container name on SCAN_NETWORK (worker-in-
- * container) or a published 127.0.0.1 port (native). Caller MUST cleanup().
- * @param {{ scanId: string, onLine?: LineSink }} options
- * @returns {Promise<{ baseUrl: string, apiKey: string, containerId: string, cleanup: () => Promise<void> }>}
- */
-async function startZapDaemon({ scanId, onLine }) {
-    const docker = getDocker();
-    const image = await resolveScanImage('zap', onLine);
-    await ensureScanNetwork(docker);
-    const inContainer = isServerInContainer();
-    if (inContainer) await connectSelfToNetwork(docker);
-
-    const apiKey = crypto.randomBytes(24).toString('hex'); // per-scan; never logged
-    const PORT = 8080;
-    const name = containerName(scanId, 'zapd');
-    await removeContainerIfExists(docker, name);
-
-    const cmd = [
-        'zap-x.sh', '-daemon', '-host', '0.0.0.0', '-port', String(PORT),
-        '-config', `api.key=${apiKey}`,
-        '-config', 'api.addrs.addr.name=.*',
-        '-config', 'api.addrs.addr.regex=true',
-    ];
-    /** @type {import('dockerode').HostConfig} */
-    const hostExtra = { NetworkMode: SCAN_NETWORK };
-    /** @type {import('dockerode').ContainerCreateOptions} */
-    const createOpts = {
-        name, Image: image, Cmd: cmd,
-        Labels: runnerLabels(scanId),
-        ExposedPorts: { [`${PORT}/tcp`]: {} },
-        NetworkingConfig: { EndpointsConfig: { [SCAN_NETWORK]: {} } },
-    };
-    if (!inContainer) hostExtra.PortBindings = { [`${PORT}/tcp`]: [{ HostIp: '127.0.0.1', HostPort: '0' }] };
-    createOpts.HostConfig = hostConfigCaps(hostExtra);
-
-    const container = await docker.createContainer(createOpts);
-    let detach = () => {};
-    let cleaned = false;
-    const cleanup = async () => {
-        if (cleaned) return; cleaned = true;
-        try { detach(); } catch (_) {}
-        try { await container.stop({ t: 5 }); } catch (_) {}
-        try { await container.remove({ force: true }); } catch (_) {}
-    };
-    try {
-        await container.start();
-        let host;
-        if (inContainer) {
-            host = `${name}:${PORT}`;
-        } else {
-            const info = await container.inspect();
-            const hp = info?.NetworkSettings?.Ports?.[`${PORT}/tcp`]?.[0]?.HostPort;
-            if (!hp) throw new Error('ZAP daemon did not publish a host port');
-            host = `127.0.0.1:${hp}`;
-        }
-        const baseUrl = `http://${host}`;
-        detach = followLogs(docker, container, (line) => { if (onLine) onLine(line); });
-        await _awaitDaemonReady(baseUrl, apiKey, ZAP_BOOT_TIMEOUT_MS);
-        return { baseUrl, apiKey, containerId: container.id, cleanup };
-    } catch (e) {
-        await cleanup();
-        throw e;
-    }
-}
-
-/**
- * Start a long-lived, free-form tools sandbox the agent runs shell commands in.
- * Isolated egress-only network, non-root image, no docker socket, tight caps.
- * Returns { containerId, exec, cleanup } where
- *   exec(command, { onChunk, timeoutMs }) -> { exitCode, timedOut }
- * streams stdout/stderr to onChunk({ stream, chunk }) per chunk. Caller cleanup().
- * @param {{ scanId: string, onLine?: LineSink }} options
- * @returns {Promise<{ containerId: string, exec: ExecFn, cleanup: () => Promise<void> }>}
- */
-async function startToolsSandbox({ scanId, onLine }) {
-    const docker = getDocker();
-    const image = await resolveToolsImage(onLine);
-    await ensureScanNetwork(docker);
-    if (isServerInContainer()) await connectSelfToNetwork(docker);
-
-    const name = containerName(scanId, 'tools');
-    await removeContainerIfExists(docker, name);
-
-    const container = await docker.createContainer({
-        name, Image: image,
-        Cmd: ['sleep', 'infinity'], // idle; commands run via container.exec
-        Labels: runnerLabels(scanId),
-        HostConfig: toolsHostConfig({ NetworkMode: SCAN_NETWORK }),
-        NetworkingConfig: { EndpointsConfig: { [SCAN_NETWORK]: {} } },
-    });
-
-    let cleaned = false;
-    const cleanup = async () => {
-        if (cleaned) return; cleaned = true;
-        try { await container.stop({ t: 5 }); } catch (_) {}
-        try { await container.remove({ force: true }); } catch (_) {}
-    };
-
-    /** @type {ExecFn} */
-    const exec = async (command, { onChunk, timeoutMs = 30000 } = {}) => {
-        const { Writable } = require('stream');
-        const ex = await container.exec({
-            Cmd: ['sh', '-lc', command],
-            AttachStdout: true, AttachStderr: true, Tty: false,
-        });
-        const stream = await ex.start({ hijack: true, stdin: false });
-        /** @param {'stdout' | 'stderr'} tag */
-        const mk = (tag) => new Writable({
-            write(chunk, _enc, cb) {
-                try { onChunk && onChunk({ stream: tag, chunk: chunk.toString('utf8') }); } catch (_) {}
-                cb();
-            },
-        });
-        container.modem.demuxStream(stream, mk('stdout'), mk('stderr'));
-
-        let timedOut = false;
-        const done = new Promise((resolve) => { stream.on('end', resolve); stream.on('close', resolve); });
-        let timer = null;
-        const to = new Promise((resolve) => {
-            timer = setTimeout(() => { timedOut = true; try { stream.destroy(); } catch (_) {} resolve(undefined); }, Math.max(1000, timeoutMs));
-            timer.unref?.();
-        });
-        await Promise.race([done, to]);
-        if (timer) clearTimeout(timer);
-
-        let exitCode = timedOut ? 124 : 0;
-        try {
-            const info = await ex.inspect();
-            if (!timedOut && typeof info.ExitCode === 'number') exitCode = info.ExitCode;
-        } catch (_) { /* exec gone */ }
-        return { exitCode, timedOut };
-    };
-
-    try {
-        await container.start();
-        return { containerId: container.id, exec, cleanup };
-    } catch (e) {
-        await cleanup();
-        throw e;
-    }
-}
-
 // ── Agent mode: ONE container with the full arsenal + an in-container ZAP ────
 //
 // The security agent drives a SINGLE long-lived container (the Kali toolbox
 // image) that holds every scanner tool AND runs the OWASP ZAP daemon as a
-// backgrounded process inside itself. This collapses the previous 3-container
-// split (startZapDaemon + startToolsSandbox + per-engine runEngineContainer)
-// into one box. startZapDaemon/startToolsSandbox stay exported (deprecated) but
-// agent mode no longer calls them; runEngineContainer remains only for any
+// backgrounded process inside itself. runEngineContainer remains only for a
 // legacy quick path.
 //
 // Raw sockets: nmap -sS / masscan need CAP_NET_RAW. Because no-new-privileges
 // blocks non-root file-capability elevation, the only reliable way to let those
 // tools use raw sockets is to run the container as root with EVERY capability
 // DROPPED except NET_RAW (+ NET_BIND_SERVICE). That is still a tightly-bounded
-// process: isolated egress-only network, no docker socket, all-but-NET_RAW
+// process: egress-only network without the API server on it, no docker socket, all-but-NET_RAW
 // dropped, no-new-privileges, and cpu/mem/pid caps. Gated by
 // SECURITY_TOOLBOX_NET_RAW (default ON); when off, the container runs as the
 // unprivileged `scanner` user and nmap degrades to TCP-connect (-sT).
@@ -751,7 +688,7 @@ function toolboxHostConfig(extra = {}) {
 
 /**
  * Build the per-container exec closure the agent runs shell commands through.
- * Same shape startToolsSandbox returns: exec(command,{onChunk,timeoutMs}) ->
+ * exec(command,{onChunk,timeoutMs}) ->
  * { exitCode, timedOut }, streaming stdout/stderr to onChunk({ stream, chunk }).
  * Uses `bash -c` (NOT a login shell) so the image's ENV PATH — which includes
  * /opt/pd/bin and /opt/venv/bin — is inherited intact rather than reset by
@@ -834,7 +771,10 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
     const image = await resolveToolsImage(onLine);
     await ensureScanNetwork(docker);
     const inContainer = isServerInContainer();
-    if (inContainer) await connectSelfToNetwork(docker);
+    if (inContainer) {
+        await ensureControlNetwork(docker);
+        await wireSelfForControl(docker);
+    }
     await removeContainerIfExists(docker, name);
 
     /** @type {import('dockerode').HostConfig} */
@@ -861,9 +801,12 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
 
     let detach = () => {};
     let cleaned = false;
+    /** @type {{ containerId: string, host: string, cleanup: () => Promise<void> } | null} */
+    let relay = null;
     const cleanup = async () => {
         if (cleaned) return; cleaned = true;
         try { detach(); } catch (_) {}
+        if (relay) { try { await relay.cleanup(); } catch (_) {} }
         try { await container.stop({ t: 5 }); } catch (_) {}
         try { await container.remove({ force: true }); } catch (_) {}
     };
@@ -887,7 +830,9 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
 
         let host;
         if (inContainer) {
-            host = `${name}:${ZAP_PORT}`;
+            // The server is not on SCAN_NETWORK: it reaches ZAP via the relay.
+            relay = await startZapRelay(docker, { name: `${name}-zrelay`, target: name, port: ZAP_PORT, labels });
+            host = relay.host;
         } else {
             const info = await container.inspect();
             const hp = info?.NetworkSettings?.Ports?.[`${ZAP_PORT}/tcp`]?.[0]?.HostPort;
@@ -895,9 +840,11 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
             host = `127.0.0.1:${hp}`;
         }
         const baseUrl = `http://${host}`;
+        /** @type {ToolboxHandle} */
         const handle = {
             zap: { baseUrl, apiKey },
             containerId: container.id,
+            relayContainerId: relay ? relay.containerId : null,
             exec: makeContainerExec(container),
             cleanup,
         };
@@ -963,7 +910,7 @@ const _activeToolboxes = new Map();
 function prewarmToolbox({ userId = null } = {}) {
     // One unclaimed warm container per user — release the previous one.
     for (const [pid, e] of _prewarmRegistry) {
-        if (e.userId === userId && !e.claimed) releasePrewarm(pid).catch(() => {});
+        if (e.userId === userId && !e.claimed) _releasePrewarmEntry(pid).catch(() => {});
     }
     const prewarmId = crypto.randomBytes(12).toString('hex');
     const apiKey = crypto.randomBytes(24).toString('hex');
@@ -996,13 +943,27 @@ function prewarmToolbox({ userId = null } = {}) {
 }
 
 /**
+ * A warm toolbox belongs to the user who warmed it; nobody else may adopt or
+ * release it (a prewarm id is not a secret: it travels in scan metadata).
+ * @param {PrewarmEntry} entry
+ * @param {unknown} userId
+ */
+function _ownsPrewarm(entry, userId) {
+    return entry.userId != null && userId != null && String(entry.userId) === String(userId);
+}
+
+/**
  * Adopt a warm toolbox (awaiting the remainder of its boot). null → cold-start.
+ * Only the user who warmed it may adopt it; anyone else gets null and the warm
+ * container stays with its owner.
  * @param {string} prewarmId
+ * @param {unknown} userId  the scan's owner
  * @returns {Promise<ToolboxHandle | null>}
  */
-async function adoptToolbox(prewarmId) {
+async function adoptToolbox(prewarmId, userId) {
     const entry = prewarmId ? _prewarmRegistry.get(prewarmId) : null;
     if (!entry || entry.released) return null;
+    if (!_ownsPrewarm(entry, userId)) return null;
     entry.claimed = true;
     _prewarmRegistry.delete(prewarmId);
     try { return await entry.promise; }
@@ -1011,9 +972,24 @@ async function adoptToolbox(prewarmId) {
 
 /**
  * Tear down an unclaimed warm toolbox (e.g. dialog closed without submitting).
+ * Only its owner may release it. Returns whether it was released.
+ * @param {string} prewarmId
+ * @param {unknown} userId  the caller
+ * @returns {Promise<boolean>}
+ */
+async function releasePrewarm(prewarmId, userId) {
+    const entry = prewarmId ? _prewarmRegistry.get(prewarmId) : null;
+    if (!entry || !_ownsPrewarm(entry, userId)) return false;
+    await _releasePrewarmEntry(prewarmId);
+    return true;
+}
+
+/**
+ * Internal release, no ownership check: the TTL sweep and the one-per-user
+ * replacement in prewarmToolbox.
  * @param {string} prewarmId
  */
-async function releasePrewarm(prewarmId) {
+async function _releasePrewarmEntry(prewarmId) {
     const entry = prewarmId ? _prewarmRegistry.get(prewarmId) : null;
     if (!entry) return;
     _prewarmRegistry.delete(prewarmId);
@@ -1028,7 +1004,7 @@ function sweepPrewarmRegistry() {
     const now = Date.now();
     for (const [pid, e] of _prewarmRegistry) {
         if (!e.claimed && (now - e.createdAt) > PREWARM_TTL_MS) {
-            releasePrewarm(pid).catch(() => {});
+            _releasePrewarmEntry(pid).catch(() => {});
         }
     }
 }
@@ -1161,10 +1137,7 @@ module.exports = {
     runEngineContainer,
     killScan,
     reapStaleRunners,
-    connectSelfToNetwork,
     resolveToolsImage,
-    startZapDaemon,
-    startToolsSandbox,
     startAgentToolbox,
     prewarmToolbox,
     adoptToolbox,
@@ -1172,8 +1145,25 @@ module.exports = {
     registerActiveToolbox,
     unregisterActiveToolbox,
     SCAN_NETWORK,
+    CONTROL_NETWORK,
+    PINNED_IMAGES,
+    DEFAULT_IMAGES,
+    RELAY_IMAGE,
     // module Track C — scanner-image provisioning
     TOOLS_IMAGE,
     toolboxStatus,
     provisionToolbox,
+    // Test seams: swap the docker client and the in-container probe.
+    __test: {
+        /** @param {(() => DockerClient) | null} factory */
+        setDocker(factory) { _dockerOverride = factory; },
+        /** @param {boolean | null} value */
+        setInContainer(value) { _inContainerOverride = value; },
+        resetCaches() {
+            _toolsImageResolved = null;
+            for (const k of Object.keys(_resolvedImages)) delete _resolvedImages[k];
+            _prewarmRegistry.clear();
+            _activeToolboxes.clear();
+        },
+    },
 };

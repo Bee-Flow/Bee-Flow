@@ -417,6 +417,9 @@ services:
       - GUARD_REDIS_URL=redis://guard-redis:6379/1
       - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
       - GUARD_PII_MODEL=${GUARD_PII_MODEL:-E3-JSI/gliner-multi-pii-domains-v1}
+      # PII result cache lifetime in Redis (0 = no caching). Entries hold offsets,
+      # labels and scores only, never span text; keys are HMACs.
+      - GUARD_PII_CACHE_TTL_SECONDS=${GUARD_PII_CACHE_TTL_SECONDS:-600}
       # Force the fp32 ONNX graph (BFSF-269). Durable across recreates and
       # works even on an image built before the fp32 default: the fp32
       # `model.onnx` is baked alongside the INT8 one, so pointing the loader
@@ -507,9 +510,11 @@ services:
     image: redis:7.4.11-alpine
     container_name: beeflow-guard-redis
     profiles: [ "guard" ]
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - guard-redis-data:/data
+    # Not persisted (no RDB snapshots, no AOF, no volume): it holds caches only.
+    # The guard's PII result cache (db 1) and the server's session cache and
+    # ephemeral state (db 0, PostgreSQL stays the source of truth) are rebuilt
+    # after a restart, and nothing in them should ever reach a disk.
+    command: [ "redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no" ]
     networks:
       - beeflow-network
     restart: unless-stopped
@@ -682,9 +687,6 @@ volumes:
     name: rustfs-data
   rustfs-logs:
     name: rustfs-logs
-  # Guard
-  guard-redis-data:
-    name: guard-redis-data
   # Local LLM
   ollama-models:
     driver: local

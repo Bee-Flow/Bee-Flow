@@ -545,7 +545,7 @@ class CacheAndFingerprintTests(_ServiceCase):
 
     def test_the_key_changes_with_prompt_and_floor_only(self):
         base = self._key(LABELS)
-        self.assertTrue(base.startswith("guard:pii:v5:"))
+        self.assertTrue(base.startswith("guard:pii:v6:"))
         self.assertEqual(base, self._key(list(reversed(LABELS))))
         self.assertNotEqual(base, self._key(None))
         other_prompt = [dict(LABELS[0], prompt="customer order number"), LABELS[1]]
