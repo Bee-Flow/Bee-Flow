@@ -260,7 +260,6 @@ const UNCONVERTED = new Map<string, number>([
     // what the share sheet it opens does.
     ['src/features/knowledge', 44],
     ['src/features/library', 27],
-    ['src/features/mcp', 33],
     ['src/features/memory', 24],
     // 34 -> 33: the row body's "Tap to read the full result", with the reauth
     // note that now names the connector.
