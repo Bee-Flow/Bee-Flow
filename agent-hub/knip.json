@@ -16,9 +16,6 @@
     "src/**/*.{js,jsx,ts,tsx,mjs}",
     "scripts/**/*.mjs"
   ],
-  "ignore": [
-    "src/components/InitSetupWizard/**"
-  ],
   "vite": false,
   "vitest": false,
   "ignoreDependencies": [

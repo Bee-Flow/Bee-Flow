@@ -25,7 +25,6 @@ vi.mock('../lib/opaque', () => ({ opaqueLogin: vi.fn() }));
 vi.mock('./login/SignupWizard', () => ({
     default: ({ error }) => <div data-testid="signup-wizard">{error}</div>,
 }));
-vi.mock('../components/InitSetupWizard', () => ({ default: () => null }));
 
 const SETUP_STATUS = {
     isSetupComplete: true,

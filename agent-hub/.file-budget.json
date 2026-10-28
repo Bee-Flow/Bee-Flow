@@ -76,7 +76,6 @@
     "src/components/chat/InputArea/index.tsx": 586,
     "src/components/cowork/CoworkPage.tsx": 469,
     "src/components/forms/PublicFormRenderer.tsx": 486,
-    "src/components/InitSetupWizard/index.tsx": 435,
     "src/components/onboarding/lessons.ts": 1558,
     "src/components/onboarding/player/LessonPlayer.tsx": 616,
     "src/components/renderers/ResearchRenderer.tsx": 432,

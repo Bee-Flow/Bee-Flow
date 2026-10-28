@@ -39,9 +39,6 @@ vi.mock('@simplewebauthn/browser', () => ({
     startRegistration: vi.fn(),
 }));
 vi.mock('./login/SignupWizard', () => ({ default: () => <div data-testid="signup-wizard" /> }));
-// Dead import in LoginPage (nothing renders it) — stubbed so the whole install
-// wizard is not pulled into this test's module graph. See the warts list.
-vi.mock('../components/InitSetupWizard', () => ({ default: () => null }));
 
 const SETUP_STATUS = {
     isSetupComplete: true,

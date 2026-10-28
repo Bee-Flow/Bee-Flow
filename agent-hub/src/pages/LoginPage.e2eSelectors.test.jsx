@@ -42,7 +42,6 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(), setSessio
 vi.mock('../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../lib/opaque', () => ({ opaqueLogin: vi.fn() }));
 vi.mock('./login/SignupWizard', () => ({ default: () => <div data-testid="signup-wizard" /> }));
-vi.mock('../components/InitSetupWizard', () => ({ default: () => null }));
 
 /** The three ids the Playwright login helpers cannot live without. */
 const SIGN_IN_IDS = ['username', 'password', 'login-submit-button'];
