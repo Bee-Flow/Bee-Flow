@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The sessions a connector runs under (the owner's, or a viewer's, built
  * headless) and the default dependency graph runConnector overrides in tests.

@@ -100,6 +100,7 @@ function planRetention(model, connector) {
     const sync = isPlainObject(connector?.sync) ? connector.sync : null;
     const days = Number.isInteger(sync?.retentionDays) && sync.retentionDays > 0 ? sync.retentionDays : 0;
     const steps = [];
+    /** @type {string[]} */
     const unreachable = [];
     if (!days) return { days: 0, steps, unreachable };
 

@@ -127,6 +127,7 @@ async function pushOnce(target, meta) {
         studioAppId: meta.appId || null,
         sentAt: new Date().toISOString(),
     });
+    /** @type {Response} */
     let res;
     try {
         res = await fetch(`${target.callbackUrl}${HOOK_PATH}`, {
@@ -140,7 +141,7 @@ async function pushOnce(target, meta) {
             signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
         });
     } catch (err) {
-        return { outcome: 'unreachable', detail: err.name === 'TimeoutError' ? 'timeout' : err.message };
+        return { outcome: 'unreachable', detail: /** @type {Error} */ (err).name === 'TimeoutError' ? 'timeout' : /** @type {Error} */ (err).message };
     }
     if (!res.ok) return { outcome: outcomeForStatus(res.status), detail: `HTTP ${res.status}` };
     const data = /** @type {{ ok?: boolean, error?: string, added?: number, removed?: number, updated?: number } | null} */ (await res.json().catch(/** @returns {null} */ () => null));
@@ -167,7 +168,7 @@ async function runPush(orgId, meta) {
         const target = await resolveTarget(orgId);
         out = target ? await pushOnce(target, meta) : { outcome: 'not_connected' };
     } catch (err) {
-        out = { outcome: 'unreachable', detail: err.message };
+        out = { outcome: 'unreachable', detail: /** @type {Error} */ (err).message };
     }
     const ms = Date.now() - started;
     const cooldown = COOLDOWN_MS[out.outcome];

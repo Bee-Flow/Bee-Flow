@@ -147,6 +147,7 @@ async function runRecordList(ctx, table, { filters, sort, cursor, limit } = {}) 
     const compiled = queryCompiler.compileRecordList(plan.tableMeta, { filters, sort, cursor, limit, dialect: plan.dialect }, accessFilter);
     const { rows } = await plan.query(compiled.sql, compiled.params);
 
+    /** @type {string | null} */
     let nextCursor = null;
     if (rows.length > compiled.limit) {
         const last = rows[compiled.limit - 1];
@@ -279,9 +280,9 @@ async function runBatch(ctx, reads, { onTable } = {}) {
                 id,
                 ok: false,
                 status,
-                error: status === 500 ? 'Data request failed' : err.message,
+                error: status === 500 ? 'Data request failed' : /** @type {Error} */ (err).message,
             });
-            if (status === 500) log.error(`[DataReadRunner/batch] ${err && err.message}`);
+            if (status === 500) log.error(`[DataReadRunner/batch] ${err && /** @type {Error} */ (err).message}`);
         }
     }
     return results;

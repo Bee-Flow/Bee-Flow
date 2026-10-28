@@ -536,7 +536,12 @@ const openBreachRecord = {
     limit: 1,
 };
 
-/** Child rows of the open breach. Required: with nothing open, show nothing. */
+/**
+ * Child rows of the open breach. Required: with nothing open, show nothing.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenBreach = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,
