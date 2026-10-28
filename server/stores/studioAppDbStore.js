@@ -151,6 +151,8 @@ if (isPg()) {
      *
      * Returns { applied, skipped: [{ sql, reason }] }.
      * @param {string[]} orderedDDL
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function applyMigration(ownerId, id, orderedDDL, { targetVersion = null } = {}) {
         if (!Array.isArray(orderedDDL)) {
