@@ -112,10 +112,10 @@ async function resolveEnabledIntegrations(userId, organizationId, { include = []
 
 // ── The org allow-list as the request paths read it ──────────────────
 //
-// Before this helper the "super-admin allow-list, else the global default"
-// read lived inline in eight places with three different readings. They are
-// kept apart on purpose (each caller passes the options that reproduce what it
-// did before); unifying them would change what users see.
+// The "super-admin allow-list, else the global default" read has eight
+// callers with three different readings. They are
+// kept apart on purpose (each caller passes the options that reproduce its
+// own reading); unifying them would change what users see.
 //
 //   overrideWhen 'truthy'  — `organizations."enabledIntegrations"` overrides when
 //                            it is truthy ('' falls through to the default).

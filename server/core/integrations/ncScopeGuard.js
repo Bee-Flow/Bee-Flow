@@ -190,10 +190,10 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
 /**
  * check → run → filter, for a caller OUTSIDE core/tools/toolDispatcher.
  *
- * The guard used to have exactly one call site, so every background feature
+ * The guard has more than one call site, so every background feature
  * that reached a Nextcloud executor directly — the Talk auto-record scan, the
  * meeting-note write-back, the automation triggers for activity, notifications
- * and calendar, the Talk-meeting calendar lookup, the recordings route — ran
+ * and calendar, the Talk-meeting calendar lookup, the recordings route — would otherwise run
  * with no scope at all. The settings screen says "Enforced on the server for
  * chats, automations and apps alike"; those are the automations and the apps.
  *

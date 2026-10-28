@@ -249,7 +249,7 @@ class BaseProvider {
             ...(thinking ? { thinking } : {}),
             toolCalls: message?.tool_calls || null,
             // Normalised: OpenAI-compatible endpoints (local runtimes, Scaleway)
-            // report cache reuse in prompt_tokens_details, which callers used to
+            // report cache reuse in prompt_tokens_details, which callers would otherwise
             // have to read defensively.
             usage: normalizeUsage(this.name, data.usage, { service_tier: data.service_tier }),
             ...(stopReason ? { stop_reason: stopReason } : {}),
@@ -495,7 +495,7 @@ class BaseProvider {
 
         // BFSF-263: OSS reasoning models behind generic OpenAI-compatible
         // endpoints emit their chain-of-thought as literal <think>…</think>
-        // text at the start of the turn — previously streamed verbatim into
+        // text at the start of the turn — otherwise streamed verbatim into
         // the visible answer. The splitter reroutes it into the same typed
         // thinking events the native adapters use.
         const { createThinkTagSplitter } = require('./thinkTagStream');

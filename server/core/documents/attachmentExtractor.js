@@ -2,8 +2,8 @@
 /**
  * Unified attachment extractor — single pipeline used by both direct chat
  * (server/routes/ai/directChat.js) and agent chat (server/core/agentRuntime/
- * attachmentProcessor.js). Previously the two paths handled PDFs differently,
- * so Azure Document Intelligence only worked in direct chat.
+ * attachmentProcessor.js). Separate PDF handling per path would leave
+ * Azure Document Intelligence working only in direct chat.
  *
  * Return shape:
  *   { kind: 'text', text, source, meta }        — inlined into message content
@@ -37,11 +37,11 @@ const { extractTextFromPDFWithStats } = require('./pdfExtractor');
 const { renderPdfPagesToImages } = require('./pdfToImages');
 const { extractCad } = require('../cad/cadMetadata');
 const { isCadMime } = require('../cad/cadTypes');
-// Hoisted DELIBERATELY. Both renderers used to be required inside the try/catch
-// below, so when cadRender.js moved into core/cad/ the stale path became a
-// MODULE_NOT_FOUND that the catch reported as "this file could not be
-// rendered" — every STEP file silently degraded to its header for as long as
-// nobody read the warning. A require at the top fails at boot, where a failure
+// Hoisted DELIBERATELY. Neither renderer may be required inside the try/catch
+// below: a stale path (say, after cadRender.js moves) becomes a
+// MODULE_NOT_FOUND that the catch reports as "this file could not be
+// rendered" — every STEP file silently degrades to its header for as long as
+// nobody reads the warning. A require at the top fails at boot, where a failure
 // belongs.
 const { renderCadSheet } = require('../cad/cadRender');
 const { renderDxfSheet } = require('../cad/dxfRender');
@@ -365,7 +365,7 @@ function stripControlChars(s) {
  * still speaks for the formats no kernel here can tesselate (DWG, SAT).
  *
  * Rendering is best-effort by design: a file the kernel refuses falls back to
- * exactly the text-only result this used to return, so nothing that worked
+ * exactly the text-only result, so nothing that worked
  * before can start failing because a picture could not be drawn.
  * @param {Buffer<ArrayBuffer>} buffer
  */

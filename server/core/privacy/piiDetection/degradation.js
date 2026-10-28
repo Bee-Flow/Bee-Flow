@@ -7,7 +7,7 @@
 /**
  * Which of three things went wrong, for the message the user reads.
  *
- * Every degraded reason used to collapse into "temporarily unavailable, try
+ * Every degraded reason must not collapse into "temporarily unavailable, try
  * again in a moment". For a transient model error that is true. For a 60,000-
  * character paste it is false and unhelpful in the same breath: retrying does
  * exactly the same amount of work and fails again, and nothing tells the user

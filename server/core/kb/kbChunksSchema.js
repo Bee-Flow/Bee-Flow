@@ -138,7 +138,7 @@ async function ensureKBChunksTable(vectorDim) {
     // says less. A source that re-fetches fills it in on its next refresh.
     try { await exec('ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS page_start INT'); } catch (_) { log.warn('page_start column could not be added', _); }
 
-    // Issue #11: Ensure documents table has original_content column for reindexing
+    // Ensure documents table has original_content column for reindexing
     try { await exec("ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_content TEXT"); } catch (_) { log.warn('original_content column could not be added', _); }
 
     schemaInitialized = true;

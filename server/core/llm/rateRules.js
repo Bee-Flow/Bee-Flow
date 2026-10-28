@@ -33,7 +33,7 @@ function getCacheDiscount(model) {
     // legacy 2.0 was 25% (75% off). Only used when the pricing data has no
     // explicit cache_read rate — see computeCost's rates.cacheRead preference.
     if (/gemini/.test(m)) return /gemini-(2\.5|3)/.test(m) ? 0.1 : 0.25;
-    // OpenAI: the discount is NOT uniform, which is why this used to be wrong.
+    // OpenAI: the discount is NOT uniform, so a flat ratio would be wrong.
     // Everything from GPT-5 on reads cached input at 10% of the normal rate;
     // the o-series sits between 25% and 50% per model. The catalog carries the
     // published cached rate per model, so derive the ratio from that and only

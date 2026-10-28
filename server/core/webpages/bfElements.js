@@ -77,9 +77,9 @@ const PUBLIC_ROWS_MAX = 100;
 /**
  * How many rows a `bf-stat` adds up at most — the same at EVERY place.
  *
- * This number used to stand only on the server (`datatableRuntime.ROWS_PAGE_MAX`),
- * and the client asked for nothing: `/tables/:id/query` then fell back to its
- * own DEFAULT_LIMIT of 50. A `<bf-stat agg="sum">` therefore counted over 50 rows in
+ * This number must not stand only on the server (`datatableRuntime.ROWS_PAGE_MAX`):
+ * if the client asks for nothing, `/tables/:id/query` falls back to its
+ * own DEFAULT_LIMIT of 50. A `<bf-stat agg="sum">` would then count over 50 rows in
  * the preview and over 500 on the published page — two different numbers for the same
  * element, from two places that should precisely read from one
  * registry. That is why the number stands here.

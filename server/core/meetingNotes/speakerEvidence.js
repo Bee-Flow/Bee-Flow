@@ -59,7 +59,7 @@ async function extractSpeakerEvidence(segments, rendered, detectPii) {
     // null      = guard not installed (endpoint unconfigured)
     // degraded  = installed but unreachable
     // Either way there is nothing to fail closed about: worst case the LLM names
-    // speakers exactly as it did before this existed.
+    // speakers exactly as without it.
     if (!result || result.degraded) {
         log.info(
             `[SpeakerEvidence] no person detection available (${result ? result.degradedReason : 'guard not configured'})`

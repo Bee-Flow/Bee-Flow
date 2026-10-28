@@ -481,9 +481,9 @@ async function orgHasBetaFeature(orgId, featureId, { tierHint = null } = {}) {
  *   - feature not allowed   → 403 (definitive answer)
  *   - lookup itself failed  → 503 with Retry-After=10 (caller retries)
  *
- * The 503 path is critical: previously, any DB error returned an empty
- * feature list, silently kicking customers out of features they pay for.
- * Now those failures surface as transient errors customers can retry.
+ * The 503 path is critical: a DB error must not return an empty feature list,
+ * which would silently kick customers out of features they pay for.
+ * Those failures surface as transient errors customers can retry.
  */
 function requireBetaFeature(featureId) {
     const ent = require('./entitlements');

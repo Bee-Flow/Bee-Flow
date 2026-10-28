@@ -20,8 +20,8 @@ const cache = new Map();
 /**
  * Cache key for a scan result.
  *
- * This used to be `pii:${channel}:${text.length}:${text.slice(0, 200)}`, which
- * was a CORRECTNESS bug, not merely a weak cache:
+ * It must not be `pii:${channel}:${text.length}:${text.slice(0, 200)}`, which
+ * is a CORRECTNESS bug, not merely a weak cache:
  *
  *   1. Two different texts with the same length AND the same first 200
  *      characters shared an entry. That is not exotic — a templated prompt

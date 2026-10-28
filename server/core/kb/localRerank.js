@@ -12,7 +12,7 @@ const log = require('../../telemetry/log');
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
 // them itself and the cycle does not grow (lint:scc-ratchet). Lazy ones stay
-// lazy: the barrel passes a loader, called where the require used to be.
+// lazy: the barrel passes a loader, called at the point of use.
 let configStore = null;
 let loadLlamaCppRerank = null;
 function wire(deps) {

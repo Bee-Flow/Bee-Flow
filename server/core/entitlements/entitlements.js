@@ -371,15 +371,15 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
         // binding, not by the integrations menu.
         //
         // The org admin's own Nextcloud toggles are NOT enforced here, and
-        // deliberately so. They used to write only the NC slice of
-        // org.enabledIntegrations, where an array carrying no NC ids is
+        // deliberately so. The NC slice of
+        // org.enabledIntegrations is no place for them: an array carrying no NC ids is
         // ambiguous — it means "the admin unticked every Nextcloud
         // integration" and "this array exists for unrelated reasons and
         // Nextcloud was never configured" equally well. Reading it as the
-        // former would have taken Nextcloud away from organisations that
-        // never asked for that, on upgrade, with no warning.
+        // former would take Nextcloud away from organisations that
+        // never asked for that, with no warning.
         //
-        // Those toggles now write org_nc_scope_<orgId> instead
+        // Those toggles write org_nc_scope_<orgId> instead
         // (core/integrations/ncScope.js), which records a mode per
         // integration and so can say "off" without relying on absence.
         // Enforcement lives with the rest of the scope model, in

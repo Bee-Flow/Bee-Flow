@@ -129,7 +129,7 @@ function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
     return stop;
 }
 
-/** The head every hand-rolled stream used to write itself. */
+/** The head every stream sends, so none writes it by hand. */
 const SSE_HEADERS = Object.freeze({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',

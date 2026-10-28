@@ -31,9 +31,9 @@ function _notifyChanged() {
 // here. Writes go through configStore.mutateConfig — an atomic read-modify-write
 // across replicas — one at a time, in the order they were made.
 //
-// This used to call configStore.getConfig synchronously. It JSON-parsed the
-// Promise that came back, threw, and fell back to {} — so no override was ever
-// applied, and every save started from {} and wrote only its own model, wiping
+// configStore.getConfig must be awaited: called synchronously, the code
+// JSON-parses the Promise that comes back, throws, and falls back to {} — so no override is ever
+// applied, and every save starts from {} and writes only its own model, wiping
 // the others.
 
 const CONFIG_KEY = 'model_cost_overrides';

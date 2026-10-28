@@ -2,7 +2,7 @@
 /**
  * Whisper large-v3-turbo on the AMD XDNA2 NPU, via FastFlowLM.
  *
- * WHY THIS EXISTS: the local transcription path used to be Whisper-BASE running
+ * WHY THIS EXISTS: the local transcription path is otherwise Whisper-BASE running
  * in-process on the CPU through Transformers.js/WASM (see localWhisper.js). On
  * the Strix Halo box FastFlowLM serves Whisper large-v3-turbo on the NPU behind
  * an OpenAI-compatible endpoint, which is both a much better model and far

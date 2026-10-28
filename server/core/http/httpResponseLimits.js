@@ -22,9 +22,9 @@
  *     silently discarding the cut — it keeps returning
  *     `{ truncated: true }` to the caller's own code instead of throwing.
  *
- * Before this module existed, both surfaces independently defined their own
- * `1024 * 1024` and stayed in sync only by a comment saying so. One
- * constant means they cannot drift apart again.
+ * One constant for both surfaces, rather than each defining its own
+ * `1024 * 1024` and staying in sync only by a comment saying so, means they
+ * cannot drift apart.
  */
 'use strict';
 

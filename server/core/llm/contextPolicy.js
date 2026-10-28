@@ -190,8 +190,8 @@ function contextWindowFor(modelId) {
     }
     if (/gemini/.test(m)) return /1\.5-pro/.test(m) ? 2_000_000 : 1_000_000;
     // OpenAI windows come from the catalog rather than a regex: gpt-5.6 and
-    // gpt-6 are 1.05M, not the 400k the /gpt-5/ pattern used to return, and a
-    // gpt-6 id matched nothing at all and fell to the 128k default — which
+    // gpt-6 are 1.05M, not the 400k a /gpt-5/ pattern would return, and a
+    // gpt-6 id would match nothing at all and fall to the 128k default — which
     // folds a conversation at 96k tokens inside a million-token window.
     if (/^gpt-|^o\d/.test(m)) {
         const { contextWindowFor: openaiWindow } = require('../providers/openaiModels');
@@ -200,7 +200,7 @@ function contextWindowFor(modelId) {
     }
     // Mistral: the catalog, overridden by what /v1/models reported. The
     // current line-up (Large 3, Medium 3.5, Small 4, Ministral 3) is 256k;
-    // the flat 128k this used to return folded their conversations halfway.
+    // a flat 128k would fold their conversations halfway.
     if (/^(mistral|ministral|magistral|codestral|devstral|pixtral)-/.test(m)) {
         const { describeMistralModel } = require('../providers/mistralModels');
         const win = describeMistralModel(m).context;

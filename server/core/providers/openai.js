@@ -53,8 +53,8 @@ class OpenAIProvider extends BaseProvider {
      * @param {string} apiKey
      * @param {object} [options]
      * @param {string} [options.baseUrl] - custom endpoint. Used for proxies and
-     *   for EU regional processing (https://eu.api.openai.com/v1). Previously
-     *   ignored, which silently sent EU-configured traffic to the US endpoint.
+     *   for EU regional processing (https://eu.api.openai.com/v1). Ignoring it
+     *   would silently send EU-configured traffic to the US endpoint.
      * @param {boolean} [options.euResidency] - force the EU endpoint even when
      *   the provider record still carries the default URL.
      */
@@ -230,8 +230,8 @@ class OpenAIProvider extends BaseProvider {
     /**
      * Normalise a usage object into the shape the rest of the platform records
      * (usageStore, modelCosts, the dashboards). Both APIs and both the
-     * streaming and non-streaming paths go through here — they used to
-     * normalise in four places, and the non-streaming ones didn't, which is why
+     * streaming and non-streaming paths go through here — normalising in
+     * four places, with the non-streaming ones not doing it, is why
      * several call sites read `usage.prompt_tokens_details?.cached_tokens ||
      * usage.cached_tokens` defensively.
      */

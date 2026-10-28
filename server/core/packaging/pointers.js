@@ -7,7 +7,7 @@
  * Capture turns an in-bundle pointer into `{ $ref }` (toRefs), install turns it
  * back into a real id (fromRefs), the release checks look for pointers that
  * cross from one stage into another, and the scrub nulls whatever is left over.
- * Before this module each of those wrote its own walk, and they disagreed: a
+ * If each of those wrote its own walk they would disagree: a
  * datatable step, a knowledge base on an ai_step or a page's table grant was
  * scrubbed on the way out but never rewritten, so a Solution that carried the
  * table still arrived with the step pointing at nothing. Four walks over the

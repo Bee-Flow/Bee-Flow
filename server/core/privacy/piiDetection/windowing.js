@@ -138,7 +138,7 @@ function mergeWindowResults(text, parts, coveredChars) {
     return merged;
 }
 
-// Whole-scan wall clock. Before this bound, "slow" could never error: 40
+// Whole-scan wall clock. Without this bound, "slow" can never error: 40
 // windows x 90s each is a theoretical hour of user-blocking latency in which
 // nothing fails and nothing finishes. On expiry the scan STOPS and reports the
 // covered prefix through the existing partial-result contract
@@ -147,17 +147,17 @@ function mergeWindowResults(text, parts, coveredChars) {
 //
 // THE BUDGET SCALES WITH THE WORK — and that is the whole point.
 //
-// It used to be one flat number for every scan, which made it a SIZE limit
+// It is not one flat number for every scan, which would make it a SIZE limit
 // wearing a clock's clothes. Detection costs roughly 4ms/char on a 3-core
 // guard, so one 8000-char window is ~33s and a flat 60s could never finish
-// more than two of them. A 41k-char paste (6 windows) therefore died at the
-// same place every single time — 31k chars in — and the user was told the
-// message was "too large to scan", which was true only because the allowance
+// more than two of them. A 41k-char paste (6 windows) would therefore die at the
+// same place every single time — 31k chars in — and the user would be told the
+// message was "too large to scan", which would be true only because the allowance
 // refused to grow with it. Pasting the same text as six separate messages
-// worked fine, which is the tell: the work was affordable, the accounting
-// was not.
+// works fine, which is the tell: the work is affordable, the accounting
+// is not.
 //
-// So the allowance is now per window, and the flat number becomes the ceiling
+// So the allowance is per window, and the flat number becomes the ceiling
 // that bounds the worst case: min(windows x WINDOW_BUDGET_MS, SCAN_DEADLINE_MS).
 //   - a one-window scan is bounded at 60s, exactly as before;
 //   - that six-window paste gets six windows' worth of time and completes;

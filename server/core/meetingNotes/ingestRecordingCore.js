@@ -97,10 +97,10 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     const defaultTemplate = await resolveOwnerDefaultTemplate(userId, orgId);
     const rawSummary = await generateMeetingSummary(transcript, language, orgId, { templatePrompt: defaultTemplate?.prompt || null });
     // BEFORE the note's notice lines, because a failed artifact pass is one
-    // of them. This writer used to pass `artifacts.*` through raw: a pass that
-    // fell over or could not be parsed then produced a finished note claiming
+    // of them. This writer must not pass `artifacts.*` through raw: a pass that
+    // fell over or could not be parsed would then produce a finished note claiming
     // nothing was agreed, and an auto-import has no other channel at all to
-    // report that — there was no screen watching.
+    // report that — there is no screen watching.
     /** @type {{ ok?: boolean, actionItems?: any[], decisions?: any[], questions?: any[], tags?: string[] }} */
     const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
         meetingDateIso: new Date().toISOString().slice(0, 10),
@@ -367,8 +367,8 @@ async function persistAudioCopy(filePath, userId, ext) {
         const src = fs.existsSync(audioPath) ? audioPath : filePath;
         const persisted = await persistSavedAudioToStorage(savedAudioKey(savedBase), src, ext);
         audioStorageKey = persisted.ok ? persisted.key : null;
-        // This try/catch used to swallow everything; a `{ok:false}` must not
-        // slip through it silently the way the old `null` did.
+        // A `{ok:false}` must not slip through this
+        // try/catch silently.
         if (!persisted.ok && persisted.reason !== 'not_configured') {
             log.error(`[IngestCore] No durable audio copy for ${savedBase} (${persisted.reason}) — queued for repair`);
         }

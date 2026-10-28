@@ -74,8 +74,8 @@ initPricing();
 
 // ─── Unknown models ──────────────────────────────────────────────────────────
 //
-// A model no source prices used to be billed at the most expensive input and
-// output rate of every model we know (measured: ~20x any real model). It is now
+// A model no source prices must not be billed at the most expensive input and
+// output rate of every model we know (measured: ~20x any real model). It is
 // estimated from the nearest same-family or same-provider model (see
 // unknownModelRate.js for the rules), and the donor list is memoised here: built
 // from the catalogue rows in force at the call's time, our repo snapshots, the

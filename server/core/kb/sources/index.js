@@ -306,7 +306,7 @@ async function syncSource(source, opts = {}) {
                         // one supplier differ in a date and an amount, and
                         // "near-identical" is exactly what distinct rows of a
                         // narrow table look like. Ten of twenty-three rows
-                        // went missing that way before this existed.
+                        // went missing that way in a real import.
                         skipDedup: adapter.dedupe === false,
                         sourceModifiedAt: fetched.sourceModifiedAt || null,
                         sizeBytes: fetched.sizeBytes ?? null,

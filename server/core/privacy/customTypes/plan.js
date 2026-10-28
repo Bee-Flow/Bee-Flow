@@ -38,7 +38,7 @@ function withBuiltinDefault(list) {
 }
 
 /**
- * Categories for a scan in an org context that used to pass `null` (every
+ * Categories for a scan in an org context that would otherwise pass `null` (every
  * built-in): every built-in, plus the org's custom types that are switched on
  * for the AI or blocked for this tool class. `null` when the org has none,
  * which keeps those scans exactly as they were.

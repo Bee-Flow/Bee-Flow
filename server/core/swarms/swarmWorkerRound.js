@@ -90,7 +90,7 @@ function makeRoundCallback(w, round) {
         } else if (type === 'done' && data) {
             // Adapters emit final usage on `done`. Log per worker per
             // round so swarm dashboards see real token counts (workers
-            // were previously invisible because the runtime ignored
+            // would be invisible because the runtime ignored
             // this event).
             try {
                 await usageStore.logUsage({

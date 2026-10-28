@@ -7,7 +7,7 @@
  * chain-of-thought as literal <think>…</think> (or <thinking>…</thinking>)
  * text at the START of the assistant turn. Providers with typed thinking
  * events (Claude/OpenAI/Google/Mistral adapters) already separate reasoning;
- * these in-band tags used to pass through verbatim as visible chat text.
+ * these in-band tags would pass through verbatim as visible chat text.
  *
  * createThinkTagSplitter — chunk-boundary-safe streaming splitter:
  *   - Detects an opening tag ONLY at the start of the turn (optional leading

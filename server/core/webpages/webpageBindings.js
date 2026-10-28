@@ -337,9 +337,9 @@ async function describePageActions({ webpageId, userId }) {
         // erbij. Dit is wat de middenkolom toont en wat de usage-index omdraait.
         uses: usesSection(elements, { fallbackIds }),
         // The elements THEMSELVES stand in `elements.marks`, each with its `tag`; these
-        // two fields only say what the column may claim about that kind. They used to exist as
-        // "we do not know this yet" placeholders; since `<bf-form>` and `<bf-agent>` really exist that is no longer true,
-        // and `scanned` now carries the difference between "none" and "not looked at".
+        // two fields only say what the column may claim about that kind. They are not
+        // "we do not know this yet" placeholders: `<bf-form>` and `<bf-agent>` really exist,
+        // and `scanned` carries the difference between "none" and "not looked at".
         forms: { supported: true, scanned: elements !== null },
         // The Agent block is INTERNAL-ONLY: `ai.ask` is deliberately kept out of the anonymous
         // bridge (services/publicShareBridge.js knows only /ai/chat and /ai/stream), so

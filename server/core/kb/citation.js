@@ -48,7 +48,7 @@
  * ── WHERE A PASSAGE SITS, WHEN IT HAS NO PAGE ───────────────────────
  * `page` answers "which part of this document" for a PDF and for nothing
  * else. A datatable passage is a block of rows and a meeting note is a day,
- * and both used to cite as a bare title — the same uncheckable chip a page
+ * and both would cite as a bare title — the same uncheckable chip a page
  * number exists to prevent. So `rowStart`/`rowEnd` and `occurredAt` are the
  * same field in a different unit, and they are optional in exactly the same
  * way: absent for everything ingested before they existed, and never faked.
