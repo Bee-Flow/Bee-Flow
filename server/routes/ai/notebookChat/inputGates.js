@@ -25,7 +25,7 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 /**
  * Add conversation history, newest-first within a token budget.
  *
- * This used to push EVERY prior turn unconditionally, on top of a
+ * Pushing EVERY prior turn unconditionally would sit on top of a
  * ≤20k-token document and the KB context. Past a certain thread length
  * the request exceeded the model's context window and the turn failed —
  * and because the history only ever grew, it then failed forever: the

@@ -31,9 +31,9 @@ const { requireAdminUser } = require('../requireAdminUser');
 const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
-// Each entry either prices a model or resets it. The loop below used to skip
-// whatever did not fit — no model, a price missing or null — and `reset` was
-// read for truthiness, so `reset: "false"` RESET the model it came to price.
+// Each entry either prices a model or resets it. Skipping
+// whatever does not fit — no model, a price missing or null — and reading `reset`
+// for truthiness would make `reset: "false"` RESET the model it came to price.
 // setModelCost stores Number(input): "2,5" became NaN, '' became a free model.
 
 const COSTS_TEXT = 'costs must be an array of { model, input, output }';

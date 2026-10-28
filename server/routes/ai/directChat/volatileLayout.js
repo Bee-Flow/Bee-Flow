@@ -73,8 +73,8 @@ function layoutVolatile(turn) {
  * The step-machine guard's writer: `base + guard`, REPLACED every round.
  *
  * The guard text interpolates roundsInCurrentStep, so it differs every round.
- * Appending it used to grow the block for the whole turn — and it was appended
- * to messages[0], the provider-cached prefix, so every round re-read the entire
+ * Appending it would grow the block for the whole turn — and it would be appended
+ * to messages[0], the provider-cached prefix, so every round would re-read the entire
  * prompt on a self-hosted model. `capture()` re-reads the base after the block
  * was moved behind the history; a null/empty guard restores exactly that base.
  *

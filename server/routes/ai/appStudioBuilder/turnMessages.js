@@ -7,7 +7,7 @@
  *   [ONE user message: the machine notes (draft state, approved plan, editor
  *    context, plan policy, image note) followed by the user's own text]
  *
- * Why the last line matters twice. Before this the notes went out as up to
+ * Why the last line matters twice. Sending the notes as up to
  * five consecutive role:'user' messages ahead of the human's — templates that
  * demand strict user/assistant alternation (Gemma, Mistral) reject that shape
  * (core/providers/local.js, the fold rationale), and every note is a fresh

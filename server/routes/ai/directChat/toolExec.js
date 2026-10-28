@@ -5,9 +5,8 @@
  * Extracted byte-identically from the two duplicated tool-execution blocks in
  * routes/ai/directChat.js (the non-streamed pre-check loop and the streamed
  * tool loop). Every guard here (DLP token restore, web-search regex/PII guard,
- * guardrail audit events, integration-activity PII scan) used to exist in two
- * drifted copies; a guard fix now lands once. The historical drift between the
- * copies is PARAMETERIZED via `ctx.streamed` — never silently reconciled:
+ * guardrail audit events, integration-activity PII scan) exists once, so a guard fix lands once. The historical drift between the
+ * two original copies is PARAMETERIZED via `ctx.streamed` — never silently reconciled:
  *   - toolName fallback (`|| toolCall.name`) exists only on the pre-check path
  *   - log strings say "streamed" on the streamed path
  *   - the returned tool message encodes string results differently per path
@@ -15,9 +14,9 @@
  * Reconciliation with core/agentRuntime/chatStream.js is deferred to item M1.
  *
  * [PERF] makeTierToolParamsGetter memoizes the per-tool-call
- * `direct_chat_tier_tool_params` config read once per request (it used to be
- * one awaited configStore.getConfig per tool call; configStore's own cache
- * bounded staleness to 60s — the per-request memo is strictly narrower).
+ * `direct_chat_tier_tool_params` config read once per request (one awaited configStore.getConfig per tool call would
+ * otherwise be needed; configStore's own cache bounds staleness to 60s — the
+ * per-request memo is strictly narrower).
  */
 // @typecheck
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');

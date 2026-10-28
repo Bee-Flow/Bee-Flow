@@ -5,8 +5,7 @@
  * Runs sequentially after all tools of a round settle, so the drafts cannot
  * race. Both tool loops (the non-streaming pre-check and the streamed one)
  * call this; they now differ only in the notebook rollback, which can only
- * fire once content has been streamed. Both carry `_toolName`, which the
- * non-streamed return used to omit — see toolExec.js.
+ * fire once content has been streamed. Both carry `_toolName` — see toolExec.js.
  */
 
 /**

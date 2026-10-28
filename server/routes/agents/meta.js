@@ -44,8 +44,8 @@ const NoQuery = z.object({}).strict();
 //
 // Open on purpose for the FILE components (one global directory, see above).
 // Subworkflows are another matter: they are rows of one organisation, and the
-// catalogue used to list every org's to anybody who asked, signed in or not.
-// They now come only with a signed-in session, and only that user's org's
+// catalogue must not list every org's to anybody who asked, signed in or not.
+// They come only with a signed-in session, and only that user's org's
 // (core/agentRuntime/agentTools.js, subworkflowsVisibleTo); an anonymous
 // caller gets the file components alone.
 router.get('/meta/components', validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {

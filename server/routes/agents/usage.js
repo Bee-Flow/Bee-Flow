@@ -26,8 +26,8 @@
  * the tab becoming a directory of everything colleagues have built.
  *
  * ── IT TAKES NO OPTIONS, AND SAYS SO ────────────────────────────────
- * Every kind is scanned on every call. A query string used to be ignored, so
- * `?kind=automation` answered with all of them under a 200 that read as a
+ * Every kind is scanned on every call. A query string must not be ignored, or
+ * `?kind=automation` would answer with all of them under a 200 that read as a
  * narrowed list. It is refused. `:id` is any agent id (the column is TEXT);
  * the store answers an unknown one with the 404 below.
  *

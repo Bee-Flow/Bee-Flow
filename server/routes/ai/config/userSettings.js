@@ -7,9 +7,9 @@
  * ── What a caller may send ──────────────────────────────────────────
  *
  * POST /user-settings is a partial update: only the keys present are
- * written. Its body is a zod schema, `.strict()`, and EVERY check now runs
- * before the first write. The handler used to write field by field and
- * refuse half-way, so a refused save left a half-applied one behind — an
+ * written. Its body is a zod schema, `.strict()`, and EVERY check runs
+ * before the first write. Writing field by field and refusing half-way
+ * would leave a half-applied save behind — an
  * NMBRS form whose token was rejected had already switched `nmbrsApiMode`
  * to rest, and an AFAS form whose token was rejected had already stored the
  * new member number beside the old token.

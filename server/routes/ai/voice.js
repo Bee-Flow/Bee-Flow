@@ -36,8 +36,8 @@
  * `/session` takes a JSON body; `/turn` is multipart, so its schema sits
  * BEHIND multer, which is what puts the text fields on `req.body`. Both are
  * `.strict()`, and everything a turn can refuse is refused before the stream
- * opens, as JSON with a status — a missing recording used to be an `error`
- * event inside a 200, and a file of the wrong type or size a bare 500.
+ * opens, as JSON with a status — a missing recording is not an `error`
+ * event inside a 200, nor a file of the wrong type or size a bare 500.
  *
  * AN AGENT IS CHECKED BEFORE IT IS USED. Both routes took any `agentId` and
  * loaded it with no access check: `/session` answered with that agent's

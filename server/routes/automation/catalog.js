@@ -23,9 +23,8 @@ const { sessionUser } = require('../../core/http/sessionUser');
  * that does not carry it refuses every code step at run time ("Code step
  * unavailable: ..."). There is no switch: code steps are a standard step for
  * every organisation, and the sandbox is the safety boundary. (A platform
- * config flag and a per-org `ai_code_execution` beta used to sit here; an
- * install where nobody had set them showed the Code step greyed out with no
- * way to switch it on in the product.)
+ * config flag or a per-org beta would leave the Code step greyed out on an
+ * install where nobody set it, with no way to switch it on in the product.)
  *
  * The answer stays a BOOLEAN (`flags.code`) with the reason BESIDE it. The
  * builder palette tests that flag for truthiness
@@ -191,9 +190,9 @@ router.get('/catalog/sample/:tool', async (req, res) => {
 /**
  * The columns of one Nextcloud table, for the step editor.
  *
- * A Tables row step takes `values` as a map of column TITLE → binding. The
- * editor used to show that as a raw JSON field nobody could fill in, and the
- * AI keyed it by its own field names, so rows failed at run time. The
+ * A Tables row step takes `values` as a map of column TITLE → binding. A raw JSON field
+ * is one nobody can fill in, and the AI would key it by its own field names,
+ * so rows would fail at run time. The
  * column-aware editor (flow/settings/TablesRowValuesEditor.jsx) renders one
  * binding row per column instead — and needs the columns. Same auth as every
  * other call on this router (requireAuth upstream); the tool runs as the

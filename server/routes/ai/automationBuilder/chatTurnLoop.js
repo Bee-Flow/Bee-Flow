@@ -52,7 +52,7 @@ function emptyReplyRetryMessages(content, thinkingForReplay, rejected) {
  */
 // How many validation errors one note shows the model.
 //
-// The note used to carry JSON.stringify(errors) uncapped, after EVERY mutating
+// The note must not carry JSON.stringify(errors) uncapped, after EVERY mutating
 // round, under "Fix every error below". A broken draft produces dozens, and a
 // small local model asked to fix all of them at once answers with one malformed
 // mega-call — which fails validation, which grows the list. Five is enough to

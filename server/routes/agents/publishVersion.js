@@ -29,7 +29,7 @@
  * A reference the owner may not use is the one refusal this route writes
  * itself (validateAgentConfigReferences throws it with status 400). Any other
  * failure in that stretch — the retry's write included — is a server failure
- * and goes to the terminal handler as one; it used to be answered as a 400
+ * and goes to the terminal handler as one; it is never answered as a 400
  * carrying the raw error text, a database's own wording included.
  */
 

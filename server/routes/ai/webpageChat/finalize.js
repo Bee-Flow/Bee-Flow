@@ -29,7 +29,7 @@ async function finishTurn({
     // stay accurate across sessions.
     //
     // ── ONE SNAPSHOT PER TURN (W4) ───────────────────────────────────────
-    // The autosave's 5-minute debounce used to sit here. That belongs to
+    // The autosave's 5-minute debounce does not apply here. It belongs to
     // KEYSTROKES: a run of small edits without a clear start or end. An AI
     // turn is the opposite: one bounded event with its own summary, and two
     // turns within five minutes (the normal pace of a conversation) shared

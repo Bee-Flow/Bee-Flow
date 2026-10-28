@@ -63,8 +63,8 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     const chatMode = ['ask', 'auto', 'plan'].includes(rawChatMode) ? rawChatMode : 'auto';
 
     // Accept attachment-only turns (e.g. pasting an image with no text) — mirrors
-    // the direct-chat guard. Previously an empty `message` 400'd before the SSE
-    // stream opened, which the client surfaced as "Error generating response."
+    // the direct-chat guard. An empty `message` must not 400 before the SSE
+    // stream opens, which the client surfaces as "Error generating response."
     // even though the image was valid.
     if (!message && (!Array.isArray(attachments) || attachments.length === 0)) {
         return res.status(400).json({ error: 'Message or attachments required' });

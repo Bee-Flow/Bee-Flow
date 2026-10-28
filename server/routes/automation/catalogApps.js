@@ -19,7 +19,7 @@ const { fallback } = require('../../utils/bestEffort');
  * What a person reads for an action, next to the app's name: `nextcloud_mail_list_mailboxes`
  * under "Nextcloud Mail" is "List mailboxes", `gmail_search` under "Gmail" is "Search". The
  * leading words the app's name already says are dropped (at least one word stays), the rest
- * is sentence case. It used to be the tool id with spaces ("nextcloud mail list mailboxes").
+ * is sentence case, not the tool id with spaces ("nextcloud mail list mailboxes").
  */
 function actionLabel(name, appLabels) {
     const words = String(name).split('_').filter(Boolean);

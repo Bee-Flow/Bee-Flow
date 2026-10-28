@@ -138,9 +138,9 @@ async function closeTurn(turn) {
     if (bufferedBuild) {
         const changes = changedSteps(baseDraft, draftWrap.def);
         // A large change becomes the same one-click proposal approve mode
-        // makes (Apply / Discard on the card). It used to become a plan
-        // listing the changes, and approving that plan threw the staged
-        // definition away and had the agent build it all again.
+        // makes (Apply / Discard on the card). It must not become a plan
+        // listing the changes: approving that plan throws the staged
+        // definition away and has the agent build it all again.
         // A turn that worked on a waiting proposal never commits by
         // itself: that proposal's changes have not been approved.
         // A new table never commits by itself: creating it is the user's Apply.

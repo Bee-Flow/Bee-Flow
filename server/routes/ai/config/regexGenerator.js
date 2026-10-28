@@ -6,7 +6,7 @@
  * A model tier the caller NAMED is honoured or refused, never swapped. The
  * lookup was `tiers[modelTier] || {}` and then the global default model, so a
  * tier that is not configured — misspelled, or one the picker's hard-coded
- * list used to offer (`think`, `write`, `deep_thinking`) — generated the
+ * list offered (`think`, `write`, `deep_thinking`) — generated the
  * org's guardrail rules on whichever model happened to be the default, and
  * the page said "generated". Sending no tier still means the fast tier, then
  * the default model: that is what the page does when no tier is configured.
