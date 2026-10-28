@@ -89,6 +89,66 @@ function isAllowedNcPath(rawUrl) {
         && ALLOWED_PREFIXES.some(p => withoutQuery.startsWith(p));
 }
 
+/**
+ * Hosts a WebDAV `Destination` header may name: the host this request arrived on
+ * (directly or through a proxy) and the Nextcloud host the Bee Flow server was
+ * given as callback (internal and public). AppAPI and HaRP rewrite the request
+ * line but not this header, so it still carries the Nextcloud-side spelling.
+ * @param {import('express').Request} req
+ * @returns {Set<string>}
+ */
+function destinationHosts(req) {
+    const hosts = new Set();
+    const add = (/** @type {unknown} */ value) => {
+        const first = String(value || '').split(',')[0].trim().toLowerCase();
+        if (first) hosts.add(first);
+    };
+    add(req.headers.host);
+    add(req.headers['x-forwarded-host']);
+    for (const base of [config.nextcloudUrl, config.nextcloudPublicUrl]) {
+        try { if (base) add(new URL(base).host); } catch { /* unparsable config: skip */ }
+    }
+    return hosts;
+}
+
+/**
+ * Rewrite a WebDAV `Destination` (MOVE, COPY, trash restore) from the proxy's
+ * public spelling (`<callback>/nc/remote.php/dav/...`) to the Nextcloud URL.
+ * Sabre otherwise resolves it outside its base URI and answers 403.
+ *
+ * The rewritten path must itself sit under `/remote.php/dav/` and pass
+ * isAllowedNcPath, so the header is not a way around the path allow-list. The
+ * host is compared on the parsed URL, never as a string prefix.
+ *
+ * @param {import('express').Request} req
+ * @returns {{ ok: true, destination: string | null } | { ok: false }}
+ */
+function rewriteDestination(req) {
+    const raw = req.headers.destination;
+    if (raw === undefined) return { ok: true, destination: null };
+    const header = Array.isArray(raw) ? raw[0] : raw;
+    // Anything but an absolute http(s) URL (a relative path, a data: URL, control
+    // characters, backslashes the URL parser would read as slashes) is refused.
+    const match = /^(https?):\/\/([^/?#\\\s]+)(\/[^?#\\\s]*)$/i.exec(header);
+    if (!match) return { ok: false };
+    let url;
+    try { url = new URL(header); } catch { return { ok: false }; }
+    if (url.username || url.password) return { ok: false };
+    if (!destinationHosts(req).has(url.host.toLowerCase())) return { ok: false };
+    // The RAW path (the parsed one has its dot segments already resolved).
+    let path = match[3];
+    const appId = encodeURIComponent(config.appId);
+    for (const prefix of [`/index.php/apps/app_api/proxy/${appId}`, `/exapps/${appId}`]) {
+        if (path.startsWith(`${prefix}/nc/`)) { path = path.slice(prefix.length); break; }
+    }
+    if (!path.startsWith('/nc/')) return { ok: false };
+    const upstreamPath = path.slice('/nc'.length);
+    if (!upstreamPath.startsWith('/remote.php/dav/') || !isAllowedNcPath(upstreamPath)) {
+        return { ok: false };
+    }
+    return { ok: true, destination: `${config.nextcloudUrl}${upstreamPath}` };
+}
+
 const EMPTY_BODY_SHA256 = crypto.createHash('sha256').update('').digest('hex');
 
 /** @param {import('express').Request} req */
@@ -337,6 +397,13 @@ function mount(app) {
             req.method = String(override).toUpperCase();
             delete req.headers['x-http-method-override'];
         }
+        // WebDAV MOVE/COPY/restore name their target in a header that the proxy
+        // hops do not rewrite; refuse one that leads anywhere but the DAV tree.
+        const dest = rewriteDestination(req);
+        if (!dest.ok) {
+            return res.status(403).json({ error: 'Destination not allowed' });
+        }
+        if (dest.destination) req.headers.destination = dest.destination;
         return proxy(req, res, next);
     });
 }
@@ -379,4 +446,4 @@ function sigFailureStats() {
     return { ..._sigFailures };
 }
 
-module.exports = { mount, verifyHmac, canonicalQuery, canonicalSignedPath, isAllowedNcPath, ALLOWED_PREFIXES, sigFailureStats };
+module.exports = { mount, verifyHmac, canonicalQuery, canonicalSignedPath, isAllowedNcPath, rewriteDestination, ALLOWED_PREFIXES, sigFailureStats };

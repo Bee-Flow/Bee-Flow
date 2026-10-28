@@ -181,15 +181,21 @@ function webhookBody(entry, secret) {
 
 /**
  * Existing rows for our callback URI, keyed by event class.
+ * @param {{ warmupRetry?: boolean }} [opts] false on shutdown, where waiting out a warm-up is pointless
  * @returns {Promise<Map<string, WebhookRow>>}
  */
-async function listExisting() {
+async function listExisting({ warmupRetry = true } = {}) {
     const url = `${config.nextcloudUrl}${WEBHOOKS_API}?uri=${encodeURIComponent(hookUri())}`;
-    const res = await fetch(url, {
+    // Only the fetch is retried: withWarmupRetry recognises the AppAPI warm-up 401
+    // on a Response, not on a thrown error or a parsed Map.
+    const get = () => fetch(url, {
         method: 'GET',
         headers: appApiHeaders(),
         signal: AbortSignal.timeout(5_000),
     });
+    const res = warmupRetry
+        ? await withWarmupRetry(get, { label: 'webhook-listeners-list', budgetMs: 30_000 })
+        : await get();
     if (!res.ok) {
         // 404 → the app isn't enabled. Distinguish so the caller can say so.
         const err = new Error(`webhook list HTTP ${res.status}`);
@@ -251,10 +257,7 @@ async function ensureWebhookListeners() {
     try {
         // The list call is the capability probe: a 404 means webhook_listeners
         // is disabled, and there is no point fanning out 16 registrations.
-        existing = await withWarmupRetry(() => listExisting(), {
-            label: 'webhook-listeners-list',
-            budgetMs: 30_000,
-        });
+        existing = await listExisting();
     } catch (err) {
         if (err instanceof Error && err.status === 404) {
             log.warn('[Webhooks] The webhook_listeners app is not enabled on this Nextcloud — '
@@ -327,7 +330,7 @@ async function unregisterWebhookListeners() {
     /** @type {Map<string, WebhookRow>} */
     let existing;
     try {
-        existing = await listExisting();
+        existing = await listExisting({ warmupRetry: false });
     } catch (_) {
         return;
     }
