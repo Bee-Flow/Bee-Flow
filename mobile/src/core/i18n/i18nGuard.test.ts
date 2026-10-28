@@ -246,7 +246,6 @@ const UNCONVERTED = new Map<string, number>([
     // Run now / Run again accessibility hints go through t(), so the viewer
     // copy added no strings and two older literals went with the rewrite.
     ['src/features/automations', 50],
-    ['src/features/documents', 10],
     ['src/features/integrations', 134],
     // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when
     // it learned to add https:// itself.
