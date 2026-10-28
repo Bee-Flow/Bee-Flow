@@ -485,6 +485,26 @@ const SHELL_RESPONSE_DROP = new Set([
     'set-cookie',
 ]);
 
+/**
+ * A `..` segment in the path, also percent-encoded (once or twice). Such a
+ * shell path would leave the `/embed/` prefix on the frontend host once that
+ * host normalises it, and whatever it named would be served under the
+ * Nextcloud origin. AppAPI refuses `..` itself; HaRP and a direct call on the
+ * docker network may not.
+ * @param {string} url
+ */
+function hasTraversal(url) {
+    let p = String(url).split('?')[0];
+    for (let i = 0; i < 3; i++) {
+        if (p.replace(/\\/g, '/').split('/').some((seg) => seg === '..' || seg === '.')) return true;
+        let next;
+        try { next = decodeURIComponent(p); } catch { return true; }
+        if (next === p) return false;
+        p = next;
+    }
+    return true;
+}
+
 /** @param {string} url */
 function isShellDocument(url) {
     const p = String(url).split('?')[0];
@@ -514,6 +534,7 @@ function buildEmbedProxy() {
         // gzip accepted, the full shell with identity. Assets are streamed and
         // would survive, but one rule for the whole hop is the one that cannot
         // regress.
+        if (hasTraversal(req.url)) return next(); // the baked bundle; express.static refuses traversal itself
         rewriteRequestHeaders(req, SHELL_REQUEST_HEADERS, { 'accept-encoding': 'identity' });
         // http-proxy-middleware rewrites req.url in place. Keep the local
         // path: the fallback hands the request to express.static, which must

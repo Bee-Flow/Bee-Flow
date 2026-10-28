@@ -317,3 +317,29 @@ test('shell proxy falls back to the baked shell on an upstream 5xx and on a miss
         await close(srv); await close(up);
     }
 });
+
+test('a shell path with a .. segment never reaches the frontend host', async () => {
+    const up = await echoUpstream();
+    const { proxy } = freshProxyModule({ BEEFLOW_EMBED_BASE_URL: urlOf(up.srv) });
+    const mw = proxy.buildEmbedProxy();
+    const app = express();
+    app.use((req, res) => mw(req, res, () => res.status(404).send('LOCAL')));
+    const srv = await listen(http.createServer(app));
+    try {
+        // A raw request line: a URL object would resolve the dots client-side.
+        const raw = (p) => new Promise((resolve, reject) => {
+            http.get({ host: '127.0.0.1', port: srv.address().port, path: p }, (r) => {
+                let t = ''; r.on('data', (c) => { t += c; }); r.on('end', () => resolve(t));
+            }).on('error', reject);
+        });
+        for (const p of ['/assets/../../user-page.html', '/assets/%2e%2e/%2e%2e/user-page.html', '/assets/%252e%252e/x', '/assets/..%2f..%2fx', '/assets/./x.js']) {
+            assert.equal(await raw(p), 'LOCAL', p);
+        }
+        assert.equal(up.seen.length, 0, 'the frontend host was never asked');
+        // An ordinary asset still is.
+        await request(urlOf(srv), '/assets/app-1.js');
+        assert.equal(up.seen.length, 1);
+    } finally {
+        await close(srv); await close(up.srv);
+    }
+});
