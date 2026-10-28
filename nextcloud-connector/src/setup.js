@@ -391,6 +391,13 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
     }
     config.nextcloudPublicUrl = saved.publicNcUrl || null;
 
+    // The webhook rows carry this URL: move them to it now (in place, the old
+    // rows would otherwise keep firing), whether or not the re-bootstrap below
+    // succeeds. A successful re-bootstrap refreshes them again with its key.
+    require('./webhookListeners').ensureWebhookListeners().catch((/** @type {unknown} */ err) => {
+        log.warn(`[Setup] webhook rows not moved to the new public URL: ${errMessage(err)}`);
+    });
+
     // Drop the cached tenant key + retry bootstrap with the new public URL
     // so the admin sees a clear success/new error within ~5s instead of
     // restarting the container manually.
