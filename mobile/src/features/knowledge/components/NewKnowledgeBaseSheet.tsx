@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { Banner, Button, Sheet, TextField } from '@/shared/ui';
 
 import { useCreateKnowledgeBase } from '../hooks/mutations';
@@ -17,6 +18,7 @@ export function NewKnowledgeBaseSheet({
     onClose: () => void;
     onCreated: (kb: KnowledgeBase | null) => void;
 }) {
+    const t = useTranslation();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const create = useCreateKnowledgeBase({
@@ -31,22 +33,28 @@ export function NewKnowledgeBaseSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="New knowledge base"
-            subtitle="It starts empty — add documents next"
+            title={t('knowledge.new', 'New knowledge base')}
+            subtitle={t('mobile.knowledge.new_subtitle', 'It starts empty — add documents next')}
         >
-            <TextField label="Name" value={name} onChangeText={setName} autoFocus placeholder="Policies" />
             <TextField
-                label="What is it for?"
+                label={t('knowledge.form.name', 'Name')}
+                value={name}
+                onChangeText={setName}
+                autoFocus
+                placeholder={t('mobile.knowledge.new_name_placeholder', 'Policies')}
+            />
+            <TextField
+                label={t('mobile.knowledge.new_purpose', 'What is it for?')}
                 value={description}
                 onChangeText={setDescription}
                 multiline
                 maxLines={4}
-                placeholder="Everything HR publishes internally."
-                hint="Agents read this to decide when to search here, so a plain sentence helps."
+                placeholder={t('mobile.knowledge.new_purpose_placeholder', 'Everything HR publishes internally.')}
+                hint={t('mobile.knowledge.new_purpose_hint', 'Agents read this to decide when to search here, so a plain sentence helps.')}
             />
             {create.isError ? <Banner tone="error">{describeError(create.error).message}</Banner> : null}
             <Button
-                label="Create"
+                label={t('common.create', 'Create')}
                 fullWidth
                 loading={create.isPending}
                 disabled={name.trim().length === 0}

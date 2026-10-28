@@ -7,6 +7,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { formatBytes } from '@/shared/lib/bytes';
 import { Icon, IconButton, Text } from '@/shared/ui';
@@ -36,16 +37,24 @@ const makeStyles = (theme: Theme) =>
         fill: { height: '100%', backgroundColor: theme.colors.accentPrimary },
     });
 
-const LABELS: Record<UploadItem['status'], string> = {
-    queued: 'Waiting',
-    uploading: 'Uploading',
-    done: 'Uploaded',
-    error: 'Failed',
-    cancelled: 'Cancelled',
-};
+function statusLabel(t: TranslateFn, status: UploadItem['status']): string {
+    switch (status) {
+        case 'queued':
+            return t('automations.trigger_editors.waiting', 'Waiting');
+        case 'uploading':
+            return t('mobile.knowledge.upload_uploading', 'Uploading');
+        case 'done':
+            return t('mobile.knowledge.upload_done', 'Uploaded');
+        case 'error':
+            return t('automations.ndv.quick_failed', 'Failed');
+        case 'cancelled':
+            return t('mobile.knowledge.upload_cancelled', 'Cancelled');
+    }
+}
 
 /** The line under the name: a progress bar, the error, or the plain status. */
 function UploadDetail({ item }: { item: UploadItem }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const percent = Math.round(item.progress * 100);
     const size = item.size ? formatBytes(item.size) : '';
@@ -54,14 +63,14 @@ function UploadDetail({ item }: { item: UploadItem }) {
         return (
             <View
                 accessibilityLiveRegion="polite"
-                accessibilityLabel={`Uploading ${item.name}, ${percent} percent`}
+                accessibilityLabel={t('mobile.knowledge.upload_progress_label', 'Uploading {name}, {percent} percent', { name: item.name, percent })}
                 style={styles.progress}
             >
                 <View style={styles.track}>
                     <View style={[styles.fill, { width: `${Math.max(2, percent)}%` }]} />
                 </View>
                 <Text variant="label" tone="tertiary">
-                    {percent}%{size ? ` of ${size}` : ''}
+                    {size ? t('mobile.knowledge.upload_progress_of', '{percent}% of {size}', { percent, size }) : `${percent}%`}
                 </Text>
             </View>
         );
@@ -75,7 +84,7 @@ function UploadDetail({ item }: { item: UploadItem }) {
     }
     return (
         <Text variant="label" tone="tertiary">
-            {LABELS[item.status]}
+            {statusLabel(t, item.status)}
             {size ? ` · ${size}` : ''}
         </Text>
     );
@@ -90,6 +99,7 @@ export function UploadRow({
     onRetry: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
 
@@ -107,7 +117,7 @@ export function UploadRow({
             {item.status === 'error' ? (
                 <IconButton
                     icon={<Icon name="RotateCw" size={16} color={theme.colors.accentPrimary} />}
-                    accessibilityLabel={`Retry uploading ${item.name}`}
+                    accessibilityLabel={t('mobile.knowledge.upload_retry', 'Retry uploading {name}', { name: item.name })}
                     onPress={() => onRetry(item.id)}
                 />
             ) : null}
@@ -116,8 +126,8 @@ export function UploadRow({
                     icon={<Icon name="X" size={16} color={theme.colors.textMuted} />}
                     accessibilityLabel={
                         item.status === 'uploading'
-                            ? `Cancel uploading ${item.name}`
-                            : `Remove ${item.name} from the queue`
+                            ? t('mobile.knowledge.upload_cancel', 'Cancel uploading {name}', { name: item.name })
+                            : t('mobile.knowledge.upload_remove', 'Remove {name} from the queue', { name: item.name })
                     }
                     onPress={() => onRemove(item.id)}
                 />

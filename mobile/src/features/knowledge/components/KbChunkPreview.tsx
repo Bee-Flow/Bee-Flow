@@ -12,6 +12,7 @@
 import React, { useMemo } from 'react';
 
 import { shareText } from '@/core/api/shareFile';
+import { useTranslation } from '@/core/i18n';
 
 import { PreviewSheet } from './PreviewSheet';
 import { useKbChunks } from '../hooks/queries';
@@ -32,6 +33,7 @@ export function KbChunkPreview({
     subtitle: string | undefined;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const chunks = useKbChunks(doc ? { kbId: doc.kbId, docId: doc.docId } : null);
     const text = useMemo(
         () => (chunks.data?.chunks ?? []).map((c) => c.content).join('\n\n'),
@@ -42,10 +44,10 @@ export function KbChunkPreview({
         <PreviewSheet
             visible={Boolean(doc)}
             onClose={onClose}
-            title={doc?.title || 'Document'}
+            title={doc?.title || t('automations.document_fields.document', 'Document')}
             subtitle={
                 chunks.data?.remote_only
-                    ? 'Indexed in the search service — the text is not readable from here'
+                    ? t('mobile.knowledge.remote_only', 'Indexed in the search service — the text is not readable from here')
                     : subtitle
             }
             kind="text"

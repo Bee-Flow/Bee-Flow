@@ -10,6 +10,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text } from '@/shared/ui';
 
@@ -34,6 +35,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function KbHitCard({ hit, rank, best }: { hit: KbSearchHit; rank: number; best: number }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const strength = relativeScore(hit.score ?? 0, best);
@@ -45,12 +47,12 @@ export function KbHitCard({ hit, rank, best }: { hit: KbSearchHit; rank: number;
                     #{rank}
                 </Text>
                 <Text variant="caption" weight="medium" numberOfLines={1} style={styles.grow}>
-                    {hit.title || 'Untitled passage'}
+                    {hit.title || t('mobile.knowledge.untitled_passage', 'Untitled passage')}
                 </Text>
             </View>
 
             <View
-                accessibilityLabel={`Match strength ${Math.round(strength * 100)} percent of the best result`}
+                accessibilityLabel={t('mobile.knowledge.match_strength', 'Match strength {percent} percent of the best result', { percent: Math.round(strength * 100) })}
                 style={styles.track}
             >
                 <View style={[styles.fill, { width: `${Math.max(4, Math.round(strength * 100))}%` }]} />

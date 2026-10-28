@@ -43,7 +43,7 @@ export function PreviewActions({
             ) : null}
             {onShare ? (
                 <Button
-                    label="Share"
+                    label={t('forms.page.tab_share', 'Share')}
                     variant="secondary"
                     onPress={onShare}
                     loading={busy && !onOpenWith}
