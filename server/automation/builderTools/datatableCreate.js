@@ -84,8 +84,8 @@ function normaliseFieldArgs(raw, notes) {
 }
 
 /**
- * @param {object} draftWrap  the builder draft (owner = draftWrap.userId; catalog on _datatables)
- * @param {object} args       { name, fields:[{key?, name, type, options?}], description?, key? }
+ * @param {import('../mcpBuilder').McpDraftWrap} draftWrap  the builder draft (owner = draftWrap.userId; catalog on _datatables)
+ * @param {Builder.Args} args       { name, fields:[{key?, name, type, options?}], description?, key? }
  */
 async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     // An injected deps object may name only what its test needs; the rest are

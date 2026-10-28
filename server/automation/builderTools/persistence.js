@@ -21,7 +21,7 @@ const { fallback } = require('../../utils/bestEffort');
  *
  * Resolves to the stored row; `error` is set when the store refused the write
  * and `validationErrors` when the draft was saved but is not yet valid.
- * @param {*} draftWrap
+ * @param {import('../mcpBuilder').McpDraftWrap} draftWrap
  * @param {{ finalize?: boolean }} [opts]
  * @returns {Promise<Awaited<ReturnType<typeof automationStore.createAutomation>> & { error?: string, validationErrors?: object[] }>}
  */

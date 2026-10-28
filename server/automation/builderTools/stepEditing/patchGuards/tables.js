@@ -48,7 +48,7 @@ function patchTableStep(graph, step, patch, next, draftWrap, patchNotes) {
     }
 
     const candidate = { ...step, ...patch, source: next.source, ...(next.ops ? { ops: next.ops } : {}) };
-    const tableSpec = () => /** @type {any} */ (require('../../../../core/automationModel/tableOps/spec'));
+    const tableSpec = () => /** @type {typeof import('../../../../core/automationModel/tableOps/spec')} */ (require('../../../../core/automationModel/tableOps/spec'));
     const findings = (isRead ? validateReadTableStep(candidate) : tableSpec().validateTableStep(candidate))
         .filter(f => underPatched(f, keys));
     const refusal = findingsRefusal(step.type, findings);

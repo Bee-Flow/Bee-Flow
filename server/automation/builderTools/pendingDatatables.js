@@ -132,9 +132,9 @@ const strip = (s) => String(s || '').trim();
  * builder_create_datatable in a preview: record the table in the proposal and
  * answer as if it existed, with a pending id. See the module header.
  *
- * @param {object} draftWrap  uses _datatables (catalog; null = unreadable), _pendingDatatables,
+ * @param {DraftWrap} draftWrap  uses _datatables (catalog; null = unreadable), _pendingDatatables,
  *        _datatableCreate (access check made at turn start), _approvedDatatableIds
- * @param {object} args       { name, fields, description?, key? }
+ * @param {Builder.Args} args       { name, fields, description?, key? }
  * @param {object} deps       { normaliseFieldArgs, normalizeFields, keyFromTitle, normaliseKey }
  */
 function stagePendingDatatable(draftWrap, args, deps) {

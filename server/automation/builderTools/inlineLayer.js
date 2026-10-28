@@ -113,8 +113,8 @@ function rewriteSeam(value, s) {
 const edgeKey = (e) => `${e.from}\u0000${e.to}\u0000${e.label || ''}`;
 
 /**
- * @param {object} graph  the flow the call_layer step lives in (the root, or the flowlet named by scope)
- * @param {object} draft  the root definition (it holds `layers`)
+ * @param {import('./draftGraph').DraftGraph} graph  the flow the call_layer step lives in (the root, or the flowlet named by scope)
+ * @param {import('./draftGraph').DraftGraph} draft  the root definition (it holds `layers`)
  * @param {{stepId: string}} args
  */
 function applyInlineLayer(graph, draft, args) {

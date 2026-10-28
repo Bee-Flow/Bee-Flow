@@ -123,7 +123,7 @@ function resolveTableChoice({ questions, message, catalog } = {}) {
 // ── the approved set ───────────────────────────────────────────────────────
 
 /**
- * @typedef {object} BuildApprovedSetArgs
+ * @typedef BuildApprovedSetArgs
  * @property {CatalogTable[] | null} [catalog]  the tables the caller can see; anything but a list turns the gate off
  * @property {unknown[]} [defs]  the definitions whose bound tables are already approved
  * @property {string[]} [userTexts]  what the user wrote (their own words only)
