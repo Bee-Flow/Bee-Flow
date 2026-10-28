@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { openRoute } from '@/shared/navigation';
 import { useToast } from '@/shared/ui';
 
@@ -19,6 +20,7 @@ import { sectionsByAge } from '../model/sections';
 import { RESULT_CATEGORIES, type AppNotification } from '../model/types';
 
 export function useNotificationInbox() {
+    const t = useTranslation();
     const router = useRouter();
     const { toast } = useToast();
     const [unreadOnly, setUnreadOnly] = useState(false);
@@ -29,9 +31,14 @@ export function useNotificationInbox() {
     const notifications = query.data ?? [];
     const markRead = useMarkNotificationRead(unreadOnly);
     const markAll = useMarkAllNotificationsRead((marked) =>
-        toast(marked === 0 ? 'Everything was already read' : `${marked} marked as read`, 'success'),
+        toast(
+            marked === 0
+                ? t('mobile.notifications.all_read_already', 'Everything was already read')
+                : t('mobile.notifications.marked_read', '{count} marked as read', { count: marked }),
+            'success',
+        ),
     );
-    const remove = useDeleteNotification(() => toast('Notification deleted', 'success'));
+    const remove = useDeleteNotification(() => toast(t('mobile.notifications.deleted', 'Notification deleted'), 'success'));
 
     const open = (notification: AppNotification) => {
         if (!notification.read) markRead.mutate(notification.id);
