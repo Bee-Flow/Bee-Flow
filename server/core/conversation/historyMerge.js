@@ -131,4 +131,51 @@ function shouldDisableResponsesChaining({ clientHistoryProvided = false, attachm
     return !!(clientHistoryProvided || attachmentContext);
 }
 
-module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining };
+/**
+ * The id of the last stored message a turn was asked on: the last message
+ * with an id in the history it read from the database. Null when there is
+ * none (a new conversation, or an empty one).
+ *
+ * @param {HistoryMessage[] | null | undefined} history
+ * @returns {string | null}
+ */
+function historyAnchorId(history) {
+    if (!Array.isArray(history)) return null;
+    for (let i = history.length - 1; i >= 0; i--) {
+        const id = history[i]?.id;
+        if (typeof id === 'string' && id) return id;
+    }
+    return null;
+}
+
+/**
+ * Put a finished turn's rows into the stored conversation right after the
+ * message the turn was asked on (`anchorId`), not after whatever is stored by
+ * the time it finishes.
+ *
+ * A turn is saved at its END, on top of the conversation as it stands then.
+ * If another turn on the same conversation finished in the meantime (a second
+ * tab or device, or the question asked again after a dropped stream while the
+ * server was still answering), appending puts the question asked FIRST below
+ * the later question and its answer. Placing by anchor keeps the stored order
+ * the order the questions were asked in; every reader (chat view, mobile,
+ * export, the model's next history) reads that one order.
+ *
+ * No anchor, or an anchor that is not stored any more (an edit cut the chat):
+ * append, as before. Inputs are not mutated.
+ *
+ * @template T
+ * @param {T[]} base  the stored conversation now
+ * @param {T[]} rows  this turn's rows, in order
+ * @param {string | null | undefined} anchorId
+ * @returns {T[]}
+ */
+function placeTurnRows(base, rows, anchorId) {
+    const at = anchorId
+        ? base.findIndex((m) => !!m && typeof m === 'object' && /** @type {{ id?: unknown }} */ (m).id === anchorId)
+        : -1;
+    if (at < 0 || at === base.length - 1) return [...base, ...rows];
+    return [...base.slice(0, at + 1), ...rows, ...base.slice(at + 1)];
+}
+
+module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows };

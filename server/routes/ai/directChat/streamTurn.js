@@ -71,6 +71,7 @@ function makeInterruptedTurnPersister(turn) {
     return async (reason) => {
         try {
             const { buildInterruptedTurnMessages } = require('./interruptedTurn');
+            const { turnAnchorId } = require('./finalizeRows');
             const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
             const msgs = buildInterruptedTurnMessages({
                 baseMessages: convNow?.messages || [],
@@ -78,6 +79,7 @@ function makeInterruptedTurnPersister(turn) {
                 persistedAttachments: turn.persistedAttachments,
                 toolHistory: turn.collectedToolHistory,
                 errorNote: reason,
+                anchorId: turnAnchorId(turn),
             });
             // meta null → meta_json stays untouched
             if (msgs) await agentStore.updateDirectConversation(turn.convId, msgs, userId, null, encryptionOpts(req));

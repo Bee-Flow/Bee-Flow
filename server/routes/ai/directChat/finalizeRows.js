@@ -59,6 +59,22 @@ function persistenceBase(history, dbMessages) {
 }
 
 /**
+ * The stored message this turn was asked on, for placeTurnRows
+ * (core/conversation/historyMerge.js). Only a turn that read its history from
+ * the database has one: client history (edit/retry, a new chat) truncates or
+ * creates the conversation itself, and a shared thread appends by tail diff
+ * under its turn lock (stores/agent/directConversations._appendNewMessages),
+ * which a row placed mid-conversation would break.
+ * @param {Pick<Turn, 'clientHistoryProvided' | 'resolvedHistory' | '_sharedThread'>} t
+ * @returns {string | null}
+ */
+function turnAnchorId(t) {
+    if (t.clientHistoryProvided || t._sharedThread) return null;
+    const { historyAnchorId } = require('../../../core/conversation/historyMerge');
+    return historyAnchorId(t.resolvedHistory);
+}
+
+/**
  * @param {Pick<Turn, 'moderationViolation' | 'tokenizedMessage' | 'persistedAttachments' | '_userPrivacyMeta' | 'piiTokenMap'>} p
  * @returns {Record<string, unknown>}
  */
@@ -346,6 +362,7 @@ function buildUpdateMeta(t) {
 
 module.exports = {
     persistenceBase,
+    turnAnchorId,
     buildUserRow,
     resolveTokenisationInfo,
     buildAssistantRow,
