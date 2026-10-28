@@ -73,7 +73,7 @@ async function syncSeatQuantityForOrg(orgId) {
         });
         log.info(`[Stripe] seat quantity sync org=${orgId} ${item.quantity} → ${quantity}`);
     } catch (e) {
-        log.warn(`[Stripe] syncSeatQuantityForOrg org=${orgId} failed: ${e.message}`);
+        log.warn(`[Stripe] syncSeatQuantityForOrg org=${orgId} failed: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -202,7 +202,7 @@ async function releaseSubscriptionSchedule(scheduleId) {
     try {
         return await stripe.subscriptionSchedules.release(scheduleId);
     } catch (e) {
-        log.warn(`[Stripe] releaseSubscriptionSchedule ${scheduleId} failed: ${e.message}`);
+        log.warn(`[Stripe] releaseSubscriptionSchedule ${scheduleId} failed: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
