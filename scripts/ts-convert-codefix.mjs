@@ -122,7 +122,7 @@ const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'rel
  * current program. `refuse(newText)` lets a caller ban more than forbiddenInsert
  * does (the JSDoc driver refuses casts and `{null}`).
  */
-export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** @type {string} */ _t) => /** @type {boolean} */ (false) } = {}) {
+export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** @type {string} */ _t, /** @type {{ span: { start: number, length: number } }} */ _c) => /** @type {boolean} */ (false) } = {}) {
     const taken = [];
     for (const d of svc.service.getSemanticDiagnostics(abs)) {
         if (d.start === undefined) continue;
@@ -133,7 +133,7 @@ export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** 
         const fix = fixes.find((f) => fixIds.includes(f.fixId));
         if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { state.refused.add(key); continue; }
         let changes = fix.changes.flatMap((c) => c.textChanges);
-        if (!changes.length || changes.some((c) => forbiddenInsert(c.newText) || refuse(c.newText))) { state.refused.add(key); continue; }
+        if (!changes.length || changes.some((c) => forbiddenInsert(c.newText) || refuse(c.newText, c))) { state.refused.add(key); continue; }
         if (fix.fixId === 'fixMissingMember') {
             // `this.host = host` in a JS class: the member goes in as `declare host: T;`,
             // which emits nothing (a plain field would, with useDefineForClassFields).

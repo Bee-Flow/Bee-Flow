@@ -119,11 +119,19 @@ test('end to end on CommonJS: an options object with an untyped member gets no t
     assert.doesNotMatch(out, /BuildArgs/);
 });
 
-test('a quick fix that types a parameter whose slot a caller contradicted is refused; other tags pass', { skip: !ts && 'agent-hub typescript not installed' }, () => {
-    const sf = ts.createSourceFile('a.js', 'function add(col, val) { return [col, val]; }\nconst two = (a, b) => a + b;\n', ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-    const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required']));
-    assert.equal(refuse('/**\n * @param {string} col\n * @param {string | number} val\n */\n'), true);
-    assert.equal(refuse('/**\n * @param {string} col\n */\n'), false);
-    assert.equal(refuse('/** @param {number} a */\n'), true); // required: the quick fix would write it as required
-    assert.equal(quickFixRefuser(ts, sf, new Set())('/** @param {string} val */'), false);
+test('the quick-fix refuser: a banned parameter, a @type at a banned variable, and @param tags that leave a JS parameter undocumented', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const text = 'function add(col, val) { return [col, val]; }\nconst two = (a, b) => a + b;\nfunction g() {\n    let params = [];\n    params.push(1);\n    return params;\n}\nfunction opts({ columns }) { return columns; }\n';
+    const sf = ts.createSourceFile('a.js', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required', 'var:params@g#0|quickfix', 'opts#0|.columns|quickfix']));
+    const at = (needle) => ({ span: { start: text.indexOf(needle), length: 0 } });
+    assert.equal(refuse('/**\n * @param {string} col\n * @param {string | number} val\n */\n', at('function add')), true); // banned val
+    assert.equal(refuse('/**\n * @param {number} a\n * @param {number} b\n */\n', at('const two')), true); // required a
+    assert.equal(refuse('/** @type {number[]} */\n    ', at('let params')), true); // banned variable
+    assert.equal(refuse('/** @param {{ columns: string[] }} param0 */\n', at('function opts')), false); // param0 is not a banned name
+    assert.equal(refuse('/**\n * @param {string[]} columns\n */\n', at('function opts')), true); // banned key
+    // coverage: only col documented while val has no default -> val would become required
+    const open = quickFixRefuser(ts, sf, new Set());
+    assert.equal(open('/**\n * @param {string} col\n */\n', at('function add')), true);
+    assert.equal(open('/**\n * @param {string} col\n * @param {string} val\n */\n', at('function add')), false);
+    assert.equal(open('/** @type {number[]} */\n    ', at('let params')), false);
 });

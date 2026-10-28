@@ -115,22 +115,48 @@ export function colocatedTests(abs) {
 }
 
 /**
- * The names of the parameters whose slot is banned for the quick fix (`<fn>#<n>|#<i>|quickfix`
- * in `bans`, or `|required`: a caller leaves the argument out, and the quick fix would write
- * it as required), and a refuser that drops a quick fix writing a `@param` tag for one of
- * them. A caller contradicted the type TypeScript inferred from the body; the slot stays open.
+ * Refuses a quick fix (TypeScript's inferFromUsage) that the run may not take:
+ * - a `@param` for a parameter whose slot a caller contradicted (`<fn>#<n>|#<i>|quickfix` or
+ *   `|required` in the bans, `<fn>#<n>|.<key>|...` for a destructured one);
+ * - a `@type` written at the statement of a variable whose slot is banned (`var:<name>@<fn>`);
+ * - in a JavaScript file, `@param` tags that cover only some of a function's parameters: the
+ *   undocumented ones would turn from optional into required for every caller.
  */
 export function quickFixRefuser(ts, sf, bans) {
-    const names = new Set();
-    if (sf && bans) {
-        const byKey = new Map([...functionKeys(ts, sf)].map(([fn, key]) => [key, fn]));
-        for (const b of bans) {
-            const m = /^(.+)\|#(\d+)\|(?:quickfix|required)$/.exec(b); if (!m) continue;
-            const fn = byKey.get(m[1]); const p = fn && fn.parameters[Number(m[2])];
-            if (p && ts.isIdentifier(p.name)) names.add(p.name.text);
+    const names = new Set(); const varLines = new Set();
+    const fkeys = sf ? functionKeys(ts, sf) : new Map();
+    const byKey = new Map([...fkeys].map(([fn, key]) => [key, fn]));
+    for (const b of bans || []) {
+        let m = /^(.+)\|#(\d+)\|(?:quickfix|required)$/.exec(b);
+        if (m) { const fn = byKey.get(m[1]); const p = fn && fn.parameters[Number(m[2])]; if (p && ts.isIdentifier(p.name)) names.add(p.name.text); continue; }
+        m = /^(.+)\|\.([\w$]+)\|(?:quickfix|required)$/.exec(b);
+        if (m) { names.add(m[2]); continue; }
+        m = /^var:([\w$]+)@(.*)\|(?:quickfix|var)$/.exec(b);
+        if (m && sf) {
+            const visit = (n) => { if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === m[1] && n.parent && n.parent.parent) varLines.add(sf.getLineAndCharacterOfPosition(n.parent.parent.getStart(sf)).line); ts.forEachChild(n, visit); };
+            visit(sf);
         }
     }
-    return (text) => [...names].some((n) => new RegExp('@param\\s*\\{[^]*?\\}\\s*\\[?' + n + '\\b').test(text));
+    const paramTags = (text) => [...text.matchAll(/@param\s*\{[^]*?\}\s*\[?([\w$]+)/g)].map((x) => x[1]);
+    return (text, change) => {
+        const tags = paramTags(text);
+        if (tags.some((n) => names.has(n))) return true;
+        if (!sf || !change) return false;
+        const at = change.span.start;
+        if (/@type\b/.test(text) && varLines.has(sf.getLineAndCharacterOfPosition(at).line)) return true;
+        if (tags.length && /\.[cm]?js$/.test(sf.fileName)) {
+            // the function the comment is written for: the first function-like node starting at or after the insertion
+            let fn = null;
+            const visit = (n) => { if (fn) return; if ((ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n) || ts.isArrowFunction(n) || ts.isMethodDeclaration(n)) && n.getStart(sf) >= at && n.getStart(sf) - at < 400) { fn = n; return; } ts.forEachChild(n, visit); };
+            visit(sf);
+            if (fn) {
+                const have = new Set(tags);
+                const uncovered = fn.parameters.filter((p) => ts.isIdentifier(p.name) && !have.has(p.name.text) && !p.initializer && !p.dotDotDotToken && !hasDeclaredType(ts, p));
+                if (uncovered.length) return true;
+            }
+        }
+        return false;
+    };
 }
 
 /**
@@ -232,7 +258,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
             for (const f of files) {
                 const prev = svc.service.getProgram().getSourceFile(f).text;
                 const refuse = quickFixRefuser(ts, svc.service.getProgram().getSourceFile(f), bans.get(f));
-                const t = fixRound(ts, svc, f, { applied: [], refused: new Set() }, { fixIds: ['inferFromUsage'], refuse: (text) => uselessQuickFix(text) || refuse(text) });
+                const t = fixRound(ts, svc, f, { applied: [], refused: new Set() }, { fixIds: ['inferFromUsage'], refuse: (text, change) => uselessQuickFix(text) || refuse(text, change) });
                 if (t && !forbiddenInsert(t) && !forbiddenJsDoc(t) && !addsRequire(prev, t)) { svc.update(f, t); any = true; }
                 else if (t && addsRequire(prev, t)) report.get(f).push('dropped quick fix (adds a require for a type)');
             }
@@ -256,7 +282,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
                 // Too few arguments: the parameter is optional, whatever the type says.
                 if (d.code === 2554) { ban(callee.file, `${callee.slot}|required`); continue; }
                 const source = chosen.get(callee.file).get(callee.slot);
-                if (source) { ban(callee.file, `${callee.slot}|${source}`); continue; }
+                // A real caller disagrees: every source of evidence for that slot is suspect, not just
+                // the one that won; the slot stays open rather than trying them one attempt at a time.
+                if (source) { for (const src of ['call', 'demand', 'callee', 'observed', 'var', 'quickfix']) ban(callee.file, `${callee.slot}|${src}`); continue; }
                 // No inference source: either TypeScript's quick fix typed the slot (reject that
                 // next time), or the type was there before the run and it is the ARGUMENT that
                 // changed (a variable the run typed): then the argument's slot is the one to reject.

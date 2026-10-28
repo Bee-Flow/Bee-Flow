@@ -1269,6 +1269,15 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             posEdits.push({ start: p.name.getEnd(), end: p.name.getEnd(), text: `${opt}: ${t.text}`, kind: 'param', name: p.name.text, index: i, optional: !!(opt || p.initializer), type: t.text, host: jsdocHost(ts, fn).getStart(sf), arrowParen: ts.isArrowFunction(fn) && fn.parameters.length === 1 && !fn.getChildren(sf).some((c) => c.kind === ts.SyntaxKind.OpenParenToken) ? p : null });
         });
         if (!posEdits.length) continue;
+        // In a JavaScript file every untyped parameter is optional until the function's JSDoc
+        // documents one of them: from then on the undocumented ones are REQUIRED, and a caller
+        // that leaves one out (a test calling `makeBlock('hero')`) breaks. So the tags go in
+        // only when every parameter without a default is covered: typed here, or already.
+        if (/\.[cm]?js$/.test(abs)) {
+            const typedNow = new Set(posEdits.map((e) => e.index));
+            const uncovered = fn.parameters.filter((p, i) => !typedNow.has(i) && !p.initializer && !p.dotDotDotToken && !hasDeclaredType(ts, p));
+            if (uncovered.length) { report.push(`${fname}: ${uncovered.length} parameter(s) would become required (JSDoc covers only some): not typed`); continue; }
+        }
         for (const e of posEdits) {
             if (e.arrowParen) { // x => ... needs parentheses to take a type
                 edits.push({ start: e.arrowParen.getStart(sf), end: e.arrowParen.getStart(sf), text: '(', kind: 'arrowParen' });
