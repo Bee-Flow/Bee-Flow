@@ -66,7 +66,7 @@ function placeHits(term: string, access: SearchAccess): SearchHit[] {
             subtitle: d.hint,
             // External destinations open a browser; the row still says where it
             // goes rather than pretending to be an in-app screen.
-            meta: d.external ? 'Opens in browser' : undefined,
+            meta: d.external ? translate('mobile.search.opens_in_browser', 'Opens in browser') : undefined,
             href: d.href,
         }));
 }

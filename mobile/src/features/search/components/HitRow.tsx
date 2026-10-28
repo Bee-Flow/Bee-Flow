@@ -6,11 +6,13 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { Badge, ListRow } from '@/shared/ui';
 
 import type { SearchHit } from '../model/types';
 
 export function HitRow({ hit, onPress }: { hit: SearchHit; onPress: (hit: SearchHit) => void }) {
+    const t = useTranslation();
     return (
         <ListRow
             title={hit.title}
@@ -18,7 +20,7 @@ export function HitRow({ hit, onPress }: { hit: SearchHit; onPress: (hit: Search
             meta={hit.meta}
             wrapTitle
             onPress={hit.href ? () => onPress(hit) : undefined}
-            trailing={hit.href ? undefined : <Badge label="Web only" tone="neutral" />}
+            trailing={hit.href ? undefined : <Badge label={t('mobile.search.web_only', 'Web only')} tone="neutral" />}
         />
     );
 }

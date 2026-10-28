@@ -31,7 +31,7 @@ export function CoworkHubScreen() {
     const hub = useCoworkHub();
 
     const stop = useCancelRun(() => void hub.active.refetch(), {
-        onSuccess: () => toast('Stop requested'),
+        onSuccess: () => toast(t('mobile.cowork_hub.stop_requested', 'Stop requested')),
         onError: (err) => toast(describeError(err).message, 'error'),
     });
 

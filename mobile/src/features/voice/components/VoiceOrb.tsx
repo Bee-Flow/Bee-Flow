@@ -17,6 +17,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Icon, Text, type IconName } from '@/shared/ui';
 
@@ -25,20 +26,46 @@ import type { VoicePhase } from '../model/types';
 const CORE = 132;
 const HALO_MAX = 200;
 
+/** A sentence carried as data: its key and its English, resolved where it is drawn. */
+interface Words {
+    i18nKey: string;
+    en: string;
+}
+
 interface OrbCopy {
     /** Under the orb, in a size you can read at arm's length. */
-    state: string;
+    state: Words;
     /** What a tap does right now. Also the accessibility hint. */
-    action: string;
+    action: Words;
     icon: IconName;
 }
 
 const COPY: Record<VoicePhase, OrbCopy> = {
-    offline: { state: 'Not connected', action: 'Start talking', icon: 'PhoneCall' },
-    connecting: { state: 'Connecting', action: 'Connecting to the server', icon: 'Loader' },
-    listening: { state: 'Listening', action: 'Send now', icon: 'Mic' },
-    thinking: { state: 'Thinking', action: 'Cancel this turn', icon: 'Ellipsis' },
-    speaking: { state: 'Speaking', action: 'Interrupt', icon: 'Volume2' },
+    offline: {
+        state: { i18nKey: 'mobile.voice.state_offline', en: 'Not connected' },
+        action: { i18nKey: 'mobile.voice.start_talking', en: 'Start talking' },
+        icon: 'PhoneCall',
+    },
+    connecting: {
+        state: { i18nKey: 'mobile.voice.state_connecting', en: 'Connecting' },
+        action: { i18nKey: 'mobile.voice.action_connecting', en: 'Connecting to the server' },
+        icon: 'Loader',
+    },
+    listening: {
+        state: { i18nKey: 'mobile.voice.state_listening', en: 'Listening' },
+        action: { i18nKey: 'mobile.voice.action_send', en: 'Send now' },
+        icon: 'Mic',
+    },
+    thinking: {
+        state: { i18nKey: 'mobile.voice.state_thinking', en: 'Thinking' },
+        action: { i18nKey: 'mobile.voice.action_cancel', en: 'Cancel this turn' },
+        icon: 'Ellipsis',
+    },
+    speaking: {
+        state: { i18nKey: 'mobile.voice.state_speaking', en: 'Speaking' },
+        action: { i18nKey: 'mobile.voice.action_interrupt', en: 'Interrupt' },
+        icon: 'Volume2',
+    },
 };
 
 export function VoiceOrb({
@@ -54,8 +81,10 @@ export function VoiceOrb({
     elapsed: number;
     onPress: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const copy = COPY[phase];
+    const action = t(copy.action.i18nKey, copy.action.en);
 
     const listening = phase === 'listening';
     const halo = listening ? CORE + Math.min(1, Math.max(0, level)) * (HALO_MAX - CORE) : CORE + 12;
@@ -95,10 +124,12 @@ export function VoiceOrb({
                 <Pressable
                     onPress={onPress}
                     accessibilityRole="button"
-                    accessibilityLabel={copy.action}
+                    accessibilityLabel={action}
                     accessibilityState={{ busy: phase === 'thinking' || phase === 'connecting' }}
                     accessibilityHint={
-                        listening ? 'Or just stop talking — it sends after a short pause.' : undefined
+                        listening
+                            ? t('mobile.voice.listening_a11y_hint', 'Or just stop talking — it sends after a short pause.')
+                            : undefined
                     }
                     style={({ pressed }) => ({
                         width: CORE,
@@ -130,13 +161,13 @@ export function VoiceOrb({
             {/* Announced on change, so someone not watching the screen still
                 hears when it starts listening again. */}
             <View accessibilityLiveRegion="polite" style={{ alignItems: 'center', gap: 2 }}>
-                <Text variant="heading">{copy.state}</Text>
+                <Text variant="heading">{t(copy.state.i18nKey, copy.state.en)}</Text>
                 <Text variant="caption" tone="tertiary" center>
                     {phase === 'listening'
-                        ? 'Just talk. It sends when you pause.'
+                        ? t('mobile.voice.hint_listening', 'Just talk. It sends when you pause.')
                         : phase === 'offline'
-                          ? 'Tap to start a spoken conversation.'
-                          : `Tap to ${copy.action.toLowerCase()}.`}
+                          ? t('mobile.voice.hint_offline', 'Tap to start a spoken conversation.')
+                          : t('mobile.voice.hint_tap_to', 'Tap to {action}.', { action: action.toLowerCase() })}
                 </Text>
             </View>
         </View>

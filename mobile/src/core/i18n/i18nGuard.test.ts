@@ -225,23 +225,7 @@ const UNCONVERTED = new Map<string, number>([
     // any. The total went 1669 -> 1655 only where a duplicated string is now
     // drawn once (shared toasts, QueryScreen headers, content duplicates),
     // and 1655 -> 1649 where dead code went (cowork's unused WHEN_PRESETS).
-    ['app/(root)', 1],
-    // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
-    // through t() when the long-press menu became the kit's ActionMenu.
     ['src/features/agents', 33],
-    // 15 -> 8: the decision's status word, its clock line and its facts went
-    // through t() when a deadline stopped reading "Expires: now".
-    ['src/features/approvals', 8],
-    // 12 -> 5: the form card, its date field and the action's result went
-    // through t() with the decimal-comma and run-polling fixes.
-    ['src/features/apps', 5],
-    // 25 -> 17: the schedule screen's labels and toasts went through t() when
-    // its Delete learned to ask first.
-    ['src/features/cowork', 17],
-    ['src/features/coworkHub', 20],
-    ['src/features/documents', 10],
-    ['src/features/search', 9],
-    ['src/features/voice', 8],
 ]);
 
 /**

@@ -18,6 +18,7 @@ import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { QueryScreen, type DetailQuery } from '@/shared/patterns';
 import { ScreenHeader, useToast } from '@/shared/ui';
 
@@ -29,6 +30,7 @@ import { useApproval } from '../hooks/queries';
 import type { ApprovalDecision, ApprovalDetail } from '../model/types';
 
 export function ApprovalScreen({ id }: { id: string }) {
+    const t = useTranslation();
     const { toast } = useToast();
     /** Set to the decision being confirmed — rejection asks for a reason. */
     const [confirming, setConfirming] = useState<ApprovalDecision | null>(null);
@@ -39,7 +41,10 @@ export function ApprovalScreen({ id }: { id: string }) {
         onSuccess: ({ decision }) => {
             setConfirming(null);
             setReason('');
-            toast(decision === 'approve' ? 'Approved' : 'Rejected', 'success');
+            toast(
+                decision === 'approve' ? t('approvals.verb_approved', 'Approved') : t('approvals.verb_rejected', 'Rejected'),
+                'success',
+            );
         },
         onError: (err: Error) => toast(describeError(err).message, 'error'),
     });
@@ -51,7 +56,7 @@ export function ApprovalScreen({ id }: { id: string }) {
         // A 404 here is deliberately indistinguishable from "belongs to someone
         // else" — the server refuses to let an approval id become an oracle. So
         // the copy cannot claim it was deleted.
-        error: query.error ?? new Error('This approval is not available to you. It may have been withdrawn.'),
+        error: query.error ?? new Error(t('mobile.approvals.unavailable', 'This approval is not available to you. It may have been withdrawn.')),
         refetch: query.refetch,
     };
 
@@ -63,7 +68,7 @@ export function ApprovalScreen({ id }: { id: string }) {
             header={(detail) => (
                 <>
                     <Stack.Screen options={{ headerShown: false }} />
-                    <ScreenHeader title="Approval" subtitle={detail?.approval.automationTitle || undefined} />
+                    <ScreenHeader title={t('automations.node.approval.typeLabel', 'Approval')} subtitle={detail?.approval.automationTitle || undefined} />
                 </>
             )}
         >

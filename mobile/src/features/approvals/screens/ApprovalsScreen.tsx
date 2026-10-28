@@ -44,16 +44,16 @@ export function ApprovalsScreen({ initialScope = 'pending' }: { initialScope?: A
 
     return (
         <Screen edges={['top']}>
-            <ScreenHeader title="Approvals" showBack />
+            <ScreenHeader title={t('approvals.title', 'Approvals')} showBack />
 
             <View style={styles.tabs}>
                 <Segmented
-                    accessibilityLabel="Waiting or everything"
+                    accessibilityLabel={t('mobile.approvals.scope_label', 'Waiting or everything')}
                     value={tab}
                     onChange={setTab}
                     options={[
-                        { value: 'pending', label: 'Waiting' },
-                        { value: 'all', label: 'Everything' },
+                        { value: 'pending', label: t('approvals.status_pending', 'Waiting') },
+                        { value: 'all', label: t('mobile.approvals.scope_all', 'Everything') },
                         ...(orgAdmin ? [{ value: 'org' as const, label: t('approvals.scope_org', 'Organisation') }] : []),
                     ]}
                 />
@@ -69,10 +69,15 @@ export function ApprovalsScreen({ initialScope = 'pending' }: { initialScope?: A
                 contentContainerStyle={styles.list}
                 empty={{
                     icon: 'CircleCheckBig',
-                    title: waiting ? 'Nothing is waiting on you' : 'No approvals yet',
+                    title: waiting
+                        ? t('mobile.approvals.empty_waiting', 'Nothing is waiting on you')
+                        : t('mobile.approvals.empty_all', 'No approvals yet'),
                     message: waiting
-                        ? 'When an automation needs a decision, it appears here and as a notification.'
-                        : 'Automations that pause for a decision keep their history here.',
+                        ? t(
+                              'mobile.approvals.empty_waiting_hint',
+                              'When an automation needs a decision, it appears here and as a notification.',
+                          )
+                        : t('mobile.approvals.empty_all_hint', 'Automations that pause for a decision keep their history here.'),
                 }}
             />
         </Screen>

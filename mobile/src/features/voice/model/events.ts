@@ -5,6 +5,7 @@
  */
 
 import { field, shapeOf } from '@/core/api/contract';
+import { translate } from '@/core/i18n';
 
 import type {
     DoneEvent,
@@ -69,10 +70,16 @@ export const readDone: (raw: unknown) => DoneEvent = shapeOf({
 export function describeTtsGap(event: TtsUnavailableEvent): string {
     switch (event.reason) {
         case 'no_voice_configured':
-            return 'No voice is set up to speak with yet — showing the reply as text. An administrator can add one in Admin → AI Config.';
+            return translate(
+                'mobile.voice.tts_no_voice',
+                'No voice is set up to speak with yet — showing the reply as text. An administrator can add one in Admin → AI Config.',
+            );
         case 'tts_failed':
-            return 'Speaking the reply failed, so here it is as text.';
+            return translate('mobile.voice.tts_failed', 'Speaking the reply failed, so here it is as text.');
         default:
-            return 'No text-to-speech is configured on this server, so replies appear as text.';
+            return translate(
+                'mobile.voice.tts_unconfigured',
+                'No text-to-speech is configured on this server, so replies appear as text.',
+            );
     }
 }

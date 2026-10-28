@@ -9,17 +9,18 @@ import React from 'react';
 
 import { timeAgo, useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
+import { nOf } from '@/shared/lib/plural';
 import { Icon, ListRow, Section, Text } from '@/shared/ui';
 
 import type { CoworkRun } from '../model/types';
 
 function RunLine({ run }: { run: CoworkRun }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const failed = run.status === 'failed';
     return (
         <ListRow
-            title={failed ? 'Failed' : 'Completed'}
+            title={failed ? t('run_status.error', 'Failed') : t('tasks.completed', 'Completed')}
             subtitle={run.error ?? run.result ?? undefined}
             wrapTitle
             meta={timeAgo(run.finishedAt ?? run.startedAt ?? run.createdAt)}
@@ -35,13 +36,17 @@ function RunLine({ run }: { run: CoworkRun }) {
 }
 
 export function ScheduleHistory({ runCount, runs }: { runCount: number; runs: CoworkRun[] | undefined }) {
+    const t = useTranslation();
     return (
-        <Section title="History" subtitle={runCount === 1 ? 'Ran once' : `Ran ${runCount} times`}>
+        <Section
+            title={t('documents.history', 'History')}
+            subtitle={nOf(t, 'mobile.cowork.ran', runCount, ['Ran once', 'Ran {count} times'])}
+        >
             {runs && runs.length > 0 ? (
                 runs.map((r, i) => <RunLine key={r.id ?? i} run={r} />)
             ) : (
                 <Text variant="caption" tone="tertiary">
-                    Nothing has run yet.
+                    {t('mobile.cowork.nothing_ran', 'Nothing has run yet.')}
                 </Text>
             )}
         </Section>

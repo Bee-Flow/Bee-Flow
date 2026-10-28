@@ -15,6 +15,7 @@
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useUserRefresh } from '@/shared/patterns';
 import { EmptyState, ErrorState, ListSkeleton, Screen, ScreenHeader } from '@/shared/ui';
 
@@ -24,6 +25,7 @@ import { useVoiceAvailability } from '../hooks/queries';
 import { useVoiceSession } from '../hooks/useVoiceSession';
 
 export function VoiceScreen() {
+    const t = useTranslation();
     const router = useRouter();
     const availability = useVoiceAvailability();
     const refresh = useUserRefresh(() => availability.refetch());
@@ -45,8 +47,12 @@ export function VoiceScreen() {
         <Screen edges={['top', 'bottom']}>
             <Stack.Screen options={{ headerShown: false }} />
             <ScreenHeader
-                title="Voice"
-                subtitle={voice.session?.agentName ?? availability.data?.defaultModel ?? 'Spoken conversation'}
+                title={t('mobile.voice.title', 'Voice')}
+                subtitle={
+                    voice.session?.agentName ??
+                    availability.data?.defaultModel ??
+                    t('mobile.voice.subtitle', 'Spoken conversation')
+                }
                 // Leaving a live call has to end it, not just navigate away.
                 onBack={() => {
                     if (connected) voice.hangUp();
@@ -62,13 +68,16 @@ export function VoiceScreen() {
             ) : !enabled ? (
                 <EmptyState
                     icon="MicOff"
-                    title="Voice mode is not switched on"
+                    title={t('mobile.voice.off_title', 'Voice mode is not switched on')}
                     message={
                         availability.data?.reason === 'mistral_not_configured'
-                            ? 'This Bee Flow server has no speech provider configured yet. An administrator can add a Mistral API key under Admin → AI Config, and voice will appear here.'
-                            : 'The server could not offer voice mode just now.'
+                            ? t(
+                                  'mobile.voice.off_not_configured',
+                                  'This Bee Flow server has no speech provider configured yet. An administrator can add a Mistral API key under Admin → AI Config, and voice will appear here.',
+                              )
+                            : t('mobile.voice.off_unavailable', 'The server could not offer voice mode just now.')
                     }
-                    actionLabel="Check again"
+                    actionLabel={t('forms.public_check_again', 'Check again')}
                     onAction={() => void availability.refetch()}
                 />
             ) : (

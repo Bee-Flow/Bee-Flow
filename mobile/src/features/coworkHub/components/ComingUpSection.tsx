@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { absoluteTime } from '@/features/automations';
 import { Badge, Button, Card, Divider, Icon, ListRow, Section, Text } from '@/shared/ui';
@@ -20,16 +21,19 @@ const makeStyles = (theme: Theme) =>
     });
 
 function NothingScheduled({ onNewTask, onNewReminder }: { onNewTask: () => void; onNewReminder: () => void }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.empty}>
             <Text variant="body" tone="tertiary">
-                Nothing scheduled. A task runs a prompt for you; a reminder
-                just nudges you.
+                {t(
+                    'mobile.cowork_hub.nothing_scheduled',
+                    'Nothing scheduled. A task runs a prompt for you; a reminder just nudges you.',
+                )}
             </Text>
             <View style={styles.actions}>
-                <Button label="New task" variant="secondary" onPress={onNewTask} />
-                <Button label="New reminder" variant="secondary" onPress={onNewReminder} />
+                <Button label={t('cowork.list.new', 'New task')} variant="secondary" onPress={onNewTask} />
+                <Button label={t('mobile.cowork_hub.new_reminder', 'New reminder')} variant="secondary" onPress={onNewReminder} />
             </View>
         </View>
     );
@@ -44,12 +48,13 @@ export function ComingUpSection({
     onNewTask: () => void;
     onNewReminder: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const router = useRouter();
     return (
         <Section
-            title="Coming up"
-            action={<Button label="See all" variant="ghost" onPress={() => router.push('/tasks')} />}
+            title={t('mobile.cowork_hub.coming_up', 'Coming up')}
+            action={<Button label={t('project_home.overview.see_all', 'See all')} variant="ghost" onPress={() => router.push('/tasks')} />}
         >
             <Card padded={false}>
                 {upcoming.length === 0 ? (
@@ -68,7 +73,7 @@ export function ComingUpSection({
                                         color={theme.colors.textMuted}
                                     />
                                 }
-                                trailing={item.overdue ? <Badge label="Due" tone="warning" /> : undefined}
+                                trailing={item.overdue ? <Badge label={t('mobile.cowork_hub.due', 'Due')} tone="warning" /> : undefined}
                                 onPress={() => router.push('/tasks')}
                             />
                         </View>

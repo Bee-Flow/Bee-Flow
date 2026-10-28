@@ -8,6 +8,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, IconButton, SearchField, Spinner } from '@/shared/ui';
 
@@ -37,19 +38,20 @@ export function SearchBar({
     onBack: () => void;
     searching: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.bar}>
             <IconButton
                 icon={<Icon name="ArrowLeft" size={20} color={theme.colors.textPrimary} />}
-                accessibilityLabel="Back"
+                accessibilityLabel={t('common.back', 'Back')}
                 onPress={onBack}
             />
             <SearchField
                 value={value}
                 onChangeText={onChange}
-                placeholder="Search chats, notebooks, documents"
+                placeholder={t('mobile.search.placeholder', 'Search chats, notebooks, documents')}
                 autoFocus
                 onSubmit={onSubmit}
                 style={styles.field}

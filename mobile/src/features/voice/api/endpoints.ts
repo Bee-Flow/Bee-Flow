@@ -17,6 +17,7 @@ import { File } from 'expo-file-system';
 
 import { api, ApiError } from '@/core/api/client';
 import { streamSse, type SseFrame } from '@/core/api/sse';
+import { translate } from '@/core/i18n';
 
 import { buildMultipart, field, type MultipartPart } from './multipart';
 import { readAvailability, readSession } from './readers';
@@ -51,7 +52,7 @@ export async function createSession(
             { signal, retry: false },
         ),
     );
-    if (!session?.sessionId) throw new ApiError('The server did not start a voice session.');
+    if (!session?.sessionId) throw new ApiError(translate('mobile.voice.no_session', 'The server did not start a voice session.'));
     return session;
 }
 
@@ -118,9 +119,9 @@ function turnParts(req: VoiceTurnRequest, audio: Uint8Array): MultipartPart[] {
  */
 export async function* streamVoiceTurn(req: VoiceTurnRequest): AsyncGenerator<VoiceFrame> {
     const audio = await new File(req.audioUri).bytes();
-    if (audio.byteLength === 0) throw new ApiError('The recording was empty.');
+    if (audio.byteLength === 0) throw new ApiError(translate('mobile.voice.empty_recording', 'The recording was empty.'));
     if (audio.byteLength > MAX_AUDIO_BYTES) {
-        throw new ApiError('That was too long to send. Try a shorter question.');
+        throw new ApiError(translate('mobile.voice.too_long', 'That was too long to send. Try a shorter question.'));
     }
 
     // Explicit Content-Type, with our own boundary: expo/fetch only derives

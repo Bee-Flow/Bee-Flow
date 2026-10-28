@@ -7,6 +7,8 @@
  * nothing was heard, report a failure, or just listen again.
  */
 
+import { translate } from '@/core/i18n';
+
 import {
     describeTtsGap,
     readDone,
@@ -114,7 +116,7 @@ const STEPS: Readonly<Record<string, FrameStep | null>> = {
     done,
     error: (fold, data) => {
         const message = (data as { message?: unknown } | null)?.message;
-        fold.failed = typeof message === 'string' ? message : 'Voice turn failed';
+        fold.failed = typeof message === 'string' ? message : translate('mobile.voice.turn_failed', 'Voice turn failed');
     },
 };
 

@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import type { KnowledgeBase } from '@/features/knowledge';
 import { Divider, EmptyState, Icon, ListRow, Sheet } from '@/shared/ui';
@@ -23,6 +24,7 @@ export function DestinationSheet({
     onClose: () => void;
     onPick: (kbId: string) => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const router = useRouter();
 
@@ -30,8 +32,8 @@ export function DestinationSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="Add it to which knowledge base?"
-            subtitle="Documents are indexed per knowledge base"
+            title={t('mobile.documents.destination_title', 'Add it to which knowledge base?')}
+            subtitle={t('mobile.documents.destination_subtitle', 'Documents are indexed per knowledge base')}
             scroll={false}
         >
             <View>
@@ -49,9 +51,12 @@ export function DestinationSheet({
                 {bases.length === 0 ? (
                     <EmptyState
                         icon="Database"
-                        title="No knowledge bases yet"
-                        message="Documents live inside a knowledge base, so there has to be one first."
-                        actionLabel="Create one"
+                        title={t('knowledge.empty_title', 'No knowledge bases yet')}
+                        message={t(
+                            'mobile.documents.no_bases_hint',
+                            'Documents live inside a knowledge base, so there has to be one first.',
+                        )}
+                        actionLabel={t('mobile.documents.create_one', 'Create one')}
                         onAction={() => {
                             onClose();
                             router.push('/knowledge');

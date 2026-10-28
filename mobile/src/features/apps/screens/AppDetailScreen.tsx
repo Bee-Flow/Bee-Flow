@@ -13,6 +13,7 @@
 
 import React, { useMemo, useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useUserRefresh } from '@/shared/patterns';
 import { LoadingState, Screen, ScreenHeader } from '@/shared/ui';
 
@@ -23,6 +24,7 @@ import { useAppRuntime } from '../hooks/queries';
 import { navigableScreens, planScreen } from '../model/appDefinition';
 
 export function AppDetailScreen({ id, draft = false }: { id: string; draft?: boolean }) {
+    const t = useTranslation();
     const [screenId, setScreenId] = useState<string | null>(null);
     const runtime = useAppRuntime(id, draft);
     const refresh = useUserRefresh(() => runtime.refetch());
@@ -43,8 +45,8 @@ export function AppDetailScreen({ id, draft = false }: { id: string; draft?: boo
     if (runtime.isLoading) {
         return (
             <Screen edges={['top', 'bottom']}>
-                <ScreenHeader title="App" />
-                <LoadingState label="Loading the app" />
+                <ScreenHeader title={t('studio_apps_bi.list.app_fallback', 'App')} />
+                <LoadingState label={t('mobile.apps.loading', 'Loading the app')} />
             </Screen>
         );
     }
