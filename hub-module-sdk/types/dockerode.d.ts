@@ -33,6 +33,7 @@ declare module 'dockerode' {
     interface Network {
       inspect(): Promise<unknown>;
       connect(options: { Container: string }): Promise<unknown>;
+      disconnect(options: { Container: string; Force?: boolean }): Promise<unknown>;
     }
 
     interface HostConfig {
@@ -48,6 +49,8 @@ declare module 'dockerode' {
       PortBindings?: Record<string, { HostIp: string; HostPort: string }[]>;
       CapDrop?: string[];
       CapAdd?: string[];
+      ReadonlyRootfs?: boolean;
+      Sysctls?: Record<string, string>;
     }
 
     interface ContainerCreateOptions {
@@ -110,7 +113,7 @@ declare module 'dockerode' {
     pull(image: string, callback: (err: Error | null, stream: Readable) => void): void;
     buildImage(context: Readable, options: { t: string; dockerfile: string }): Promise<Readable>;
     getNetwork(id: string): Docker.Network;
-    createNetwork(options: { Name: string; Driver: string }): Promise<Docker.Network>;
+    createNetwork(options: { Name: string; Driver: string; Internal?: boolean }): Promise<Docker.Network>;
     getContainer(id: string): Docker.Container;
     createContainer(options: Docker.ContainerCreateOptions): Promise<Docker.Container>;
     listContainers(options: { all?: boolean; filters?: Record<string, string[]> }): Promise<Docker.ContainerInfo[]>;

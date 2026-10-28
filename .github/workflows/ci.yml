@@ -1298,8 +1298,8 @@ jobs:
           directory: docs
       - name: Typecheck
         run: npm run typecheck
-      - name: Config and sidebar tests
-        run: node --test config.test.mjs sidebars.test.mjs
+      - name: Config, sidebar and CMS auth relay tests
+        run: node --test config.test.mjs sidebars.test.mjs cms-auth/src/worker.test.mjs
       - name: Build (a broken link or anchor fails it)
         run: npm run build
 

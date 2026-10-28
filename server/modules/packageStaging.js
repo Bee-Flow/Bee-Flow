@@ -14,6 +14,7 @@ const path = require('path');
 const fsp = require('fs/promises');
 
 const { deps, dataRoot, packageKeyResolver } = require('./packageState');
+const { productVersion } = require('./appVersion');
 
 const { hubClient, licenseVerify, packageVerify, hostApiFactory } = deps;
 
@@ -77,8 +78,9 @@ function _compatCheck(manifest, signedPayload = null) {
         throw _incompatible(`host_api_version ${need} > ${HOST_API_VERSION}`);
     }
     // Only a version a release stamped (APP_VERSION) is graded: server/package.json is frozen at 1.0.0
-    // (see server/version.js), so an unstamped build skips the semver bounds rather than refusing modules.
-    const appVer = process.env.APP_VERSION || null;
+    // (see server/version.js). With no stamped version (null, warned once) the semver bounds are
+    // skipped on purpose, rather than refusing every module that declares one.
+    const appVer = productVersion();
     const minApp = sp.min_app_version
         || manifest.min_app_version
         || manifest.minAppVersion

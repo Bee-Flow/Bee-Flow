@@ -40,6 +40,7 @@ function setup(overrides: Partial<NextcloudHost> = {}) {
             return true;
         },
         serverUrl: () => 'https://bee.example',
+        savedAddress: () => '',
         mainSessionFetch: () => async (url, init) => {
             sent.push({ url, init });
             return { ok: true, status: 200 };
@@ -105,4 +106,27 @@ test('without a known Nextcloud pairing explains what to do', async () => {
     const t = setup();
     const result = await t.actions.pair();
     assert.equal(result.ok, false);
+});
+
+test('pair with no hint and no desktop client uses the Nextcloud of the Bee Flow server', async () => {
+    const t = setup({
+        mainSessionFetch: () => async () => ({ ok: true, status: 200, json: async () => ({ nextcloudUrl: 'https://cloud.example' }) }),
+    });
+    const result = await t.actions.pair();
+    assert.equal(result.ok, true);
+    assert.deepEqual(t.logins(), ['https://cloud.example']);
+});
+
+test('pairAndReport tells the person when there is nothing to pair with', async () => {
+    const t = setup({ mainSessionFetch: () => null });
+    const result = await t.actions.pairAndReport();
+    assert.equal(result.ok, false);
+    assert.ok(t.events.includes('message Link a Nextcloud account'));
+    assert.deepEqual(t.logins(), []);
+});
+
+test('pairAndReport tells the person it worked', async () => {
+    const t = setup();
+    await t.actions.pairAndReport('https://cloud.example');
+    assert.ok(t.events.includes('message Nextcloud linked'));
 });

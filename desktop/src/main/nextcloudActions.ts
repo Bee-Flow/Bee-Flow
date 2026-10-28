@@ -6,9 +6,9 @@
 
 import { EVENT } from '../shared/ipc.ts';
 import type { NextcloudStatus, WatchedFileEvent } from '../shared/types.ts';
-import { noNextcloudFolder } from './dialogs.ts';
+import { type InfoMessage, noNextcloudFolder, pairingOutcome } from './dialogs.ts';
 import type { LoginFlowCredential } from './nextcloud/loginFlow.ts';
-import { pairingTarget, pairNextcloud, type PairingLog, type PairingResult, type SessionFetch, sendAppPasswordToServer } from './nextcloud/pairing.ts';
+import { fetchServerNextcloudUrl, pairNextcloud, resolvePairingTarget, type PairingLog, type PairingResult, type SessionFetch, sendAppPasswordToServer } from './nextcloud/pairing.ts';
 import { nextcloudSummary } from './nextcloud/summary.ts';
 
 /** The part of NextcloudBridge these flows use. */
@@ -23,12 +23,14 @@ export interface NextcloudHost {
     /** Keep the app password in the OS keyring; false when that is not possible. */
     storeAppPassword(appPassword: string): Promise<boolean>;
     serverUrl(): string;
+    /** The Nextcloud address saved in Settings; '' when none. */
+    savedAddress(): string;
     /** The main window's session fetch; null when there is no live main window. */
     mainSessionFetch(): SessionFetch | null;
     openExternal(url: string): Promise<void>;
     openPath(path: string): Promise<unknown>;
     /** Informational: nothing waits for it to close. */
-    showMessage(message: ReturnType<typeof noNextcloudFolder>): void;
+    showMessage(message: InfoMessage): void;
     statusChanged(): void;
     broadcast(channel: string, payload: unknown): void;
 }
@@ -72,13 +74,30 @@ export class NextcloudActions {
     }
 
     /** Run Login Flow v2 and hand the credential to the Bee Flow server (see nextcloud/pairing.ts). */
-    pair(serverUrlHint?: string): Promise<PairingResult> {
-        return pairNextcloud(pairingTarget(serverUrlHint, this.current.accounts), {
-            login: (target) => this.host.bridge.login(target, (url) => this.host.openExternal(url)),
+    async pair(serverUrlHint?: string): Promise<PairingResult> {
+        const target = await resolvePairingTarget(serverUrlHint, this.current.accounts, this.host.savedAddress(), () => this.serverNextcloud());
+        if (!target.ok) return target;
+        this.host.log.info('Nextcloud', `pairing with ${target.url} (${target.source})`);
+        return pairNextcloud(target.url, {
+            login: (url) => this.host.bridge.login(url, (link) => this.host.openExternal(link)),
             persistAppPassword: (appPassword) => this.host.storeAppPassword(appPassword),
             sendToServer: (credential) => this.sendToServer(credential),
             log: this.host.log,
         });
+    }
+
+    /** `pair`, then tell the person how it went: the menu and deep links have nowhere else to say it. */
+    async pairAndReport(serverUrlHint?: string): Promise<PairingResult> {
+        const result = await this.pair(serverUrlHint);
+        this.host.showMessage(pairingOutcome(result));
+        return result;
+    }
+
+    private async serverNextcloud(): Promise<string | null> {
+        const base = this.host.serverUrl();
+        const sessionFetch = this.host.mainSessionFetch();
+        if (!base || !sessionFetch) return null;
+        return fetchServerNextcloudUrl(base, sessionFetch, this.host.log);
     }
 
     /** Hand the app password to the user's own Bee Flow server, over the main window's session. */

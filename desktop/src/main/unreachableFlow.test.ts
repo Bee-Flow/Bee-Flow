@@ -62,7 +62,7 @@ test('a server that answers the probe gets one quiet retry, then the page', asyn
     const t = setup();
     t.setProbe(OK);
     await t.flow.show('blip');
-    assert.deepEqual(t.loads, ['https://bee.example']);
+    assert.deepEqual(t.loads, ['https://bee.example/app']);
     await t.flow.show('blip again');
     assert.equal(t.loads.length, 2);
     assert.match(t.loads[1] ?? '', /^page:/);
@@ -74,7 +74,7 @@ test('a finished load of the server gives the retry budget back', async () => {
     await t.flow.show('blip');
     t.flow.loaded('https://bee.example/chat');
     await t.flow.show('blip');
-    assert.deepEqual(t.loads, ['https://bee.example', 'https://bee.example']);
+    assert.deepEqual(t.loads, ['https://bee.example/app', 'https://bee.example/app']);
 });
 
 test('a load of another host does not give the retry budget back', async () => {

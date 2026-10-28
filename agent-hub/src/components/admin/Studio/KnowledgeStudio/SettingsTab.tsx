@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { knowledgeApi, type KnowledgeBase } from './knowledgeApi';
+import { sharedGroupsOf } from './sharedGroups';
 import useTranslation from '@/hooks/useTranslation';
 import CategoryField from '@/components/agents/AgentWizard/CategoryField';
 import DangerZone from '@/components/shared/DangerZone';
@@ -104,7 +105,7 @@ export default function SettingsTab({
     const view = useMemo(() => ({
         orgId: kb?.organization_id ?? kb?.organizationId ?? null,
         isPublished: !!(kb?.is_published ?? kb?.isPublished),
-        sharedGroups: kb?.shared_groups ?? kb?.sharedGroups ?? [],
+        sharedGroups: sharedGroupsOf(kb),
         categoryId: kb?.category_id ?? kb?.categoryId ?? null,
     }), [kb]);
     const isPersonal = !view.orgId;

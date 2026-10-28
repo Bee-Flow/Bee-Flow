@@ -180,7 +180,8 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = {}
     });
 
     router.post('/scans/prewarm/:id/release', async (req, res) => {
-        try { await scanRunnerSvc.releasePrewarm(req.params.id); } catch (_) { /* idempotent */ }
+        // Only the user who warmed it may release it; anything else is a no-op.
+        try { await scanRunnerSvc.releasePrewarm(req.params.id, userOf(req).id); } catch (_) { /* idempotent */ }
         res.json({ ok: true });
     });
 
