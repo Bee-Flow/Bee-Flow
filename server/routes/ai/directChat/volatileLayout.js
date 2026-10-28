@@ -83,8 +83,12 @@ function layoutVolatile(turn) {
  * @returns {{ set: (text: string|null) => void, capture: () => void }}
  */
 function createVolatileGuard(turn) {
+    /** @type {string | null} */
     let base = null;
     return {
+        /**
+         * @param {string | null} text
+         */
         set(text) {
             const { volatileMessage } = turn;
             if (!volatileMessage) return;

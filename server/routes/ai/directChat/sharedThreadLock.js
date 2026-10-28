@@ -59,7 +59,7 @@ async function claimSharedThreadTurn(turn) {
         }
     } catch (lockErr) {
         // Never let the collaboration layer block an ordinary chat.
-        log.warn('[DirectChat] shared-thread setup failed:', lockErr.message);
+        log.warn('[DirectChat] shared-thread setup failed:', /** @type {Error} */ (lockErr).message);
     }
     return true;
 }

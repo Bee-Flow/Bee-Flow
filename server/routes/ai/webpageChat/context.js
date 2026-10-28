@@ -52,7 +52,7 @@ async function buildTurnContext({
                 kbContext = await toolPiiGate.stripInjectedText(kbResult.contextPrompt, { shield: _psShield, tag: 'WebpageChat' });
             }
         } catch (kbErr) {
-            log.warn('[WebpageChat] KB search failed:', kbErr.message);
+            log.warn('[WebpageChat] KB search failed:', /** @type {Error} */ (kbErr).message);
         }
         emitPhaseEnd(send, 'kb_search', Date.now() - _kbT);
     }

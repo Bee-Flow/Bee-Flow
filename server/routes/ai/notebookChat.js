@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/llm/modelCache').AIConfig} AIConfig */
 /** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Notebook Chat — AI chat with full tool support
@@ -149,6 +150,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     }
 
     // Resolve provider
+    /** @type {AIConfig} */
     let config;
     /** @type {BaseProvider} */
     let adapter;

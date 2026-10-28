@@ -144,14 +144,14 @@ async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
                 guard.toolChoice,
             );
         } catch (err) {
-            log.error('[DirectChat] Tool check error:', err.message);
+            log.error('[DirectChat] Tool check error:', /** @type {Error} */ (err).message);
             orgHealth.problem('chat.provider_error', {
                 orgId: turn.userOrgId || null, source: 'directChat', req,
                 meta: { modelId: turn.modelId, provider: /** @type {{ providerName?: string }} */ (turn.config)?.providerName || turn.config?.providerType || null, error: err },
             });
             const persist = persistInterruptedTurn();
-            if (persist) await persist(`API error: ${err.message}`);
-            send('error', { error: `API error: ${err.message}` });
+            if (persist) await persist(`API error: ${/** @type {Error} */ (err).message}`);
+            send('error', { error: `API error: ${/** @type {Error} */ (err).message}` });
             turn.res.end();
             return false;
         }

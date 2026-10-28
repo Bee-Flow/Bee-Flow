@@ -75,7 +75,7 @@ async function runSetupPhases(turn, body) {
     });
     if (!attachmentIntake) return false;
     Object.assign(turn, attachmentIntake);
-    try { await applyMemorySwap(turn, userId); } catch (e) { log.warn('[DirectChat] Memory token swap failed (labels stay):', e.message); }
+    try { await applyMemorySwap(turn, userId); } catch (e) { log.warn('[DirectChat] Memory token swap failed (labels stay):', /** @type {Error} */ (e).message); }
 
     // NOTE: a previous block here tried to inject TERMINAL_TOOLS
     // (convert_document_to_text, etc.) via require('../../terminal/tools')

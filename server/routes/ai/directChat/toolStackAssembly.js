@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/agentRuntime/phaseEvents').PhaseSend} PhaseSend */
 // @typecheck
 /**
  * Direct Chat — assembly of the per-turn tool stack: prior tool-group
@@ -65,7 +66,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 forceDynamicSkills: false, // matches the buildSkillInjection call below
             });
         } catch (skillErr) {
-            log.warn('[DirectChat] Skill app allowlist resolution failed:', skillErr.message);
+            log.warn('[DirectChat] Skill app allowlist resolution failed:', /** @type {Error} */ (skillErr).message);
         }
 
         // Load tier components + integration tools via the shared builder
@@ -218,7 +219,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 log.info('[DirectChat] Webpage builder + db tools enabled for user');
             }
         } catch (builderErr) {
-            log.warn('[DirectChat] Failed to check webpages beta for builder tools:', builderErr.message);
+            log.warn('[DirectChat] Failed to check webpages beta for builder tools:', /** @type {Error} */ (builderErr).message);
         }
 
         // Filter out user-disabled media tools
@@ -311,7 +312,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 log.info(`[DirectChat] Tool disclosure: ${eager.length} eager + ${lazyByGroup.size} lazy group(s), ${activatedToolGroups.size} pre-activated → ${directChatTools.length} tools sent`);
             }
         } catch (discErr) {
-            log.warn('[DirectChat] Tool disclosure failed (sending full toolset):', discErr.message);
+            log.warn('[DirectChat] Tool disclosure failed (sending full toolset):', /** @type {Error} */ (discErr).message);
         }
         return { toolDisclosure, activatedToolGroups, disclosureLazyByGroup, activatedLibrarySkillIds, skillApps, directChatTools, baseDirectToolNames, n8nOrgId, notebooksEnabled, canUseNotebooks, toolCatalogText, notebookWriteGate };
 }

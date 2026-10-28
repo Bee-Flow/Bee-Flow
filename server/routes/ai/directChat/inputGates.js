@@ -1,3 +1,5 @@
+/** @typedef {import('../../../core/agentRuntime/inputPiiGate').PiiTokenisationInfo} PiiTokenisationInfo */
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
 // @typecheck
 /**
  * Direct Chat — the inbound safety gates that run between prompt assembly and
@@ -52,9 +54,12 @@ async function runInputGates({ req, res, send, userId, convId, message, messages
     // answer" panel survive a page refresh. `tokenizedMessage` mirrors
     // `message` for the non-LLM consumers (DB persistence, memory extraction,
     // title generator): once PII tokenisation fires it is the redacted form.
+    /** @type {Record<string, string> | undefined | null} */
     let piiTokenMap = null;
     let tokenizedMessage = message;
+    /** @type {{ piiTokenizedCount: number; piiCategories: string[]; } | { dlpRedactedCount: number; dlpCategories: string[]; } | undefined | null} */
     let _userPrivacyMeta = null;
+    /** @type {PiiTokenisationInfo | undefined | null} */
     let _assistantTokenisationInfo = null;
     const g = { req, res, send, userId, convId, messages, modelId, config, hasAttachments, chatSignal, appendVolatile, userOrgId, orgShield, shieldSource };
 
