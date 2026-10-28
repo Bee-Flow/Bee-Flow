@@ -84,7 +84,7 @@ const NL_TRANSLATIONS = {
     'automations.builder.syntax_help': 'Hulp bij de schrijfwijze',
     'automations.builder.expr_invalid': 'Nog niet geldig',
 
-    // ── Hoeveel van een stap je ziet (SettingsForm, artboard 2b) ────────────
+    // ── How much of a step you see (SettingsForm, artboard 2b) ────────────
     'automations.builder.mode_simple': 'Eenvoudig',
     'automations.builder.mode_all_options': 'Alle opties',
     'automations.builder.mode_toggle_label': 'Hoeveel van deze stap je ziet',

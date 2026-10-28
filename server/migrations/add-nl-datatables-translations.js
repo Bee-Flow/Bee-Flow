@@ -139,7 +139,7 @@ const NL_TRANSLATIONS = {
     'datatables.managed_unique': '“{key}” moet uniek blijven — zonder dat zou elke verversing een tweede rij toevoegen in plaats van de eerste te vervangen.',
     'datatables.managed_required': '“{key}” moet verplicht blijven — de kolom wordt automatisch gevuld.',
 
-    // ── Wat een opslag weggooit ─────────────────────────────────────────────
+    // ── What a storage discards ─────────────────────────────────────────────
     'datatables.destructive_title': 'Hiermee gooi je gegevens weg',
     'datatables.destructive_removed_one': '{keys} weghalen verwijdert de waarde in die 1 rij.',
     'datatables.destructive_removed': '{keys} weghalen verwijdert de waarden in alle {n} rijen.',

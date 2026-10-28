@@ -189,8 +189,8 @@ test('de KIEZER en de RUNTIME lezen allebei ALL_TOOL_APPS', () => {
     assert.match(catalog, /ALL_TOOL_APPS/,
         'de tool-catalogus van de kiezer moet dezelfde lijst lezen');
 
-    // En geen van beide mag terugvallen op de smallere lijst: dat is precies
-    // hoe browse_web onzichtbaar werd voor allebei.
+    // And neither may fall back to the narrower list: that is exactly how
+    // browse_web became invisible to both.
     const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     for (const [name, src] of [['toolPolicy', policy], ['toolCatalog', catalog]]) {
         assert.ok(!/for \(const entry of TOOL_REGISTRY/.test(strip(src)),
