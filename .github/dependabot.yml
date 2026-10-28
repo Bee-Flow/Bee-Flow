@@ -237,8 +237,9 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: react-native-gesture-handler
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Expo SDK 57 pins react-native-webview EXACTLY (13.16.1); even a patch
+      # fails the nativeDeps contract test (#427, #431). It moves with the SDK.
       - dependency-name: react-native-webview
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # ESLint 10 (#245): eslint-config-expo 57.0.2 (58.0.2 too) ships
       # eslint-plugin-react 7.37.5 and eslint-plugin-import 2.32.0, peers ^9 at
       # most; under 10 react/* crash on context.getFilename and import/order on
@@ -404,6 +405,9 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # torch moves with the Dockerfile's +cpu wheel pin (download.pytorch.org),
+      # by hand; Dependabot proposes PyPI/+cpu variants that do not match it (#435, #436).
+      - dependency-name: torch
       # Every major waits for a deliberate move (header, MAJORS).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -429,6 +433,9 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
+      # torch moves with the Dockerfile's +cpu wheel pin (download.pytorch.org),
+      # by hand; Dependabot proposes PyPI/+cpu variants that do not match it (#435, #436).
+      - dependency-name: torch
       # Every major waits for a deliberate move (header, MAJORS).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
