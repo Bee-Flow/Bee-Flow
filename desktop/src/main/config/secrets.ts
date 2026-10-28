@@ -122,7 +122,7 @@ export class SecretStore {
         this.loaded = true;
         if (!this.available) return;
 
-        let parsed: SealedFile | null = null;
+        let parsed: SealedFile | null;
         try {
             parsed = JSON.parse(await this.io.readFile(this.file, 'utf8')) as SealedFile;
         } catch (error) {

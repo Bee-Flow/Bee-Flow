@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of dependencies on different majors in 2+ npm packages that scripts/packages.json may still carry. Lower it with `node scripts/check-version-drift.mjs --update` after aligning a dependency; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-24",
-  "count": 6
+  "_generated": "2026-10-28",
+  "count": 7
 }

@@ -1,4 +1,4 @@
-// Flat config, eslint 9 — same generation as agent-hub's and mobile's.
+// Flat config, eslint 10 (agent-hub and mobile are still on 9).
 //
 // Two rule sets, because this package has two halves with different globals:
 // the Node/Electron side (main, preload, build scripts) and the browser side

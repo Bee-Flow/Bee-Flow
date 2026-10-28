@@ -163,7 +163,7 @@ function registerProtocolClient(desktop: DesktopApp): void {
  */
 function installAppImageEntry(desktop: DesktopApp): void {
     const file = path.join(process.env.XDG_DATA_HOME && path.isAbsolute(process.env.XDG_DATA_HOME) ? process.env.XDG_DATA_HOME : path.join(os.homedir(), '.local', 'share'), 'applications', 'beeflow.desktop');
-    let existing: string | null = null;
+    let existing: string | null;
     try {
         existing = existsSync(file) ? readFileSync(file, 'utf8') : null;
     } catch {
