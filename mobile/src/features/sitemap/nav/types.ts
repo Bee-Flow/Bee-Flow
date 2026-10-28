@@ -27,25 +27,26 @@ export interface Destination {
     /** Extra words that should match in search but are not worth showing. */
     keywords?: string[];
     /**
-     * This destination's label in the server's GUI string catalogue.
+     * This destination's label in the server's GUI string catalogue; `label` is
+     * its English, the fallback that renders until the catalogue has it.
      *
-     * Deliberately the WEB's own key (`sidebar.agents`, `settings.appearance`)
-     * rather than a mobile-specific one: a string an administrator has already
+     * The WEB's own key (`sidebar.agents`, `settings.appearance`) wherever the
+     * web says the same thing: a string an administrator has already
      * translated for the browser then appears on the phone with nobody
      * translating it twice, and the two clients cannot drift into calling the
-     * same screen different things in Dutch.
+     * same screen different things in Dutch. Where the web has no such key it
+     * is the row's own `mobile.sitemap.<id>.label`.
      *
-     * Absent where the catalogue has no key for it — inventing one would put a
-     * key in the haystack that resolves to its own English fallback, which
-     * matches nothing a Dutch user would type and costs a comparison.
+     * Every row has one (nav/destination.ts writes both phrases of a row down
+     * as `{ i18nKey, en }`); optional in the type because the readers outside
+     * this feature only ever branch on it.
      */
     i18nKey?: string;
     /**
-     * The hint's key, where the web already says the same thing (its Studio
-     * section descriptions): then `hint` is the web's English, word for word,
-     * and sitemap.i18n.test.ts holds the two together. Absent elsewhere —
-     * those hints are the phone's own and stay English until the dictionary
-     * stage lands a `mobile.*` key for them.
+     * The hint's key, with `hint` its English: the web's (its Studio section
+     * descriptions, `settings.memory_desc`: then `hint` is the web's English
+     * word for word, and sitemap.i18n.test.ts holds the two together) or the
+     * row's own `mobile.sitemap.<id>.hint`. Every row has one.
      */
     hintKey?: string;
     /**
