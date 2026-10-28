@@ -32,8 +32,14 @@ let repoOverride = null;
 const repo = () => repoOverride || require('../../stores/mcpTokenStore');
 function setRepo(next) { repoOverride = next; touched.clear(); }
 
+/**
+ * @param {string} secret
+ */
 const sha256 = (secret) => crypto.createHash('sha256').update(secret).digest();
 
+/**
+ * @param {string} hex
+ */
 function dashed(hex) {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
@@ -49,6 +55,10 @@ function isNamedTokenFormat(raw) {
     return typeof raw === 'string' && raw.trim().startsWith('bfmcp_');
 }
 
+/**
+ * @param {string | Date | null | undefined} expiresAt
+ * @param {number} now
+ */
 function normalizeExpiry(expiresAt, now) {
     if (expiresAt === undefined || expiresAt === null || expiresAt === '') return null;
     const when = new Date(expiresAt);

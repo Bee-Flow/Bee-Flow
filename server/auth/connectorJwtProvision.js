@@ -65,7 +65,7 @@ async function _notifyOrgAdminsOfPendingUser(orgId, newUser) {
             }).catch((err) => bestEffort('connectorJwtProvision:notify-admin', err));
         }
     } catch (e) {
-        log.warn(`[ConnectorJWT] pending-user admin notification failed for org ${orgId}: ${e.message}`);
+        log.warn(`[ConnectorJWT] pending-user admin notification failed for org ${orgId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -104,7 +104,7 @@ async function _adminCarveOut(org, orgId, payload, reqNcUid) {
                 log.info(`[ConnectorJWT] Re-ensured org-admin ${adminUser.id} for org ${orgId} (onboarding-gate bypass)`);
             }
         } catch (e) {
-            log.warn(`[ConnectorJWT] ensureOrgAdminUser failed for org ${orgId}: ${e.message}`);
+            log.warn(`[ConnectorJWT] ensureOrgAdminUser failed for org ${orgId}: ${/** @type {Error} */ (e).message}`);
         }
     }
     return user;

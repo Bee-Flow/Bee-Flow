@@ -41,7 +41,7 @@ async function hydrateMicrosoftSessionFromVault(session) {
         }
         return true;
     } catch (e) {
-        log.warn(`[MicrosoftConnector] session hydration failed for user ${userId}: ${e.message}`);
+        log.warn(`[MicrosoftConnector] session hydration failed for user ${userId}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
 }
@@ -113,7 +113,7 @@ async function vaultCredential(ownerId) {
         const { getProviderAuth } = require('./automationAuth');
         return await getProviderAuth(ownerId, 'microsoft');
     } catch (e) {
-        log.warn(`[MicrosoftConnector] vault lookup failed for user ${ownerId}: ${e.message}`);
+        log.warn(`[MicrosoftConnector] vault lookup failed for user ${ownerId}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

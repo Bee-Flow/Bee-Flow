@@ -13,6 +13,9 @@ const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
 const { fallback } = require('../utils/bestEffort');
 
+/**
+ * @param {string} value
+ */
 function _parseSharedGroups(value) {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string') {
@@ -59,6 +62,7 @@ function canSeePublished(entity, { userId, orgIds, userGroups }) {
  * Fresh-from-DB resolution of a user's group IDs. Routes that gate by
  * audience must use this rather than `req.session.user.groups`, which is
  * stale until the user re-logs in.
+ * @param {string} userId
  */
 async function resolveUserGroups(userId) {
     if (!userId) return [];

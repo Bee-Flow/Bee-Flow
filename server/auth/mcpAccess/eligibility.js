@@ -60,7 +60,7 @@ async function policyDecision(user, deps) {
         }
         return { allowed: true };
     } catch (err) {
-        log.warn(`[McpAccess] eligibility: policy could not be read for user=${user?.id}: ${err.message}`);
+        log.warn(`[McpAccess] eligibility: policy could not be read for user=${user?.id}: ${/** @type {Error} */ (err).message}`);
         return { allowed: false, reason: 'unavailable' };
     }
 }
@@ -75,7 +75,7 @@ async function attempt(label, userId, fn) {
     try {
         return (await fn()) === true;
     } catch (err) {
-        log.warn(`[McpAccess] eligibility: ${label} check failed for user=${userId}: ${err.message}`);
+        log.warn(`[McpAccess] eligibility: ${label} check failed for user=${userId}: ${/** @type {Error} */ (err).message}`);
         return false;
     }
 }

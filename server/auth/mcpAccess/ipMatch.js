@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CIDR allow-lists for MCP access (org policy and per-token).
  *
@@ -24,7 +24,10 @@ const { badRequest } = require('../../shared/httpErrors');
 const MAX_ENTRIES = 100;
 const MAPPED_V4 = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i;
 
-/** Drop an IPv6 zone id and unwrap IPv4-mapped IPv6 to plain IPv4. */
+/**
+ * Drop an IPv6 zone id and unwrap IPv4-mapped IPv6 to plain IPv4.
+ * @param {string | null | undefined} raw
+ */
 function normalizeAddress(raw) {
     if (typeof raw !== 'string') return null;
     let ip = raw.trim();
@@ -38,6 +41,7 @@ function normalizeAddress(raw) {
 /**
  * One list entry → `{ address, prefix, family }` or null when it is not a valid
  * address or CIDR. A bare address is a single-host range (/32 or /128).
+ * @param {string} entry
  */
 function parseEntry(entry) {
     if (typeof entry !== 'string') return null;
@@ -79,6 +83,7 @@ function parseCidrList(list) {
     if (list === undefined || list === null) return [];
     if (!Array.isArray(list)) throw badRequest('invalid_ip_allowlist', 'The IP allow-list must be a list of addresses or CIDR ranges.');
     if (list.length > MAX_ENTRIES) throw badRequest('invalid_ip_allowlist', `The IP allow-list can hold at most ${MAX_ENTRIES} entries.`);
+    /** @type {string[]} */
     const out = [];
     for (const entry of list) {
         const parsed = parseEntry(entry);
@@ -95,6 +100,9 @@ function parseCidrList(list) {
 
 const compiled = new Map();
 
+/**
+ * @param {string[]} list
+ */
 function compile(list) {
     const key = list.join('\n');
     let blockList = compiled.get(key);
