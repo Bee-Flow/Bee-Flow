@@ -232,9 +232,6 @@ const UNCONVERTED = new Map<string, number>([
     // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
     // through t() when the long-press menu became the kit's ActionMenu.
     ['src/features/agents', 33],
-    // 15 -> 8: the decision's status word, its clock line and its facts went
-    // through t() when a deadline stopped reading "Expires: now".
-    ['src/features/approvals', 8],
     // 12 -> 5: the form card, its date field and the action's result went
     // through t() with the decimal-comma and run-polling fixes.
     ['src/features/apps', 5],
