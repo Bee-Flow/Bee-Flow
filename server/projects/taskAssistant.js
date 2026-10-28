@@ -42,6 +42,10 @@ const MAX_STEPS = 8;
 const STEP_MAX = 200;
 const DEFAULT_TIMEOUT_MS = 90_000;
 
+/**
+ * @param {string} s
+ * @param {number} n
+ */
 const clip = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 
 const RULES = [
@@ -58,6 +62,7 @@ const RULES = [
 /** Segments of the recording around a point in time, as one short text. */
 function contextAround(segments, at) {
     if (!Array.isArray(segments) || !Number.isFinite(at)) return '';
+    /** @type {string[]} */
     const lines = [];
     for (const s of segments) {
         const start = Number(s && s.start);
@@ -150,6 +155,7 @@ function makeTaskAssistant(deps = {}) {
                 throw err;
             }
             const started = Date.now();
+            /** @type {NodeJS.Timeout} */
             let timer;
             const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new HttpError(504, 'ai_timeout', 'The AI took too long.')), timeoutMs); });
             let result;
@@ -169,7 +175,7 @@ function makeTaskAssistant(deps = {}) {
                     ...usageLogFields(u), source: `project_task_ai_${kind}`, duration_ms: Date.now() - started,
                     conversation_id: project.id,
                 });
-            } catch (err) { log.warn(`[ProjectTaskAI] usage not logged: ${err && err.message}`); }
+            } catch (err) { log.warn(`[ProjectTaskAI] usage not logged: ${err && /** @type {Error} */ (err).message}`); }
             const text = shield.restore(typeof (result && result.content) === 'string' ? result.content : '', outbound.tokenMap);
             const parsed = parseJsonObject(text);
             if (!parsed || parsed.salvaged) throw new HttpError(502, 'ai_bad_answer', 'The AI did not answer in a usable way.');
