@@ -28,7 +28,10 @@ const INSPECT_CATALOG_MAX_STEPS = 6;
 // copy against the validator's own rejection message so the two cannot drift.
 const NODE_VALIDATION_TYPES = ['required', 'format', 'minLength', 'formula'];
 
-/** Render a value list for a description: "a"|"b" / 0|15|30. */
+/**
+ * Render a value list for a description: "a"|"b" / 0|15|30.
+ * @param {string[]} values
+ */
 const orList = (values) => values.map((v) => JSON.stringify(v)).join('|');
 
 const PRESET_IDS = APP_DESIGN_PRESETS.map((p) => p.id);
@@ -62,7 +65,10 @@ const unitList = (knobName, modes = null) => Object.entries(STYLE_KNOBS[knobName
     .map(([unit, r]) => `${unit} ${r.min}-${r.max}`)
     .join(', ');
 
-/** `"px"/"pct"` — the modes that are an escape hatch, i.e. every one but the default. */
+/**
+ * `"px"/"pct"` — the modes that are an escape hatch, i.e. every one but the default.
+ * @param {string} knobName
+ */
 const escapeModes = (knobName) => STYLE_KNOBS[knobName].values
     .filter((m) => m !== STYLE_KNOBS[knobName].default)
     .map((m) => JSON.stringify(m))
@@ -162,7 +168,11 @@ const ACTION_OBJECT_PROPS = {
 
 const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, properties: ACTION_OBJECT_PROPS, required: ['kind'] };
 
-/** How each batch-capable tool tells the model about its array form. */
+/**
+ * How each batch-capable tool tells the model about its array form.
+ * @param {string} key
+ * @param {string} single
+ */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
 module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };
