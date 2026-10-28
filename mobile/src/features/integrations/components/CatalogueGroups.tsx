@@ -6,8 +6,10 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { Group, ToggleRow } from '@/shared/ui';
 
+import { categoryCopy } from '../model/catalog';
 import type { CatalogEntry } from '../model/types';
 
 export function CatalogueGroups({
@@ -21,31 +23,38 @@ export function CatalogueGroups({
     enabled: ReadonlySet<string>;
     onToggle: (id: string) => void;
 }) {
+    const t = useTranslation();
     return (
         <>
-            {categories.map((category) => (
-                <Group
-                    key={category}
-                    title={category}
-                    footer={
-                        category === 'Nextcloud'
-                            ? 'Nextcloud tools work through your organisation’s Nextcloud binding rather than a personal connection.'
-                            : undefined
-                    }
-                >
-                    {catalogue
-                        .filter((entry) => entry.category === category)
-                        .map((entry) => (
-                            <ToggleRow
-                                key={entry.id}
-                                label={entry.label}
-                                description={entry.description}
-                                value={enabled.has(entry.id)}
-                                onValueChange={() => onToggle(entry.id)}
-                            />
-                        ))}
-                </Group>
-            ))}
+            {categories.map((category) => {
+                const heading = categoryCopy(category);
+                return (
+                    <Group
+                        key={category}
+                        title={heading ? t(heading.i18nKey, heading.en) : category}
+                        footer={
+                            category === 'Nextcloud'
+                                ? t(
+                                      'mobile.integrations.nextcloud_footer',
+                                      'Nextcloud tools work through your organisation’s Nextcloud binding rather than a personal connection.',
+                                  )
+                                : undefined
+                        }
+                    >
+                        {catalogue
+                            .filter((entry) => entry.category === category)
+                            .map((entry) => (
+                                <ToggleRow
+                                    key={entry.id}
+                                    label={t(entry.labelKey, entry.label)}
+                                    description={t(entry.descriptionKey, entry.description)}
+                                    value={enabled.has(entry.id)}
+                                    onValueChange={() => onToggle(entry.id)}
+                                />
+                            ))}
+                    </Group>
+                );
+            })}
         </>
     );
 }

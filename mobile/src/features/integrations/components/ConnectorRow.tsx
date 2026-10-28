@@ -3,6 +3,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text } from '@/shared/ui';
 
@@ -27,9 +28,11 @@ export function ConnectorRow({
     onConnect: () => void;
     onDisconnect: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const state = connectorState(connector, status);
+    const label = t(connector.label.i18nKey, connector.label.en);
 
     return (
         <View style={styles.row}>
@@ -37,7 +40,7 @@ export function ConnectorRow({
                 <View style={styles.text}>
                     <View style={styles.title}>
                         <Text variant="body" weight="medium">
-                            {connector.label}
+                            {label}
                         </Text>
                         {loading ? null : (
                             <ConnectorBadge
@@ -48,7 +51,7 @@ export function ConnectorRow({
                         )}
                     </View>
                     <Text variant="caption" tone="tertiary">
-                        {state.identity ?? connector.description}
+                        {state.identity ?? t(connector.description.i18nKey, connector.description.en)}
                     </Text>
                 </View>
                 <Icon
@@ -60,7 +63,7 @@ export function ConnectorRow({
             <ConnectorActions
                 state={state}
                 busy={busy}
-                label={connector.label}
+                label={label}
                 connectsHere={connector.flow !== 'oauth'}
                 onConnect={onConnect}
                 onDisconnect={onDisconnect}

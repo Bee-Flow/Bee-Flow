@@ -16,12 +16,23 @@ export interface IntegrationStatus {
     username?: string | null;
 }
 
+/** A string carried as data: its key in the catalogue and its English fallback,
+ *  rendered with `t(copy.i18nKey, copy.en)`. */
+export interface Copy {
+    i18nKey: string;
+    en: string;
+}
+
 /** One row of the app-level integration catalogue, mirrored from
- *  agent-hub/src/config/integrationCatalog.js. */
+ *  agent-hub/src/config/integrationCatalog.ts. `label` and `description` are
+ *  the English words (other features read them as plain strings); this
+ *  feature renders `t(labelKey, label)` and `t(descriptionKey, description)`. */
 export interface CatalogEntry {
     id: string;
     label: string;
+    labelKey: string;
     description: string;
+    descriptionKey: string;
     category: string;
 }
 
