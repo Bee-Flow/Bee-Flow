@@ -41,9 +41,9 @@ async function dispatchToolCall(rc, deps, { toolCall, toolName, toolArgs, fixedP
 
     const dispatchT0 = Date.now();
     // The wrapped fn NEVER throws through runWithProbe: a
-    // throw used to discard the probe (peer IP, TLS name)
+    // throw would discard the probe (peer IP, TLS name)
     // and with it the audit row — a failed call whose bytes
-    // had already left the box was simply not in the ledger.
+    // had already left the box would simply not be in the ledger.
     const probed = await runWithProbe(async () => {
         const preMeta = resolveIntegration(toolName, toolArgs || {});
         if (preMeta?.isLocal) markLocal(preMeta.label || preMeta.integration);

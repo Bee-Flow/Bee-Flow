@@ -3,8 +3,8 @@
  * memoryPolicy — the single place that answers "may this turn read memory, and
  * may it write memory?".
  *
- * Before this module the answer was derived independently at four call sites,
- * and they disagreed. `memoryWriteEnabled` (the composer's Brain toggle) was
+ * The answer must come from one place: derived independently at four call sites,
+ * it disagrees. `memoryWriteEnabled` (the composer's Brain toggle) was
  * consulted only at the two EXTRACTION sites, never at the two RETRIEVAL sites,
  * so pausing memory stopped new memories being saved while every existing one
  * was still injected into every system prompt. There was no user-level switch

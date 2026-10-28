@@ -21,7 +21,7 @@
  * data: URL. This costs bandwidth inside our own network but not one extra
  * token: image cost is computed from the pixel dimensions, never from the
  * base64 length. It also stabilises the prompt prefix — a freshly signed URL
- * on every turn used to bust the cache breakpoint directChat sets on the last
+ * on every turn would bust the cache breakpoint directChat sets on the last
  * attachment block.
  *
  * Authorization: only URLs carrying a VALID, unexpired signature are resolved.

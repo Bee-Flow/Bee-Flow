@@ -175,8 +175,8 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     const block = knowledgePromptBlock({ topResults, labels: strippedLabels, includeRefs, isStrictKnowledge, anyChunkTruncated });
 
     if (includeRefs && onEvent) {
-        // One citation shape, built in core/kb/citation.js. Four places
-        // used to roll their own here — same idea, three different
+        // One citation shape, built in core/kb/citation.js, rather than a copy
+        // per call site: four copies drifted — same idea, three different
         // heading regexes, and one of them sent the passage under a key
         // the overlay does not read.
         const { toCitations } = require('../kb/citation');

@@ -96,7 +96,7 @@ async function allowedCodeTools(step, ctx) {
 
 /**
  * ctx.integrations: a permitted tool, guarded, dispatched inside the bridge's
- * own capture context and logged. Both bridges used to bypass the shield
+ * own capture context and logged. Unguarded, both bridges would bypass the shield
  * entirely: a code step could call any permitted tool, or fetch any URL, with
  * no scan and no ledger row.
  * @param {string} mode
@@ -220,11 +220,11 @@ function makeFetchHttpBridge(step, ctx, mode, guard) {
  */
 async function execCode(step, ctx, runState, mode) {
     const rehearsal = mode === 'dry_run';
-    // A DRY RUN USED TO SKIP THE CODE OUTRIGHT. Of every step type, this is
+    // A DRY RUN DOES NOT SKIP THE CODE OUTRIGHT. Of every step type, this is
     // the one where skipping teaches nothing: the whole question about a code
     // step is whether the code works, and "code-step skipped in dry-run" is
-    // the answer to a question nobody asked. Meanwhile the first time the
-    // author found out about their typo was a live run — which is exactly the
+    // the answer to a question nobody asked. Otherwise the first time the
+    // author found out about their typo would be a live run — which is exactly the
     // run a rehearsal exists to save them from.
     //
     // It is also the step type with the broadest reach: ctx.integrations can

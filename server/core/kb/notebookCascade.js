@@ -2,11 +2,11 @@
 /**
  * notebookCascade — erase everything a notebook owns, not just its rows.
  *
- * Deleting a notebook used to drop the `notebooks` row (sources and versions
- * cascading via FK) and delete its knowledge bases. What it never did was
- * remove the BYTES: the uploaded file blobs in object storage and the embedded
- * chunks derived from them. And `userStore.deleteUser` didn't touch notebooks
- * at all, so deleting a user left their documents, sources, versions and chat
+ * Dropping the `notebooks` row (sources and versions cascading via FK) and
+ * deleting its knowledge bases is not enough: the BYTES — the uploaded file blobs in
+ * object storage and the embedded chunks derived from them — would remain.
+ * And `userStore.deleteUser` does not touch notebooks itself, so without this
+ * deleting a user would leave their documents, sources, versions and chat
  * history behind entirely.
  *
  * For a product whose selling point is GDPR compliance, "delete" has to mean

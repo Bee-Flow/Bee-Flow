@@ -76,11 +76,11 @@ function maskTokens(value) {
 /**
  * Put the real values back, walking the value STRUCTURALLY.
  *
- * This used to serialise the whole value with JSON.stringify, hand the JSON
- * TEXT to restoreTokens and re-parse. restoreTokens is a plain String.replace:
- * it wrote the vault's RAW value straight into the JSON text without
+ * Serialising the whole value with JSON.stringify, handing the JSON
+ * TEXT to restoreTokens and re-parsing would be wrong. restoreTokens is a plain String.replace:
+ * it writes the vault's RAW value straight into the JSON text without
  * JSON-escaping it. Any real value containing a `"`, a backslash, a newline, a
- * tab or any other control character therefore produced BROKEN JSON, JSON.parse
+ * tab or any other control character therefore produces BROKEN JSON, JSON.parse
  * threw, and the `catch (_) { return value; }` handed back the still-tokenized
  * value — so the customer received a literal `[person_1]` / `[address_1]` (a
  * multi-line address is the common case), and a crafted value could inject
@@ -134,8 +134,8 @@ function restoreForRunState(value, ctx) {
 
 // ── egress logging (always the metadata row; scan gated by the org toggle) ──
 //
-// Non-blocking by design: this used to await the full windowed GLiNER scan
-// before returning, and engine.js awaits logEgress — monitoring sat on the
+// Non-blocking by design: this must not await the full windowed GLiNER scan
+// before returning, and engine.js awaits logEgress — monitoring would sit on the
 // critical path of EVERY automation step. The shared logger detaches the
 // scan+insert; this function returns in microseconds.
 /** @param {import('./safety.types').EgressEntry} entry */

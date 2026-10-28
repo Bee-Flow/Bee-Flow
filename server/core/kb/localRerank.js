@@ -24,9 +24,9 @@ function wire(deps) {
  *
  * ── WHY THIS IS A FUNCTION AND NOT FOUR MAP CALLS ───────────────────
  * All four reranker branches (Azure Cohere, the CPU cross-encoder, the GPU
- * sidecar, and the GPU retry inside the CPU branch) used to rebuild the row
+ * sidecar, and the GPU retry inside the CPU branch) would otherwise rebuild the row
  * from four fields: `{ content, title, source_uri, score }`. Everything else
- * was dropped — `id`, `document_id`, `chunk_id`, and anything a later column
+ * would be dropped — `id`, `document_id`, `chunk_id`, and anything a later column
  * adds.
  *
  * That is what made a citation unable to say more than the document's TITLE.

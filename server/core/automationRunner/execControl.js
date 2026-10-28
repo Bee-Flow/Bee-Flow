@@ -65,7 +65,7 @@ async function execWait(step, ctx, runState, mode) {
     }
     // Sleep time must not count against the run's hard-timeout budget (A8):
     // the form offers minutes/hours ("Up to 24 hours") while the default run
-    // budget is ~5 minutes, so any longer Wait used to GUARANTEE the run died
+    // budget is ~5 minutes, so any longer Wait would GUARANTEE the run dies
     // with "Run hard timeout". Extend the deadline by the planned sleep, then
     // sleep in short cancellable chunks so a user's cancel lands within ~5s
     // instead of after the full wait.

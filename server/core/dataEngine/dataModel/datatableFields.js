@@ -10,7 +10,7 @@
  * `has(undefined)` against a set built from other id-less fields is true, so
  * the planner concludes there is nothing to do.
  *
- * The datatables routes used to write the client's `{key, name, type}` objects
+ * The datatables routes must not write the client's `{key, name, type}` objects
  * into the org model verbatim. The consequences were total and silent:
  *
  *   * Creating a table emitted `CREATE TABLE "x" (id, created_at, updated_at,

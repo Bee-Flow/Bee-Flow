@@ -2,7 +2,7 @@
 'use strict';
 /**
  * Resized WebP variants of uploaded CMS images, for `srcset` on the public
- * site. A phone used to download the full-size original of every image.
+ * site. Without them, a phone downloads the full-size original of every image.
  *
  * `GET /api/cms/asset/cms/<key>?w=640` answers the image scaled DOWN to 640 px
  * wide (never enlarged) as AVIF when the browser's Accept header lists it, else
