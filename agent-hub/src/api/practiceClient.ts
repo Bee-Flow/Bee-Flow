@@ -6,8 +6,8 @@
 // structured result with an `error` field and degrade (the review session
 // falls back to bundled quiz items; grading shows a friendly retry note).
 
-import { API_BASE, authFetch } from '../../utils/helpers';
-import type { PracticeItem } from '../../api/lessons.types';
+import { API_BASE, authFetch } from '../utils/helpers';
+import type { PracticeItem } from './lessons.types';
 
 export interface PracticeSet {
     practiceId: string;
