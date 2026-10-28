@@ -205,8 +205,7 @@ function convertAllHtmlTablesToMarkdown(text) {
  * to it, which is how an offset ends up two characters out per page.
  *
  * @param {string} text — raw Azure DI content string
- * @param {object} [opts]
- * @param {boolean} [opts.withPages=false]
+ * @param {{ withPages?: boolean }} [opts] `withPages`: defaults to false
  * @returns {string|{text: string, pages: Array<{pageNumber:number,text:string}>}}
  */
 const PAGE_JOIN = '\n\n';   // kept in step with core/documents/pageOffsets.js

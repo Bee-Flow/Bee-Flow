@@ -176,12 +176,10 @@ function buildNearestMatchHint(current, findText, readHint) {
  * the model should read and act on rather than a crash.
  *
  * @param {string} current            the slot's current text
- * @param {object} opts
- * @param {string} opts.findText
- * @param {string} [opts.replaceText]  '' deletes
- * @param {boolean} [opts.replaceAll]
- * @param {string} opts.label          what to call the slot in messages
- * @param {string} opts.readHint       e.g. 'Call document_read({ documentId })'
+ * @param {{ findText: string, replaceText?: string, replaceAll?: boolean, label: string,
+ *   readHint: string }} opts
+ *   `replaceText`: '' deletes; `label`: what to call the slot in messages; `readHint`: e.g. 'Call
+ *   document_read({ documentId })'
  */
 function applyFindReplace(current, { findText, replaceText = '', replaceAll = false, label, readHint }) {
     if (!findText) return { error: 'find_text is required.' };
