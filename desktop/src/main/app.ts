@@ -290,8 +290,6 @@ export class DesktopApp {
             void this.unreachable.show(description);
         });
         window.webContents.setZoomLevel(settings.appearance.zoomLevel);
-        // Plain http to another machine works, and says so where it cannot be
-        // missed: the page sets the title, this appends to it.
         // What the window shows is said where it cannot be missed: plain http
         // to another machine, and any page that is not the workspace (a
         // sign-in provider, mid-sign-in) by its host — the window has no
