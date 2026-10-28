@@ -48,19 +48,14 @@ const log = require('../../telemetry/log');
  * The ids that survive BOTH questions, in the order given.
  *
  * @param {string[]} kbIds            what the client named, or what was stored
- * @param {object} p
- * @param {string|null} p.userId      the ASKER — never an object's owner
- * @param {Set<string>|string[]|null} p.orgIds  coerced to a Set; empty, never null
- * @param {string[]} [p.userGroups]
- * @param {string} [p.surface]        'direct_chat' | 'agent' | 'ai_step' | 'webpage'
- * @param {string | null} [p.context]        for the drop log; defaults to the surface
- * @param {any} [p.deps]           { kbStore, filterKbIdsForUser } — tests only
- * @param {string | null} [p.agentId]
+ * @param {UsableKbArgs} p  `userId` is the ASKER — never an object's owner; `orgIds` coerced to a Set,
+ *   empty, never null; `surface` 'direct_chat' | 'agent' | 'ai_step' | 'webpage'; `context` for the drop
+ *   log, defaults to the surface; `deps` for tests only
  * @returns {Promise<string[]>}
  */
 async function resolveUsableKbIds(kbIds, {
     userId = null, orgIds = null, userGroups = [], surface = 'direct_chat', context = null, agentId = null, deps = {},
-} = /** @type {any} */ ({})) {
+} = /** @type {UsableKbArgs} */ ({})) {
     const ids = normaliseKbIds(kbIds);
     if (ids.length === 0) return [];
 
@@ -101,3 +96,9 @@ async function resolveUsableKbIds(kbIds, {
 // Re-exported so callers that need both the policy and the list shape have one
 // import; the list helpers themselves live in the dependency-free kbIdList.js.
 module.exports = { resolveUsableKbIds, normaliseKbIds, MAX_ATTACHED_KB_IDS };
+
+/**
+ * @typedef {{ userId?: string|null, orgIds?: Set<string>|string[]|null, userGroups?: string[], surface?: string,
+ *   context?: string | null, agentId?: string | null,
+ *   deps?: { kbStore?: Partial<typeof kbStore>, filterKbIdsForUser?: typeof filterKbIdsForUser } }} UsableKbArgs
+ */

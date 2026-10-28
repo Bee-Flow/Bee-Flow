@@ -30,8 +30,8 @@ const { bestEffort, fallback } = require('../../utils/bestEffort');
  * Throws on rejection; resolves with the validated parsed URL on success.
  *
  * @param {string} url
- * @param {object} [options]
- * @param {Function} [options.lookup] resolver (default dns.promises.lookup); injectable for tests
+ * @param {{ lookup?: (host: string, opts: { all: true }) => Promise<import('dns').LookupAddress[]> }} [options]
+ *   `lookup` is the resolver (default dns.promises.lookup), injectable for tests
  */
 async function assertUrlIsPublic(url, { lookup = (host, opts) => dns.lookup(host, opts) } = {}) {
     let parsed;
@@ -171,11 +171,9 @@ async function fetchUrlContent(url) {
  * settles, mirroring the redirect re-check in fetchUrlContent() above.
  *
  * @param {string} url
- * @param {Object}   [opts]
- * @param {(base64Jpeg: string) => void} [opts.onFrame] - called on each
- *   throttled screenshot while the page loads (chat live preview). Omit for
- *   the default KB-ingestion behavior (no screenshots taken).
- * @param {string}   [opts.waitForSelector] - CSS selector to wait for before
+ * @param {{ onFrame?: (base64Jpeg: string) => void, waitForSelector?: string }} [opts]  `onFrame` is called on
+ *   each throttled screenshot while the page loads (chat live preview); omit it for the default
+ *   KB-ingestion behavior (no screenshots taken). `waitForSelector`: a CSS selector to wait for before
  *   extracting content; best-effort, a timeout here is swallowed.
  * @returns {Promise<{content: string, title: string, resolvedUrl: string}>}
  */

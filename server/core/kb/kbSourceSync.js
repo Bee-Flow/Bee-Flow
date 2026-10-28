@@ -48,13 +48,11 @@ function matchFor(automationId) {
  *
  * @param {string} automationId
  * @param {any} definition
- * @param {object} p
- * @param {string} p.userId          the automation's OWNER — whose write rights decide
- * @param {string} [p.title]         the automation's title, shown in the Sources list
- * @param {any} [p.deps]
+ * @param {SyncSourcesArgs} p  `userId` is the automation's OWNER — whose write rights decide; `title` the
+ *   automation's title, shown in the Sources list
  * @returns {Promise<{added: string[], kept: string[], removed: string[]}>}
  */
-async function syncKbSources(automationId, definition, { userId, title = '', deps = {} } = /** @type {any} */ ({})) {
+async function syncKbSources(automationId, definition, { userId, title = '', deps = {} } = /** @type {SyncSourcesArgs} */ ({})) {
     const out = { added: [], kept: [], removed: [] };
     if (!automationId) return out;
 
@@ -150,3 +148,8 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
 }
 
 module.exports = { syncKbSources };
+
+/**
+ * @typedef {{ userId: string, title?: string, deps?: { kbSourcesStore?: Partial<typeof import('../../stores/kbSources')>,
+ *   writeAccess?: Partial<typeof import('./kbWriteAccess')> } }} SyncSourcesArgs
+ */

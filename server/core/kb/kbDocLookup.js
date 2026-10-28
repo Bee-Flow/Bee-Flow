@@ -37,9 +37,7 @@ async function findDocumentBySourceUri(kbId, sourceId) {
  *
  * @param {string} kbId
  * @param {string|null} sourceUri
- * @param {object} [opts]
- * @param {string} [opts.sourceId]
- * @param {string} [opts.externalId]
+ * @param {{ sourceId?: string, externalId?: string }} [opts]
  */
 async function findDocumentsBySourceUri(kbId, sourceUri, { sourceId = null, externalId = null } = {}) {
     const { getAll } = require('../../db');
