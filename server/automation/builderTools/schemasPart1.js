@@ -114,8 +114,9 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
   filter.includeColleagues:true (off by default). Bee Flow then asks Nextcloud,
   as the automation's owner, whether they can see the resource and only fires
   when they can: a Talk room they are in, a Deck board they can open, a table
-  they may read, a form whose results they may see, a file in their Files.
-  Calendar events and file.tagged stay with the person who caused them.
+  they may read, a form whose results they may see, a file in their Files,
+  a calendar they own or that is shared with them.
+  file.tagged stays with the person who caused it.
   file.new / file.changed need no switch: they read the owner's activity
   feed, which already lists colleagues' changes to files the owner can see.
   Events from guests, bots and public links need no switch (same check).

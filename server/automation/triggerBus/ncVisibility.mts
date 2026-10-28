@@ -26,12 +26,18 @@
  *       id resolves in it (WebDAV SEARCH on oc:fileid as the subscriber). The
  *       subscriber then receives the path as THEY see it, never the actor's.
  *       `file.deleted` carries no id, so only the owner match applies.
+ *   calendar.event.created, .changed, .deleted, .moved (#407)
+ *       the subscriber owns the calendar (`calendarOwner`, forwarded by
+ *       connector 1.6.6+), or it is shared with them: it sits in their own
+ *       calendar home as `<uri>_shared_by_<owner>` (CalDAV PROPFIND as the
+ *       subscriber). The forwarded `calendarShares` only rule out early a
+ *       calendar shared with no one the subscriber could be; they never grant.
+ *       The subscriber then receives that calendar URI as THEY see it. An
+ *       older connector sends no owner, so its calendar events stay with the
+ *       actor.
  *
- * Everything else stays with the actor: calendar events (the payload names
- * the calendar by its owner-relative URI and numeric id, not by owner, so the
- * subscriber's access cannot be established), file.tagged / file.untagged
- * (the tag itself may be invisible to the subscriber) and any event not
- * listed above.
+ * Everything else stays with the actor: file.tagged / file.untagged (the tag
+ * itself may be invisible to the subscriber) and any event not listed above.
  *
  * Every check asks as the subscriber with the credentials the server already
  * holds for them (connector impersonation, OAuth or their app password), runs
@@ -63,7 +69,7 @@ export interface NcVisibilityDeps {
     log?: { warn: (...a: unknown[]) => void };
 }
 
-export type VisibilityKind = 'talk_room' | 'deck_board' | 'table_rows' | 'form_results' | 'file';
+export type VisibilityKind = 'talk_room' | 'deck_board' | 'table_rows' | 'form_results' | 'file' | 'calendar';
 
 /** The event types a colleague's automation may receive, and how each is checked. */
 export const EVENT_VISIBILITY: Readonly<Record<string, VisibilityKind>> = Object.freeze({
@@ -82,6 +88,10 @@ export const EVENT_VISIBILITY: Readonly<Record<string, VisibilityKind>> = Object
     'file.changed': 'file',
     'file.renamed': 'file',
     'file.deleted': 'file',
+    'calendar.event.created': 'calendar',
+    'calendar.event.changed': 'calendar',
+    'calendar.event.deleted': 'calendar',
+    'calendar.event.moved': 'calendar',
 });
 
 /**
@@ -152,6 +162,24 @@ export function fileIdSearchBody(uid: string, fileId: string): string {
     <d:limit><d:nresults>1</d:nresults></d:limit>
   </d:basicsearch>
 </d:searchrequest>`;
+}
+
+const CALENDAR_PROPFIND = '<?xml version="1.0" encoding="UTF-8"?>'
+    + '<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>';
+
+/** A CalDAV multistatus that describes a calendar collection. */
+function isCalendarCollection(xml: string): boolean {
+    return /<(?:[A-Za-z0-9_-]+:)?calendar[\s/>]/.test(xml) && /HTTP\/1\.[01] 200/.test(xml);
+}
+
+/** Share principals the subscriber may be reached through: themselves, or a group or team. */
+function sharesMayReach(shares: unknown, uid: string): boolean {
+    if (!Array.isArray(shares)) return true; // not given: ask Nextcloud
+    return shares.some((s) => {
+        const principal = s && typeof s === 'object' ? (s as Payload).principal : null;
+        return typeof principal === 'string'
+            && (principal === `principals/users/${uid}` || /^principals\/(groups|circles)\//.test(principal));
+    });
 }
 
 /** The user-relative path of the first SEARCH hit in `uid`'s Files tree, or null. */
@@ -274,6 +302,33 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
         return { visible: true, overrides: fileOverrides(payload, path, auth.uid) };
     }
 
+    async function calendar(userId: string, session: unknown, payload: Payload, memo: VisibilityMemo): Promise<Decision> {
+        const owner = typeof payload.calendarOwner === 'string' && payload.calendarOwner ? payload.calendarOwner : null;
+        const uri = typeof payload.calendarUri === 'string' && payload.calendarUri ? payload.calendarUri : null;
+        // No owner: an older connector, or a calendar of a room or resource.
+        if (!owner || !uri || owner.includes('/') || uri.includes('/')) return NOT_VISIBLE;
+        const auth = await authFor(userId, session, memo);
+        if (!auth?.uid) return NOT_VISIBLE;
+        if (owner === auth.uid) {
+            if (await deps.scopeDenied('nextcloud_calendar_list_events', { calendar: uri }, userId, session)) return NOT_VISIBLE;
+            return { visible: true };
+        }
+        if (!sharesMayReach(payload.calendarShares, auth.uid)) return NOT_VISIBLE;
+        // Nextcloud lists a calendar shared with you in your own calendar home
+        // under this name (CalDavBackend::getCalendarsForUser).
+        const sharedUri = `${uri}_shared_by_${owner}`;
+        if (await deps.scopeDenied('nextcloud_calendar_list_events', { calendar: sharedUri }, userId, session)) return NOT_VISIBLE;
+        const res = await auth.fetch(`${auth.baseUrl}/remote.php/dav/calendars/${encodeURIComponent(auth.uid)}/${encodeURIComponent(sharedUri)}/`, {
+            method: 'PROPFIND',
+            headers: { 'Depth': '0', 'Content-Type': 'application/xml; charset=utf-8' },
+            body: CALENDAR_PROPFIND,
+        });
+        if (res.status !== 207 || !isCalendarCollection(await res.text())) return NOT_VISIBLE;
+        // The calendar as the subscriber sees it; who else it is shared with is
+        // the owner's business.
+        return { visible: true, overrides: { calendarUri: sharedUri, calendarShares: null } };
+    }
+
     /**
      * Decide one delivery. `userId` is the SUBSCRIBER (the automation owner),
      * never the actor: the actor's own deliveries do not come through here.
@@ -285,7 +340,8 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
             : kind === 'deck_board' ? idOf(payload.boardId)
                 : kind === 'table_rows' ? idOf(payload.tableId)
                     : kind === 'form_results' ? idOf(payload.formId)
-                        : `${idOf(payload.id) ?? ''}|${typeof payload.owner === 'string' ? payload.owner : ''}|${typeof payload.path === 'string' ? payload.path : ''}`;
+                        : kind === 'calendar' ? `${typeof payload.calendarOwner === 'string' ? payload.calendarOwner : ''}|${typeof payload.calendarUri === 'string' ? payload.calendarUri : ''}`
+                            : `${idOf(payload.id) ?? ''}|${typeof payload.owner === 'string' ? payload.owner : ''}|${typeof payload.path === 'string' ? payload.path : ''}`;
         return memoised(memo, `vis|${userId}|${kind}|${resource ?? ''}`, async () => {
             try {
                 const session = await sessionFor(userId, memo);
@@ -296,6 +352,7 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
                     case 'table_rows': return await tableRows(userId, session, payload);
                     case 'form_results': return await formResults(userId, session, payload, memo);
                     case 'file': return await file(userId, session, payload, memo);
+                    case 'calendar': return await calendar(userId, session, payload, memo);
                     default: return NOT_VISIBLE;
                 }
             } catch (e) {

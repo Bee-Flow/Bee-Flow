@@ -267,6 +267,8 @@ const NL_TRANSLATIONS = [
     // "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
     // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
     'update-nl-settings-nav-2026-10',
+    // The colleagues switch now covers calendar events: its Dutch hint says so (old shipped text only).
+    'update-nl-nc-trigger-scope-calendar-2026-10',
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

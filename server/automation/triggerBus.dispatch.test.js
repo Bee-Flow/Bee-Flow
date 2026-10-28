@@ -131,6 +131,7 @@ test('dispatchEvent: push file.new / file.changed skips polling-mode subs (the p
 USERS['bob'] = { id: 'bob', organizationId: 'org-A' };
 USERS['alice'] = { id: 'alice', organizationId: 'org-A' };
 USERS['eve'] = { id: 'eve', organizationId: 'org-B' };
+USERS['carol'] = { id: 'carol', organizationId: 'org-A' };
 
 /**
  * A visibility checker answering from a table: `visible[userId]` is true,
@@ -239,9 +240,34 @@ test('without a checker nothing but the actor\'s own subscriptions fire (fail cl
     assert.deepStrictEqual(fired(), []);
 });
 
-test('calendar events stay with the actor even when a colleague opted in', async () => {
+test('calendar events (#407): a colleague who opted in and can see the calendar gets it, as their calendar', async () => {
+    SUBS.splice(0, SUBS.length, sub('alice', 'alice', { includeColleagues: true }), sub('carol', 'carol'), sub('bob', 'bob'));
+    const { createNcVisibility } = require('./triggerBus/ncVisibility.mts');
+    const real = createNcVisibility({
+        loadSession: async () => ({}),
+        resolveAuth: async (_s, uid) => ({
+            baseUrl: 'https://nc.example', uid: `nc-${uid}`,
+            fetch: async (url) => ({
+                ok: true, status: 207,
+                text: async () => (url.includes('/calendars/nc-alice/team_shared_by_nc-bob/')
+                    ? '<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav"><d:response><d:propstat><d:prop><d:resourcetype><cal:calendar/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>'
+                    : '<d:multistatus xmlns:d="DAV:"/>'),
+            }),
+        }),
+        runTool: async () => ({}), scopeDenied: async () => false,
+    });
+    await dispatch('calendar.event.created', {
+        calendarId: 4, calendarUri: 'team', uid: 'e1', calendarOwner: 'nc-bob',
+        calendarShares: [{ principal: 'principals/users/nc-alice', readOnly: true }],
+    }, 'bob', real);
+    assert.deepStrictEqual(fired(), ['auto-alice', 'auto-bob'], 'carol did not opt in');
+    assert.strictEqual(byAuto('auto-alice').calendarUri, 'team_shared_by_nc-bob');
+    assert.strictEqual(byAuto('auto-alice').isOwn, false);
+    assert.strictEqual(byAuto('auto-bob').calendarUri, 'team');
+});
+
+test('calendar events from a connector before 1.6.6 (no calendar owner) stay with the actor', async () => {
     SUBS.splice(0, SUBS.length, sub('alice', 'alice', { includeColleagues: true }), sub('bob', 'bob'));
-    // The real checker answers "not visible" for an event type it cannot check.
     const { createNcVisibility } = require('./triggerBus/ncVisibility.mts');
     const real = createNcVisibility({
         loadSession: async () => ({}), resolveAuth: async () => { throw new Error('unused'); },

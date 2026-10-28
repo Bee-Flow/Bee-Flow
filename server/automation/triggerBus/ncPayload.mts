@@ -56,10 +56,11 @@ export function fileNameParts(path: string | null): { name: string | null, exten
 }
 
 /**
- * File or folder. Neither producer knows for sure: the activity feed says
- * `files` for both, and the webhook envelope carries only id and path. Both
- * use the same rule, so the answer never depends on which one saw the
- * event: a trailing slash or a name without an extension reads as a folder.
+ * File or folder, when the producer does not know. The activity feed says
+ * `files` for both; connector 1.6.6+ asks Nextcloud and sends `nodeType`
+ * (#407), which wins. Without it the guess is the same for both producers,
+ * so the answer never depends on which one saw the event: a trailing slash
+ * or a name without an extension reads as a folder.
  */
 export function guessKind(path: string | null, extension: string | null): 'file' | 'folder' {
     if (!path) return 'file';
@@ -84,7 +85,7 @@ export function normaliseFilePayload(raw: Payload | null | undefined, opts: { vi
         path,
         name,
         extension,
-        kind: guessKind(path, extension),
+        kind: src.nodeType === 'file' || src.nodeType === 'folder' ? src.nodeType : guessKind(path, extension),
         actor: str(src.actor),
         actorName: str(src.actorName),
         owner: str(src.owner) ?? str(opts.viewerUid),

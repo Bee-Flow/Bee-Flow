@@ -101,12 +101,14 @@
         {
           "id": "calendar.event.created",
           "label": "Calendar event created",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "calendar.event.changed",
           "label": "Calendar event changed",
-          "deliverability": "ok"
+          "deliverability": "ok",
+          "colleagues": true
         },
         {
           "id": "deck.card.created",

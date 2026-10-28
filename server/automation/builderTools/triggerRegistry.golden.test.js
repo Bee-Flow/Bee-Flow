@@ -20,7 +20,9 @@ const { buildTriggerOutputsCatalog } = require('./triggerCatalog');
  * when Nextcloud's push pipeline moved from AppAPI's (removed) `events_listener`
  * API to the bundled `webhook_listeners` app: that added forms.submitted,
  * tables.row.added, tables.row.updated and file.tagged, and cleared the
- * "will not fire yet" flag from the file and calendar mutation events. If a
+ * "will not fire yet" flag from the file and calendar mutation events, and
+ * once more when the Nextcloud calendar mutation events gained the colleagues
+ * switch (#407: connector 1.6.6 forwards the calendar owner and shares). If a
  * change here is deliberate — a genuinely new event, a relabelled provider —
  * re-capture it in the same run as the code change, and say so in the commit.
  *
