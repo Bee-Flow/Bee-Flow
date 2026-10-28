@@ -29,7 +29,7 @@ process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '40';
 const { installFakeWorld, json } = require('./support/fakeWorld');
 const config = require('../src/config');
 const bootstrap = require('../src/bootstrap');
-require('../src/heartbeat'); // subscribes the key-dependent registrations
+const { registerTenantKeyDependents } = require('../src/heartbeat'); // subscribes the key-dependent registrations
 const { TASK_TYPES } = require('../src/taskProcessing');
 
 const isProviderPost = (c) => c.method === 'POST' && c.url.endsWith('/api/v1/ai_provider/task_processing');
@@ -46,6 +46,16 @@ async function until(cond, ms = 3000) {
 }
 
 const secretFor = (key) => crypto.createHmac('sha256', key).update('beeflow:webhook-listener:v1').digest('hex');
+
+// Let the background work a key started run to its end before the next test
+// resets the state. Seeing config.tenantKey change is not enough: the provision
+// that set it is still finishing (cache, error file), and a bootstrapIfNeeded()
+// in the next test would JOIN that run and resolve instead of failing. Both
+// calls join what is in flight, so they wait for exactly that work.
+async function settle() {
+    await bootstrap.bootstrapIfNeeded().catch(() => {});
+    await registerTenantKeyDependents();
+}
 
 function reset() {
     for (const f of fs.readdirSync(storage)) fs.rmSync(path.join(storage, f), { force: true });
@@ -85,6 +95,7 @@ test('H7: a key that arrives with the emailed code registers the Assistant provi
             && world.count(isFilesActionPost) >= 3 && world.count(isWebhookUpsert) > 0);
         assert.equal(world.count(isProviderPost), TASK_TYPES.length);
         assert.equal(world.count(isFilesActionPost), 3);
+        await settle();
     } finally {
         world.restore();
     }
@@ -104,6 +115,7 @@ test('M3: a changed key re-registers the webhook rows with the new secret', asyn
         const secrets = new Set(world.calls.filter(isWebhookUpsert)
             .map((c) => JSON.parse(c.body).authData['X-Beeflow-Hook-Secret']));
         assert.deepEqual([...secrets], [secretFor('key-B')]);
+        await settle();
     } finally {
         world.restore();
     }
@@ -131,6 +143,7 @@ test('M2: a first bootstrap that fails on the network is retried by itself', asy
         assert.equal(attempts, 2);
         // ...and the key-dependent registrations follow, without /init.
         await until(() => world.count(isProviderPost) >= TASK_TYPES.length);
+        await settle();
     } finally {
         world.restore();
     }
