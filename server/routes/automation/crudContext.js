@@ -30,7 +30,7 @@ const liveSideEffects = require('../../automation/liveSideEffects');
  * @param {string} userId
  * @param {string} stage
  */
-async function kbFindingsFor(definition, req, userId, stage) {
+async function kbFindingsFor(definition, /** @type {import('express').Request} */ req, userId, stage) {
     return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });
 }
 

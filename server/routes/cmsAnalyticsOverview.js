@@ -34,7 +34,7 @@ function windowFromReq(src) {
 
 // Shared preflight for every data route: enabled → configured → provisioned.
 // Returns the target, or null after having already sent the degenerate response.
-async function requireTarget(req, res) {
+async function requireTarget(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const settings = await getAnalyticsSettings();
     if (!settings.enabled) { res.json({ enabled: false }); return null; }
     if (!(await umamiClient.isConfigured())) { res.json({ enabled: true, configured: false }); return null; }
@@ -61,6 +61,7 @@ const metricTypes = () => umamiClient.METRIC_TYPES || [];
  */
 function pickFilters(src) {
     const nested = src && typeof src.filters === 'object' && !Array.isArray(src.filters) ? src.filters : null;
+    /** @type {Record<string, string>} */
     const out = {};
     for (const k of metricTypes()) {
         const v = nested ? nested[k] : src?.[k];
@@ -78,8 +79,15 @@ function pickFilters(src) {
  * cannot reach — every one of them presents as "the dashboard is empty", and
  * telling them apart would mean reading source.
  */
-async function getDiagnoseHandler(req, res) {
+async function getDiagnoseHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
+    /** @type {({ id: string; label: string; status: string | undefined; detail: string | null | undefined; })[]} */
     const checks = [];
+    /**
+     * @param {string} id
+     * @param {string} label
+     * @param {string} [status]
+     * @param {string | null} [detail]
+     */
     const add = (id, label, status, detail) => checks.push({ id, label, status, detail });
 
     const settings = await getAnalyticsSettings();
@@ -110,7 +118,7 @@ async function getDiagnoseHandler(req, res) {
             const sites = await umamiClient.listWebsites();
             add('reachable', 'Umami answers', 'pass', `${sites.length} website${sites.length === 1 ? '' : 's'} registered.`);
         } catch (err) {
-            add('reachable', 'Umami answers', 'fail', `The server could not reach ${internalUrl}: ${err.message}`);
+            add('reachable', 'Umami answers', 'fail', `The server could not reach ${internalUrl}: ${/** @type {Error} */ (err).message}`);
         }
 
         // The check nothing performed before: is the URL the BROWSER uses
@@ -149,6 +157,7 @@ async function getDiagnoseHandler(req, res) {
  * Outbound HTTP driven by an operator-supplied URL, so: super-admin only (the
  * router gate), no redirects followed, a hard timeout, and only the status and
  * content-type are echoed — never the body.
+ * @param {string} publicUrl
  */
 async function probeScript(publicUrl) {
     const url = `${publicUrl.replace(/\/+$/, '')}/script.js`;
@@ -164,13 +173,13 @@ async function probeScript(publicUrl) {
         }
         return ['pass', `${url} serves the tracker.`];
     } catch (err) {
-        return ['fail', `Could not load ${url}: ${err.name === 'AbortError' ? 'timed out' : err.message}`];
+        return ['fail', `Could not load ${url}: ${/** @type {Error} */ (err).name === 'AbortError' ? 'timed out' : /** @type {Error} */ (err).message}`];
     } finally {
         clearTimeout(timer);
     }
 }
 
-async function getAnalyticsSitesHandler(req, res) {
+async function getAnalyticsSitesHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const [projects, map, recorderMap, liveSiteId] = await Promise.all([
         cmsStore.listProjects(),
         getAnalyticsSiteMap(),
@@ -191,7 +200,7 @@ async function getAnalyticsSitesHandler(req, res) {
 // Connection diagnostic. Surfaces the internal-vs-public URL split, which is
 // the standard way this integration silently half-works: the browser loads
 // /script.js fine from the public origin while every server→Umami call fails.
-async function getAnalyticsStatusHandler(req, res) {
+async function getAnalyticsStatusHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const settings = await getAnalyticsSettings();
     const configured = await umamiClient.isConfigured();
     const out = {
@@ -210,7 +219,7 @@ async function getAnalyticsStatusHandler(req, res) {
             out.reachable = true;
             out.websiteCount = sites.length;
         } catch (err) {
-            out.error = err.message;
+            out.error = /** @type {Error} */ (err).message;
         }
     }
     res.json(out);
@@ -224,12 +233,12 @@ async function settle(partialErrors, key, promise, fallback) {
     try {
         return await promise;
     } catch (err) {
-        partialErrors.push({ key, message: err.message });
+        partialErrors.push({ key, message: /** @type {Error} */ (err).message });
         return fallback;
     }
 }
 
-async function getAnalyticsOverviewHandler(req, res) {
+async function getAnalyticsOverviewHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const target = await requireTarget(req, res);
         if (!target) return undefined;
@@ -242,6 +251,11 @@ async function getAnalyticsOverviewHandler(req, res) {
         // filters entirely and showed site-wide numbers under a filtered chip.
         const filters = pickFilters(req.query);
         const errs = [];
+        /**
+         * @param {string} key
+         * @param {string} type
+         * @param {number} limit
+         */
         const metric = (key, type, limit) => settle(errs, key,
             umamiClient.getMetrics(websiteId, { type, startAt, endAt, limit, filters }), []);
 
@@ -258,6 +272,7 @@ async function getAnalyticsOverviewHandler(req, res) {
         ]);
 
         // `active` shape varies by Umami version: [{x:N}] or {visitors:N} or N.
+        /** @type {number | null} */
         let activeCount = null;
         if (Array.isArray(active)) activeCount = active[0]?.x ?? active.length ?? null;
         else if (active && typeof active === 'object') activeCount = active.x ?? active.visitors ?? null;
@@ -271,7 +286,7 @@ async function getAnalyticsOverviewHandler(req, res) {
             partialErrors: errs,
         });
     } catch (err) {
-        log.error('[CMS] analytics overview error:', err.message);
+        log.error('[CMS] analytics overview error:', /** @type {Error} */ (err).message);
         throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics');
     }
 }

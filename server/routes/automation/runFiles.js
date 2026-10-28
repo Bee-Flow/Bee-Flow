@@ -155,7 +155,7 @@ function makeRunFilesRouter(overrides = {}) {
         try {
             streamed = await storage().streamFile(file.storageKey);
         } catch (e) {
-            log.warn(`[automation/runFiles] generated file ${file.id} has no bytes: ${e.message}`);
+            log.warn(`[automation/runFiles] generated file ${file.id} has no bytes: ${/** @type {Error} */ (e).message}`);
             throw new HttpError(404, 'run_file_not_found', 'Not found');
         }
         return { file, streamed };

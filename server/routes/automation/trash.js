@@ -51,14 +51,14 @@ function makeTrashHandlers(deps) {
     const managedParts = () => deps.managedParts || require('../../stores/managedPartsDefault');
     const wake = typeof deps.wakeComplianceReview === 'function' ? deps.wakeComplianceReview : () => {};
     // The caller's access (owner or org admin), or null after answering 403.
-    const ownerOnly = async (req, res, a) => {
+    const ownerOnly = async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, a) => {
         if (deps.access) return deps.access.guard(req, res, a, 'owner');
         if (a.userId === req.session.user.id) return { role: 'owner', via: 'owner' };
         res.status(403).json({ error: 'Forbidden' });
         return null;
     };
 
-    async function trash(req, res) {
+    async function trash(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const userId = req.session.user.id;
         const a = await store.getAutomation(req.params.id);
         if (!a) return res.status(404).json({ error: 'Not found' });
@@ -85,12 +85,12 @@ function makeTrashHandlers(deps) {
         res.json({ success: true, automation: projectForViewer(trashed, access), purgeAt: purgeAtOf(trashed.deletedAt) });
     }
 
-    async function listTrash(req, res) {
+    async function listTrash(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const rows = await store.listTrash(req.session.user.id);
         res.json({ automations: rows, retentionDays: TRASH_RETENTION_DAYS });
     }
 
-    async function restore(req, res) {
+    async function restore(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const a = await store.getAutomation(req.params.id, { includeDeleted: true });
         if (!a || !a.deletedAt) return res.status(404).json({ error: 'Not found', code: 'not_in_trash' });
         const access = await ownerOnly(req, res, a);

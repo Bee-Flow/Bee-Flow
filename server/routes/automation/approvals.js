@@ -230,7 +230,7 @@ router.get('/approvals', gate, validate({ query: ApprovalsQuery }), async (/** @
     res.json({ approvals, nextCursor, scope });
 });
 
-router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, res) => {
+router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, /** @type {import('express').Response} */ res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const scope = req.query.scope;
@@ -252,7 +252,7 @@ router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (/
  * getOrgMembersForDirectory is deliberately id/name/avatar and nothing else).
  * Member-readable: picking an approver is an authoring act, not an admin one.
  */
-router.get('/approvals/directory', gate, async (req, res) => {
+router.get('/approvals/directory', gate, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     if (!viewer.orgId) return res.json({ members: [], groups: [] });

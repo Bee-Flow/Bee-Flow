@@ -41,6 +41,9 @@ const router = express.Router();
 
 // Drop a site's mappings when it's deleted, so resolveAnalyticsTarget's
 // fallback can't surface a deleted site's numbers.
+/**
+ * @param {string | undefined} siteId
+ */
 async function forgetSite(siteId) {
     for (const key of [KEY_ANALYTICS_SITE_MAP, KEY_ANALYTICS_RECORDER_MAP]) {
         const map = await readMap(key);
@@ -74,6 +77,9 @@ router.use(requireSuperAdmin, analyticsLimiter);
 const CACHE_TTL_MS = 15_000;
 const REALTIME_TTL_MS = 3_000;
 
+/**
+ * @param {string} key
+ */
 function cacheGet(key) {
     const hit = _cache.get(key);
     if (!hit) return undefined;
@@ -240,14 +246,14 @@ router.get('/query/:resource', async (req, res) => {
         cacheSet(cacheKey, payload, spec.ttl || CACHE_TTL_MS);
         return res.json(payload);
     } catch (err) {
-        log.error(`[CMS] analytics query ${req.params.resource} failed:`, err.message);
+        log.error(`[CMS] analytics query ${req.params.resource} failed:`, /** @type {Error} */ (err).message);
         // Pass the upstream reason through. This route is requireSuperAdmin and
         // Umami's failures are schema/validation text, not secrets — collapsing
         // them into a bare "Failed to load analytics" turned a self-describing
         // 400 ("expected one of …") into a guessing game.
         throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics', {
             upstreamStatus: err.status || null,
-            reason: String(err.message || '').slice(0, 600),
+            reason: String(/** @type {Error} */ (err).message || '').slice(0, 600),
         });
     }
 });
@@ -294,7 +300,7 @@ router.post('/report/:type', async (req, res) => {
         cacheSet(cacheKey, payload, CACHE_TTL_MS);
         return res.json(payload);
     } catch (err) {
-        log.error(`[CMS] analytics report ${req.params.type} failed:`, err.message);
+        log.error(`[CMS] analytics report ${req.params.type} failed:`, /** @type {Error} */ (err).message);
         throw new HttpError(502, 'analytics_unavailable', 'Failed to load report');
     }
 });
@@ -319,7 +325,14 @@ router.post('/report/:type', async (req, res) => {
 // (RESOURCES, REPORTS, metricTypes()), which vary by resource and by the
 // Umami version, and every value is clamped before it leaves. Nothing they
 // take is written anywhere.
+/**
+ * @param {string} name
+ */
 const flagOf = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const aText = (message, max) => worded(message).max(max, message);
 const SettingsBody = bodyOf({
     enabled: flagOf('enabled').optional(),

@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Router} Router */
 // The Forms directory and the Form page, split out of routes/automation/crud.js:
 // the org's published forms, one form, who may fill it in, and its answers
 // table. crud.js registers these routes on its own router, at the place they
@@ -14,6 +15,9 @@ const { roleSatisfies } = require('../../automation/access');
 const { orgOf, automationAccess, worded } = require('./crudContext');
 
 const AUDIENCE_TEXT = `audience is one of: ${AUDIENCES.join(', ')}.`;
+/**
+ * @param {string} what
+ */
 const ID_IN_LIST = (what) => worded(`Each ${what} must be a non-empty id.`).trim().min(1, `Each ${what} must be a non-empty id.`);
 const AudienceBody = z.object({
     audience: z.enum(AUDIENCES, { error: () => AUDIENCE_TEXT }),
@@ -33,7 +37,7 @@ const AudienceBody = z.object({
  * so the audience's organisation is the caller's own; an orgless caller only
  * ever sees their own rows, which the owner rule admits.
  */
-async function admitsFor(rows, req) {
+async function admitsFor(rows, /** @type {import('express').Request} */ req) {
     const caller = { id: req.session.user.id, organizationId: (await orgOf(req)) || null };
     const audienceOf = (row) => ({
         userId: row.userId, organizationId: caller.organizationId,
@@ -44,7 +48,7 @@ async function admitsFor(rows, req) {
         try {
             groups = await require('../../auth/audience').resolveUserGroups(caller.id);
         } catch (e) {
-            log.warn('[automation forms list] group lookup failed:', e.message);
+            log.warn('[automation forms list] group lookup failed:', /** @type {Error} */ (e).message);
         }
     }
     return (row) => audienceAdmits(audienceOf(row), caller, groups);
@@ -57,6 +61,10 @@ async function admitsFor(rows, req) {
  * shared a form with Finance must not find out otherwise from Finance.
  */
 async function readAudienceBody(body, orgId) {
+    /**
+     * @param {string} code
+     * @param {string} message
+     */
     const bad = (code, message) => Object.assign(new Error(message), { status: 400, code });
     const { audience: mode, sharedGroups: groupsRaw, sharedUserIds: usersRaw } = body;
     if (!orgId) {
@@ -81,7 +89,7 @@ async function readAudienceBody(body, orgId) {
  * One store round trip for the tables, one for the grants — never a probe
  * per row. A table the caller has no grade on stays anonymous (no id).
  */
-async function answersInfoFor(automationIds, req) {
+async function answersInfoFor(automationIds, /** @type {import('express').Request} */ req) {
     const out = new Map();
     const ids = [...new Set(automationIds.filter(Boolean))];
     if (!ids.length) return out;
@@ -99,7 +107,7 @@ async function answersInfoFor(automationIds, req) {
             out.set(t.source.automationId, { table: t, grade });
         }
     } catch (e) {
-        log.warn('[automation forms list] answers lookup failed:', e.message);
+        log.warn('[automation forms list] answers lookup failed:', /** @type {Error} */ (e).message);
     }
     return out;
 }
@@ -122,6 +130,9 @@ function answersFor(row, trigger, answersByAutomation) {
     };
 }
 
+/**
+ * @param {Router} router
+ */
 function registerFormRoutes(router) {
     /**
      * GET /forms — every published form in the caller's organisation.
@@ -293,7 +304,7 @@ function registerFormRoutes(router) {
         try {
             wanted = await readAudienceBody(req.body, a.organizationId || (await orgOf(req)));
         } catch (err) {
-            return res.status(err.status || 400).json({ error: err.message, code: err.code || 'audience_invalid' });
+            return res.status(err.status || 400).json({ error: /** @type {Error} */ (err).message, code: err.code || 'audience_invalid' });
         }
         // the primary trigger's page — made if a save never minted one
         const page = await automationStore.ensureFormPage(a.id, null);

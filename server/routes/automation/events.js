@@ -136,7 +136,7 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json
                 rootStepId: wh.triggerStepId || null,
             });
         }
-        catch (e) { log.error('[automation/webhook] run error:', e.message); }
+        catch (e) { log.error('[automation/webhook] run error:', /** @type {Error} */ (e).message); }
     });
     return res.status(202).json({ accepted: true, automationId: automation.id });
 });
@@ -241,7 +241,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
                     .handleTalkReaction({ orgId: org.id, ncUid: ncUid || null, payload: payload || {} })
                     .catch(e => log.warn(`[automation/events/nextcloud] approval reaction failed: ${e.message}`));
             } catch (e) {
-                log.warn(`[automation/events/nextcloud] approval reaction dispatch failed: ${e.message}`);
+                log.warn(`[automation/events/nextcloud] approval reaction dispatch failed: ${/** @type {Error} */ (e).message}`);
             }
         });
     }
@@ -256,7 +256,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
                     .onTablesEvent({ orgId: org.id, event, payload: payload || {} })
                     .catch(e => log.warn(`[automation/events/nextcloud] tables mirror patch failed: ${e.message}`));
             } catch (e) {
-                log.warn(`[automation/events/nextcloud] tables mirror dispatch failed: ${e.message}`);
+                log.warn(`[automation/events/nextcloud] tables mirror dispatch failed: ${/** @type {Error} */ (e).message}`);
             }
         });
     }
@@ -273,7 +273,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
                     .onFileEvent({ orgId: org.id, event, payload: payload || {}, actorUserId: user?.id || null })
                     .catch(e => log.warn(`[automation/events/nextcloud] spreadsheet mirror refresh failed: ${e.message}`));
             } catch (e) {
-                log.warn(`[automation/events/nextcloud] spreadsheet mirror dispatch failed: ${e.message}`);
+                log.warn(`[automation/events/nextcloud] spreadsheet mirror dispatch failed: ${/** @type {Error} */ (e).message}`);
             }
         });
     }
@@ -349,12 +349,12 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
                             .onProviderHint({ provider: 'onedrive', userId: sub.userId })
                             .catch(e => log.warn(`[automation/events/msgraph] spreadsheet mirror hint failed: ${e.message}`));
                     } catch (e) {
-                        log.warn(`[automation/events/msgraph] spreadsheet mirror hint dispatch failed: ${e.message}`);
+                        log.warn(`[automation/events/msgraph] spreadsheet mirror hint dispatch failed: ${/** @type {Error} */ (e).message}`);
                     }
                 });
             }
         } catch (perItemErr) {
-            log.warn('[automation/events/msgraph] dispatch item error:', perItemErr.message);
+            log.warn('[automation/events/msgraph] dispatch item error:', /** @type {Error} */ (perItemErr).message);
         }
     }
     return res.status(202).end();

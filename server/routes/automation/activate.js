@@ -28,7 +28,7 @@ const { activateCore, checkBeforeLiveCore, convergeAfterPublish, planGoLive, ref
  * core's `(def, { userId, stage })` — the route's helper resolves the
  * organisation from the request itself.
  */
-function coreDeps(req, deps) {
+function coreDeps(/** @type {import('express').Request} */ req, deps) {
     const { kbFindingsFor } = deps;
     return {
         ...deps,
@@ -51,7 +51,7 @@ function answerRefusal(res, r) {
  * (HttpError 409 `ai_act_check_required` / `ai_act_prohibited`, with
  * `details.aiAct`); the terminal error handler answers it.
  */
-async function checkBeforeLive(req, a, definition, deps) {
+async function checkBeforeLive(/** @type {import('express').Request} */ req, a, definition, deps) {
     // The OWNER's catalog: steps run as them. The presser's session only
     // stands in when the presser IS the owner (the core decides that).
     const ownerId = a?.userId || req.session.user.id;
@@ -68,7 +68,7 @@ async function checkBeforeLive(req, a, definition, deps) {
  * sharing). `deps.access` is automation/access.js's guard; without it (a
  * direct handler test) the owner alone. Answers null after writing the 403.
  */
-async function editAccess(req, res, a, deps) {
+async function editAccess(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, a, deps) {
     if (deps.access) return deps.access.guard(req, res, a, 'edit');
     if (a.userId === req.session.user.id) return { role: 'owner', via: 'owner' };
     res.status(403).json({ error: 'Forbidden' });
@@ -89,7 +89,7 @@ function forViewer(automation, access) {
  * automation): only switches it back on; pending changes stay pending — going
  * live with them is POST /:id/publish.
  */
-async function activateAutomation(req, res, deps) {
+async function activateAutomation(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, deps) {
     const store = deps.store || automationStore;
     const a = await store.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -128,7 +128,7 @@ async function activateAutomation(req, res, deps) {
  * (goLive.convergeAfterPublish). A paused automation stays paused; a never-live
  * one becomes live without being switched on.
  */
-async function publishAutomation(req, res, deps) {
+async function publishAutomation(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, deps) {
     const store = deps.store || automationStore;
     const a = await store.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });

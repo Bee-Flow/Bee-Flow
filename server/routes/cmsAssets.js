@@ -104,6 +104,7 @@ async function handleUpload(req, res) {
     // can serve it inline instead of force-downloading. A bad SVG
     // (parse fails, no <svg> root) returns 400 here.
     let body = req.file.buffer;
+    /** @type {{ sanitized: string; } | null} */
     let metadata = null;
     let contentType = req.file.mimetype;
     // Captions (.vtt): browsers label them '', text/plain or octet-stream, so
@@ -198,8 +199,8 @@ async function sendStoredVariant(res, key, width, format, cacheHeaders) {
         return true;
     } catch (err) {
         // No stored variant (older upload, or not made yet): render on demand.
-        if (err.name !== 'NoSuchKey' && err.$metadata?.httpStatusCode !== 404) {
-            log.warn(`[CmsVariants] stored variant of ${key} unreadable: ${err.message}`);
+        if (/** @type {Error} */ (err).name !== 'NoSuchKey' && err.$metadata?.httpStatusCode !== 404) {
+            log.warn(`[CmsVariants] stored variant of ${key} unreadable: ${/** @type {Error} */ (err).message}`);
         }
         return false;
     }
@@ -308,7 +309,7 @@ async function serveAsset(req, res) {
         if (contentLength) res.setHeader('Content-Length', contentLength);
         sendStream(stream, res);
     } catch (err) {
-        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+        if (/** @type {Error} */ (err).name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'Asset not found' });
         }
         throw err;

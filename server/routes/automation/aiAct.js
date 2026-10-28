@@ -237,9 +237,10 @@ function makeAiActRouter(overrides = {}) {
         if (!loaded) return;
         const { a } = loaded;
         const def = a.definition || {};
+        /** @type {{ ok: boolean; errors: object[]; warnings: object[]; } | { ok: boolean; errors: { code: string; path: string; message: string; }[]; }} */
         let validation;
         try { validation = validateDefinition(def); }
-        catch (e) { validation = { ok: false, errors: [{ code: 'shape.unreadable', path: '', message: e.message }] }; }
+        catch (e) { validation = { ok: false, errors: [{ code: 'shape.unreadable', path: '', message: /** @type {Error} */ (e).message }] }; }
         const runs = await Promise.resolve(store().getRunsForAutomation(a.id, { limit: RUNS_FOR_LAST_TEST })).catch((e) => fallback('routes/automation/aiAct:makeAiActRouter', e, []));
         const state = await aiActState(a, def);
         res.json(computeReadiness({ automation: a, validation, runs, aiAct: aiActCheck.publicState(state) }));

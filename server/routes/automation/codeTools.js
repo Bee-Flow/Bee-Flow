@@ -74,7 +74,7 @@ function makeCodeToolsRouter(overrides = {}) {
      * The automation the call is about, when it names one; `false` after a 403/404 was sent.
      * @param {string} need
      */
-    async function automationFor(req, res, need) {
+    async function automationFor(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, need) {
         const id = req.body.automationId;
         if (!id) return null;
         const a = await store().getAutomation(id);

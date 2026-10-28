@@ -69,13 +69,13 @@ async function provisionForm(automation, definition) {
     ];
     for (const triggerStepId of pages) {
         try { await automationStore.ensureFormPage(automation.id, triggerStepId); }
-        catch (e) { log.warn(`[automation restore] form page for ${automation.id}: ${e.message}`); }
+        catch (e) { log.warn(`[automation restore] form page for ${automation.id}: ${/** @type {Error} */ (e).message}`); }
     }
     let out;
     try {
         out = await formAnswers.ensureAnswersTable(automation, definition);
     } catch (e) {
-        log.warn(`[automation restore] answers table for ${automation.id}: ${e.message}`);
+        log.warn(`[automation restore] answers table for ${automation.id}: ${/** @type {Error} */ (e).message}`);
         out = { table: null, error: { code: 'provision_failed', message: 'The answers table could not be updated; saving the automation again retries it.' } };
     }
     if (!out) return { answers: null, usage: [] };
@@ -176,10 +176,11 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     // the restore before anything is written, like any other part of a
     // stored version that no longer validates.
     const columns = triggerColumnsFromDefinition(version.definition);
+    /** @type {string | null} */
     let nextRunAt = null;
     if (columns.triggerType === 'schedule' && columns.scheduleCron) {
         try { nextRunAt = cron.nextRunAt(columns.scheduleCron, columns.scheduleTz, Date.now()); }
-        catch (e) { return res.status(400).json({ error: `Stored version no longer validates: its schedule "${columns.scheduleCron}" does not parse (${e.message}).` }); }
+        catch (e) { return res.status(400).json({ error: `Stored version no longer validates: its schedule "${columns.scheduleCron}" does not parse (${/** @type {Error} */ (e).message}).` }); }
         if (!nextRunAt) return res.status(400).json({ error: `Stored version no longer validates: its schedule "${columns.scheduleCron}" has no upcoming run time.` });
     }
 
@@ -216,11 +217,11 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
         if ((hasAppEventTrigger(def) || hasAppEventTrigger(a.definition))
             && appEventFingerprint(def) !== appEventFingerprint(a.definition)) {
             try { await syncAppEventSubscription(a.id, ownerId, def); }
-            catch (e) { log.warn(`[automation restore] subscription re-sync failed for ${a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation restore] subscription re-sync failed for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         if (scheduleFingerprint(def) !== scheduleFingerprint(a.definition)) {
             try { await syncSchedules(a.id, def); }
-            catch (e) { log.warn(`[automation restore] schedule re-sync failed for ${a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation restore] schedule re-sync failed for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         }
     }
     res.json({ automation: projectForViewer(updated, access), restoredFromVersion: version.version, ...(answers ? { answers } : {}) });

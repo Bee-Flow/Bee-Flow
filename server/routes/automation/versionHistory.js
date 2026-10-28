@@ -78,6 +78,9 @@ function makeVersionHistoryHandlers(deps) {
     const resolveNames = deps.resolveNames || defaultResolveNames;
     const log = deps.log || require('../../telemetry/log');
 
+    /**
+     * @param {string} need
+     */
     async function load(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, need) {
         const a = await store.getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
@@ -107,6 +110,7 @@ function makeVersionHistoryHandlers(deps) {
      * working and live copies, which are on the automation itself.
      */
     async function resolveRef(a, ref) {
+        /** @type {number | null} */
         let n = null;
         let row = null;
         if (ref === 'live') {
@@ -134,7 +138,7 @@ function makeVersionHistoryHandlers(deps) {
         const rows = await store.listVersions(a.id);
         let runs = null;
         try { runs = await store.countRunsByVersion(a.id); }
-        catch (e) { log.warn(`[automation versions] run counts for ${a.id}: ${e.message}`); }
+        catch (e) { log.warn(`[automation versions] run counts for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         const versions = rows.map((r) => ({
             ...r,
             savedBy: r.savedBy || { id: r.savedByUserId || null, name: r.savedByName || null },
@@ -175,7 +179,7 @@ function makeVersionHistoryHandlers(deps) {
             try {
                 const names = await resolveNames({ agent: [...new Set([...agentIdsOf(base.definition), ...agentIdsOf(target.definition)])] });
                 changes = fieldDiff(base.definition, target.definition, { names, fullText: true });
-            } catch (e) { log.warn(`[automation versions] agent names for ${a.id}: ${e.message}`); }
+            } catch (e) { log.warn(`[automation versions] agent names for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         const layoutOnly = changes.length === 0 && isLayoutOnlyChange(base.definition, target.definition);
         const described = describeChange(changes, { reordered: changes.length === 0 && !layoutOnly });

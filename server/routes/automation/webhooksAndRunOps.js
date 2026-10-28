@@ -19,7 +19,7 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 /**
  * @param {string} need
  */
-const runAccess = (req, res, run, need) => automationAccess.runGuard(req, res, run, need);
+const runAccess = (req, /** @type {import('express').Response} */ res, run, need) => automationAccess.runGuard(req, res, run, need);
 
 // Per-user throttle for the run-spawning endpoints (retry re-executes a run;
 // agent-invoke runs an agent-callable automation). Same budget as the other
