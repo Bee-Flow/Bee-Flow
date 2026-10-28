@@ -164,12 +164,17 @@ test('run statistics: live, not tests, journey heads only; waiting counts whenev
     assert.equal((await store.digestRunStats({ automationIds: [], since: at(0) })).size, 0);
 });
 
-test('the purge drops rows older than the retention', async () => {
+test('the purge drops rows older than the retention and keeps recent ones', async () => {
+    // The other tests write rows at a fixed T0, which falls past the retention
+    // once the calendar moves on; count those instead of assuming none exist.
+    const stale = await pg.query(`SELECT COUNT(*)::int AS n FROM automation_notification_events
+                                  WHERE created_at < NOW() - INTERVAL '30 days'`);
     await pg.query(`INSERT INTO automation_notification_events (id, automation_id, event, recipient_user_id, channel, created_at)
-                    VALUES ('old1', 'a1', 'onError', 'owner', 'bell', NOW() - INTERVAL '40 days')`);
-    assert.equal(await store.purgeNotificationEvents({ days: 30 }), 1);
-    const left = await pg.query(`SELECT COUNT(*)::int AS n FROM automation_notification_events WHERE id = 'old1'`);
-    assert.equal(left.rows[0].n, 0);
+                    VALUES ('old1', 'a1', 'onError', 'owner', 'bell', NOW() - INTERVAL '40 days'),
+                           ('new1', 'a1', 'onError', 'owner', 'bell', NOW() - INTERVAL '1 day')`);
+    assert.equal(await store.purgeNotificationEvents({ days: 30 }), stale.rows[0].n + 1);
+    const left = await pg.query(`SELECT id FROM automation_notification_events WHERE id IN ('old1', 'new1') ORDER BY id`);
+    assert.deepEqual(left.rows.map((r) => r.id), ['new1']);
 });
 
 test('rows without the required fields are not written', async () => {
