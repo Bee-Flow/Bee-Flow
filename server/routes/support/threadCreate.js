@@ -173,15 +173,14 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
 }
 
 /**
- * @typedef {Object} AnnounceCreatedArgs
- * @property {SupportThread} thread
- * @property {string} requesterUrl
- * @property {string} effectiveSource
- * @property {unknown} firstMsg
- * @property {unknown} requesterEmail
- * @property {unknown} requesterName
- * @property {unknown} subject
- * @property {unknown} skipOutboundEmail
+ * @typedef {{ thread: SupportThread,
+ *   requesterUrl: string,
+ *   effectiveSource: string,
+ *   firstMsg: unknown,
+ *   requesterEmail: unknown,
+ *   requesterName: unknown,
+ *   subject: unknown,
+ *   skipOutboundEmail: unknown }} AnnounceCreatedArgs
  */
 /**
  * The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket.
