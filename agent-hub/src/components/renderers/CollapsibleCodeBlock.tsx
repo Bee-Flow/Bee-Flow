@@ -97,25 +97,11 @@ export const CollapsibleCodeBlock = ({ className, children, ...props }: import('
     }
 
     return (
-        <div style={{
-            borderRadius: '8px',
-            overflow: 'hidden',
-            margin: '0.4rem 0',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            background: '#1e1e2e',
-        }}>
+        <div className="[border-radius:8px] [overflow:hidden] [margin:0.4rem_0] [border:1px_solid_rgba(255,_255,_255,_0.08)] [background:#1e1e2e]">
             {/* Header bar */}
-            <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '4px 10px',
-                background: 'rgba(255,255,255,0.05)',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                fontSize: '11px', fontWeight: 600,
-                color: '#94a3b8',
-                userSelect: 'none',
-            }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ opacity: 0.6 }}>●</span>
+            <div className="[display:flex] [align-items:center] [justify-content:space-between] [padding:4px_10px] [background:rgba(255,255,255,0.05)] [border-bottom:1px_solid_rgba(255,255,255,0.06)] [font-size:11px] [font-weight:600] [color:#94a3b8] [user-select:none]">
+                <span className="[display:flex] [align-items:center] [gap:5px]">
+                    <span className="[opacity:0.6]">●</span>
                     {displayLang || 'Code'}
                 </span>
                 <button
@@ -151,7 +137,7 @@ export const CollapsibleCodeBlock = ({ className, children, ...props }: import('
             </div>
 
             {/* Code content */}
-            <div style={{ position: 'relative' }}>
+            <div className="[position:relative]">
                 <pre ref={codeRef} className="hljs" style={{
                     maxHeight: needsCollapse && !expanded ? `${COLLAPSE_HEIGHT}px` : 'none',
                     overflow: 'auto',
@@ -172,24 +158,12 @@ export const CollapsibleCodeBlock = ({ className, children, ...props }: import('
                     )}
                 </pre>
                 {needsCollapse && !expanded && (
-                    <div style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0, height: '50px',
-                        background: 'linear-gradient(transparent, #1e1e2e)',
-                        pointerEvents: 'none',
-                    }} />
+                    <div className="[position:absolute] [bottom:0] [left:0] [right:0] [height:50px] [background:linear-gradient(transparent,_#1e1e2e)] [pointer-events:none]" />
                 )}
             </div>
             {needsCollapse && (
                 <button onClick={() => setExpanded((e: boolean) => !e)}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        width: '100%', padding: '3px 0',
-                        border: 'none', background: 'rgba(255,255,255,0.03)', cursor: 'pointer',
-                        fontSize: '11px', fontWeight: 600,
-                        color: 'var(--accent-primary)',
-                        justifyContent: 'center',
-                        borderTop: '1px solid var(--border-subtle)',
-                    }}>
+                    className="[display:flex] [align-items:center] [gap:4px] [width:100%] [padding:3px_0] [border:none] [background:rgba(255,255,255,0.03)] [cursor:pointer] [font-size:11px] [font-weight:600] [color:var(--accent-primary)] [justify-content:center] [border-top:1px_solid_var(--border-subtle)]">
                     {expanded ? '▲ Show less' : '▼ Show more'}
                 </button>
             )}

@@ -7212,9 +7212,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
     }

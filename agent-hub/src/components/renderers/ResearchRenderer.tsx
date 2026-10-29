@@ -50,18 +50,9 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                 <img
                                     src={block.image}
                                     alt=""
-                                    style={{
-                                        width: '100%',
-                                        height: '240px',
-                                        objectFit: 'cover',
-                                        display: 'block'
-                                    }}
+                                    className="[width:100%] [height:240px] [object-fit:cover] [display:block]"
                                 />
-                                <div style={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)'
-                                }} />
+                                <div className="[position:absolute] [inset:0] [background:linear-gradient(to_top,_rgba(0,0,0,0.85)_0%,_rgba(0,0,0,0.3)_50%,_rgba(0,0,0,0.1)_100%)]" />
                             </>
                         )}
                         <div style={{
@@ -80,24 +71,12 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                 {block.title || data.title}
                             </h1>
                             {block.subtitle && (
-                                <p style={{
-                                    fontSize: '1rem',
-                                    color: 'rgba(255,255,255,0.75)',
-                                    margin: '0.5rem 0 0',
-                                    fontWeight: '400',
-                                    lineHeight: 1.5
-                                }}>
+                                <p className="[font-size:1rem] [color:rgba(255,255,255,0.75)] [margin:0.5rem_0_0] [font-weight:400] [line-height:1.5]">
                                     {block.subtitle}
                                 </p>
                             )}
                             {block.date && (
-                                <span style={{
-                                    display: 'inline-block',
-                                    marginTop: '0.75rem',
-                                    fontSize: '0.75rem',
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontWeight: '500'
-                                }}>
+                                <span className="[display:inline-block] [margin-top:0.75rem] [font-size:0.75rem] [color:rgba(255,255,255,0.5)] [font-weight:500]">
                                     {block.date}
                                 </span>
                             )}
@@ -109,7 +88,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
             case 'markdown':
             case 'text':
                 return (
-                    <div key={key} style={{ marginBottom: '1.25rem' }}>
+                    <div key={key} className="[margin-bottom:1.25rem]">
                         <MarkdownRenderer content={block.content || block.text || ''} />
                     </div>
                 );
@@ -117,7 +96,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
             // ====== IMAGE ======
             case 'image':
                 return (
-                    <figure key={key} style={{ margin: '1.5rem 0' }}>
+                    <figure key={key} className="[margin:1.5rem_0]">
                         <img
                             src={block.src || block.url}
                             alt={block.alt || block.caption || ''}
@@ -132,16 +111,10 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                             }}
                         />
                         {(block.caption || block.credit) && (
-                            <figcaption style={{
-                                marginTop: '0.5rem',
-                                fontSize: '0.8rem',
-                                color: 'var(--text-muted, #888)',
-                                textAlign: 'center',
-                                fontStyle: 'italic'
-                            }}>
+                            <figcaption className="[margin-top:0.5rem] [font-size:0.8rem] [color:var(--text-muted,_#888)] [text-align:center] [font-style:italic]">
                                 {block.caption}
                                 {block.credit && (
-                                    <span style={{ opacity: 0.7 }}> — {block.credit}</span>
+                                    <span className="[opacity:0.7]"> — {block.credit}</span>
                                 )}
                             </figcaption>
                         )}
@@ -153,22 +126,10 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                 const sources = block.items || [];
                 if (sources.length === 0) return null;
                 return (
-                    <div key={key} style={{ marginBottom: '1.25rem' }}>
+                    <div key={key} className="[margin-bottom:1.25rem]">
                         <button
                             onClick={() => setCollapsedSources(!collapsedSources)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '0.85rem',
-                                fontWeight: '600',
-                                color: 'var(--text-primary, #fff)',
-                                padding: '0.5rem 0',
-                                marginBottom: '0.5rem'
-                            }}
+                            className="[display:flex] [align-items:center] [gap:0.5rem] [background:none] [border:none] [cursor:pointer] [font-size:0.85rem] [font-weight:600] [color:var(--text-primary,_#fff)] [padding:0.5rem_0] [margin-bottom:0.5rem]"
                         >
                             {collapsedSources
                                 ? <ChevronRight className="w-4 h-4" />
@@ -176,29 +137,14 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                             📚 {t('chat.renderers.research_sources', 'Sources ({count})', { count: sources.length })}
                         </button>
                         {!collapsedSources && (
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                gap: '0.75rem'
-                            }}>
+                            <div className="[display:grid] [grid-template-columns:repeat(auto-fill,_minmax(280px,_1fr))] [gap:0.75rem]">
                                 {sources.map((src, i) => (
                                     <a
                                         key={i}
                                         href={src.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.75rem',
-                                            padding: '0.75rem 1rem',
-                                            borderRadius: '0.75rem',
-                                            background: 'var(--bg-tertiary, rgba(255,255,255,0.05))',
-                                            border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                                            textDecoration: 'none',
-                                            transition: 'all 0.15s ease',
-                                            cursor: 'pointer'
-                                        }}
+                                        className="[display:flex] [align-items:center] [gap:0.75rem] [padding:0.75rem_1rem] [border-radius:0.75rem] [background:var(--bg-tertiary,_rgba(255,255,255,0.05))] [border:1px_solid_var(--border-subtle,_rgba(255,255,255,0.1))] [text-decoration:none] [transition:all_0.15s_ease] [cursor:pointer]"
                                         onMouseEnter={e => {
                                             e.currentTarget.style.background = 'var(--bg-secondary, rgba(255,255,255,0.08))';
                                             e.currentTarget.style.borderColor = 'var(--accent-primary, #6366f1)';
@@ -214,32 +160,19 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                             <img
                                                 src={getFavicon(src.url) as string}
                                                 alt=""
-                                                style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0 }}
+                                                className="[width:20px] [height:20px] [border-radius:4px] [flex-shrink:0]"
                                                 onError={e => (e.target as HTMLImageElement).style.display = 'none'}
                                             />
                                         )}
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div style={{
-                                                fontSize: '0.8rem',
-                                                fontWeight: '500',
-                                                color: 'var(--text-primary, #fff)',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>
+                                        <div className="[min-width:0] [flex:1]">
+                                            <div className="[font-size:0.8rem] [font-weight:500] [color:var(--text-primary,_#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                                                 {src.title || getDomain(src.url)}
                                             </div>
-                                            <div style={{
-                                                fontSize: '0.7rem',
-                                                color: 'var(--text-muted, #888)',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>
+                                            <div className="[font-size:0.7rem] [color:var(--text-muted,_#888)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                                                 {getDomain(src.url)}
                                             </div>
                                         </div>
-                                        <ExternalLink style={{ width: 14, height: 14, color: 'var(--text-muted, #888)', flexShrink: 0 }} />
+                                        <ExternalLink className="[width:14px] [height:14px] [color:var(--text-muted,_#888)] [flex-shrink:0]" />
                                     </a>
                                 ))}
                             </div>
@@ -270,7 +203,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                         <div style={{ color: cs.color, flexShrink: 0, marginTop: '2px' }}>
                             {cs.icon}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="[flex:1] [min-width:0]">
                             {block.title && (
                                 <div style={{
                                     fontWeight: '600',
@@ -281,11 +214,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                     {block.title}
                                 </div>
                             )}
-                            <div style={{
-                                fontSize: '0.85rem',
-                                color: 'var(--text-secondary, #ccc)',
-                                lineHeight: 1.6
-                            }}>
+                            <div className="[font-size:0.85rem] [color:var(--text-secondary,_#ccc)] [line-height:1.6]">
                                 {block.content || block.text}
                             </div>
                         </div>
@@ -302,13 +231,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                         marginBottom: '1.5rem'
                     }}>
                         {(block.items || []).map((stat, i) => (
-                            <div key={i} style={{
-                                background: 'var(--bg-tertiary, rgba(255,255,255,0.05))',
-                                borderRadius: '0.75rem',
-                                padding: '1.25rem 1rem',
-                                textAlign: 'center',
-                                border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))'
-                            }}>
+                            <div key={i} className="[background:var(--bg-tertiary,_rgba(255,255,255,0.05))] [border-radius:0.75rem] [padding:1.25rem_1rem] [text-align:center] [border:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))]">
                                 <div style={{
                                     fontSize: '1.5rem',
                                     fontWeight: '800',
@@ -319,14 +242,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                 }}>
                                     {stat.value}
                                 </div>
-                                <div style={{
-                                    fontSize: '0.75rem',
-                                    color: 'var(--text-muted, #888)',
-                                    marginTop: '0.35rem',
-                                    fontWeight: '500',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>
+                                <div className="[font-size:0.75rem] [color:var(--text-muted,_#888)] [margin-top:0.35rem] [font-weight:500] [text-transform:uppercase] [letter-spacing:0.5px]">
                                     {stat.label}
                                 </div>
                             </div>
@@ -353,28 +269,15 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
             // ====== DIVIDER ======
             case 'divider':
                 return (
-                    <hr key={key} style={{
-                        border: 'none',
-                        height: '1px',
-                        background: 'linear-gradient(90deg, transparent, var(--border-subtle, rgba(255,255,255,0.15)), transparent)',
-                        margin: '1.5rem 0'
-                    }} />
+                    <hr key={key} className="[border:none] [height:1px] [background:linear-gradient(90deg,_transparent,_var(--border-subtle,_rgba(255,255,255,0.15)),_transparent)] [margin:1.5rem_0]" />
                 );
 
             // ====== SECTION (titled wrapper) ======
             case 'section':
                 return (
-                    <div key={key} style={{ marginBottom: '1.5rem' }}>
+                    <div key={key} className="[margin-bottom:1.5rem]">
                         {block.title && (
-                            <h2 style={{
-                                fontSize: '1.25rem',
-                                fontWeight: '700',
-                                color: 'var(--text-primary, #fff)',
-                                marginBottom: '1rem',
-                                paddingBottom: '0.5rem',
-                                borderBottom: '2px solid transparent',
-                                borderImage: 'linear-gradient(90deg, #8b5cf6, #6366f1, transparent) 1'
-                            }}>
+                            <h2 className="[font-size:1.25rem] [font-weight:700] [color:var(--text-primary,_#fff)] [margin-bottom:1rem] [padding-bottom:0.5rem] [border-bottom:2px_solid_transparent] [border-image:linear-gradient(90deg,_#8b5cf6,_#6366f1,_transparent)_1]">
                                 {block.title}
                             </h2>
                         )}
@@ -386,7 +289,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                 // Fallback: if block has content, render as markdown
                 if (block.content || block.text) {
                     return (
-                        <div key={key} style={{ marginBottom: '1rem' }}>
+                        <div key={key} className="[margin-bottom:1rem]">
                             <MarkdownRenderer content={block.content || block.text} />
                         </div>
                     );
@@ -396,30 +299,10 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
     };
 
     return (
-        <div style={{
-            width: '100%',
-            maxWidth: '100%',
-            overflow: 'hidden',
-            whiteSpace: 'normal',
-            fontFamily: 'var(--font-sans)',
-            margin: '0.5rem 0',
-            borderRadius: '1rem',
-            background: 'var(--bg-primary, #0a0a1a)',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            padding: '1.5rem',
-            boxSizing: 'border-box'
-        }}>
+        <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)] [margin:0.5rem_0] [border-radius:1rem] [background:var(--bg-primary,_#0a0a1a)] [border:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))] [padding:1.5rem] [box-sizing:border-box]">
             {/* If no hero block, show a simple title */}
             {data.title && !data.blocks.some((b: ResearchBlock) => b.type === 'hero') && (
-                <h1 style={{
-                    fontSize: '1.5rem',
-                    fontWeight: '800',
-                    color: 'var(--text-primary, #fff)',
-                    marginBottom: '1.5rem',
-                    paddingBottom: '0.75rem',
-                    borderBottom: '2px solid transparent',
-                    borderImage: 'linear-gradient(90deg, #8b5cf6, #6366f1, transparent) 1'
-                }}>
+                <h1 className="[font-size:1.5rem] [font-weight:800] [color:var(--text-primary,_#fff)] [margin-bottom:1.5rem] [padding-bottom:0.75rem] [border-bottom:2px_solid_transparent] [border-image:linear-gradient(90deg,_#8b5cf6,_#6366f1,_transparent)_1]">
                     {data.title}
                 </h1>
             )}

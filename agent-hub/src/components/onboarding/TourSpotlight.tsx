@@ -22,7 +22,7 @@ export function TourSpotlight({ rect }: { rect: TargetRect | null }) {
             }}
         />
     ) : (
-        <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'rgba(8, 9, 15, 0.62)', zIndex: 9998 }} />
+        <div aria-hidden="true" className="[position:fixed] [inset:0] [background:rgba(8,_9,_15,_0.62)] [z-index:9998]" />
     );
 }
 

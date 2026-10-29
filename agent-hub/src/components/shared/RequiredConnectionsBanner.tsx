@@ -35,7 +35,7 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
     return (
         <div className="rounded-lg px-3 py-2 text-[12px] flex items-start gap-2"
             style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', color: 'var(--text-primary)' }}>
-            <AlertCircle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+            <AlertCircle size={14} className="[color:#d97706] [flex-shrink:0] [margin-top:1px]" />
             <span>
                 {t('connections.required_connect_in', 'Connect {providers} in', { providers: required.map(r => r.provider).join(', ') })}{' '}
                 <a href={settingsPathForTab('integrations')} className="underline text-[var(--accent-primary)]">{t('connections.required_settings_link', 'Settings → Connections')}</a>{' '}

@@ -315,7 +315,7 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }: U
             <span role="cell" className="text-[var(--text-secondary)]">{when}</span>
             <span role="cell" className="inline-flex justify-end">
                 {navigable && (
-                    <ArrowUpRight style={{ width: 13, height: 13, color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <ArrowUpRight className="[width:13px] [height:13px] [color:var(--text-tertiary)]" aria-hidden="true" />
                 )}
             </span>
         </div>
