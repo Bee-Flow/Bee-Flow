@@ -80,7 +80,7 @@ router.use(requireAuth);
  * body mirrors sendAgentNotEditable in routes/agents/crud.js so clients can
  * translate it and flip into read-only mode.
  */
-async function requireEditableAgent(req, res) {
+async function requireEditableAgent(req, /** @type {import('express').Response} */ res) {
     const agent = await agentStore.getAgent(req.params.agentId);
     if (!agent) {
         res.status(404).json({ error: 'Agent not found' });

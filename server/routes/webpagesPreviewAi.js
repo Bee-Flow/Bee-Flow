@@ -96,7 +96,7 @@ function logBridgeUsage(ctx, webpageId, modelId, fields, t0) {
 }
 
 // POST /:id/ai/chat
-async function chat(req, res) {
+async function chat(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAiContext(webpageId, res);
     if (!ctx) return;
@@ -129,7 +129,7 @@ async function chat(req, res) {
 }
 
 // POST /:id/ai/stream
-async function stream(req, res) {
+async function stream(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAiContext(webpageId, res);
     if (!ctx) return;

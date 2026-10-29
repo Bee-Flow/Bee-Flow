@@ -22,7 +22,7 @@ function cookieName(threadId) {
 }
 
 /** The thread's access token from the Cookie header, or null. */
-function readCookieToken(req, threadId) {
+function readCookieToken(/** @type {import('express').Request} */ req, threadId) {
     const name = cookieName(threadId);
     const header = req.headers && req.headers.cookie;
     if (!name || typeof header !== 'string') return null;
@@ -45,7 +45,7 @@ function setNoLeakHeaders(res) {
     res.setHeader('Cache-Control', 'no-store');
 }
 
-function setRequesterCookie(req, res, threadId, token) {
+function setRequesterCookie(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, threadId, token) {
     const name = cookieName(threadId);
     if (!name) return;
     const secure = req.secure || process.env.NODE_ENV === 'production';

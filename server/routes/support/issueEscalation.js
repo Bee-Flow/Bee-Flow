@@ -15,7 +15,7 @@ const { ok, publicLink, credsFor } = require('./issueLinkHandlers');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /** Link the issue an escalation names, as `escalated`; a 404 answer when it does not exist. */
-async function linkEscalatedIssue(req, res, { thread, issueId, reason, userId }) {
+async function linkEscalatedIssue(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, { thread, issueId, reason, userId }) {
     const creds = await credsFor(req);
     const issue = creds ? await ytc.getIssue(creds, issueId).catch((e) => fallback('routes/support/issueEscalation:linkEscalatedIssue', e, null)) : null;
     if (creds && !issue) {
@@ -41,7 +41,7 @@ async function linkEscalatedIssue(req, res, { thread, issueId, reason, userId })
  * or creates in the same step so escalating and "create issue" share a spine
  * instead of forking into two half-audited paths.
  */
-async function escalate(req, res) {
+async function escalate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const thread = await supportStore.getThread(req.params.id);
     if (!thread) return res.status(404).json({ error: 'thread not found' });
     const { reason } = req.body;
@@ -90,12 +90,12 @@ async function escalate(req, res) {
 
 // ── Chat notifications ────────────────────────────────────────────────────
 
-async function getNotifications(req, res) {
+async function getNotifications(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const chat = require('../../services/outboundChatNotifier');
     res.json(await chat.getPublicSettings());
 }
 
-async function saveNotifications(req, res) {
+async function saveNotifications(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const chat = require('../../services/outboundChatNotifier');
     const { webhookUrl, provider, enabled, events } = req.body;
     if (webhookUrl !== undefined) {
@@ -130,7 +130,7 @@ async function saveNotifications(req, res) {
     ok(res, { settings: await chat.getPublicSettings() });
 }
 
-async function testNotification(req, res) {
+async function testNotification(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const result = await require('../../services/outboundChatNotifier').sendTest();
     // Report what the endpoint actually said. "Test failed" with no detail is
     // the reason nobody trusts a test button.
@@ -138,7 +138,7 @@ async function testNotification(req, res) {
     ok(res, {});
 }
 
-async function followupDone(req, res) {
+async function followupDone(req, /** @type {import('express').Response} */ res) {
     const cleared = await supportStore.clearFollowup(req.params.id);
     if (!cleared) return res.status(404).json({ error: 'no follow-up pending' });
     supportStore.recordThreadEvent({

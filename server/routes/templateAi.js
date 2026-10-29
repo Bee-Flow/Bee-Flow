@@ -46,6 +46,11 @@ function extractParameters(text) {
         /** @type {string} */
         /** @type {string} */
         /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
+        /** @type {string} */
         let name, description;
         if (colonIdx > 0) {
             name = raw.slice(0, colonIdx).trim();
