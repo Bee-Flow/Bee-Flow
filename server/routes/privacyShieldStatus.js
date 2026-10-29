@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Privacy Shield status — one small, authenticated summary for the UI claims.
  *
@@ -127,7 +128,9 @@ const OFF = Object.freeze({
 });
 
 // ── Guard reachability, memoised ─────────────────────────────────────
+/** @type {{ reachable: boolean; at: number; } | null} */
 let _guardMemo = null;     // { reachable, at }
+/** @type {Promise<boolean> | null} */
 let _guardInflight = null; // concurrent polls share one probe
 
 async function _probeGuard() {
@@ -186,6 +189,7 @@ function summarizeShield({ aiConfig, orgShield, userShield, orgId, coworkFlagOn,
     const platformOn = !!aiConfig?.piiDetectionEnabled;
     let enabled = platformOn || !!shield?.enabled;
 
+    /** @type {string | null} */
     let action = null;
     if (enabled) {
         if (shield?.enabled && shield?.dlpEnabled) {
@@ -276,7 +280,7 @@ router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {im
     } catch (err) {
         // Degrade, never 500: the detail stays server-side and the UI gets
         // the one answer that is safe to be wrong about — no claim.
-        log.warn('[PrivacyShieldStatus] status resolution failed:', err && err.message);
+        log.warn('[PrivacyShieldStatus] status resolution failed:', err && /** @type {Error} */ (err).message);
         status = OFF;
     }
     // A claim cached by a proxy is exactly the stale green lock this route

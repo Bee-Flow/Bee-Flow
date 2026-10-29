@@ -24,7 +24,7 @@ const { fallback } = require('../../../utils/bestEffort');
 /**
  * @param {string} name
  */
-const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
+const dep = (/** @type {Record<string, unknown>} */ deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const BUSY_STATUSES = Object.freeze(['awaiting_approval', 'queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);
 const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
 
@@ -116,7 +116,7 @@ function resolveDeps(deps = {}) {
 // ── Small shared helpers ───────────────────────────────────────────────────────
 
 /** Run a gate middleware by hand: true when it let the request through. */
-function passes(gate, req, res) {
+function passes(gate, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     return new Promise((resolve, reject) => {
         let settled = false;
         const next = (err) => { if (settled) return; settled = true; if (err) reject(err); else resolve(true); };
@@ -134,7 +134,7 @@ function passes(gate, req, res) {
  */
 function gate(d, feature, /** @type {((req: import('express').Request) => boolean) | null} */ when = null) {
     let mw = null;
-    return async function stageFeatureGate(req, res, next) {
+    return async function stageFeatureGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         if (when && !when(req)) return next();
         if (!mw) mw = d.requireFeature(feature);
         if (await passes(mw, req, res)) next();
@@ -149,7 +149,7 @@ function authMw(d, opts) {
     /**
      * @param {() => void} next
      */
-    return async function stageAuthMw(req, _res, next) {
+    return async function stageAuthMw(/** @type {import('express').Request} */ req, _res, next) {
         await stageAuth(req, opts, d);
         next();
     };
@@ -282,7 +282,7 @@ async function listParts(d, stage) {
 }
 
 /** The addresses that reach a stage from outside; a webhook slug is a credential, so only for the owner. */
-async function inboundFor(d, req, parts, { includeWebhooks }) {
+async function inboundFor(d, /** @type {import('express').Request} */ req, parts, { includeWebhooks }) {
     const out = [];
     const base = d.publicBaseUrl(req);
     for (const { row, shape } of parts) {
@@ -395,7 +395,7 @@ const settled = async (fn, what) => {
 
 function makeStageHandlers(d) {
     /** GET /:id/pipeline */
-    async function pipeline(req, res) {
+    async function pipeline(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const hasDev = !!ctx.devRole;
         const rows = await d.stageStore.listStages(ctx.dev.id);
@@ -416,7 +416,7 @@ function makeStageHandlers(d) {
     }
 
     /** POST /:id/stages */
-    async function createStages(req, res) {
+    async function createStages(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const { dev, userId } = ctx;
         if (dev.kind == null || dev.kindGuessed === true) {
@@ -438,7 +438,7 @@ function makeStageHandlers(d) {
     }
 
     /** DELETE /:id/stages/:stage and POST /api/solution-stages/:stageProjectId/detach */
-    async function removeStage(req, res) {
+    async function removeStage(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const { dev, stage, userId } = ctx;
         const stageProject = await d.projectStore.getProject(stage.projectId);
@@ -470,7 +470,7 @@ function makeStageHandlers(d) {
     }
 
     /** GET /:id/stages/:stage and GET /api/solution-stages/:stageProjectId */
-    async function getStage(req, res) {
+    async function getStage(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const { stage, dev } = ctx;
         const parts = await listParts(d, stage);

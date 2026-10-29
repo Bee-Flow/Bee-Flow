@@ -180,6 +180,9 @@ function makeMembersRouter(deps) {
         const orgId = await projectOrgOf(project);
         if (!orgId) return res.json({ users: [], groups: [] });
         const needle = String(req.query.q || '').trim().toLowerCase();
+        /**
+         * @param {string} label
+         */
         const matches = (label) => !needle || String(label).toLowerCase().includes(needle);
 
         const members = await Promise.resolve(userStore.getOrgMembersForDirectory(orgId)).catch((err) => {

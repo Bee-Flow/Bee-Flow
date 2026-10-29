@@ -169,7 +169,7 @@ const DeleteBody = bodyOf(scopeOf());
 // ─── Auth middleware ────────────────────────────────────────────
 // Mirrors the guard-service contract: if SERVICES_API_KEY is set,
 // callers must present it via X-API-Key. /health is always public.
-function apiKeyAuth(req, res, next) {
+function apiKeyAuth(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     if (req.path === '/health') return next();
     const expected = process.env.SERVICES_API_KEY;
     if (!expected) return next(); // unset → open (dev / single-node)
