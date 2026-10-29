@@ -33,7 +33,11 @@
  *   sourceText: string, otherUnits?: string[] }} input
  *   `sourceText` is retrieved material (block lists apply); `otherUnits` is
  *   what the person sent (a template to fill), scanned the same way.
- * @param {any} [deps]  test seams: getConfig, resolveShieldFor, stripInjectedText, composeScan, dlp, log
+ * @param {{ getConfig?: typeof import('../../stores/configStore').getConfig,
+ *   resolveShieldFor?: typeof import('../../core/privacy/orgShield').resolveShieldFor,
+ *   stripInjectedText?: typeof import('../../core/privacy/toolPiiGate').stripInjectedText,
+ *   composeScan?: typeof import('../../core/dlp/composeScan').composeScan,
+ *   dlp?: typeof import('../../core/dlp/dlpRunner'), log?: typeof import('../../telemetry/log') }} [deps]  test seams
  * @returns {Promise<ShieldRefusal|ShieldPass>}  the units in order: sourceText first, then otherUnits
  */
 const telemetryLog = require('../../telemetry/log');

@@ -35,13 +35,12 @@ function canonicalHtml(html) {
 }
 
 /**
- * @typedef {object} AiDocWriterOptions
- * @property {string} notebookId
- * @property {string} userId
- * @property {string} baseHtml  the document the model's view stands for (real values)
- * @property {number|null} expectedVersion  the row version the turn may write over
- * @property {any} [store]  stores/notebookStore
- * @property {() => any} [collab]  the co-editing facade, resolved per write
+ * `baseHtml` is the document the model's view stands for (real values); `expectedVersion`
+ * the row version the turn may write over; `store` stores/notebookStore; `collab` the
+ * co-editing facade, resolved per write.
+ * @typedef {{ notebookId: string, userId: string, baseHtml: string, expectedVersion: number|null,
+ *   store?: any,
+ *   collab?: () => any }} AiDocWriterOptions
  */
 
 /**

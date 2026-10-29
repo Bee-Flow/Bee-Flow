@@ -20,7 +20,7 @@
 'use strict';
 
 /**
- * @param {object} req
+ * @param {{ session?: Partial<Express.Session> }} req  the request; the access check reads its session
  * @param {{ userId: string, knowledgeBaseIds?: string[] }} notebook
  * @param {{ kbStore?: { getKB: (id: string) => Promise<any> }, partition?: (req: object, ids: string[]) => Promise<{allowed: string[], denied: string[]}> }} [deps]
  * @returns {Promise<{ allowed: string[], denied: string[] }>} ids in the notebook's order

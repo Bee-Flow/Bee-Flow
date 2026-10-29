@@ -35,9 +35,10 @@ function resolveDep(given, load) {
  * hard refusal); skills that cannot be resolved are DROPPED (returned in
  * `droppedSkillIds`, with a warning) and tool grants are clamped (`tools`).
  *
- * @param {object} agent   needs `id`, `owner_id`, `organization_id`
- * @param {object} config  the config about to be written
- * @param {object} [deps]  `kbStore`, `skillStore`, `usageContexts`, `toolPolicy`
+ * @param {{ id?: string, owner_id?: string, organization_id?: string | null }} agent
+ * @param {Record<string, unknown>} config  the config about to be written
+ * @param {{ kbStore?: unknown, skillStore?: unknown, usageContexts?: unknown, toolPolicy?: unknown }} [deps]
+ *   each a module, or a function that returns one (resolveDep)
  * @returns {Promise<{warnings: string[], droppedSkillIds: string[], tools: object|null}>}
  */
 async function validateAgentConfigReferences(agent, config, deps = {}) {
