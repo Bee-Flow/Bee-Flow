@@ -446,9 +446,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor/FlowBody.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -1521,7 +1518,7 @@
       "count": 1
     },
     "max-statements": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/Datatables/DatatableCard.tsx": {
