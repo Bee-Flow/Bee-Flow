@@ -15,7 +15,8 @@
  * Both halves are pinned here: skip the notice and the confirmation becomes a
  * lie; skip the OR and the delete deadlocks.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,13 +64,15 @@ vi.mock('@/components/shared/Toast', () => ({ toast: { error: vi.fn(), success: 
 
 import MeetingDetail from './MeetingDetail';
 
-function open() {
+async function open() {
+    const user = userEvent.setup();
     render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onDeleted={() => {}} />);
-    fireEvent.click(screen.getByText(/Delete this meeting/i));
+    await user.click(screen.getByText(/Delete this meeting/i));
 }
 
-function press() {
-    fireEvent.click(screen.getByText('Delete for good'));
+async function press() {
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Delete for good'));
 }
 
 describe('MeetingDetail — delete', () => {
@@ -80,35 +83,39 @@ describe('MeetingDetail — delete', () => {
     });
 
     it('nothing uses it and nothing was unanswered → an unconfirmed delete, and the server checks', async () => {
-        open();
+        await open();
         expect(screen.getByTestId('danger-unused')).toBeTruthy();
         expect(screen.queryByTestId('meeting-delete-unchecked')).toBeNull();
-        press();
+        await press();
         await waitFor(() => expect(deleteTranscription).toHaveBeenCalledWith('m-1', { confirmedBreaking: false }));
     });
 
     it('AN UNCHECKED KIND IS SHOWN, THE TITLE IS ASKED FOR, AND ONLY THEN IS IT CONFIRMED', async () => {
+        const user = userEvent.setup();
         usageState.unchecked = ['notebook'];
-        open();
+        await open();
         // 1. said out loud, inside the armed card, before anything is typed
         expect(screen.getByTestId('meeting-delete-unchecked').textContent).toMatch(/could not be checked/i);
         // 2. the name is demanded even though the list is empty
         const field = screen.getByLabelText('Type the name to confirm.');
-        press();
+        await press();
         expect(deleteTranscription).not.toHaveBeenCalled();
         // 3. and the request that finally goes out is CONFIRMED, so the guard
         //    cannot bounce the same unconfirmed request for ever
-        fireEvent.change(field, { target: { value: 'Weekly sync' } });
-        press();
+        await user.clear(field);
+        await user.type(field, 'Weekly sync');
+        await press();
         await waitFor(() => expect(deleteTranscription).toHaveBeenCalledWith('m-1', { confirmedBreaking: true }));
     });
 
     it('a listed dependent confirms the way it always did', async () => {
+        const user = userEvent.setup();
         usageState.usage = [{ kind: 'kb', id: 'kb-1', title: 'Sales', role: 'contains', ownerId: 'me' }];
-        open();
+        await open();
         expect(screen.getByTestId('danger-dependents')).toBeTruthy();
-        fireEvent.change(screen.getByLabelText('Type the name to confirm.'), { target: { value: 'Weekly sync' } });
-        press();
+        await user.clear(screen.getByLabelText('Type the name to confirm.'));
+        await user.type(screen.getByLabelText('Type the name to confirm.'), 'Weekly sync');
+        await press();
         await waitFor(() => expect(deleteTranscription).toHaveBeenCalledWith('m-1', { confirmedBreaking: true }));
     });
 
@@ -118,8 +125,8 @@ describe('MeetingDetail — delete', () => {
         err.code = 'in_use';
         err.body = { code: 'in_use', usage: [{ kind: 'automation', id: 'a-1', title: 'Nightly digest', role: 'read', ownerId: 'me' }], unchecked: [] };
         deleteTranscription.mockRejectedValueOnce(err);
-        open();
-        press();
+        await open();
+        await press();
         await waitFor(() => expect(screen.getByText('Nightly digest')).toBeTruthy());
         expect(screen.getByText(/type the name again/i)).toBeTruthy();
         expect(deleteTranscription).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -123,7 +123,7 @@ describe('WebpageAppsPanel — i18n', () => {
         expect(option.textContent).toBe('⟦webpages.apps.option_status_unknown⟧(name=Drive)');
         expect(option.disabled).toBe(false);
 
-        fireEvent.change(select, { target: { value: 'drive' } });
+        await user.selectOptions(select, 'drive');
         expect(await screen.findByTestId('app-status-unknown')).toBeInTheDocument();
         expect(screen.queryByText(/webpages\.apps\.app_not_connected/)).toBeNull();
     });

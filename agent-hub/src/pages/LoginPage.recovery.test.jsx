@@ -79,9 +79,12 @@ describe('the first-run root password', () => {
         return rendered;
     };
 
-    const fillRootPassword = (pw, confirm) => {
-        fireEvent.change(screen.getByTestId('root-password'), { target: { value: pw } });
-        fireEvent.change(screen.getByTestId('confirm-password'), { target: { value: confirm } });
+    const fillRootPassword = async (pw, confirm) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByTestId('root-password'));
+        await user.paste(pw);
+        await user.clear(screen.getByTestId('confirm-password'));
+        await user.paste(confirm);
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
     };
 
@@ -93,7 +96,7 @@ describe('the first-run root password', () => {
 
     it('refuses a mismatched pair without touching the server', async () => {
         await firstRun();
-        fillRootPassword('Password1', 'Password2');
+        await fillRootPassword('Password1', 'Password2');
         expect(await screen.findByText('login.passwords_no_match')).toBeInTheDocument();
         expect(callTo('/auth/setup')).toBeFalsy();
     });
@@ -105,7 +108,7 @@ describe('the first-run root password', () => {
     it('posts only the password to /auth/setup', async () => {
         route('/auth/setup', () => ok({}));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         await waitFor(() => expect(callTo('/auth/setup')).toBeTruthy());
         expect(bodyOf(callTo('/auth/setup'))).toEqual({ password: 'Password1' });
     });
@@ -113,7 +116,7 @@ describe('the first-run root password', () => {
     it('shows the recovery key once, before letting anyone continue', async () => {
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB-CCCC-DDDD' }));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         expect(await screen.findByTestId('recovery-key-modal')).toBeInTheDocument();
         expect(screen.getByTestId('recovery-key-value')).toHaveTextContent('AAAA-BBBB-CCCC-DDDD');
     });
@@ -122,7 +125,7 @@ describe('the first-run root password', () => {
         const user = userEvent.setup();
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB' }));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         await user.click(await screen.findByTestId('recovery-key-saved'));
         expect(await screen.findByTestId('username')).toBeInTheDocument();
         expect(screen.queryByTestId('recovery-key-modal')).toBeNull();
@@ -135,7 +138,7 @@ describe('the first-run root password', () => {
         const user = userEvent.setup();
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB' }));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         await user.click(await screen.findByTestId('recovery-key-saved'));
         await screen.findByTestId('username');
         expect(screen.queryByText('AAAA-BBBB')).toBeNull();
@@ -144,7 +147,7 @@ describe('the first-run root password', () => {
     it('slips straight to the sign-in form when the server minted no recovery key', async () => {
         route('/auth/setup', () => ok({ ok: true }));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         expect(await screen.findByTestId('username')).toBeInTheDocument();
         expect(screen.queryByTestId('recovery-key-modal')).toBeNull();
     });
@@ -152,7 +155,7 @@ describe('the first-run root password', () => {
     it('shows the server\'s complaint about a weak root password', async () => {
         route('/auth/setup', () => fail(400, { error: 'Password must contain a number' }));
         await firstRun();
-        fillRootPassword('password', 'password');
+        await fillRootPassword('password', 'password');
         expect(await screen.findByText('Password must contain a number')).toBeInTheDocument();
         expect(screen.getByTestId('root-password')).toBeInTheDocument();
     });
@@ -160,7 +163,7 @@ describe('the first-run root password', () => {
     it('falls back to a generic message when setup fails without one', async () => {
         route('/auth/setup', () => fail(500, {}));
         await firstRun();
-        fillRootPassword('Password1', 'Password1');
+        await fillRootPassword('Password1', 'Password1');
         expect(await screen.findByText('login.setup_failed')).toBeInTheDocument();
     });
 });
@@ -244,11 +247,14 @@ describe('arriving on a reset link', () => {
         return rendered;
     };
 
-    const setNewPassword = (pw) => {
-        fireEvent.change(screen.getByTestId('reset-new-password'), { target: { value: pw } });
+    const setNewPassword = async (pw) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByTestId('reset-new-password'));
+        await user.paste(pw);
         const [, confirm] = screen.getAllByPlaceholderText('••••••••');
-        fireEvent.change(confirm, { target: { value: pw } });
-        fireEvent.click(screen.getByText('Set new password'));
+        await user.clear(confirm);
+        await user.paste(pw);
+        await user.click(screen.getByText('Set new password'));
     };
 
     it('opens the new-password form instead of the sign-in form', async () => {
@@ -265,7 +271,7 @@ describe('arriving on a reset link', () => {
     it('posts the token together with the new password', async () => {
         route('/auth/reset-password', () => ok({ success: true }));
         await openReset('reset-token-123');
-        setNewPassword('correct-horse');
+        await setNewPassword('correct-horse');
         await waitFor(() => expect(callTo('/auth/reset-password')).toBeTruthy());
         expect(bodyOf(callTo('/auth/reset-password'))).toEqual({
             token: 'reset-token-123', newPassword: 'correct-horse',
@@ -276,7 +282,7 @@ describe('arriving on a reset link', () => {
         const user = userEvent.setup();
         route('/auth/reset-password', () => ok({ success: true }));
         await openReset();
-        setNewPassword('correct-horse');
+        await setNewPassword('correct-horse');
         expect(await screen.findByText(/Your password has been reset/)).toBeInTheDocument();
         await user.click(screen.getByText('Go to sign in'));
         expect(await screen.findByTestId('username')).toBeInTheDocument();
@@ -285,7 +291,7 @@ describe('arriving on a reset link', () => {
     it('shows the server\'s reason for refusing an expired link', async () => {
         route('/auth/reset-password', () => fail(400, { error: 'This reset link has expired' }));
         await openReset();
-        setNewPassword('correct-horse');
+        await setNewPassword('correct-horse');
         expect(await screen.findByText('This reset link has expired')).toBeInTheDocument();
     });
 
@@ -296,7 +302,7 @@ describe('arriving on a reset link', () => {
     it('leaves a refused reset with no route back to the sign-in form', async () => {
         route('/auth/reset-password', () => fail(400, { error: 'This reset link has expired' }));
         await openReset();
-        setNewPassword('correct-horse');
+        await setNewPassword('correct-horse');
         await screen.findByText('This reset link has expired');
         expect(screen.queryByText('Go to sign in')).toBeNull();
         expect(screen.queryByText('Back to sign in')).toBeNull();
@@ -305,7 +311,7 @@ describe('arriving on a reset link', () => {
     it('falls back to its own wording when the refusal carries no text', async () => {
         route('/auth/reset-password', () => fail(400, {}));
         await openReset();
-        setNewPassword('correct-horse');
+        await setNewPassword('correct-horse');
         expect(await screen.findByText('Failed to reset password.')).toBeInTheDocument();
     });
 });

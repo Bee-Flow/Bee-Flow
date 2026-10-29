@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -36,18 +36,19 @@ function renderFields(draft = {}) {
 const toggle = () => screen.getByRole('checkbox', { name: /ask this service only once per run/i });
 // Idempotent: AccordionSection persists open/closed per user via scopedStorage,
 // so a blind click would CLOSE the band for a later test in the same file.
-const openAdvanced = () => {
+const openAdvanced = async () => {
+    const user = userEvent.setup();
     if (screen.queryByRole('checkbox', { name: /ask this service only once per run/i })) return;
     const band = screen.queryByRole('button', { name: /advanced/i });
-    if (band) fireEvent.click(band);
+    if (band) await user.click(band);
 };
 
 beforeEach(() => cleanup());
 
 describe('the tick is offered on an http_request', () => {
-    it('renders, enabled and unticked, on a GET with the guard on', () => {
+    it('renders, enabled and unticked, on a GET with the guard on', async () => {
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).checked).toBe(false);
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
     });
@@ -55,28 +56,28 @@ describe('the tick is offered on an http_request', () => {
     it('ticking it asks for the plain per-run reuse', async () => {
         const user = userEvent.setup();
         const { set } = renderFields();
-        openAdvanced();
+        await openAdvanced();
         await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
 
-    it('is ENABLED on a write method, and says what a hit would cost', () => {
+    it('is ENABLED on a write method, and says what a hit would cost', async () => {
         // The method no longer gates the tick: a great many look-up APIs are
         // POST by design (DataForSEO, GraphQL, Elasticsearch) because the query
         // does not fit in a URL, and refusing those refused the very calls a
         // cache is for. The author is the only one who knows whether their POST
         // searches or creates, so they get the control AND the caution.
         renderFields({ method: 'POST', body: '{}' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
         expect(screen.getByText(/not promised to be a look-up/i)).toBeTruthy();
     });
 
-    it('every write method is offered, and each names its own method in the caution', () => {
+    it('every write method is offered, and each names its own method in the caution', async () => {
         for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
             cleanup();
             renderFields({ method, body: '{}' });
-            openAdvanced();
+            await openAdvanced();
             expect((toggle() as HTMLInputElement).disabled, method).toBe(false);
             // The sentence names the METHOD, so "a DELETE is not promised to be
             // a look-up" reads as the warning it is rather than as boilerplate.
@@ -84,36 +85,36 @@ describe('the tick is offered on an http_request', () => {
         }
     });
 
-    it('a GET carries no caution — there is nothing to warn about', () => {
+    it('a GET carries no caution — there is nothing to warn about', async () => {
         renderFields({ method: 'GET' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
         expect(screen.queryByText(/not promised to be a look-up/i)).toBeNull();
     });
 
-    it('is disabled while private targets are allowed', () => {
+    it('is disabled while private targets are allowed', async () => {
         // No fetch happens on a hit, so the SSRF guard's refusal never fires —
         // replaying such an answer after a reviewer ticks the box back on
         // launders it past a control they believe is in force.
         renderFields({ blockPrivateTargets: false });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
         expect(screen.getByText(/Not while private targets are allowed/i)).toBeTruthy();
     });
 
-    it('offers "keep it for later runs" only once the first tick is on', () => {
+    it('offers "keep it for later runs" only once the first tick is on', async () => {
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect(screen.queryByRole('checkbox', { name: /keep the answer for later runs/i })).toBeNull();
         cleanup();
         renderFields({ askOnce: true });
-        openAdvanced();
+        await openAdvanced();
         expect(screen.getByRole('checkbox', { name: /keep the answer for later runs/i })).toBeTruthy();
     });
 
-    it('the word "cache" never appears — "reuse" is already overloaded four ways here', () => {
+    it('the word "cache" never appears — "reuse" is already overloaded four ways here', async () => {
         renderFields({ askOnce: true });
-        openAdvanced();
+        await openAdvanced();
         expect(screen.queryByText(/cache/i)).toBeNull();
     });
 });

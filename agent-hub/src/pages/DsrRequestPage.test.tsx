@@ -1,6 +1,7 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 
 /**
  * The PUBLIC data-subject page (no account, no auth header). Pinned here:
@@ -101,9 +102,11 @@ describe('DsrRequestPage — the deadline', () => {
     });
 
     it('after submitting, the reference number and "answer expected by" are shown', async () => {
+        const user = userEvent.setup();
         fetchMock.mockReturnValue(reply(true, { id: 2044, ack: 'A confirmation has been e-mailed.', due_at: '2026-10-14T08:51:00Z' }));
         render(<DsrRequestPage search="" />);
-        fireEvent.change(screen.getByPlaceholderText(/@/), { target: { value: 'k@ziggo.nl' } });
+        await user.clear(screen.getByPlaceholderText(/@/));
+        await user.type(screen.getByPlaceholderText(/@/), 'k@ziggo.nl');
         fireEvent.submit(screen.getByPlaceholderText(/@/).closest('form') as HTMLFormElement);
         const due = await screen.findByTestId('dsr-submitted-due');
         expect(due).toHaveTextContent('Answer expected by');

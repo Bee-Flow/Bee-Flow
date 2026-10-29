@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -152,7 +152,8 @@ describe('HouseStylePanel — the fields', () => {
     it('edits a company detail into the payload', async () => {
         const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByDisplayValue('Van Dijk Groep'), { target: { value: 'Van Dijk Staal BV' } });
+        await user.clear(screen.getByDisplayValue('Van Dijk Groep'));
+        await user.paste('Van Dijk Staal BV');
         await user.click(screen.getByTestId('house-style-save'));
         await waitFor(() => expect(api.saveHouseStyle).toHaveBeenCalled());
         expect(api.saveHouseStyle.mock.calls[0][0].companyName).toBe('Van Dijk Staal BV');

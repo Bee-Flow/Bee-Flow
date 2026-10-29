@@ -616,7 +616,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
 
         // An ordinary edit afterwards carries NO persona any more — otherwise every save overwrites a role
         // that another screen has just set.
-        fireEvent.change(screen.getByDisplayValue('Test Agent'), { target: { value: 'Renamed' } });
+        await user.clear(screen.getByDisplayValue('Test Agent'));
+        await user.paste('Renamed');
         await waitFor(() => expect(putsTo('agent-1').length).toBe(2), { timeout: 3000 });
         expect('persona' in putsTo('agent-1')[1]).toBe(false);
     });

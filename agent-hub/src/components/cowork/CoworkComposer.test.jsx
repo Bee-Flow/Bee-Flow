@@ -129,9 +129,11 @@ describe('CoworkComposer — the box itself', () => {
         expect(brief()).toHaveAttribute('aria-label', 'Cowork brief');
     });
 
-    it('reports every keystroke as the raw string', () => {
+    it('reports every keystroke as the raw string', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.change(brief(), { target: { value: 'Send the digest' } });
+        await user.clear(brief());
+        await user.paste('Send the digest');
         expect(props.onChange).toHaveBeenCalledWith('Send the digest');
     });
 

@@ -217,9 +217,11 @@ describe('SecuritySection — enrollment', () => {
 
         const confirm = screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' });
         expect(confirm.disabled).toBe(true);
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '12345' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '12345');
         expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }).disabled).toBe(true);
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }).disabled).toBe(false);
     });
 
@@ -278,7 +280,8 @@ describe('SecuritySection — enrollment', () => {
         await mount({ status: jsonRes(DISABLED), enable: jsonRes({ success: true }) });
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
 
         expect(await screen.findByText(/Save these one-time recovery codes somewhere safe/)).toBeInTheDocument();
@@ -293,7 +296,8 @@ describe('SecuritySection — enrollment', () => {
         // "show them again", and this test is what a G6 change has to move.
         await mount({ status: jsonRes(ENABLED) });
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' }));
-        fireEvent.change(screen.getByPlaceholderText('000000 or a1b2-c3d4'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000 or a1b2-c3d4'));
+        await user.type(screen.getByPlaceholderText('000000 or a1b2-c3d4'), '123456');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('cccc-3333')).toBeInTheDocument();
@@ -313,7 +317,8 @@ describe('SecuritySection — disable and regenerate', () => {
         expect(screen.getByText('Enter a 6-digit code or a recovery code to confirm')).toBeInTheDocument();
         expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }).disabled).toBe(true);
 
-        fireEvent.change(input, { target: { value: 'a1b2-c3d4' } });
+        await user.clear(input);
+        await user.type(input, 'a1b2-c3d4');
         expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }).disabled).toBe(false);
 
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Cancel' }));
@@ -324,7 +329,8 @@ describe('SecuritySection — disable and regenerate', () => {
     it('sends the trimmed confirmation code to the regenerate endpoint', async () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
-        fireEvent.change(input, { target: { value: '  a1b2-c3d4  ' } });
+        await user.clear(input);
+        await user.type(input, '  a1b2-c3d4  ');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         await waitFor(() => expect(posts('/auth/mfa/recovery-codes/regenerate')).toHaveLength(1));
@@ -346,7 +352,8 @@ describe('SecuritySection — disable and regenerate', () => {
         await screen.findByText('Two-factor authentication is on');
 
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Disable' }));
-        fireEvent.change(screen.getByPlaceholderText('000000 or a1b2-c3d4'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000 or a1b2-c3d4'));
+        await user.type(screen.getByPlaceholderText('000000 or a1b2-c3d4'), '123456');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Disable' }));
 
         expect(await screen.findByText('Two-factor authentication is off')).toBeInTheDocument();
@@ -362,7 +369,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         // fallback promises is never shown.
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'Invalid code.', code: 'invalid_code' }, 400) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Invalid code. Please try again.')).toBeInTheDocument();
@@ -373,7 +381,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'slow down', code: 'invalid_code' }, 429) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Too many attempts — wait a few minutes and try again.')).toBeInTheDocument();
@@ -383,7 +392,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ code: 'mfa_secret_unreadable' }, 400) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText(/Use a recovery code, or ask your administrator to reset two-factor authentication/)).toBeInTheDocument();
@@ -393,7 +403,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'Start MFA setup first', code: 'setup_required' }, 400) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Start MFA setup first')).toBeInTheDocument();
@@ -406,7 +417,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         // localized string ("Request failed. Please try again.").
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({}, 500) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Request failed')).toBeInTheDocument();
@@ -422,7 +434,8 @@ describe('SecuritySection — how server errors reach the user', () => {
             if (u.includes('/api/compliance/iso/docs')) return jsonRes({}, 402);
             throw new Error('NetworkError when attempting to fetch resource.');
         });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('NetworkError when attempting to fetch resource.')).toBeInTheDocument();
@@ -432,7 +445,8 @@ describe('SecuritySection — how server errors reach the user', () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ code: 'invalid_code' }, 400) });
-        fireEvent.change(input, { target: { value: '000000' } });
+        await user.clear(input);
+        await user.type(input, '000000');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
         await screen.findByText('Invalid code. Please try again.');
 
@@ -464,9 +478,12 @@ describe('SecuritySection — change password', () => {
         const user = userEvent.setup();
         const { container } = await mount({ status: jsonRes(ENABLED) });
         const f = pwInputs(container);
-        fireEvent.change(f.current, { target: { value: 'oldpassword' } });
-        fireEvent.change(f.next, { target: { value: 'short' } });
-        fireEvent.change(f.confirm, { target: { value: 'short' } });
+        await user.clear(f.current);
+        await user.type(f.current, 'oldpassword');
+        await user.clear(f.next);
+        await user.type(f.next, 'short');
+        await user.clear(f.confirm);
+        await user.type(f.confirm, 'short');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
@@ -477,9 +494,12 @@ describe('SecuritySection — change password', () => {
         const user = userEvent.setup();
         const { container } = await mount({ status: jsonRes(ENABLED) });
         const f = pwInputs(container);
-        fireEvent.change(f.current, { target: { value: 'oldpassword' } });
-        fireEvent.change(f.next, { target: { value: 'longenough1' } });
-        fireEvent.change(f.confirm, { target: { value: 'longenough2' } });
+        await user.clear(f.current);
+        await user.type(f.current, 'oldpassword');
+        await user.clear(f.next);
+        await user.type(f.next, 'longenough1');
+        await user.clear(f.confirm);
+        await user.type(f.confirm, 'longenough2');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
@@ -490,9 +510,12 @@ describe('SecuritySection — change password', () => {
         const user = userEvent.setup();
         const { container } = await mount({ status: jsonRes(ENABLED) });
         const f = pwInputs(container);
-        fireEvent.change(f.current, { target: { value: 'oldpassword' } });
-        fireEvent.change(f.next, { target: { value: 'longenough1' } });
-        fireEvent.change(f.confirm, { target: { value: 'longenough1' } });
+        await user.clear(f.current);
+        await user.type(f.current, 'oldpassword');
+        await user.clear(f.next);
+        await user.type(f.next, 'longenough1');
+        await user.clear(f.confirm);
+        await user.type(f.confirm, 'longenough1');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Password changed successfully.')).toBeInTheDocument();
@@ -510,9 +533,12 @@ describe('SecuritySection — change password', () => {
             changePassword: jsonRes({ error: 'Current password is incorrect' }),
         });
         const f = pwInputs(container);
-        fireEvent.change(f.current, { target: { value: 'oldpassword' } });
-        fireEvent.change(f.next, { target: { value: 'longenough1' } });
-        fireEvent.change(f.confirm, { target: { value: 'longenough1' } });
+        await user.clear(f.current);
+        await user.type(f.current, 'oldpassword');
+        await user.clear(f.next);
+        await user.type(f.next, 'longenough1');
+        await user.clear(f.confirm);
+        await user.type(f.confirm, 'longenough1');
         await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Current password is incorrect')).toBeInTheDocument();

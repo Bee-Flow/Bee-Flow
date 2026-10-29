@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FormDensityContext } from './settings/formDensity';
@@ -41,7 +41,10 @@ function renderForm(step: Record<string, unknown>, { onPatch = vi.fn(), groups =
     return { onPatch };
 }
 
-const save = () => fireEvent.click(screen.getByText('Save'));
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save'));
+    };
 
 const SINGLE_STEP = { id: 's1', type: 'set', fields: { name: { kind: 'literal', value: 'Alice' } } };
 const LIST_STEP = {
@@ -144,7 +147,7 @@ describe('SettingsForm — Edit data (set)', () => {
         // expr below is still the raw `item.subject`.
         await user.click(await screen.findByText('Subject'));
         expect(screen.getByText('▸ Subject')).toBeTruthy();
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         // `item` isn't a runtime ref ROOT, so a row path lands as the expr the
         // rest of the editor writes for it (bindingFromInput owns that call).
@@ -156,7 +159,7 @@ describe('SettingsForm — Edit data (set)', () => {
         const { onPatch } = renderForm(LIST_STEP);
         // The field's own options sit under "More": a plain drag never needs them.
         await user.selectOptions(screen.getByLabelText('Adjust the value'), 'lower');
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].fields.sender).toEqual({ kind: 'expr', value: 'lower(item.from_email)' });
     });
@@ -213,13 +216,16 @@ describe('SettingsForm — Edit data (set)', () => {
         const user = userEvent.setup();
         const step = { ...LIST_STEP, operations: [] };
         const { onPatch } = renderForm(step);
-        const add = () => fireEvent.click(screen.getByText('Add a table tool'));
+        const add = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Add a table tool'));
+    };
 
-        add(); await user.click(screen.getByText('Number the rows'));
-        add(); await user.click(screen.getByText('Give matching rows a shared ID'));
-        add(); await user.click(screen.getByText('Sort the rows'));
+        await add(); await user.click(screen.getByText('Number the rows'));
+        await add(); await user.click(screen.getByText('Give matching rows a shared ID'));
+        await add(); await user.click(screen.getByText('Sort the rows'));
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.operations).toEqual([
@@ -237,7 +243,7 @@ describe('SettingsForm — Edit data (set)', () => {
         };
         const { onPatch } = renderForm(step);
         await user.click(screen.getAllByLabelText('Move operation up')[1]); // move sort above rowId
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].operations).toEqual([
             { op: 'sort', key: 'id' },
@@ -250,7 +256,7 @@ describe('SettingsForm — Edit data (set)', () => {
         const { onPatch } = renderForm(LIST_STEP);
         expect(screen.getByText(/also removes the table tools/)).toBeTruthy();
         await user.selectOptions(screen.getByDisplayValue('Each row of a list'), 'single');
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect('arrayRef' in patch).toBe(true);
@@ -266,7 +272,7 @@ describe('SettingsForm — Edit data (set)', () => {
         // check the save carries the explicit forEach clear along.
         await user.click(screen.getByText('Add a table tool'));
         await user.click(screen.getByText('Sort the rows'));
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].forEach).toBeNull();
     });
@@ -283,7 +289,7 @@ describe('SettingsForm — Edit data (set)', () => {
         // (which used to break on any key holding a quote).
         expect(screen.getByText('▸ Total')).toBeTruthy();
         expect(screen.queryByText(/parseJson/)).toBeNull();
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.fields.total).toEqual({ kind: 'ref', path: 'item.body.order.total' });

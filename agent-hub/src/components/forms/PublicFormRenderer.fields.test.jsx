@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -331,7 +331,10 @@ describe('PublicFormRenderer — sending it', () => {
 
 describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', () => {
     const fileField = (over = {}) => [{ name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5, ...over }];
-    const pick = (container, file) => fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [file] } });
+    const pick = async (container, file) => {
+        const user = userEvent.setup();
+        await user.upload(container.querySelector('input[type="file"]'), [file]);
+    };
     const pdf = (bytes = 3) => new File(['x'.repeat(bytes)], 'p.pdf', { type: 'application/pdf' });
 
     it('uploads on pick and keeps only what the submission needs', async () => {
@@ -342,7 +345,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
             <PublicFormRenderer form={form(fileField())} onSubmit={onSubmit} onUpload={onUpload} />,
         );
 
-        pick(container, pdf());
+        await pick(container, pdf());
         expect(await screen.findByText('p.pdf')).toBeTruthy();
         expect(onUpload.mock.calls[0][1]).toBe('proof');
 
@@ -358,7 +361,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
         const { container } = render(
             <PublicFormRenderer form={form(fileField({ maxSizeMb: 1 }))} onSubmit={vi.fn()} onUpload={onUpload} />,
         );
-        pick(container, pdf(2 * 1024 * 1024));
+        await pick(container, pdf(2 * 1024 * 1024));
         expect(await screen.findByText('That file is larger than 1 MB.')).toBeTruthy();
         expect(onUpload).not.toHaveBeenCalled();
     });
@@ -374,7 +377,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
             <PublicFormRenderer form={form([{ name: 'proof', type: 'file', label: 'Proof' }])} onSubmit={vi.fn()} onUpload={onUpload} />,
         );
         expect(screen.getByText('Choose a file (max undefined MB)')).toBeTruthy();
-        pick(container, pdf(50 * 1024 * 1024));
+        await pick(container, pdf(50 * 1024 * 1024));
         await waitFor(() => expect(onUpload).toHaveBeenCalled());
     });
 
@@ -383,7 +386,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
         const { container } = render(
             <PublicFormRenderer form={form(fileField())} onSubmit={vi.fn()} onUpload={onUpload} />,
         );
-        pick(container, pdf());
+        await pick(container, pdf());
         expect(await screen.findByText('Upload failed')).toBeTruthy();
         // The input clears itself, so re-picking the same file still fires.
         expect(container.querySelector('input[type="file"]').value).toBe('');
@@ -395,7 +398,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
         const { container } = render(
             <PublicFormRenderer form={form(fileField())} onSubmit={vi.fn()} onUpload={onUpload} />,
         );
-        pick(container, pdf());
+        await pick(container, pdf());
         await user.click(await screen.findByRole('button', { name: 'Remove p.pdf' }));
         expect(screen.getByText('Choose a file (max 5 MB)')).toBeTruthy();
     });

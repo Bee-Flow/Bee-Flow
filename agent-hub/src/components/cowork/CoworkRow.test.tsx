@@ -1,8 +1,9 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import CoworkRow from './CoworkRow';
 import { STATUS_TOKENS } from '../shared/statusTokens';
+import userEvent from '@testing-library/user-event';
 
 /**
  * The row after CW-03: title + status word on line one, one grey sentence on
@@ -250,10 +251,11 @@ describe('CoworkRow — selection and accessibility', () => {
         expect(row.style.boxShadow).toBe('none');
     });
 
-    it('hands the item id back on click, and carries it as a data attribute', () => {
+    it('hands the item id back on click, and carries it as a data attribute', async () => {
+        const user = userEvent.setup();
         const { row, onSelect } = renderRow({ id: 'w9' });
         expect(row.getAttribute('data-cowork-id')).toBe('w9');
-        fireEvent.click(row);
+        await user.click(row);
         expect(onSelect).toHaveBeenCalledWith('w9');
         expect(onSelect).toHaveBeenCalledTimes(1);
     });

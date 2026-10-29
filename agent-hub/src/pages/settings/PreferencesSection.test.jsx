@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -325,7 +325,8 @@ describe('PreferencesSection — startup row', () => {
         expect(setDefaultAgentMode).toHaveBeenCalledWith('direct-chat');
     });
 
-    it('reveals the agent picker only in "specific" mode, listing the agents passed in', () => {
+    it('reveals the agent picker only in "specific" mode, listing the agents passed in', async () => {
+        const user = userEvent.setup();
         const setDefaultAgentId = vi.fn();
         const { unmount } = mount();
         expect(screen.queryByText('Select agent')).toBeNull();
@@ -336,7 +337,7 @@ describe('PreferencesSection — startup row', () => {
         const select = container.querySelector('select');
         expect([...select.options].map(o => o.textContent)).toEqual(['Select an agent...', 'Scribe', 'Analyst']);
 
-        fireEvent.change(select, { target: { value: 'a2' } });
+        await user.selectOptions(select, 'a2');
         expect(setDefaultAgentId).toHaveBeenCalledWith('a2');
     });
 });

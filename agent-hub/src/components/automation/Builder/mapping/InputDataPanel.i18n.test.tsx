@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -34,30 +34,31 @@ const NL: Record<string, string> = {
 };
 
 /** Render, then take the table takeover — where both strings live. */
-const openTable = (label: string) => {
+const openTable = async (label: string) => {
+    const user = userEvent.setup();
     render(<InputDataPanel groups={[EMPTY_GROUP]} previewSample={null} onPick={vi.fn()} />);
-    fireEvent.click(screen.getByLabelText(label));
+    await user.click(screen.getByLabelText(label));
 };
 
 beforeEach(() => { cleanup(); transOverride.current = null; });
 
 describe('InputDataPanel i18n — the table takeover', () => {
-    it('shows the English way back and the English empty line', () => {
-        openTable('Open Gmail search as a table');
+    it('shows the English way back and the English empty line', async () => {
+        await openTable('Open Gmail search as a table');
         expect(screen.getByRole('button', { name: /Fields/ })).toBeTruthy();
         expect(screen.getByText('No data yet — run the upstream step to capture it.')).toBeTruthy();
     });
 
-    it('translates the way back, so it is not hardcoded English', () => {
+    it('translates the way back, so it is not hardcoded English', async () => {
         transOverride.current = NL;
-        openTable('Open Gmail search as a table');
+        await openTable('Open Gmail search as a table');
         expect(screen.getByRole('button', { name: /Velden/ })).toBeTruthy();
         expect(screen.queryByRole('button', { name: /^Fields$/ })).toBeNull();
     });
 
-    it('translates the empty line, so it is not hardcoded English either', () => {
+    it('translates the empty line, so it is not hardcoded English either', async () => {
         transOverride.current = NL;
-        openTable('Open Gmail search as a table');
+        await openTable('Open Gmail search as a table');
         expect(screen.getByText('Nog geen data — draai de vorige stap om die vast te leggen.')).toBeTruthy();
         expect(screen.queryByText('No data yet — run the upstream step to capture it.')).toBeNull();
     });
@@ -65,7 +66,7 @@ describe('InputDataPanel i18n — the table takeover', () => {
     it('the way back really goes back — the key did not replace the behaviour', async () => {
         const user = userEvent.setup();
         transOverride.current = NL;
-        openTable('Open Gmail search as a table');
+        await openTable('Open Gmail search as a table');
         await user.click(screen.getByRole('button', { name: /Velden/ }));
         expect(screen.getByLabelText('Search fields')).toBeTruthy();
     });

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -75,16 +75,16 @@ describe('FormBuilderFields — download button', () => {
             expect(next.fields[0].required).toBeUndefined();
         });
 
-        it('edits the right row when a closing page holds several downloads', () => {
+        it('edits the right row when a closing page holds several downloads', async () => {
+            const user = userEvent.setup();
             // The section filters the field list, so it has to carry the real
             // index through — otherwise the second card edits the first field.
             const { onChange } = renderEditor(
                 endingForm([download({ name: 'one', label: 'One' }), download({ name: 'two', label: 'Two' })]),
                 { variant: 'ending' },
             );
-            fireEvent.change(screen.getByLabelText('Download 2 file'), {
-                target: { value: '{{steps.doc_2.output.fileId}}' },
-            });
+            await user.clear(screen.getByLabelText('Download 2 file'));
+            await user.paste('{{steps.doc_2.output.fileId}}');
             const next = onChange.mock.calls[0][0];
             expect(next.fields[0].fileId).toBe('');
             expect(next.fields[1].fileId).toBe('{{steps.doc_2.output.fileId}}');
@@ -118,11 +118,11 @@ describe('FormBuilderFields — download button', () => {
             expect(screen.getByLabelText('Download 1 file')).toBeTruthy();
         });
 
-        it('records the file binding', () => {
+        it('records the file binding', async () => {
+            const user = userEvent.setup();
             const { onChange } = renderEditor(endingForm([download()]), { variant: 'ending' });
-            fireEvent.change(screen.getByLabelText('Download 1 file'), {
-                target: { value: '{{steps.doc_1.output.fileId}}' },
-            });
+            await user.clear(screen.getByLabelText('Download 1 file'));
+            await user.paste('{{steps.doc_1.output.fileId}}');
             expect(onChange.mock.calls[0][0].fields[0].fileId).toBe('{{steps.doc_1.output.fileId}}');
         });
     });

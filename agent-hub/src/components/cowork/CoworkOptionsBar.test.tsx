@@ -6,6 +6,7 @@ import { COWORK_REPEAT_OPTIONS, WHEN_PRESETS } from './coworkSchedule';
 
 import { stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 /**
  * CHARACTERISATION — the three chips above the brief, exactly as they behave
  * today. Nothing here is a recommendation; several of these tests are named
@@ -102,12 +103,13 @@ describe('CoworkOptionsBar — the When chip', () => {
         expect(chip.className).toContain('font-semibold');
     });
 
-    it('wrat: an unrecognised presetId makes the chip and the sheet disagree', () => {
+    it('wrat: an unrecognised presetId makes the chip and the sheet disagree', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ when: { presetId: 'a-week-past-thursday', date: '', time: '' } });
         const chip = screen.getByTestId('cowork-when-chip');
         expect(chip).toHaveTextContent('Pick a moment');
 
-        fireEvent.click(chip);
+        await user.click(chip);
         const options = within(sheet('When should this run?')).getAllByRole('option');
         const selected = options.filter(o => o.getAttribute('aria-selected') === 'true');
         // The sheet falls back to WHEN_PRESETS[0] and ticks "Run now" — the
@@ -116,9 +118,10 @@ describe('CoworkOptionsBar — the When chip', () => {
         expect(selected[0]).toHaveTextContent('Run now');
     });
 
-    it('lists every preset, in order, with the current one ticked', () => {
+    it('lists every preset, in order, with the current one ticked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ when: { presetId: 'tonight', date: '', time: '' } });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
 
         const panel = sheet('When should this run?');
         expect(panel).toHaveTextContent('Bee Flow delivers the result to your notifications.');
@@ -131,19 +134,21 @@ describe('CoworkOptionsBar — the When chip', () => {
         expect(options[0]).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('picking a preset reports it and shuts the sheet', () => {
+    it('picking a preset reports it and shuts the sheet', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup({ when: { presetId: 'now', date: '', time: '' } });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(within(sheet('When should this run?')).getByText('Tomorrow morning'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(within(sheet('When should this run?')).getByText('Tomorrow morning'));
 
         expect(props.onWhenChange).toHaveBeenCalledWith({ presetId: 'tomorrow', date: '', time: '' });
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('"Pick a moment…" seeds date and time from the current choice and keeps the sheet open', () => {
+    it('"Pick a moment…" seeds date and time from the current choice and keeps the sheet open', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup({ when: { presetId: 'in_1h', date: '', time: '' } });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(within(sheet('When should this run?')).getByText('Pick a moment…'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(within(sheet('When should this run?')).getByText('Pick a moment…'));
 
         expect(props.onWhenChange).toHaveBeenCalledWith({
             presetId: 'custom', date: '2026-09-06', time: '13:00',
@@ -151,24 +156,26 @@ describe('CoworkOptionsBar — the When chip', () => {
         expect(sheet('When should this run?')).toBeInTheDocument();
     });
 
-    it('wrat: choosing "Pick a moment…" throws away every other key on `when`', () => {
+    it('wrat: choosing "Pick a moment…" throws away every other key on `when`', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         // The other branch spreads `...when`; this one builds a fresh object,
         // so anything a caller keeps alongside presetId/date/time is dropped
         // the moment the user opens the custom inputs.
         const { props } = setup({
             when: { presetId: 'in_1h', date: '', time: '', timezone: 'Europe/Amsterdam' },
         });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
-        fireEvent.click(within(sheet('When should this run?')).getByText('Pick a moment…'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(within(sheet('When should this run?')).getByText('Pick a moment…'));
 
         const arg = props.onWhenChange.mock.calls[0][0];
         expect(Object.keys(arg).sort()).toEqual(['date', 'presetId', 'time']);
         expect(arg.timezone).toBeUndefined();
     });
 
-    it('shows the date and time inputs only in custom mode, and reports each edit', () => {
+    it('shows the date and time inputs only in custom mode, and reports each edit', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props, rerender } = setup({ when: { presetId: 'in_1h', date: '', time: '' } });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         expect(screen.queryByTestId('cowork-when-date')).not.toBeInTheDocument();
 
         rerender(
@@ -210,19 +217,21 @@ describe('CoworkOptionsBar — the Repeat chip', () => {
         expect(chip.className).toContain('font-semibold');
     });
 
-    it('wrat: an interval the option list does not know is printed raw', () => {
+    it('wrat: an interval the option list does not know is printed raw', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ repeatInterval: 'fortnightly' });
         expect(screen.getByTestId('cowork-repeat-chip')).toHaveTextContent('fortnightly');
 
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
         const options = within(sheet('How often?')).getAllByRole('option');
         // Nothing is ticked, so opening the sheet cannot tell you what you have.
         expect(options.every(o => o.getAttribute('aria-selected') === 'false')).toBe(true);
     });
 
-    it('offers the full server interval set, Once first, with the current one ticked', () => {
+    it('offers the full server interval set, Once first, with the current one ticked', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ repeatInterval: 'monthly' });
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
 
         const panel = sheet('How often?');
         expect(panel).toHaveTextContent('Repeating work keeps running until you pause it.');
@@ -232,19 +241,21 @@ describe('CoworkOptionsBar — the Repeat chip', () => {
         expect(options[6]).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('picking an interval reports its VALUE, not its label, and closes', () => {
+    it('picking an interval reports its VALUE, not its label, and closes', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup();
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
-        fireEvent.click(within(sheet('How often?')).getByText('Every weekday'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(within(sheet('How often?')).getByText('Every weekday'));
 
         expect(props.onRepeatChange).toHaveBeenCalledWith('weekdays');
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('"Once" reports the empty string', () => {
+    it('"Once" reports the empty string', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup({ repeatInterval: 'daily' });
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
-        fireEvent.click(within(sheet('How often?')).getByText('Once'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(within(sheet('How often?')).getByText('Once'));
         expect(props.onRepeatChange).toHaveBeenCalledWith('');
     });
 });
@@ -269,13 +280,14 @@ describe('CoworkOptionsBar — the agent chip', () => {
         expect(chip.className).toContain('font-semibold');
     });
 
-    it('wrat: an agentId that is not in the list silently reads as "No agent"', () => {
+    it('wrat: an agentId that is not in the list silently reads as "No agent"', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ agents: AGENTS, agentId: 'deleted-agent' });
         const chip = screen.getByTestId('cowork-agent-chip');
         expect(chip).toHaveTextContent('No agent');
         expect(chip.className).toContain('font-medium');
 
-        fireEvent.click(chip);
+        await user.click(chip);
         const options = within(sheet('Who does the work?')).getAllByRole('option');
         // And the sheet ticks nothing at all — not the agents, and not even
         // the "No agent" row the chip is claiming. The stored agentId is
@@ -284,9 +296,10 @@ describe('CoworkOptionsBar — the agent chip', () => {
         expect(options.every(o => o.getAttribute('aria-selected') === 'false')).toBe(true);
     });
 
-    it('puts "No agent" at the top and falls back to "Untitled agent" for a nameless one', () => {
+    it('puts "No agent" at the top and falls back to "Untitled agent" for a nameless one', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ agents: AGENTS, agentId: 'a1' });
-        fireEvent.click(screen.getByTestId('cowork-agent-chip'));
+        await user.click(screen.getByTestId('cowork-agent-chip'));
 
         const panel = sheet('Who does the work?');
         expect(panel).toHaveTextContent('An agent brings its own skills, knowledge and connected apps.');
@@ -298,75 +311,82 @@ describe('CoworkOptionsBar — the agent chip', () => {
         expect(options[2]).toHaveTextContent('Untitled agent');
     });
 
-    it('picking an agent, and clearing it again', () => {
+    it('picking an agent, and clearing it again', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup({ agents: AGENTS });
-        fireEvent.click(screen.getByTestId('cowork-agent-chip'));
-        fireEvent.click(within(sheet('Who does the work?')).getByText('Research bee'));
+        await user.click(screen.getByTestId('cowork-agent-chip'));
+        await user.click(within(sheet('Who does the work?')).getByText('Research bee'));
         expect(props.onAgentChange).toHaveBeenCalledWith('a1');
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByTestId('cowork-agent-chip'));
-        fireEvent.click(within(sheet('Who does the work?')).getByText('No agent'));
+        await user.click(screen.getByTestId('cowork-agent-chip'));
+        await user.click(within(sheet('Who does the work?')).getByText('No agent'));
         expect(props.onAgentChange).toHaveBeenLastCalledWith('');
     });
 });
 
 describe('CoworkOptionsBar — sheet behaviour', () => {
-    it('keeps at most one sheet open', () => {
+    it('keeps at most one sheet open', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ agents: [{ id: 'a1', name: 'Research bee' }] });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         expect(screen.getAllByRole('dialog')).toHaveLength(1);
 
-        fireEvent.click(screen.getByTestId('cowork-repeat-chip'));
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
         const dialogs = screen.getAllByRole('dialog');
         expect(dialogs).toHaveLength(1);
         expect(dialogs[0].getAttribute('aria-label')).toBe('How often?');
     });
 
-    it('Escape closes it', () => {
+    it('Escape closes it', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup();
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('a mousedown outside closes it', () => {
+    it('a mousedown outside closes it', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup();
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         fireEvent.mouseDown(document.body);
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('a mousedown inside leaves it open', () => {
+    it('a mousedown inside leaves it open', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup();
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
         fireEvent.mouseDown(sheet('When should this run?'));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('wrat: the chip cannot close its own sheet with a real mouse', () => {
+    it('wrat: the chip cannot close its own sheet with a real mouse', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         // A real press is mousedown-then-click. The outside-mousedown handler
         // closes the sheet first (the chip is not inside the panel), so by the
         // time the click lands, openSheet is already null and the toggle
         // re-opens it. Only a synthetic click-without-mousedown closes it.
         setup();
         const chip = screen.getByTestId('cowork-when-chip');
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(screen.getByRole('dialog')).toBeInTheDocument();
 
         fireEvent.mouseDown(chip);
-        fireEvent.click(chip);
+        await user.click(chip);
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 });
 
 describe('CoworkOptionsBar — where the panel opens', () => {
-    it('opens above the chip when there is room', () => {
+    it('opens above the chip when there is room', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect');
         try {
             rect.mockReturnValue({ top: 320, bottom: 720, left: 0, right: 280, width: 280, height: 400, x: 0, y: 320, toJSON: () => ({}) });
             setup();
-            fireEvent.click(screen.getByTestId('cowork-when-chip'));
+            await user.click(screen.getByTestId('cowork-when-chip'));
             const panel = sheet('When should this run?');
             expect(panel.className).toContain('bottom-full');
             expect(panel.className).not.toContain('top-full');
@@ -375,12 +395,13 @@ describe('CoworkOptionsBar — where the panel opens', () => {
         }
     });
 
-    it('flips below the chip when the upward placement is clipped', () => {
+    it('flips below the chip when the upward placement is clipped', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const rect = vi.spyOn(Element.prototype, 'getBoundingClientRect');
         try {
             rect.mockReturnValue({ top: -120, bottom: 0, left: 0, right: 280, width: 280, height: 400, x: 0, y: -120, toJSON: () => ({}) });
             setup();
-            fireEvent.click(screen.getByTestId('cowork-when-chip'));
+            await user.click(screen.getByTestId('cowork-when-chip'));
             const panel = sheet('When should this run?');
             expect(panel.className).toContain('top-full');
             expect(panel.className).not.toContain('bottom-full');
@@ -389,9 +410,10 @@ describe('CoworkOptionsBar — where the panel opens', () => {
         }
     });
 
-    it('on a phone it is a bottom sheet with a backdrop that closes it', () => {
+    it('on a phone it is a bottom sheet with a backdrop that closes it', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         setup({ isMobile: true });
-        fireEvent.click(screen.getByTestId('cowork-when-chip'));
+        await user.click(screen.getByTestId('cowork-when-chip'));
 
         // Routed through Modal on mobile: the dialog itself is the bottom-sheet
         // panel, its parent is the fixed, full-viewport backdrop.

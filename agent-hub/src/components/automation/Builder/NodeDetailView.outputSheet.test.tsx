@@ -48,7 +48,10 @@ const openOn = (pinnedOutput: unknown, onSaveStep = vi.fn().mockResolvedValue(un
 };
 
 const textarea = () => screen.getByLabelText('Output JSON');
-const save = () => fireEvent.click(screen.getByText('Save output'));
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save output'));
+    };
 // What the NDV saves is the whole next DEFINITION, not the patch.
 const savedOutput = (onSaveStep: Mock) => onSaveStep.mock.calls.at(-1)![0].steps[0].pinnedOutput;
 const rows = () => screen.getAllByTestId('ndv-output-field');
@@ -103,7 +106,7 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
         await user.click(screen.getByTestId('ndv-edit-output'));
         await user.clear(screen.getByLabelText('Value'));
         await user.type(screen.getByLabelText('Value'), 'Dear Ada,');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toBe('Dear Ada,');
@@ -131,7 +134,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
 
         await user.clear(screen.getByLabelText('subject value'));
         await user.type(screen.getByLabelText('subject value'), 'Invoice 42');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         // `id` must still be the NUMBER 7. A field list that round-tripped
@@ -156,7 +159,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         await user.clear(within(rows()[1]).getByLabelText('amount value'));
         await user.type(within(rows()[1]).getByLabelText('amount value'), '19.5');
         await user.selectOptions(within(rows()[1]).getByLabelText('Type'), 'number');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi', amount: 19.5 });
@@ -166,7 +169,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi', id: 7 });
         await user.click(within(rows()[1]).getByLabelText('Remove'));
-        save();
+        await save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi' });
     });
@@ -190,7 +193,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         const onSaveStep = openOn({ urgent: 'yes' });
         await user.selectOptions(screen.getByLabelText('Type'), 'yesno');
         await user.selectOptions(screen.getByLabelText('urgent value'), 'false');
-        save();
+        await save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ urgent: false });
     });
@@ -207,7 +210,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
 
         await user.clear(screen.getByLabelText('subject value'));
         await user.type(screen.getByLabelText('subject value'), 'Bye');
-        save();
+        await save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Bye', sender: { name: 'Ada', email: 'ada@example.org' } });
     });
@@ -222,7 +225,7 @@ describe('NodeDetailView — a list of records edits as records', () => {
         const second = screen.getAllByTestId('ndv-output-field')[2]; // record #2, first field
         await user.clear(within(second).getByLabelText('name value'));
         await user.type(within(second).getByLabelText('name value'), 'Grace');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual([{ name: 'Ada', seats: 2 }, { name: 'Grace', seats: 1 }]);
@@ -233,7 +236,7 @@ describe('NodeDetailView — a list of records edits as records', () => {
         const onSaveStep = openOn([{ name: 'Ada', seats: 2 }]);
         await user.click(screen.getByTestId('ndv-add-record'));
         expect(screen.getAllByTestId('ndv-record-no')).toHaveLength(2);
-        save();
+        await save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual([{ name: 'Ada', seats: 2 }, { name: '', seats: '' }]);
     });
@@ -248,7 +251,7 @@ describe('NodeDetailView — the raw editor survives as the escape hatch', () =>
         expect(screen.getByTestId('ndv-output-raw-toggle').getAttribute('aria-expanded')).toBe('true');
         await user.clear(textarea());
         await user.type(textarea(), '{{"subject":"Hi","cc":[["a@b.c"]}');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi', cc: ['a@b.c'] });
@@ -275,23 +278,25 @@ describe('NodeDetailView — the raw editor survives as the escape hatch', () =>
 });
 
 describe('NodeDetailView — the 64 KB cap still stands in front of the PUT', () => {
-    it('refuses an oversized value typed into a FIELD, before any save', () => {
+    it('refuses an oversized value typed into a FIELD, before any save', async () => {
+        const user = userEvent.setup();
         // Load-bearing, and the reason the cap is not a style choice: the
         // inspector PUTs the WHOLE definition on every save, so one oversized
         // pin 400s every later, unrelated edit to this automation and the
         // failed-patch retry walks straight back into it. A friendlier input
         // method must not become a way around it.
         const onSaveStep = openOn({ body: 'x' });
-        fireEvent.change(screen.getByLabelText('body value'), { target: { value: 'x'.repeat(70_000) } });
-        save();
+        await user.clear(screen.getByLabelText('body value'));
+        await user.paste('x'.repeat(70_000));
+        await save();
 
         expect(screen.getByRole('alert').textContent).toMatch(/Too big to save/);
         expect(onSaveStep).not.toHaveBeenCalled();
     });
 
-    it('still refuses the truncation sentinel built out of fields', () => {
+    it('still refuses the truncation sentinel built out of fields', async () => {
         const onSaveStep = openOn({ __truncated__: true });
-        save();
+        await save();
         expect(screen.getByRole('alert').textContent).toMatch(/placeholder, not data/);
         expect(onSaveStep).not.toHaveBeenCalled();
     });
