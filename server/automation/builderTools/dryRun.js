@@ -34,7 +34,7 @@ function defaultDeps() {
 
 /**
  * @param {import('../../routes/ai/automationBuilder/turnSetup').BuilderDraftWrap} draftWrap
- * @param {any} args   { triggerStepId?, triggerPayload? }
+ * @param {{ triggerStepId?: unknown, triggerPayload?: unknown }} args  the tool call's arguments, each checked before use
  * @param {any} deps   { persistDraft, annotate } from the facade, plus optional
  *                        getAutomation / getRunSteps / executeAutomation overrides
  */

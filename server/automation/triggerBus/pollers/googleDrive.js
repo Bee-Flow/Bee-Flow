@@ -12,7 +12,7 @@
 
 const log = require('../../../telemetry/log');
 
-/** @param {any} ctx */
+/** @param {Pick<import('./gmail').PollerCtx, 'store' | 'googleClient'>} ctx */
 function createGoogleDrivePollers(ctx) {
     return {
         /**
