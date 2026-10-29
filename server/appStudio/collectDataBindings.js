@@ -36,7 +36,7 @@ function bindingFingerprint(binding) {
 /**
  * Collect every record/records/dataset binding on the target screen(s).
  *
- * @param {any} def       — a canonical app definition
+ * @param {{ screens?: unknown } | null | undefined} def — a canonical app definition (walked defensively)
  * @param {string} [screenId] - when given, only that screen is walked; otherwise
  *                             every screen. An unknown id yields no bindings.
  * @returns {Array<{nodeId:string|null, prop:string, binding:any}>}

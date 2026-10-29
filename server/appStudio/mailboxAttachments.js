@@ -235,13 +235,11 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  * costs zero provider calls.
  *
  * @param {{ userId: unknown; id: unknown; }} app    - studio app row (userId = owner)
- * @param {object} model  - the canonical data model
- * @param {object} opts
- * @param {string} opts.attachmentId - the provider attachment id (or a fileId)
- * @param {string} [opts.tableId]    - narrows the probe when the caller knows it
- * @param {string} [opts.recordId]   - ditto
- * @param {object} opts.viewer       - { id, role, organizationId? }
- * @param {object} [opts.deps]       - injection seam for tests
+ * @param {MailboxModel} model  - the canonical data model
+ * @param {{ attachmentId: string, tableId?: string, recordId?: string, viewer: { id: string, role?: string, organizationId?: string | null },
+ *   deps?: { getAttachmentBytes?: typeof emailFetch.getAttachmentBytes, resolveMailboxIdentity?: typeof resolveMailboxIdentity,
+ *   scanBuffer?: typeof scanBuffer } }} [opts]  `attachmentId` is the provider attachment id (or a fileId); `tableId`
+ *   and `recordId` narrow the probe when the caller knows them; `deps` is the injection seam for tests
  * @returns {Promise<object>} a studio_attachment descriptor
  */
 async function materializeAttachment(app, model, {

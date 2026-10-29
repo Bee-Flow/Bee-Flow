@@ -30,23 +30,17 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  * Either the error pair (`error`, `_fixHint`) or the parsed fields; one object
  * type because the checker's null checks are off and cannot narrow a union.
  *
- * @typedef {object} QueryArgs
- * @property {string} [error]
- * @property {string} [_fixHint]
- * @property {string|null} [tableId]
- * @property {string|null} [datasetId]
- * @property {number} [limit]
- * @property {boolean} [limitClamped]
- * @property {{ field: string, dir: string }} [sort]
- * @property {any[]} [filter]
- * @property {string|null} [cursor]
+ * @typedef {{
+ *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
+ *   limitClamped?: boolean, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ * }} QueryArgs
  */
 
 /**
  * Validate app_query_data arguments. Returns { error, _fixHint } or the parsed
  * { tableId, datasetId, limit, limitClamped, sort, filter, cursor }.
  *
- * @param {any} args
+ * @param {import('../builderTools').ToolArgs} args
  * @returns {QueryArgs}
  */
 function parseQueryArgs(args) {
@@ -158,7 +152,7 @@ function pageMeta({ more, nextCursor }, { limit, limitClamped }) {
  * refusals, `safe` read refusals); a database error names internal relations,
  * so it goes to the log and the model gets a generic sentence.
  *
- * @param {any} e
+ * @param {Error & { safe?: boolean }} e
  * @param {{ appId?: string, linked?: boolean }} [opts]
  */
 function queryFailure(e, { appId, linked = false } = {}) {

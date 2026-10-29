@@ -90,8 +90,8 @@ function classifyMailboxError(err, connector) {
 /**
  * Run one mailbox pull.
  *
- * @param {object} connector  the `mailbox` connector config
- * @param {object} ctx        { app, viewerId, systemArgs, deps }
+ * @param {MailboxConnectorConfig} connector  the `mailbox` connector config
+ * @param {Omit<import('./connectors/runners').ConnectorCtx, 'deps'> & { deps?: Partial<import('./connectors/session').ConnectorDeps> & { mailboxIdentity?: Partial<import('./mailboxIdentity').Deps> } }} [ctx]
  * @returns {Promise<{rows: object[], grains: Array<{level: unknown, rows}>}>}
  */
 async function runMailboxConnector(connector, ctx = {}) {

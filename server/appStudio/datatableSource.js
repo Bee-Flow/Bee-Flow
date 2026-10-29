@@ -251,10 +251,9 @@ const WRITE_ACTIONS = Object.freeze(['create', 'update', 'delete']);
  * Everything that ONE READ or ONE WRITE of a datatable-linked model table needs.
  * One body, two entries — see the header of this file.
  *
- * @param {object} ctx   the context ({app, viewerId, role, viewer, …}) — the read path passes
- *   the one from dataReadRunner, the write path builds the same shape
- * @param {object} table the MODEL table (with `source`), not the datatable
- * @param {object} [deps] injectable edges (stores, principal resolver) for tests
+ * @param {Pick<import('./dataReadRunner').ReadCtx, 'app' | 'viewerId' | 'role' | 'viewer'>} ctx  the read path passes the one from dataReadRunner, the write path builds the same shape
+ * @param {DataTable} table the MODEL table (with `source`), not the datatable
+ * @param {{ datatableStore?: typeof import('../stores/datatableStore'), datatableDbStore?: typeof import('../stores/datatableDbStore'), resolveDatatablePrincipalForUser?: typeof resolveDatatablePrincipalForUser }} [deps] injectable edges for tests
  * @param {'read'|'create'|'update'|'delete'} [action]
  * @returns {Promise<{tableMeta, grade, scopeKey, viewer, dialect, datatable}>}
  * @throws  a client-safe refusal (readError) with a reason

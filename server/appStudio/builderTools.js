@@ -217,31 +217,21 @@ module.exports = {
 /**
  * The draft wrapper the route hangs on a turn (see the header). Every builder
  * tool takes it as `draftWrap`.
- * @typedef {object} BuilderDraft
- * @property {string} userId
- * @property {string|null} [orgId]
- * @property {string|null} [appId]
- * @property {number|null} [version]
- * @property {string|null} [builderSessionId]
- * @property {AppDef} def
- * @property {boolean} [finalized]
- * @property {import('./builderTools/dataTools').DataModel|null} [dataModel]
- * @property {number} [dataModelVersion]
- * @property {Record<string, number|string>} [rowCounts]   keyed by TABLE ID
- * @property {Array<{ id: string, name?: string }>} [datasetIds]
- * @property {Awaited<ReturnType<typeof import('./linkedTables').describeLinkedTables>>} [linkedTables]
- * @property {boolean} [modelSupportsVision]
- * @property {number} [_screenshotsThisTurn]
- * @property {string} [_turnMessage]
- * @property {ReturnType<typeof import('../core/llm/screenConstraints').deriveScreenConstraints>} [_screenConstraint]  the person's screen-count rule for this turn
- * @property {Map<string, { isActive: boolean }>} [_ownedAutomations]
- * @property {Array<{ id: string, name?: string }>|null} [_documents]
- * @property {Awaited<ReturnType<typeof import('./datatableSource').listOwnerDatatableIds>>} [_ownerDatatables]
- * @property {string} [_lastAddedScreenId]
- * @property {string} [_lastTouchedScreenId]
- * @property {string} [_syncedMetaKey]
- * @property {Map<string, import('./builderTools/definitionTools/addComponents').BatchRecord>} [_addedBatches]
- * @property {{ sig?: string, patch?: { ops?: Parameters<typeof import('../automation/builderTools/suggestedPatch').applyPatchOps>[1] } }|null} [_lastRejected]
+ * @typedef {{
+ *   userId: string, orgId?: string|null, appId?: string|null, version?: number|null, builderSessionId?: string|null,
+ *   def: AppDef, finalized?: boolean, dataModel?: import('./builderTools/dataTools').DataModel|null,
+ *   dataModelVersion?: number, rowCounts?: Record<string, number|string>,
+ *   datasetIds?: Array<{ id: string, name?: string }>,
+ *   linkedTables?: Awaited<ReturnType<typeof import('./linkedTables').describeLinkedTables>>,
+ *   modelSupportsVision?: boolean, _screenshotsThisTurn?: number, _turnMessage?: string,
+ *   _screenConstraint?: ReturnType<typeof import('../core/llm/screenConstraints').deriveScreenConstraints>,
+ *   _ownedAutomations?: Map<string, { isActive: boolean }>, _documents?: Array<{ id: string, name?: string }>|null,
+ *   _ownerDatatables?: Awaited<ReturnType<typeof import('./datatableSource').listOwnerDatatableIds>>,
+ *   _lastAddedScreenId?: string, _lastTouchedScreenId?: string, _syncedMetaKey?: string,
+ *   _addedBatches?: Map<string, import('./builderTools/definitionTools/addComponents').BatchRecord>,
+ *   _lastRejected?: { sig?: string, patch?: { ops?: Parameters<typeof import('../automation/builderTools/suggestedPatch').applyPatchOps>[1] } }|null,
+ * }} BuilderDraft
+ *   `rowCounts`: keyed by TABLE ID; `_screenConstraint`: the person's screen-count rule for this turn.
  */
 
 /**

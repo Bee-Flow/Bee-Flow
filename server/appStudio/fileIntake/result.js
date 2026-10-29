@@ -165,40 +165,21 @@ function trimForDetail(result, step, { refused, emptyFolders, sheetOnly }) {
 module.exports = { emptyIntakeResult, buildResult, trimForDetail };
 
 /**
- * @typedef {object} IntakeResult  the report of one intake
- * @property {number} filed
- * @property {number} total
- * @property {number} parts
- * @property {import('./attachmentRows').Refusal[]} refused
- * @property {import('./attachmentRows').IntakePair[]} pairs
- * @property {import('./attachmentRows').FileDescriptor | null} poFile
- * @property {string | null} poName
- * @property {string | null} poSource
- * @property {import('./attachmentRows').FileDescriptor | null} sheetFile
- * @property {string | null} sheetName
- * @property {import('./attachmentRows').FileDescriptor | null} lineListFile
- * @property {string | null} lineListName
- * @property {import('./attachmentRows').SheetReport[]} sheets
- * @property {import('./attachmentRows').FileDescriptor | null} sampleFile
- * @property {string | null} sampleName
- * @property {string[]} sheetOnly
- * @property {string} sheetOnlySummary
- * @property {Array<{ folder: string, files: number }>} skippedFolders
- * @property {string} skippedSummary
- * @property {Array<{ name: string, file: import('./attachmentRows').FileDescriptor | null }>} others
- * @property {string[]} emptyFolders
- * @property {string} emptySummary
- * @property {Array<string | null>} unpairedDrawings
- * @property {Array<string | null>} unpairedCad
- * @property {number} fuzzy
- * @property {Array<{ baseName: string, cadName: string | null, drawingName: string | null }>} fuzzyPairs
- * @property {number} written
- * @property {Array<import('./attachmentRows').ZipReport & { refusedCount?: number }>} [zips]
- * @property {boolean} [truncated]
- * @property {number} [limit]
- * @property {string} [code]
- * @property {number} [remaining]
- * @property {number} [refusedCount]  set by the 'summary' trim
- * @property {number} [emptyFolderCount]  set by the 'summary' trim
- * @property {number} [sheetOnlyCount]  set by the 'summary' trim
+ * @typedef {{
+ *   filed: number, total: number, parts: number, refused: import('./attachmentRows').Refusal[],
+ *   pairs: import('./attachmentRows').IntakePair[], poFile: import('./attachmentRows').FileDescriptor | null,
+ *   poName: string | null, poSource: string | null, sheetFile: import('./attachmentRows').FileDescriptor | null,
+ *   sheetName: string | null, lineListFile: import('./attachmentRows').FileDescriptor | null,
+ *   lineListName: string | null, sheets: import('./attachmentRows').SheetReport[],
+ *   sampleFile: import('./attachmentRows').FileDescriptor | null, sampleName: string | null, sheetOnly: string[],
+ *   sheetOnlySummary: string, skippedFolders: Array<{ folder: string, files: number }>, skippedSummary: string,
+ *   others: Array<{ name: string, file: import('./attachmentRows').FileDescriptor | null }>, emptyFolders: string[],
+ *   emptySummary: string, unpairedDrawings: Array<string | null>, unpairedCad: Array<string | null>, fuzzy: number,
+ *   fuzzyPairs: Array<{ baseName: string, cadName: string | null, drawingName: string | null }>, written: number,
+ *   zips?: Array<import('./attachmentRows').ZipReport & { refusedCount?: number }>, truncated?: boolean,
+ *   limit?: number, code?: string, remaining?: number, refusedCount?: number, emptyFolderCount?: number,
+ *   sheetOnlyCount?: number,
+ * }} IntakeResult  the report of one intake
+ *   Fields: `refusedCount`: set by the 'summary' trim; `emptyFolderCount`: set by the 'summary' trim;
+ *   `sheetOnlyCount`: set by the 'summary' trim.
  */
