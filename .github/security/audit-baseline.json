@@ -1,6 +1,6 @@
 {
   "_comment": "Highest counts this repository is allowed to carry, and the critical/high advisory ids it carries per target. Lower both by fixing advisories and re-running `node scripts/audit-ratchet.mjs --update`; raising a count or adding an id is a deliberate edit that belongs in a commit message with a reason. A new advisory that cannot be fixed yet goes in `accepted` as { id } or { package, range } with a reason and an expires date (YYYY-MM-DD).",
-  "_generated": "2026-10-24",
+  "_generated": "2026-10-29",
   "targets": {
     "server": {
       "why": "the API — every request goes through it",
@@ -90,7 +90,7 @@
     },
     "mobile": {
       "critical": 0,
-      "high": 5
+      "high": 0
     },
     ".": {
       "critical": 0,
@@ -146,9 +146,7 @@
     "agent-hub": [],
     "nextcloud-connector": [],
     "desktop": [],
-    "mobile": [
-      "GHSA-86w9-cpqp-85rv"
-    ],
+    "mobile": [],
     ".": [],
     "components/afas-customer-data": [],
     "components/email-sender-smtp": [],
