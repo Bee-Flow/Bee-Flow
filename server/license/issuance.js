@@ -27,14 +27,10 @@ const ISSUE_TIMEOUT_MS = parseInt(process.env.LICENSE_ISSUE_TIMEOUT_MS || '15000
 /**
  * Request a license JWT for a Stripe checkout that just completed.
  *
- * @param {Object} args
- * @param {'organization' | 'consumer'} args.scope
- * @param {string} [args.organizationId]
- * @param {string} [args.userId]
- * @param {string} args.planId        - internal Beeflow plan id (or stripe price id)
- * @param {string} args.tier          - 'enterprise' | 'full' (community is free, no key). Legacy 'pro' is also accepted and minted as enterprise.
- * @param {string} args.stripeCustomerId
- * @param {string} args.stripeSubscriptionId
+ * `planId` is the internal Beeflow plan id (or the stripe price id); `tier` is 'enterprise' or
+ * 'full' (community is free, no key); a legacy 'pro' is also accepted and minted as enterprise.
+ * @param {{ scope: 'organization' | 'consumer', organizationId?: string, userId?: string, planId: string,
+ *   tier: string, stripeCustomerId: string, stripeSubscriptionId: string }} args
  * @returns {Promise<{ token: string, licenseId: string } | null>}
  */
 async function issueLicenseFromCheckout(args) {
