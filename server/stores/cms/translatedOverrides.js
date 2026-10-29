@@ -13,11 +13,20 @@ const { withConfigGroup, realignRoot } = require('./overrideAlign');
 const { sanitizePageOverride, sanitizeSiteOverride, assertLocale } = require('./localeOverrides');
 
 /**
+ * isPlainObject as a type guard: a non-null, non-array object.
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
+const isRecord = (v) => isPlainObject(v);
+
+/** @typedef {{ id?: unknown, content?: unknown }} StoredBlock */
+
+/**
  * @param {string} siteId
  * @param {string} pageId
  * @param {string} locale
- * @param {any} result  the override the translation produced (aligned to `snapshotPage`)
- * @param {any} snapshotPage  the page the translation worked on
+ * @param {Record<string, unknown>} result  the override the translation produced (aligned to `snapshotPage`)
+ * @param {{ blocks?: StoredBlock[] }} snapshotPage  the page the translation worked on
  * @returns {Promise<any>}  the override that was stored
  */
 async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapshotPage) {
@@ -27,15 +36,15 @@ async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapsh
     return withConfigGroup(pageKey(siteId, pageId), async (io) => {
         const current = await io.get(pageKey(siteId, pageId));
         const stored = await io.get(key);
-        const snapById = new Map((snapshotPage?.blocks || []).map((/** @type {any} */ b) => [b.id, b]));
-        const currentById = new Map((current?.blocks || []).map((/** @type {any} */ b) => [b.id, b]));
+        const snapById = new Map((snapshotPage?.blocks || []).map((b) => [b.id, b]));
+        const currentById = new Map((current?.blocks || []).map((/** @type {StoredBlock} */ b) => [b.id, b]));
         /** @type {Record<string, any>} */
         const blocks = {};
-        for (const [blockId, blockOv] of Object.entries(isPlainObject(result?.blocks) ? result.blocks : {})) {
+        for (const [blockId, blockOv] of Object.entries(isRecord(result?.blocks) ? result.blocks : {})) {
             const was = snapById.get(blockId);
             const now = currentById.get(blockId);
             if (current && !now) continue;   // the block was deleted meanwhile
-            if (!isPlainObject(blockOv)) { blocks[blockId] = blockOv; continue; }
+            if (!isRecord(blockOv)) { blocks[blockId] = blockOv; continue; }
             const moved = was && now && JSON.stringify(was.content) !== JSON.stringify(now.content)
                 ? realignRoot(blockOv, ['content'], () => was.content, () => now.content)
                 : blockOv;
@@ -51,8 +60,8 @@ async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapsh
 /**
  * @param {string} siteId
  * @param {string} locale
- * @param {any} result
- * @param {any} snapshotSite
+ * @param {Record<string, unknown>} result
+ * @param {unknown} snapshotSite
  * @returns {Promise<any>}
  */
 async function saveTranslatedSiteOverride(siteId, locale, result, snapshotSite) {
@@ -62,7 +71,7 @@ async function saveTranslatedSiteOverride(siteId, locale, result, snapshotSite) 
     return withConfigGroup(projectKey(siteId), async (io) => {
         const current = await io.get(projectKey(siteId));
         const stored = await io.get(key);
-        const aligned = isPlainObject(current) && isPlainObject(snapshotSite)
+        const aligned = isPlainObject(current) && isRecord(snapshotSite)
             ? realignRoot(result, ['header', 'footer'], (k) => snapshotSite[k], (k) => current[k])
             : result;
         const sanitized = sanitizeSiteOverride({ ...aligned, _orphans: stored?._orphans || aligned._orphans });
