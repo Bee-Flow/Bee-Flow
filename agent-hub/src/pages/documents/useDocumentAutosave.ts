@@ -135,7 +135,10 @@ async function rereadFrame(ctx: Ctx): Promise<boolean> {
     return ctx.reported.current !== before;
 }
 
-async function openConflict(ctx: Ctx, err: any, html: string) {
+/** What a refused save carries: the HTTP status, the server's code and, on a conflict, the parts to choose from. */
+type SaveFailure = Error & { status?: number; code?: string; conflict?: { parts?: MergePart[]; currentVersionId?: string } };
+
+async function openConflict(ctx: Ctx, err: SaveFailure, html: string) {
     if (err?.conflict?.parts && err.conflict.currentVersionId) {
         ctx.set.conflict({ parts: err.conflict.parts, currentVersionId: err.conflict.currentVersionId, mine: html });
     } else {

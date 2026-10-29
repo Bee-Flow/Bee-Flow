@@ -28,7 +28,7 @@ export interface UseBuilderRunsOptions {
     api: ReturnType<typeof useAutomationApi>;
     state: ReturnType<typeof useAutomationBuilderStream>['state'];
     effectiveDef: FlowDefinition | null;
-    executeStep: (stepId: string, opts?: any) => Promise<any>;
+    executeStep: ReturnType<typeof useAutomationBuilderStream>['executeStep'];
     watchActiveRun: (automationId: string) => () => void;
     setRunResult: ReturnType<typeof useAutomationBuilderStream>['setRunResult'];
     settleRun: () => void;
@@ -78,15 +78,15 @@ export default function useBuilderRuns({
     // dependency array is evaluated during render — a `const` declared later
     // would be in its temporal dead zone at that moment.
     const [formTest, setFormTest] = useState<any>(null);
-    const triggerSampleRef = useRef<any>(null);
+    const triggerSampleRef = useRef<unknown>(null);
     // The id of the PRIMARY trigger when it is a bare form trigger — kind
     // 'form', no pinnedOutput yet — else null. Same ref-assigned-in-render
     // pattern as triggerSampleRef, and for the same reason.
-    const bareFormTriggerIdRef = useRef<any>(null);
+    const bareFormTriggerIdRef = useRef<string | null>(null);
     const formDeclRef = useRef<any>(null);
     // definition.triggers[] — the additional entry points of a multi-trigger
     // automation, each with its own pinnedOutput. Same ref-in-render pattern.
-    const secondaryTriggersRef = useRef<any[]>([]);
+    const secondaryTriggersRef = useRef<NonNullable<FlowDefinition['triggers']>>([]);
     // The body every whole-flow run is POSTed with. `{}` when there is no
     // sample, so an untouched automation keeps sending exactly what it always did.
     // A run started FROM a secondary trigger (the header's "Start from"
@@ -127,7 +127,7 @@ export default function useBuilderRuns({
     // own Submit button (onTestSubmit) always carries one — even `{}` for an
     // all-optional form — and that must always execute for real.
     const handleExecuteStep = useCallback(
-        (stepId: any, opts: any) => {
+        (stepId: string, opts?: Parameters<UseBuilderRunsOptions['executeStep']>[1] & { openForm?: boolean }) => {
             // "Test this form" in the trigger's panel asks for the page
             // explicitly (openForm), so it opens the overlay even when a
             // sample is pinned and Execute alone would replay that sample.
@@ -202,7 +202,7 @@ export default function useBuilderRuns({
      * copy of the watch/settle/report plumbing, which is the half that has the
      * bugs (BFSF-360).
      */
-    const startLiveRun = async (body: any) => {
+    const startLiveRun = async (body: Record<string, unknown>) => {
         setBusy(true); setError(null);
         liveFromBuilderRef.current = true;
         let stopWatch = () => {};
@@ -269,7 +269,7 @@ export default function useBuilderRuns({
         if (currentRunId && awaitingStepNow) dismissedFormPagesRef.current.add(dismissKey(currentRunId, awaitingStepNow));
         setFormTest(null);
     };
-    const openFormOverlay = (runId: any) => { if (runId) setFormTest({ runId }); };
+    const openFormOverlay = (runId: string | null | undefined) => { if (runId) setFormTest({ runId }); };
     useEffect(() => {
         if (shouldAutoOpenFormOverlay({
             liveFromBuilder: liveFromBuilderRef.current,
@@ -287,7 +287,7 @@ export default function useBuilderRuns({
      * hands the automation — so nothing else about the run differs from pressing
      * Run on any other trigger.
      */
-    const onFormTestRun = async (answers: any) => {
+    const onFormTestRun = async (answers: unknown) => {
         const from = formTest?.triggerStepId || null;
         return startLiveRun({
             triggerPayload: answers,

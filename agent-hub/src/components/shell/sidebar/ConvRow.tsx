@@ -164,7 +164,7 @@ const ConvRow = ({
                 const p = projects?.find((pr: Project) => pr.id === conv.project_id);
                 if (!p) return null;
                 // The colour goes through the same check as everywhere a
-                // project is painted: any editor can set it, every member sees it.
+                // project is painted; any editor can set it, every member sees it.
                 return (
                     <span
                         className="flex-shrink-0 text-[10px] px-1 py-px rounded flex items-center gap-0.5 max-w-[80px]"

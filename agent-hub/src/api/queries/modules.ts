@@ -268,7 +268,7 @@ export function useSideloadModule() {
                 headers: { 'Content-Type': 'application/octet-stream' },
                 body: file,
             });
-            let parsed: any = null;
+            let parsed: (Partial<SideloadResponse> & { error?: string }) | null = null;
             try { parsed = await res.json(); } catch (err) { logger.debug('not JSON', err); }
             if (!res.ok) {
                 throw new ApiError(parsed?.error || `HTTP ${res.status}`, { status: res.status, body: parsed });

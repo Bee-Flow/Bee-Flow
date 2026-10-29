@@ -282,7 +282,7 @@ export function buildStepFromPayload(payload: import('./applyAddNode.types').Add
         baseStep.knowledgeBaseId = '';
         baseStep.title = '';
         baseStep.content = '';
-        // No default sourceUri: any value we invented would be the SAME on
+        // No default sourceUri, because any value we invented would be the SAME on
         // every run, so the step would overwrite its own single document
         // forever and the author would never see why. Blank earns the
         // `no_source_uri` warning, which is the honest state.

@@ -206,7 +206,7 @@ export class CollabBinding {
         this.snapshot = map;
     };
 
-    private onFragmentChange = (_events: Array<Y.YEvent<any>>, tr: Y.Transaction) => {
+    private onFragmentChange = (_events: Array<Y.YEvent<Y.XmlFragment>>, tr: Y.Transaction) => {
         if (tr.origin === this.origin || this.destroyed) return;
         if (this.view.composing) { this.pending = true; return; }
         this.applyFromY(tr.origin === this.undoManager ? 'undo' : 'remote');

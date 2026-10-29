@@ -4,7 +4,7 @@ import type { DocNode } from '../model/schema.js';
 /** A hook-callback argument: a state, or the small meta object a hook receives. */
 export type HookArg = EditorState | { source: string } | { kind: string } | undefined;
 
-/** A co-editing plugin: any subset of the hook callbacks (see the header). */
+/** A co-editing plugin, any subset of the hook callbacks (see the header). */
 export interface ViewPlugin { [hook: string]: ((...args: HookArg[]) => void) | undefined }
 
 /** An external undo manager (per-user undo while co-editing). */

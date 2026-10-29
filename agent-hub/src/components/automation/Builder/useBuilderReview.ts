@@ -59,7 +59,7 @@ export default function useBuilderReview({
     // `excluded` is the Set of fields the user unticked on the proposal card.
     // They are reverted on the definition the SERVER answers with: when the
     // proposal creates tables, only that one points at the real table ids.
-    const applyProposal = async (excluded: any) => {
+    const applyProposal = async (excluded: unknown) => {
         const proposal = state.proposal;
         if (!proposal || state.running || applyingProposal) return;
         if (!deepEqual(effectiveDef, proposal.baseDefinition) && !(isBlankDefinition(effectiveDef) && isBlankDefinition(proposal.baseDefinition))) {

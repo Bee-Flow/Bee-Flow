@@ -35,7 +35,7 @@ export interface AutomationLike {
  *     as `X-BeeFlow-Signature`. The nonce MUST be part of the signed message —
  *     signing the body alone lets a captured request be replayed under a new
  *     nonce.
- *   - Rotate is destructive: any caller still on the old secret starts getting
+ *   - Rotate is destructive, since any caller still on the old secret starts getting
  *     401s the moment the new secret hits the DB.
  *
  * @param {object|null} automation

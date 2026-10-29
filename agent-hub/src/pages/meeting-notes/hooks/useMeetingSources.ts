@@ -8,7 +8,7 @@ import { useMeetingSourcesQuery } from '@/api/queries/meetingNotesConnections';
  * Gates the "Upcoming" tab on the Meeting Notes page: an org on e.g. Outlook
  * calendar + Teams has neither source, and a tab that can never show a
  * meeting shouldn't exist for them. Uses the two cheap settings endpoints
- * (no calendar scans). Best-effort: any error or non-OK (e.g. unlicensed
+ * (no calendar scans). Best-effort, so any error or non-OK (e.g. unlicensed
  * 403) counts as unavailable.
  *
  * @returns {{ talk: boolean, gmeet: boolean, loading: boolean }}

@@ -140,7 +140,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     const toggleToc = useCallback(() => { tocTouched.current = true; setTocOpen((o) => !o); }, []);
     useNotebookShortcuts({ onHistory: openVersions, onComments: project ? toggleComments : undefined });
 
-    const onToc = useCallback((items: any[]) => {
+    const onToc = useCallback((items: unknown[]) => {
         setTocItems(items || []);
         if (!tocTouched.current && (items || []).length >= TOC_AUTO_OPEN_AT) { tocTouched.current = true; setTocOpen(true); }
     }, []);

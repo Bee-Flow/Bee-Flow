@@ -92,8 +92,8 @@ function toGroup(raw: unknown): ChangeGroup | null {
         lastChangedAt: str(r.lastChangedAt),
         changeCount: num(r.changeCount) || 1,
         contributors: (Array.isArray(r.contributors) ? r.contributors : [])
-            .filter((c: any) => c && (c.kind === 'ai' || typeof c.userId === 'string'))
-            .map((c: any) => ({ userId: typeof c.userId === 'string' ? c.userId : null, kind: c.kind === 'ai' ? 'ai' : 'user' })),
+            .filter((c: { kind?: unknown; userId?: unknown }) => c && (c.kind === 'ai' || typeof c.userId === 'string'))
+            .map((c: { kind?: unknown; userId?: unknown }) => ({ userId: typeof c.userId === 'string' ? c.userId : null, kind: c.kind === 'ai' ? 'ai' : 'user' })),
         stats: { wordsAdded: num(r.stats?.wordsAdded), wordsRemoved: num(r.stats?.wordsRemoved), blocksChanged: num(r.stats?.blocksChanged) },
         latestVersionId: str(r.latestVersionId),
         seenVersionId: str(r.seenVersionId),

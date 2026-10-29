@@ -13,13 +13,13 @@
 
 import { useMemo, useCallback, useEffect, useRef, useLayoutEffect } from 'react';
 
-export interface DebouncedFunction<F extends (...args: any[]) => void> {
+export interface DebouncedFunction<F extends (...args: never[]) => void> {
     (...args: Parameters<F>): void;
     cancel: () => void;
     flush: () => void;
 }
 
-export default function useDebouncedCallback<F extends (...args: any[]) => void>(
+export default function useDebouncedCallback<F extends (...args: never[]) => void>(
     fn: F,
     ms: number,
 ): DebouncedFunction<F> {

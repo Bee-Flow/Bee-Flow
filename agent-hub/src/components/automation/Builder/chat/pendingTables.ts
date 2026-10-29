@@ -48,7 +48,7 @@ export interface CatalogTable {
 
 export const isPendingDatatableId = (id: unknown): id is string => typeof id === 'string' && PENDING_RE.test(id);
 
-/** A pending ref anywhere in the definition: any key named datatableId (steps, layers, loop bodies, cacheInto). */
+/** A pending ref anywhere in the definition, any key named datatableId (steps, layers, loop bodies, cacheInto). */
 export function hasPendingDatatableRefs(value: unknown): boolean {
     if (Array.isArray(value)) return value.some(hasPendingDatatableRefs);
     if (!value || typeof value !== 'object') return false;

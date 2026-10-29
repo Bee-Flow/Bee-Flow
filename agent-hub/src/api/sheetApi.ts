@@ -47,7 +47,7 @@ function tabQuery(tabId?: string) {
 }
 
 async function asJson<T>(res: Response, fallback: string): Promise<T> {
-    let body: any = null;
+    let body: { error?: string; code?: string } | null = null;
     try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) throw new SheetApiError((body && body.error) || fallback, res.status, body?.code);
     if (body === null) throw new SheetApiError(fallback, res.status, 'not_json');
