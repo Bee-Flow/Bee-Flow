@@ -84,7 +84,8 @@ function makeThreadsRouter(deps = {}) {
         (deps.recordProjectChange || require('../../projects/changeFeed').recordProjectChange)(...a);
     const log = deps.log || require('../../telemetry/log');
 
-    const userIdOf = (/** @type {any} */ req) => req.session?.user?.id;
+    // Every route here runs behind the project role gate, which guarantees the session user.
+    const userIdOf = (/** @type {import('express').Request} */ req) => /** @type {string} */ (req.session?.user?.id);
 
     /** Unshare the caller's own chat, re-encrypting it under their key; then say so in the project. */
     async function unshareOwn(/** @type {import('express').Request} */ req, /** @type {string} */ projectId, /** @type {string} */ conversationId, /** @type {unknown} */ type) {

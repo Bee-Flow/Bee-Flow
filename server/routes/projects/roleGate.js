@@ -23,7 +23,7 @@
 function lazyProjectRoleGate(minRole) {
     /** @type {ReturnType<ProjectRoleGate>|null} */
     let gate = null;
-    return function requireProjectRoleMw(/** @type {any} */ req, /** @type {any} */ res, /** @type {any} */ next) {
+    return function requireProjectRoleMw(/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         if (!gate) gate = require('../../auth/projectAccess').requireProjectRole(minRole);
         return /** @type {ReturnType<ProjectRoleGate>} */ (gate)(req, res, next);
     };

@@ -37,9 +37,10 @@ function makeDocumentStreamRouter(deps = {}) {
     const bus = () => deps.bus || require('../../core/projectEventBus');
     const requireAuth = deps.requireAuth || ((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => require('../../auth/permissions').requireAuth(req, res, next));
 
-    router.get('/:id/stream', requireAuth, async (/** @type {any} */ req, /** @type {import('express').Response} */ res) => {
+    router.get('/:id/stream', requireAuth, async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { openCursorStream } = require('../../core/http/cursorStream');
-        const userId = req.session.user.id;
+        // requireAuth runs first and guarantees the session user.
+        const userId = /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
         const id = req.params.id;
         if (!(await documents().getDocument(id, userId))) throw notFound('document_not_found', 'Document not found');
         await openCursorStream(req, res, {

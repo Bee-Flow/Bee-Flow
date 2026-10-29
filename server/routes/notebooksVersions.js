@@ -112,7 +112,8 @@ function makeNotebookVersionsRouter(deps = {}) {
         .perUserRateLimit({ windowMs: 60_000, max: 30, name: 'notebook-version-write' });
     const router = express.Router();
 
-    const actor = (/** @type {any} */ req) => req.session.user.id;
+    // Every route here runs behind the notebook role gate, which guarantees the session user.
+    const actor = (/** @type {import('express').Request} */ req) => /** @type {NonNullable<Express.Session['user']>} */ (req.session.user).id;
     const asContributor = (/** @type {string} */ userId) => [{ userId, kind: 'user' }];
 
     router.get('/:id/versions', validate({ query: ListQuery }), gate('viewer'), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
