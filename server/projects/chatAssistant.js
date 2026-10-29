@@ -330,17 +330,25 @@ function makeChatAssistant(deps = {}) {
     }
 
     /** @param {string} chatId */
-    async function getStatus(chatId) {
-        const turn = await locks().getTurn(chatId);
-        if (!turn) return { status: 'idle', threadId: /** @type {string|null} */ (null) };
-        /** @type {string | null} */
-        let threadId = null;
-        if (turn.runId?.startsWith('pc:')) {
-            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
-        }
-        return { status: 'running', threadId, startedAt: turn.acquiredAt };
-    }
+    const getStatus = (chatId) => chatTurnStatus(locks(), chatId);
     return { requestReply, getStatus };
+}
+
+/**
+ * Whether the assistant holds a chat's turn, and for which thread (read from
+ * the lock's run id, `pc:<thread>:<id>`).
+ * @param {typeof import('../stores/conversationLockStore')} lockStore
+ * @param {string} chatId
+ */
+async function chatTurnStatus(lockStore, chatId) {
+    const turn = await lockStore.getTurn(chatId);
+    if (!turn) return { status: 'idle', threadId: /** @type {string|null} */ (null) };
+    /** @type {string | null} */
+    let threadId = null;
+    if (turn.runId?.startsWith('pc:')) {
+        try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
+    }
+    return { status: 'running', threadId, startedAt: turn.acquiredAt };
 }
 
 module.exports = {

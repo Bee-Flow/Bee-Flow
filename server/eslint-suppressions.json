@@ -6555,7 +6555,7 @@
       "count": 4
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "projects/comments/passage.js": {
