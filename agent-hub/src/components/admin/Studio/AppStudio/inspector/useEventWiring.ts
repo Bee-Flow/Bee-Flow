@@ -1,46 +1,24 @@
 import { useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { defaultActionForKind } from './actionKindCatalog';
-import { describeAction } from './actionLabels';
-import {
-    componentsShowingResult, effectSteps, eventRefsToAction, formNameOf, getFormFields,
-    otherComponentsRunning, screenIdOfNode, stepCount, stepFromAction,
-} from './actionRefs';
+import { componentsShowingResult, eventRefsToAction, formNameOf, getFormFields, otherComponentsRunning } from './actionRefs';
 import type {
     ActionEffect, AppAction, AppDefinition, AppNode, AppRef, AppScreen, FormFieldRef, InputMapping,
     ParamMetaByName,
 } from './appDefinition';
 import { automationHref } from './AutomationTile';
 import { alwaysSkipped, buildTestPayload } from './testPayload';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import toast from '@/components/shared/Toast';
 import useTranslation from '@/hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
-import { logger } from '@/utils/logger';
-import { runStartRefusal } from '@/api/queries/automation/runAccess';
+import {
+    actionChoices, appRefOf, kindSwitchOf, nextParamName, paramMetaOf, renamedMapping, startTestRun, targetTriggerOf,
+    withEffect, withPickedAutomation, withoutMapping, type AutomationTrigger, type WiredAutomation,
+} from './eventWiring.helpers';
 
-/** One automation the picker has resolved, as far as this hook reads it. */
-export interface WiredAutomation {
-    id: string;
-    title?: string;
-    definition?: { trigger?: AutomationTrigger | null;[key: string]: unknown } | null;
-    [key: string]: unknown;
-}
-
-/** The target automation's trigger — where its declared input contract lives. */
-interface AutomationTrigger {
-    kind?: string;
-    /** app_trigger's typed params. */
-    params?: Array<{ name?: string; type?: string; required?: boolean; description?: string } | null>;
-    /** agent_call's JSON-schema half. */
-    parametersSchema?: {
-        properties?: Record<string, { type?: unknown; description?: string } | null>;
-        required?: unknown;
-    };
-    [key: string]: unknown;
-}
+export type { WiredAutomation } from './eventWiring.helpers';
 
 /** One input the test run could NOT carry, and why (testPayload.js). */
 export interface SkippedInput {
@@ -208,40 +186,13 @@ export default function useEventWiring({
     const [confirmFlatten, setConfirmFlatten] = useState<string | null>(null);  // the kind being switched TO
 
     const screens = definition?.screens || [];
-    // "Which button, in which screen, of which app" — the back-pointer a
-    // automation made from here carries, and the trail a link into the builder
-    // draws. Only ever a WHOLE reference: without the app's own id (the
-    // editor is mounted without one in a few tests and in the headless
-    // runtime) there is nothing to point at, and two thirds of a pointer is
-    // worse than none.
-    const appRef = useMemo<AppRef | null>(() => {
-        const screenId = screenIdOfNode(definition, node?.id);
-        if (!appId || !screenId || !node?.id) return null;
-        return { appId, screenId, nodeId: node.id };
-    }, [appId, definition, node?.id]);
+    // "Which button, in which screen, of which app": see appRefOf.
+    const appRef = useMemo<AppRef | null>(() => appRefOf(appId, definition, node?.id), [appId, definition, node?.id]);
     const formFields = useMemo(() => getFormFields(definition, node), [definition, node]);
     const fieldNames = useMemo(() => formFields.map((f) => f.name), [formFields]);
 
-    // The target automation's DECLARED input contract, when it has one:
-    // app_trigger → typed trigger.params; agent_call → schema properties.
-    const targetTrigger = useMemo<AutomationTrigger | null>(() => {
-        if (action?.kind !== 'run_automation' || !action.automationId) return null;
-        return (automations || []).find((a) => a.id === action.automationId)?.definition?.trigger || null;
-    }, [action, automations]);
-    const paramMetaByName = useMemo<ParamMetaByName | null>(() => {
-        if (targetTrigger?.kind === 'app_trigger' && Array.isArray(targetTrigger.params)) {
-            return Object.fromEntries(targetTrigger.params.filter((p) => p?.name).map((p) => [
-                p!.name, { type: p!.type || 'string', required: !!p!.required, description: p!.description || '' },
-            ]));
-        }
-        if (targetTrigger?.kind === 'agent_call' && targetTrigger.parametersSchema?.properties) {
-            const required = new Set<unknown>(Array.isArray(targetTrigger.parametersSchema.required) ? targetTrigger.parametersSchema.required : []);
-            return Object.fromEntries(Object.entries(targetTrigger.parametersSchema.properties).map(([n, s]) => [
-                n, { type: typeof s?.type === 'string' ? s.type : 'string', required: required.has(n), description: s?.description || '' },
-            ]));
-        }
-        return null;
-    }, [targetTrigger]);
+    const targetTrigger = useMemo(() => targetTriggerOf(action, automations), [action, automations]);
+    const paramMetaByName = useMemo(() => paramMetaOf(targetTrigger), [targetTrigger]);
 
     // Everything else that runs this action, or shows what it produced.
     const sharedWith = useMemo(
@@ -253,49 +204,30 @@ export default function useEventWiring({
         [definition, actionId],
     );
 
-    // Every action in the app, each labelled with how many OTHER components
-    // already run it — picking one here adopts that same object.
-    const choices = useMemo(() => Object.entries(actions).map(([id, a]) => {
-        const others = otherComponentsRunning(definition, id, node?.id).length;
-        let suffix = '';
-        if (others === 1) suffix = ` ${t('studio_apps_insp.wiring.also_used_one', '(also used by {count} other component)', { count: others })}`;
-        else if (others) suffix = ` ${t('studio_apps_insp.wiring.also_used_many', '(also used by {count} other components)', { count: others })}`;
-        return { id, label: `${describeAction(id, a, definition, titleFor, t)}${suffix}` };
-    }), [actions, definition, node?.id, titleFor, t]);
+    const choices = useMemo(
+        () => actionChoices(actions, definition, node?.id, titleFor, t),
+        [actions, definition, node?.id, titleFor, t],
+    );
 
     const commitAction = (nextAction: AppAction) => {
         const { def } = applyAction(definition, actionId, nextAction);
         if (def !== definition) onCommit(def);
     };
 
-    /**
-     * Change what this action IS.
-     *
-     * Turning something into a flow KEEPS it as the first step rather than
-     * replacing it — the old behaviour built a fresh default and the author's
-     * work vanished. Turning a real flow back into one thing does destroy the
-     * rest, so that direction asks first.
-     */
+    // Change what this action IS: see kindSwitchOf.
     const onPickKind = (kind: string) => {
-        if (!action || kind === action.kind) return;
-        if (kind === 'sequence') {
-            const first = stepFromAction(action);
-            // onSuccess becomes the steps that follow. onError has no equivalent
-            // — a sequence ABORTS on a failed step — so it cannot come across,
-            // and saying so beats dropping it in silence.
-            const steps = [first, ...effectSteps(action?.onSuccess)].filter(Boolean);
-            commitAction({ kind: 'sequence', steps });
-            if (action?.onError && Object.keys(action.onError).length) {
+        const change = kindSwitchOf(action, kind);
+        if (change.type === 'sequence') {
+            commitAction({ kind: 'sequence', steps: change.steps });
+            if (change.dropsOnError) {
                 toast.info(t('studio_apps_insp.wiring.on_error_lost', 'The "on error" part could not come across — a flow stops at the step that fails.'));
             }
             setFlowFor(actionId);
-            return;
-        }
-        if (action.kind === 'sequence' && stepCount(action) > 1) {
+        } else if (change.type === 'confirm') {
             setConfirmFlatten(kind);
-            return;
+        } else if (change.type === 'replace') {
+            commitAction(defaultAction(kind, definition, formFields));
         }
-        commitAction(defaultAction(kind, definition, formFields));
     };
 
     const onSelectAction = (value: string | null) => {
@@ -333,53 +265,14 @@ export default function useEventWiring({
         else onDeleteAction();
     };
 
-    /**
-     * Apply a picked automation: id + param prefill from its declared contract —
-     * agent_call's schema properties, or app_trigger's typed trigger.params
-     * (file params snap to the first file-upload input of the enclosing form).
-     */
+    // Apply a picked automation: see withPickedAutomation.
     const onPickAutomation = (automation: WiredAutomation) => {
         setPickerOpen(false);
         if (!action) return;
         if (automations && !automations.some((a) => a.id === automation.id)) {
             setAutomations([...automations, automation]);
         }
-        const next: AppAction = { ...action, automationId: automation.id };
-        const trigger = automation?.definition?.trigger;
-        let declared: Array<{ name: string; type: string }> | null = null;
-        if (trigger?.kind === 'agent_call' && trigger.parametersSchema?.properties) {
-            declared = Object.keys(trigger.parametersSchema.properties).map((name) => ({ name, type: 'string' }));
-        } else if (trigger?.kind === 'app_trigger' && Array.isArray(trigger.params)) {
-            declared = trigger.params.filter((p) => p?.name).map((p) => ({ name: p!.name as string, type: p!.type || 'string' }));
-        }
-        if (declared) {
-            const firstFileField = formFields.find((f) => f.type === 'input_file')?.name || '';
-            // Only the params the NEW automation declares survive. This used to
-            // carry the previous automation's mapping across untouched, so
-            // switching from an automation taking invoiceFile + amount to one taking
-            // ticketId left three rows: two of them belonged to nothing, were
-            // POSTed on every run, and looked identical to the real one.
-            const previous = action.inputMapping || {};
-            const mapping: Record<string, InputMapping> = {};
-            for (const { name, type } of declared) {
-                if (previous[name]) { mapping[name] = previous[name]; continue; }
-                // A file param with no file input to point at used to commit
-                // {kind:'field', name:''} — a hard validation error, so picking
-                // the automation broke every later save with a message about a
-                // field nobody had named. An empty static is a shape the schema
-                // accepts and the author can fill in.
-                if (type === 'file') {
-                    mapping[name] = firstFileField
-                        ? { kind: 'field', name: firstFileField }
-                        : { kind: 'static', value: '' };
-                }
-                else if (fieldNames.includes(name)) mapping[name] = { kind: 'field', name };
-                else mapping[name] = { kind: 'static', value: '' };
-            }
-            if (Object.keys(mapping).length) next.inputMapping = mapping;
-            else delete next.inputMapping;
-        }
-        commitAction(next);
+        commitAction(withPickedAutomation(action, automation, formFields, fieldNames));
     };
 
     const mappingEntries = Object.entries(action?.inputMapping || {});
@@ -390,50 +283,25 @@ export default function useEventWiring({
     };
     const renameMapping = (oldName: string, newName: string) => {
         if (!action) return;
-        const current = action.inputMapping || {};
-        // Renaming onto an existing parameter would silently delete it.
-        if (!newName.trim() || (newName !== oldName && newName in current)) return;
-        const mapping: Record<string, InputMapping> = {};
-        for (const [k, v] of Object.entries(current)) {
-            mapping[k === oldName ? newName : k] = v;
-        }
-        commitAction({ ...action, inputMapping: mapping });
+        const mapping = renamedMapping(action.inputMapping || {}, oldName, newName);
+        if (mapping) commitAction({ ...action, inputMapping: mapping });
     };
     const removeMapping = (param: string) => {
         if (!action) return;
-        const mapping = { ...(action.inputMapping || {}) };
-        delete mapping[param];
-        const next: AppAction = { ...action };
-        if (Object.keys(mapping).length) next.inputMapping = mapping;
-        else delete next.inputMapping;
-        commitAction(next);
+        commitAction(withoutMapping(action, param));
     };
     const addMapping = () => {
         if (!action) return;
-        const taken = new Set(Object.keys(action.inputMapping || {}));
-        let name = 'param';
-        let n = 1;
-        while (taken.has(name)) name = `param${++n}`;
-        setMapping(name, fieldNames.length ? { kind: 'field', name: fieldNames[0] } : { kind: 'static', value: '' });
+        setMapping(nextParamName(action.inputMapping), fieldNames.length ? { kind: 'field', name: fieldNames[0] } : { kind: 'static', value: '' });
     };
 
     const setEffect = (slot: 'onSuccess' | 'onError', effect: ActionEffect | null) => {
         if (!action) return;
-        const next: AppAction = { ...action };
-        if (effect) next[slot] = effect;
-        else delete next[slot];
-        commitAction(next);
+        commitAction(withEffect(action, slot, effect));
     };
 
     /*
-     * "Test" is not a rehearsal.
-     *
-     * It POSTs to the same production run endpoint the Automations page uses, with
-     * no dry-run flag — so an automation that e-mails customers e-mails them, and
-     * one that writes rows writes them. The button said none of that; the only
-     * caveat on screen ("static values only") rendered for app_trigger automations
-     * alone and is about the payload, not the consequences. There is no dry-run
-     * mode in the runner to fall back on, so the honest fix is to ask first.
+     * "Test" is not a rehearsal (see startTestRun): it asks first.
      *
      * ── It now tests with WHAT IS ON SCREEN ────────────────────────────────
      *
@@ -471,18 +339,7 @@ export default function useEventWiring({
             paramMeta: paramMetaByName,
         });
         try {
-            const r = await authFetch(`${API_BASE}/api/automation/${encodeURIComponent(action.automationId)}/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ triggerPayload: payload }),
-            });
-            let body: { error?: string; code?: string; run?: { id?: unknown } } | null = null;
-            try { body = await r.json(); } catch (err) { logger.debug('empty body', err); }
-            if (!r.ok) throw new Error(runStartRefusal(t, body) || body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
-            // A 200 carries the finished run; a 202 says "still going" and has
-            // no id yet, so the link then opens the automation's Runs tab instead
-            // of claiming a run that cannot be addressed.
-            const runId = typeof body?.run?.id === 'string' ? body.run.id : null;
+            const { body, runId } = await startTestRun(action.automationId, payload, t);
             setTest({ status: 'done', body, skipped, runId });
             onTestActionResult?.(actionId, body);
             openRunInBuilder(automationHref(action.automationId, appRef, { view: 'runs', runId }));
@@ -491,38 +348,12 @@ export default function useEventWiring({
         }
     };
     return {
-        action,
-        actionId,
-        automationRows,
-        pickerOpen, setPickerOpen,
-        confirmDelete, setConfirmDelete,
-        test, setTest,
-        flowFor, setFlowFor,
-        confirmFlatten, setConfirmFlatten,
-        confirmTest, setConfirmTest,
-        screens,
-        appRef,
-        formFields,
-        formName,
-        targetTrigger,
-        paramMetaByName,
-        sharedWith,
-        resultShownBy,
-        choices,
-        structuralSkips,
-        mappingEntries,
-        commitAction,
-        onPickKind,
-        onSelectAction,
-        onForkAction,
-        onDeleteAction,
-        requestDelete,
-        onPickAutomation,
-        setMapping,
-        renameMapping,
-        removeMapping,
-        addMapping,
-        setEffect,
-        runTest,
+        action, actionId, automationRows,
+        pickerOpen, setPickerOpen, confirmDelete, setConfirmDelete, test, setTest,
+        flowFor, setFlowFor, confirmFlatten, setConfirmFlatten, confirmTest, setConfirmTest,
+        screens, appRef, formFields, formName, targetTrigger, paramMetaByName,
+        sharedWith, resultShownBy, choices, structuralSkips, mappingEntries,
+        commitAction, onPickKind, onSelectAction, onForkAction, onDeleteAction, requestDelete, onPickAutomation,
+        setMapping, renameMapping, removeMapping, addMapping, setEffect, runTest,
     };
 }

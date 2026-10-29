@@ -37,7 +37,6 @@
     "src/components/admin/product-website/DesignEditor.tsx": 470,
     "src/components/admin/Studio/AppStudio/editor/ComponentRibbon.tsx": 576,
     "src/components/admin/Studio/AppStudio/inspector/ActionsSection.tsx": 663,
-    "src/components/admin/Studio/AppStudio/inspector/useEventWiring.ts": 528,
     "src/components/admin/Studio/AppStudio/rbac/RolesManager.tsx": 519,
     "src/components/admin/Studio/AppStudio/runtime/AppRenderer.tsx": 528,
     "src/components/admin/Studio/AppStudio/runtime/componentRegistry.ts": 466,
