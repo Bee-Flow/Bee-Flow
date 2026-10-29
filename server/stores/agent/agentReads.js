@@ -44,7 +44,7 @@ async function _loadAgentRow(id) {
  * down to the SET list.
  */
 /**
- * @template {object} B
+ * @template {Record<string, unknown>} B
  * @param {B} base
  * @param {AgentDbRow} row
  * @returns {B & { persona?: unknown }}

@@ -133,7 +133,7 @@ function erasureSteps(userId) {
     /** @param {string} name @param {unknown} e */
     const fail = (name, e) => {
         failed.push(name);
-        const code = /** @type {{ code?: unknown, name?: unknown }} */ (e)?.code ?? /** @type {any} */ (e)?.name ?? 'unknown';
+        const code = /** @type {{ code?: unknown, name?: unknown }} */ (e)?.code ?? /** @type {{ code?: unknown, name?: unknown }} */ (e)?.name ?? 'unknown';
         log.error(`[UserStore] erasure step '${name}' failed for user '${userId}' (${code})`);
     };
     /** @param {string} name @param {() => Promise<unknown>} fn */

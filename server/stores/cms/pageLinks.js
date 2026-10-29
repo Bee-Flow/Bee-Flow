@@ -1,14 +1,7 @@
 // @typecheck noImplicitAny
 // Internal page links (`{kind:'page', pageId}`) in a CMS content tree.
 
-const { isPlainObject } = require('./shared');
-
-/**
- * isPlainObject as a type guard: a non-null, non-array object.
- * @param {unknown} v
- * @returns {v is Record<string, unknown>}
- */
-const isRecord = (v) => isPlainObject(v);
+const { isRecord } = require('./shared');
 
 /**
  * Copy of `node` where every page link also carries the target's `slug`.

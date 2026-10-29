@@ -100,11 +100,12 @@ function cleanContributors(list) {
     return out;
 }
 
-/** @param {any} stats */
+/** @param {unknown} stats */
 function cleanStats(stats) {
     if (!stats || typeof stats !== 'object') return null;
+    const s = /** @type {Record<string, unknown>} */ (stats);   // a non-null object: each field goes through n()
     const n = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : 0);
-    return { wordsAdded: n(stats.wordsAdded), wordsRemoved: n(stats.wordsRemoved), blocksChanged: n(stats.blocksChanged) };
+    return { wordsAdded: n(s.wordsAdded), wordsRemoved: n(s.wordsRemoved), blocksChanged: n(s.blocksChanged) };
 }
 
 /**

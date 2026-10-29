@@ -34,19 +34,12 @@ const store = /** @type {typeof configStore & { withConfigGroup: ReturnType<type
  */
 const withConfigGroup = (lockKey, work) => store.withConfigGroup(lockKey, work);
 const {
-    KEY_LOCALE_INFIX, isPlainObject, pageKey, projectKey, projectLocaleKey,
+    KEY_LOCALE_INFIX, isPlainObject, isRecord, pageKey, projectKey, projectLocaleKey,
 } = require('./shared');
 
 const ORPHAN_CAP = 100;
 
 /** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: any) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} ConfigIo */
-
-/**
- * isPlainObject as a type guard: a non-null, non-array object.
- * @param {unknown} v
- * @returns {v is Record<string, unknown>}
- */
-const isRecord = (v) => isPlainObject(v);
 
 /** @typedef {{ id?: unknown, content?: unknown }} StoredBlock */
 

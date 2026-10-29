@@ -7,17 +7,10 @@
 // `_orphans` of the stored override win over the snapshot's copy.
 
 const {
-    isPlainObject, assertSiteId, pageKey, pageLocaleKey, projectKey, projectLocaleKey,
+    isPlainObject, isRecord, assertSiteId, pageKey, pageLocaleKey, projectKey, projectLocaleKey,
 } = require('./shared');
 const { withConfigGroup, realignRoot } = require('./overrideAlign');
 const { sanitizePageOverride, sanitizeSiteOverride, assertLocale } = require('./localeOverrides');
-
-/**
- * isPlainObject as a type guard: a non-null, non-array object.
- * @param {unknown} v
- * @returns {v is Record<string, unknown>}
- */
-const isRecord = (v) => isPlainObject(v);
 
 /** @typedef {{ id?: unknown, content?: unknown }} StoredBlock */
 

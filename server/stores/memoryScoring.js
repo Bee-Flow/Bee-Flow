@@ -163,12 +163,14 @@ function rrfFuse(legs, { k = RRF_K, weights = LEG_WEIGHTS } = {}) {
  * than replacing them. That keeps one threshold meaning one thing across both
  * retrieval paths.
  *
- * @param {any} memory
+ * @param {{ type?: string, updated_at?: string | number | Date | null, importance?: unknown } | null | undefined} memory
  * @param {number} rrfScore
  * @param {{now?: number}} [options]
  */
 function finalScore(memory, rrfScore, { now = Date.now() } = {}) {
-    let score = TYPE_BASE_SCORES[memory?.type] ?? DEFAULT_TYPE_SCORE;
+    // No type reads as '': neither table has that key, just as neither has 'undefined'.
+    const type = memory?.type ?? '';
+    let score = TYPE_BASE_SCORES[type] ?? DEFAULT_TYPE_SCORE;
 
     // Relevance. The multiplier maps a top-ranked hit in every leg
     // (~0.036 with the default weights) to roughly the 100 points the old
@@ -179,7 +181,7 @@ function finalScore(memory, rrfScore, { now = Date.now() } = {}) {
     // one from last month on freshness alone.
     const updatedAt = memory?.updated_at ? new Date(memory.updated_at).getTime() : now;
     const daysOld = (now - updatedAt) / 86_400_000;
-    score += recencyBonus(memory?.type, daysOld);
+    score += recencyBonus(type, daysOld);
 
     // Importance.
     score += (typeof memory?.importance === 'number' ? memory.importance : 0.5) * 20;
