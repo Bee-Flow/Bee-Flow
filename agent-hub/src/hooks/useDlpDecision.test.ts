@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import useDlpDecision, { DLP_TOUCH_INTERVAL_MS } from './useDlpDecision';
+import useDlpDecision, { DLP_TOUCH_INTERVAL_MS, type DlpPending } from './useDlpDecision';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -14,7 +14,7 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-function dispatch(type: string, detail: { decisionId?: string; reviewText?: string; findings?: never[]; filename?: string; }) {
+function dispatch(type: string, detail: Partial<DlpPending>) {
     window.dispatchEvent(new CustomEvent(type, { detail }));
 }
 

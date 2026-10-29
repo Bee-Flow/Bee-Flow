@@ -10,7 +10,7 @@
  * Therefore this hook asks the server, per agent, and gets back exactly one thing: for which apps lending is possible.
  * Not which connection hangs there.
  *
- * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.ts
  */
 import { waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

@@ -1,7 +1,8 @@
-import { screen, cleanup, waitFor, within, Matcher } from '@testing-library/react';
+import { screen, cleanup, waitFor, within, type Matcher } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import ConnectionsManager from './ConnectionsManager';
+import type { Connection } from './ConnectionsManager.types';
 import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
@@ -11,7 +12,7 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 // Mutable fixtures the authFetch mock serves; captured POST bodies for asserts.
-let connections: { id: string; provider: string; label: string; kind: string; isDefault: boolean; secretMeta: object }[] = [];
+let connections: Connection[] = [];
 let posts: Record<string, unknown>[] = [];
 
 function installFetchMock() {

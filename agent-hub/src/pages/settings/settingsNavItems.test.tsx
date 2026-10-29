@@ -26,16 +26,14 @@ import {
     SETTINGS_NAV_ROW_IDS,
     SETTINGS_RESOURCE_TABS,
 } from './settingsNavItems';
-import { useTranslation } from '../../hooks/useTranslation';
-
-type TFn = ReturnType<typeof useTranslation>['t'];
+import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 
 /** Resolve a labelKey exactly the way the sidebar does. */
 function useT() {
-    let t: TFn | undefined;
+    let t: TranslateFn | undefined;
     const Probe = () => { ({ t } = useTranslation()); return null; };
     render(<Probe />);
-    return t as TFn;
+    return t as TranslateFn;
 }
 
 afterEach(() => { vi.resetModules(); vi.doUnmock('../../authedApp/settingsRoutes'); });

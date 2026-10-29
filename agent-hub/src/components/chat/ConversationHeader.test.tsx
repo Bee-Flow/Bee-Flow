@@ -3,7 +3,7 @@ import React, { type ReactElement } from 'react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 import ConversationHeader from './ConversationHeader';
-import { invalidateShieldStatus } from '../../hooks/useShieldStatus';
+import { invalidateShieldStatus, type ShieldStatus } from '../../hooks/useShieldStatus';
 import { queryWrapper } from '../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
@@ -25,7 +25,8 @@ const render = (ui: ReactElement, options?: RenderOptions) => rtlRender(ui, { wr
  */
 
 /** What GET /api/privacy/shield-status answers, per test. */
-type ShieldBody = { enabled: boolean; source: string; action: string | null; failMode: string; guardReachable: boolean; euMode: boolean; coworkEnabled: boolean; };
+// The wire payload: these fixtures leave out chatMonitoring, which parseShieldStatus reads as off.
+type ShieldBody = Omit<ShieldStatus, 'chatMonitoring'>;
 let shieldBody: ShieldBody | null = null;
 
 beforeEach(() => {

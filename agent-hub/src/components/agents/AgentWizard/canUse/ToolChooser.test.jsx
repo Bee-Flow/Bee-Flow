@@ -8,7 +8,7 @@ import ToolChooser from './ToolChooser';
 /**
  * The tool picker, from click to config.
  *
- * `toolChooserModel.test.js` pins the calculation side. Here is what the OWNER does: open, tick, apply.
+ * `toolChooserModel.test.ts` pins the calculation side. Here is what the OWNER does: open, tick, apply.
  * The shell is the real `shared/AppActionPicker`. A picker that only works with a fake shell proves nothing
  * about the screen that users see.
  */

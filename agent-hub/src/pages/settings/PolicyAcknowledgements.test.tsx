@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, Matcher, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, type Matcher, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -78,9 +78,11 @@ async function mount(opts?: ServeOpts) {
     return view;
 }
 
+type Resolve = (value: unknown) => void;
+
 /** A promise whose resolution the test controls. */
-function deferred() {
-    let resolve!: (value: unknown) => void;
+function deferred(): { promise: Promise<unknown>; resolve: Resolve | undefined } {
+    let resolve: Resolve | undefined;
     const promise = new Promise(res => { resolve = res; });
     return { promise, resolve };
 }
@@ -215,7 +217,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         const { container } = { container: document.body };
         await user.click(await screen.findByRole('button'));
         await waitFor(() => expect(container.querySelector('.animate-spin')).not.toBeNull());
-        d.resolve(jsonRes({ body: 'text' }));
+        (d.resolve as Resolve)(jsonRes({ body: 'text' }));
         expect(await screen.findByText('text')).toBeInTheDocument();
         expect(container.querySelector('.animate-spin')).toBeNull();
     });
@@ -291,7 +293,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         expect(screen.queryByText('body of A')).toBeNull();
         expect(document.body.querySelector('.animate-spin')).not.toBeNull();
 
-        slowB.resolve(jsonRes({ body: 'body of B' }));
+        (slowB.resolve as Resolve)(jsonRes({ body: 'body of B' }));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
         expect(screen.queryByText('body of A')).toBeNull();
     });
@@ -303,7 +305,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         await user.click(within(rowFor('Policy B')).getByRole('button'));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
 
-        slowA.resolve(jsonRes({ body: 'body of A' }));
+        (slowA.resolve as Resolve)(jsonRes({ body: 'body of A' }));
         // A's late answer is kept for A; Policy B's panel still shows B's own body.
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
         expect(screen.queryByText('body of A')).toBeNull();
@@ -357,7 +359,7 @@ describe('PolicyAcknowledgements — confirming', () => {
         const confirm = await openFirst();
         await user.click(confirm);
         await waitFor(() => expect(confirm).toBeDisabled());
-        d.resolve(jsonRes({ ok: true }));
+        (d.resolve as Resolve)(jsonRes({ ok: true }));
         await waitFor(() => expect(listCalls()).toHaveLength(2));
     });
 

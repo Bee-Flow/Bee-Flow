@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import useAutomationBuilderStream from './useAutomationBuilderStream';
+import useAutomationBuilderStream, { type AutomationBuilderState } from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -12,7 +12,7 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  * a test catches them coming back.
  */
 
-const json = (body: { active?: never[]; steps?: { stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: { b: number; }; }[]|{ stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: { v: number; }; }[]|{ stepId: string; status: string; output: null; }[]; run?: { id: string; status: string; }; error?: string; }, { ok = true, status = 200 } = {}) => ({
+const json = (body: unknown, { ok = true, status = 200 } = {}) => ({
     ok,
     status,
     json: () => Promise.resolve(body),
@@ -26,7 +26,7 @@ const FINISHED_RUN_ROWS = [
     { stepId: 's3', status: 'success', output: { c: 3 } },
 ];
 
-type StepRow = ReturnType<typeof useAutomationBuilderStream>['state']['steps'][number];
+type StepRow = AutomationBuilderState['steps'][number];
 const stepIds = (result: { current: ReturnType<typeof useAutomationBuilderStream> }) => result.current.state.steps.map(s => s.stepId).sort();
 
 describe('useAutomationBuilderStream — run state', () => {
@@ -45,7 +45,7 @@ describe('useAutomationBuilderStream — run state', () => {
         // from the panel — and executeStep's own merge then merged into an
         // already-wiped map.
         let resolveRun: (value: unknown) => void;
-        (authFetch as Mock).mockImplementation((url: string|string[]) => {
+        (authFetch as Mock).mockImplementation((url: string) => {
             if (url.includes('/steps/s2/run')) return new Promise((r) => { resolveRun = r; });
             if (url.includes('/runs/run-2/steps')) {
                 return Promise.resolve(json({ steps: [{ stepId: 's2', status: 'running', output: null }] }));
@@ -127,7 +127,7 @@ describe('useAutomationBuilderStream — run state', () => {
             ]);
         });
 
-        (authFetch as Mock).mockImplementation((url: string|string[]) => (url.includes('/steps/s2/run')
+        (authFetch as Mock).mockImplementation((url: string) => (url.includes('/steps/s2/run')
             ? Promise.resolve(json({ error: 'Gmail auth expired' }, { ok: false, status: 400 }))
             : Promise.resolve(json({ active: [] }))));
 

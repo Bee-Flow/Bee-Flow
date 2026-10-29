@@ -44,7 +44,7 @@ import { authFetch } from '../../utils/helpers';
 
 const USER = { id: 'u1', role: 'admin', permissions: ['manage_agents', 'manage_skills', 'manage_knowledge', 'manage_users'] };
 
-function jsonResponse(body: { learningPath?: string; learningProgress?: { 'getting-started': { completedAt: string; masteredAt: string; }; }; }) {
+function jsonResponse(body: unknown) {
     return { ok: true, status: 200, json: async () => body };
 }
 

@@ -32,8 +32,8 @@ vi.mock('./useTranslation', () => ({
 }));
 
 /** A Response whose body streams `chunks` (strings) then ends. */
-const streamResponse = (chunks: (string | undefined)[], { status = 200 } = {}) => {
-    const encoded = chunks.map((c: string|undefined) => new TextEncoder().encode(c));
+const streamResponse = (chunks: string[], { status = 200 } = {}) => {
+    const encoded = chunks.map((c) => new TextEncoder().encode(c));
     let i = 0;
     return {
         ok: status >= 200 && status < 300,

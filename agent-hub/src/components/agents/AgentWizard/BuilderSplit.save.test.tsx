@@ -5,7 +5,7 @@
  * editor sends and what the screen shows afterwards, so moving these paths
  * into hooks (./builderSplit/) cannot change them unnoticed.
  *
- * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.save.test.jsx
+ * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.save.test.tsx
  */
 import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -42,7 +42,7 @@ const agent = {
 };
 const baseProps = { agent, plan: null, history: [], tier: 'fast', locale: 'en', onBack: () => {}, onPublished: () => {} };
 
-const reply = (status: number, body: { publishedVersion?: number; currentVersion?: number; agent?: { name: string; system_prompt: string; rev: number; id: string; description: string; is_published: number; config: {}; updated_at: string; }; name?: string; rev?: number; id?: string; description?: string; system_prompt?: string; is_published?: number; config?: {}; updated_at?: string; }) => ({ ok: status >= 200 && status < 300, status, json: async () => body, text: async () => '' });
+const reply = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body, text: async () => '' });
 /** routes: [method, urlPart, (opts, n) => response]; first match wins; n counts hits on that route. */
 function routeFetch(routes: [string, string, (opts: { body: string }, n: number) => unknown][]) {
     const hits = new Map();

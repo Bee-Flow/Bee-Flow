@@ -266,7 +266,7 @@ describe('when the stream cannot be established', () => {
 
     it('replays polled activity oldest-first and marks it as polled', async () => {
         vi.useFakeTimers();
-        (authFetch as Mock).mockImplementation(async (url: string|string[]) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) {
                 return {
                     ok: true,
@@ -419,7 +419,7 @@ describe('degraded mode', () => {
     it('keeps probing the stream while polling and stops polling once it is back', async () => {
         vi.useFakeTimers();
         let sseUp = false;
-        (authFetch as Mock).mockImplementation(async (url: string|string[]) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) return { ok: true, status: 200, json: async () => ({ items: [] }) };
             if (!sseUp) throw new Error('no sse here');
             return openStream([]);
@@ -431,14 +431,14 @@ describe('degraded mode', () => {
         sseUp = true;
         await vi.advanceTimersByTimeAsync(31_000);
         expect(onStatus).toHaveBeenLastCalledWith('live');
-        const pollsBefore = urls().filter((u: string|string[]) => u.includes('/activity')).length;
+        const pollsBefore = urls().filter((u: string) => u.includes('/activity')).length;
         await vi.advanceTimersByTimeAsync(60_000);
-        expect(urls().filter((u: string|string[]) => u.includes('/activity')).length).toBe(pollsBefore);
+        expect(urls().filter((u: string) => u.includes('/activity')).length).toBe(pollsBefore);
     });
 
     it('delivers a polled activity item once, not on every tick', async () => {
         vi.useFakeTimers();
-        (authFetch as Mock).mockImplementation(async (url: string|string[]) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) {
                 return { ok: true, status: 200, json: async () => ({ items: [{ id: 1, action: 'member_added', details: { a: 1 } }] }) };
             }
@@ -455,7 +455,7 @@ describe('degraded mode', () => {
         (authFetch as Mock).mockRejectedValue(new Error('no sse here'));
         mount({ doc: 'd1', pollActivity: false });
         await vi.advanceTimersByTimeAsync(30_000);
-        expect(urls().some((u: string|string[]) => u.includes('/activity'))).toBe(false);
+        expect(urls().some((u: string) => u.includes('/activity'))).toBe(false);
     });
 
     it('reports a revoked stream as stopped', async () => {

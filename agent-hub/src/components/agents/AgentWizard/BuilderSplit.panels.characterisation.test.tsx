@@ -8,7 +8,7 @@ import { withQueryClient } from '@/test/render';
 
 /**
  * BuilderSplit's panels and dialogs that BuilderSplit.test.jsx and
- * BuilderSplit.save.test.jsx leave open, pinned before the editor is split
+ * BuilderSplit.save.test.tsx leave open, pinned before the editor is split
  * further: the Test and Used-by tabs, the plan-limit banner, the dirty signal
  * and the autosave of an edit, the Advanced drawer with the public-embed
  * confirmation, the Schedules pill and its delete dialog, and the refine rail

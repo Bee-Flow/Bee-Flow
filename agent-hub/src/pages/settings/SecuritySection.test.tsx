@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
  * string asserted here is the string a user actually reads — which for a few
  * keys is NOT the inline fallback in the source.
  *
- * The vault is stubbed; it has its own file (TokenVaultSection.test.jsx).
+ * The vault is stubbed; it has its own file (TokenVaultSection.test.tsx).
  */
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));

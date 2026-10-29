@@ -33,13 +33,15 @@ vi.mock('../../hooks/useTranslation', () => ({
     }),
 }));
 
-type OnStopped = (file: File) => Promise<unknown>;
+type RecorderArgs = NonNullable<Parameters<typeof useAudioRecorder>[0]>;
+type OnStopped = NonNullable<RecorderArgs['onStopped']>;
 type Recorder = ReturnType<typeof makeRecorder>;
 const recorder: { current: Recorder | null; onStopped?: OnStopped } = { current: null };
 vi.mock('../meeting-notes/hooks/useAudioRecorder', () => ({
-    default: (opts?: { onStopped?: OnStopped }) => { recorder.onStopped = opts?.onStopped; return recorder.current; },
+    default: (opts?: RecorderArgs) => { recorder.onStopped = opts?.onStopped; return recorder.current; },
 }));
 
+import type useAudioRecorder from '../meeting-notes/hooks/useAudioRecorder';
 import VoiceprintSection from './VoiceprintSection';
 import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
@@ -105,7 +107,7 @@ describe('VoiceprintSection', () => {
         await user.click(await screen.findByRole('button', { name: 'Delete' }));
         expect(screen.getByText(/Delete your voice profile\?/)).toBeTruthy();
         // Nothing has been sent yet — only the availability probe ran.
-        expect((authFetch as Mock).mock.calls.filter((c: { method: string; }[]) => c[1]?.method === 'DELETE')).toHaveLength(0);
+        expect((authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'DELETE')).toHaveLength(0);
     });
 });
 
@@ -162,7 +164,7 @@ describe('VoiceprintEnrollModal timing + consent', () => {
         const file = new File(['x'], 'recording.webm', { type: 'audio/webm' });
         await (recorder.onStopped as OnStopped)(file);
 
-        const post = (authFetch as Mock).mock.calls.find((c: { method: string; }[]) => c[1]?.method === 'POST');
+        const post = (authFetch as Mock).mock.calls.find(c => c[1]?.method === 'POST');
         expect(post).toBeTruthy();
         expect((post as NonNullable<typeof post>)[0]).toContain('/api/voiceprints/me');
         expect((post as NonNullable<typeof post>)[1].body.get('consent')).toBe('true');
@@ -172,7 +174,7 @@ describe('VoiceprintEnrollModal timing + consent', () => {
     it('does not upload a clip that ended below the minimum', async () => {
         await openModal({ state: 'recording', elapsed: 4 });
         await (recorder.onStopped as OnStopped)(new File(['x'], 'recording.webm'));
-        expect((authFetch as Mock).mock.calls.filter((c: { method: string; }[]) => c[1]?.method === 'POST')).toHaveLength(0);
+        expect((authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
     });
 
     it('turns the server\'s error code into its own localized message', async () => {

@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import useAutomationBuilderStream, { AutomationBuilderSendOptions } from './useAutomationBuilderStream';
+import useAutomationBuilderStream, { type AutomationBuilderSendOptions } from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));

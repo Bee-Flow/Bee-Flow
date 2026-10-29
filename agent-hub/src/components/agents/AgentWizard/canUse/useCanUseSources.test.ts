@@ -5,7 +5,7 @@
  * that the organisation does not have), and a read that fails while something has been granted lands on READ.ERROR,
  * never on a silent empty list.
  *
- * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/useCanUseSources.test.jsx
+ * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/useCanUseSources.test.ts
  */
 import { waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
