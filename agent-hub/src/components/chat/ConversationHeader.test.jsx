@@ -90,8 +90,8 @@ describe('ConversationHeader — the shield pill is a runtime claim', () => {
         // "cannot check", or a tooltip that still promises the checking, is
         // the missing protection plus a reassurance — read faster than either
         // sentence.
-        expect(dot.style.background).not.toContain('--success');
-        expect(dot.style.background).toContain('--warning');
+        expect(dot.className).not.toContain('[background:var(--success)]');
+        expect(dot.className).toContain('[background:var(--warning)]');
         expect(pill.getAttribute('title')).not.toMatch(/is checked before it is sent/i);
         expect(pill.getAttribute('title')).toMatch(/cannot be reached/i);
     });
@@ -102,8 +102,8 @@ describe('ConversationHeader — the shield pill is a runtime claim', () => {
         mount({ title: 'Chat' });
         const pill = await screen.findByTestId('header-shield-pill');
         const dot = screen.getByTestId('header-shield-dot');
-        expect(dot.style.background).toContain('--success');
-        expect(dot.style.background).not.toContain('--warning');
+        expect(dot.className).toContain('[background:var(--success)]');
+        expect(dot.className).not.toContain('[background:var(--warning)]');
         expect(pill.getAttribute('title')).toMatch(/is checked before it is sent/i);
     });
 
