@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { proposalChanges, proposalFields, reviewedProposal } from './proposalChanges';
+import type { FlowDefinition, FlowStep } from '../flow/types';
 
+// The fixtures below are real definitions; these name the members the
+// assertions read without the optional-chaining FlowDefinition would ask for.
 type Settings = Record<string, unknown>;
-type Def = {
-    trigger: { id: string };
-    steps: { id: string; label: string; settings: Settings }[];
-    layers: Record<string, { steps: { id: string; settings: Settings }[] }>;
-};
+interface SettingsStep extends FlowStep { settings: Settings }
+interface Def extends FlowDefinition {
+    trigger: FlowStep;
+    steps: (SettingsStep & { label: string })[];
+    layers: Record<string, FlowDefinition & { steps: SettingsStep[] }>;
+}
 
 describe('proposal review', () => {
     const baseDefinition: Def = { trigger: { id: 'trigger' }, steps: [{ id: 'mail', label: 'Send email', settings: { to: { kind: 'ref', path: 'trigger.output.sender' }, subject: 'Old' } }], layers: {} };

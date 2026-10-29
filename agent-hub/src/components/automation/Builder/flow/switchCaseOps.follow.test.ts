@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { mergeStepPatchIntoDefinition } from './switchCaseOps';
+import type { DiagramDefinition, DiagramEdge, DiagramStep } from './diagramPaneTypes';
 
 /**
  * A Condition that works through a list hands its OUTPUTS on (W3-W5, and the
@@ -13,11 +14,11 @@ const PDF_RULE = 'anyOf(fileType(item.attachments[*]), "equals", "pdf")';
 
 type CaseDef = { name: string; expr: string };
 type Parent = { itemVar: string; overRef: string };
-type TestStep = {
-    id: string; type: string; cases?: CaseDef[]; forEach?: { overRef: string; itemVar: string; parents?: Parent[] };
-    [key: string]: unknown;
-};
-type TestDef = { steps: TestStep[]; edges: { from: string; to: string; label?: string; caseName?: string }[]; [key: string]: unknown };
+interface TestStep extends DiagramStep {
+    type: string; cases?: CaseDef[]; forEach?: { overRef: string; itemVar: string; parents?: Parent[] };
+}
+interface TestEdge extends DiagramEdge { from: string; to: string; label?: string; caseName?: string }
+interface TestDef extends DiagramDefinition { steps: TestStep[]; edges: TestEdge[] }
 
 const filterStep = (extra = {}) => ({ id: 'cond', type: 'filter', label: 'Condition', arrayRef: MESSAGES, expr: PDF_RULE, ...extra });
 const switchStep = (names: string[], extra = {}) => ({

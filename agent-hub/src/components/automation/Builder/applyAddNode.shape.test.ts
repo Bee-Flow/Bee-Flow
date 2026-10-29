@@ -27,7 +27,7 @@ describe('applyAddNode — shape normalisation of the base definition', () => {
         ['a trigger-only object', { trigger: { id: 'trg', type: 'trigger', kind: 'manual', position: { x: 0, y: 0 } } }],
         ['steps present but edges missing', { steps: [] }],
         ['edges present but steps missing', { edges: [] }],
-    ] as [string, FlowDefinition][]) {
+    ] satisfies [string, FlowDefinition][]) {
         it(`yields steps+edges arrays when replacing the trigger on ${name}`, () => {
             const next = applyAddNode(base, TRIGGER_PAYLOAD, { x: 10, y: 20 });
             expect(wellFormed(next)).toBe(true);
