@@ -287,11 +287,7 @@ function AudienceOption({ icon, title, description, checked, onSelect }: { icon:
                 onChange={onSelect}
             />
             <span
-                className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                style={{
-                    background: 'var(--bg-tertiary)',
-                    color: checked ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                }}
+                className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md [background:var(--bg-tertiary)] ${checked ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}
             >
                 {icon}
             </span>

@@ -152,7 +152,7 @@ export default function FillStage({ playbook, phase, dispatch, t, reducedMotion 
             )}
 
             {datatableId && (live || landed) && (
-                <div className="shrink-0" style={{ padding: presenter ? '0 32px 24px' : '0 24px 16px', maxHeight: '45%', overflowY: 'auto' }}>
+                <div className={`shrink-0 [max-height:45%] [overflow-y:auto] ${presenter ? '[padding:0_32px_24px]' : '[padding:0_24px_16px]'}`}>
                     <RowsPreview
                         datatableId={datatableId}
                         fields={tableArt.fields || []}

@@ -270,14 +270,7 @@ export function BreakdownTable({
                 return (
                     <span
                         title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: text }) : text}
-                        style={{
-                            fontSize: 12, overflow: 'hidden',
-                            color: r.isBlank ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',
-                            fontStyle: r.isBlank ? 'italic' : 'normal',
-                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            textDecoration: clickable ? 'underline dotted' : 'none',
-                            textUnderlineOffset: 3,
-                        }}
+                        className={`[font-size:12px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [text-underline-offset:3px] ${r.isBlank ? '[color:var(--text-muted,_#888)] [font-style:italic]' : '[color:var(--text-primary,_#fff)] [font-style:normal]'} ${clickable ? '[text-decoration:underline_dotted]' : '[text-decoration:none]'}`}
                     >{text}</span>
                 );
             },

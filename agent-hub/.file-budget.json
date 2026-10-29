@@ -1,6 +1,6 @@
 {
   "_comment": "Per-file line budget for agent-hub (scripts/file-budget.mjs, npm run lint:file-budget). A source file may have at most `limit` lines, a test file `testLimit`; a file listed under `files` was already over it and may not grow past its ceiling. Ceilings only come down: `node scripts/file-budget.mjs agent-hub --update` lowers them after a split. Touch a budgeted file, split it. Adding a file or raising a ceiling is a deliberate edit that belongs in a commit message with a reason. `data` lists generated files, fixtures, templates and dictionaries whose length is content, each with a reason; they are skipped.",
-  "_generated": "2026-10-28",
+  "_generated": "2026-10-29",
   "limit": 400,
   "testLimit": 1000,
   "data": [
@@ -59,7 +59,7 @@
     "src/components/admin/Studio/SkillsStudio/TestTab.tsx": 437,
     "src/components/admin/subscriptions/plans/planTemplates.ts": 446,
     "src/components/agents/AgentDesigner/hooks/useAgentApi.ts": 428,
-    "src/components/agents/AgentEditorUI.tsx": 505,
+    "src/components/agents/AgentEditorUI.tsx": 504,
     "src/components/automation/Builder/applyAddNode.ts": 401,
     "src/components/automation/Builder/flow/edges.tsx": 522,
     "src/components/automation/Builder/flow/inlineFlowlets.ts": 730,
@@ -78,7 +78,6 @@
     "src/components/forms/PublicFormRenderer.tsx": 486,
     "src/components/onboarding/lessons.ts": 1558,
     "src/components/onboarding/player/LessonPlayer.tsx": 616,
-    "src/components/renderers/ResearchRenderer.tsx": 432,
     "src/components/shared/StudioSectionHeader.tsx": 405,
     "src/components/skills/SkillsPopover.tsx": 538,
     "src/editor/engine/tables.ts": 727,
@@ -93,7 +92,7 @@
     "src/marketing/sections/CustomerSupport.tsx": 503,
     "src/pages/AdvancedSettings.test.jsx": 1383,
     "src/pages/EncryptionSetup.tsx": 416,
-    "src/pages/meeting-notes/library/UpcomingMeetings.tsx": 554,
+    "src/pages/meeting-notes/library/UpcomingMeetings.tsx": 553,
     "src/pages/settings/IntegrationsSection.tsx": 724,
     "src/pages/settings/learning/admin/AcademyContentEditor.tsx": 833,
     "src/pages/settings/LearningCenterSection.tsx": 464,

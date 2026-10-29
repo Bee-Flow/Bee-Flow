@@ -60,18 +60,10 @@ export function BarList({
                         key={`${i}-${label}`}
                         onClick={clickable ? () => onDrill(label) : undefined}
                         title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: label }) : label}
-                        style={{
-                            display: 'block', width: '100%', textAlign: 'left', background: 'transparent',
-                            border: 'none', padding: 0, cursor: clickable ? 'pointer' : 'default',
-                        }}
+                        className={`[display:block] [width:100%] [text-align:left] [background:transparent] [border:none] [padding:0] ${clickable ? '[cursor:pointer]' : '[cursor:default]'}`}
                     >
                         <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                            <span style={{
-                                fontSize: 12, overflow: 'hidden',
-                                color: isBlank ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',
-                                fontStyle: isBlank ? 'italic' : 'normal',
-                                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>{label}</span>
+                            <span className={`[font-size:12px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${isBlank ? '[color:var(--text-muted,_#888)] [font-style:italic]' : '[color:var(--text-primary,_#fff)] [font-style:normal]'}`}>{label}</span>
                             <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, flexShrink: 0 }}>{formatValue(r.y || 0)}</span>
                         </div>
                         <ShareBar value={r.y || 0} of={peak} color={color} />

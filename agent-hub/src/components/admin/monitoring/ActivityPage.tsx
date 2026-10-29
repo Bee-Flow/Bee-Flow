@@ -124,14 +124,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                         <div key={r.id || i}>
                             <div
                                 onClick={() => setExpanded(isExpanded ? null : (r.id || i))}
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '110px 1fr 1fr 70px 80px 90px 70px 24px',
-                                    gap: '8px', padding: '8px 8px', alignItems: 'center',
-                                    borderRadius: '6px',
-                                    background: i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary, rgba(255,255,255,0.02))',
-                                    cursor: 'pointer', transition: 'background 0.12s',
-                                }}
+                                className={`[display:grid] [grid-template-columns:110px_1fr_1fr_70px_80px_90px_70px_24px] [gap:8px] [padding:8px_8px] [align-items:center] [border-radius:6px] [cursor:pointer] [transition:background_0.12s] ${i % 2 === 0 ? '[background:transparent]' : '[background:var(--bg-tertiary,_rgba(255,255,255,0.02))]'}`}
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.05))'}
                                 onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'var(--bg-tertiary, rgba(255,255,255,0.02))'}
                             >
@@ -166,11 +159,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                                 }}>
                                     {r.type || '—'}
                                 </span>
-                                <ChevronRight style={{
-                                    width: 13, height: 13, color: 'var(--text-muted, #888)',
-                                    transform: isExpanded ? 'rotate(90deg)' : 'none',
-                                    transition: 'transform 0.2s',
-                                }} />
+                                <ChevronRight className={`[width:13px] [height:13px] [color:var(--text-muted,_#888)] [transition:transform_0.2s] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                             </div>
 
                             {/* Expanded detail */}

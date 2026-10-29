@@ -204,7 +204,7 @@ const SignupWizard = ({
                     {!isInvite && (
                         <div className="flex gap-1 mb-8">
                             {steps.map((s, i) => (
-                                <div key={s} className="flex-1 h-1.5 rounded-full" style={{ background: i <= idx ? 'var(--accent-primary)' : 'var(--border-subtle)' }} />
+                                <div key={s} className={`flex-1 h-1.5 rounded-full ${i <= idx ? '[background:var(--accent-primary)]' : '[background:var(--border-subtle)]'}`} />
                             ))}
                         </div>
                     )}

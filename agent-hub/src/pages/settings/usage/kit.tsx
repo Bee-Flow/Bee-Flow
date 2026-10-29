@@ -286,7 +286,7 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
     const pad = size === 'sm' ? '4px 10px' : '5px 12px';
     const fs = size === 'sm' ? 10 : 11;
     return (
-        <div style={{ display: 'flex', gap: size === 'sm' ? 4 : 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className={`[display:flex] [flex-wrap:wrap] [align-items:center] ${size === 'sm' ? '[gap:4px]' : '[gap:6px]'}`}>
             {options.map(o => {
                 const active = value === o.value;
                 const color = o.color;
@@ -350,7 +350,7 @@ export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = fal
         <div>
             <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px] [gap:8px]">
                 <button onClick={() => setOpen(o => !o)} className="[display:flex] [align-items:center] [gap:6px] [background:none] [border:none] [cursor:pointer] [padding:0]">
-                    <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                    <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted)] [transition:transform_0.2s] ${open ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                     {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.7 }} />}
                     <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{title}</span>
                     {count != null && <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [background:var(--bg-tertiary)] [padding:1px_7px] [border-radius:8px]">{count}</span>}

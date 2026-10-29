@@ -242,8 +242,7 @@ export function GridGroupHeaderRow({ g, open, onToggle, colSpan }: GridGroupHead
         <tr data-app-grid-group={g.value} data-app-grid-group-open={open || undefined}>
             <td
                 colSpan={colSpan}
-                className="p-0"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                className="p-0 [background:var(--bg-secondary)] [border-color:var(--border-default)]"
             >
                 <button
                     type="button"

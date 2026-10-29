@@ -76,7 +76,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: Connect
     }
 
     return (
-        <div className="mt-4 rounded-xl p-3" style={{ border: '1px solid var(--border-subtle)', background: 'rgba(16,185,129,0.04)' }}>
+        <div className="mt-4 rounded-xl p-3 [border:1px_solid_var(--border-subtle)] [background:rgba(16,185,129,0.04)]">
             <p className="text-xs font-medium text-primary">{t('connections.lending_title', 'Connection lending')}</p>
             <p className="text-[11px] text-muted mt-0.5 mb-2">
                 {t('connections.lending_hint', 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).')}

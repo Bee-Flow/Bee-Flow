@@ -41,12 +41,7 @@ export default function AppImage({ node }: NodeProps<{ src?: string | null; alt?
             src={src}
             alt={alt}
             onError={() => setFailed(true)}
-            className="block w-full"
-            style={{
-                height: hasHeight ? '100%' : 'auto',
-                objectFit: fit === 'contain' ? 'contain' : 'cover',
-                borderRadius: 'inherit',
-            }}
+            className={`block w-full [border-radius:inherit] ${hasHeight ? '[height:100%]' : '[height:auto]'} ${fit === 'contain' ? '[object-fit:contain]' : '[object-fit:cover]'}`}
         />
     );
 }

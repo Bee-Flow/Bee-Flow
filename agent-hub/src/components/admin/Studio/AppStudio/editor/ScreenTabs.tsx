@@ -196,17 +196,15 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                                         disabled={streamLock}
                                         onClick={() => dispatch({ type: 'set_screen', screenId: screen.id as string })}
                                         onDoubleClick={() => !streamLock && startRename(screen)}
-                                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md py-1 pl-2.5 pr-1 disabled:opacity-50"
-                                        style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md py-1 pl-2.5 pr-1 disabled:opacity-50 ${active ? '[color:var(--text-primary)]' : '[color:var(--text-secondary)]'}`}
                                         aria-current={active ? 'page' : undefined}
                                     >
                                         {screen.icon ? <AppIcon name={String(screen.icon)} className="h-3 w-3 shrink-0" /> : null}
                                         <span className="max-w-[10rem] truncate">{screen.name || untitled}</span>
                                         {isHome ? (
                                             <Home
-                                                className="h-3 w-3 shrink-0"
+                                                className={`h-3 w-3 shrink-0 ${active ? '[color:var(--text-primary)]' : '[color:var(--text-tertiary)]'}`}
                                                 aria-label={t('app_studio.screens.home_aria', 'Home screen')}
-                                                style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
                                             />
                                         ) : null}
                                     </button>

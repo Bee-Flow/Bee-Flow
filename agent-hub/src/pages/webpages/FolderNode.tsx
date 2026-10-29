@@ -41,7 +41,7 @@ export function FolderNode({ node, depth, expanded, toggle, activePath, onFileSe
                 className="group flex items-center gap-1 py-0.5 w-full text-left text-[12px] hover:bg-[var(--vsc-hover-bg)] transition-colors cursor-pointer"
                 style={{ paddingLeft: 4 + depth * 10, color: 'var(--vsc-fg)' }}
             >
-                <ChevronDown size={12} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s' }} />
+                <ChevronDown size={12} className={`[transition:transform_0.15s] ${isOpen ? '[transform:rotate(0deg)]' : '[transform:rotate(-90deg)]'}`} />
                 <Icon size={12} className="[color:var(--vsc-fg-muted)]" />
                 <span className="flex-1 truncate">{node.name}</span>
                 {actions && (

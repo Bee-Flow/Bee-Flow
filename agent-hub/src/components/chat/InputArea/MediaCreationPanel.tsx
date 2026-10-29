@@ -87,8 +87,7 @@ const MediaCreationPanel = ({
                             ref={imageGenBtnRef}
                             onClick={() => { onOpenChange(false); setImageGenOpen(true); }}
                             onContextMenu={(e) => { e.preventDefault(); const next = { ...disabledMedia, image: !disabledMedia.image }; setDisabledMedia(next); scopedStorage.setJSON('disabledMedia', next); }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left"
-                            style={{ opacity: disabledMedia.image ? 0.35 : 1 }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left ${disabledMedia.image ? '[opacity:0.35]' : '[opacity:1]'}`}
                         >
                             <span className="text-base">🍌</span>
                             <span className="text-[var(--text-primary)]">{t('chat.composer.media_image', 'Image Generation')}</span>
@@ -99,8 +98,7 @@ const MediaCreationPanel = ({
                             ref={musicGenBtnRef}
                             onClick={() => { onOpenChange(false); setMusicGenOpen(true); }}
                             onContextMenu={(e) => { e.preventDefault(); const next = { ...disabledMedia, music: !disabledMedia.music }; setDisabledMedia(next); scopedStorage.setJSON('disabledMedia', next); }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left"
-                            style={{ opacity: disabledMedia.music ? 0.35 : 1 }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left ${disabledMedia.music ? '[opacity:0.35]' : '[opacity:1]'}`}
                         >
                             <span className="text-base">🎹</span>
                             <span className="text-[var(--text-primary)]">{t('chat.composer.media_music', 'Music Generation')}</span>
@@ -111,8 +109,7 @@ const MediaCreationPanel = ({
                             ref={elevenLabsBtnRef}
                             onClick={() => { onOpenChange(false); setElevenLabsOpen(true); }}
                             onContextMenu={(e) => { e.preventDefault(); const next = { ...disabledMedia, elevenlabs: !disabledMedia.elevenlabs }; setDisabledMedia(next); scopedStorage.setJSON('disabledMedia', next); }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left"
-                            style={{ opacity: disabledMedia.elevenlabs ? 0.35 : 1 }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left ${disabledMedia.elevenlabs ? '[opacity:0.35]' : '[opacity:1]'}`}
                         >
                             <span className="text-base">🎵</span>
                             <span className="text-[var(--text-primary)]">ElevenLabs</span>
@@ -123,8 +120,7 @@ const MediaCreationPanel = ({
                             ref={videoGenBtnRef}
                             onClick={() => { onOpenChange(false); setVideoGenOpen(true); }}
                             onContextMenu={(e) => { e.preventDefault(); const next = { ...disabledMedia, video: !disabledMedia.video }; setDisabledMedia(next); scopedStorage.setJSON('disabledMedia', next); }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left"
-                            style={{ opacity: disabledMedia.video ? 0.35 : 1 }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left ${disabledMedia.video ? '[opacity:0.35]' : '[opacity:1]'}`}
                         >
                             <span className="text-base">🎬</span>
                             <span className="text-[var(--text-primary)]">{t('chat.composer.media_video', 'Video Generation')}</span>

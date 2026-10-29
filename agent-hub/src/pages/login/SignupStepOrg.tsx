@@ -64,12 +64,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                                 : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/40'}`}
                         >
                             <div className="p-4 flex items-start gap-3.5">
-                                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{
-                                        background: isSelected ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                                        color: isSelected ? '#fff' : 'var(--text-muted)',
-                                        transition: 'all 0.2s ease',
-                                    }}>
+                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 [transition:all_0.2s_ease] ${isSelected ? '[background:var(--accent-primary)] [color:#fff]' : '[background:var(--bg-tertiary)] [color:var(--text-muted)]'}`}>
                                     {type.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">

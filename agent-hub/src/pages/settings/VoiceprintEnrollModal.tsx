@@ -122,8 +122,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                     {paragraphs.map((p, i) => (
                         <p
                             key={i}
-                            className={i > 0 ? 'mt-3' : undefined}
-                            style={{ opacity: recording && ((i === 0 && secondHalf) || (i > 0 && !secondHalf)) ? 0.45 : 1, transition: 'opacity 400ms' }}
+                            className={`${i > 0 ? 'mt-3' : undefined} [transition:opacity_400ms] ${recording && ((i === 0 && secondHalf) || (i > 0 && !secondHalf)) ? '[opacity:0.45]' : '[opacity:1]'}`}
                         >
                             {p}
                         </p>
@@ -148,8 +147,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                             onClick={() => (recording ? stop() : start())}
                             disabled={(!consent && !recording) || uploading || state === 'stopping' || (recording && !canStop)}
                             aria-label={recording ? t('voiceprint.stop', 'Stop recording') : t('voiceprint.start', 'Start recording')}
-                            className="relative w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                            style={{ background: recording ? '#ef4444' : '#ffd400', color: recording ? '#fff' : '#1a1a1a' }}
+                            className={`relative w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${recording ? '[background:#ef4444] [color:#fff]' : '[background:#ffd400] [color:#1a1a1a]'}`}
                         >
                             {uploading
                                 ? <Loader2 className="w-8 h-8 animate-spin" />

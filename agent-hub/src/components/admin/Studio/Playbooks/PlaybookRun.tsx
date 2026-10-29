@@ -221,7 +221,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                 </button>
                 <span style={tile}><Clapperboard style={glyph} aria-hidden="true" /></span>
                 <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold" style={{ fontSize: presenter ? 18 : 14, color: 'var(--text-primary)' }}>{playbook.title as string}</div>
+                    <div className={`truncate font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:18px]' : '[font-size:14px]'}`}>{playbook.title as string}</div>
                     <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
                         {complete
                             ? <span>{playbook.status === 'stopped' ? t('playbooks.status.stopped', 'Stopped') : t('playbooks.state.done', 'Done')}</span>

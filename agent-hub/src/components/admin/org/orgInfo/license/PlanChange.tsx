@@ -33,8 +33,7 @@ function ChangePlanCard({ plan, handleSelectChange, previewLoading, changeTarget
                     <button
                         onClick={() => handleSelectChange(plan)}
                         disabled={previewLoading || !plan.has_stripe_price}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                        style={{ background: isDown ? '#64748b' : '#3b82f6' }}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 ${isDown ? '[background:#64748b]' : '[background:#3b82f6]'}`}
                     >
                         {(previewLoading && changeTarget?.id === plan.id) ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />

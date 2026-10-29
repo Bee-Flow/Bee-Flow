@@ -217,8 +217,7 @@ function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }: Breadcru
     const atRoot = !searching && folderId === rootId;
     return (
         <nav aria-label={t('datatables.ss_breadcrumb', 'Folder path')} className="flex items-center gap-1 text-xs min-w-0 flex-wrap text-[var(--text-secondary)]">
-            <button type="button" onClick={() => onOpen(rootId)} className="rounded underline-offset-2 hover:underline" aria-current={atRoot ? 'location' : undefined}
-                style={{ color: atRoot ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: atRoot ? 600 : 400 }}>
+            <button type="button" onClick={() => onOpen(rootId)} className={`rounded underline-offset-2 hover:underline ${atRoot ? '[color:var(--text-primary)] [font-weight:600]' : '[color:var(--text-secondary)] [font-weight:400]'}`} aria-current={atRoot ? 'location' : undefined}>
                 {rootLabel}
             </button>
             {searching && (
@@ -232,8 +231,7 @@ function Breadcrumb({ t, shared, searching, folderId, folder, onOpen }: Breadcru
                 return (
                     <React.Fragment key={`${c.id}:${i}`}>
                         <ChevronRight className="w-3 h-3 shrink-0" aria-hidden="true" />
-                        <button type="button" onClick={() => onOpen(c.id)} className="rounded truncate max-w-[160px] underline-offset-2 hover:underline" aria-current={last ? 'location' : undefined}
-                            style={{ color: last ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: last ? 600 : 400 }}>
+                        <button type="button" onClick={() => onOpen(c.id)} className={`rounded truncate max-w-[160px] underline-offset-2 hover:underline ${last ? '[color:var(--text-primary)] [font-weight:600]' : '[color:var(--text-secondary)] [font-weight:400]'}`} aria-current={last ? 'location' : undefined}>
                             {c.name}
                         </button>
                     </React.Fragment>
@@ -315,7 +313,7 @@ function FolderRow({ item, rel, onOpen }: FolderRowProps) {
             <Folder className="w-4 h-4 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
             <span className="text-sm font-medium truncate min-w-0 text-[var(--text-primary)]">{item.name}</span>
             {item.modifiedAt && <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">{rel(item.modifiedAt)}</span>}
-            <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)', marginLeft: item.modifiedAt ? 0 : 'auto' }} aria-hidden="true" />
+            <ChevronRight className={`w-3.5 h-3.5 shrink-0 [color:var(--text-tertiary)] ${item.modifiedAt ? '[margin-left:0]' : '[margin-left:auto]'}`} aria-hidden="true" />
         </button>
     );
 }

@@ -140,8 +140,7 @@ export default function AudienceRows({
                                     aria-label={removeLabel}
                                     title={removeLabel}
                                     onClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleGroup(gid); }}
-                                    className="inline-flex items-center gap-1 leading-5 hover:opacity-80 disabled:opacity-50"
-                                    style={{ padding: '0 7px', borderRadius: 999, background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                    className="inline-flex items-center gap-1 leading-5 hover:opacity-80 disabled:opacity-50 [padding:0_7px] [border-radius:999px] [background:var(--bg-tertiary)] [color:var(--text-primary)]"
                                 >
                                     {name}
                                     <X size={11} aria-hidden="true" className="text-[var(--text-tertiary)]" />

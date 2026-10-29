@@ -38,8 +38,7 @@ export default function BrowserLivePreview({ preview }: { preview?: BrowserPrevi
                 <img
                     src={`data:image/jpeg;base64,${frame}`}
                     alt={t('chat.msg.browser_preview_alt', 'Live browser preview')}
-                    className="w-full h-auto block"
-                    style={{ opacity: ended ? 0.75 : 1 }}
+                    className={`w-full h-auto block ${ended ? '[opacity:0.75]' : '[opacity:1]'}`}
                 />
             ) : (
                 <div className="px-2 py-3 text-[11px] text-[var(--text-secondary)]">

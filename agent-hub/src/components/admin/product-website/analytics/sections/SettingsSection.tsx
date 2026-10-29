@@ -280,7 +280,7 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
                                     ? t('cms_site.analytics.settings.connected_one', 'Connected · {n} website', { n: d.websiteCount })
                                     : t('cms_site.analytics.settings.connected_many', 'Connected · {n} websites', { n: d.websiteCount })}
                               </span>
-                            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: configured ? '#ef4444' : 'var(--text-muted, #888)', fontWeight: 700 }}>
+                            : <span className={`[display:inline-flex] [align-items:center] [gap:5px] [font-weight:700] ${configured ? '[color:#ef4444]' : '[color:var(--text-muted,_#888)]'}`}>
                                 <XCircle className="w-[13px] h-[13px]" /> {configured ? t('cms_site.analytics.settings.not_reachable', 'Not reachable') : t('cms_site.analytics.settings.not_configured', 'Not configured')}
                               </span>
                     } />

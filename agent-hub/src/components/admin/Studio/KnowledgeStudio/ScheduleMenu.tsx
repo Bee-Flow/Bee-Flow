@@ -177,8 +177,7 @@ function Row({ children, selected, disabled, onClick }: { children: React.ReactN
             className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-[var(--bg-secondary)] disabled:opacity-50 text-[var(--text-primary)]"
         >
             <Check
-                className="w-3 h-3 shrink-0"
-                style={{ opacity: selected ? 1 : 0, color: 'var(--accent-primary)' }}
+                className={`w-3 h-3 shrink-0 [color:var(--accent-primary)] ${selected ? '[opacity:1]' : '[opacity:0]'}`}
                 aria-hidden="true"
             />
             {children}

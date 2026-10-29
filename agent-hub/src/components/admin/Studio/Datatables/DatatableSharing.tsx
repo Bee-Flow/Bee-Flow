@@ -193,8 +193,7 @@ function OrgSharing({ table, canEdit, onChanged }: OrgSharingProps) {
                     />
 
                     {shownAudience === GROUPS && (
-                        <div className="px-4 py-3 space-y-1.5"
-                            style={{ borderBottom: audience === PRIVATE ? 'none' : '1px solid var(--border-default)', background: 'var(--bg-secondary)' }}>
+                        <div className={`px-4 py-3 space-y-1.5 [background:var(--bg-secondary)] ${audience === PRIVATE ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}>
                             {audienceDraft === GROUPS && (
                                 <p className="text-xs text-[var(--text-secondary)]">
                                     {t('datatables.share_groups_pending', 'Nothing has changed yet — picking a group is what shares the table.')}
@@ -317,11 +316,7 @@ function AudienceRow({ icon, title, description, checked, onSelect, last = false
 function ConsequenceLine({ t, access }: ConsequenceLineProps) {
     const Icon = access.broad ? ShieldAlert : ShieldCheck;
     return (
-        <div className="px-4 py-2.5 flex items-start gap-2"
-            style={{
-                borderTop: '1px solid var(--border-default)',
-                background: access.broad ? 'color-mix(in srgb, var(--warning) 8%, transparent)' : 'var(--bg-secondary)',
-            }} data-testid="sharing-consequence">
+        <div className={`px-4 py-2.5 flex items-start gap-2 [border-top:1px_solid_var(--border-default)] ${access.broad ? '[background:color-mix(in_srgb,_var(--warning)_8%,_transparent)]' : '[background:var(--bg-secondary)]'}`} data-testid="sharing-consequence">
             <Icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: access.broad ? 'var(--warning)' : 'var(--text-tertiary)' }} aria-hidden="true" />
             <div className="text-xs space-y-1 text-[var(--text-secondary)]">
                 <p><strong>{access.readers}</strong> {t('datatables.can_read_every_row', 'can read every row.')}</p>

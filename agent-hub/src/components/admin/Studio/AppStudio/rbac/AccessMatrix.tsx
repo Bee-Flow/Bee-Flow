@@ -130,8 +130,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                     style={{ background: 'var(--bg-secondary)', paddingLeft: item.depth ? '1.25rem' : '0.5rem' }}
                                 >
                                     <span
-                                        className="truncate"
-                                        style={{ color: item.kind === 'screen' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: item.kind === 'screen' ? 600 : 400 }}
+                                        className={`truncate ${item.kind === 'screen' ? '[color:var(--text-primary)] [font-weight:600]' : '[color:var(--text-secondary)] [font-weight:400]'}`}
                                     >
                                         {item.label}
                                     </span>
@@ -156,7 +155,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                                     ? { background: 'var(--accent-primary)', borderColor: 'var(--accent-primary)', color: '#fff' }
                                                     : { background: 'transparent', borderColor: 'var(--border-default)', color: 'transparent' }}
                                             >
-                                                <Check className="h-3.5 w-3.5" aria-hidden="true" style={{ opacity: checked ? 1 : 0 }} />
+                                                <Check className={`h-3.5 w-3.5 ${checked ? '[opacity:1]' : '[opacity:0]'}`} aria-hidden="true" />
                                             </button>
                                         </td>
                                     );

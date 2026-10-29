@@ -44,14 +44,7 @@ export default function StageMessage({ tone = 'busy', presenter = false, testId 
             data-tone={tone}
         >
             <div
-                className="rounded-2xl flex items-start gap-3"
-                style={{
-                    maxWidth: 520,
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: 'var(--shadow-md)',
-                    padding: presenter ? 24 : 18,
-                }}
+                className={`rounded-2xl flex items-start gap-3 [max-width:520px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-md)] ${presenter ? '[padding:24px]' : '[padding:18px]'}`}
             >
                 <Icon
                     className={`shrink-0 ${spin ? 'animate-spin motion-reduce:animate-none' : ''}`}

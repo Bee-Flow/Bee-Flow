@@ -35,16 +35,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
             // ====== HERO ======
             case 'hero':
                 return (
-                    <div key={key} style={{
-                        position: 'relative',
-                        borderRadius: '1rem',
-                        overflow: 'hidden',
-                        marginBottom: '1.5rem',
-                        minHeight: block.image ? '200px' : 'auto',
-                        background: block.image
-                            ? 'transparent'
-                            : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-                    }}>
+                    <div key={key} className={`[position:relative] [border-radius:1rem] [overflow:hidden] [margin-bottom:1.5rem] ${block.image ? '[min-height:200px] [background:transparent]' : '[min-height:auto] [background:linear-gradient(135deg,_#1a1a2e_0%,_#16213e_50%,_#0f3460_100%)]'}`}>
                         {block.image && (
                             <>
                                 <img
@@ -55,19 +46,8 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                 <div className="[position:absolute] [inset:0] [background:linear-gradient(to_top,_rgba(0,0,0,0.85)_0%,_rgba(0,0,0,0.3)_50%,_rgba(0,0,0,0.1)_100%)]" />
                             </>
                         )}
-                        <div style={{
-                            position: block.image ? 'absolute' : 'relative',
-                            bottom: 0, left: 0, right: 0,
-                            padding: '2rem',
-                        }}>
-                            <h1 style={{
-                                fontSize: '1.75rem',
-                                fontWeight: '800',
-                                color: '#fff',
-                                margin: 0,
-                                lineHeight: 1.2,
-                                textShadow: block.image ? '0 2px 8px rgba(0,0,0,0.5)' : 'none'
-                            }}>
+                        <div className={`[bottom:0] [left:0] [right:0] [padding:2rem] ${block.image ? '[position:absolute]' : '[position:relative]'}`}>
+                            <h1 className={`[font-size:1.75rem] [font-weight:800] [color:#fff] [margin:0] [line-height:1.2] ${block.image ? '[text-shadow:0_2px_8px_rgba(0,0,0,0.5)]' : '[text-shadow:none]'}`}>
                                 {block.title || data.title}
                             </h1>
                             {block.subtitle && (

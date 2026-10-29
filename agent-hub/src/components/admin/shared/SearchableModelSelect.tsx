@@ -238,7 +238,7 @@ const SearchableModelSelect = ({
                     </div>
 
                     {/* Model list */}
-                    <div className="flex-1 overflow-y-auto px-2 pb-4" style={{ minHeight: 0 }}>
+                    <div className="flex-1 overflow-y-auto px-2 pb-4 [min-height:0]">
                         {/* Clear option */}
                         <button
                             type="button"

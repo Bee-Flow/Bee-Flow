@@ -233,7 +233,7 @@ const ConsumerUsageSection = () => {
                             {byModel.slice(0, 8).map((row, i) => (
                                 <div
                                     key={row.model || i}
-                                    style={{ padding: '10px 16px', borderBottom: i < Math.min(byModel.length, 8) - 1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    className={`[padding:10px_16px] [display:flex] [align-items:center] [justify-content:space-between] ${i < Math.min(byModel.length, 8) - 1 ? '[border-bottom:1px_solid_var(--border-subtle)]' : '[border-bottom:none]'}`}
                                 >
                                     <div className="min-w-[0] [flex:1]">
                                         <p className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [text-overflow:ellipsis] [overflow:hidden] [white-space:nowrap]">{shortModel(row.model)}</p>
@@ -261,7 +261,7 @@ const ConsumerUsageSection = () => {
                                 return (
                                     <div
                                         key={row.source || i}
-                                        style={{ padding: '10px 16px', borderBottom: i < Math.min(bySource.length, 8) - 1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', alignItems: 'center', gap: 10 }}
+                                        className={`[padding:10px_16px] [display:flex] [align-items:center] [gap:10px] ${i < Math.min(bySource.length, 8) - 1 ? '[border-bottom:1px_solid_var(--border-subtle)]' : '[border-bottom:none]'}`}
                                     >
                                         <div style={{ width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${meta.color}15` }}>
                                             <Icon style={{ width: 14, height: 14, color: meta.color }} />

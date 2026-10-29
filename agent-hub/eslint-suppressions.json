@@ -8024,9 +8024,6 @@
   "src/marketing/sections/Content.tsx": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "src/marketing/sections/CtaBanner.tsx": {

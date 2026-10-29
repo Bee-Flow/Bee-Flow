@@ -96,8 +96,7 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
                     <div className="flex items-center px-2 pt-2 pb-1 gap-0.5 [border-bottom:1px_solid_var(--border-subtle)]">
                         {EMOJI_CATEGORIES.map((cat, i) => (
                             <button key={i} onClick={() => setTab(i)} type="button"
-                                className="flex-1 flex items-center justify-center py-1.5 rounded-md transition-colors text-base"
-                                style={{ background: tab === i ? 'var(--bg-tertiary)' : 'transparent' }}>
+                                className={`flex-1 flex items-center justify-center py-1.5 rounded-md transition-colors text-base ${tab === i ? '[background:var(--bg-tertiary)]' : '[background:transparent]'}`}>
                                 {cat.label}
                             </button>
                         ))}

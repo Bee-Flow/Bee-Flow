@@ -65,7 +65,7 @@ export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
             >
                 <ChevronRight
                     size={12}
-                    style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .12s' }}
+                    className={`[transition:transform_.12s] ${open ? '[transform:rotate(90deg)]' : '[transform:rotate(0deg)]'}`}
                 />
                 <Icon size={13} />
                 <span className="font-mono truncate">{meta.label}</span>

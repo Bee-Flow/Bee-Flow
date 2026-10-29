@@ -124,8 +124,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                             </div>
                             <button type="button" role="switch" aria-checked={!!cert.isPublic} disabled={busy} onClick={() => onTogglePublic(!cert.isPublic)}
                                 aria-label={t('learn.cert.make_public', 'Make public & share')}
-                                className="relative flex-shrink-0 rounded-full transition disabled:opacity-50"
-                                style={{ width: 34, height: 20, background: cert.isPublic ? 'var(--accent-primary)' : 'var(--bg-tertiary)' }}>
+                                className={`relative flex-shrink-0 rounded-full transition disabled:opacity-50 [width:34px] [height:20px] ${cert.isPublic ? '[background:var(--accent-primary)]' : '[background:var(--bg-tertiary)]'}`}>
                                 <span className="absolute rounded-full" style={{ top: 2, left: cert.isPublic ? 16 : 2, width: 16, height: 16, background: '#fff', boxShadow: 'var(--shadow-sm)', transition: 'left .15s' }} />
                             </button>
                         </div>

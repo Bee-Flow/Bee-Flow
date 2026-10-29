@@ -71,7 +71,7 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
     return (
         <div className="[display:flex] [gap:12px] [align-items:baseline]">
             <span className="min-w-[110px] [font-size:11px] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.04em]">{label}</span>
-            <span style={{ fontFamily: mono ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit', wordBreak: 'break-all', flex: 1, color: value ? 'var(--text-primary)' : 'var(--text-muted)' }}>{value || '—'}</span>
+            <span className={`[word-break:break-all] [flex:1] ${mono ? '[font-family:var(--font-mono,_ui-monospace,_monospace)]' : '[font-family:inherit]'} ${value ? '[color:var(--text-primary)]' : '[color:var(--text-muted)]'}`}>{value || '—'}</span>
         </div>
     );
 }
@@ -133,7 +133,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
 
     const refreshBtn = (
         <button onClick={fetchData} title={t('org.terminations_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
-            <RefreshCw style={{ width: 13, height: 13, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw className={`[width:13px] [height:13px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
         </button>
     );
 

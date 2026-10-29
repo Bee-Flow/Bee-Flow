@@ -152,7 +152,7 @@ export default function RegulatoryCalendar({
             ))}
 
             {shown.length === 0 && (
-                <div className={`${rowClass} text-[var(--text-tertiary)]`} style={{ gridTemplateColumns: '1fr' }} data-testid="cal-empty">
+                <div className={`${rowClass} text-[var(--text-tertiary)] [grid-template-columns:1fr]`} data-testid="cal-empty">
                     {t('compliance.cal_empty', 'No upcoming dates')}
                 </div>
             )}

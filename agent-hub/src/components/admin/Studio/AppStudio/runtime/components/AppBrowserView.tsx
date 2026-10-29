@@ -65,8 +65,7 @@ export default function AppBrowserView({ node }: NodeProps<BrowserViewProps>) {
                 <img
                     src={`data:image/jpeg;base64,${frame}`}
                     alt={t('studio_apps_runtime.browser_view.preview_alt', 'Live browser preview')}
-                    className="w-full h-auto block"
-                    style={{ opacity: ended ? 0.75 : 1 }}
+                    className={`w-full h-auto block ${ended ? '[opacity:0.75]' : '[opacity:1]'}`}
                 />
             ) : (
                 <div

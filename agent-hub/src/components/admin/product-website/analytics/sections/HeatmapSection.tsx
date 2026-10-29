@@ -208,11 +208,7 @@ function BlockRanking({ attribution, views, highlightId, onHighlight, ready }: B
                                     }}
                                 >
                                     <div className="[display:flex] [justify-content:space-between] [gap:8px] [margin-bottom:4px]">
-                                        <span style={{
-                                            fontSize: 12, fontWeight: 600, overflow: 'hidden',
-                                            textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            color: isChrome ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',
-                                        }}>{blockLabel(r.type, t)}</span>
+                                        <span className={`[font-size:12px] [font-weight:600] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${isChrome ? '[color:var(--text-muted,_#888)]' : '[color:var(--text-primary,_#fff)]'}`}>{blockLabel(r.type, t)}</span>
                                         <span style={{ fontSize: 12, fontWeight: 800, color: ACCENT, flexShrink: 0 }}>
                                             {Math.round(r.share)}%
                                         </span>

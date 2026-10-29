@@ -174,7 +174,7 @@ function ColumnPanel({ col, colIdx, pages, onChange }: ColumnPanelProps) {
                 className="flex w-full items-center justify-between text-xs text-[var(--text-secondary)] mb-2"
             >
                 <span className="flex items-center gap-1.5">
-                    <span style={{ transform: open ? 'rotate(0)' : 'rotate(-90deg)' }} aria-hidden>▾</span>
+                    <span className={`${open ? '[transform:rotate(0)]' : '[transform:rotate(-90deg)]'}`} aria-hidden>▾</span>
                     <span className="font-medium">{t('cms_site.blocks.content.column_n', 'Column {n}', { n: colIdx + 1 })}</span>
                     <span className="text-[var(--text-muted)]">· {elements.length === 1
                         ? t('cms_site.blocks.content.one_element', '1 element')

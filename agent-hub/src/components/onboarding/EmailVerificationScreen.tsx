@@ -240,7 +240,7 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
                 <button
                     onClick={() => requestCode({ isResend: true })}
                     disabled={resending}
-                    style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: resending ? 'default' : 'pointer', fontWeight: 600, fontSize: 13, padding: 0 }}
+                    className={`[background:none] [border:none] [color:var(--accent-primary)] [font-weight:600] [font-size:13px] [padding:0] ${resending ? '[cursor:default]' : '[cursor:pointer]'}`}
                 >
                     {resending ? t('app.nc_verify_resending', 'Sending…') : t('app.nc_verify_resend', 'Resend code')}
                 </button>

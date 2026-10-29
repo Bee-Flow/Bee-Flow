@@ -66,10 +66,7 @@ export function Toggle({ label, hint, checked, onChange }: ToggleProps) {
                     position: 'relative', transition: 'background 0.15s',
                 }}
             >
-                <span style={{
-                    position: 'absolute', top: 3, left: checked ? 21 : 3, width: 18, height: 18,
-                    borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
-                }} />
+                <span className={`[position:absolute] [top:3px] [width:18px] [height:18px] [border-radius:50%] [background:#fff] [transition:left_0.15s] ${checked ? '[left:21px]' : '[left:3px]'}`} />
             </button>
         </div>
     );

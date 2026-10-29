@@ -221,18 +221,9 @@ function ImageElement({ el, pathBase, fullWidth }: ElementProps & { fullWidth: b
                     ) : el.lightbox === true ? (
                         <button
                             type="button"
-                            className="content-el-image-zoom"
+                            className={`content-el-image-zoom [display:block] [width:100%] [padding:0] [border:none] [background:none] [cursor:zoom-in] ${ratio !== 'auto' ? '[height:100%]' : '[height:auto]'}`}
                             onClick={() => setLightboxOpen(true)}
                             aria-label={el.alt ? `Enlarge image: ${el.alt}` : 'Enlarge image'}
-                            style={{
-                                display: 'block',
-                                width: '100%',
-                                height: ratio !== 'auto' ? '100%' : 'auto',
-                                padding: 0,
-                                border: 'none',
-                                background: 'none',
-                                cursor: 'zoom-in',
-                            }}
                         >
                             {imgEl}
                         </button>

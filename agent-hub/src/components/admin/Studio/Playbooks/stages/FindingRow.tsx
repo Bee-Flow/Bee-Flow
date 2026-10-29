@@ -97,7 +97,7 @@ export default function FindingRow({
                 </span>
             </div>
 
-            <h3 className="mt-1 font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>{finding.title}</h3>
+            <h3 className={`mt-1 font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:17px]' : '[font-size:14px]'}`}>{finding.title}</h3>
 
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="text-[11px] whitespace-nowrap [font-family:ui-monospace,SFMono-Regular,Menlo,monospace] [color:var(--text-secondary)]!">
@@ -123,8 +123,8 @@ export default function FindingRow({
                 {!target && finding.subject && <span className="text-[11px] text-[var(--text-tertiary)]">{finding.subject}</span>}
             </div>
 
-            <p className="mt-1.5" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-secondary)' }}>{finding.why}</p>
-            <p className="mt-1" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-primary)' }}>
+            <p className={`mt-1.5 [color:var(--text-secondary)] ${presenter ? '[font-size:14px]' : '[font-size:12px]'}`}>{finding.why}</p>
+            <p className={`mt-1 [color:var(--text-primary)] ${presenter ? '[font-size:14px]' : '[font-size:12px]'}`}>
                 <span className="text-[var(--text-tertiary)]">{t('playbooks.compliance.fix', 'What to do')}: </span>{finding.fix}
             </p>
 
@@ -148,7 +148,7 @@ export default function FindingRow({
                             <p className="text-xs font-semibold text-[var(--text-primary)]">{plan.title}</p>
                             <ul className="mt-1 space-y-0.5">
                                 {(plan.what || []).map((line, i) => (
-                                    <li key={i} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
+                                    <li key={i} className={`flex items-start gap-1.5 [color:var(--text-secondary)] ${presenter ? '[font-size:13px]' : '[font-size:11px]'}`}>
                                         <Check className="w-3 h-3 mt-0.5 shrink-0 [color:var(--type-ai)]" aria-hidden="true" />
                                         {line}
                                     </li>

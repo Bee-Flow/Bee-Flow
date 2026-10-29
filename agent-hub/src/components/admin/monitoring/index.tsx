@@ -209,7 +209,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                             </div>
                         )}
                         <button onClick={fetchData} style={styles.refreshBtn} title={t('admin_monitoring.refresh', 'Refresh')}>
-                            <RefreshCw style={{ width: 15, height: 15, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+                            <RefreshCw className={`[width:15px] [height:15px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
                         </button>
                     </div>
                 </div>
@@ -295,10 +295,7 @@ function MonitoringPanelSection({ t, onNavigate, page }: { t: (key: string | und
                         flexShrink: 0
                     }} />
                     <div className="[flex:1] [text-align:left]">
-                        <div style={{
-                            fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
-                            color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
-                        }}>{t(p.labelKey)}</div>
+                        <div className={`[font-size:13px] ${page === p.id ? '[font-weight:600] [color:var(--text-primary,_#fff)]' : '[font-weight:500] [color:var(--text-secondary,_#aaa)]'}`}>{t(p.labelKey)}</div>
                     </div>
                     {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
                 </button>

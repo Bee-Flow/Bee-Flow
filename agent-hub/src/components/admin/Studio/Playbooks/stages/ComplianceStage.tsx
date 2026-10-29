@@ -267,16 +267,16 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                                         : <ShieldCheck className="w-5 h-5" aria-hidden="true" />}
                             </span>
                             <div className="min-w-0 flex-1">
-                                <p className="font-semibold" role="status" aria-live="polite" style={{ fontSize: presenter ? 20 : 16, color: 'var(--text-primary)' }} data-testid="playbook-compliance-headline">
+                                <p className={`font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:20px]' : '[font-size:16px]'}`} role="status" aria-live="polite" data-testid="playbook-compliance-headline">
                                     {verdict.headline}
                                 </p>
                                 {verdict.cleanLine && (
-                                    <p className="mt-0.5 flex items-center gap-1.5" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-secondary)' }} data-testid="playbook-compliance-clean-count">
+                                    <p className={`mt-0.5 flex items-center gap-1.5 [color:var(--text-secondary)] ${presenter ? '[font-size:14px]' : '[font-size:12px]'}`} data-testid="playbook-compliance-clean-count">
                                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                                         {verdict.cleanLine}
                                     </p>
                                 )}
-                                {method && <p className="mt-0.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-method">{method}</p>}
+                                {method && <p className={`mt-0.5 [color:var(--text-tertiary)] ${presenter ? '[font-size:13px]' : '[font-size:11px]'}`} data-testid="playbook-compliance-method">{method}</p>}
                                 {lastRecheck && lastRecheck.was > lastRecheck.now && (
                                     <p className="mt-1 font-medium" style={{ fontSize: presenter ? 14 : 12, color: TONES.success.ink }} data-testid="playbook-compliance-delta">
                                         {t('playbooks.compliance.delta', '{n} fewer than a moment ago.', { n: lastRecheck.was - lastRecheck.now })}
@@ -331,7 +331,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                             aria-expanded={showLow}
                             data-testid="playbook-compliance-notes-toggle"
                         >
-                            <ChevronDown className="w-3 h-3 transition-transform motion-reduce:transition-none" style={{ transform: showLow ? 'rotate(0deg)' : 'rotate(-90deg)' }} aria-hidden="true" />
+                            <ChevronDown className={`w-3 h-3 transition-transform motion-reduce:transition-none ${showLow ? '[transform:rotate(0deg)]' : '[transform:rotate(-90deg)]'}`} aria-hidden="true" />
                             {groups.low.length === 1
                                 ? t('playbooks.compliance.notes_one', '1 note, good to know')
                                 : t('playbooks.compliance.notes', '{n} notes, good to know', { n: groups.low.length })}

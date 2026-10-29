@@ -123,7 +123,7 @@ export function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, 
                         <span className="block">{t('datatables.field_key', 'Technical name')}</span>
                         <code className="block text-[11px] font-mono truncate text-[var(--text-tertiary)]">{table.key}</code>
                     </span>
-                    {copied && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--success)' }} aria-hidden="true" />}
+                    {copied && <Check className="w-3.5 h-3.5 shrink-0 [color:var(--success)]" aria-hidden="true" />}
                 </button>
                 {canEdit && (
                     <button type="button" role="menuitem" onClick={() => { setOpen(false); setHealth(true); }}
@@ -141,7 +141,7 @@ export function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, 
                 )}
                 {onDelete && (
                     <>
-                        <div role="separator" className="my-1 mx-2" style={{ height: 1, background: 'var(--border-default)' }} />
+                        <div role="separator" className="my-1 mx-2 [height:1px] [background:var(--border-default)]" />
                         <button type="button" role="menuitem" onClick={() => { setOpen(false); onDelete(); }}
                             className={MENU_ITEM} style={{ color: 'var(--error)' }} data-testid="menu-delete">
                             <Trash2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />

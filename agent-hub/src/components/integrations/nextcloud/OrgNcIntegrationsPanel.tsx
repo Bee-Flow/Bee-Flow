@@ -195,7 +195,7 @@ function OrgNcIntegrationsPanelSection({ t, groups, expandedGroup, setExpandedGr
                                 onClick={() => setExpandedGroup(isOpen ? null : g.id)}
                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
                             >
-                                <ChevronRight className="w-3.5 h-3.5 transition-transform" style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none' }} />
+                                <ChevronRight className={`w-3.5 h-3.5 transition-transform [color:var(--text-muted)] ${isOpen ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                                 <span className="text-[13px] font-medium flex-1 truncate text-[var(--text-primary)]">{g.name}</span>
                                 <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                                     <Users className="w-3 h-3" /> {g.userCount}

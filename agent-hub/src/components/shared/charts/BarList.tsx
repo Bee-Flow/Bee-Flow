@@ -36,7 +36,7 @@ export default function BarList({ rows, maxRows = 8, ariaLabel, moreLabel, showA
                     const n = Number(r.n) || 0;
                     const pct = Number.isFinite(Number(r.pct)) ? Number(r.pct) : null;
                     return (
-                        <li key={`${r.label}-${i}`} className="grid items-center gap-3 text-xs" style={{ gridTemplateColumns: 'minmax(0, 11rem) 1fr auto' }}>
+                        <li key={`${r.label}-${i}`} className="grid items-center gap-3 text-xs [grid-template-columns:minmax(0,_11rem)_1fr_auto]">
                             <span className="truncate text-[var(--text-primary)]" title={r.label}>{r.label}</span>
                             <span className="h-2.5 rounded-full overflow-hidden bg-[var(--bg-secondary)]" aria-hidden="true">
                                 <span className="block h-full rounded-full" style={{ width: `${Math.max(2, (n / max) * 100)}%`, background: chartSeriesVar(seriesIndex) }} />

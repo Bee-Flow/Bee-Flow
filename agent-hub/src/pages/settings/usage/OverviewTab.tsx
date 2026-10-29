@@ -38,7 +38,7 @@ const InOutBar = ({ input, output, height = 5, style }: InOutBarProps) => {
 };
 
 const InOutLabel = ({ input, output, inputCost, outputCost, showCost }: InOutLabelProps) => (
-    <div style={{ display: 'flex', gap: showCost ? 16 : 12, fontSize: 11, color: 'var(--text-muted)' }}>
+    <div className={`[display:flex] [font-size:11px] [color:var(--text-muted)] ${showCost ? '[gap:16px]' : '[gap:12px]'}`}>
         <span className="[display:flex] [align-items:center] [gap:3px]">
             <span className="[color:#3b82f6] [font-weight:600]">↘ {fNum(input)}</span>
             {showCost && <span className="[color:#3b82f6] [opacity:0.7] [font-weight:500]">({fCur(inputCost)})</span>}
@@ -437,7 +437,7 @@ export default function OverviewTab({
                                                     <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{fNum(group.total_tokens)}</div>
                                                     <div className="[font-size:10px] [color:var(--text-muted)]">{fCur(group.estimated_cost)}</div>
                                                 </div>
-                                                <ChevronRight style={{ width: 13, height: 13, color: 'var(--text-muted)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                                                <ChevronRight className={`[width:13px] [height:13px] [color:var(--text-muted)] [transition:transform_0.2s_ease] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                                             </div>
                                         </ListRow>
                                         {isExpanded && group.models.map((m, mi) => (
@@ -471,7 +471,7 @@ export default function OverviewTab({
                                     ))}
                                 </div>
                                 {muRows.slice(0, muShow).map((row, i) => (
-                                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr repeat(3, 70px) repeat(3, 72px)', padding: '7px 14px', alignItems: 'center', background: i % 2 === 0 ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                                    <div key={i} className={`[display:grid] [grid-template-columns:1.5fr_1fr_repeat(3,_70px)_repeat(3,_72px)] [padding:7px_14px] [align-items:center] [border-bottom:1px_solid_var(--border-subtle)] ${i % 2 === 0 ? '[background:var(--bg-primary)]' : '[background:var(--bg-secondary)]'}`}>
                                         <span className="[font-size:11px] [font-weight:600] [color:var(--text-primary)] [display:flex] [align-items:center] [gap:6px] [overflow:hidden] [white-space:nowrap] [cursor:pointer] min-w-[0]" onClick={() => setFilterUser(row.user_id)}>
                                             <Avatar user={row} color={getColor(i)} size={20} />
                                             <span className="[overflow:hidden] [text-overflow:ellipsis]">{row.display_name || row.user_id}</span>

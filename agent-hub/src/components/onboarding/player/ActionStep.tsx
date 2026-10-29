@@ -160,7 +160,7 @@ export default function ActionStep({ step, user, saved, onState, onLaunch }: Act
                                     ? <LoaderCircle className="animate-spin w-[16px] h-[16px] [color:var(--accent-primary)]" aria-hidden="true" />
                                     : <Circle className="w-[16px] h-[16px] [color:var(--text-tertiary)]" aria-hidden="true" />}
                             <div className="min-w-0">
-                                <div className="font-medium" style={{ color: ok || current ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                <div className={`font-medium ${ok || current ? '[color:var(--text-primary)]' : '[color:var(--text-secondary)]'}`}>
                                     {t(c.labelKey, c.labelFallback)}
                                     {c.optional && (
                                         <span className="ml-1.5 uppercase font-semibold [font-size:10px] [letter-spacing:.04em] [color:var(--text-tertiary)]">

@@ -299,7 +299,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
 
     const busy = phase === 'busy';
     return (
-        <div className={CARD_CLASS} style={{ background: 'color-mix(in srgb, var(--type-ai) 4%, transparent)' }}>
+        <div className={`${CARD_CLASS} [background:color-mix(in_srgb,_var(--type-ai)_4%,_transparent)]`}>
             <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 flex-shrink-0 [color:var(--type-ai)]" strokeWidth={1.75} aria-hidden="true" />
                 <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">

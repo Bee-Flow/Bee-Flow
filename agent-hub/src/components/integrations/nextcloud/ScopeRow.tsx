@@ -141,8 +141,7 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t }:
                     return (
                         <label
                             key={r.id}
-                            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer"
-                            style={{ background: checked ? 'color-mix(in srgb, var(--accent-primary) 8%, transparent)' : 'transparent' }}
+                            className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer ${checked ? '[background:color-mix(in_srgb,_var(--accent-primary)_8%,_transparent)]' : '[background:transparent]'}`}
                             data-testid={`nc-scope-resource-${r.id}`}
                         >
                             <input
@@ -194,7 +193,7 @@ export const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: 
     };
 
     return (
-        <div style={{ borderBottom: last ? 'none' : '1px solid var(--border-subtle)' }}>
+        <div className={`${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-subtle)]'}`}>
             <button
                 type="button"
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors [background:var(--bg-secondary)]"
@@ -219,8 +218,7 @@ export const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: 
                 </span>
                 <ChevronRight
                     size={13}
-                    className="transition-transform flex-shrink-0"
-                    style={{ color: 'var(--text-muted)', transform: open ? 'rotate(90deg)' : 'none' }}
+                    className={`transition-transform flex-shrink-0 [color:var(--text-muted)] ${open ? '[transform:rotate(90deg)]' : '[transform:none]'}`}
                 />
             </button>
 

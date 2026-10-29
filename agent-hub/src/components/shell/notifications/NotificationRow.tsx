@@ -156,12 +156,7 @@ function RowSummary({ n, cat, isExpanded }: { n: AppNotification; cat: Category;
                 </span>
             </div>
             {n.message && !isExpanded && (
-                <p style={{
-                    fontSize: 12,
-                    color: n.read ? 'var(--text-muted, #94a3b8)' : 'var(--text-secondary, #64748b)',
-                    margin: 0, lineHeight: 1.45,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
+                <p className={`[font-size:12px] [margin:0] [line-height:1.45] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${n.read ? '[color:var(--text-muted,_#94a3b8)]' : '[color:var(--text-secondary,_#64748b)]'}`}>
                     {n.message}
                 </p>
             )}
@@ -203,7 +198,7 @@ function NotificationDetail({ n, cat, actions }: { n: AppNotification; cat: Cate
                 ? <ResultActions n={n} body={cleanedBody} actions={actions} />
                 : <EmptyResult n={n} actions={actions} />)}
             {cleanedBody && <DetailBody n={n} body={cleanedBody} reauth={!!reauthProvider} />}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: n.message ? 10 : 0, flexWrap: 'wrap' }}>
+            <div className={`[display:flex] [align-items:center] [gap:8px] [flex-wrap:wrap] ${n.message ? '[margin-top:10px]' : '[margin-top:0]'}`}>
                 <span style={{
                     fontSize: 10, padding: '2px 8px', borderRadius: 6,
                     background: cat.bg, color: cat.color, fontWeight: 600,

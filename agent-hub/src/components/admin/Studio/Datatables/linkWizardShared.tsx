@@ -89,8 +89,7 @@ export function StepStrip({ t, at, labels }: StepStripProps) {
     return (
         <ol className="flex items-center gap-2 text-[11px]" aria-label={t('datatables.nc_steps', 'Steps')}>
             {labels.map((label, i) => (
-                <li key={label} className="inline-flex items-center gap-1.5" aria-current={i === at ? 'step' : undefined}
-                    style={{ color: i === at ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === at ? 600 : 400 }}>
+                <li key={label} className={`inline-flex items-center gap-1.5 ${i === at ? '[color:var(--text-primary)] [font-weight:600]' : '[color:var(--text-tertiary)] [font-weight:400]'}`} aria-current={i === at ? 'step' : undefined}>
                     <span className="grid place-items-center w-4 h-4 rounded-full text-[10px]"
                         style={{ background: i < at ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: i < at ? '#fff' : 'inherit', border: '1px solid var(--border-default)' }}>
                         {i < at ? <Check className="w-2.5 h-2.5" aria-hidden="true" /> : i + 1}

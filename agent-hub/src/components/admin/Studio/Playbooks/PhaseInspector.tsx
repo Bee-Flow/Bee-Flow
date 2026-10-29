@@ -68,7 +68,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
             aria-label={t('playbooks.inspect.title', 'What this phase did')}
         >
             <header className="flex items-center gap-2 px-4 shrink-0 h-[44px] [border-bottom:1px_solid_var(--border-default)]">
-                <span className="font-semibold truncate" style={{ fontSize: presenter ? 15 : 13, color: 'var(--text-primary)' }}>{phaseLabel(phase, t)}</span>
+                <span className={`font-semibold truncate [color:var(--text-primary)] ${presenter ? '[font-size:15px]' : '[font-size:13px]'}`}>{phaseLabel(phase, t)}</span>
                 <span className="text-[11px]" style={{ color: phase.status === 'failed' ? 'var(--error-ink, var(--error))' : 'var(--text-secondary)' }}>{state}</span>
                 <button type="button" onClick={onClose} className="ml-auto inline-flex items-center justify-center rounded-lg w-[28px] h-[28px] [color:var(--text-secondary)]" aria-label={t('playbooks.inspect.close', 'Close')} data-testid="playbook-inspector-close">
                     <X className="w-4 h-4" aria-hidden="true" />

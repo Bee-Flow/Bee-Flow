@@ -30,8 +30,7 @@ import { logger } from '@/utils/logger';
 const Toggle = ({ on, onClick, disabled, label, title }: ToggleProps) => (
     <button
         type="button" onClick={onClick} disabled={disabled} aria-pressed={on} aria-label={label} title={title}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-        style={{ background: on ? 'var(--accent-primary)' : 'var(--border-default)', opacity: disabled ? 0.45 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? '[background:var(--accent-primary)]' : '[background:var(--border-default)]'} ${disabled ? '[opacity:0.45] [cursor:not-allowed]' : '[opacity:1] [cursor:pointer]'}`}
     >
         <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform"
             style={{ transform: on ? 'translateX(20px)' : 'translateX(0)', background: 'var(--bg-card)' }} />

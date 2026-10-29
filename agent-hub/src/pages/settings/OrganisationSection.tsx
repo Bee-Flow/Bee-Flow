@@ -74,7 +74,7 @@ const GoogleMapsRow = () => {
                 {hasKey && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(5,150,105,0.1)] [color:#059669]!">{t('settings.connected')}</span>
                 )}
-                <svg className="flex-shrink-0" style={{ color: 'var(--text-muted)', width: '13px', height: '13px', transition: 'transform 150ms', transform: open ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`flex-shrink-0 [color:var(--text-muted)] [width:13px] [height:13px] [transition:transform_150ms] ${open ? '[transform:rotate(90deg)]' : '[transform:none]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </button>
@@ -258,7 +258,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                 {(showN8n || showGoogleMaps) && (
                                     <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)]">
                                         {showN8n && (
-                                            <div style={{ borderBottom: showGoogleMaps ? '1px solid var(--border-subtle)' : 'none' }}>
+                                            <div className={`${showGoogleMaps ? '[border-bottom:1px_solid_var(--border-subtle)]' : '[border-bottom:none]'}`}>
                                                 <div className="flex items-center gap-3 px-5 py-3.5 bg-[var(--bg-secondary)]">
                                                     <img src="/n8n-color.png" alt="n8n" className="w-[20px] h-[20px] [object-fit:contain] [flex-shrink:0]" />
                                                     <div className="flex-1">

@@ -231,9 +231,9 @@ interface AudienceRowProps {
 
 function AudienceRow({ icon, title, description, checked, onSelect, disabled = false, testId, last = false }: AudienceRowProps) {
     return (
-        <label className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'cursor-default' : 'cursor-pointer'}`} style={{ borderBottom: last ? 'none' : '1px solid var(--border-default)' }} data-testid={testId}>
+        <label className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'cursor-default' : 'cursor-pointer'} ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`} data-testid={testId}>
             <input type="radio" name="form-audience" checked={checked} onChange={onSelect} disabled={disabled} className="mt-1 shrink-0" />
-            <span className="mt-0.5 shrink-0" style={{ color: checked ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>{icon}</span>
+            <span className={`mt-0.5 shrink-0 ${checked ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}>{icon}</span>
             <span className="min-w-0">
                 <span className="block text-sm font-medium text-[var(--text-primary)]">{title}</span>
                 <span className="block text-xs mt-0.5 text-[var(--text-secondary)]">{description}</span>

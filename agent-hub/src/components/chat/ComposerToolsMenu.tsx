@@ -81,12 +81,7 @@ function Switch({ on }: SwitchProps) {
                 flexShrink: 0,
             }}
         >
-            <span style={{
-                position: 'absolute', top: '1px', left: on ? '11px' : '1px',
-                width: '10px', height: '10px', borderRadius: '9999px',
-                background: on ? 'var(--accent-primary-fg, #fff)' : 'var(--text-tertiary)',
-                transition: 'left 0.15s ease, background 0.15s ease',
-            }} />
+            <span className={`[position:absolute] [top:1px] [width:10px] [height:10px] [border-radius:9999px] [transition:left_0.15s_ease,_background_0.15s_ease] ${on ? '[left:11px] [background:var(--accent-primary-fg,_#fff)]' : '[left:1px] [background:var(--text-tertiary)]'}`} />
         </span>
     );
 }
@@ -132,11 +127,7 @@ function Row({ item, onPick, onHover, t }: RowProps) {
         >
             <span
                 aria-hidden="true"
-                style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: '16px', height: '16px', flexShrink: 0, fontSize: '14px',
-                    color: tinted ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                }}
+                className={`[display:inline-flex] [align-items:center] [justify-content:center] [width:16px] [height:16px] [flex-shrink:0] [font-size:14px] ${tinted ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}
             >
                 {typeof Icon === 'string' ? Icon : Icon ? <Icon className="w-4 h-4" /> : null}
             </span>
@@ -157,8 +148,7 @@ function Row({ item, onPick, onHover, t }: RowProps) {
             {isPanel && (
                 <ChevronRight
                     aria-hidden="true"
-                    className="w-3.5 h-3.5"
-                    style={{ color: item.open ? 'var(--text-primary)' : 'var(--text-tertiary)', flexShrink: 0 }}
+                    className={`w-3.5 h-3.5 [flex-shrink:0] ${item.open ? '[color:var(--text-primary)]' : '[color:var(--text-tertiary)]'}`}
                 />
             )}
         </button>
@@ -327,8 +317,7 @@ export default function ComposerToolsMenu({ items = [], className = '', children
                 }}
             >
                 <Plus
-                    className="w-[18px] h-[18px]"
-                    style={{ transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)' }}
+                    className={`w-[18px] h-[18px] [transition:transform_0.18s_cubic-bezier(0.22,_1,_0.36,_1)] ${open ? '[transform:rotate(45deg)]' : '[transform:none]'}`}
                 />
                 {showDot && !open && (
                     <span

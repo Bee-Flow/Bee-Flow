@@ -215,7 +215,7 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
                             >{t('connections.set_default', 'Set default')}</button>
                         )}
                         <button onClick={() => setRenaming(true)} className="text-[11px] underline text-[var(--text-muted)]">{t('connections.rename', 'Rename')}</button>
-                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
+                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className={`p-1 ${sharing ? '[color:var(--accent-primary)]' : '[color:var(--text-muted)]'}`} title={t('connections.share', 'Share')}><Share2 size={14} /></button>
                         <button onClick={remove} disabled={busy} className="p-1 text-[var(--text-muted)]" title={t('connections.delete', 'Delete')}><Trash2 size={14} /></button>
                     </>
                 )}

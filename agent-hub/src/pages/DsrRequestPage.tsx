@@ -264,7 +264,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                     </button>
                 </form>
                 {checkResult && (
-                    <div style={{ marginTop: 12, fontSize: 13.5, color: checkResult.error ? '#dc2626' : '#333' }} data-testid="dsr-check-result">
+                    <div className={`[margin-top:12px] [font-size:13.5px] ${checkResult.error ? '[color:#dc2626]' : '[color:#333]'}`} data-testid="dsr-check-result">
                         {checkResult.error
                             ? t('dsr_public.check_not_found', 'No request found for that reference number and email.')
                             : (

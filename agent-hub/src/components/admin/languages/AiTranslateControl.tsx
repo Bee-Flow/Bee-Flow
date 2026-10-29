@@ -65,8 +65,7 @@ export default function AiTranslateControl({
             <button
                 onClick={onTranslate}
                 disabled={translating || missing === 0}
-                className="px-3 py-1 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 disabled:opacity-40 transition-opacity"
-                style={{ background: gradient ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'var(--accent-primary)' }}
+                className={`px-3 py-1 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 disabled:opacity-40 transition-opacity ${gradient ? '[background:linear-gradient(135deg,_#8b5cf6,_#6366f1)]' : '[background:var(--accent-primary)]'}`}
             >
                 {translating ? (
                     <><span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('admin_languages.ai.translating', 'Translating...')}</>

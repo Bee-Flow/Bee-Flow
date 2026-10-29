@@ -322,11 +322,7 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
     return (
         <div className="[display:flex] [gap:12px] [align-items:baseline]">
             <span className="min-w-[110px] [font-size:11px] [color:var(--text-muted,#666)] [text-transform:uppercase] [letter-spacing:0.04em]">{label}</span>
-            <span style={{
-                fontFamily: mono ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit',
-                wordBreak: 'break-all', flex: 1,
-                color: value ? 'var(--text-primary, #fff)' : 'var(--text-muted, #666)',
-            }}>
+            <span className={`[word-break:break-all] [flex:1] ${mono ? '[font-family:var(--font-mono,_ui-monospace,_monospace)]' : '[font-family:inherit]'} ${value ? '[color:var(--text-primary,_#fff)]' : '[color:var(--text-muted,_#666)]'}`}>
                 {value || '—'}
             </span>
         </div>

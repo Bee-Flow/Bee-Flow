@@ -65,12 +65,7 @@ export default function ClaudeSettingsSection({
                                     const displayName = meta?.name || rec.modelId;
                                     return (
                                         <tr key={tierKey}
-                                            style={{
-                                                borderTop: '1px solid var(--border-default)',
-                                                background: flash ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
-                                                transition: 'background 300ms ease',
-                                                color: 'var(--text-primary)',
-                                            }}
+                                            className={`[border-top:1px_solid_var(--border-default)] [transition:background_300ms_ease] [color:var(--text-primary)] ${flash ? '[background:rgba(34,_197,_94,_0.1)]' : '[background:transparent]'}`}
                                         >
                                             <td className="px-3 py-2">
                                                 <span className="font-medium">{tier?.label || tierKey}</span>

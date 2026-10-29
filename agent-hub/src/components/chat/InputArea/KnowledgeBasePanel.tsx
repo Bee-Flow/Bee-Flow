@@ -134,10 +134,7 @@ const KnowledgeBasePanel = ({
                         return (
                             <label
                                 key={kb.id}
-                                className="flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors"
-                                style={{
-                                    background: checked ? 'color-mix(in srgb, var(--accent-primary) 8%, transparent)' : 'transparent',
-                                }}
+                                className={`flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${checked ? '[background:color-mix(in_srgb,_var(--accent-primary)_8%,_transparent)]' : '[background:transparent]'}`}
                                 onMouseEnter={(e: React.MouseEvent<HTMLLabelElement>) => { if (!checked) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                                 onMouseLeave={(e: React.MouseEvent<HTMLLabelElement>) => { if (!checked) e.currentTarget.style.background = 'transparent'; }}
                             >
