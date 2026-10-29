@@ -23,10 +23,13 @@
 const ssrfGuard = require('../core/customIntegrations/ssrfGuard');
 const log = require('../telemetry/log');
 const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
+const {
+    EXACT_PLACEHOLDER_RE, DEFAULT_MAX_RESPONSE_CHARS, truncateBudget, scrubSecrets, getByDotPath,
+    callRemoteMcpTool, resolveRunCredentials, requestHeaders, shapeResponse,
+} = require('./customIntegrationSteps');
 
 const SLUG_RE = /^[a-z0-9]{4,16}$/;
 const TOOL_NAME_RE = /^[a-z][a-z0-9_]{2,40}$/;
-const EXACT_PLACEHOLDER_RE = /^\{([A-Za-z0-9_]+)\}$/;
 const PATH_PLACEHOLDER_RE = /\{([A-Za-z0-9_]+)\}/g;
 const CREDENTIAL_REF_RE = /\{\{credential\.([A-Za-z0-9_]+)\}\}/g;
 
@@ -37,19 +40,8 @@ const MAX_ARRAY_ARG_ITEMS = 100;
 const DEFAULT_TIMEOUT_MS = 20000;
 const MIN_TIMEOUT_MS = 1000;
 const MAX_TIMEOUT_MS = 30000;
-const DEFAULT_MAX_RESPONSE_CHARS = 30000;
 const MIN_RESPONSE_CHARS = 1000;
 const MAX_ERROR_MESSAGE_CHARS = 300;
-const REDACTED = '[redacted:credential]';
-
-// Mirrors validateCustomIntegration's denylist (kept in sync by hand — the
-// validator is not imported so requiring the runner stays dependency-light).
-const HEADER_NAME_RE = /^[A-Za-z0-9-]{1,64}$/;
-const DENIED_HEADERS = new Set([
-    'host', 'authorization', 'cookie', 'set-cookie', 'content-length',
-    'transfer-encoding', 'connection', 'upgrade', 'te', 'trailer',
-]);
-const DENIED_HEADER_PREFIXES = ['proxy-', 'x-forwarded-'];
 
 // ssrfGuard's thrown messages are generic by contract and safe to surface.
 const SAFE_GUARD_ERRORS = new Set([
@@ -88,39 +80,6 @@ function parsePrefixedName(toolName) {
 function clampInt(v, lo, hi, fallback) {
     const n = Number.isInteger(v) ? v : fallback;
     return Math.min(hi, Math.max(lo, n));
-}
-
-/**
- * Hard-truncate a string to `max` chars. Returns { text, truncated }.
- */
-function truncateBudget(text, max) {
-    const s = typeof text === 'string' ? text : String(text ?? '');
-    const cap = Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_RESPONSE_CHARS;
-    if (s.length <= cap) return { text: s, truncated: false };
-    return { text: s.slice(0, cap), truncated: true };
-}
-
-/**
- * Replace every literal secret value (length >= 6), its base64/base64url
- * encodings and its encodeURIComponent form with a redaction marker. Longest
- * forms first so partial overlaps cannot leave fragments behind. Canonical
- * implementation — customMcpClient delegates here.
- */
-function scrubSecrets(text, values) {
-    if (typeof text !== 'string' || !text) return text;
-    const forms = new Set();
-    for (const v of Array.isArray(values) ? values : []) {
-        if (typeof v !== 'string' || v.length < 6) continue;
-        forms.add(v);
-        forms.add(Buffer.from(v, 'utf8').toString('base64'));
-        forms.add(Buffer.from(v, 'utf8').toString('base64url'));
-        forms.add(encodeURIComponent(v));
-    }
-    let out = text;
-    for (const f of [...forms].sort((a, b) => b.length - a.length)) {
-        if (f.length >= 6 && out.includes(f)) out = out.split(f).join(REDACTED);
-    }
-    return out;
 }
 
 /**
@@ -281,16 +240,6 @@ function buildJsonBody(node, args) {
     return node;
 }
 
-function getByDotPath(obj, path) {
-    let cur = obj;
-    for (const seg of String(path).split('.')) {
-        if (cur === null || typeof cur !== 'object') return undefined;
-        cur = cur[seg];
-        if (cur === undefined) return undefined;
-    }
-    return cur;
-}
-
 /**
  * Short, sanitized message out of a vendor error body (JSON or XML-ish) —
  * never the raw body, never the URL/headers (afasTools convention).
@@ -425,32 +374,10 @@ async function executeCustomIntegrationTool(prefixedName, args, {
 
         // 4. mcp_remote → delegate, then apply the same scrub/truncate.
         if (integration.kind === 'mcp_remote') {
-            let client;
-            try {
-                client = require('../core/customIntegrations/customMcpClient');
-            } catch (_) {
-                return fail('Remote MCP integrations are not available yet.');
-            }
-            // Vendor MCP tool names may contain characters illegal in cint_
-            // names (dashes, uppercase). Activation stores the original under
-            // _cint.rawName on each tools_cache entry, so map the prefixed
-            // name back through the cache before delegating. No cache entry ⇒
-            // the tool is not part of this integration's frozen tool set.
-            const cacheEntry = (Array.isArray(integration.toolsCache) ? integration.toolsCache : [])
-                .find(e => e?.function?.name === prefixedName);
-            if (!cacheEntry) {
-                return fail(`Tool "${parsed.toolName}" is not part of this integration. Re-activate the integration to refresh its tools.`);
-            }
-            const remoteName = cacheEntry._cint?.rawName || parsed.toolName;
-            const res = await client.callTool(integration, remoteName, args || {}, userId);
-            if (res && typeof res === 'object' && typeof res.error === 'string') {
-                return fail(truncateBudget(res.error, DEFAULT_MAX_RESPONSE_CHARS).text);
-            }
-            const serialized = typeof res === 'string' ? res : JSON.stringify(res ?? null);
-            const { text, truncated } = truncateBudget(serialized, DEFAULT_MAX_RESPONSE_CHARS);
-            const out = { result: scrubSecrets(text, secretValues) };
-            if (truncated) out.truncated = true;
-            return out;
+            const res = await callRemoteMcpTool(integration, {
+                prefixedName, toolName: parsed.toolName, args, userId, secretValues,
+            });
+            return 'refusal' in res ? fail(res.refusal) : res;
         }
 
         // 6. Definition: active runs the FROZEN activated_definition only;
@@ -482,40 +409,11 @@ async function executeCustomIntegrationTool(prefixedName, args, {
         let connection = null;
         let secret = null;
         if (auth.type !== 'none') {
-            const provider = `custom:${integration.id}`;
-            if (connectionOverrideId) {
-                connection = await connStore.getConnectionWithSecret(connectionOverrideId);
-                if (!connection || connection.provider !== provider) {
-                    return fail('The selected connection does not belong to this integration.');
-                }
-            } else {
-                const resolution = await connStore.resolveConnectionForRun({
-                    runningUserId: userId,
-                    runningUserOrgId: userOrg,
-                    runningUserGroups: [],
-                    ownerUserId: userId,
-                    provider,
-                });
-                if (!resolution.available || !resolution.connectionId) {
-                    return fail('No credentials connected for this integration. Add them under Settings → Connections.');
-                }
-                connection = await connStore.getConnectionWithSecret(resolution.connectionId);
-            }
-            if (!connection || connection.status !== 'active') {
-                return fail('The stored credentials are unavailable — re-enter credentials for this integration.');
-            }
-            // Hard asserts: same org, and the credential is pinned to this
-            // exact API origin (set when the credential was entered).
-            if (connStore.resolveOrgId(connection.orgId) !== integrationOrg) {
-                return fail('The stored credentials belong to a different organization.');
-            }
-            if (!connection.secretMeta || connection.secretMeta.boundOrigin !== baseOrigin) {
-                return fail('The stored credential is bound to a different API host — re-enter credentials for this integration.');
-            }
-            secret = connection.secret;
-            if (!secret || typeof secret !== 'object') {
-                return fail('The stored credentials could not be read — re-enter credentials for this integration.');
-            }
+            const creds = await resolveRunCredentials(connStore, {
+                integration, connectionOverrideId, userId, userOrg, integrationOrg, baseOrigin,
+            });
+            if ('refusal' in creds) return fail(creds.refusal);
+            ({ connection, secret } = creds);
             secretValues = Object.values(secret).filter(v => typeof v === 'string');
         }
 
@@ -532,22 +430,8 @@ async function executeCustomIntegrationTool(prefixedName, args, {
             return fail(SAFE_GUARD_ERRORS.has(e?.message) ? e.message : 'Target address is not allowed.');
         }
 
-        // 11/12. Headers (definition literals), JSON body, then auth LAST.
-        // Defense in depth: re-apply the validator's header denylist here —
-        // the runner owns transport/auth/proxy headers even if a definition
-        // somehow reached storage without passing validation.
-        const headers = {};
-        const applyHeaders = (map) => {
-            if (!map || typeof map !== 'object' || Array.isArray(map)) return;
-            for (const [k, v] of Object.entries(map)) {
-                if (typeof v !== 'string' || !HEADER_NAME_RE.test(k)) continue;
-                const n = k.toLowerCase();
-                if (DENIED_HEADERS.has(n) || DENIED_HEADER_PREFIXES.some(p => n.startsWith(p))) continue;
-                headers[k] = v;
-            }
-        };
-        applyHeaders(def.api.defaultHeaders);
-        applyHeaders(tool.headers);
+        // 11/12. Headers (definition literals, requestHeaders), JSON body, then auth LAST.
+        const headers = requestHeaders(def, tool);
         let body;
         // fetch() rejects GET bodies outright, so a (validator-warned) GET
         // body template is dropped rather than failing the whole call.
@@ -610,35 +494,8 @@ async function executeCustomIntegrationTool(prefixedName, args, {
         }
 
         const maxChars = clampInt(def.api.maxResponseChars, MIN_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS);
-        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-        if (contentType.includes('json')) { // application/json + */*+json variants
-            let parsedBody;
-            try {
-                parsedBody = JSON.parse(raw.toString('utf8'));
-            } catch {
-                return fail('The API returned invalid JSON.');
-            }
-            let extracted = parsedBody;
-            if (typeof tool.resultPath === 'string' && tool.resultPath) {
-                const v = getByDotPath(parsedBody, tool.resultPath);
-                if (v !== undefined) extracted = v; // missing path → whole body (budget still caps it)
-            }
-            const { text, truncated } = truncateBudget(JSON.stringify(extracted) ?? 'null', maxChars);
-            const out = { status: response.status, result: scrubSecrets(text, secretValues) };
-            if (truncated) {
-                out.truncated = true;
-                out.message = `Response truncated to ${maxChars} characters. Narrow the request (filters, pagination) for complete data.`;
-            }
-            return out;
-        }
-        if (contentType.startsWith('text/')) {
-            const { text, truncated } = truncateBudget(raw.toString('utf8'), maxChars);
-            const out = { status: response.status, result: scrubSecrets(text, secretValues) };
-            if (truncated) out.truncated = true;
-            return out;
-        }
-        // Binary/unknown: metadata only — never raw bytes into the context.
-        return { status: response.status, contentType: contentType || 'unknown', bytes: raw.length };
+        const shaped = shapeResponse(response, raw, tool, maxChars, secretValues);
+        return 'refusal' in shaped ? fail(shaped.refusal) : shaped;
     } catch (err) {
         // Unexpected failure: log a scrubbed message, return a fixed string
         // (never err.message — it could carry a URL with query auth).
