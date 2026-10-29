@@ -3496,17 +3496,6 @@
       "count": 1
     }
   },
-  "src/components/admin/product-website/blockEditors/ContentEditor.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/product-website/blockEditors/CtaBannerEditor.tsx": {
     "complexity": {
       "count": 1

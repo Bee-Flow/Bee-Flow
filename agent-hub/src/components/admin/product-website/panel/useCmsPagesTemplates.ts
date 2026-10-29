@@ -39,6 +39,165 @@ interface UseCmsPagesTemplatesArgs {
     setPendingTemplatePage: Dispatch<SetStateAction<PendingTemplatePage | null>>;
 }
 
+type ReloadOnVisibleArgs = Pick<UseCmsPagesTemplatesArgs, 'saveStatus' | 'activeSiteIdRef' | 'builderRunningRef' | 'inFlightSaveRef' | 'pendingSaves'> & {
+    reloadPayload: () => Promise<void>;
+};
+
+function useReloadOnVisible({ saveStatus, reloadPayload, activeSiteIdRef, builderRunningRef, inFlightSaveRef, pendingSaves }: ReloadOnVisibleArgs) {
+    // Refetch latest payload when the tab regains focus, so opening the CMS
+    // after a break (or after editing in another tab) shows current content
+    // instead of the cached snapshot from initial mount. Guarded against any
+    // dirty/in-flight state so we never yank state out from under an edit.
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState !== 'visible') return;
+            if (saveStatus !== 'idle' && saveStatus !== 'saved') return;
+            if (Object.keys(pendingSaves.current).length > 0) return;
+            if (inFlightSaveRef.current) return;
+            if (builderRunningRef.current) return;
+            if (!activeSiteIdRef.current) return;
+            reloadPayload();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [saveStatus, reloadPayload, activeSiteIdRef, builderRunningRef, inFlightSaveRef, pendingSaves]);
+}
+
+/** A page's blocks read from the server, for a page the local cache does not hold; null when it has none. */
+async function fetchPageBlocks(siteId: string, pageId: string): Promise<unknown[] | null> {
+    let res: Response;
+    try {
+        res = await request(cmsApi.page(siteId, pageId));
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        const data = errorBody(err) ?? {};
+        throw new Error(data.error || 'Failed to load page');
+    }
+    const doc = await res.json();
+    return Array.isArray(doc?.blocks) ? doc.blocks : null;
+}
+
+/** POST a new template; throws with the server's sentence when it is refused. */
+async function postTemplate(body: { name: string; description?: string; blocks: unknown[] }) {
+    let res: Response;
+    try {
+        res = await mutate(cmsApi.templates(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        const data = errorBody(err) ?? {};
+        throw new Error(data.error || `HTTP ${err.status}`);
+    }
+    await res.json().catch(() => ({}));
+}
+
+type PageTemplatesArgs = Pick<UseCmsPagesTemplatesArgs, 'activeSiteIdRef' | 'pages' | 'setTemplates' | 'pendingTemplatePage' | 'setPendingTemplatePage'>;
+
+/** Page templates (global, shared across sites): the list, save-as-template (dialog + submit) and delete. */
+function usePageTemplates({ activeSiteIdRef, pages, setTemplates, pendingTemplatePage, setPendingTemplatePage }: PageTemplatesArgs) {
+    const refreshTemplates = useCallback(async () => {
+        try {
+            let res: Response;
+            try {
+                res = await request(cmsApi.templates());
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
+            const data = await res.json();
+            setTemplates(Array.isArray(data.templates) ? data.templates : []);
+        } catch (err) { logger.debug('non-fatal — manager + picker just stay empty', err); }
+    }, [setTemplates]);
+
+    // Initial load — runs once when the panel mounts. Templates are
+    // org-wide so they don't need to re-fetch on site switches.
+    useEffect(() => { refreshTemplates(); }, [refreshTemplates]);
+
+    // Resolve the page's blocks BEFORE opening the dialog. The panel's
+    // `pages` state caches every PageDoc for the active site, so the
+    // currently active page is always there. Pages from another site
+    // (or freshly imported sites that haven't been touched yet) get a
+    // fallback fetch so the dialog never opens with `undefined` blocks.
+    // Empty arrays are refused too — the saved template would otherwise
+    // be an unusable starter that the user can't tell apart from a real
+    // save until they try to apply it.
+    const handleSaveAsTemplate = useCallback(async (page: { id: string; }) => {
+        if (!page?.id) return;
+        const siteId = activeSiteIdRef.current;
+
+        let blocks: unknown[] | null | undefined = pages.find((p: CmsPageDoc) => p.id === page.id)?.blocks;
+
+        if (!Array.isArray(blocks) && siteId) {
+            // Fallback — not in the local cache. Round-trip to fetch the
+            // PageDoc so we never open the dialog without blocks.
+            try {
+                blocks = await fetchPageBlocks(siteId, page.id);
+            } catch (err) {
+                console.error('[templates] failed to load page blocks', err);
+                toast.error(`Couldn't load page blocks — ${(err as Error).message}`);
+                return;
+            }
+        }
+
+        if (!Array.isArray(blocks) || blocks.length === 0) {
+            toast.error('This page has no blocks to save as a template.');
+            return;
+        }
+
+        // Stash blocks alongside the page so submitTemplate doesn't have
+        // to resolve them a second time (and can't drift if `pages`
+        // re-renders between the dialog opening and the user confirming).
+        setPendingTemplatePage({ ...page, blocks });
+    }, [pages, activeSiteIdRef, setPendingTemplatePage]);
+
+    const submitTemplate = useCallback(async ({ name, description }: { name: string; description?: string }) => {
+        const page = pendingTemplatePage;
+        if (!page?.id) return;
+        const blocks = Array.isArray(page.blocks) ? page.blocks : [];
+        if (blocks.length === 0) {
+            toast.error('No blocks resolved — can\'t save an empty template.');
+            return;
+        }
+        try {
+            await postTemplate({ name, description, blocks });
+            await refreshTemplates();
+            setPendingTemplatePage(null);
+            toast.success('Template saved');
+        } catch (err) {
+            console.error('[templates] save failed', err);
+            toast.error('Failed to save template — check console');
+            // No rethrow — the dialog's inner try/finally always resets
+            // `saving` and the parent keeps `pendingTemplatePage` set so
+            // the modal stays open for retry. Rethrowing would just
+            // produce a duplicate unhandled-rejection log.
+        }
+    }, [pendingTemplatePage, refreshTemplates, setPendingTemplatePage]);
+
+    const handleDeleteTemplate = useCallback(async (id: string) => {
+        try {
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.template(id), { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `HTTP ${err.status}`);
+            }
+            const data = await res.json().catch(() => ({}));
+            await refreshTemplates();
+            toast.success('Template deleted');
+        } catch (err) {
+            console.error('[templates] delete failed', err);
+            toast.error('Failed to delete template — check console');
+        }
+    }, [refreshTemplates]);
+
+    return { handleSaveAsTemplate, submitTemplate, handleDeleteTemplate };
+}
+
 export default function useCmsPagesTemplates({
     activeSiteIdRef, drainPendingSaves, setActivePageId, pages, updatePage, confirm,
     historyResetRef, setSiteDoc, setPages, locales, setLocales, setLocaleOverrides,
@@ -217,143 +376,9 @@ export default function useCmsPagesTemplates({
         } catch (err) { toast.error(`Failed to reorder pages: ${(err as Error).message}`); }
     }, [activeSiteIdRef, historyResetRef, setDirtySincePublish, setSiteDoc]);
 
-    // Refetch latest payload when the tab regains focus, so opening the CMS
-    // after a break (or after editing in another tab) shows current content
-    // instead of the cached snapshot from initial mount. Guarded against any
-    // dirty/in-flight state so we never yank state out from under an edit.
-    useEffect(() => {
-        const onVisible = () => {
-            if (document.visibilityState !== 'visible') return;
-            if (saveStatus !== 'idle' && saveStatus !== 'saved') return;
-            if (Object.keys(pendingSaves.current).length > 0) return;
-            if (inFlightSaveRef.current) return;
-            if (builderRunningRef.current) return;
-            if (!activeSiteIdRef.current) return;
-            reloadPayload();
-        };
-        document.addEventListener('visibilitychange', onVisible);
-        return () => document.removeEventListener('visibilitychange', onVisible);
-    }, [saveStatus, reloadPayload, activeSiteIdRef, builderRunningRef, inFlightSaveRef, pendingSaves]);
+    useReloadOnVisible({ saveStatus, reloadPayload, activeSiteIdRef, builderRunningRef, inFlightSaveRef, pendingSaves });
 
-    // ── page templates (global, shared across sites) ──────────────────
-    const refreshTemplates = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(cmsApi.templates());
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }
-            const data = await res.json();
-            setTemplates(Array.isArray(data.templates) ? data.templates : []);
-        } catch (err) { logger.debug('non-fatal — manager + picker just stay empty', err); }
-    }, [setTemplates]);
-
-    // Initial load — runs once when the panel mounts. Templates are
-    // org-wide so they don't need to re-fetch on site switches.
-    useEffect(() => { refreshTemplates(); }, [refreshTemplates]);
-
-    // Resolve the page's blocks BEFORE opening the dialog. The panel's
-    // `pages` state caches every PageDoc for the active site, so the
-    // currently active page is always there. Pages from another site
-    // (or freshly imported sites that haven't been touched yet) get a
-    // fallback fetch so the dialog never opens with `undefined` blocks.
-    // Empty arrays are refused too — the saved template would otherwise
-    // be an unusable starter that the user can't tell apart from a real
-    // save until they try to apply it.
-    const handleSaveAsTemplate = useCallback(async (page: { id: string; }) => {
-        if (!page?.id) return;
-        const siteId = activeSiteIdRef.current;
-
-        let blocks: unknown[] | null | undefined = pages.find((p: CmsPageDoc) => p.id === page.id)?.blocks;
-
-        if (!Array.isArray(blocks) && siteId) {
-            // Fallback — not in the local cache. Round-trip to fetch the
-            // PageDoc so we never open the dialog without blocks.
-            try {
-                let res: Response;
-                try {
-                    res = await request(cmsApi.page(siteId, page.id));
-                } catch (err) {
-                    if (!(err instanceof RefusedError)) throw err;
-                    const data = errorBody(err) ?? {};
-                    throw new Error(data.error || 'Failed to load page');
-                }
-                const doc = await res.json();
-                blocks = Array.isArray(doc?.blocks) ? doc.blocks : null;
-            } catch (err) {
-                console.error('[templates] failed to load page blocks', err);
-                toast.error(`Couldn't load page blocks — ${(err as Error).message}`);
-                return;
-            }
-        }
-
-        if (!Array.isArray(blocks) || blocks.length === 0) {
-            toast.error('This page has no blocks to save as a template.');
-            return;
-        }
-
-        // Stash blocks alongside the page so submitTemplate doesn't have
-        // to resolve them a second time (and can't drift if `pages`
-        // re-renders between the dialog opening and the user confirming).
-        setPendingTemplatePage({ ...page, blocks });
-    }, [pages, activeSiteIdRef, setPendingTemplatePage]);
-
-    const submitTemplate = useCallback(async ({ name, description }: { name: string; description?: string }) => {
-        const page = pendingTemplatePage;
-        if (!page?.id) return;
-        const blocks = Array.isArray(page.blocks) ? page.blocks : [];
-        if (blocks.length === 0) {
-            toast.error('No blocks resolved — can\'t save an empty template.');
-            return;
-        }
-        try {
-            let res: Response;
-            try {
-                res = await mutate(cmsApi.templates(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description, blocks }),
-            });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const data = errorBody(err) ?? {};
-                throw new Error(data.error || `HTTP ${err.status}`);
-            }
-            const data = await res.json().catch(() => ({}));
-            await refreshTemplates();
-            setPendingTemplatePage(null);
-            toast.success('Template saved');
-        } catch (err) {
-            console.error('[templates] save failed', err);
-            toast.error('Failed to save template — check console');
-            // No rethrow — the dialog's inner try/finally always resets
-            // `saving` and the parent keeps `pendingTemplatePage` set so
-            // the modal stays open for retry. Rethrowing would just
-            // produce a duplicate unhandled-rejection log.
-        }
-    }, [pendingTemplatePage, refreshTemplates, setPendingTemplatePage]);
-
-
-    const handleDeleteTemplate = useCallback(async (id: string) => {
-        try {
-            let res: Response;
-            try {
-                res = await mutate(cmsApi.template(id), { method: 'DELETE' });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const data = errorBody(err) ?? {};
-                throw new Error(data.error || `HTTP ${err.status}`);
-            }
-            const data = await res.json().catch(() => ({}));
-            await refreshTemplates();
-            toast.success('Template deleted');
-        } catch (err) {
-            console.error('[templates] delete failed', err);
-            toast.error('Failed to delete template — check console');
-        }
-    }, [refreshTemplates]);
+    const { handleSaveAsTemplate, submitTemplate, handleDeleteTemplate } = usePageTemplates({ activeSiteIdRef, pages, setTemplates, pendingTemplatePage, setPendingTemplatePage });
 
     return {
         handleAddPage, handleDuplicatePage, handleExportPage, handleImportPage,
