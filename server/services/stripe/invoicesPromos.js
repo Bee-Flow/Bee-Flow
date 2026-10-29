@@ -75,18 +75,17 @@ async function getInvoicePdf(invoiceId, { customerId } = {}) {
  * 
  * Stripe model: Coupon (defines the discount) → Promotion Code (user-facing code).
  * 
- * @param {object} options
- * @param {string} options.code - The promo code string (e.g. "LAUNCH20")
- * @param {string} options.discountType - 'percent' or 'fixed'
- * @param {number} options.discountValue - Percentage (1-100) or amount in cents
- * @param {string} [options.currency] - Required for fixed amount (e.g. 'eur')
- * @param {string} [options.duration] - 'once', 'repeating', 'forever' (default 'once')
- * @param {number} [options.durationMonths] - Required when duration is 'repeating'
- * @param {number} [options.maxRedemptions] - Max number of times the code can be used
- * @param {string} [options.expiresAt] - ISO date string for expiration
- * @param {boolean} [options.firstTimeOnly] - Only allow first-time customers
- * @param {number} [options.minAmount] - Minimum order amount in cents
- * @param {string} [options.name] - Internal name/description
+ * `options`: `code` is the promo code string (e.g. "LAUNCH20"); `discountValue`
+ * a percentage (1-100) or an amount in cents; `currency` is required for a
+ * fixed amount (e.g. 'eur'); `duration` defaults to 'once'; `durationMonths`
+ * is required when duration is 'repeating'; `maxRedemptions` caps how often
+ * the code can be used; `expiresAt` is an ISO date string; `firstTimeOnly`
+ * allows first-time customers only; `minAmount` is the minimum order amount in
+ * cents; `name` the internal name/description.
+ *
+ * @param {{ code: string, discountType: 'percent' | 'fixed' | string, discountValue: number, currency?: string,
+ *   duration?: 'once' | 'repeating' | 'forever' | string, durationMonths?: number, maxRedemptions?: number,
+ *   expiresAt?: string, firstTimeOnly?: boolean, minAmount?: number, name?: string }} options
  * @returns {Promise<{ couponId: string, promoCodeId: string, code: string }>}
  */
 async function createPromoCode(options) {

@@ -192,10 +192,10 @@ async function composeReactDraft(webpageId, extras, headScripts) {
 }
 
 /**
- * @param {object} opts
- * @param {Record<string, any>} opts.webpage      the page row (owner in `userId`)
- * @param {{html:string,css:string,js:string}} opts.slots  what the caller may read
- * @param {string} opts.headScripts  the bridges to bake into <head>
+ * `webpage` is the page row (owner in `userId`), `slots` what the caller may
+ * read, `headScripts` the bridges to bake into <head>.
+ *
+ * @param {{ webpage: Record<string, any>, slots: { html: string, css: string, js: string }, headScripts: string }} opts
  * @returns {Promise<{ status:'ready'|'empty'|'stranded'|'build_error', html:string|null,
  *   buildError:string|null, framework:string, runtime:string }>}
  */

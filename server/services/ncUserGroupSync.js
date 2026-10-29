@@ -399,7 +399,7 @@ async function mirrorGroups(org) {
  * message names the proxy path, and a later change to ncProxyFetch could put
  * the callback URL (or worse) in it without anyone looking here.
  *
- * @param {any} err
+ * @param {Error & { status?: unknown, cause?: { code?: unknown } }} err
  * @returns {{ stage: string, reason: string, httpStatus?: number, errorCode?: string }}
  */
 function summarizeSyncError(err) {

@@ -247,18 +247,19 @@ function flattenMarking(marking) {
 /**
  * Render a presentation.
  *
- * @param {object} args
- * @param {object|string} [args.deck]      a normalised deck, a raw JSON deck, or a markdown outline
- * @param {string} [args.content]          markdown outline (alternative to `deck`)
- * @param {'pptx'|'pdf'|'html'} [args.format]  html = the on-screen slide viewer (documentRenderer, mode 'screen')
- * @param {string} [args.title]            overrides the deck's cover title
- * @param {string} [args.author]
- * @param {string} [args.date]
- * @param {string|null} [args.orgId]       whose house style; null = neutral
- * @param {boolean} [args.houseStyle]      false = the neutral theme (the user's opt-out)
- * @param {object|null} [args.theme]       per-deck look overrides (deckThemeOptions: preset, accent, background, font, coverStyle, tableStyle, logo, logoPlacement, footerText…)
- * @param {object|null} [args.marking]     compliance marking (compliance/marking.js shape) or null
- * @param {Function} [args.resolveImage]   async (imageRef) => data: URL | null
+ * `args`: `deck` is a normalised deck, a raw JSON deck, or a markdown outline;
+ * `content` a markdown outline (alternative to `deck`); `format` html = the
+ * on-screen slide viewer (documentRenderer, mode 'screen'); `title` overrides
+ * the deck's cover title; `orgId` is whose house style (null = neutral);
+ * `houseStyle` false = the neutral theme (the user's opt-out); `theme` holds
+ * per-deck look overrides (deckThemeOptions: preset, accent, background, font,
+ * coverStyle, tableStyle, logo, logoPlacement, footerText…); `marking` the
+ * compliance marking (compliance/marking.js shape) or null; `resolveImage`
+ * turns an image ref into a data: URL, or null.
+ *
+ * @param {{ deck?: object|string|null, content?: string|null, format?: 'pptx'|'pdf'|'html', title?: string, author?: string,
+ *   date?: string, orgId?: string|null, houseStyle?: boolean, theme?: object|null, marking?: object|null,
+ *   resolveImage?: ((imageRef: unknown) => Promise<string | null>) | null }} [args]
  * @returns {Promise<{buffer?:Buffer, html?:string, contentType:string, format:string, extension:string, slideCount:number,
  *   warnings:string[], degraded?:boolean, marking:null|{visible:boolean,metadata:boolean}, houseStyle:boolean,
  *   deck:ReturnType<typeof normalizeDeck>}>}

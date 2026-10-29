@@ -194,7 +194,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
  *   userId: string, orgId: string|null,
  *   provider: 'gmail'|'outlook', integrationId: string, oauthProvider: 'google'|'microsoft',
  *   tokens: {accessToken, refreshToken, expiryDate, scope},
- *   onRefresh: Function,
+ *   onRefresh: (updated: import('../services/email/send').MailTokens) => Promise<void>,
  *   mailbox: { address, displayName, mode, sharedMode },
  *   viaGrantFrom: string|null,
  * }>}
