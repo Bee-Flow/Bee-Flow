@@ -2,7 +2,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';
-import type { Skill } from '../../hooks/useSkills';
+import type { UseSkillsReturn } from '../../hooks/useSkills';
 import type { SessionSkillView } from './SkillsPopover.types';
 import type { TranslationOverride } from '@/test/translationOverride';
 
@@ -10,7 +10,7 @@ import type { TranslationOverride } from '@/test/translationOverride';
  * A switchable dictionary over the REAL useTranslation, off by default so the
  * plain runs read the shipped English fallbacks.
  *
- * Same device as SkillsGrid.test.jsx, and for the same reason: this popover
+ * Same device as SkillsGrid.test.tsx, and for the same reason: this popover
  * was hardcoded English, and hardcoded English renders identically to
  * translated English. The only way to PROVE a string now travels through a
  * key is to make that key answer in another language and watch the screen
@@ -22,7 +22,7 @@ vi.mock('../../hooks/useTranslation', async (importOriginal) =>
 
 // useSkills fetches `${API_BASE}/api/skills` on mount, so it is stubbed
 // outright — these are render tests and must never touch the network.
-const { skillsState } = vi.hoisted((): { skillsState: { current: { skills: Skill[]; loading: boolean } } } => ({ skillsState: { current: { skills: [], loading: false } } }));
+const { skillsState } = vi.hoisted((): { skillsState: { current: Pick<UseSkillsReturn, 'skills' | 'loading'> } } => ({ skillsState: { current: { skills: [], loading: false } } }));
 vi.mock('../../hooks/useSkills', () => ({
   useSkills: () => ({
     skills: skillsState.current.skills,

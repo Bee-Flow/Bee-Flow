@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * WebpageDbViewer — the heaviest screen of the retrofit (79 literal strings).
@@ -11,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  *   2. SQL itself stays SQL — column names, NULL and the type names are machine text and do not belong in the dictionary.
  */
 
-const t = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => {
+const t: TranslateFn = (key, fallback, params) => {
     const p = typeof fallback === 'string' ? params : fallback;
     const tail = p && typeof p === 'object'
         ? `(${Object.entries(p).map(([k, v]) => `${k}=${v}`).join(',')})`

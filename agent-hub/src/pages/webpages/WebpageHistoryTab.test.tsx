@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type WebpageEditor from './WebpageEditor';
 
 /**
  * The History tab.
@@ -24,7 +25,7 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 vi.mock('./WebpageEditor', () => ({
-    default: ({ value, language, readOnly }: { value?: string; language?: string; readOnly?: boolean }) => (
+    default: ({ value, language, readOnly }: ComponentProps<typeof WebpageEditor>) => (
         <div data-testid="version-editor" data-language={language} data-readonly={String(!!readOnly)}>{value}</div>
     ),
 }));

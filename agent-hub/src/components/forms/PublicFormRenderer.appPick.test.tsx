@@ -14,7 +14,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer from './PublicFormRenderer';
-import type { FormFieldDef, PublicFormRendererProps } from './PublicFormRenderer.types';
+import type { AppPick, FormFieldDef, PublicFormRendererProps } from './PublicFormRenderer.types';
 
 type SearchApp = NonNullable<PublicFormRendererProps['onSearchApp']>;
 type Submit = NonNullable<PublicFormRendererProps['onSubmit']>;
@@ -73,7 +73,7 @@ describe('app_pick — picking a record', () => {
 
         await user.clear(screen.getByLabelText('Search Fireflies'));
         await user.type(screen.getByLabelText('Search Fireflies'), 'kickoff');
-        await waitFor(() => expect((onSearchApp.mock.calls.at(-1) as [FormFieldDef, string])[1]).toBe('kickoff'));
+        await waitFor(() => expect((onSearchApp.mock.calls.at(-1) as Parameters<SearchApp>)[1]).toBe('kickoff'));
     });
 
     it('submits a reference, never content', async () => {
@@ -146,6 +146,6 @@ describe('app_pick — a question that takes several records', () => {
 
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-        expect((onSubmit.mock.calls[0][0].mails as { recordId: string }[]).map(p => p.recordId)).toEqual(['tr_1', 'tr_2']);
+        expect((onSubmit.mock.calls[0][0].mails as AppPick[]).map(p => p.recordId)).toEqual(['tr_1', 'tr_2']);
     });
 });

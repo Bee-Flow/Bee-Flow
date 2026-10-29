@@ -6,7 +6,7 @@
  * alone: no zeroes, no spinner that never resolves, no error UI. That
  * behavior is what these tests pin.
  *
- * Run: cd agent-hub && npx vitest run src/marketing/sections/GitHubStats.test.jsx
+ * Run: cd agent-hub && npx vitest run src/marketing/sections/GitHubStats.test.tsx
  */
 import { screen, waitFor } from '@testing-library/react';
 import React from 'react';

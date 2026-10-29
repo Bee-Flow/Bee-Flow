@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * WebpageSources (the Knowledge panel) — every visible letter from the dictionary.
@@ -8,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * t() is a MARKER: `⟦key⟧` instead of the English fallback. A string that again stands literally in the source still reads well on screen, so only this way can the retrofit be proven.
  */
 
-const t = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => {
+const t: TranslateFn = (key, fallback, params) => {
     const p = typeof fallback === 'string' ? params : fallback;
     const tail = p && typeof p === 'object'
         ? `(${Object.entries(p).map(([k, v]) => `${k}=${v}`).join(',')})`

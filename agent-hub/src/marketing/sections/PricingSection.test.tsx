@@ -8,7 +8,7 @@
  * plans genuinely cover BOTH intervals; with no real choice the one existing
  * interval wins regardless of the editor's configured default.
  *
- * Run: cd agent-hub && npx vitest run src/marketing/sections/PricingSection.test.jsx
+ * Run: cd agent-hub && npx vitest run src/marketing/sections/PricingSection.test.tsx
  */
 import { screen } from '@testing-library/react';
 import React from 'react';

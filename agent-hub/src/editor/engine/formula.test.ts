@@ -5,7 +5,7 @@ import { colLabel, colToIndex, parseAnyRef, evaluateTable, displayResult, isForm
 
 // Build a table node from a 2D array of cell strings. A string starting with '='
 // becomes a formula cell; everything else is a plain-text cell.
-function table(grid: (string | number)[][]) {
+function table(grid: string[][]) {
   return {
     type: 'table',
     content: grid.map((row) => ({
@@ -19,7 +19,7 @@ function table(grid: (string | number)[][]) {
     })),
   };
 }
-const disp = (grid: (string | number)[][], r: number, c: number) => displayResult(evaluateTable(table(grid)).get(`${r},${c}`));
+const disp = (grid: string[][], r: number, c: number) => displayResult(evaluateTable(table(grid)).get(`${r},${c}`));
 
 describe('A1 ref helpers', () => {
   it('colLabel / colToIndex round-trip', () => {
@@ -103,7 +103,7 @@ describe('formula evaluation', () => {
 /* ── round 2: bare ranges, error sentinels, header exclusion, relaxed cells ── */
 
 // Cell builder that also supports attrs (header rows).
-const cellN = (s: string | number, attrs: DocAttrs | null = null) => ({
+const cellN = (s: string, attrs: DocAttrs | null = null) => ({
   type: 'tableCell',
   ...(attrs ? { attrs } : {}),
   content: [{
