@@ -1,3 +1,5 @@
+/** @typedef {import('./queryCompiler').TableMeta} TableMeta */
+/** @typedef {import('./queryCompiler').AccessFilter} AccessFilter */
 // @typecheck
 const { FILTER_OPS, SYSTEM_COLUMNS, KEY_RE } = require('./dataModel/vocabulary');
 
@@ -83,6 +85,9 @@ function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
+/**
+ * @param {TableMeta} tableMeta
+ */
 function assertTableMeta(tableMeta) {
     if (!tableMeta || typeof tableMeta !== 'object' || typeof tableMeta.key !== 'string' || !tableMeta.key) {
         throw new CompileError('tableMeta with a key is required');
@@ -97,6 +102,9 @@ function assertTableMeta(tableMeta) {
 
 // Prototype-safe key→field map. A Map never resolves `__proto__`/`constructor`
 // to an inherited value the way a bare object would.
+/**
+ * @param {TableMeta} tableMeta
+ */
 function fieldMap(tableMeta) {
     const m = new Map();
     const fields = Array.isArray(tableMeta.fields) ? tableMeta.fields : [];
@@ -170,6 +178,9 @@ function assertRecordId(id) {
     return id;
 }
 
+/**
+ * @param {AccessFilter} accessFilter
+ */
 function assertAccessFilter(accessFilter) {
     if (!accessFilter || typeof accessFilter !== 'object'
         || typeof accessFilter.where !== 'string' || !accessFilter.where
