@@ -10,12 +10,12 @@
 
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React, { type ComponentProps } from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 
 const get = vi.fn();
 const post = vi.fn();
-vi.mock('@/api/client', () => ({ default: { get: (...a) => get(...a), post: (...a) => post(...a) } }));
+vi.mock('@/api/client', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) } }));
 
 import { withQueryClient } from '@/test/queryWrapper';
 import FormRunOverlay from './FormRunOverlay';
@@ -37,14 +37,14 @@ const PAGE_TWO = {
     fields: [{ name: 'adres', type: 'text', label: 'Je adres', required: true, placeholder: '', help: '' }],
 };
 
-function renderOverlay(props = {}) {
+function renderOverlay(props: Partial<ComponentProps<typeof FormRunOverlay>> = {}) {
     const onStartRun = props.onStartRun || vi.fn(async () => ({ run: { id: 'run1' } }));
     const onClose = vi.fn();
     render(withQueryClient(<FormRunOverlay automationId="auto1" form={PAGE_ONE} onStartRun={onStartRun} onClose={onClose} {...props} />));
     return { onStartRun, onClose };
 }
 
-const fill = (label, value) => fireEvent.change(screen.getByLabelText(new RegExp(label)), { target: { value } });
+const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(new RegExp(label)), { target: { value } });
 
 beforeEach(() => { get.mockReset(); post.mockReset(); });
 afterEach(cleanup);
@@ -66,7 +66,7 @@ describe('FormRunOverlay — page one', () => {
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
 
         await waitFor(() => expect(onStartRun).toHaveBeenCalled());
-        const answers = onStartRun.mock.calls[0][0];
+        const answers = (onStartRun as Mock).mock.calls[0][0];
         expect(answers).toEqual({ naam: 'Tom' });
         // The honeypot is anti-bot plumbing, never an answer the next steps map against.
         expect('website_url' in answers).toBe(false);
@@ -142,7 +142,7 @@ describe('FormRunOverlay — the rest of the journey', () => {
         await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
         // Resuming starts a child run; the poll has to follow it, or the
         // overlay waits forever on a parent that finished when it handed off.
-        expect(get.mock.calls.at(-1)[0]).toBe('/api/automation/runs/run2/form');
+        expect((get.mock.calls.at(-1) as unknown[])[0]).toBe('/api/automation/runs/run2/form');
     });
 });
 

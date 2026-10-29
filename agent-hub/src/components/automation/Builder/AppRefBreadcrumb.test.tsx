@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: unknown[]) => authFetch(...args),
 }));
 
 import AppRefBreadcrumb from './AppRefBreadcrumb';
-import { __clearAppRefCacheForTests } from './flow/appRefLabel';
+import { __clearAppRefCacheForTests, type AppRefRecord } from './flow/appRefLabel';
 
 /**
  * The way back from the builder to the button that opened it.
@@ -21,7 +21,7 @@ import { __clearAppRefCacheForTests } from './flow/appRefLabel';
  */
 
 const authFetch = vi.fn();
-const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
 const REF = { appId: '5f2a1c34-8b7d-4e19-9f00-2ab3c4d5e6f7', screenId: 'scr_dash01', nodeId: 'cmp_btn123' };
 
@@ -116,13 +116,13 @@ describe('nothing to draw', () => {
     });
 
     it('renders nothing while the answer is still in flight', async () => {
-        let settle;
+        let settle: ((value: unknown) => void) | undefined;
         authFetch.mockReturnValue(new Promise((r) => { settle = r; }));
         const { container } = render(<AppRefBreadcrumb appRef={REF} />);
         // Ids would flash and be replaced by names a moment later — worse than
         // an empty strip that fills in once.
         expect(container.textContent).toBe('');
-        settle(ok({ status: 'ok', ...REF, appName: 'Expenses', screenName: 'Dashboard', canOpen: true }));
+        (settle as (value: unknown) => void)(ok({ status: 'ok', ...REF, appName: 'Expenses', screenName: 'Dashboard', canOpen: true }));
         await waitFor(() => expect(container.textContent).toContain('Expenses'));
     });
 
@@ -150,7 +150,7 @@ describe('uitloggen wist wat deze kijker mocht zien', () => {
         const { clearSessionCaches } = await import('@/hooks/sessionCaches');
 
         authFetch.mockResolvedValue(ok({ status: 'ok', ...REF, appName: 'Expenses', canOpen: true }));
-        expect((await loadAppRef(REF)).appName).toBe('Expenses');
+        expect(((await loadAppRef(REF)) as AppRefRecord).appName).toBe('Expenses');
         expect(authFetch).toHaveBeenCalledTimes(1);
         // Within the TTL window: no second request, so this IS a cache.
         await loadAppRef(REF);
@@ -161,7 +161,7 @@ describe('uitloggen wist wat deze kijker mocht zien', () => {
         // The next user on the same browser gets the answer that the server gives HIM, not that
         // of his predecessor.
         authFetch.mockResolvedValue(ok({ status: 'restricted', ...REF, canOpen: false }));
-        const second = await loadAppRef(REF);
+        const second = (await loadAppRef(REF)) as AppRefRecord;
         expect(authFetch).toHaveBeenCalledTimes(2);
         expect(second.status).toBe('restricted');
         expect(second.appName).toBeUndefined();

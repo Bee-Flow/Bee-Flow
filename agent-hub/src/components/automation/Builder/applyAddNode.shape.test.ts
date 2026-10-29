@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applyAddNode } from './DiagramPane';
+import type { AddStepPayload, FlowDefinition, FlowStep } from './applyAddNode.types';
 
 /**
  * BFSF-318 regression: adding a trigger to a shapeless base definition must
@@ -16,9 +17,9 @@ import { applyAddNode } from './DiagramPane';
  * flow/branchEdges.test.js) only ever pass a fully-formed definition, so this
  * path had no coverage at all.
  */
-const TRIGGER_PAYLOAD = { kind: 'trigger', triggerKind: 'schedule', label: 'Schedule' };
+const TRIGGER_PAYLOAD: AddStepPayload = { kind: 'trigger', triggerKind: 'schedule', label: 'Schedule' };
 
-const wellFormed = (def) => Array.isArray(def.steps) && Array.isArray(def.edges);
+const wellFormed = (def: FlowDefinition) => Array.isArray(def.steps) && Array.isArray(def.edges);
 
 describe('applyAddNode — shape normalisation of the base definition', () => {
     for (const [name, base] of [
@@ -26,11 +27,11 @@ describe('applyAddNode — shape normalisation of the base definition', () => {
         ['a trigger-only object', { trigger: { id: 'trg', type: 'trigger', kind: 'manual', position: { x: 0, y: 0 } } }],
         ['steps present but edges missing', { steps: [] }],
         ['edges present but steps missing', { edges: [] }],
-    ]) {
+    ] as [string, FlowDefinition][]) {
         it(`yields steps+edges arrays when replacing the trigger on ${name}`, () => {
             const next = applyAddNode(base, TRIGGER_PAYLOAD, { x: 10, y: 20 });
             expect(wellFormed(next)).toBe(true);
-            expect(next.trigger.kind).toBe('schedule');
+            expect((next.trigger as FlowStep).kind).toBe('schedule');
         });
 
         it(`yields steps+edges arrays when adding a step to ${name}`, () => {
@@ -53,7 +54,7 @@ describe('applyAddNode — shape normalisation of the base definition', () => {
     it('preserves the existing trigger id when replacing the kind', () => {
         const base = { trigger: { id: 'trg_keep', type: 'trigger', kind: 'manual', position: { x: 0, y: 0 } } };
         const next = applyAddNode(base, TRIGGER_PAYLOAD, { x: 0, y: 0 });
-        expect(next.trigger.id).toBe('trg_keep');
+        expect((next.trigger as FlowStep).id).toBe('trg_keep');
         expect(wellFormed(next)).toBe(true);
     });
 

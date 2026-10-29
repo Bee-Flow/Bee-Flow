@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { proposalChanges, proposalFields, reviewedProposal } from './proposalChanges';
 
+type Settings = Record<string, unknown>;
+type Def = {
+    trigger: { id: string };
+    steps: { id: string; label: string; settings: Settings }[];
+    layers: Record<string, { steps: { id: string; settings: Settings }[] }>;
+};
+
 describe('proposal review', () => {
-    const baseDefinition = { trigger: { id: 'trigger' }, steps: [{ id: 'mail', label: 'Send email', settings: { to: { kind: 'ref', path: 'trigger.output.sender' }, subject: 'Old' } }], layers: {} };
+    const baseDefinition: Def = { trigger: { id: 'trigger' }, steps: [{ id: 'mail', label: 'Send email', settings: { to: { kind: 'ref', path: 'trigger.output.sender' }, subject: 'Old' } }], layers: {} };
     const definition = structuredClone(baseDefinition);
     definition.steps[0].settings.to = { kind: 'ref', path: 'steps.reader.output.email' };
     definition.steps[0].settings.subject = 'New';
@@ -16,11 +23,11 @@ describe('proposal review', () => {
     });
 
     it('applies only checked fields while keeping structural changes and the original immutable', () => {
-        const reviewed = reviewedProposal(proposal, new Set([':mail:settings.to']));
+        const reviewed = reviewedProposal(proposal, new Set([':mail:settings.to'])) as Def;
         expect(reviewed.steps[0].settings.to).toEqual(baseDefinition.steps[0].settings.to);
         expect(reviewed.steps[0].settings.subject).toBe('New');
         expect(reviewed.steps[1].id).toBe('log');
-        expect(definition.steps[0].settings.to.path).toBe('steps.reader.output.email');
+        expect((definition.steps[0].settings.to as { path: string }).path).toBe('steps.reader.output.email');
         expect(baseDefinition.steps[0].settings.subject).toBe('Old');
     });
 

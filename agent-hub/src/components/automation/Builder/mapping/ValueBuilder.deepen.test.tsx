@@ -1,9 +1,12 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ValueBuilder from './ValueBuilder';
+import type { OnFocusField } from './focusField.types';
 import { VariablePickerProvider } from './VariablePickerContext';
+
+type FocusHandle = NonNullable<Parameters<OnFocusField>[0]>;
 
 // A step that already runs once per Gmail result (loop.result); each result
 // holds its attachments. Values fictional.
@@ -19,9 +22,9 @@ const SAMPLE = {
     },
 };
 
-function renderEditor({ deepen }) {
+function renderEditor({ deepen }: { deepen: ComponentProps<typeof ValueBuilder>['deepenForEach'] }) {
     const onChange = vi.fn();
-    const handle = { current: null };
+    const handle: { current: FocusHandle | null } = { current: null };
     render(
         <VariablePickerProvider groups={[]} previewSample={SAMPLE} stepLabelById={new Map()}>
             <ValueBuilder
@@ -37,7 +40,7 @@ function renderEditor({ deepen }) {
         </VariablePickerProvider>,
     );
     act(() => { screen.getAllByRole('textbox')[0].focus(); });
-    return { onChange, insert: (p) => act(() => { handle.current.insert(p); }) };
+    return { onChange, insert: (p: string) => act(() => { (handle.current as FocusHandle).insert(p); }) };
 }
 
 describe('a value from a list inside the item the step already runs over', () => {
@@ -70,6 +73,6 @@ describe('a value from a list inside the item the step already runs over', () =>
         const { onChange, insert } = renderEditor({ deepen: { itemVar: 'result', apply } });
         insert('loop.result.subject');
         expect(apply).not.toHaveBeenCalled();
-        expect(onChange.mock.calls.at(-1)[0]).toMatchObject({ kind: 'ref', path: 'loop.result.subject' });
+        expect((onChange.mock.calls.at(-1) as unknown[])[0]).toMatchObject({ kind: 'ref', path: 'loop.result.subject' });
     });
 });
