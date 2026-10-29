@@ -1,4 +1,5 @@
 /** @typedef {import('./automationRefs').DefObject} DefObject */
+/** @typedef {Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>} StudioAppRow */
 /**
  * "Which button, in which screen, of which app" — resolved FOR ONE VIEWER.
  *
@@ -77,10 +78,11 @@ function nodeOwnText(node) {
 /**
  * Resolve a back-pointer for one viewer.
  *
- * @param {object}      args
- * @param {object|null} args.app          the studio_apps row, or null when there is none
- * @param {object|null} args.ref          { appId, screenId, nodeId } — nodeId optional
- * @param {string|null} args.viewerUserId the signed-in user
+ * `app` is the studio_apps row (null when there is none), `ref` the back-pointer
+ * (`nodeId` optional), `viewerUserId` the signed-in user.
+ *
+ * @param {{ app?: StudioAppRow | null, ref?: { appId?: unknown, screenId?: unknown, nodeId?: unknown } | null,
+ *   viewerUserId?: string | null }} [args]
  * @returns {{
  *   status: 'ok'|'restricted'|'app_missing'|'screen_missing'|'node_missing',
  *   appId: string|null, screenId: string|null, nodeId: string|null,
@@ -179,10 +181,10 @@ const OWNER_REFUSALS = Object.freeze({
 });
 
 /**
- * @param {object}      args
- * @param {object|null} args.app          the studio_apps row, or null when it
- *                                        does not exist OR could not be read
- * @param {string|null} args.actorUserId  the signed-in user pressing the button
+ * `app` is the studio_apps row, or null when it does not exist OR could not be
+ * read; `actorUserId` is the signed-in user pressing the button.
+ *
+ * @param {{ app?: StudioAppRow | null, actorUserId?: string | null }} [args]
  * @returns {{ok: true, ownerId: string}|{ok: false, code: string, message: string}}
  */
 function appRefOwnerVerdict({ app = null, actorUserId = null } = {}) {

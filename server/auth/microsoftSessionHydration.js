@@ -135,7 +135,7 @@ function buildMicrosoftShim(cred, { userId, user }) {
         accessToken: cred.accessToken,
         refreshToken: cred.refreshToken || null,
         oauthScope: cred.scope || undefined,
-        /** @param {Function} [done] */
+        /** @param {(err?: Error) => void} [done] */
         save(done) {
             cred.accessToken = shim.accessToken;
             cred.refreshToken = shim.refreshToken;

@@ -105,8 +105,9 @@ function resolveFilters(filters, resolveValue) {
  *
  * @param {unknown} app           { id, userId, organizationId }
  * @param {{ tables: unknown; }} model         the app's data model
- * @param {object} binding       a record / records / aggregate binding
- * @param {object} opts          { viewer, role, resolveValue, maxRows? }
+ * @param {unknown} binding       a record / records / aggregate binding (checked by isDataBinding)
+ * @param {{ viewer?: Viewer, role?: string | null, resolveValue?: (binding: Record<string, unknown>) => unknown,
+ *   maxRows?: number }} opts  `resolveValue` resolves a filter value that is itself a binding
  */
 async function resolveDataBinding(app, model, binding, { viewer, role, resolveValue, maxRows = MAX_CONTEXT_ROWS }) {
     if (!isDataBinding(binding)) return null;

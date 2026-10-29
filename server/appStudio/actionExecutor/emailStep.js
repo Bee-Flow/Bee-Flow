@@ -193,7 +193,7 @@ async function sendEmailStep(app, model, step, ctx) {
     // ── Identity ────────────────────────────────────────────────────────
     let identity;
     try {
-        identity = await resolveMailboxIdentity(connector, /** @type {any} */ ({ app, viewerId: viewer.id || app.userId }));
+        identity = await resolveMailboxIdentity(connector, { app, viewerId: viewer.id || app.userId });
     } catch (err) {
         if (err.code === 'connection_required') {
             return { ok: false, code: 'connection_required', provider: err.provider || connector.provider, error: err.message };

@@ -105,7 +105,7 @@ function datasetAdapter(ds) {
  * Resolve + authorize the dataset named by a step/tool argument. Shared with
  * aiRuntime's query_genome_dataset tool so the two paths cannot drift.
  * @param {{ id: string, userId: string }} app
- * @param {*} rawValue what the binding resolved to (a descriptor or an id)
+ * @param {unknown} rawValue what the binding resolved to (a descriptor or an id)
  * @param {string|null|undefined} actorId the person the step runs as (ctx.viewerId);
  *   only the dataset's uploader resolves it, and naming nobody resolves nothing
  * @returns {Promise<NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>>} the manifest row — throws a client-safe error otherwise.
@@ -262,16 +262,9 @@ module.exports = { datasetQueryStep, resolveReadyDataset, datasetAdapter, _inter
  * @typedef {import('./actionExecutor/shared').ExecCtx} ExecCtx
  * @typedef {import('./actionExecutor/shared').DataModel} DataModel
  * @typedef {import('./actionExecutor/shared').DataTable} DataTable
- * @typedef {object} DatasetQueryStepDef  the authored dataset_query step
- * @property {string} [kind]
- * @property {Binding} [dataset]
- * @property {Binding} [gene]
- * @property {Binding} [region]
- * @property {Binding} [rsid]
- * @property {boolean} [filterPass]
- * @property {number} [minQual]
- * @property {number} [limit]
- * @property {boolean} [includeGenotypes]
- * @property {string} [resultDetail]
- * @property {{ tableId?: string, mapping?: Record<string, unknown>, constants?: Record<string, Binding>, upsertOn?: string }} [writeTo]
+ * @typedef {{
+ *   kind?: string, dataset?: Binding, gene?: Binding, region?: Binding, rsid?: Binding, filterPass?: boolean, minQual?: number,
+ *   limit?: number, includeGenotypes?: boolean, resultDetail?: string,
+ *   writeTo?: { tableId?: string, mapping?: Record<string, unknown>, constants?: Record<string, Binding>, upsertOn?: string },
+ * }} DatasetQueryStepDef  the authored dataset_query step
  */

@@ -96,13 +96,18 @@ function splitFileValues(values) {
 /**
  * installAppContent — rows and files into an app that already has its model.
  *
- * @param {object} opts
- * @param {Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>} opts.app  the app row (writeRecord needs it for org stamping)
- * @param {unknown} opts.model     the canonical data model installTemplate wrote
- * @param {unknown} opts.content   { records: { [tableId]: row[] }, files: entry[] } from sanitizeAppImport
- * @param {{ writeRecord?: typeof actionExecutor.writeRecord, storeDerivedFile?: typeof mailboxAttachments.storeDerivedFile }} [opts.deps]
- *                                 the injectable edges, appDryRun-style, so the tests run
- *                                 DB- and storage-free
+ * `app` is the app row (writeRecord needs it for org stamping), `model` the
+ * canonical data model installTemplate wrote, `content` the
+ * `{ records: { [tableId]: row[] }, files: entry[] }` from sanitizeAppImport,
+ * `deps` the injectable edges, appDryRun-style, so the tests run DB- and
+ * storage-free.
+ *
+ * @param {{
+ *   app: Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>,
+ *   model: unknown,
+ *   content: unknown,
+ *   deps?: { writeRecord?: typeof actionExecutor.writeRecord, storeDerivedFile?: typeof mailboxAttachments.storeDerivedFile },
+ * }} [opts]
  * @returns {Promise<{ok:boolean, rows:number, files:number, skipped:string[], error?:string}>}
  */
 async function installAppContent({ app, model, content, deps = {} } = {}) {

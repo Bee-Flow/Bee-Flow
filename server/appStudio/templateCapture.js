@@ -436,15 +436,15 @@ function cleanTags(value) {
  * surest way to guarantee that is for there to be one piece of code that says
  * what the bar is.
  *
- * @param {object}   opts
- * @param {object}   opts.definition   the app's CURRENT definition
- * @param {object?}  opts.dataModel    the app's data model (tables/fields/roles)
- * @param {object?}  opts.rowsByTable  { [tableId]: liveRow[] } for seeded tables only
- * @param {object?}  opts.seed         { [tableId]: seedRow[] } already in seed shape
- * @param {object?}  opts.seedPeople   demo-people declaration, checked against the model
- * @param {object[]} opts.datasets     dataset rows to carry as descriptors
- * @param {object}   opts.meta         { id, title, description, category, icon, tags, version }
- * @param {number?}  opts.maxSeedRows  per-table seed ceiling
+ * `opts`: `definition` is the app's CURRENT definition, `dataModel` its data
+ * model (tables/fields/roles), `rowsByTable` the live rows of the seeded tables
+ * only, `seed` a seed already in seed shape, `seedPeople` the demo-people
+ * declaration (checked against the model), `datasets` the dataset rows to carry
+ * as descriptors, `maxSeedRows` the per-table seed ceiling.
+ *
+ * @param {{ definition: unknown, dataModel?: Record<string, unknown> | null, rowsByTable?: SeedBlock,
+ *   seed?: SeedBlock | null, seedPeople?: Record<string, unknown> | null, datasets?: CaptureDataset[],
+ *   meta?: CaptureMeta, maxSeedRows?: number }} [opts]
  * @returns {{ok:true, template, report}|{ok:false, errors:string[]}}
  */
 function captureTemplate({
@@ -645,13 +645,12 @@ function captureTemplate({
  * (queryCompiler.compileRecordList with an owner access filter), not raw SQL —
  * a capture must not be able to read rows the caller could not read in the app.
  *
- * @param {object}   opts
- * @param {string}   opts.appId
- * @param {string}   opts.userId      the caller (must own/be able to edit the app)
- * @param {object}   opts.definition  the canonical draft definition
- * @param {object?}  opts.dataModel
- * @param {string[]} opts.seedTables  table IDS whose rows to capture (default none)
- * @param {object}   opts.meta
+ * `userId` is the caller (must own/be able to edit the app), `definition` the
+ * canonical draft definition, `seedTables` the table IDS whose rows to capture
+ * (default none).
+ *
+ * @param {{ appId: string, userId: string, definition: unknown, dataModel?: Record<string, unknown> | null,
+ *   seedTables?: string[], meta?: CaptureMeta }} [opts]
  */
 async function captureFromApp({
     appId, userId, definition, dataModel = null, seedTables = [], meta = {},
@@ -732,7 +731,7 @@ module.exports = {
     _toSeedRow: toSeedRow,
 };
 
-/** @typedef {{ id?: string, title?: string, description?: string, category?: string, icon?: string, tags?: unknown, version?: number }} CaptureMeta */
+/** @typedef {{ id?: string, title?: string | null, description?: string | null, category?: string | null, icon?: string | null, tags?: unknown, version?: number }} CaptureMeta */
 
 /** @typedef {{ id?: string, name?: string, tableId?: string|null, source?: object, descriptor?: object, cacheTtlSeconds?: number }} CaptureDataset */
 

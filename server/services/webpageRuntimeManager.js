@@ -468,11 +468,11 @@ async function stopRuntime(webpageId) {
  * Reap decision for ONE listed container. Pure — no Docker, no clock — so the
  * cold-start grace is unit-testable without a daemon.
  *
- * @param {object}  c
- * @param {string}  c.state  container State from listContainers ('running', …)
- * @param {number}  c.born   bf.bornAt label as epoch ms (0 when absent)
- * @param {object?} c.entry  this webpage's `runtimes` entry, if it is registered
- * @param {number}  c.now    current epoch ms
+ * `c.state` is the container State from listContainers ('running', …), `born`
+ * the bf.bornAt label as epoch ms (0 when absent), `entry` this webpage's
+ * `runtimes` entry if it is registered, `now` the current epoch ms.
+ *
+ * @param {{ state: string, born: number, entry?: RuntimeEntry | null, now: number }} c
  */
 function shouldReap({ state, born, entry, now }) {
     const dead = state === 'exited' || state === 'dead';

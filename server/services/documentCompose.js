@@ -220,11 +220,13 @@ const { buildEditBridgeScript } = require('./documentEditBridge');
 /**
  * Compose the stored slots into one complete, self-contained HTML document.
  *
- * @param {object} doc              { bodyHtml, css, name }
- * @param {object} [options]
- * @param {'preview'|'print'} [options.mode='print']  preview injects the edit bridge
- * @param {boolean} [options.sanitize=true]  only ever false in tests
- * @param {string} [options.houseStyleCss]  the org's house-style CSS, sanitised and layered under the document's own
+ * `options.mode` 'preview' injects the edit bridge (default 'print');
+ * `options.sanitize` is only ever false in tests; `options.houseStyleCss` is
+ * the org's house-style CSS, sanitised and layered under the document's own.
+ *
+ * @param {{ bodyHtml?: string, css?: string, name?: string,
+ *   settings?: { design?: Parameters<typeof import('../core/documents/documentDesign').designCss>[0], locale?: string } }} [doc]
+ * @param {{ mode?: 'preview'|'print', sanitize?: boolean, houseStyleCss?: string }} [options]
  * @returns {string} a full <!DOCTYPE html> document
  */
 function composeDocument({ bodyHtml = '', css = '', name = '', settings = {} } = {}, options = {}) {

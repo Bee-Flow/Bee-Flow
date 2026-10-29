@@ -98,16 +98,16 @@ const { runIntegrationTool, runAutomationConnector, runRestConnector } = require
 /**
  * Run a connector ACTS-AS-OWNER and return a bounded { rows, nextPage? }.
  *
- * @param {object} connector  A connector object from model.connectors (NOT the
- *                            public projection — carries fixedArgs/url/auth).
- * @param {object} opts
- * @param {object} opts.app      The studio app { id, userId, organizationId }.
- * @param {string} opts.viewerId The calling viewer's id (audit only).
- * @param {object} opts.params   Viewer-supplied params (sanitised in here).
- * @param {object} [opts.systemArgs] SERVER-ORIGIN args (the sync's since-param).
- *                            Never settable from an HTTP request body; ranked
- *                            above viewer params but below author fixedArgs.
- * @param {object} [opts._deps]  Test-only dependency overrides.
+ * `opts`: `app` is the studio app, `viewerId` the calling viewer's id (audit
+ * only), `params` the viewer-supplied params (sanitised in here), `systemArgs`
+ * the SERVER-ORIGIN args (the sync's since-param: never settable from an HTTP
+ * request body; ranked above viewer params but below author fixedArgs),
+ * `_deps` test-only dependency overrides.
+ *
+ * @param {import('./connectors/shared').Connector} connector  A connector object from model.connectors
+ *   (NOT the public projection — carries fixedArgs/url/auth).
+ * @param {{ app: import('./connectors/shared').ConnectorApp, viewerId?: string, params?: unknown, systemArgs?: unknown,
+ *   trace?: boolean, _deps?: Partial<import('./connectors/session').ConnectorDeps> }} [opts]
  */
 async function runConnector(connector, { app, viewerId, params, systemArgs, trace = false, _deps } = {}) {
     if (!isValidConnector(connector)) throw connectorError(400, 'invalid connector', 'bad_connector');

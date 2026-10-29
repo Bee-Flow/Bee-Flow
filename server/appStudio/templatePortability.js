@@ -229,7 +229,7 @@ function sanitizeImport(envelope) {
     const incoming = stripNeverInstallable(deepClone(raw));
 
     const { captureTemplate } = require('./templateCapture');
-    const result = captureTemplate(/** @type {any} */ ({
+    const result = captureTemplate({
         definition: incoming.definition,
         dataModel: isObject(incoming.dataModel) ? incoming.dataModel : null,
         // The seed arrives already written down; normalizeSeed inside the gate
@@ -248,7 +248,7 @@ function sanitizeImport(envelope) {
             tags: incoming.tags,
             version: 1,
         },
-    }));
+    });
 
     if (result.ok === false) {
         return { template: null, report: null, warnings: [], errors: result.errors };

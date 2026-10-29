@@ -31,8 +31,7 @@ const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const NAME_ICONS = 'LayoutGrid, ClipboardList, Table, Receipt, FileText, Users, Calendar, BarChart3, ShoppingCart, Package, Wrench, Truck, Mail, CheckSquare, Gauge, Search, Wallet, Building2, Briefcase, Star';
 
 /**
- * @param {Object} opts
- * @param {string} opts.catalog — the (compact) catalog text
+ * @param {{ catalog: string }} opts  `catalog` is the (compact) catalog text
  */
 function buildCoreSystemPrompt({ catalog }) {
     const presets = APP_DESIGN_PRESETS.map((p) => p.id).join(', ');

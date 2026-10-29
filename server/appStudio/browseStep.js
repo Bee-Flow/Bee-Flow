@@ -40,11 +40,12 @@ function effectiveAllowlist(appDomains, stepDomains) {
 }
 
 /**
- * @param {object} app   the studio app row (userId = owner)
- * @param {object} def   the definition being run (carries aiBrowsing)
- * @param {object} step  the ai_browse step
- * @param {object} ctx   executor context + { browse: { send, isCancelled } } + resolve helpers
- * @param {object} helpers  { resolveBinding, buildServerScope }
+ * @param {import('./aiRuntime').AppRef} app   the studio app row (userId = owner)
+ * @param {{ aiBrowsing?: { enabled?: boolean, allowedDomains?: unknown } } | null} def   the definition being run
+ * @param {import('./actionExecutor/shared').StepDef & { task?: unknown, url?: unknown, allowedDomains?: unknown, maxSteps?: unknown }} step  the ai_browse step
+ * @param {import('./actionExecutor/shared').ExecCtx} ctx   executor context, with `browse: { send, isCancelled }`
+ * @param {{ resolveBinding: typeof import('./actionExecutor/shared').resolveBinding,
+ *   buildServerScope: typeof import('./actionExecutor/shared').buildServerScope }} helpers
  * @returns {Promise<{ok:boolean, result?:object, error?:string, code?:string}>}
  */
 async function executeBrowseStep(app, def, step, ctx, helpers) {

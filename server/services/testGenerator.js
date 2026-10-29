@@ -230,7 +230,7 @@ async function _callLLM(systemPrompt, userMessage, { signal } = {}) {
  *
  * @param {string} userId
  * @param {Array<object>} sources
- * @param {object} [hints]
+ * @param {{ targetUrl?: string }} [hints]  `targetUrl` is the default base for the tests
  * @returns {Promise<object>}
  */
 async function generate(userId, sources, hints = {}) {

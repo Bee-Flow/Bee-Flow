@@ -163,7 +163,7 @@ async function getOrgRootKey(rawOrgId) {
          WHERE id = $2 AND "org_root_key" IS NULL`,
         [sealed, orgId]
     );
-    const wrote = res?.rowCount ?? /** @type {any} */ (res)?.changes ?? 0;
+    const wrote = res?.rowCount ?? /** @type {typeof res & { changes?: number }} */ (res)?.changes ?? 0;
     if (wrote) {
         _cacheSet(orgId, key);
         return key;
@@ -352,7 +352,7 @@ async function getOrCreateUserDek(userId, orgIdHint = undefined, { seedDek = nul
         'UPDATE users SET "orgWrappedDEK" = $1 WHERE id = $2 AND "orgWrappedDEK" IS NULL',
         [sealed, userId]
     );
-    if ((res?.rowCount ?? /** @type {any} */ (res)?.changes ?? 0) > 0) return dek;
+    if ((res?.rowCount ?? /** @type {typeof res & { changes?: number }} */ (res)?.changes ?? 0) > 0) return dek;
 
     // Lost the race — use the winner's key, never our own.
     secureClear(dek);

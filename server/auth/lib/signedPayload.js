@@ -35,7 +35,7 @@ function b64urlDecode(str) {
 /**
  * Sign a JSON-serializable payload.
  * @param {Buffer|string} secret
- * @param {any} payload
+ * @param {unknown} payload
  * @returns {string} the token
  */
 function sign(secret, payload) {

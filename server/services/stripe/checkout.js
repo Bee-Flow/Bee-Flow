@@ -42,17 +42,16 @@ function buildRecurringDisclosure(billingInterval) {
  * Create a Stripe Checkout Session for a plan.
  * Supports both organization and consumer subscriptions.
  * 
- * @param {object} options
- * @param {object} options.plan - BeeFlow plan object
- * @param {string} [options.orgId] - Organization ID (org checkout)
- * @param {string} [options.orgName] - Organization name (org checkout)
- * @param {string} [options.userId] - User ID (consumer checkout)
- * @param {string} [options.subscriberType] - 'organization' or 'consumer'
- * @param {string} options.userEmail - User email for pre-fill
- * @param {string} options.successUrl - Redirect URL on success
- * @param {string} options.cancelUrl - Redirect URL on cancel
- * @param {string} [options.stripeCustomerId] - Existing Stripe customer ID
- * @returns {object} Stripe Checkout Session
+ * `options`: `plan` is the BeeFlow plan row; `orgId`/`orgName` are set for an
+ * org checkout, `userId` for a consumer checkout; `subscriberType` is
+ * 'organization' (default) or 'consumer'; `userEmail` pre-fills the form;
+ * `successUrl`/`cancelUrl` are the redirect URLs; `stripeCustomerId` an
+ * existing Stripe customer ID.
+ *
+ * @param {{ plan: DbRow.SubscriptionPlans, orgId?: string, orgName?: string, userId?: string,
+ *   subscriberType?: 'organization' | 'consumer' | string, userEmail: string, successUrl: string, cancelUrl: string,
+ *   stripeCustomerId?: string }} options
+ * @returns {Promise<import('stripe').Checkout.Session>} Stripe Checkout Session
  */
 async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberType = 'organization', userEmail, successUrl, cancelUrl, stripeCustomerId }) {
     const stripe = await getClient();
@@ -264,7 +263,7 @@ async function retrieveCheckoutSession(sessionId) {
  * 
  * @param {string} stripeCustomerId - Stripe customer ID
  * @param {string} returnUrl - URL to return to after portal
- * @returns {object} Portal session with url
+ * @returns {Promise<import('stripe').BillingPortal.Session>} Portal session with url
  */
 async function createPortalSession(stripeCustomerId, returnUrl) {
     const stripe = await getClient();

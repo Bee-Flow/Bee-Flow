@@ -572,9 +572,7 @@ function closeSelfClosingBfTags(src) {
  * Vervang elk bekend `bf-*`-element in `html` door statische HTML.
  *
  * @param {string} html         de rauwe HTML van de pagina (vóór DOMPurify)
- * @param {object} args
- * @param {string} args.webpageId
- * @param {string} args.ownerId  de EIGENAAR van de pagina; als hem wordt gelezen
+ * @param {{ webpageId?: string, ownerId?: string }} [args]  `ownerId` is de EIGENAAR van de pagina; als hem wordt gelezen
  * @returns {Promise<string>} dezelfde HTML met de elementen uitgeklapt
  */
 async function expandBfElements(html, { webpageId, ownerId } = {}) {

@@ -153,18 +153,19 @@ function defaultDeps() {
 /**
  * Run a full dry-run.
  *
- * @param {object} [input]
- * @param {any}     [input.def]     - canonical app definition
- * @param {any}     [input.datatables] - the app's datatables (optional)
- * @param {string}  [input.appId]   - app id when no `app` row is given
- * @param {any}  [input.dataModel]- the app's data model (or null)
- * @param {Array}   [input.datasets]- dataset ids ([{id}] or [id]) for the STATIC pass
- * @param {any}  [input.app]     - the studio_apps row (needed for the DATA pass; null → data pass skipped)
- * @param {string}  [input.ownerId] - the app owner's user id
- * @param {any}  [input.deps]    - { dbQuery, runDataset, getDataset } overrides
- * @param {object} [opts]
- * @param {string}  [opts.screenId] - narrow the DATA pass to one screen
- * @param {string}  [opts.asRole]   - re-run the DATA pass as this role (when it exists)
+ * `input`: `def` is the canonical app definition, `datatables` the app's
+ * datatables (optional), `appId` the app id when no `app` row is given,
+ * `dataModel` the app's data model (or null), `datasets` the dataset ids
+ * ([{id}] or [id]) for the STATIC pass, `app` the studio_apps row (needed for
+ * the DATA pass; null → data pass skipped), `ownerId` the app owner's user id,
+ * `deps` overrides of { dbQuery, runDataset, getDataset }. `opts.screenId`
+ * narrows the DATA pass to one screen; `opts.asRole` re-runs the DATA pass as
+ * this role (when it exists).
+ *
+ * @param {{ def?: AppDef | import('./canonicalize/definition').CanonDef, datatables?: unknown[] | null, appId?: string | null,
+ *   dataModel?: DataModel | null, datasets?: Array<string | { id?: string }>, app?: DryRunApp | null, ownerId?: string | null,
+ *   deps?: Partial<DryRunDeps> }} [input]
+ * @param {{ screenId?: string | null, asRole?: string | null }} [opts]
  */
 async function appDryRun(input = {}, opts = {}) {
     const { def, dataModel = null, datasets = [], datatables = null, app = null, ownerId = null } = input;

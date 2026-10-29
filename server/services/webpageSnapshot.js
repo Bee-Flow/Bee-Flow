@@ -173,12 +173,10 @@ async function expandAndSanitizeExtra(content, mime, { webpageId, ownerId }) {
  *
  * Returns a small summary of what was captured.
  *
- * @param {object} args
- * @param {string} args.shareId
- * @param {string} args.webpageId
- * @param {string} args.ownerId — webpage owner (NOT the publisher; the bytes
- *                                live under the owner's RustFS prefix).
- * @param {boolean} [args.includeExtraFiles=true]
+ * `ownerId` is the webpage owner (NOT the publisher; the bytes live under the
+ * owner's RustFS prefix); `includeExtraFiles` defaults to true.
+ *
+ * @param {{ shareId: string, webpageId: string, ownerId: string, includeExtraFiles?: boolean }} args
  */
 async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = true }) {
     if (!storageStore.isAvailable()) {

@@ -71,8 +71,8 @@ class SignupError extends Error {
     /**
      * @param {string} code    key of SIGNUP_ERRORS
      * @param {string} message user-facing text; becomes the `error` field verbatim
-     * @param {any} [opts]  { status } overrides the table status (validateConsent
-     *                         picks its own); { body } adds fields to the JSON response
+     * @param {{ status?: number, body?: Record<string, unknown> }} [opts]  `status` overrides the table status
+     *   (validateConsent picks its own); `body` adds fields to the JSON response
      */
     constructor(code, message, { status, body } = {}) {
         super(message);

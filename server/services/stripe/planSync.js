@@ -11,7 +11,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * Sync a BeeFlow subscription plan to Stripe as a Product + Price.
  * Creates new or updates existing based on stripe_product_id.
  * 
- * @param {object} plan - The plan object from userStore.getPlan()
+ * @param {DbRow.SubscriptionPlans} plan - The plan object from userStore.getPlan()
  * @returns {{ productId: string, priceId: string }}
  */
 async function syncPlanToStripe(plan) {

@@ -45,7 +45,7 @@ const log = require('../../telemetry/log');
  * }} EligibilityDeps
  */
 
-/** @param {any} user @param {EligibilityDeps} deps */
+/** @param {{ id: string, organizationId?: string | null, groups?: string | string[] | null }} user @param {EligibilityDeps} deps */
 async function policyDecision(user, deps) {
     try {
         const orgs = await (deps.resolveOrgs || resolveMcpOrgs)(user);

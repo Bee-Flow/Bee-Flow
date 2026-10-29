@@ -46,9 +46,10 @@ function attachmentProbes(table, attachment, accessFilter) {
 }
 
 /**
- * @param {object} app        - the studio app row (userId = owner)
- * @param {object} attachment - a ledger row: { id, recordId, fieldKey, ... }
- * @param {object} viewer     - { id, role, model, organizationId? }
+ * @param {{ id: string, userId: string }} app - the studio app row (userId = owner)
+ * @param {NonNullable<Awaited<ReturnType<typeof import('../stores/studioAppDataStore').getAttachment>>>} attachment - a ledger row
+ * @param {{ id: string | null, role: string, model: import('./builderTools/dataTools').DataModel | null,
+ *   organizationId?: string | null }} viewer
  * @returns {Promise<boolean>}
  */
 async function viewerMayReadAttachment(app, attachment, { id: viewerId, role, model, organizationId = null }) {

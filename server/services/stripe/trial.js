@@ -18,14 +18,12 @@ const { buildStripeAddress } = require('./customer');
  * If no payment method is added before the trial ends, Stripe will
  * auto-cancel the subscription (`missing_payment_method: 'cancel'`).
  *
- * @param {object} options
- * @param {object} options.plan - BeeFlow plan (must have stripe_price_id)
- * @param {'organization'|'consumer'} options.subscriberType
- * @param {string} options.subscriberId - org id or user id
- * @param {string} [options.orgName] - used as customer.name when org
- * @param {string} [options.userEmail] - used as customer.email
- * @param {string} [options.stripeCustomerId] - reuse if already exists
- * @param {number} options.trialDays
+ * `options`: `plan` must have stripe_price_id; `subscriberId` is the org id or
+ * user id; `orgName` is used as customer.name for an org, `userEmail` as
+ * customer.email; `stripeCustomerId` is reused if it already exists.
+ *
+ * @param {{ plan: DbRow.SubscriptionPlans, subscriberType: 'organization'|'consumer', subscriberId: string, orgName?: string,
+ *   userEmail?: string, stripeCustomerId?: string, trialDays: number }} options
  * @returns {{ stripeCustomerId: string, stripeSubscriptionId: string, trialEnd: string|null, status: string }}
  */
 async function createTrialSubscription({ plan, subscriberType, subscriberId, orgName, userEmail, stripeCustomerId, trialDays }) {

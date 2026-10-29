@@ -135,12 +135,12 @@ async function maybeFilterNonSupport(inbox, thread, message) {
 
         await supportStore.addThreadTag(thread.id, NOT_SUPPORT_TAG);
         await supportStore.updateThread(thread.id, { category: verdict.suggestedCategory || NOT_SUPPORT_CATEGORY });
-        await supportStore.recordThreadEvent(/** @type {any} */ ({
+        await supportStore.recordThreadEvent({
             threadId: thread.id,
             actorKind: 'automation',
             action: 'classified_not_support',
             payload: { confidence: verdict.confidence, reason: verdict.reason },
-        })).catch((e) => bestEffort('services/supportClassifier:maybeFilterNonSupport', e));
+        }).catch((e) => bestEffort('services/supportClassifier:maybeFilterNonSupport', e));
         return { filtered: true, reason: verdict.reason };
     } catch (e) {
         log.warn('[SupportClassifier] maybeFilterNonSupport failed:', /** @type {Error} */ (e).message);

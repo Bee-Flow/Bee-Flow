@@ -257,10 +257,9 @@ function briefForSnapshot(brief) {
 }
 
 /**
- * @param {object} p
- * @param {string} [p.message]   the turn's brief (draftWrap._turnMessage)
- * @param {object} [p.dataModel] draftWrap.dataModel
- * @param {object} [p.def]       draftWrap.def
+ * @param {{ message?: string, dataModel?: import('../builderTools/dataTools').DataModel | null,
+ *   def?: import('../builderTools').AppDef | null }} [p]  the turn's brief (draftWrap._turnMessage), draftWrap.dataModel
+ *   and draftWrap.def
  * @returns {{ name: string, source: string }|null} null when nothing derivable
  */
 function deriveAppName({ message = '', dataModel = null, def = null } = {}) {
