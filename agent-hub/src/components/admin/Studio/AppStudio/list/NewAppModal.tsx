@@ -1,11 +1,11 @@
 import { Loader2, Plus } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { filePreview, saveJsonFile } from './importExport';
 import ImportPanel from './ImportPanel';
 import TemplateGallery from './TemplateGallery';
 import type { OpenOptions, StudioApp, StudioTemplate } from './types';
 import useImportFile from './useImportFile';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import Tabs from '@/components/shared/Tabs';
 import toast from '@/components/shared/Toast';
@@ -29,6 +29,75 @@ interface NewAppModalProps {
 
 /** What a failed studio-apps call carries; only its message is shown. */
 type ApiError = { message?: string } | null | undefined;
+
+interface TemplateGalleryArgs {
+    open: boolean;
+    templates: StudioTemplate[] | null;
+    setTemplates: Dispatch<SetStateAction<StudioTemplate[] | null>>;
+    templatesLoading: boolean;
+    setTemplatesLoading: Dispatch<SetStateAction<boolean>>;
+    setTemplatesError: Dispatch<SetStateAction<string | null>>;
+    setDeletingTemplateId: Dispatch<SetStateAction<string | null>>;
+    t: TranslateFn;
+}
+
+/**
+ * The template gallery's loading (bounded retries, once per modal lifetime)
+ * and its delete. The setters are the modal's own useState setters, so
+ * listing them as dependencies changes nothing about when a callback renews.
+ */
+function useTemplateGallery({
+    open, templates, setTemplates, templatesLoading, setTemplatesLoading, setTemplatesError, setDeletingTemplateId, t,
+}: TemplateGalleryArgs) {
+    const templateAttemptsRef = useRef(0);
+
+    const loadTemplates = useCallback(async () => {
+        templateAttemptsRef.current += 1;
+        setTemplatesLoading(true);
+        setTemplatesError(null);
+        try {
+            const res = await studioAppsApi.listTemplates();
+            setTemplates(res?.templates || []);
+        } catch (err) {
+            setTemplatesError(messageOf(err, t('studio_apps_bi.list.templates_load_failed', 'Could not load templates.')));
+        } finally {
+            setTemplatesLoading(false);
+        }
+    }, [t, setTemplates, setTemplatesError, setTemplatesLoading]);
+
+    /**
+     * Delete an org-captured template. Removed from the list optimistically
+     * only AFTER the server confirms — a template that reappears on the next
+     * open would read as a broken button, and this is not a hot path.
+     */
+    const deleteTemplate = useCallback(async (tpl: StudioTemplate) => {
+        if (!tpl?.id) return;
+        setDeletingTemplateId(tpl.id);
+        try {
+            await studioAppsApi.deleteTemplate(tpl.id);
+            setTemplates((prev) => (prev || []).filter((x) => x.id !== tpl.id));
+            toast.success(t('studio_apps_bi.list.template_deleted', 'Template "{title}" deleted', { title: tpl.title }));
+        } catch (err) {
+            toast.error(messageOf(err, t('studio_apps_bi.list.template_delete_failed', 'Could not delete the template')));
+        } finally {
+            setDeletingTemplateId(null);
+        }
+    }, [t, setTemplates, setDeletingTemplateId]);
+
+    // A deliberate user retry starts the budget over.
+    const retryTemplates = useCallback(() => {
+        templateAttemptsRef.current = 0;
+        loadTemplates();
+    }, [loadTemplates]);
+
+    // Fetch the gallery once per modal lifetime (templates are static).
+    useEffect(() => {
+        if (!open || templates !== null || templatesLoading) return;
+        if (templateAttemptsRef.current >= MAX_TEMPLATE_ATTEMPTS) return;
+        loadTemplates();
+    }, [open, templates, templatesLoading, loadTemplates]);
+    return { templateAttemptsRef, deleteTemplate, retryTemplates };
+}
 
 function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
     const { t } = useTranslation();
@@ -55,53 +124,9 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
         setExportingTemplateId(null);
     }, [open]);
 
-    const templateAttemptsRef = useRef(0);
-
-    const loadTemplates = useCallback(async () => {
-        templateAttemptsRef.current += 1;
-        setTemplatesLoading(true);
-        setTemplatesError(null);
-        try {
-            const res = await studioAppsApi.listTemplates();
-            setTemplates(res?.templates || []);
-        } catch (err) {
-            setTemplatesError(messageOf(err, t('studio_apps_bi.list.templates_load_failed', 'Could not load templates.')));
-        } finally {
-            setTemplatesLoading(false);
-        }
-    }, [t]);
-
-    /**
-     * Delete an org-captured template. Removed from the list optimistically
-     * only AFTER the server confirms — a template that reappears on the next
-     * open would read as a broken button, and this is not a hot path.
-     */
-    const deleteTemplate = useCallback(async (tpl: StudioTemplate) => {
-        if (!tpl?.id) return;
-        setDeletingTemplateId(tpl.id);
-        try {
-            await studioAppsApi.deleteTemplate(tpl.id);
-            setTemplates((prev) => (prev || []).filter((x) => x.id !== tpl.id));
-            toast.success(t('studio_apps_bi.list.template_deleted', 'Template "{title}" deleted', { title: tpl.title }));
-        } catch (err) {
-            toast.error(messageOf(err, t('studio_apps_bi.list.template_delete_failed', 'Could not delete the template')));
-        } finally {
-            setDeletingTemplateId(null);
-        }
-    }, [t]);
-
-    // A deliberate user retry starts the budget over.
-    const retryTemplates = useCallback(() => {
-        templateAttemptsRef.current = 0;
-        loadTemplates();
-    }, [loadTemplates]);
-
-    // Fetch the gallery once per modal lifetime (templates are static).
-    useEffect(() => {
-        if (!open || templates !== null || templatesLoading) return;
-        if (templateAttemptsRef.current >= MAX_TEMPLATE_ATTEMPTS) return;
-        loadTemplates();
-    }, [open, templates, templatesLoading, loadTemplates]);
+    const { templateAttemptsRef, deleteTemplate, retryTemplates } = useTemplateGallery({
+        open, templates, setTemplates, templatesLoading, setTemplatesLoading, setTemplatesError, setDeletingTemplateId, t,
+    });
 
     // `openOptions` (optional) rides through onCreated → the editor open, so a
     // remix can ask the shell to focus the AI builder with a prefilled prompt.
