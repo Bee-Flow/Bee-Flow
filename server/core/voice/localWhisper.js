@@ -67,6 +67,9 @@ const LANGUAGE_HINTS = {
     ar: 'arabic', ru: 'russian',
 };
 
+/**
+ * @type {Promise<import("@huggingface/transformers", { with: { "resolution-mode": "import" } }).AutomaticSpeechRecognitionPipeline | null> | null}
+ */
 let _pipelinePromise = null;
 let _loadFailed = false;
 
