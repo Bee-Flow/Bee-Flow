@@ -1,3 +1,4 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 // @typecheck
 const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 const configStore = require('../stores/configStore');
@@ -28,6 +29,9 @@ const resolveAnalyticsTarget = queries.resolveTarget;
 
 const getRecorderMap      = () => readMap(KEY_ANALYTICS_RECORDER_MAP);
 
+/**
+ * @param {ParsedQs} src
+ */
 function windowFromReq(src) {
     return rangeToWindow((src.range || '7d').toString(), { start: src.start, end: src.end });
 }
@@ -58,6 +62,7 @@ const metricTypes = () => umamiClient.METRIC_TYPES || [];
  * Umami's own API expects (?country=NL). Bracket syntax (?filters[country]=NL)
  * is NOT an option — Express 5's default query parser is 'simple' and would
  * hand us the literal key "filters[country]".
+ * @param {ParsedQs} src
  */
 function pickFilters(src) {
     const nested = src && typeof src.filters === 'object' && !Array.isArray(src.filters) ? src.filters : null;

@@ -1,3 +1,4 @@
+/** @typedef {import('stream').Readable} Readable */
 // @typecheck noImplicitAny
 /**
  * The files a run produced, as the run page shows them:
@@ -151,6 +152,7 @@ function makeRunFilesRouter(overrides = {}) {
         if (!file || file.automationId !== journey.run.automationId) {
             throw new HttpError(404, 'run_file_not_found', 'Not found');
         }
+        /** @type {{ stream: Readable; contentLength?: number; }} */
         let streamed;
         try {
             streamed = await storage().streamFile(file.storageKey);
