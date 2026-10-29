@@ -20,6 +20,8 @@ const { resolvePersonaWrite } = require('./agentPersonaWrite');
  * standard and custom tiers are checked (getPermittedTierKeys returns all keys
  * permitted for the user's groups + beta features). Non-tier raw model
  * strings (legacy) pass through unchanged. Returns false after refusing.
+ * @param {string} model
+ * @param {string} userId
  */
 async function checkTierAllowed(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, model, userId) {
     if (!(typeof model === 'string' && model.startsWith('tier:'))) return true;

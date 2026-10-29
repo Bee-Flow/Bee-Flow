@@ -1,3 +1,4 @@
+/** @typedef {import('./crud').AgentRow} AgentRow */
 /**
  * Agent CRUD: the write side of `agents.persona` (structured role, A1c).
  * Normalising an incoming persona, verifying the hand-off automation it points
@@ -38,6 +39,7 @@ const log = require('../../telemetry/log');
  * exists. See `ensureHandoffBinding` for when a missing binding is made here.
  * @param {string} automationId
  * @param {{ actorId: string | null; session: object | null; newSelection: boolean; }} [opts]
+ * @param {AgentRow} agent
  */
 async function verifyHandoffAutomation(agent, automationId, opts = {}) {
     if (!automationId || !agent || !agent.owner_id) return null;
@@ -76,6 +78,8 @@ async function verifyHandoffAutomation(agent, automationId, opts = {}) {
  *     tool-name clash). Any refusal throws and the caller drops the hand-off.
  * A new agent has no id yet, so nothing can be bound for it: link it after the
  * first save.
+ * @param {AgentRow} agent
+ * @param {agentBinding.AutomationRow} automation
  */
 async function ensureHandoffBinding(agent, automation, { actorId = null, session = null, newSelection = false } = {}) {
     if (!agent.id) return false;

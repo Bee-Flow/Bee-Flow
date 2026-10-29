@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — how one turn's request is composed:
  *
