@@ -2154,16 +2154,7 @@
     }
   },
   "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     }
   },

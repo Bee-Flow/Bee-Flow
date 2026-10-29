@@ -49,7 +49,6 @@
     "src/components/admin/Studio/Datatables/datatableDisplay.ts": 543,
     "src/components/admin/Studio/Forms/FormsStudio.tsx": 561,
     "src/components/admin/Studio/KnowledgeStudio/AddSourcePanel.tsx": 705,
-    "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx": 528,
     "src/components/admin/subscriptions/plans/planTemplates.ts": 446,
     "src/components/agents/AgentDesigner/hooks/useAgentApi.ts": 428,
     "src/components/agents/AgentEditorUI.tsx": 504,
