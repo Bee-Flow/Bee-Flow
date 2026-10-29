@@ -2143,7 +2143,7 @@
       "count": 3
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "compliance/__tests__/smoke/gdpr-data-lifecycle.js": {
