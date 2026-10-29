@@ -137,7 +137,12 @@ function channelOf(host) {
     return 'Referral';
 }
 
-/** @param {any} s */
+/**
+ * A stats field as the analytics API answers it: a bare number, or `{ value, prev }`.
+ * @typedef {{ value?: unknown, prev?: unknown } | number | string | null | undefined} StatField
+ */
+
+/** @param {StatField} s */
 const statNow = (s) => (s && typeof s === 'object' ? num(s.value) : num(s));
 
 /**
@@ -152,7 +157,7 @@ function statPrev(stats, key) {
     return maybeNum(cmp && typeof cmp === 'object' ? cmp.value : cmp);
 }
 
-/** @param {any} active */
+/** @param {Array<{ x?: unknown }> | { visitors?: unknown, x?: unknown } | number | string | null | undefined} active */
 function readActive(active) {
     if (Array.isArray(active)) return num(active[0]?.x ?? active.length);
     if (active && typeof active === 'object') return num(active.visitors ?? active.x);

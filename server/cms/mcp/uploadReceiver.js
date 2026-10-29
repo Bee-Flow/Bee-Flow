@@ -164,19 +164,18 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
 }
 
 /**
- * @param {object} deps
- * @param {ReturnType<typeof import('./uploadTickets').createUploadTickets>} deps.tickets
- * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: any|null): Promise<{ key: string }|void> }} deps.storage  the result is not read
- * @param {(filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>} deps.streamIntoStorage
- * @param {(job: { key: string, source: Buffer, contentType: string, storage: any }) => Promise<number>} [deps.scheduleVariants]  renders resized copies of a stored image in the background
- * @param {(buf: Buffer) => Buffer|null} deps.sanitizeSvg
- * @param {(buf: Buffer) => boolean} deps.isValidVtt
- * @param {(head: Buffer, ext: string) => boolean} deps.looksLikeClip
- * @param {(bound: any, ip: string) => Promise<{ ok: boolean, reason?: string }>} deps.checkAccess  see accessCheck.js
- * @param {() => string} [deps.tmpRoot]
- * @param {number} [deps.idleMs]  longest quiet gap in the request body
- * @param {number} [deps.storeMs]  deadline for the storage step (default: scales with the ticket's size)
- * @param {number} [deps.bodyMs]  deadline for the whole body (default: scales with the ticket's size)
+ * The result of `storage.uploadFile` is not read; `scheduleVariants` renders resized copies of
+ * a stored image in the background; `checkAccess` is accessCheck.js's; `idleMs` is the longest
+ * quiet gap in the request body; `storeMs` the deadline for the storage step and `bodyMs` the
+ * one for the whole body (both by default scale with the ticket's size).
+ * @param {{ tickets: ReturnType<typeof import('./uploadTickets').createUploadTickets>,
+ *   storage: { isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: any|null): Promise<{ key: string }|void> },
+ *   streamIntoStorage: (filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>,
+ *   scheduleVariants?: (job: { key: string, source: Buffer, contentType: string, storage: any }) => Promise<number>,
+ *   sanitizeSvg: (buf: Buffer) => Buffer|null, isValidVtt: (buf: Buffer) => boolean,
+ *   looksLikeClip: (head: Buffer, ext: string) => boolean,
+ *   checkAccess: (bound: any, ip: string) => Promise<{ ok: boolean, reason?: string }>,
+ *   tmpRoot?: () => string, idleMs?: number, storeMs?: number, bodyMs?: number }} deps
  */
 function createUploadReceiver(deps) {
     const tmpRoot = deps.tmpRoot || (() => os.tmpdir());
