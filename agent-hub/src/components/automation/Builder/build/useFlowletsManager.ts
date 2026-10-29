@@ -5,15 +5,16 @@ import {
     isLayerEmpty, renameLayer, setLayerDescription,
 } from '../flow/flowletScope';
 import scopedStorage from '@/utils/scopedStorage';
+import type { FlowDefinition } from '../flow/types';
 
 
 export interface UseFlowletsManagerOptions {
     rootDef: any;
     scopeKey: string | null;
     setScopeKey?: ((key: string | null) => void) | null;
-    onVisualEditRoot?: ((def: any) => void) | null;
-    confirmAction: (opts: any) => Promise<boolean>;
-    builderApi: any;
+    onVisualEditRoot?: ((def: FlowDefinition) => void) | null;
+    confirmAction: (opts: { title: string; description: string; confirmLabel: string; destructive: boolean }) => Promise<boolean>;
+    builderApi: { summariseLayer: (layer: unknown) => Promise<{ summary?: string } | null> };
 }
 
 /**

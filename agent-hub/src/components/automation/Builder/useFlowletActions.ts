@@ -35,7 +35,7 @@ export default function useFlowletActions({
     // exactly like every other flowlet edit. Returns true on success so the
     // panel can collapse its composer.
     const layerAgent = useFlowletAgentStream();
-    const onBuildLayer = useCallback(async (instruction: any) => {
+    const onBuildLayer = useCallback(async (instruction: string) => {
         if (!instruction || !instruction.trim() || readOnlyRef.current) return false;
         const aid = await ensureAutomationCreated();
         if (!aid) { toast.error('Could not save the automation. Try again.'); return false; }
@@ -50,7 +50,7 @@ export default function useFlowletActions({
         return false;
     }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef, setScopeKey]);
 
-    const onRefineLayer = useCallback(async (layerKey: any, instruction: any) => {
+    const onRefineLayer = useCallback(async (layerKey: string, instruction: string) => {
         if (!layerKey || !instruction || !instruction.trim() || readOnlyRef.current) return false;
         const aid = await ensureAutomationCreated();
         if (!aid) { toast.error('Could not save the automation. Try again.'); return false; }
@@ -60,7 +60,7 @@ export default function useFlowletActions({
         return false;
     }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef]);
 
-    const onRename = async (nextTitle: any) => {
+    const onRename = async (nextTitle: string) => {
         // While drilled into a flowlet the inline title edits the FLOWLET's
         // title — a definition edit, not an automation-row PATCH.
         if (scopeKey) {

@@ -1,7 +1,7 @@
 import { MiniMap, Panel } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
 import { Layers } from 'lucide-react';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 
 import useTranslation from '@/hooks/useTranslation';
 import FloatingValidationPill from '../FloatingValidationPill';
@@ -34,7 +34,7 @@ export interface DiagramOverlaysProps {
     flowletsOpen: boolean;
     flowletCount: number;
     // south
-    runFocus: any;
+    runFocus: ComponentProps<typeof CanvasSouthBar>['runFocus'];
     onDismissRunBanner: () => void;
     runIdentity: RunIdentity | null;
     focusRunStep: () => void;
@@ -55,7 +55,7 @@ export interface DiagramOverlaysProps {
     validation: any;
     aborted: any;
     onDismissFatal: any;
-    onFocusStep: any;
+    onFocusStep: ComponentProps<typeof FloatingValidationPill>['onFocusStep'];
     // north-east + minimap
     edgeColorMode: EdgeColorMode;
     setEdgeColorMode: (mode: EdgeColorMode) => void;

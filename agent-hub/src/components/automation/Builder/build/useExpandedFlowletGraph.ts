@@ -5,6 +5,7 @@ import {
     composeInlineGraph, decomposeInlineGraph, shiftForExpansion, useExpandedFlowlets as useExpandedFlowletsJs,
 } from '../flow/inlineFlowlets';
 import { seedPositions } from '../flow/layout';
+import type { FlowDefinition, FlowStep } from '../flow/types';
 
 
 type Sidecar = Map<string, any>;
@@ -20,13 +21,13 @@ const useExpandedFlowlets = useExpandedFlowletsJs as (automationId: string | nul
 export interface UseExpandedFlowletGraphOptions {
     automation: any;
     state: import('./buildTabTypes').BuilderTabState;
-    scopedDef: any;
-    rootDef: any;
+    scopedDef: FlowDefinition | null;
+    rootDef: FlowDefinition | null;
     scopeKey: string | null;
-    onVisualEdit?: ((def: any) => void) | null;
-    onVisualEditRoot?: ((def: any) => void) | null;
+    onVisualEdit?: ((def: FlowDefinition) => void) | null;
+    onVisualEditRoot?: ((def: FlowDefinition) => void) | null;
     closeNdv?: (() => void) | null;
-    diagramRef: RefObject<any>;
+    diagramRef: RefObject<{ focusStep?: (stepId: string) => void } | null>;
 }
 
 /**
@@ -49,7 +50,7 @@ export default function useExpandedFlowletGraph({
     // exactly the one that existed before.
     const inlineFlowlets = useExpandedFlowlets(automation?.id || state.automationId, scopeKey);
     const { graph: flatDef, sidecar: inlineSidecar } = useMemo(
-        () => composeInlineGraph(scopedDef, rootDef, inlineFlowlets.expanded, { scopeLayerKey: scopeKey }) as { graph: any; sidecar: Sidecar },
+        () => composeInlineGraph(scopedDef, rootDef, inlineFlowlets.expanded, { scopeLayerKey: scopeKey }) as { graph: FlowDefinition; sidecar: Sidecar },
         [scopedDef, rootDef, inlineFlowlets.expanded, scopeKey],
     );
     const inlineShift = useMemo(() => shiftForExpansion(flatDef, inlineSidecar), [flatDef, inlineSidecar]);
@@ -73,7 +74,7 @@ export default function useExpandedFlowletGraph({
 
     const onExpandAllFlowlets = useCallback(() => {
         const callSites = (scopedDef?.steps || [])
-            .filter((s: any) => s?.type === 'call_layer' && s.layerKey)
+            .filter((s: FlowStep | null | undefined) => s?.type === 'call_layer' && s.layerKey)
             .map((s: any) => ({ prefix: s.id, layerKey: s.layerKey }));
         if (callSites.length) inlineFlowlets.expandAll(callSites);
     }, [scopedDef, inlineFlowlets]);
@@ -106,7 +107,7 @@ export default function useExpandedFlowletGraph({
      * into this scope's graph plus one patch per expanded flowlet, and commits
      * the lot as a single whole-document update so it is one undo entry.
      */
-    const onVisualEditFlat = useCallback((nextFlat: any) => {
+    const onVisualEditFlat = useCallback((nextFlat: FlowDefinition) => {
         if (!inlineSidecar.size) { onVisualEdit?.(nextFlat); return; }
         const { graph, layerPatches } = decomposeInlineGraph(nextFlat, inlineSidecar);
         let root: any = setScopedGraph(rootDef, scopeKey, seedPositions(graph));

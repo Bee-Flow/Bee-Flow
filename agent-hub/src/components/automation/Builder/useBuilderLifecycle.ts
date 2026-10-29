@@ -9,6 +9,7 @@ import type useBuilderHydration from './useBuilderHydration';
 import type { AutomationRow } from './useBuilderHydration';
 import type { RowAnswer } from './unwrapRow';
 import type { FlowDefinition } from './flow/types';
+import type { GoLiveAction } from './settings/AiActQuestionsDialog';
 
 
 export interface UseBuilderLifecycleOptions {
@@ -42,9 +43,9 @@ export default function useBuilderLifecycle({
     // those open in a dialog (AiActQuestionsDialog) whose "Save and make
     // live" retries the same call. A prohibited practice, or a second refusal
     // right after the dialog, sends the person to Settings instead.
-    const [aiActGate, setAiActGate] = useState<{ action: string } | null>(null);
+    const [aiActGate, setAiActGate] = useState<{ action: GoLiveAction } | null>(null);
     const aiActRetryRef = useRef(false);
-    const openAiActOnRefusal = (e: unknown, action: string) => {
+    const openAiActOnRefusal = (e: unknown, action: GoLiveAction) => {
         if (!isAiActRefusal(e)) return false;
         if ((e as { code?: string }).code === 'ai_act_check_required' && !aiActRetryRef.current) {
             setAiActGate({ action });

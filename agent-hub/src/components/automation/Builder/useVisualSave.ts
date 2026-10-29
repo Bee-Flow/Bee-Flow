@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type useBuilderHydration from './useBuilderHydration';
 import type { MutableRefObject } from 'react';
 import { toast } from '../../shared/Toast';
 import type { SavingState } from './header/LiveActions';
@@ -9,7 +10,7 @@ import type { FlowDefinition } from './flow/types';
 export interface UseVisualSaveOptions {
     api: any;
     ensureAutomationCreated: (defForCreate?: FlowDefinition | null) => Promise<string | undefined>;
-    setServerAutomation: (row: any) => void;
+    setServerAutomation: ReturnType<typeof useBuilderHydration>['setServerAutomation'];
     setDraft: (def: FlowDefinition) => void;
     markServerConfirmed: (def: FlowDefinition) => void;
     adoptSaveValidation: (r: unknown) => void;
@@ -57,7 +58,7 @@ export default function useVisualSave({
     // definition on the server. If a save is in flight, stash only the LATEST
     // pending def and run it once the current PUT resolves (coalescing).
     const saveInFlightRef = useRef(false);
-    const queuedSaveRef = useRef<any>(undefined);
+    const queuedSaveRef = useRef<FlowDefinition | undefined>(undefined);
     const _doVisualSave = useCallback(async (nextDef: FlowDefinition) => {
         // Belt-and-braces with applyVisualDraft's guard — this is the last hop
         // before the wire, and a null here becomes a stored `{}` (BFSF-318).
