@@ -339,11 +339,11 @@ async function standing(kind, id, { project, userId, req }, d) {
 }
 
 /**
- * @param {object} input
- * @param {{id: string, kind?: string|null, knowledgeBaseIds?: string[], organizationId?: string}} input.project
- * @param {string} input.userId
- * @param {import('express').Request|null} [input.req]      the request, for the knowledge-base read check
- * @param {Array<{kind: string, id: string}>} input.items   what is being added
+ * `req` is the request, for the knowledge-base read check; `items` is what is
+ * being added.
+ *
+ * @param {{ project: {id: string, kind?: string|null, knowledgeBaseIds?: string[], organizationId?: string}, userId: string,
+ *           req?: import('express').Request|null, items: Array<{kind: string, id: string}> }} input
  * @param {typeof seams} [d]              data sources; `seams` by default
  * @returns {Promise<{related: Array<Record<string, unknown>>, truncated: boolean, items: Array<Record<string, unknown>>}>}
  *          `items` repeats the roots with their standing, so the client can tell

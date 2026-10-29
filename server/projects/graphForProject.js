@@ -52,7 +52,24 @@
 const defaultLog = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
-/** The stores and helpers this loader reads, with the real ones as fallback. */
+/**
+ * Store doubles: every store and helper this loader reads, each optional.
+ * @typedef {{
+ *   automationStore?: typeof import('../stores/automationStore'),
+ *   studioAppStore?: typeof import('../stores/studioAppStore'),
+ *   webpageStore?: typeof import('../stores/webpageStore'),
+ *   datatableStore?: typeof import('../stores/datatableStore'),
+ *   agentStore?: typeof import('../stores/agentStore'),
+ *   kbMembership?: typeof import('./knowledgeBaseMembership'),
+ *   kbSources?: typeof import('../stores/kbSources'),
+ *   buildProjectGraph?: typeof import('./graph').buildProjectGraph,
+ *   log?: typeof import('../telemetry/log') }} GraphDeps
+ */
+
+/**
+ * The stores and helpers this loader reads, with the real ones as fallback.
+ * @param {GraphDeps} [deps]
+ */
 function resolveDeps(deps = {}) {
     return {
         automationStore: deps.automationStore || require('../stores/automationStore'),
@@ -78,7 +95,7 @@ function projectIdOf(project) {
 
 /**
  * @param {string|{id:string}} project  the project, or its id
- * @param {object} [deps]               store doubles; see resolveDeps
+ * @param {GraphDeps} [deps]            store doubles; see resolveDeps
  * @returns {Promise<{graph:object, members:{apps:Array, automations:Array, knowledgeBases:Array}, unavailable:string[]}>}
  */
 async function buildGraphForProject(project, deps = {}) {

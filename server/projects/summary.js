@@ -205,7 +205,7 @@ const STAGE_NAME_SUFFIX = /\s+\((?:UAT|Production)\)$/;
  * authorisation; the Solution is named after its stage (the stage project is
  * "<Solution> (UAT)"), so no Dev row is read.
  *
- * @param {object[]} stageProjects
+ * @param {ProjectRow[]} stageProjects
  * @param {Set<string>|string[]} visibleIds  the Dev Solutions the person already sees
  * @returns {Array<{ solutionId: string, solutionName: string, stage: string, projectId: string, role: string }>}
  */
@@ -229,22 +229,27 @@ function operatedStagesOf(stageProjects, visibleIds) {
 /**
  * Build the overview.
  *
- * @param {object[]} projects  ALREADY-AUTHORISED rows (listUserProjects shape).
- * @param {object}   [options]
- * @param {object}   [options.viewer]            `{ userId, organizationId }`, for the
- *   Blueprint catalogue read. Without it no update status is computed at all
- *   and every installed Solution reports `available: null`.
- * @param {Function} [options.completenessFor]   `(projectId) => aggregate`, injected
- *   by the route. Absent = not checked, which is reported, not assumed clean.
- * @param {object}   [options.io]                replaceable readers (a test's doubles): `countMembers(ids)`,
- *   `runCounts(ids, { sinceTs })`, `blueprints({ userId, organizationId })`, `installedVersions(ids)`.
- *   Absent = the real stores.
- * @param {Function} [options.stagesFor]         `(solutionIds) => Map(solutionId → stages)`
- *   (see stagesForSolutions). Absent = the cards carry no `stages` key at all;
- *   present but failing = `stages: null` and 'stages' in `unavailable`.
- * @param {Date}     [options.now]
- * @param {Date}     [options.since]             start of "today" for the run tally.
- * @param {number}   [options.completenessBudget]
+ * `projects` are ALREADY-AUTHORISED rows (listUserProjects shape); a row
+ * without an id is dropped. The options:
+ *   - `viewer`, for the Blueprint catalogue read. Without it no update status
+ *     is computed at all and every installed Solution reports `available: null`.
+ *   - `completenessFor`, the aggregate of one project, injected by the route.
+ *     Absent = not checked, which is reported, not assumed clean.
+ *   - `io`, replaceable readers (a test's doubles). Absent = the real stores.
+ *   - `stagesFor`, the stages per Solution (see stagesForSolutions). Absent =
+ *     the cards carry no `stages` key at all; present but failing =
+ *     `stages: null` and 'stages' in `unavailable`.
+ *   - `since`, the start of "today" for the run tally.
+ *
+ * @param {Array<Partial<ProjectRow>|null>} projects
+ * @param {{
+ *   viewer?: SummaryViewer|null,
+ *   completenessFor?: ((projectId: string) => Promise<{ blocked?: boolean, complete?: boolean, findings?: Array<{ severity?: string }>, unavailable?: string[] }>)|null,
+ *   io?: SummaryIo,
+ *   stagesFor?: ((solutionIds: string[]) => Promise<Map<string, unknown[]>>)|null,
+ *   now?: Date,
+ *   since?: Date|null,
+ *   completenessBudget?: number }} [options]
  */
 async function summarizeProjects(projects, {
     viewer = null, completenessFor = null, now = new Date(), since = null,
@@ -400,33 +405,18 @@ module.exports = {
 };
 
 /**
- * @typedef {object} ProjectRow  a project row as listUserProjects returns it
- * @property {string} id
- * @property {string} [name]
- * @property {string} [description]
- * @property {string} [icon]
- * @property {string} [color]
- * @property {string} [ownerId]
- * @property {string} [organizationId]
- * @property {string} [permission]
- * @property {string|Date} [updatedAt]
- * @property {string|Date} [createdAt]
- * @property {string} [installedFromBlueprintId]
- * @property {string[]} [knowledgeBaseIds]
- * @property {string} [stageOf]
- * @property {string} [stage]
+ * A project row as listUserProjects returns it.
+ * @typedef {{ id: string, name?: string, description?: string, icon?: string, color?: string, ownerId?: string,
+ *   organizationId?: string, permission?: string, updatedAt?: string|Date, createdAt?: string|Date,
+ *   installedFromBlueprintId?: string, knowledgeBaseIds?: string[], stageOf?: string, stage?: string }} ProjectRow
  */
 
-/**
- * @typedef {object} SummaryViewer
- * @property {string} [userId]
- * @property {string} [organizationId]
- */
+/** @typedef {{ userId?: string, organizationId?: string|null }} SummaryViewer */
 
 /**
- * @typedef {object} SummaryIo
- * @property {(ids: string[]) => Promise<{ bySection: Map<string, Map<string, number>|null>, failed: string[] }>} [countMembers]
- * @property {(ids: string[], opts: { sinceTs: Date }) => Promise<Map<string, { total: number, failed: number }>|null>} [runCounts]
- * @property {(q: { userId: string, organizationId: string|null }) => Promise<any>} [blueprints]
- * @property {(ids: string[]) => Promise<Map<string, number>|null>} [installedVersions]
+ * @typedef {{
+ *   countMembers?: (ids: string[]) => Promise<{ bySection: Map<string, Map<string, number>|null>, failed: string[] }>,
+ *   runCounts?: (ids: string[], opts: { sinceTs: Date }) => Promise<Map<string, { total: number, failed: number }>|null>,
+ *   blueprints?: (q: { userId: string, organizationId: string|null }) => Promise<any>,
+ *   installedVersions?: (ids: string[]) => Promise<Map<string, number>|null> }} SummaryIo
  */

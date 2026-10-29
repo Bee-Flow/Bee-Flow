@@ -44,10 +44,12 @@
 'use strict';
 
 /**
- * @param {object} [deps]
- * @param {any} [deps.membership]    projects/membership ({ countableKinds, isAllowedIn })
- * @param {any} [deps.store]         stores/projectStore ({ countChatHoldings })
- * @param {any} [deps.projectFiles]  projects/projectFiles ({ listFiles })
+ * Every collaborator is a test seam whose default is the real module.
+ *
+ * @param {{
+ *   membership?: Pick<typeof import('./membership'), 'countableKinds'|'isAllowedIn'>,
+ *   store?: { countChatHoldings: (projectId: string) => Promise<{ conversations: number, teamChats: number }> },
+ *   projectFiles?: { listFiles: (project: { id: string }) => Promise<{ files: unknown[] }> } }} [deps]
  */
 function makeKindChange(deps = {}) {
     const membership = () => deps.membership || require('./membership');
