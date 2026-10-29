@@ -201,9 +201,6 @@
     "complexity": {
       "count": 2
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -1865,9 +1862,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     }
   },
@@ -3770,12 +3764,9 @@
   },
   "src/components/admin/product-website/panel/useCmsSiteOps.ts": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
       "count": 1
     }
   },
@@ -3926,10 +3917,10 @@
   },
   "src/components/admin/shared/SearchableModelSelect.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/shared/UserFilterBar.tsx": {

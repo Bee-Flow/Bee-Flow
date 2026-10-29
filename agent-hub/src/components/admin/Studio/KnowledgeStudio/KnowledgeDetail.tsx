@@ -1,18 +1,17 @@
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AddSourcePanel, { messageFor } from './AddSourcePanel';
 import { knowledgeApi, type KbSource, type KbSourceTotals, type KnowledgeBase } from './knowledgeApi';
-import { sharedGroupsOf } from './sharedGroups';
+import { AddSourceButton, KbAudienceCapsule } from './KnowledgeDetailParts';
 import SettingsTab from './SettingsTab';
 import SourcesTab from './SourcesTab';
 import TestQuestionCard from './TestQuestionCard';
 import useRelativeTime from '@/hooks/useRelativeTime';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import useUsage from '@/hooks/useUsage';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
 import useConfirm from '@/components/shared/useConfirm';
 import UsedByTab from '@/components/shared/UsedByTab';
-import VisibilityCapsule from '@/components/shared/VisibilityCapsule';
 import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 import type { NewSource } from './AddSourcePanel.types';
 import type { ScheduleChange } from './ScheduleMenu';
@@ -49,6 +48,97 @@ interface KnowledgeDetailProps {
     onTab: (next: string | undefined) => void;
     onBack: () => void;
     onOpenKb: (id: string) => void;
+}
+
+interface SourceRowActionsArgs {
+    kbId: string;
+    confirm: ReturnType<typeof useConfirm>['confirm'];
+    t: TranslateFn;
+    loadSources: () => Promise<void>;
+    loadKb: () => Promise<void>;
+    setSourcesError: (message: string | null) => void;
+    setError: (message: string | null) => void;
+    onOpenSource: KnowledgeDetailProps['onOpenSource'];
+}
+
+/**
+ * What the source rows and the header do: delete, rename (on the source's own
+ * page), refresh, schedule, the add-source focus target, and the audience.
+ * The setters are the detail's own useState setters.
+ */
+function useSourceRowActions({ kbId, confirm, t, loadSources, loadKb, setSourcesError, setError, onOpenSource }: SourceRowActionsArgs) {
+    const removeSource = useCallback(async (source: KbSource) => {
+        const ok = await confirm({
+            title: t('knowledge.sources.delete_title', 'Delete “{name}”?', { name: source.name }),
+            description: t('knowledge.sources.delete_body', 'Its {count} documents leave this knowledge base. The original files stay where they are.', { count: Number(source.documentCount) || 0 }),
+            confirmLabel: t('knowledge.sources.delete', 'Delete'),
+            destructive: true,
+        });
+        if (!ok) return;
+        try {
+            await knowledgeApi.removeSource(kbId, source.id);
+            await Promise.all([loadSources(), loadKb()]);
+        } catch (e) {
+            setSourcesError((e as Error).message);
+        }
+    }, [confirm, kbId, loadSources, loadKb, t, setSourcesError]);
+
+    const renameSource = useCallback((source: KbSource) => {
+        // Renaming is the inline edit on the source detail's own header, so
+        // the row menu takes you there rather than growing a second rename UI
+        // that would have to be kept in step with it.
+        onOpenSource?.(source.id);
+    }, [onOpenSource]);
+
+    /**
+     * The header's primary action and the panel on the right are the same
+     * affordance. Rather than a second copy of the seven buttons, the header
+     * moves focus to the panel — which also makes the action reachable from
+     * the keyboard, where the panel is otherwise a long way down the page.
+     */
+    const addPanelRef = useRef<HTMLDivElement>(null);
+    const focusAddSource = useCallback(() => {
+        const panel = addPanelRef.current;
+        if (!panel) return;
+        panel.scrollIntoView({ block: 'nearest' });
+        panel.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+    }, []);
+
+    const refreshSource = useCallback(async (source: KbSource) => {
+        try {
+            await knowledgeApi.refreshSource(kbId, source.id);
+            await loadSources();
+        } catch (e) {
+            setSourcesError((e as Error).message);
+        }
+    }, [kbId, loadSources, setSourcesError]);
+
+    /**
+     * Save a source's refresh schedule.
+     *
+     * The server arms it (`next_refresh_at`) as part of the same PATCH, so
+     * there is no second call that could half-succeed and leave a schedule
+     * on screen that never fires.
+     */
+    const setSchedule = useCallback(async (source: KbSource, refresh: ScheduleChange) => {
+        try {
+            await knowledgeApi.updateSource(kbId, source.id, { refresh });
+            await loadSources();
+        } catch (e) {
+            setSourcesError((e as Error).message);
+        }
+    }, [kbId, loadSources, setSourcesError]);
+
+    const setAudience = useCallback(async (body: { isPublished: boolean; sharedGroups: string[] }) => {
+        try {
+            await knowledgeApi.setPublished(kbId, body);
+            await loadKb();
+        } catch (e) {
+            setError((e as Error).message);
+        }
+    }, [kbId, loadKb, setError]);
+
+    return { removeSource, renameSource, addPanelRef, focusAddSource, refreshSource, setSchedule, setAudience };
 }
 
 export default function KnowledgeDetail({
@@ -151,76 +241,9 @@ export default function KnowledgeDetail({
         }
     }, [kbId, sources, loadSources, loadKb, t]);
 
-    const removeSource = useCallback(async (source: KbSource) => {
-        const ok = await confirm({
-            title: t('knowledge.sources.delete_title', 'Delete “{name}”?', { name: source.name }),
-            description: t('knowledge.sources.delete_body', 'Its {count} documents leave this knowledge base. The original files stay where they are.', { count: Number(source.documentCount) || 0 }),
-            confirmLabel: t('knowledge.sources.delete', 'Delete'),
-            destructive: true,
-        });
-        if (!ok) return;
-        try {
-            await knowledgeApi.removeSource(kbId, source.id);
-            await Promise.all([loadSources(), loadKb()]);
-        } catch (e) {
-            setSourcesError((e as Error).message);
-        }
-    }, [confirm, kbId, loadSources, loadKb, t]);
-
-    const renameSource = useCallback((source: KbSource) => {
-        // Renaming is the inline edit on the source detail's own header, so
-        // the row menu takes you there rather than growing a second rename UI
-        // that would have to be kept in step with it.
-        onOpenSource?.(source.id);
-    }, [onOpenSource]);
-
-    /**
-     * The header's primary action and the panel on the right are the same
-     * affordance. Rather than a second copy of the seven buttons, the header
-     * moves focus to the panel — which also makes the action reachable from
-     * the keyboard, where the panel is otherwise a long way down the page.
-     */
-    const addPanelRef = useRef<HTMLDivElement>(null);
-    const focusAddSource = useCallback(() => {
-        const panel = addPanelRef.current;
-        if (!panel) return;
-        panel.scrollIntoView({ block: 'nearest' });
-        panel.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
-    }, []);
-
-    const refreshSource = useCallback(async (source: KbSource) => {
-        try {
-            await knowledgeApi.refreshSource(kbId, source.id);
-            await loadSources();
-        } catch (e) {
-            setSourcesError((e as Error).message);
-        }
-    }, [kbId, loadSources]);
-
-    /**
-     * Save a source's refresh schedule.
-     *
-     * The server arms it (`next_refresh_at`) as part of the same PATCH, so
-     * there is no second call that could half-succeed and leave a schedule
-     * on screen that never fires.
-     */
-    const setSchedule = useCallback(async (source: KbSource, refresh: ScheduleChange) => {
-        try {
-            await knowledgeApi.updateSource(kbId, source.id, { refresh });
-            await loadSources();
-        } catch (e) {
-            setSourcesError((e as Error).message);
-        }
-    }, [kbId, loadSources]);
-
-    const setAudience = useCallback(async (body: { isPublished: boolean; sharedGroups: string[] }) => {
-        try {
-            await knowledgeApi.setPublished(kbId, body);
-            await loadKb();
-        } catch (e) {
-            setError((e as Error).message);
-        }
-    }, [kbId, loadKb]);
+    const { removeSource, renameSource, addPanelRef, focusAddSource, refreshSource, setSchedule, setAudience } = useSourceRowActions({
+        kbId, confirm, t, loadSources, loadKb, setSourcesError, setError, onOpenSource,
+    });
 
     const tabs = useMemo(() => ([
         { id: 'sources', label: t('knowledge.tab_sources', 'Sources'), count: totals?.sourceCount ?? sources.length },
@@ -252,39 +275,8 @@ export default function KnowledgeDetail({
                 onTab={onTab}
                 onBack={onBack}
                 backLabel={t('knowledge.back', 'Back to Knowledge')}
-                capsule={(
-                    <VisibilityCapsule
-                        variant="capsule"
-                        anchored
-                        agent={kb}
-                        open={capsuleOpen}
-                        onToggle={() => setCapsuleOpen(v => !v)}
-                        onClose={() => setCapsuleOpen(false)}
-                        disabled={!canManage}
-                        isPublished={!!kb?.is_published}
-                        sharedGroups={sharedGroupsOf(kb)}
-                        orgGroups={orgGroups}
-                        confirmWidening
-                        onSetPersonal={() => setAudience({ isPublished: false, sharedGroups: [] })}
-                        onSetEntireOrg={() => setAudience({ isPublished: true, sharedGroups: [] })}
-                        onToggleGroup={(gid) => {
-                            const cur = sharedGroupsOf(kb);
-                            const next = cur.includes(gid) ? cur.filter((g) => g !== gid) : [...cur, gid];
-                            return setAudience({ isPublished: true, sharedGroups: next });
-                        }}
-                    />
-                )}
-                primary={canManage && tab === 'sources' ? (
-                    <button
-                        type="button"
-                        onClick={focusAddSource}
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
-                    >
-                        <Plus className="w-3 h-3" aria-hidden="true" />
-                        {t('knowledge.add_source', 'Add a source')}
-                    </button>
-                ) : null}
+                capsule={<KbAudienceCapsule kb={kb} open={capsuleOpen} setOpen={setCapsuleOpen} canManage={canManage} orgGroups={orgGroups} setAudience={setAudience} />}
+                primary={canManage && tab === 'sources' ? <AddSourceButton t={t} onClick={focusAddSource} /> : null}
             />
 
             {error && (
