@@ -1,9 +1,9 @@
 import { FolderPlus } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import RecentlyDeletedSection from './RecentlyDeletedSection';
 import AutomationRow, { type AutomationRowProps } from './AutomationRow';
 import { isSharedWithMe } from './automationStatus';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';
 import { ConfirmRemoveFolder, MoveFolderDialog } from './FolderDialogs';
 import FolderHeader, { NewFolderInput } from './FolderHeader';
@@ -59,6 +59,61 @@ interface FolderedAutomationListProps {
     afterFolders?: React.JSX.Element | null;
 }
 
+/** Split the list: the caller's loose automations, the ones in each folder they can see, and the ones shared with them. */
+function groupByFolder(automations: AutomationListRow[], folders: AutomationFolder[]) {
+    const known = new Set((folders || []).map(f => f.id));
+    const groups = new Map<string, AutomationListRow[]>((folders || []).map(f => [f.id, []]));
+    const rest: AutomationListRow[] = [];
+    const sharedRows: AutomationListRow[] = [];
+    for (const a of automations) {
+        if (isSharedWithMe(a)) { sharedRows.push(a); continue; }
+        // A folderId pointing at a folder this user cannot see — or one just
+        // deleted elsewhere — must never make the automation disappear.
+        if (a.folderId && known.has(a.folderId)) groups.get(a.folderId)?.push(a);
+        else rest.push(a);
+    }
+    return { loose: rest, byFolder: groups, shared: sharedRows };
+}
+
+/** Automations in each folder and everything below it, by folder id. */
+function folderTotals(tree: FolderTreeNode<AutomationFolder>[], byFolder: Map<string, AutomationListRow[]>) {
+    const out = new Map<string, number>();
+    const count = (node: FolderTreeNode<AutomationFolder>): number => {
+        const n = (byFolder.get(node.folder.id) || []).length + node.children.reduce((sum, c) => sum + count(c), 0);
+        out.set(node.folder.id, n);
+        return n;
+    };
+    tree.forEach(count);
+    return out;
+}
+
+/** Drop-target props for a folder header (or, with null, the loose list): a row moves into it, a folder moves under it. */
+function folderDropHandlers(
+    folderId: string | null,
+    setDragOver: Dispatch<SetStateAction<string | null | undefined>>,
+    onMoveToFolder: FolderedAutomationListProps['onMoveToFolder'],
+    onMoveFolder: FolderedAutomationListProps['onMoveFolder'],
+) {
+    return {
+        onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            setDragOver(folderId);
+        },
+        onDragLeave: () => setDragOver(cur => (cur === folderId ? undefined : cur)),
+        onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragOver(undefined);
+            const id = e.dataTransfer.getData(DRAG_TYPE);
+            if (id) { onMoveToFolder?.(id, folderId); return; }
+            // A folder dropped on a folder (or on the loose list: the top level). The server refuses a loop.
+            const dragged = e.dataTransfer.getData(DRAG_FOLDER_TYPE);
+            if (dragged && dragged !== folderId) onMoveFolder?.(dragged, folderId);
+        },
+    };
+}
+
 export default function FolderedAutomationList({
     automations,
     folders,
@@ -102,52 +157,13 @@ export default function FolderedAutomationList({
         });
     };
 
-    const { loose, byFolder, shared } = useMemo(() => {
-        const known = new Set((folders || []).map(f => f.id));
-        const groups = new Map<string, AutomationListRow[]>((folders || []).map(f => [f.id, []]));
-        const rest: AutomationListRow[] = [];
-        const sharedRows: AutomationListRow[] = [];
-        for (const a of automations) {
-            if (isSharedWithMe(a)) { sharedRows.push(a); continue; }
-            // A folderId pointing at a folder this user cannot see — or one just
-            // deleted elsewhere — must never make the automation disappear.
-            if (a.folderId && known.has(a.folderId)) groups.get(a.folderId)?.push(a);
-            else rest.push(a);
-        }
-        return { loose: rest, byFolder: groups, shared: sharedRows };
-    }, [automations, folders]);
+    const { loose, byFolder, shared } = useMemo(() => groupByFolder(automations, folders), [automations, folders]);
 
     const tree = useMemo(() => buildFolderTree(folders || []), [folders]);
     // Automations in a folder and everything below it: what a closed folder shows, and what a search keeps.
-    const totals = useMemo(() => {
-        const out = new Map<string, number>();
-        const count = (node: FolderTreeNode<AutomationFolder>): number => {
-            const n = (byFolder.get(node.folder.id) || []).length + node.children.reduce((sum, c) => sum + count(c), 0);
-            out.set(node.folder.id, n);
-            return n;
-        };
-        tree.forEach(count);
-        return out;
-    }, [tree, byFolder]);
+    const totals = useMemo(() => folderTotals(tree, byFolder), [tree, byFolder]);
 
-    const dropHandlers = (folderId: string | null) => ({
-        onDragOver: (e: React.DragEvent) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            setDragOver(folderId);
-        },
-        onDragLeave: () => setDragOver(cur => (cur === folderId ? undefined : cur)),
-        onDrop: (e: React.DragEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setDragOver(undefined);
-            const id = e.dataTransfer.getData(DRAG_TYPE);
-            if (id) { onMoveToFolder?.(id, folderId); return; }
-            // A folder dropped on a folder (or on the loose list: the top level). The server refuses a loop.
-            const dragged = e.dataTransfer.getData(DRAG_FOLDER_TYPE);
-            if (dragged && dragged !== folderId) onMoveFolder?.(dragged, folderId);
-        },
-    });
+    const dropHandlers = (folderId: string | null) => folderDropHandlers(folderId, setDragOver, onMoveToFolder, onMoveFolder);
 
     const renderRow = (a: AutomationListRow) => (
         <div
@@ -266,33 +282,12 @@ export default function FolderedAutomationList({
 
             {tree.map((node) => renderFolder(node))}
 
-            {shared.length > 0 && (
-                <div className="mt-2" data-testid="folder-shared">
-                    <div className="flex items-center gap-1 px-2 py-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
-                        <span className="flex-1 truncate">{t('automations.library.sharedWithMe', 'Shared with me')}</span>
-                        <span className="shrink-0">{shared.length}</span>
-                    </div>
-                    {shared.map(a => <AutomationRow key={a.id} {...rowProps(a)} />)}
-                </div>
-            )}
+            {shared.length > 0 && <SharedWithMeGroup t={t} shared={shared} rowProps={rowProps} />}
 
-            {!filtering && (creating ? (
-                <NewFolderInput
-                    value={newName}
-                    label={t('studio_misc.folders.new_folder_name', 'New folder name')}
-                    onChange={setNewName}
-                    onCommit={commitCreate}
-                    onCancel={() => { setCreating(false); setNewName(''); }}
-                />
-            ) : (
-                <button
-                    type="button"
-                    onClick={() => setCreating(true)}
-                    className="mt-1 flex items-center gap-1 w-full text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded transition"
-                >
-                    <FolderPlus size={12} /> {t('studio_misc.folders.new_folder', 'New folder')}
-                </button>
-            ))}
+            {!filtering && (
+                <NewFolderControl t={t} creating={creating} newName={newName} onNewName={setNewName} onCommit={commitCreate}
+                    onCancel={() => { setCreating(false); setNewName(''); }} onStart={() => setCreating(true)} />
+            )}
 
             {afterFolders}
 
@@ -315,6 +310,50 @@ export default function FolderedAutomationList({
                 />
             )}
         </>
+    );
+}
+
+/** Automations somebody else owns and shared with the caller — never filed in the caller's folders. */
+function SharedWithMeGroup({ t, shared, rowProps }: { t: TranslateFn; shared: AutomationListRow[]; rowProps: FolderedAutomationListProps['rowProps'] }) {
+    return (
+        <div className="mt-2" data-testid="folder-shared">
+            <div className="flex items-center gap-1 px-2 py-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
+                <span className="flex-1 truncate">{t('automations.library.sharedWithMe', 'Shared with me')}</span>
+                <span className="shrink-0">{shared.length}</span>
+            </div>
+            {shared.map(a => <AutomationRow key={a.id} {...rowProps(a)} />)}
+        </div>
+    );
+}
+
+interface NewFolderControlProps {
+    t: TranslateFn;
+    creating: boolean;
+    newName: string;
+    onNewName: (name: string) => void;
+    onCommit: () => void;
+    onCancel: () => void;
+    onStart: () => void;
+}
+
+/** The "New folder" button, or the inline name field once it is pressed. */
+function NewFolderControl({ t, creating, newName, onNewName, onCommit, onCancel, onStart }: NewFolderControlProps) {
+    return creating ? (
+        <NewFolderInput
+            value={newName}
+            label={t('studio_misc.folders.new_folder_name', 'New folder name')}
+            onChange={onNewName}
+            onCommit={onCommit}
+            onCancel={onCancel}
+        />
+    ) : (
+        <button
+            type="button"
+            onClick={onStart}
+            className="mt-1 flex items-center gap-1 w-full text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded transition"
+        >
+            <FolderPlus size={12} /> {t('studio_misc.folders.new_folder', 'New folder')}
+        </button>
     );
 }
 
