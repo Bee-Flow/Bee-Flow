@@ -101,6 +101,7 @@ function fileNameOf(name) {
  * @returns {Promise<{ newTabs: { id: string, name: string, datatableId: string }[], tabIds: Map<string, string> }>}  tabIds: old tab id → the copy's
  */
 async function copyTabs(cellsApi, doc, userId, made = []) {
+    /** @type {{ id: string; name: string; datatableId: string; }[]} */
     const newTabs = [];
     const tabIds = new Map();
     for (const t of sheetTabsOf(doc)) {
