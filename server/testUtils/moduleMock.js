@@ -13,7 +13,7 @@ const Module = require('module');
 
 /**
  * @param {string} absId  an absolute module id (as `require.resolve` takes it)
- * @param {any} exports   what the module should export
+ * @param {unknown} exports   what the module should export
  */
 function mockModule(absId, exports) {
     const p = require.resolve(absId);

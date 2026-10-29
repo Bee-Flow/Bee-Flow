@@ -69,7 +69,7 @@ const FREE_TEXT_COLUMNS = Object.freeze(['notes', 'result_summary', 'extension_r
 /**
  * Pick the allow-listed columns of a dsr_requests row and add
  * `subject_email_masked`. Missing columns stay missing (never invented).
- * @param {any} row
+ * @param {Record<string, unknown> | null | undefined} row
  * @param {{extra?: string[], columns?: readonly string[]}} [opts] extra
  *   allow-listed keys (e.g. `days_left`); `columns` picks the destination's
  *   allow-list (default: the in-app one).

@@ -196,17 +196,20 @@ function createBuilderStream() {
     /**
      * One POST /stream, start to finish.
      *
-     * @param {object} p
-     * @param {string} [p.message]      the user's turn
-     * @param {Array}  [p.rounds]       one entry per model round; see toEvents()
-     * @param {object} [p.tools]        tool name → (args, draftWrap) => result
-     * @param {object} [p.body]         extra request-body fields (seedMetadata, history, …)
-     * @param {object} [p.draft]        the automations row an automationId resolves to
-     * @param {object} [p.tiers]        the user's tier map
-     * @param {object} [p.providerConfig]
-     * @param {object} [p.catalog]
-     * @param {object} [p.pickers]      what buildPickerCatalogsForUser answers (agents, knowledgeBases, appEventProviders, …)
-     * @param {object} [p.config]       configStore answers
+     * `message` is the user's turn; `rounds` one entry per model round (see toEvents()); `tools` maps
+     * a tool name to its handler (onTool answers every tool); `body` holds extra request-body fields
+     * (seedMetadata, history, …); `draft` the automations row an automationId resolves to; `pickers`
+     * what buildPickerCatalogsForUser answers (agents, knowledgeBases, …); `config` configStore's answers.
+     * @param {{ message?: string, rounds?: Array<unknown>, body?: Record<string, unknown>,
+     *   tools?: Record<string, (args: unknown, draftWrap: unknown, delegation: unknown) => unknown>,
+     *   onTool?: ((name: string, args: unknown, draftWrap: unknown, delegation: unknown) => unknown) | null,
+     *   draft?: ({ id: string } & Record<string, unknown>) | null, builderSession?: unknown, betaFeatures?: string[],
+     *   tiers?: Record<string, { modelId: string }>, modelId?: string, surfacesRawReasoning?: boolean,
+     *   providerConfig?: { apiKey?: string, url?: string, providerType?: string }, datatables?: unknown,
+     *   catalog?: { apps?: unknown[], toolNames?: string[] | null, triggerOutputs?: Record<string, unknown> },
+     *   config?: Record<string, unknown>, datatableAccess?: Record<string, unknown>, documents?: unknown,
+     *   pickers?: Record<string, unknown> | null, mintedAutomationId?: string, userId?: string, userOrgId?: string,
+     *   userOrgIds?: string[], query?: Record<string, unknown> }} [p]
      */
     async function run({
         message = 'Bouw een automation',

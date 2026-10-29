@@ -35,12 +35,13 @@ const log = require('../telemetry/log');
 const { TransactionRollback } = require('../utils/txRollback');
 
 /**
- * @param {object} [opts]
- * @param {Record<string, Record<string, any>[]>} [opts.tables] table name → seed rows
- * @param {Record<string, (rows: Record<string, any>[], sql: string, params: any[]) => Record<string, any>[]>} [opts.matchers]
- *   per-table override for queries the default equality matcher can't model
- * @param {(sql: string, params: any[]) => ({rows: Record<string, any>[], rowCount: number}) | undefined} [opts.onQuery]
- *   optional escape hatch: return a result to fully override dispatch for a query
+ * `tables` maps a table name to its seed rows; `matchers` is a per-table override for
+ * queries the default equality matcher can't model; `onQuery` an optional escape hatch:
+ * return a result to fully override dispatch for a query.
+ *
+ * @param {{ tables?: Record<string, Record<string, any>[]>,
+ *   matchers?: Record<string, (rows: Record<string, any>[], sql: string, params: any[]) => Record<string, any>[]>,
+ *   onQuery?: (sql: string, params: any[]) => ({rows: Record<string, any>[], rowCount: number}) | undefined }} [opts]
  */
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     /** @typedef {{ sql: string, params: unknown[] }} RecordedCall */

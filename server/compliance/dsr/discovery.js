@@ -88,13 +88,12 @@ const TEXT_TYPES = new Set(['text', 'richtext']);
 /**
  * The stores a scan reads, injected for tests. Each is duck-typed: every
  * method is existence-checked before it is called.
- * @typedef {object} DiscoveryDeps
- * @property {{ getOne?: (sql: string, params?: unknown[]) => Promise<Record<string, any> | null | undefined>, withTransaction?: (fn: (client: TxClient) => Promise<Record<string, any>[]>) => Promise<Record<string, any>[]> } | null} [db]
- * @property {{ findOrgMemberIdByEmail?: (orgId: string, email: string) => Promise<string | null | undefined>, logAccessAudit?: (...args: unknown[]) => Promise<unknown> } | null} [userStore]
- * @property {{ countActiveMemoriesForUser?: (userId: string) => Promise<number> } | null} [memoryStore]
- * @property {{ countMessagesByAuthor?: (userId: string, opts: { organizationId: string }) => Promise<number> } | null} [projectChatStore]
- * @property {{ listDatatablesForScope?: (scope: DatatableScope) => Promise<Record<string, any>[]>, getModel?: (scope: DatatableScope) => Promise<{ model?: { tables?: Record<string, any>[] } } | null | undefined>, getTableMeta?: (scope: DatatableScope, id: string) => Promise<Record<string, any> | null | undefined> } | null} [datatableStore]
- * @property {{ query?: (scopeKey: string, schemaKey: string, sql: string, params: string[]) => Promise<{ rows?: Record<string, any>[] } | null | undefined>, scopeKey?: (scope: DatatableScope) => string } | null} [datatableDbStore]
+ * @typedef {{ db?: { getOne?: (sql: string, params?: unknown[]) => Promise<Record<string, any> | null | undefined>, withTransaction?: (fn: (client: TxClient) => Promise<Record<string, any>[]>) => Promise<Record<string, any>[]> } | null,
+ *   userStore?: { findOrgMemberIdByEmail?: (orgId: string, email: string) => Promise<string | null | undefined>, logAccessAudit?: (...args: unknown[]) => Promise<unknown> } | null,
+ *   memoryStore?: { countActiveMemoriesForUser?: (userId: string) => Promise<number> } | null,
+ *   projectChatStore?: { countMessagesByAuthor?: (userId: string, opts: { organizationId: string }) => Promise<number> } | null,
+ *   datatableStore?: { listDatatablesForScope?: (scope: DatatableScope) => Promise<Record<string, any>[]>, getModel?: (scope: DatatableScope) => Promise<{ model?: { tables?: Record<string, any>[] } } | null | undefined>, getTableMeta?: (scope: DatatableScope, id: string) => Promise<Record<string, any> | null | undefined> } | null,
+ *   datatableDbStore?: { query?: (scopeKey: string, schemaKey: string, sql: string, params: string[]) => Promise<{ rows?: Record<string, any>[] } | null | undefined>, scopeKey?: (scope: DatatableScope) => string } | null }} DiscoveryDeps
  */
 /** @typedef {{ partial: boolean, errors: string[], retentionNotes: Record<string, any>[], notScanned: Set<string>, perTableTimeoutMs: number, budgetMs: number | null, deadlineAt: number | null, budgetSpent?: boolean }} ScanState */
 

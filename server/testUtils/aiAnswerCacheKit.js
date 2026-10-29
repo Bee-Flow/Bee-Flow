@@ -47,17 +47,17 @@ function installAiAnswerCacheKit() {
     const restore = installResolveStub({
         '../../stores/configStore': {
             async getConfig(/** @type {string} */ key) { return cfg[key] !== undefined ? cfg[key] : null; },
-            async setConfig(/** @type {string} */ key, /** @type {any} */ value) { cfg[key] = value; return true; },
+            async setConfig(/** @type {string} */ key, /** @type {unknown} */ value) { cfg[key] = value; return true; },
         },
         '../../stores/integrationCacheStore': {
-            cacheKey: (/** @type {any} */ identity) => crypto.createHash('sha256').update(String(identity || '')).digest('hex'),
+            cacheKey: (/** @type {unknown} */ identity) => crypto.createHash('sha256').update(String(identity || '')).digest('hex'),
             async get(/** @type {string} */ key, /** @type {string} */ organizationId, opts = {}) {
                 durableGets.push({ key, organizationId, ...opts });
                 if (kit.failStore) throw new Error('database unavailable');
                 const row = durableRows.get(key);
                 return (row && row.organizationId === organizationId) ? { value: row.value } : null;
             },
-            async put(/** @type {any} */ record) {
+            async put(/** @type {{ key: string, organizationId?: string, value?: unknown }} */ record) {
                 durablePuts.push(record);
                 if (kit.failStore) throw new Error('database unavailable');
                 durableRows.set(record.key, record);
