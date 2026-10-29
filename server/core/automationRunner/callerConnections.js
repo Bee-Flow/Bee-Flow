@@ -103,6 +103,7 @@ function unavailable(message) {
  * @returns {Promise<{ userId: string, session: any|null, orgId: string|null, userGroupIds: string[], orgRole: string|null, homeOrgId: string|null, isAdmin: boolean }>}
  * @param {string} callerUserId
  * @param {string | null} runOrgId
+ * @param {CallerDeps} deps
  */
 async function buildCallerIdentity(deps, callerUserId, runOrgId) {
     const user = await deps.loadUserStore().getUser(callerUserId);

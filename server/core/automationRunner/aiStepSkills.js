@@ -1,3 +1,4 @@
+/** @typedef {import('../../stores/agent/agentRows').AgentConfig} AgentConfig */
 /**
  * Skills inside an AI step (Studio → Automations).
  *
@@ -35,6 +36,9 @@
 /** Longest `disabledAgentSkillIds` list worth storing; agents carry far fewer. */
 const MAX_DISABLED_AGENT_SKILL_IDS = 50;
 
+/**
+ * @param {string[] | null} list
+ */
 function _ids(list) {
     if (!Array.isArray(list)) return [];
     const seen = new Set();
@@ -214,6 +218,8 @@ function grantsUnderPermissions(grants, permissions) {
  * owner may call, so there is nothing to add. The ids stay inside the automation
  * owner's own set either way, because the catalog is built for them. A
  * shallow copy: the runtime projection of the agent is shared.
+ * @param {AgentConfig} config
+ * @param {string[] | null} automationIds
  */
 function configWithSkillAutomations(config, automationIds) {
     const ids = _ids(automationIds);

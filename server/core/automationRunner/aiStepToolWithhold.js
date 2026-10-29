@@ -47,6 +47,9 @@ function _automationIdOf(tool) {
     return null;
 }
 
+/**
+ * @param {WithholdTool} tool
+ */
 function _toolName(tool) {
     const name = tool && tool.function && tool.function.name;
     return (typeof name === 'string' && name) ? name : null;
