@@ -489,17 +489,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/ActionsSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.tsx": {
     "max-lines-per-function": {
       "count": 1
