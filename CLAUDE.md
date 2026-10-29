@@ -157,6 +157,10 @@ and `npm run lint:secrets`.
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.
+- `/quality-round` (`.claude/skills/quality-round/SKILL.md`): the next round of the quality programme
+  (server strictness and loose JSDoc types, agent-hub TypeScript and i18n, the count ratchets) with
+  agents in worktrees, each task on the model that fits it, every batch behind the gates above, one
+  push at the end. The handoffs under `.claude/handoff/ts-conversion/` hold the detail.
 
 ## Pull requests and CI
 
