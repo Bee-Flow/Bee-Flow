@@ -2,6 +2,9 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';
+import type { Skill } from '../../hooks/useSkills';
+import type { SessionSkillView } from './SkillsPopover.types';
+import type { TranslationOverride } from '@/test/translationOverride';
 
 /**
  * A switchable dictionary over the REAL useTranslation, off by default so the
@@ -13,13 +16,13 @@ import SkillsPopover from './SkillsPopover';
  * key is to make that key answer in another language and watch the screen
  * change.
  */
-const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
+const { transOverride } = vi.hoisted((): { transOverride: TranslationOverride } => ({ transOverride: { current: null } }));
 vi.mock('../../hooks/useTranslation', async (importOriginal) =>
   (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 // useSkills fetches `${API_BASE}/api/skills` on mount, so it is stubbed
 // outright — these are render tests and must never touch the network.
-const { skillsState } = vi.hoisted(() => ({ skillsState: { current: { skills: [], loading: false } } }));
+const { skillsState } = vi.hoisted((): { skillsState: { current: { skills: Skill[]; loading: boolean } } } => ({ skillsState: { current: { skills: [], loading: false } } }));
 vi.mock('../../hooks/useSkills', () => ({
   useSkills: () => ({
     skills: skillsState.current.skills,
@@ -51,8 +54,8 @@ const USER = { id: 'u1' };
 // mirrors it into state has that array as its only dependency — so a render
 // that leaves the prop out never settles. Passing one identity keeps these
 // tests about the strings; the default itself is reported, not patched here.
-const NO_STAGES = [];
-const NO_IDS = [];
+const NO_STAGES: SessionSkillView[] = [];
+const NO_IDS: string[] = [];
 
 // s1 done (activated, activated downstream), s2 active (activated, terminal
 // step not reached), s3 ready (deps met), s4 waiting (depends on s3).

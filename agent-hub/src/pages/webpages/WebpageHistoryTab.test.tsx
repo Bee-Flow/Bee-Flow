@@ -17,21 +17,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * `WebpageEditor` is mocked: Monaco loads lazily and has nothing to do in jsdom; what counts here is THAT the display is read-only, and WHICH bytes it receives.
  */
 
-const authFetch = vi.fn();
+const authFetch = vi.fn<(url: string, init?: RequestInit) => unknown>();
 vi.mock('../../utils/helpers', () => ({
     API_BASE: 'https://host.example',
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: Parameters<typeof authFetch>) => authFetch(...args),
 }));
 
 vi.mock('./WebpageEditor', () => ({
-    default: ({ value, language, readOnly }) => (
+    default: ({ value, language, readOnly }: { value?: string; language?: string; readOnly?: boolean }) => (
         <div data-testid="version-editor" data-language={language} data-readonly={String(!!readOnly)}>{value}</div>
     ),
 }));
 
 import WebpageHistoryTab, { formatLineDelta } from './WebpageHistoryTab';
 
-const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
 function row(over = {}) {
     return {
@@ -44,7 +44,7 @@ function row(over = {}) {
 }
 
 /** Antwoord op GET /:id/versions. */
-function list(versions, extra = {}) {
+function list(versions: unknown[], extra = {}) {
     return ok({ versions, hasMore: false, published: null, ...extra });
 }
 
@@ -187,7 +187,7 @@ describe('restoring', () => {
         renderTab({ onRestore });
         await user.click(await screen.findByText('Restore'));
         const dialog = await screen.findByRole('dialog');
-        await user.click(within(dialog).getAllByText('Restore').at(-1));
+        await user.click(within(dialog).getAllByText('Restore').at(-1) as HTMLElement);
         await waitFor(() => expect(onRestore).toHaveBeenCalledWith('v-a'));
         // Restoring adds a row itself; the list may not remain as it was.
         await waitFor(() => expect(urls().filter(u => u.endsWith('/wp1/versions')).length).toBe(2));
@@ -200,7 +200,7 @@ describe('restoring', () => {
         renderTab({ onRestore });
         await user.click(await screen.findByText('Restore'));
         const dialog = await screen.findByRole('dialog');
-        await user.click(within(dialog).getAllByText('Restore').at(-1));
+        await user.click(within(dialog).getAllByText('Restore').at(-1) as HTMLElement);
         expect(await screen.findByRole('alert')).toHaveTextContent('Failed to restore version');
     });
 
@@ -216,7 +216,7 @@ describe('restoring', () => {
 // ── Bekijken ──────────────────────────────────────────────────────────
 
 describe('viewing a version', () => {
-    const withVersion = (files) => {
+    const withVersion = (files: Record<string, unknown>) => {
         authFetch.mockImplementation(async (url) => (
             String(url).endsWith('/versions')
                 ? list([row({ id: 'v-a' })])
@@ -366,7 +366,7 @@ describe('WebpageHistoryTab — de teller van de ouder', () => {
         // is a setState of the PARENT. React logs "Cannot update a component while
         // rendering a different component" there — with a bare vi.fn() as parent that
         // does not show, so here a REAL parent stands around it.
-        const errors = [];
+        const errors: string[] = [];
         const spy = vi.spyOn(console, 'error').mockImplementation((...a) => { errors.push(a.map(String).join(' ')); });
         try {
             authFetch.mockResolvedValueOnce(list([row({ id: 'v-a' })], { hasMore: true }));

@@ -20,7 +20,7 @@ const data = {
     linkLabel: 'Source on GitHub',
 };
 
-function mockStats(payload, ok = true) {
+function mockStats(payload: unknown, ok = true) {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
         ok,
         json: () => Promise.resolve(payload),

@@ -27,7 +27,7 @@ const plan = (over = {}) => ({
     ...over,
 });
 
-function mockPlans(plans) {
+function mockPlans(plans: unknown[]) {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ plans }),

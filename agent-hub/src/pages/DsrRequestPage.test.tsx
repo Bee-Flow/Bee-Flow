@@ -18,7 +18,7 @@ const { default: DsrRequestPage, readVerifyParams, formatDueDate } = await impor
 
 const fetchMock = vi.fn();
 
-function reply(ok, body, status) {
+function reply(ok: boolean, body: unknown, status?: number) {
     return Promise.resolve({ ok, status: status ?? (ok ? 200 : 400), json: async () => body });
 }
 
@@ -104,7 +104,7 @@ describe('DsrRequestPage — the deadline', () => {
         fetchMock.mockReturnValue(reply(true, { id: 2044, ack: 'A confirmation has been e-mailed.', due_at: '2026-10-14T08:51:00Z' }));
         render(<DsrRequestPage search="" />);
         fireEvent.change(screen.getByPlaceholderText(/@/), { target: { value: 'k@ziggo.nl' } });
-        fireEvent.submit(screen.getByPlaceholderText(/@/).closest('form'));
+        fireEvent.submit(screen.getByPlaceholderText(/@/).closest('form') as HTMLFormElement);
         const due = await screen.findByTestId('dsr-submitted-due');
         expect(due).toHaveTextContent('Answer expected by');
         expect(due).toHaveTextContent('14 Oct 2026');

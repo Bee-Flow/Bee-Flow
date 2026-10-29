@@ -2,7 +2,7 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import ChartConfigModal from './ChartConfigModal.jsx';
+import ChartConfigModal, { type ChartSpec } from './ChartConfigModal.jsx';
 
 /**
  * The four chart-type buttons: they were hardcoded English inside the TYPES
@@ -21,7 +21,7 @@ import ChartConfigModal from './ChartConfigModal.jsx';
  * t arrives as a PROP here (not through useTranslation), so no module mock is
  * needed: a plain function is the whole seam.
  */
-const makeT = (over = {}) => (key, fallback, params) => {
+const makeT = (over: Record<string, string> = {}) => (key: string, fallback?: string, params?: Record<string, unknown>) => {
   const text = key in over ? over[key] : fallback;
   return String(text ?? key).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m));
 };
@@ -70,8 +70,8 @@ describe('ChartConfigModal — the chart-type labels are translatable', () => {
     // t('key') alone returns the raw key on a miss, so a fallback that is not
     // passed to t is a fallback that never fires. Assert the pair, not the
     // rendered text — the rendered text is identical either way.
-    const seen = new Map();
-    const t = (key, fallback) => { seen.set(key, fallback); return fallback; };
+    const seen = new Map<string, string>();
+    const t = (key: string, fallback: string) => { seen.set(key, fallback); return fallback; };
     render(<ChartConfigModal {...props()} t={t} />);
     expect(seen.get('notebooks.chart_type_bar')).toBe('Bar');
     expect(seen.get('notebooks.chart_type_line')).toBe('Line');
@@ -83,14 +83,14 @@ describe('ChartConfigModal — the chart-type labels are translatable', () => {
 describe('ChartConfigModal — the key→id rename still selects a type', () => {
   beforeEach(() => cleanup());
 
-  const create = (onCreate, t = makeT()) => {
+  const create = (onCreate: (spec: ChartSpec) => void, t = makeT()) => {
     render(<ChartConfigModal {...props({ onCreate })} t={t} />);
     return () => fireEvent.click(screen.getByText('Create'));
   };
 
   it('clicking Pie sets the type to pie and creates a single-series chart', async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn();
+    const onCreate = vi.fn<(spec: ChartSpec) => void>();
     const submit = create(onCreate);
     await user.click(screen.getByText('Pie'));
     submit();
@@ -105,7 +105,7 @@ describe('ChartConfigModal — the key→id rename still selects a type', () => 
     // create() slices to one for a pie anyway, so a pie-only assertion cannot
     // tell whether the CLICK squeezed anything. Going pie → bar can: the
     // selection stays at one column only if the click handler really ran.
-    const onCreate = vi.fn();
+    const onCreate = vi.fn<(spec: ChartSpec) => void>();
     const submit = create(onCreate);
     await user.click(screen.getByText('Pie'));
     await user.click(screen.getByText('Bar'));
@@ -120,7 +120,7 @@ describe('ChartConfigModal — the key→id rename still selects a type', () => 
     // The other side of the same coin: without the pie click the default two
     // columns survive, so the assertion above is about the click and not about
     // the modal simply never having two series.
-    const onCreate = vi.fn();
+    const onCreate = vi.fn<(spec: ChartSpec) => void>();
     const submit = create(onCreate);
     await user.click(screen.getByText('Line'));
     submit();
@@ -135,7 +135,7 @@ describe('ChartConfigModal — the key→id rename still selects a type', () => 
     // in the accent colour, so it is asserted on the style rather than on text.
     const t = makeT({ 'notebooks.chart_type_area': 'Vlak' });
     render(<ChartConfigModal {...props()} t={t} />);
-    const area = screen.getByText('Vlak').closest('button');
+    const area = screen.getByText('Vlak').closest('button') as HTMLButtonElement;
     expect(area.style.borderColor).not.toContain('accent-primary');
     await user.click(area);
     expect(area.style.borderColor).toContain('accent-primary');

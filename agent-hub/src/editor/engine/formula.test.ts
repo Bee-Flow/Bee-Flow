@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
+import type { DocAttrs, DocNode } from '../model/schema.js';
 import { colLabel, colToIndex, parseAnyRef, evaluateTable, displayResult, isFormulaCell, formulaSrc, rawIsFormula } from './formula.js';
 
 // Build a table node from a 2D array of cell strings. A string starting with '='
 // becomes a formula cell; everything else is a plain-text cell.
-function table(grid) {
+function table(grid: (string | number)[][]) {
   return {
     type: 'table',
     content: grid.map((row) => ({
@@ -18,7 +19,7 @@ function table(grid) {
     })),
   };
 }
-const disp = (grid, r, c) => displayResult(evaluateTable(table(grid)).get(`${r},${c}`));
+const disp = (grid: (string | number)[][], r: number, c: number) => displayResult(evaluateTable(table(grid)).get(`${r},${c}`));
 
 describe('A1 ref helpers', () => {
   it('colLabel / colToIndex round-trip', () => {
@@ -102,7 +103,7 @@ describe('formula evaluation', () => {
 /* ── round 2: bare ranges, error sentinels, header exclusion, relaxed cells ── */
 
 // Cell builder that also supports attrs (header rows).
-const cellN = (s, attrs = null) => ({
+const cellN = (s: string | number, attrs: DocAttrs | null = null) => ({
   type: 'tableCell',
   ...(attrs ? { attrs } : {}),
   content: [{
@@ -112,9 +113,9 @@ const cellN = (s, attrs = null) => ({
       : [{ type: 'text', text: String(s) }],
   }],
 });
-const rowN = (...cells) => ({ type: 'tableRow', content: cells });
-const tableN = (...rows) => ({ type: 'table', content: rows });
-const dispT = (t, r, c) => displayResult(evaluateTable(t).get(`${r},${c}`));
+const rowN = (...cells: DocNode[]) => ({ type: 'tableRow', content: cells });
+const tableN = (...rows: DocNode[]) => ({ type: 'table', content: rows });
+const dispT = (t: DocNode, r: number, c: number) => displayResult(evaluateTable(t).get(`${r},${c}`));
 
 describe('bare ranges (pick gestures) fold through SUM', () => {
   it('a bare rectangle and a bare whole-column range evaluate', () => {

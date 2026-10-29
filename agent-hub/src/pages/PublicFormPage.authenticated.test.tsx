@@ -34,7 +34,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Partial mock over importOriginal, so the rest of helpers keeps working.
  */
 const { authFetch } = vi.hoisted(() => ({
-    authFetch: vi.fn((...args) => globalThis.fetch(...args)),
+    authFetch: vi.fn((...args: Parameters<typeof fetch>) => globalThis.fetch(...args)),
 }));
 vi.mock('../utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
@@ -59,8 +59,10 @@ const FORM = {
     fields: [{ name: 'email', type: 'email', label: 'Your email', required: true }],
 };
 
-function mockFetch(handlers) {
-    return vi.fn(async (url, init = {}) => {
+type Handler = (init: RequestInit) => { ok?: boolean; status?: number; body?: unknown } | Promise<{ ok?: boolean; status?: number; body?: unknown }>;
+
+function mockFetch(handlers: Record<string, Handler>) {
+    return vi.fn(async (url: unknown, init: RequestInit = {}) => {
         const method = (init.method || 'GET').toUpperCase();
         const key = `${method} ${String(url).replace(/^.*\/api\/automation\/form/, '')}`;
         const h = handlers[key];
@@ -120,9 +122,9 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
 
     it('saves the closing page\'s own text against the journey that produced it', async () => {
         const user = userEvent.setup();
-        let posted = null;
+        let posted = null as RequestInit | null;
         vi.stubGlobal('fetch', mockFetch(journey({
-            [`POST /${TOKEN}/s/${SESSION}/notebook`]: async (init) => {
+            [`POST /${TOKEN}/s/${SESSION}/notebook`]: async (init: RequestInit) => {
                 posted = init;
                 return { body: { notebookId: 'nb_1' } };
             },
@@ -136,7 +138,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         await waitFor(() => expect(posted).not.toBeNull());
         // No text in the request: the server reads the result back from the
         // run, so the visitor keeps exactly what their journey produced.
-        expect(posted.body).toBeUndefined();
+        expect((posted as RequestInit).body).toBeUndefined();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
@@ -169,7 +171,7 @@ describe('PublicFormPage — what a signed-in visitor gets on the closing page',
         await userEvent.click(screen.getByTestId('form-export-docx'));
         await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdfBlob));
         // A download leaves the visitor here, so the button comes back.
-        await waitFor(() => expect(screen.getByTestId('form-export-docx').disabled).toBe(false));
+        await waitFor(() => expect(screen.getByTestId<HTMLButtonElement>('form-export-docx').disabled).toBe(false));
     });
 
     it('says why a download failed', async () => {

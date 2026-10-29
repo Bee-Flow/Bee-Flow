@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillCard from './SkillCard';
+import type { TranslationOverride } from '@/test/translationOverride';
 
 /**
  * A switchable dictionary over the REAL useTranslation, off by default so the
@@ -15,7 +16,7 @@ import SkillCard from './SkillCard';
  * English render identically, so the only way to show a string now travels
  * through a KEY is to make that key answer in Dutch and watch the screen change.
  */
-const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
+const { transOverride } = vi.hoisted((): { transOverride: TranslationOverride } => ({ transOverride: { current: null } }));
 vi.mock('../../hooks/useTranslation', async (importOriginal) =>
   (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 

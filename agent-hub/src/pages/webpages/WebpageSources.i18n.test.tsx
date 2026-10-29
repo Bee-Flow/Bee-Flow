@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -7,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * t() is a MARKER: `⟦key⟧` instead of the English fallback. A string that again stands literally in the source still reads well on screen, so only this way can the retrofit be proven.
  */
 
-const t = (key, fallback, params) => {
+const t = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => {
     const p = typeof fallback === 'string' ? params : fallback;
     const tail = p && typeof p === 'object'
         ? `(${Object.entries(p).map(([k, v]) => `${k}=${v}`).join(',')})`
@@ -18,21 +19,21 @@ const t = (key, fallback, params) => {
 vi.mock('../../hooks/useTranslation', () => ({
     default: () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} }),
     useTranslation: () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} }),
-    TranslationProvider: ({ children }) => children,
+    TranslationProvider: ({ children }: { children: ReactNode }) => children,
     ensureI18nDefaults: () => Promise.resolve(),
 }));
 
-const authFetch = vi.fn();
+const authFetch = vi.fn<(url: string, init?: { body?: string }) => Promise<unknown>>();
 vi.mock('../../utils/helpers', () => ({
     API_BASE: 'https://host.example',
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: Parameters<typeof authFetch>) => authFetch(...args),
 }));
 
-import WebpageSources from './WebpageSources';
+import WebpageSources, { type WebpageSource } from './WebpageSources';
 
 beforeEach(() => { authFetch.mockReset(); });
 
-function renderPanel(sources) {
+function renderPanel(sources: WebpageSource[]) {
     return render(<WebpageSources webpageId="wp1" sources={sources} onSourcesChange={() => {}} />);
 }
 

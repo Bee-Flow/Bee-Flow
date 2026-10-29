@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -10,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  *   2. SQL itself stays SQL — column names, NULL and the type names are machine text and do not belong in the dictionary.
  */
 
-const t = (key, fallback, params) => {
+const t = (key: string, fallback?: string | Record<string, unknown>, params?: Record<string, unknown>) => {
     const p = typeof fallback === 'string' ? params : fallback;
     const tail = p && typeof p === 'object'
         ? `(${Object.entries(p).map(([k, v]) => `${k}=${v}`).join(',')})`
@@ -21,14 +22,14 @@ const t = (key, fallback, params) => {
 vi.mock('../../hooks/useTranslation', () => ({
     default: () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} }),
     useTranslation: () => ({ t, locale: 'en', setLocale: () => {}, isLoading: false, strings: {} }),
-    TranslationProvider: ({ children }) => children,
+    TranslationProvider: ({ children }: { children: ReactNode }) => children,
     ensureI18nDefaults: () => Promise.resolve(),
 }));
 
-const authFetch = vi.fn();
+const authFetch = vi.fn<(url: string, init: { body: string }) => Promise<unknown>>();
 vi.mock('../../utils/helpers', () => ({
     API_BASE: 'https://host.example',
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: Parameters<typeof authFetch>) => authFetch(...args),
 }));
 
 import WebpageDbViewer from './WebpageDbViewer';
@@ -44,7 +45,7 @@ const SCHEMA = {
     }],
 };
 
-function ok(body) { return { ok: true, status: 200, json: async () => body }; }
+function ok(body: unknown) { return { ok: true, status: 200, json: async () => body }; }
 
 beforeEach(() => {
     authFetch.mockReset();

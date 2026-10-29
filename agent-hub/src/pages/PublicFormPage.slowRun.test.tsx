@@ -27,8 +27,10 @@ const FORM = {
     fields: [{ name: 'email', type: 'email', label: 'Your email', required: true }],
 };
 
-function mockFetch(handlers) {
-    return vi.fn(async (url, init = {}) => {
+type Handler = (init: RequestInit) => { ok?: boolean; status?: number; body?: unknown } | Promise<{ ok?: boolean; status?: number; body?: unknown }>;
+
+function mockFetch(handlers: Record<string, Handler>) {
+    return vi.fn(async (url: unknown, init: RequestInit = {}) => {
         const method = (init.method || 'GET').toUpperCase();
         const key = `${method} ${String(url).replace(/^.*\/api\/automation\/form/, '')}`;
         const h = handlers[key];

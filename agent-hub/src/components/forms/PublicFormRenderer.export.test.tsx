@@ -16,7 +16,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { FormEndingView } from './PublicFormRenderer';
 
 const LONG_TEXT = '## Waterstralen\n\n' + 'Een lange alinea over een SEO-blog. '.repeat(20);
-const form = (description, over = {}) => ({ title: 'Klaar', description, theme: {}, ...over });
+const form = (description: string, over = {}) => ({ title: 'Klaar', description, theme: {}, ...over });
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -40,7 +40,7 @@ describe('export bar — visibility', () => {
 describe('export bar — Download as .txt', () => {
     it('builds a Blob and revokes it — never an <a href> at a real endpoint', async () => {
         const user = userEvent.setup();
-        const createObjectURL = vi.fn(() => 'blob:fake');
+        const createObjectURL = vi.fn<(blob: Blob) => string>(() => 'blob:fake');
         const revokeObjectURL = vi.fn();
         vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
 
@@ -57,10 +57,10 @@ describe('export bar — Download as .txt', () => {
 
     it('ships the raw markdown as-is, syntax and all — no stripping', async () => {
         const user = userEvent.setup();
-        let captured = null;
+        let captured: unknown = null;
         const originalBlob = globalThis.Blob;
         vi.stubGlobal('Blob', class extends originalBlob {
-            constructor(parts, opts) { super(parts, opts); captured = parts[0]; }
+            constructor(parts: BlobPart[], opts?: BlobPropertyBag) { super(parts, opts); captured = parts[0]; }
         });
         vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:fake'), revokeObjectURL: vi.fn() });
 
@@ -106,16 +106,16 @@ describe('export bar — Save to Notebook', () => {
 
     it('hands off to the caller when pressed, and stays disabled through a successful save', async () => {
         const user = userEvent.setup();
-        let resolve;
-        const onSaveToNotebook = vi.fn(() => new Promise(r => { resolve = r; }));
+        let resolve: (() => void) | undefined;
+        const onSaveToNotebook = vi.fn(() => new Promise<void>(r => { resolve = r; }));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
-        const button = screen.getByTestId('form-export-notebook');
+        const button = screen.getByTestId<HTMLButtonElement>('form-export-notebook');
         await user.click(button);
         await waitFor(() => expect(onSaveToNotebook).toHaveBeenCalledTimes(1));
         await waitFor(() => expect(button.disabled).toBe(true));
 
-        resolve();
+        (resolve as () => void)();
         // No re-enable on success — mirrors "Open in Notebooks": the page is
         // about to navigate away, and a button that re-enables first reads as
         // "nothing happened, press again".
@@ -127,7 +127,7 @@ describe('export bar — Save to Notebook', () => {
         const onSaveToNotebook = vi.fn().mockRejectedValue(new Error('Could not save this to Notebooks.'));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
-        const button = screen.getByTestId('form-export-notebook');
+        const button = screen.getByTestId<HTMLButtonElement>('form-export-notebook');
         await user.click(button);
         await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Could not save/));
         expect(button.disabled).toBe(false);
@@ -138,7 +138,7 @@ describe('export bar — Save to Notebook', () => {
         const onSaveToNotebook = vi.fn(() => new Promise(() => {}));
         render(<FormEndingView form={form(LONG_TEXT)} onSaveToNotebook={onSaveToNotebook} />);
 
-        const button = screen.getByTestId('form-export-notebook');
+        const button = screen.getByTestId<HTMLButtonElement>('form-export-notebook');
         await user.click(button);
         await user.click(button);
         await waitFor(() => expect(onSaveToNotebook).toHaveBeenCalledTimes(1));
@@ -168,11 +168,11 @@ describe('export bar — Word, PDF and Webpage', () => {
         render(<FormEndingView form={form(LONG_TEXT)} onDownloadAs={onDownloadAs} onSaveAsWebpage={onSaveAsWebpage} />);
 
         await userEvent.click(screen.getByTestId('form-export-pdf'));
-        await waitFor(() => expect(screen.getByTestId('form-export-pdf').disabled).toBe(false));
+        await waitFor(() => expect(screen.getByTestId<HTMLButtonElement>('form-export-pdf').disabled).toBe(false));
 
         await userEvent.click(screen.getByTestId('form-export-webpage'));
         await waitFor(() => expect(onSaveAsWebpage).toHaveBeenCalledTimes(1));
-        expect(screen.getByTestId('form-export-webpage').disabled).toBe(true);
+        expect(screen.getByTestId<HTMLButtonElement>('form-export-webpage').disabled).toBe(true);
     });
 
     it('runs one action at a time', async () => {
@@ -192,6 +192,6 @@ describe('export bar — Word, PDF and Webpage', () => {
 
         await userEvent.click(screen.getByTestId('form-export-webpage'));
         expect((await screen.findByRole('alert')).textContent).toMatch(/as a webpage/);
-        expect(screen.getByTestId('form-export-webpage').disabled).toBe(false);
+        expect(screen.getByTestId<HTMLButtonElement>('form-export-webpage').disabled).toBe(false);
     });
 });

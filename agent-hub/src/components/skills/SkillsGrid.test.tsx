@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsGrid from './SkillsGrid';
+import type { TranslationOverride } from '@/test/translationOverride';
 
 /**
  * A switchable dictionary over the REAL useTranslation, off by default so the
@@ -13,12 +14,12 @@ import SkillsGrid from './SkillsGrid';
  * identically — the only way to show a string now travels through a KEY is to
  * make that key answer in another language and watch the screen change.
  */
-const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
+const { transOverride } = vi.hoisted((): { transOverride: TranslationOverride } => ({ transOverride: { current: null } }));
 vi.mock('../../hooks/useTranslation', async (importOriginal) =>
   (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 const USER = { id: 'u1' };
-const skill = (id, name) => ({ id, name, description: `${name} does things`, userId: 'u1', isShared: false });
+const skill = (id: string, name: string) => ({ id, name, description: `${name} does things`, userId: 'u1', isShared: false });
 
 function renderGrid(props = {}) {
   return render(

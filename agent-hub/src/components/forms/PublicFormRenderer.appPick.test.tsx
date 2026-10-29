@@ -14,6 +14,10 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer from './PublicFormRenderer';
+import type { FormFieldDef, PublicFormRendererProps } from './PublicFormRenderer.types';
+
+type SearchApp = NonNullable<PublicFormRendererProps['onSearchApp']>;
+type Submit = NonNullable<PublicFormRendererProps['onSubmit']>;
 
 const CALL = {
     name: 'call',
@@ -29,7 +33,7 @@ const CALL = {
     required: false,
 };
 
-const form = (fields) => ({
+const form = (fields: FormFieldDef[]) => ({
     title: 'Verslag',
     description: '',
     submitLabel: 'Verstuur',
@@ -43,7 +47,7 @@ const results = [
     { id: 'tr_2', title: 'Retro', subtitle: '2026-09-08 · 30 min' },
 ];
 
-function renderForm(fields, { onSearchApp = vi.fn(async () => ({ results })), onSubmit = vi.fn(async () => {}) } = {}) {
+function renderForm(fields: FormFieldDef[], { onSearchApp = vi.fn<SearchApp>(async () => ({ results })), onSubmit = vi.fn<Submit>(async () => {}) } = {}) {
     render(<PublicFormRenderer form={form(fields)} onSubmit={onSubmit} onSearchApp={onSearchApp} />);
     return { onSearchApp, onSubmit };
 }
@@ -69,7 +73,7 @@ describe('app_pick — picking a record', () => {
 
         await user.clear(screen.getByLabelText('Search Fireflies'));
         await user.type(screen.getByLabelText('Search Fireflies'), 'kickoff');
-        await waitFor(() => expect(onSearchApp.mock.calls.at(-1)[1]).toBe('kickoff'));
+        await waitFor(() => expect((onSearchApp.mock.calls.at(-1) as [FormFieldDef, string])[1]).toBe('kickoff'));
     });
 
     it('submits a reference, never content', async () => {
@@ -110,7 +114,7 @@ describe('app_pick — picking a record', () => {
         const user = userEvent.setup();
         // "Fireflies is not connected for your account" is not their mistake
         // and not a broken form — it is something to read and act on.
-        renderForm([CALL], { onSearchApp: vi.fn(async () => ({ results: [], error: 'Fireflies is not connected for your account.' })) });
+        renderForm([CALL], { onSearchApp: vi.fn<SearchApp>(async () => ({ results: [], error: 'Fireflies is not connected for your account.' })) });
         await user.click(screen.getByRole('button', { name: /Fireflies/ }));
         await waitFor(() => expect(screen.getByText(/not connected for your account/)).toBeInTheDocument());
     });
@@ -142,6 +146,6 @@ describe('app_pick — a question that takes several records', () => {
 
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-        expect(onSubmit.mock.calls[0][0].mails.map(p => p.recordId)).toEqual(['tr_1', 'tr_2']);
+        expect((onSubmit.mock.calls[0][0].mails as { recordId: string }[]).map(p => p.recordId)).toEqual(['tr_1', 'tr_2']);
     });
 });

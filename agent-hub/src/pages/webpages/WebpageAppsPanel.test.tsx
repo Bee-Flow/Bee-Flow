@@ -31,10 +31,11 @@ const GRANTS = {
     discoveryFailed: false,
 };
 
-const authFetch = vi.fn();
+type FetchInit = { method?: string; body: string };
+const authFetch = vi.fn<(url: string, init?: FetchInit) => Promise<unknown>>();
 vi.mock('../../utils/helpers', () => ({
     API_BASE: 'https://host.example',
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: Parameters<typeof authFetch>) => authFetch(...args),
 }));
 
 const getCatalog = vi.fn(async () => CATALOG);
@@ -92,8 +93,8 @@ describe('WebpageAppsPanel', () => {
         const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
-        const appSelect = await screen.findByLabelText('App');
-        const youtrackOption = [...appSelect.options].find(o => o.value === 'youtrack');
+        const appSelect = await screen.findByLabelText<HTMLSelectElement>('App');
+        const youtrackOption = [...appSelect.options].find(o => o.value === 'youtrack') as HTMLOptionElement;
         expect(youtrackOption.disabled).toBe(true);
         // Select it anyway (programmatically) → the inline connect guidance appears.
         fireEvent.change(appSelect, { target: { value: 'youtrack' } });
@@ -112,7 +113,7 @@ describe('WebpageAppsPanel', () => {
             'https://host.example/api/webpages/wp1/grants/integrations',
             expect.objectContaining({ method: 'POST' }),
         ));
-        const body = JSON.parse(authFetch.mock.calls.find(c => String(c[0]).endsWith('/integrations'))[1].body);
+        const body = JSON.parse((authFetch.mock.calls.find(c => String(c[0]).endsWith('/integrations')) as [string, FetchInit])[1].body);
         expect(body).toEqual({ tool: 'gmail_search' });
     });
 
