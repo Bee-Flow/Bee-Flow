@@ -63,6 +63,9 @@ const MAX_JSON_DEPTH = 20;
 
 const NUL = String.fromCharCode(0); // U+0000, never a literal in source
 
+/**
+ * @param {Date} d
+ */
 const _yearInRange = (d) => d.getUTCFullYear() >= MIN_YEAR && d.getUTCFullYear() <= MAX_YEAR;
 
 /**
@@ -113,6 +116,7 @@ function _coerceSettingValue(f, v) {
             return { ok: true, value: v };
         }
         case 'int': {
+            /** @type {number | null} */
             let n = null;
             if (typeof v === 'number' && Number.isInteger(v)) n = v;
             else if (typeof v === 'string' && /^-?\d+$/.test(v.trim())) n = Number(v.trim());
@@ -150,6 +154,7 @@ function _coerceSettingValue(f, v) {
             return { ok: true, value: d.toISOString().slice(0, 10) };
         }
         default: {
+            /** @type {string | null} */
             let s = null;
             if (typeof v === 'string') s = v;
             else if (typeof v === 'number' && Number.isFinite(v)) s = String(v);
@@ -196,6 +201,7 @@ class SettingsValidationError extends Error {
 function sanitizeSettingsPatch(body) {
     const src = body && typeof body === 'object' ? body : {};
     const out = {};
+    /** @type {{ field: string; expected: string; }[]} */
     const bad = [];
     for (const f of SETTINGS_FIELDS) {
         if (f.owner) continue;

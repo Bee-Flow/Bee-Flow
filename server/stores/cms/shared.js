@@ -45,6 +45,9 @@ const PUBLISHED_VERSION = 1;
 
 // ── Small helpers ────────────────────────────────────────────────────
 
+/**
+ * @param {string} prefix
+ */
 function newId(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
@@ -102,6 +105,9 @@ function mergeLocaleContent(base, override) {
     return base;
 }
 
+/**
+ * @param {string} siteId
+ */
 function assertSiteId(siteId) {
     if (!siteId || typeof siteId !== 'string' || !/^pj_[a-f0-9]{4,}$/.test(siteId)) {
         throw new Error('Invalid siteId');
@@ -130,10 +136,19 @@ function sanitizeDesign(input) {
         const name = typeof v === 'string' ? v.trim() : '';
         return /^[A-Za-z0-9][A-Za-z0-9 _-]{0,48}$/.test(name) ? name : fb;
     };
+    /**
+     * @param {number} v
+     * @param {number} lo
+     * @param {number} hi
+     * @param {number} fb
+     */
     const numClamp = (v, lo, hi, fb) =>
         (typeof v === 'number' && v >= lo && v <= hi) ? Math.round(v) : fb;
     const oneOf = (v, set, fb) => (set.includes(v) ? v : fb);
     // A colour role: a literal #rrggbb or '' (follow the primary colour).
+    /**
+     * @param {string} v
+     */
     const role = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : '');
     return {
         colors: {
@@ -223,6 +238,7 @@ const BLOG_TEXT_MAX = { title: 120, description: 500 };
 function sanitizeBlogSettings(b) {
     const src = isPlainObject(b) ? b : {};
     const perLocale = (v, max) => {
+        /** @type {Record<string, string>} */
         const out = {};
         if (!isPlainObject(v)) return out;
         for (const [loc, text] of Object.entries(v)) {
@@ -242,11 +258,33 @@ function sanitizeBlogSettings(b) {
 
 // ── Key builders (every key is project-scoped except the index) ──────
 
+/**
+ * @param {string} siteId
+ */
 function projectKey(siteId)                        { return `${KEY_PROJECT_PFX}${siteId}`; }
+/**
+ * @param {string} siteId
+ * @param {string} locale
+ */
 function projectLocaleKey(siteId, locale)          { return `${KEY_PROJECT_PFX}${siteId}${KEY_LOCALE_INFIX}${locale}`; }
+/**
+ * @param {string} siteId
+ * @param {string} pageId
+ */
 function pageKey(siteId, pageId)                   { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}`; }
+/**
+ * @param {string} siteId
+ * @param {string} pageId
+ * @param {string} locale
+ */
 function pageLocaleKey(siteId, pageId, locale)     { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}${KEY_LOCALE_INFIX}${locale}`; }
+/**
+ * @param {string} siteId
+ */
 function publishedKey(siteId)                      { return `${KEY_PUBLISHED_PFX}${siteId}`; }
+/**
+ * @param {string} siteId
+ */
 function redirectsKey(siteId)                      { return `${KEY_PROJECT_PFX}${siteId}_redirects`; }
 
 module.exports = {

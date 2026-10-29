@@ -72,6 +72,9 @@ function sha256For(body) {
     return crypto.createHash('sha256').update(String(body || ''), 'utf8').digest('hex');
 }
 
+/**
+ * @param {string} orgId
+ */
 async function listDocs(orgId) {
     await initDB();
     return getAll(`
@@ -129,6 +132,7 @@ async function saveDraft(orgId, slug, { title, body }, actorId, { seedBody = nul
 async function setMeta(orgId, slug, patch = {}) {
     await initDB();
     const params = [orgId, slug];
+    /** @type {string[]} */
     const sets = [];
     for (const col of ['owner_user_id', 'review_due_at']) {
         if (patch[col] === undefined) continue;
@@ -216,6 +220,10 @@ async function listPublishedForUser(orgId, userId) {
     `, [orgId, userId]);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} slug
+ */
 async function getPublishedBody(orgId, slug) {
     await initDB();
     const doc = await getOne(`SELECT current_version FROM isms_documents WHERE organization_id = $1 AND slug = $2 AND status = 'published'`, [orgId, slug]);
