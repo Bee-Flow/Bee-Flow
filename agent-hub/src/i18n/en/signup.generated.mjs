@@ -96,4 +96,10 @@ export default {
     "signup.shield_on_summary": "{n} kinds of data",
     "signup.shield_off_summary": "Off",
     "signup.tagline_placeholder": "Working smarter with AI",
+    "signup.first_name_placeholder": "Jan",
+    "signup.last_name_placeholder": "Jansen",
+    "signup.username_placeholder": "janjansen",
+    "signup.org_name_placeholder": "Jansen B.V.",
+    "signup.org_address_placeholder": "Keizersgracht 123, Amsterdam",
+    "signup.org_vat_placeholder": "NL123456789B01",
 };

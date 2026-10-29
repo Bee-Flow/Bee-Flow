@@ -143,13 +143,13 @@ export function FooterEditor({ data = {}, pages = [], onChange }: BlockEditorWit
                         label={t('cms_site.blocks.footer.registration', 'Registration')}
                         value={data.accountability?.registration || ''}
                         onChange={v => onChange(set(data, 'accountability', { ...(data.accountability || {}), registration: v }))}
-                        placeholder="KvK 12345678"
+                        placeholder={t('cms_site.blocks.footer.kvk_placeholder', 'KvK 12345678')}
                     />
                     <TextField
                         label={t('cms_site.blocks.footer.vat', 'VAT')}
                         value={data.accountability?.vat || ''}
                         onChange={v => onChange(set(data, 'accountability', { ...(data.accountability || {}), vat: v }))}
-                        placeholder="NL123456789B01"
+                        placeholder={t('cms_site.blocks.footer.vat_placeholder', 'NL123456789B01')}
                     />
                     <RepeatableList
                         label={t('cms_site.blocks.footer.legal_links', 'Legal links')}

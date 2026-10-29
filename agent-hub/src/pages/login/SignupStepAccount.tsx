@@ -249,11 +249,11 @@ const SignupStepAccount = ({
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className={labelClass}>{t('signup.first_name')}</label>
-                    <input type="text" value={signupData.firstName} onChange={e => setSignupData(p => ({ ...p, firstName: e.target.value }))} className={inputClassSimple} placeholder="Jan" />
+                    <input type="text" value={signupData.firstName} onChange={e => setSignupData(p => ({ ...p, firstName: e.target.value }))} className={inputClassSimple} placeholder={t('signup.first_name_placeholder', 'Jan')} />
                 </div>
                 <div>
                     <label className={labelClass}>{t('signup.last_name')}</label>
-                    <input type="text" value={signupData.lastName} onChange={e => setSignupData(p => ({ ...p, lastName: e.target.value }))} className={inputClassSimple} placeholder="Jansen" />
+                    <input type="text" value={signupData.lastName} onChange={e => setSignupData(p => ({ ...p, lastName: e.target.value }))} className={inputClassSimple} placeholder={t('signup.last_name_placeholder', 'Jansen')} />
                 </div>
             </div>
 
@@ -261,7 +261,7 @@ const SignupStepAccount = ({
                 <label className={labelClass}>{t('signup.username')} *</label>
                 <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
-                    <input type="text" value={signupData.username} onChange={e => setSignupData(p => ({ ...p, username: e.target.value }))} className={inputClass} placeholder="janjansen" required />
+                    <input type="text" value={signupData.username} onChange={e => setSignupData(p => ({ ...p, username: e.target.value }))} className={inputClass} placeholder={t('signup.username_placeholder', 'janjansen')} required />
                 </div>
             </div>
 

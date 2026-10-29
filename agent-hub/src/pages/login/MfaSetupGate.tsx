@@ -110,7 +110,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
 
                     <div className="text-center">
                         <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
-                            <img src={beeFlowLogo} alt="Bee Flow" className="w-full h-full object-cover" />
+                            <img src={beeFlowLogo} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
                         </div>
                         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:rgba(16,185,129,0.1)]">
                             <ShieldCheck className="w-7 h-7 text-emerald-400" />

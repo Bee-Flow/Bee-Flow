@@ -99,4 +99,10 @@ module.exports = {
     'signup.shield_off_summary': 'Off',
     // Hardcoded literals converted (2026-10)
     'signup.tagline_placeholder': 'Working smarter with AI',
+    'signup.first_name_placeholder': 'Jan',
+    'signup.last_name_placeholder': 'Jansen',
+    'signup.username_placeholder': 'janjansen',
+    'signup.org_name_placeholder': 'Jansen B.V.',
+    'signup.org_address_placeholder': 'Keizersgracht 123, Amsterdam',
+    'signup.org_vat_placeholder': 'NL123456789B01',
 };
