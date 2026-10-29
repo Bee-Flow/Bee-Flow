@@ -201,7 +201,8 @@ async function readOutline(doc, sheetCells, evaluate) {
 
 /**
  * @param {SheetDocument} doc
- * @param {any} args  the document_write arguments
+ * @param {{ cells?: Record<string, unknown>, charts?: unknown, removeCharts?: unknown, tab?: unknown, createTab?: unknown }} args
+ *   the document_write arguments
  * @param {{ cells?: any, documents?: any, actorUserId?: string }} [deps]
  */
 async function writeSheetDocument(doc, args, deps = {}) {
@@ -212,7 +213,8 @@ async function writeSheetDocument(doc, args, deps = {}) {
     }
     /** @type {Record<string, string>} */
     const cells = {};
-    for (const [name, value] of Object.entries(hasCells ? args.cells : {})) cells[name] = value === null || value === undefined ? '' : String(value);
+    // hasCells has checked args.cells is a plain object; the check does not carry over through the boolean.
+    for (const [name, value] of Object.entries(/** @type {Record<string, unknown>} */ (hasCells ? args.cells : {}))) cells[name] = value === null || value === undefined ? '' : String(value);
     const names = Object.keys(cells);
     if (names.length > MAX_CELLS_PER_CALL) {
         return { error: `At most ${MAX_CELLS_PER_CALL} cells per call; this one has ${names.length}. Split it over several calls.` };

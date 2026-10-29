@@ -7,7 +7,10 @@
 
 /** @typedef {{ api: string, ncFetch: Function, authError: string, handle: Function, mapQuestion: Function, HEADERS: Record<string,string> }} FormsDeps */
 
-/** @param {FormsDeps} deps @param {any} args */
+/**
+ * @param {FormsDeps} deps
+ * @param {{ formId?: string, text?: string, type?: string, options?: unknown[], isRequired?: unknown, description?: string }} args
+ */
 async function addQuestion(deps, args) {
     const { api, ncFetch, authError, handle, mapQuestion, HEADERS } = deps;
     if (!args.formId) return { error: 'formId is required' };
@@ -29,7 +32,8 @@ async function addQuestion(deps, args) {
     if (!question.id) return { error: 'Nextcloud Forms did not return a question id' };
 
     const removeQuestion = async () => {
-        const url = `${api}/forms/${encodeURIComponent(args.formId)}/questions/${encodeURIComponent(question.id)}`;
+        // formId was checked at the top; the check does not reach into this closure.
+        const url = `${api}/forms/${encodeURIComponent(/** @type {string} */ (args.formId))}/questions/${encodeURIComponent(question.id)}`;
         const cleaned = await ncFetch(url, { method: 'DELETE', headers: HEADERS });
         return cleaned.ok
             ? 'The half-built question was removed.'
@@ -51,7 +55,8 @@ async function addQuestion(deps, args) {
     }
 
     const options = [];
-    for (const label of (needsOptions ? args.options : [])) {
+    // needsOptions implies args.options is a non-empty array (refused above otherwise).
+    for (const label of (needsOptions ? /** @type {unknown[]} */ (args.options) : [])) {
         const opt = await handle(
             await ncFetch(`${api}/forms/${encodeURIComponent(args.formId)}/questions/${encodeURIComponent(question.id)}/options`, {
                 method: 'POST', headers: HEADERS, body: JSON.stringify({ optionTexts: [String(label)] }),
