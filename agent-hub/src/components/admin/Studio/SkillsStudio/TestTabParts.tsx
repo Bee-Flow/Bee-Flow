@@ -66,7 +66,7 @@ export function TestTabSection({ t, agentId, agents, setAgentId }: { t: (key: st
     </div>;
 }
 
-export function StepRow({ row, index }: StepRowProps) {
+function StepRow({ row, index }: StepRowProps) {
     // An unknown status is drawn as a warning, never as a pass — the same
     // direction the server clamps in.
     const status = STATUS_ICON[row.status] ? row.status : 'warning';
@@ -94,7 +94,7 @@ export function StepRow({ row, index }: StepRowProps) {
     );
 }
 
-export function RunRow({ run, rel, t }: RunRowProps) {
+function RunRow({ run, rel, t }: RunRowProps) {
     const ok = run.status === 'ok';
     const results = Array.isArray(run.results) ? run.results : [];
     return (

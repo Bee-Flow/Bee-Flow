@@ -32,7 +32,7 @@ export function Button({ children, onClick, disabled, primary = false, className
 }
 
 /** A row the import left out, with the sentence that says why. */
-export interface SkippedRow {
+interface SkippedRow {
     line: number;
     message: string;
 }

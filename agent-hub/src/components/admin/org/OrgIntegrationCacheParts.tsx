@@ -4,12 +4,12 @@ import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 // The pieces of OrgIntegrationCacheEditor: the two ChoiceCards, what may be kept,
 // the reuse window, what is stored now, and the header and buttons.
 
-export const MINUTES = (s: number) => Math.round(s / 60);
+const MINUTES = (s: number) => Math.round(s / 60);
 
 // An admin deciding whether to clear needs a size, not just a count — a
 // thousand calendar look-ups and a thousand mail searches are not the same
 // amount of somebody's data sitting in the database.
-export const BYTES = (n: number) => {
+const BYTES = (n: number) => {
     if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     if (n >= 1024) return `${Math.round(n / 1024)} kB`;
     return `${n} B`;

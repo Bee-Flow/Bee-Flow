@@ -219,7 +219,7 @@ export function withEffect(action: AppAction, slot: 'onSuccess' | 'onError', eff
 }
 
 /** What the run endpoint answers, as far as the test panel reads it. */
-export type TestRunBody = { error?: string; code?: string; run?: { id?: unknown } } | null;
+type TestRunBody = { error?: string; code?: string; run?: { id?: unknown } } | null;
 
 /*
  * "Test" is not a rehearsal.

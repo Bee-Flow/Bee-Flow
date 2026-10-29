@@ -310,7 +310,7 @@ export function ApproverField({ locked, approverGroupId, setApproverGroupId, gro
     );
 }
 
-export function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
+function RecipePreview({ recipe, warnings = [], t }: RecipePreviewProps) {
     const fields = recipe.table && Array.isArray(recipe.table.fields) ? recipe.table.fields : [];
     // The document itself carries the marker too (it is stored with the
     // playbook), so a preview of a re-opened document says the same thing.

@@ -78,7 +78,7 @@ export function KanbanColumnHeader({ t, column, total, collapsible, isCollapsed,
 }
 
 /** A swimlane's dot, name and card count. */
-export function SwimlaneHeader({ t, lane, count }: { t: TranslateFn; lane: KanbanLane; count: number }) {
+function SwimlaneHeader({ t, lane, count }: { t: TranslateFn; lane: KanbanLane; count: number }) {
     return (
         <div
             className="flex items-center gap-1.5 px-1.5 py-1 mt-1 border-t [border-color:var(--border-subtle,var(--border-default))]!"

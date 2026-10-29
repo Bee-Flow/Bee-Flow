@@ -18,7 +18,7 @@ export function indexAfter(graph: FlowGraph, afterId: string | undefined) {
  * every other scope exactly where it is. The node ARRAY carries the order —
  * see moveStep for why the scope's edges are dropped alongside it.
  */
-export function spliceScope(nodes: GraphNode[], prefix: string, at: number, node: GraphNode) {
+function spliceScope(nodes: GraphNode[], prefix: string, at: number, node: GraphNode) {
     const scoped = nodes.filter((n) => n.prefix === prefix && !n.isEntry);
     const anchor = scoped[at];
     if (anchor) {

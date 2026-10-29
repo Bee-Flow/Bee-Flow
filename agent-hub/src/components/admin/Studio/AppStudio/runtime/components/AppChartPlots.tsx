@@ -17,7 +17,7 @@ import type { ChartRow, ReferenceBandSpec, ReferenceLineSpec, SeriesSpec } from 
 const BAND_OPACITY = 0.12;
 const DEFAULT_REFERENCE_COLOR = '#94a3b8';
 
-export type ChartClickHandler = (state: MouseHandlerDataParam & { activePayload?: { payload?: unknown }[] }) => void;
+type ChartClickHandler = (state: MouseHandlerDataParam & { activePayload?: { payload?: unknown }[] }) => void;
 export type ValueDomain = [number | 'auto', number | 'auto'];
 
 /**
@@ -63,7 +63,7 @@ export function chartReferences({ bands: usableBands, lines: usableLines, horizo
 }
 
 /** The pieces every cartesian plot shares, built once by AppChart. */
-export interface PlotParts {
+interface PlotParts {
     xAxis: ReactNode;
     yAxis: ReactNode;
     grid: ReactNode;

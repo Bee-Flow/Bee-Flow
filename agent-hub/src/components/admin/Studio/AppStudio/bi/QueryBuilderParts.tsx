@@ -29,7 +29,7 @@ export const DATE_BUCKETS = [
 ];
 
 export const DATE_TYPES = new Set<string | undefined>(['date', 'datetime']);
-export const PREVIEW_ROWS = 8;
+const PREVIEW_ROWS = 8;
 
 /** "Sum of Amount" — the row header for one measure, in plain words. */
 function measureSentence(a: { agg: string; field: string; label: string; }, fieldName: (key: string) => string, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
