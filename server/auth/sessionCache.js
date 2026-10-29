@@ -84,7 +84,7 @@ function wrapWithRedisCache(pgStore, redis) {
 
     function ttlFromSession(session) {
         if (session?.cookie?.expires) {
-            const ms = /** @type {any} */ (new Date(session.cookie.expires)) - Date.now();
+            const ms = new Date(session.cookie.expires).getTime() - Date.now();
             if (ms > 0) return Math.min(Math.floor(ms / 1000), CACHE_TTL_SECONDS);
         }
         return CACHE_TTL_SECONDS;
