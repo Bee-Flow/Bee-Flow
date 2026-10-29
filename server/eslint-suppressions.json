@@ -6580,9 +6580,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -6684,7 +6681,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "projects/participation/preGate.js": {

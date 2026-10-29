@@ -39,12 +39,12 @@ const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { RELEASE_KINDS, needsApproval } = require('./model');
 const { storesOf } = require('./journal');
+const { isObject, storedPatchOf, actorIdOf, missingAcknowledgements, errorOf } = require('./runnerRecords');
 
 /**
  * @param {string} name
  */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
-function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 const LEASE_MS = 120_000;
 const HEARTBEAT_MS = 30_000;
@@ -53,52 +53,12 @@ const ELIGIBILITY_CODES = Object.freeze(['release_not_found', 'release_not_pipel
     'release_not_in_uat', 'rollback_target_invalid', 'redeploy_target_invalid', 'stage_invalid', 'kind_invalid']);
 
 /**
- * What the row stores as its settings patch: the gate change of a `settings` row; for a `remove`, the flag the PLAN carries.
- * @param {string} kind
+ * What a runner resolves from its deps once, at creation: the stores, this
+ * worker's id and lease timing, the planner, the phases (each loaded on first
+ * use), the approval and owner lookups and the timers.
+ * @param {Record<string, unknown>} deps
  */
-function storedPatchOf(kind, settingsPatch, plan) {
-    if (kind === 'remove') return plan && plan.deleteData === true ? { deleteData: true } : null;
-    return kind === 'settings' ? (settingsPatch || null) : null;
-}
-
-/**
- * @param {string | { id: string; }} actor
- */
-const actorIdOf = (actor) => (typeof actor === 'string' ? actor : (actor && actor.id) || null);
-
-/** An acknowledgement the requester gave covers a required one with the same code (and ref, when it has one). */
-function missingAcknowledgements(required, given) {
-    const list = (Array.isArray(given) ? given : []).map(g => (typeof g === 'string' ? { code: g } : g)).filter(isObject);
-    return (Array.isArray(required) ? required : []).filter((r) => {
-        const need = typeof r === 'string' ? { code: r } : r;
-        return !list.some(g => g.code === need.code && (need.ref == null || g.ref === need.ref));
-    });
-}
-
-/**
- * What a failed row records: a code, a message we wrote, refs and finding codes; never a stack or content.
- * @param {HttpError} err
- */
-function errorOf(err) {
-    const code = err && typeof err.code === 'string' && err.code ? err.code : 'deployment_failed';
-    const exposed = err && err.expose === true && typeof err.message === 'string';
-    const out = { code, message: exposed ? err.message : 'The deployment failed. Nothing changed in the stage.' };
-    const d = err && isObject(err.details) ? err.details : null;
-    if (d && typeof d.ref === 'string') out.ref = d.ref;
-    if (d && typeof d.why === 'string') out.why = d.why;
-    if (d && Array.isArray(d.findings)) out.findings = d.findings.slice(0, 50).map(f => ({ code: f.code, ...(f.ref ? { ref: f.ref } : {}) }));
-    return out;
-}
-
-/**
- * @param {Record<string, unknown>} [deps]
- *   stores (journal.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
- *   `planDeps`, `approvalGate` ({ request }), `approvalDeps`, `getApproval(id)`, `solutionOwnerOf(solutionId)`,
- *   `prepare`, `commit`, `commitSettings`, `converge`, `compensate`, `removeStage` ({ prepareRemove,
- *   commitRemove, finishRemove }), `workerId`, `leaseMs`, `heartbeatMs`, `now()`, `setInterval`,
- *   `clearInterval`, `schedule(fn)` (the in-process kick; default setImmediate)
- */
-function makeRunner(deps = {}) {
+function runnerParts(deps) {
     const s = storesOf(deps);
     const workerId = deps.workerId || `${os.hostname()}:${process.pid}:${crypto.randomBytes(4).toString('hex')}`;
     const leaseMs = Number(deps.leaseMs) > 0 ? Number(deps.leaseMs) : LEASE_MS;
@@ -123,9 +83,18 @@ function makeRunner(deps = {}) {
     const schedule = deps.schedule || ((fn) => setImmediate(fn));
     const every = deps.setInterval || setInterval;
     const stopEvery = deps.clearInterval || clearInterval;
+    return { s, deps, workerId, leaseMs, heartbeatMs, now, planFn, planDeps, phases, solutionOwnerOf, getApproval, schedule, every, stopEvery };
+}
 
-    // ── admission ───────────────────────────────────────────────────────────
+/** @typedef {ReturnType<typeof runnerParts>} RunnerParts */
 
+/**
+ * The admission half of a runner: the request-key replay, the plan check and
+ * the exclusive insert, then the approval request or the in-process kick.
+ * @param {RunnerParts} parts
+ * @param {(id: string) => void} kick
+ */
+function makeAdmission({ s, deps, planFn, planDeps, phases, solutionOwnerOf }, kick) {
     /**
      * The row a request key already made on this stage, or null.
      * @param {string} stageProjectId
@@ -212,15 +181,15 @@ function makeRunner(deps = {}) {
         return { deployment: row, replayed: false };
     }
 
-    /** Run a queued deployment now, in this process; the job picks it up otherwise. */
-    function kick(id) {
-        schedule(() => {
-            runOne(id).catch(err => log.warn(`[stages/runner] run of ${id} failed: ${err && err.message}`));
-        });
-    }
+    return { admit };
+}
 
-    // ── execution ───────────────────────────────────────────────────────────
-
+/**
+ * The execution half of a runner: claim, lease and heartbeat, execution by
+ * kind, compensation, and the reconciliation of stale and awaiting rows.
+ * @param {RunnerParts} parts
+ */
+function makeExecution({ s, deps, workerId, leaseMs, heartbeatMs, now, planFn, planDeps, phases, getApproval, every, stopEvery }) {
     /** Run `fn` while this worker keeps the row's lease alive. */
     async function withLease(row, fn) {
         const state = { lost: false };
@@ -412,6 +381,30 @@ function makeRunner(deps = {}) {
         return out;
     }
 
+    return { runOne, resumeStale, reconcile, tick };
+}
+
+/**
+ * @param {Record<string, unknown>} [deps]
+ *   stores (journal.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
+ *   `planDeps`, `approvalGate` ({ request }), `approvalDeps`, `getApproval(id)`, `solutionOwnerOf(solutionId)`,
+ *   `prepare`, `commit`, `commitSettings`, `converge`, `compensate`, `removeStage` ({ prepareRemove,
+ *   commitRemove, finishRemove }), `workerId`, `leaseMs`, `heartbeatMs`, `now()`, `setInterval`,
+ *   `clearInterval`, `schedule(fn)` (the in-process kick; default setImmediate)
+ */
+function makeRunner(deps = {}) {
+    const parts = runnerParts(deps);
+    const { schedule, workerId } = parts;
+    const { runOne, resumeStale, reconcile, tick } = makeExecution(parts);
+
+    /** Run a queued deployment now, in this process; the job picks it up otherwise. */
+    function kick(id) {
+        schedule(() => {
+            runOne(id).catch(err => log.warn(`[stages/runner] run of ${id} failed: ${err && err.message}`));
+        });
+    }
+
+    const { admit } = makeAdmission(parts, kick);
     return { admit, kick, runOne, resumeStale, reconcile, tick, workerId };
 }
 
