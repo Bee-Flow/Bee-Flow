@@ -54,25 +54,25 @@ function renderFields(draft = {}, datatables = [MANAGED]) {
 const toggle = () => screen.getByRole('checkbox', { name: /remember answers in a table/i });
 // AccordionSection persists open/closed per user, so a blind click would CLOSE
 // the band for a later test in the same file.
-const openAdvanced = () => {
+const openAdvanced = async () => {
     if (screen.queryByRole('checkbox', { name: /remember answers in a table/i })) return;
     const band = screen.queryByRole('button', { name: /advanced/i });
-    if (band) fireEvent.click(band);
+    if (band) await userEvent.setup().click(band);
 };
 
 beforeEach(() => cleanup());
 
 describe('the tick', () => {
-    it('is offered, unticked, when there is a table to keep answers in', () => {
+    it('is offered, unticked, when there is a table to keep answers in', async () => {
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).checked).toBe(false);
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
     });
 
-    it('is disabled with nowhere to put the answers, and says where to make one', () => {
+    it('is disabled with nowhere to put the answers, and says where to make one', async () => {
         renderFields({}, []);
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
         expect(screen.getByText(/Make an answers table first/i)).toBeTruthy();
     });
@@ -80,7 +80,7 @@ describe('the tick', () => {
     it('ticking it picks the table and the default window', async () => {
         const user = userEvent.setup();
         const { set } = renderFields();
-        openAdvanced();
+        await openAdvanced();
         await user.click(toggle());
         expect(set).toHaveBeenCalledWith('cacheInto', { datatableId: 'tbl_answers', maxAgeDays: 30 });
     });
@@ -88,61 +88,61 @@ describe('the tick', () => {
     it('unticking it clears the field rather than leaving a table behind', async () => {
         const user = userEvent.setup();
         const { set } = renderFields({ cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 30 } });
-        openAdvanced();
+        await openAdvanced();
         await user.click(toggle());
         expect(set).toHaveBeenCalledWith('cacheInto', undefined);
     });
 
-    it('is ENABLED on a write method, with the caution rather than a refusal', () => {
+    it('is ENABLED on a write method, with the caution rather than a refusal', async () => {
         // The method stopped gating this tick when POST-as-look-up was allowed
         // in (DataForSEO, GraphQL, Elasticsearch). What replaces the refusal is
         // a sentence, because only the author knows which kind of POST this is.
         renderFields({ method: 'POST', body: '{}' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
         expect(screen.getByText(/not promised to be a look-up/i)).toBeTruthy();
     });
 
-    it('keeps its OWN wording for the one refusal that remains', () => {
+    it('keeps its OWN wording for the one refusal that remains', async () => {
         // Two controls whose disabled reasons read identically leave the author
         // unable to tell which one is being explained. The SSRF refusal stays:
         // no fetch happens on a hit, so the guard's refusal never fires.
         renderFields({ blockPrivateTargets: false });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
         expect(screen.getByText(/Nothing is kept while private targets are allowed/i)).toBeTruthy();
     });
 });
 
 describe('the picker', () => {
-    it('offers only tables provisioned for this, and names each audience', () => {
+    it('offers only tables provisioned for this, and names each audience', async () => {
         renderFields({ cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 30 } }, stub<Parameters<typeof renderFields>[1]>([MANAGED, ORDINARY]));
-        openAdvanced();
+        await openAdvanced();
         const options = [...(screen.getByRole('combobox', { name: /which table/i }) as HTMLSelectElement).options];
         expect(options.map(o => o.value)).toEqual(['tbl_answers']);
         expect(options[0].textContent).toMatch(/everyone in the organisation/i);
     });
 
-    it('keeps a table the step names but this account can no longer reach', () => {
+    it('keeps a table the step names but this account can no longer reach', async () => {
         // Silently re-pointing the step at a different table is worse than
         // showing that the one it names is gone.
         renderFields({ cacheInto: { datatableId: 'tbl_gone', maxAgeDays: 30 } });
-        openAdvanced();
+        await openAdvanced();
         const select = screen.getByRole('combobox', { name: /which table/i });
         expect((select as HTMLInputElement).value).toBe('tbl_gone');
         expect(screen.getByText(/no longer reach/i)).toBeTruthy();
     });
 
-    it('changing the window keeps the table it was pointed at', () => {
+    it('changing the window keeps the table it was pointed at', async () => {
         const { set } = renderFields({ cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 30 } });
-        openAdvanced();
+        await openAdvanced();
         fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '7' } });
         expect(set).toHaveBeenCalledWith('cacheInto', { datatableId: 'tbl_answers', maxAgeDays: 7 });
     });
 
-    it('says that the rows are readable and exportable by everyone with access', () => {
+    it('says that the rows are readable and exportable by everyone with access', async () => {
         renderFields({ cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 30 } });
-        openAdvanced();
+        await openAdvanced();
         expect(screen.getByText(/read and\s+export them/i)).toBeTruthy();
     });
 });
@@ -153,7 +153,7 @@ describe('the field survives a round trip', () => {
         cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 14 },
     };
 
-    it('an unrelated save does not strip it', () => {
+    it('an unrelated save does not strip it', async () => {
         // buildPatch sends only what CHANGED, so "survived" means the key is
         // absent — not present-and-equal. Present-and-undefined is the shape
         // that would delete the setting, and that is what this rules out.
@@ -164,25 +164,25 @@ describe('the field survives a round trip', () => {
         expect(patch.timeoutMs).toBe(20000);
     });
 
-    it('changing only the window sends only the new window', () => {
+    it('changing only the window sends only the new window', async () => {
         const draft = extractFormState(step);
         const patch = buildPatch(step, { ...draft, cacheInto: { datatableId: 'tbl_answers', maxAgeDays: 7 } });
         expect(patch.cacheInto).toEqual({ datatableId: 'tbl_answers', maxAgeDays: 7 });
     });
 
-    it('unticking clears the key rather than leaving a fourth spelling of off', () => {
+    it('unticking clears the key rather than leaving a fourth spelling of off', async () => {
         const draft = extractFormState(step);
         const patch = buildPatch(step, { ...draft, cacheInto: undefined });
         expect('cacheInto' in patch).toBe(true);
         expect(patch.cacheInto).toBeUndefined();
     });
 
-    it('a table-less object is off, not a half-configured setting', () => {
+    it('a table-less object is off, not a half-configured setting', async () => {
         const draft = extractFormState({ ...step, cacheInto: { maxAgeDays: 30 } });
         expect(draft.cacheInto).toBeUndefined();
     });
 
-    it('a step that never had one is left byte-identical', () => {
+    it('a step that never had one is left byte-identical', async () => {
         const plain = { id: 'h2', type: 'http_request', url: 'https://x.test/', method: 'GET' };
         const patch = buildPatch(plain, extractFormState(plain));
         expect('cacheInto' in patch).toBe(false);

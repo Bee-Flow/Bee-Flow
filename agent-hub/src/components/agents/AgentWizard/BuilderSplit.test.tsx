@@ -79,7 +79,7 @@ afterEach(() => { cleanup(); asMock(authFetch).mockImplementation(DEFAULT_FETCH!
 // The component reads through react-query: every render gets its own client.
 
 describe('BuilderSplit (decomposed layout smoke)', () => {
-    it('renders the chat rail and the config panel in edit mode', () => {
+    it('renders the chat rail and the config panel in edit mode', async () => {
         render(<BuilderSplit {...baseProps} />);
         // Left rail (BuilderChatPanel) empty-state.
         expect(screen.getByText('Refine this agent with AI')).toBeTruthy();
@@ -100,7 +100,7 @@ describe('BuilderSplit (decomposed layout smoke)', () => {
         expect(screen.getByDisplayValue('Renamed Agent')).toBeTruthy();
     });
 
-    it('hides the chat rail and shows the banner in read-only mode', () => {
+    it('hides the chat rail and shows the banner in read-only mode', async () => {
         render(<BuilderSplit {...baseProps} readOnly />);
         expect(screen.queryByText('Refine this agent with AI')).toBeNull();
         expect(screen.getByText("Read-only — you don't have permission to edit this agent.")).toBeTruthy();
@@ -114,7 +114,7 @@ describe('BuilderSplit (decomposed layout smoke)', () => {
  * answer.
  */
 describe('BuilderSplit — kop, hero en tabs', () => {
-    it('zet de verfijn-rail rechts van de inhoud', () => {
+    it('zet de verfijn-rail rechts van de inhoud', async () => {
         const { container } = render(<BuilderSplit {...baseProps} />);
         const main = container.querySelector('main');
         const row = main!.parentElement;
@@ -132,7 +132,7 @@ describe('BuilderSplit — kop, hero en tabs', () => {
         expect(rail.className).not.toContain('border-r');
     });
 
-    it('toont kop en hero, met de omschrijving zonder eerst iets uit te klappen', () => {
+    it('toont kop en hero, met de omschrijving zonder eerst iets uit te klappen', async () => {
         render(<BuilderSplit {...baseProps} />);
         expect(screen.getByTestId('studio-section-header')).toBeTruthy();
         expect(within(screen.getByTestId('studio-section-kind')).getByTestId('agent-tile-avatar')).toBeTruthy();
@@ -170,11 +170,11 @@ describe('BuilderSplit — kop, hero en tabs', () => {
  * says THAT instead of showing an empty list, and the counter on the tab counts what is on the tab.
  */
 describe('BuilderSplit — de tab "Kan gebruiken"', () => {
-    const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
+    const openCanUse = () => userEvent.setup().click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
 
     it('toont de Kennis-kaart en de Skills-kaart', async () => {
         render(<BuilderSplit {...baseProps} />);
-        openCanUse();
+        await openCanUse();
         expect(await screen.findByTestId('agent-knowledge-card')).toBeTruthy();
         expect(screen.getByTestId('agent-skills-card')).toBeTruthy();
         // De Rol-inhoud is weg; we kijken echt naar de andere tab.
@@ -185,14 +185,14 @@ describe('BuilderSplit — de tab "Kan gebruiken"', () => {
         // The default mock fails every fetch, so GET /api/kb?context=agent does too. The agent DOES have
         // a link, so there is something to name that we could not name — exactly what the warning is for.
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { knowledge_base_ids: ['kb1'] } }} />);
-        openCanUse();
+        await openCanUse();
         expect(await screen.findByTestId('agent-knowledge-kbs-unreadable')).toBeTruthy();
         expect(screen.queryByTestId('agent-knowledge-empty')).toBeNull();
     });
 
     it('waarschuwt niet over kennisbanken die deze agent niet heeft', async () => {
         render(<BuilderSplit {...baseProps} />);
-        openCanUse();
+        await openCanUse();
         // Zero links: then "nothing linked" is the answer, not a warning about a list that this agent
         // does not use anyway.
         expect(await screen.findByTestId('agent-knowledge-empty')).toBeTruthy();
@@ -204,7 +204,7 @@ describe('BuilderSplit — de tab "Kan gebruiken"', () => {
             ['/api/kb?context=agent', [{ id: 'kb1', name: 'Quote terms', document_count: 42, last_content_at: '2026-09-06T10:00:00Z' }]],
         ]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { knowledge_base_ids: ['kb1'] } }} />);
-        openCanUse();
+        await openCanUse();
         const row = await screen.findByTestId('agent-knowledge-kb-row');
         expect(row.textContent).toContain('Quote terms');
         expect(row.textContent).toContain('42 documents');
@@ -213,7 +213,7 @@ describe('BuilderSplit — de tab "Kan gebruiken"', () => {
 
     it('houdt een tabel-grant zichtbaar ook als de tabellenroute weigert', async () => {
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { tools: { datatables: { t1: { scope: 'own', columns: '*' } } } } }} />);
-        openCanUse();
+        await openCanUse();
         const row = await screen.findByTestId('agent-knowledge-table-row');
         expect(row.textContent).toContain("live · only the asker's own rows · reads, does not write");
         expect(screen.getByTestId('agent-knowledge-tables-unreadable')).toBeTruthy();
@@ -284,7 +284,7 @@ describe('BuilderSplit — the Upload files pill', () => {
  * a grant on a switched-off app stays visible, and that a choice in the card lands in the config.
  */
 describe('BuilderSplit — de Tools-kaart', () => {
-    const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
+    const openCanUse = () => userEvent.setup().click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
 
     const CATALOG = {
         apps: [
@@ -319,7 +319,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
             ...agent,
             config: { enabledIntegrations: ['gmail'], tools: { gmail: { actions: ['gmail_search'] } } },
         }} />);
-        openCanUse();
+        await openCanUse();
 
         expect(await screen.findByTestId('agent-tools-card')).toBeTruthy();
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('1 of 2 actions'));
@@ -334,7 +334,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         render(<BuilderSplit {...baseProps} agent={{
             ...agent, config: { enabledIntegrations: ['gmail'] },
         }} />);
-        openCanUse();
+        await openCanUse();
 
         expect(await screen.findByTestId('agent-tools-unreadable')).toBeTruthy();
         expect(screen.getByTestId('agent-tool-row').textContent).toContain('Gmail');
@@ -347,7 +347,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
             ...agent,
             config: { enabledIntegrations: [], tools: { 'google-drive': { actions: [] } } },
         }} />);
-        openCanUse();
+        await openCanUse();
 
         await waitFor(() => expect(screen.getAllByTestId('agent-tool-row')).toHaveLength(1));
         expect(screen.getByTestId('agent-tool-row').textContent).toContain('Google Drive');
@@ -359,7 +359,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         render(<BuilderSplit {...baseProps} agent={{
             ...agent, config: { enabledIntegrations: ['google-drive'] },
         }} />);
-        openCanUse();
+        await openCanUse();
 
         const row = await screen.findByTestId('agent-tool-row');
         const ask = within(row).getByRole('radio', { name: 'Confirm first' });
@@ -389,7 +389,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
  * config — in one go, with both gates (`enabledIntegrations` AND `config.tools`).
  */
 describe('BuilderSplit — de tool-kiezer', () => {
-    const openCanUse = () => fireEvent.click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
+    const openCanUse = () => userEvent.setup().click(screen.getAllByRole('radio', { name: /Can use/ })[0]);
 
     const CATALOG = {
         apps: [
@@ -416,7 +416,7 @@ describe('BuilderSplit — de tool-kiezer', () => {
         // Drive is NOT at the top of the picker (Gmail sorts before it), so this test fails as soon as the
         // ↗ loses its app id along the way.
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: ['google-drive'] } }} />);
-        openCanUse();
+        await openCanUse();
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row')).toBeTruthy());
         await user.click(screen.getByTestId('agent-tool-open'));
@@ -431,7 +431,7 @@ describe('BuilderSplit — de tool-kiezer', () => {
         const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: ['gmail'] } }} />);
-        openCanUse();
+        await openCanUse();
 
         await waitFor(() => expect(screen.getByTestId('agent-tool-row').textContent).toContain('2 of 2 actions'));
         await user.click(screen.getByTestId('agent-tool-open'));
@@ -449,7 +449,7 @@ describe('BuilderSplit — de tool-kiezer', () => {
         const user = userEvent.setup();
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, config: { enabledIntegrations: [] } }} />);
-        openCanUse();
+        await openCanUse();
 
         expect(await screen.findByTestId('agent-tools-empty')).toBeTruthy();
         await user.click(screen.getByTestId('agent-tools-link'));
@@ -513,7 +513,7 @@ describe('BuilderSplit — de Gedaan-beurt in de verfijn-rail', () => {
         expect(asMock(authFetch).mock.calls.some(([url]) => String(url).includes('/restore'))).toBe(false);
     });
 
-    it('bij twee beurten kan alleen de nieuwste ongedaan — één niveau diep', () => {
+    it('bij twee beurten kan alleen de nieuwste ongedaan — één niveau diep', async () => {
         render(<BuilderSplit {...baseProps} history={[doneTurn({ undoVersionId: 'v8' }), doneTurn()]} />);
         const states = screen.getAllByTestId('refine-done-undo').map(b => b.getAttribute('data-undo-state'));
         expect(states).toEqual(['superseded', 'idle']);
