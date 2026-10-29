@@ -9,7 +9,7 @@ import EuGptApiKeyCard from './ProviderCards/EuGptCard';
 import GoogleApiKeyCard from './ProviderCards/GoogleCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import { getModelMeta, CAT_COLORS } from '@/api/modelMeta';
 
@@ -38,6 +38,19 @@ interface ModelRow extends CatalogModel {
     providerType?: string;
 }
 
+
+// Provider cards config — maps provider name to its card component
+const PROVIDER_CARDS = [
+    { name: 'Mistral', component: MistralApiKeyCard },
+    { name: 'OpenAI', component: OpenAIApiKeyCard },
+    { name: 'Claude', component: ClaudeApiKeyCard },
+    { name: 'Google AI', component: GoogleApiKeyCard },
+    { name: 'Scaleway', component: ScalewayApiKeyCard },
+    { name: 'EU GPT', component: EuGptApiKeyCard },
+    { name: 'ElevenLabs', component: ElevenLabsApiKeyCard },
+    { name: 'Google Vertex', component: GoogleVertexConfigCard },
+    { name: 'Azure', component: AzureConfigCard },
+];
 
 const AIConfigPanel = () => {
     const { t } = useTranslation();
@@ -141,19 +154,6 @@ const AIConfigPanel = () => {
 
     ];
 
-    // Provider cards config — maps provider name to its card component
-    const providerCards = [
-        { name: 'Mistral', component: MistralApiKeyCard },
-        { name: 'OpenAI', component: OpenAIApiKeyCard },
-        { name: 'Claude', component: ClaudeApiKeyCard },
-        { name: 'Google AI', component: GoogleApiKeyCard },
-        { name: 'Scaleway', component: ScalewayApiKeyCard },
-        { name: 'EU GPT', component: EuGptApiKeyCard },
-        { name: 'ElevenLabs', component: ElevenLabsApiKeyCard },
-        { name: 'Google Vertex', component: GoogleVertexConfigCard },
-        { name: 'Azure', component: AzureConfigCard },
-    ];
-
     return (
         <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
             {/* Left Sidebar */}
@@ -170,7 +170,7 @@ const AIConfigPanel = () => {
                 {/* Providers Tab — API Keys + inline model lists */}
                 {activeTab === 'providers' && (
                     <div className="space-y-0">
-                        {providerCards.map(({ name, component: Card }) => {
+                        {PROVIDER_CARDS.map(({ name, component: Card }) => {
                             const modelCount = getProviderModelCount(name);
                             const isExpanded = expandedProviderModels[name];
                             const providerModels = allModels.filter(m => m.providerName === name);
@@ -180,44 +180,7 @@ const AIConfigPanel = () => {
                                     <Card onMessage={setMessage} />
                                     {/* Inline model list (collapsible) */}
                                     {modelCount > 0 && (
-                                        <div className="-mt-3 mb-6 mx-0">
-                                            <button
-                                                onClick={() => toggleProviderModels(name)}
-                                                className="flex items-center gap-2 text-xs px-5 py-1.5 rounded-b-lg transition-colors hover:bg-white/5 w-full text-left text-[var(--text-muted)]"
-                                            >
-                                                <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
-                                                <span>{modelCount === 1 ? t('admin_ai_config.index_models_one', '1 available model') : t('admin_ai_config.index_models_other', '{count} available models', { count: modelCount })}</span>
-                                            </button>
-                                            {isExpanded && (
-                                                <div className="px-5 pb-3 pt-1">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                                                        {providerModels.map(model => {
-                                                            const meta = getModelMeta(model.id);
-                                                            return (
-                                                                <div
-                                                                    key={model.id}
-                                                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-[var(--bg-tertiary)]"
-                                                                >
-                                                                    <span className="font-medium truncate flex-1 text-[var(--text-primary)]">
-                                                                        {meta?.name || model.name || model.id}
-                                                                    </span>
-                                                                    {meta?.cat && (
-                                                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{
-                                                                            background: CAT_COLORS[meta.cat] || 'rgba(107,114,128,0.2)',
-                                                                            color: 'var(--text-muted)'
-                                                                        }}>
-                                                                            {meta.cat}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                        <ProviderModelList t={t} modelCount={modelCount} isExpanded={isExpanded} models={providerModels} onToggle={() => toggleProviderModels(name)} />
                                     )}
                                 </div>
                             );
@@ -297,4 +260,56 @@ function AIConfigPanelSection({ t, navItems, setActiveTab, activeTab }: { t: (ke
             ))}
         </div>
     </div>;
+}
+
+interface ProviderModelListProps {
+    t: TranslateFn;
+    modelCount: number;
+    isExpanded: boolean | undefined;
+    models: ModelRow[];
+    onToggle: () => void;
+}
+
+/** A provider card's collapsible list of the models it offers. */
+function ProviderModelList({ t, modelCount, isExpanded, models, onToggle }: ProviderModelListProps) {
+    return (
+        <div className="-mt-3 mb-6 mx-0">
+            <button
+                onClick={onToggle}
+                className="flex items-center gap-2 text-xs px-5 py-1.5 rounded-b-lg transition-colors hover:bg-white/5 w-full text-left text-[var(--text-muted)]"
+            >
+                <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <span>{modelCount === 1 ? t('admin_ai_config.index_models_one', '1 available model') : t('admin_ai_config.index_models_other', '{count} available models', { count: modelCount })}</span>
+            </button>
+            {isExpanded && (
+                <div className="px-5 pb-3 pt-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                        {models.map(model => {
+                            const meta = getModelMeta(model.id);
+                            return (
+                                <div
+                                    key={model.id}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-[var(--bg-tertiary)]"
+                                >
+                                    <span className="font-medium truncate flex-1 text-[var(--text-primary)]">
+                                        {meta?.name || model.name || model.id}
+                                    </span>
+                                    {meta?.cat && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{
+                                            background: CAT_COLORS[meta.cat] || 'rgba(107,114,128,0.2)',
+                                            color: 'var(--text-muted)'
+                                        }}>
+                                            {meta.cat}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
