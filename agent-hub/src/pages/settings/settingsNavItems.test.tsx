@@ -28,12 +28,14 @@ import {
 } from './settingsNavItems';
 import { useTranslation } from '../../hooks/useTranslation';
 
+type TFn = ReturnType<typeof useTranslation>['t'];
+
 /** Resolve a labelKey exactly the way the sidebar does. */
 function useT() {
-    let t;
+    let t: TFn | undefined;
     const Probe = () => { ({ t } = useTranslation()); return null; };
     render(<Probe />);
-    return t;
+    return t as TFn;
 }
 
 afterEach(() => { vi.resetModules(); vi.doUnmock('../../authedApp/settingsRoutes'); });
@@ -74,7 +76,7 @@ describe('settingsNavItems — the label a row shows', () => {
     it('renders each row icon as a 15px svg', () => {
         for (const item of NAV_ITEMS) {
             const { container, unmount } = render(<div>{item.icon}</div>);
-            const svg = container.querySelector('svg');
+            const svg = container.querySelector('svg') as SVGSVGElement;
             expect(svg, `${item.id} has no renderable icon`).toBeTruthy();
             expect(svg.getAttribute('width')).toBe('15');
             expect(svg.getAttribute('height')).toBe('15');
@@ -116,12 +118,12 @@ describe('settingsNavItems — the label a row shows', () => {
 
 describe('settingsNavItems — an addressable segment with no presentation row', () => {
     /** Rebuild the module against a doctored tab list. */
-    async function buildWith(tabIds) {
+    async function buildWith(tabIds: string[]) {
         vi.resetModules();
         vi.doMock('../../authedApp/settingsRoutes', () => ({
             SETTINGS_TOP_LEVEL_TAB_IDS: tabIds,
         }));
-        const errors = [];
+        const errors: string[] = [];
         const spy = vi.spyOn(console, 'error').mockImplementation((...args) => { errors.push(args.join(' ')); });
         const mod = await import('./settingsNavItems');
         spy.mockRestore();
