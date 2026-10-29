@@ -44,10 +44,10 @@ async function _notifyBreach(row, which) {
     try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; log.debug('noop', err); }
     const label = which === 'first' ? 'First-response' : 'Resolution';
     try {
-        await supportStore.recordThreadEvent(/** @type {any} */ ({
+        await supportStore.recordThreadEvent({
             threadId: row.id, actorUserId: null, actorKind: 'automation',
             action: 'sla_breach', payload: { which },
-        }));
+        });
     } catch (e) { log.warn('[SupportSLA] recordThreadEvent failed:', /** @type {Error} */ (e).message); }
 
     if (typeof notifyStaff === 'function') {
