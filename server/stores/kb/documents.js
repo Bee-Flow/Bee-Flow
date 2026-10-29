@@ -83,7 +83,7 @@ function makeDocumentFns(ctx) {
          * Mark a row's outcome without touching its content columns — the
          * onFailure:'record' path and "process again" use it.
          * @param {string} docId
-         * @param {any} p - { status, statusReason?, chunkCount? }
+         * @param {{ status?: string, statusReason?: unknown, chunkCount?: unknown }} [p]  statusReason is cut to 500 characters, chunkCount read as an integer or null
          */
         updateDocumentStatus: async (docId, { status, statusReason, chunkCount } = {}) => {
             await initDB();

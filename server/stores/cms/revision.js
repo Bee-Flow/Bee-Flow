@@ -7,17 +7,18 @@
 
 const { HttpError } = require('../../shared/httpErrors');
 const log = require('../../telemetry/log');
-const { isPlainObject } = require('./shared');
+const { isPlainObject, isRecord } = require('./shared');
 
 const CONFLICT_CODE = 'cms_conflict';
 const REV_REQUIRED_CODE = 'cms_rev_required';
 
 /**
- * @param {any} doc a stored document (or null)
+ * @param {unknown} doc a stored document (or null)
  * @returns {number} its revision; 0 for documents saved before revisions existed
  */
 function revOf(doc) {
-    return isPlainObject(doc) && Number.isInteger(doc.rev) && doc.rev >= 0 ? doc.rev : 0;
+    // typeof adds nothing to Number.isInteger at runtime; it narrows `rev` for the compiler.
+    return isRecord(doc) && typeof doc.rev === 'number' && Number.isInteger(doc.rev) && doc.rev >= 0 ? doc.rev : 0;
 }
 
 /** @param {string} what e.g. "page" or "site" */

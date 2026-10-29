@@ -310,7 +310,7 @@ function isManualOverrideActive(sub) {
  * within the last 60 seconds (the loser of the race).
  *
  * @param {string} orgId
- * @param {any} payload  fields to write through to setOrgSubscription
+ * @param {Record<string, unknown>} payload  fields to write through to setOrgSubscription
  */
 async function setOrgSubscriptionWithLock(orgId, payload) {
     await initDB();

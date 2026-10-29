@@ -322,7 +322,7 @@ async function completeExecution(id, status, nodesExecuted, result, error = null
     const execution = await getOne('SELECT * FROM execution_history WHERE id = $1', [id]);
     if (!execution) return { error: 'Execution not found' };
 
-    const durationMs = /** @type {any} */ (new Date(completedAt)) - /** @type {any} */ (new Date(execution.started_at));
+    const durationMs = new Date(completedAt).getTime() - new Date(execution.started_at).getTime();
     await run(`
         UPDATE execution_history SET status = $1, completed_at = $2, duration_ms = $3, nodes_executed = $4, result_json = $5, error = $6
         WHERE id = $7

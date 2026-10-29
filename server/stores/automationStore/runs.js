@@ -155,7 +155,7 @@ function decodeRunCursor(cursor) {
  * `project` is the row mapper, and it is a PARAMETER because the two scopes
  * hand back different fields on purpose — see rowToOrgRunRow.
  *
- * @param {any} scope
+ * @param {{ user?: { userId?: string | null }, org?: { orgId?: string | null }, automation?: { automationId?: string | null } }} scope  buildRunFilterWhere's scope
  * @param {any} [filters]
  * @param {(row: any) => any} [project]
  */

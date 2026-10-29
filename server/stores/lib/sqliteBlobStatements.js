@@ -54,7 +54,7 @@ function quoteIdent(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
-/** @param {any} deps  getHandle (from the loader). */
+/** @param {{ getHandle: ReturnType<typeof import('./sqliteBlobHandles').createHandleLoader>['getHandle'] }} deps  getHandle (from the loader). */
 function createReadApi({ getHandle }) {
     /**
      * Return a read handle. Identical to getWriteHandle today — reads and
@@ -116,7 +116,10 @@ function createReadApi({ getHandle }) {
     return { getReadHandle, query, schema };
 }
 
-/** @param {any} deps  getHandle (loader), scheduleFlush (flusher), entityLabel. */
+/**
+ * @param {{ getHandle: ReturnType<typeof import('./sqliteBlobHandles').createHandleLoader>['getHandle'], scheduleFlush: ReturnType<typeof import('./sqliteBlobFlush').createFlusher>['scheduleFlush'], entityLabel: string }} deps
+ *   getHandle (loader), scheduleFlush (flusher), entityLabel.
+ */
 function createWriteApi({ getHandle, scheduleFlush, entityLabel }) {
     /**
      * Return the writable handle. In single-replica mode this is just

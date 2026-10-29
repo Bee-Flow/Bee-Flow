@@ -33,7 +33,7 @@
 
 const log = require('../../../telemetry/log');
 const { isSideEffect } = require('../../sideEffectMap');
-const { sourceError, DAY } = require('./common');
+const { sourceError, errorCode, DAY } = require('./common');
 const mailLive = require('./mailLive');
 const filesLive = require('./filesLive');
 const meetings = require('./meetings');
@@ -279,8 +279,8 @@ async function collectAll(ctx, opts = {}) {
                 const result = await runWithin(() => collect(collectorCtx), limit, controller, signal);
                 found = Array.isArray(result) ? result : [];
             } catch (err) {
-                const code = /** @type {any} */ (err)?.code;
-                reason = REASONS.has(code) ? code : 'error';
+                const code = errorCode(err);
+                reason = code !== undefined && REASONS.has(code) ? code : 'error';
                 if (reason !== 'aborted') {
                     const msg = String(/** @type {Error} */ (err)?.message || '').slice(0, 200);
                     log.warn(`[RepeatingWork] source ${group.id}/${app.id} skipped (${reason}): ${msg}`);

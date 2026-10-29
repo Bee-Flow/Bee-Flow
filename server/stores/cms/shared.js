@@ -56,6 +56,13 @@ function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
+/**
+ * isPlainObject as a type guard: a non-null, non-array object.
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
+const isRecord = (v) => isPlainObject(v);
+
 function clone(v) {
     return v === undefined ? v : JSON.parse(JSON.stringify(v));
 }
@@ -291,7 +298,7 @@ module.exports = {
     KEY_DEFAULT_LOCALE, KEY_PROJECTS_INDEX, KEY_PROJECT_PFX, KEY_LOCALE_INFIX,
     KEY_PAGE_INFIX, KEY_PUBLISHED_PFX, KEY_TEMPLATES,
     SITE_VERSION, PAGE_VERSION, LOCALE_OVERRIDE_VERSION, INDEX_VERSION, PUBLISHED_VERSION,
-    newId, isPlainObject, clone, deepMerge, mergeLocaleContent,
+    newId, isPlainObject, isRecord, clone, deepMerge, mergeLocaleContent,
     normalizeSlug, normalizeStoredSlug, isReservedSlug, assertSiteId,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey, redirectsKey,

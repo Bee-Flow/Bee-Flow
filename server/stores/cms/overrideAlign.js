@@ -34,12 +34,14 @@ const store = /** @type {typeof configStore & { withConfigGroup: ReturnType<type
  */
 const withConfigGroup = (lockKey, work) => store.withConfigGroup(lockKey, work);
 const {
-    KEY_LOCALE_INFIX, isPlainObject, pageKey, projectKey, projectLocaleKey,
+    KEY_LOCALE_INFIX, isPlainObject, isRecord, pageKey, projectKey, projectLocaleKey,
 } = require('./shared');
 
 const ORPHAN_CAP = 100;
 
 /** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: any) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} ConfigIo */
+
+/** @typedef {{ id?: unknown, content?: unknown }} StoredBlock */
 
 /** @param {{ id: string; }} item */
 function itemKey(item) {
@@ -49,24 +51,40 @@ function itemKey(item) {
 }
 
 /**
- * @param {any} prev  default-language content before the save
- * @param {any} next  default-language content after the save
- * @param {any} override  index-aligned to `prev`
+ * The result is of the same kind as `override`: an array stays an array, an
+ * object keeps its keys, anything else is returned as is.
+ * @template T
+ * @param {unknown} prev  default-language content before the save
+ * @param {unknown} next  default-language content after the save
+ * @param {T} override  index-aligned to `prev`
  * @param {Record<string, any>} orphans  mutable bag of parked translations
  * @param {string} path
- * @returns {any}  `override`, index-aligned to `next`
+ * @returns {T}  `override`, index-aligned to `next`
  */
 function realign(prev, next, override, orphans, path) {
+    return /** @type {T} */ (realignValue(prev, next, override, orphans, path));
+}
+
+/**
+ * @param {unknown} prev
+ * @param {unknown} next
+ * @param {unknown} override
+ * @param {Record<string, any>} orphans
+ * @param {string} path
+ * @returns {unknown}
+ */
+function realignValue(prev, next, override, orphans, path) {
     if (override === undefined || override === null) return override;
     if (Array.isArray(override)) {
         if (!Array.isArray(prev) || !Array.isArray(next)) return override;
         return realignArray(prev, next, override, orphans, path);
     }
-    if (isPlainObject(override)) {
+    if (isRecord(override)) {
+        /** @type {Record<string, unknown>} */
         const out = {};
         for (const k of Object.keys(override)) {
-            out[k] = realign(isPlainObject(prev) ? prev[k] : undefined,
-                isPlainObject(next) ? next[k] : undefined, override[k], orphans, `${path}.${k}`);
+            out[k] = realignValue(isRecord(prev) ? prev[k] : undefined,
+                isRecord(next) ? next[k] : undefined, override[k], orphans, `${path}.${k}`);
         }
         return out;
     }
@@ -119,7 +137,7 @@ function realignArray(prev, next, override, orphans, path) {
     return next.map((n, i) => {
         if (i in revived) return revived[i];
         const j = from[i];
-        return j < 0 || j >= override.length ? null : realign(prev[j], n, override[j], orphans, `${path}[]`);
+        return j < 0 || j >= override.length ? null : realignValue(prev[j], n, override[j], orphans, `${path}[]`);
     });
 }
 
@@ -134,7 +152,7 @@ function realignRoot(root, keys, prevOf, nextOf) {
     const orphans = isPlainObject(root._orphans) ? { ...root._orphans } : {};
     const out = { ...root };
     for (const k of keys) {
-        if (root[k] !== undefined) out[k] = realign(prevOf(k), nextOf(k), root[k], orphans, k);
+        if (root[k] !== undefined) out[k] = realignValue(prevOf(k), nextOf(k), root[k], orphans, k);
     }
     const names = Object.keys(orphans);
     if (names.length) out._orphans = Object.fromEntries(names.slice(-ORPHAN_CAP).map((n) => [n, orphans[n]]));
@@ -151,18 +169,18 @@ function localeOf(key, infix) {
  * Inside a content write: re-align every locale override of a page.
  * @param {ConfigIo} io
  * @param {string} siteId
- * @param {any} prevPage  the stored page before the save (or null)
- * @param {any} nextPage  the page as saved
+ * @param {unknown} prevPage  the stored page before the save (or null)
+ * @param {{ id?: string, blocks?: unknown }} nextPage  the page as saved
  * @returns {Promise<Record<string, any>>}  locale -> re-aligned override (only those that changed)
  */
 async function realignPageOverrides(io, siteId, prevPage, nextPage) {
     /** @type {Record<string, any>} */
     const changed = {};
-    if (!isPlainObject(prevPage) || !Array.isArray(prevPage.blocks) || !Array.isArray(nextPage?.blocks)) return changed;
+    if (!isRecord(prevPage) || !Array.isArray(prevPage.blocks) || !Array.isArray(nextPage?.blocks)) return changed;
     const prefix = `${pageKey(siteId, nextPage.id)}${KEY_LOCALE_INFIX}`;
     const keys = (await io.keysLike(`${prefix}%`)).filter((k) => k.startsWith(prefix));
-    const prevById = new Map(prevPage.blocks.map((/** @type {any} */ b) => [b.id, b]));
-    const nextById = new Map(nextPage.blocks.map((/** @type {any} */ b) => [b.id, b]));
+    const prevById = new Map(prevPage.blocks.map((/** @type {StoredBlock} */ b) => [b.id, b]));
+    const nextById = new Map(nextPage.blocks.map((/** @type {StoredBlock} */ b) => [b.id, b]));
     for (const key of keys) {
         const ov = await io.get(key);
         if (!isPlainObject(ov) || !isPlainObject(ov.blocks)) continue;
@@ -188,14 +206,14 @@ async function realignPageOverrides(io, siteId, prevPage, nextPage) {
  * Inside a site write: re-align every site-locale override (header/footer).
  * @param {ConfigIo} io
  * @param {string} siteId
- * @param {any} prevSite
- * @param {any} nextSite
+ * @param {unknown} prevSite
+ * @param {unknown} nextSite
  * @returns {Promise<Record<string, any>>}  locale -> re-aligned override (only those that changed)
  */
 async function realignSiteOverrides(io, siteId, prevSite, nextSite) {
     /** @type {Record<string, any>} */
     const changed = {};
-    if (!isPlainObject(prevSite) || !isPlainObject(nextSite)) return changed;
+    if (!isRecord(prevSite) || !isRecord(nextSite)) return changed;
     const prefix = projectLocaleKey(siteId, '');
     const keys = (await io.keysLike(`${prefix}%`)).filter((k) => k.startsWith(prefix));
     for (const key of keys) {
@@ -218,7 +236,7 @@ async function realignSiteOverrides(io, siteId, prevSite, nextSite) {
  * (409 otherwise); the stored revision is raised when `bumpRev`, and the one
  * stored is reported as `report.rev`.
  * @param {string} siteId
- * @param {any} sanitized
+ * @param {Record<string, unknown>} sanitized
  * @param {{ localeOverrides?: Record<string, any>, rev?: number }} [report]
  * @param {{ expectedRev?: number, bumpRev?: boolean }} [opts]
  */
@@ -241,7 +259,7 @@ async function writeSiteAligned(siteId, sanitized, report, { expectedRev, bumpRe
  * otherwise, and nothing, overrides included, is written). The revision is
  * raised on every write; the one stored is reported as `report.rev`.
  * @param {string} siteId
- * @param {any} sanitized
+ * @param {{ id: string, blocks?: unknown }} sanitized
  * @param {{ expectedRev?: number, report?: { rev?: number } }} [opts]
  * @returns {Promise<Record<string, any>>}
  */

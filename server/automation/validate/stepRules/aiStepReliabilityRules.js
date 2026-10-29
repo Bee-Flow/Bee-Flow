@@ -21,6 +21,13 @@
  */
 
 const { isObject } = require('../helpers');
+
+/**
+ * isObject as a type guard, for the boolean tests below.
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
+const isRecord = (v) => !!isObject(v);
 const { reliabilityProblems, parseFieldPath } = require('../../../core/automationModel/aiStepReliability');
 
 const MAX_FIELDS_SHOWN = 12;
@@ -30,20 +37,20 @@ const HIGH_TEMPERATURE = 1;
  * The declared top-level fields of an output schema, or null when the step
  * declares none. Both shapes the builder writes are read: a JSON Schema
  * ({type:'object', properties}) and the flat {name:'string'} map.
- * @param {any} schema
+ * @param {unknown} schema
  * @returns {Record<string, any> | null}
  */
 function declaredFields(schema) {
-    if (!isObject(schema)) return null;
-    const props = isObject(schema.properties) ? schema.properties : (schema.type === 'object' ? {} : schema);
+    if (!isRecord(schema)) return null;
+    const props = isRecord(schema.properties) ? schema.properties : (schema.type === 'object' ? {} : schema);
     return Object.keys(props).length ? props : null;
 }
 
-/** The declared type of one schema node: 'string', 'number', 'array', ... or null when unknown. @param {any} node */
+/** The declared type of one schema node: 'string', 'number', 'array', ... or null when unknown. @param {unknown} node */
 function typeOfNode(node) {
     if (typeof node === 'string') return node;
-    if (isObject(node) && typeof node.type === 'string') return node.type;
-    if (isObject(node) && Array.isArray(node.type)) {
+    if (isRecord(node) && typeof node.type === 'string') return node.type;
+    if (isRecord(node) && Array.isArray(node.type)) {
         const real = node.type.filter((t) => t !== 'null');
         return real.length === 1 && typeof real[0] === 'string' ? real[0] : null;
     }

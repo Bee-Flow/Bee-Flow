@@ -12,11 +12,11 @@ const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {{ kind?: string, appEvent?: { provider?: string|null, event?: string|null, filter?: import('../../core/automationModel/dslFilters').DslFilter | null } } | null | undefined} trigger
- * @param {Record<string, unknown> | null | undefined} givenPayload
+ * @param {unknown} givenPayload  the caller's payload; only an object is used
  * @returns {{ payload: Record<string, unknown> | null, source: 'declared_sample' | 'given' | 'none', filterMatched: boolean | null, warnings: string[] }}
  */
 function prepareDryRunPayload(trigger, givenPayload) {
-    const given = givenPayload && typeof givenPayload === 'object' ? givenPayload : null;
+    const given = givenPayload && typeof givenPayload === 'object' ? /** @type {Record<string, unknown>} */ (givenPayload) : null;
     if (!trigger || trigger.kind !== 'app_event' || !trigger.appEvent?.provider || !trigger.appEvent?.event) {
         return { payload: given, source: given ? 'given' : 'none', filterMatched: null, warnings: [] };
     }
