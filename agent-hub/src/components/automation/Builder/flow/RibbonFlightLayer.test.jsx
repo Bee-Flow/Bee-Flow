@@ -44,9 +44,9 @@ describe('RibbonFlightLayer', () => {
         const layer = document.querySelector('[data-testid="ribbon-flight-layer"]');
         expect(layer).toBeTruthy();
         expect(layer.parentElement).toBe(document.body);
-        expect(layer.style.pointerEvents).toBe('none');
-        expect(layer.style.position).toBe('fixed');
-        expect(layer.style.zIndex).toBe('1100');
+        expect(layer.className).toContain('[pointer-events:none]');
+        expect(layer.className).toContain('[position:fixed]');
+        expect(layer.className).toContain('[z-index:1100]');
         const ghost = layer.querySelector('[data-testid="ribbon-flight-ghost"]');
         expect(ghost.textContent).toBe('Edit data');
         expect(ghost.style.position).toBe('fixed');
