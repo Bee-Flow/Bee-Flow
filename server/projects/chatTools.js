@@ -97,19 +97,29 @@ const DEFINITIONS = Object.freeze({
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getProjectRole]   (userId, projectId) => role|null
- * @param {Function} [deps.getUser]          (id) => user row
- * @param {any}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
- * @param {any}   [deps.documents]        stores/documentStore surface: createDocument
- * @param {any}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
- * @param {any}   [deps.membership]       projects/membership surface: isAllowedIn
- * @param {Function} [deps.recordCreated]    ({ projectId, itemType, itemId, actorId }) => void, one "created" entry in the project feed
- * @param {Function} [deps.markdownToHtml]   (md) => html
- * @param {Function} [deps.searchDefinition]  () => the agent_search tool definition, as a normal chat offers it
- * @param {Function} [deps.searchAvailable]   () => whether a web search is configured on this installation
- * @param {Function} [deps.runSearch]         (name, args) => the search result text, through the configured provider
- * @param {Function} [deps.notebooksAllowed] ({ userId, orgId, session }) => boolean: the switch, the plan and the permission
+ * Every dependency is a test seam whose default is the real module.
+ * `recordCreated` writes one "created" entry in the project feed;
+ * `searchDefinition` is the agent_search tool definition as a normal chat
+ * offers it; `searchAvailable` says whether a web search is configured on this
+ * installation; `runSearch` returns the search result text, through the
+ * configured provider; `notebooksAllowed` is the switch, the plan and the
+ * permission.
+ *
+ * @param {{
+ *   getProjectRole?: (userId: string, projectId: string) => Promise<'owner'|'editor'|'viewer'|null>,
+ *   getUser?: (id: string) => Promise<Parameters<typeof import('./projectOrg').itemOrgFor>[1]>,
+ *   projectOrg?: Pick<typeof import('./projectOrg'), 'projectOrgOf'|'belongsToProjectOrg'|'itemOrgFor'>,
+ *   documents?: Pick<typeof import('../stores/documentStore'), 'createDocument'>,
+ *   notebooks?: {
+ *     createNotebook: (input: Parameters<typeof import('../stores/notebookStore').createNotebook>[0]) => Promise<{ id: string, name?: string }>,
+ *     updateNotebook: (id: string, userId: string, updates: { documentContent: string }) => Promise<unknown> },
+ *   membership?: Pick<typeof import('./membership'), 'isAllowedIn'>,
+ *   recordCreated?: (e: { projectId: string, itemType: string, itemId: string, actorId: string }) => Promise<unknown>,
+ *   markdownToHtml?: (md: string) => string,
+ *   searchDefinition?: () => import('../integrations/agentSearchTools').ToolDef,
+ *   searchAvailable?: () => Promise<boolean>,
+ *   runSearch?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+ *   notebooksAllowed?: (p: { userId: string, orgId?: string|null, session?: unknown }) => Promise<boolean> }} [deps]
  */
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
@@ -257,7 +267,7 @@ function makeProjectChatTools(deps = {}) {
             return text.length > SEARCH_RESULT_MAX ? `${text.slice(0, SEARCH_RESULT_MAX)}\n…` : text;
         }
 
-        /** @param {string} name @param {any} args */
+        /** @param {string} name @param {unknown} args */
         async function execute(name, args) {
             // The allow-list is enforced here, not only by what was offered: a model can name any tool.
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');

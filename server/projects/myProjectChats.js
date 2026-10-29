@@ -50,10 +50,11 @@ const LEGACY_SQL = `
 
 /**
  * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[]}> }} db
- * @param {object} [deps]
- * @param {() => Promise<void>} [deps.ready]  schema init to await first
- * @param {(opts: {userId: string}) => Promise<import('../stores/agent/messageCrypto').CryptoContext>} [deps.resolveCrypto]
- * @param {(stored: any, id: string, type: string, ctx: import('../stores/agent/messageCrypto').CryptoContext) => any} [deps.openTitle]
+ * @param {{
+ *   ready?: () => Promise<void>,
+ *   resolveCrypto?: (opts: {userId: string}) => Promise<import('../stores/agent/messageCrypto').CryptoContext>,
+ *   openTitle?: (stored: any, id: string, type: string, ctx: import('../stores/agent/messageCrypto').CryptoContext) => any }} [deps]
+ *   `ready` is the schema init to await first
  */
 function makeMyProjectChats(db, deps = {}) {
     const ready = deps.ready || (async () => {});

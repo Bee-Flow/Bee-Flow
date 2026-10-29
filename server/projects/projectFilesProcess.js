@@ -9,11 +9,11 @@
 const DUPLICATE_REASON = 'The same file is already in this project.';
 
 /**
- * @param {object} ctx
- * @param {() => typeof import('../stores/knowledgeBases')} ctx.kbStore
- * @param {() => typeof import('../core/kb/kbIngestionHelpers')} ctx.helpers
- * @param {() => typeof import('../core/kb/ingestPrivacy')} ctx.privacy
- * @param {typeof import('../telemetry/log')} ctx.log
+ * @param {{
+ *   kbStore: () => typeof import('../stores/knowledgeBases'),
+ *   helpers: () => typeof import('../core/kb/kbIngestionHelpers'),
+ *   privacy: () => typeof import('../core/kb/ingestPrivacy'),
+ *   log: typeof import('../telemetry/log') }} ctx
  */
 function makeFileProcessor(ctx) {
     const { kbStore, helpers, privacy, log } = ctx;

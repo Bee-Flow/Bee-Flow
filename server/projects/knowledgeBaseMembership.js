@@ -138,7 +138,7 @@ async function validateKnowledgeBaseIds(req, ids, projectOrganizationId) {
  * searching the project's files. So it is skipped in the check and kept when
  * it was listed before; the cap counts it like any other base.
  *
- * @param {object} req
+ * @param {import('express').Request} req
  * @param {unknown[]} ids      what the caller sent
  * @param {Record<string, any>} project     the project row before the write (getProject)
  * @returns {Promise<{ ok: boolean, invalid: string[], tooMany?: boolean, ids: unknown[] }>}

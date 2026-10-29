@@ -324,15 +324,15 @@ function defaultCaptureDeps() {
 }
 
 /**
- * Read every carried reference table and judge it.
+ * Read every carried reference table and judge it. `tables` has one entry per
+ * Dev datatable part: `meta` is the datatables row (camel or snake case),
+ * `descriptor` its model entry `{id, key, fields}`. A single `table` object
+ * carrying both is accepted too. `options` maps a ref to its part option
+ * `{reference: boolean}`. `deps.query` answers rows or `{rows}`.
  *
- * @param {object} input
- * @param {Array<{ref: string, meta?: object, descriptor?: object, table?: object, scope?: object}>} input.tables
- *   one entry per Dev datatable part: `meta` is the datatables row (camel or
- *   snake case), `descriptor` its model entry `{id, key, fields}`. A single
- *   `table` object carrying both is accepted too.
- * @param {Map|object} [input.options]  ref → part option `{reference: boolean}`
- * @param {object} [deps] `{ query(scope, {sql, params}) → rows|{rows}, scan(text), limits }`
+ * @param {{ tables?: Array<{ref: string, meta?: object, descriptor?: object, table?: object, scope?: object}>,
+ *           options?: Map<string, { reference?: boolean }>|Record<string, { reference?: boolean }>|null }} [input]
+ * @param {{ query?: (scope: object, q: { sql: string, params: unknown[] }) => Promise<unknown>, scan?: (text: string) => Promise<unknown>, limits?: Partial<typeof LIMITS> }} [deps]
  * @returns {Promise<{payloads: object[], findings: object[]}>}
  */
 async function captureReferenceRows({ tables = [], options = null } = {}, deps = {}) {
@@ -522,7 +522,7 @@ function parentsFirst(tableMeta, rows) {
  * `phase: 'delete'` in the reverse order. A constraint violation is an
  * HttpError 409 `reference_rows_violate` naming the column, never the value.
  *
- * @param {object} client  `{ query(sql, params) }` inside a transaction
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows?: Record<string, any>[] }> }} client  inside a transaction
  * @param {{scope: {kind, id}, tableMeta: object, rows: Array<{id, values}>, runAsUserId: string,
  *          phase?: 'upsert'|'delete'|'all'}} args
  * @param {{resolveSchema?: Function}} [deps]

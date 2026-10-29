@@ -116,14 +116,24 @@ function cleanSuggestion(raw, memberIds, fallbackTitle = '') {
 }
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.resolveModel]  ({ userId, orgId, modelTier }) => { modelId, options, providerConfig, tier } | null
- * @param {any}   [deps.shield]        projects/chatShield surface (resolve, protect, restore, release)
- * @param {Function} [deps.llmChat]       (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.checkLimits]   (limitOrgId, userId) => error text | null
- * @param {Function} [deps.logUsage]      (entry) => usage row
- * @param {number}   [deps.timeoutMs]
- * @param {Function} [deps.newId]
+ * The projects/chatShield surface this file uses (resolve, protect, restore,
+ * release). Loose: a test's double resolves a partial shield config, which
+ * the real config type (a union from core/privacy/orgShield) does not accept.
+ * @typedef {any} TaskShield
+ */
+
+/**
+ * Every dependency is a test seam whose default is the real module.
+ * `checkLimits` answers an error text or null.
+ *
+ * @param {{
+ *   resolveModel?: (p: { userId: string, orgId: string|null, modelTier?: string|null }) => Promise<{ modelId: string, options?: Record<string, unknown>, providerConfig?: Record<string, unknown>, tier?: string }|null>,
+ *   shield?: TaskShield,
+ *   llmChat?: (modelId: string, messages: Array<{ role: string, content: string }>, options: Record<string, unknown>) => Promise<{ content?: unknown, usage?: Record<string, unknown> }>,
+ *   checkLimits?: (limitOrgId: string|null, userId: string) => Promise<string|null>,
+ *   logUsage?: (entry: Record<string, unknown>) => Promise<unknown>,
+ *   timeoutMs?: number,
+ *   newId?: () => string }} [deps]
  */
 function makeTaskAssistant(deps = {}) {
     const resolveModel = deps.resolveModel || ((a) => resolveChatModel(a));

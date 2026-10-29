@@ -63,15 +63,30 @@ const BREAKER_COOLDOWN_MS = 30_000;
 const BREAKER_FAILURES = Object.freeze(['timeout', 'error', 'unparseable', 'model_unavailable']);
 
 /**
- * @param {object} deps
- * @param {any}   deps.store          stores/projectAiParticipationStore surface
- * @param {any}   deps.policy         policy.makePolicy() surface
- * @param {Function} deps.gate           relevanceGate.makeRelevanceGate() result
- * @param {(limitOrgId: string|null, userId: string) => Promise<string|null>|string|null} [deps.checkLimits]  (limitOrgId, userId) => error text | null
- * @param {(containerId: string) => Promise<boolean>|boolean} [deps.isLockHeld]   (containerId) => boolean
- * @param {any}   [deps.writer]       answerWriter.makeAnswerWriter() surface
- * @param {() => number} [deps.now]
- * @param {() => string} [deps.newId]
+/**
+ * The stores/projectAiParticipationStore surface the engine uses. Loose: a
+ * typechecked test hands in doubles that answer partial rows and void where
+ * the store answers full rows and booleans.
+ * @typedef {any} EngineStore
+ */
+
+/**
+ * `store` is the stores/projectAiParticipationStore surface, `policy` the
+ * policy.makePolicy() surface, `gate` the relevanceGate.makeRelevanceGate()
+ * result, typed by what the engine reads of its answer; `checkLimits` answers
+ * an error text or null; `writer` is the answerWriter.makeAnswerWriter()
+ * surface.
+ *
+ * @param {{
+ *   store: EngineStore,
+ *   policy: Pick<ReturnType<typeof import('./policy').makePolicy>, 'resolveOrgPolicy'|'resolveUserPreference'>,
+ *   gate: (p: Parameters<ReturnType<typeof import('./relevanceGate').makeRelevanceGate>>[0]) => Promise<{ available: boolean, skipReason?: string,
+ *     model?: string, outcome?: string, verdict?: { reasonCode?: string, confidence?: number } }>,
+ *   checkLimits?: (limitOrgId: string|null, userId: string) => Promise<string|null>|string|null,
+ *   isLockHeld?: (containerId: string) => Promise<boolean>|boolean,
+ *   writer?: Pick<ReturnType<typeof import('./answerWriter').makeAnswerWriter>, 'write'>,
+ *   now?: () => number,
+ *   newId?: () => string }} deps
  */
 function makeParticipationEngine(deps) {
     const { store, policy, gate } = deps;

@@ -36,17 +36,24 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const LOCK_MARGIN_MS = 30_000;
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getProject]      (id) => project row
- * @param {Function} [deps.getUser]         (id) => user row
- * @param {any}   [deps.locks]           { acquireTurn, releaseTurn }
- * @param {Function} [deps.resolveModel]    ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {Function} [deps.searchKnowledge] chatAssistant.searchProjectKnowledge
- * @param {Function} [deps.listAudience]    (project) => string[] | null
- * @param {Function} [deps.shieldFor]       (surface) => makeChatShield() surface
- * @param {Function} [deps.llmChat]         (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.logUsage]
- * @param {number}   [deps.timeoutMs]
+ * Every dependency is a test seam whose default is the real module; each is
+ * typed by what this file reads of it. `shieldFor` gives the
+ * makeChatShield() surface of one surface (`chat` or `comment`).
+ *
+ * @param {{
+ *   getProject?: (id: string) => Promise<{ id: string, name: string, ownerId?: string|null, customInstructions?: unknown, knowledgeBaseIds?: string[] }|null>,
+ *   getUser?: (id: string) => Promise<{ displayName?: unknown, username?: unknown }|null>,
+ *   locks?: {
+ *     acquireTurn: (opts: Parameters<typeof import('../../stores/conversationLockStore').acquireTurn>[0]) => Promise<{ acquired: boolean }|null>,
+ *     releaseTurn: (opts: Parameters<typeof import('../../stores/conversationLockStore').releaseTurn>[0]) => Promise<unknown> },
+ *   resolveModel?: (who: { userId: string, orgId: string|null }) => Promise<{ modelId: string, options?: Record<string, unknown>, providerConfig?: Record<string, unknown> }|null>,
+ *   searchKnowledge?: typeof import('../chatAssistant').searchProjectKnowledge,
+ *   listAudience?: (project: { id: string, ownerId?: string|null }) => Promise<string[]|null>,
+ *   shieldFor?: (surface: string) => Pick<ReturnType<typeof import('../chatShield').makeChatShield>, 'protect'|'tokenAddendum'|'restore'|'release'>
+ *     & { resolve: (who: { orgId: string|null, userId: string }) => Promise<unknown> },
+ *   llmChat?: (modelId: string, messages: Array<{ role: string, content: string }>, options: Record<string, unknown>) => Promise<{ content?: unknown, usage?: Record<string, unknown>, stop_reason?: unknown }>,
+ *   logUsage?: (entry: Record<string, unknown>) => Promise<unknown>,
+ *   timeoutMs?: number }} [deps]
  */
 function makeAnswerWriter(deps = {}) {
     const assistant = () => require('../chatAssistant');

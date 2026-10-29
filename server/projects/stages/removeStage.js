@@ -66,7 +66,7 @@ async function liveStamps(s, stage) {
  * Switch the stage off: every automation deactivated, every app, page and agent unpublished.
  *
  * @param {{ deployment: object, stage: object }} input
- * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`
+ * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`
  */
 async function prepareRemove({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);
@@ -117,7 +117,7 @@ const REMOVABLE = Object.freeze(['automation', 'app', 'webpage', 'agent', 'skill
  * landed before its journal row was marked done.) After that, compensation must not run.
  *
  * @param {{ deployment: object }} input
- * @param {object} [deps]
+ * @param {Record<string, unknown>} [deps]
  */
 async function removeStarted({ deployment }, deps = {}) {
     const s = storesOf(deps);
@@ -173,7 +173,7 @@ async function deleteStageRows(client, s, stage) {
  * transaction removes the stage's rows and moves the deployment to `converging`.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `committing`
- * @param {object} [deps]
+ * @param {Record<string, unknown>} [deps]
  */
 async function commitRemove({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);
@@ -206,7 +206,7 @@ async function commitRemove({ deployment, stage }, deps = {}) {
  * Tear the stage project down with the removal capability, then close the deployment.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `converging`
- * @param {object} [deps]  `teardown` ({ deleteProject }), `emitProjectEvent`
+ * @param {Record<string, unknown>} [deps]  `teardown` ({ deleteProject }), `emitProjectEvent`
  */
 async function finishRemove({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);

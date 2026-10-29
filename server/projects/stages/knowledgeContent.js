@@ -125,11 +125,9 @@ async function hasLocalChunkTable(db) {
  *
  * @param {string} kbId  the Dev knowledge base
  * @param {{ db?: KcDb, usesLocalIngest?: () => boolean|Promise<boolean> }} [deps] `{ db: {query}, usesLocalIngest: async () => boolean }`
- * @param {object} [opts]
- * @param {number} [opts.maxDocs]
- * @param {Array<string|{docRef: string, contentHash?: string}>} [opts.acks]  per-document
- *   acknowledgements of personal data (from the part option)
- * @param {string} [opts.ref]  the KB's ref, echoed on findings and the payload
+ * @param {{ maxDocs?: number, acks?: Array<string|{docRef: string, contentHash?: string}>, ref?: string }} [opts]
+ *   `acks` are the per-document acknowledgements of personal data (from the
+ *   part option); `ref` is the KB's ref, echoed on findings and the payload
  * @returns {Promise<{payload: {docs: object[]}, contentHash: string, findings: object[], ref: string|null, kind: string, sourceEntityId: string}>}
  */
 async function listCarriedDocuments(kbId, deps = {}, opts = {}) {

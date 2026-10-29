@@ -89,7 +89,7 @@ function envDefaultAutoAllowed(env) {
     return !(raw === '0' || raw === 'false' || raw === 'off' || raw === 'no');
 }
 
-/** @param {any} v @param {number} fallback @param {readonly number[]} range */
+/** @param {unknown} v @param {number} fallback @param {readonly number[]} range */
 function clampInt(v, fallback, range) {
     const [min, max] = range;
     // Number(null) and Number('') are 0: an absent value is the default, not the minimum.
@@ -125,9 +125,9 @@ function normalizeOrgPolicy(stored, { env = process.env } = {}) {
     return /** @type {typeof DEFAULT_ORG_POLICY} */ (out);
 }
 
-/** @param {any} stored */
+/** @param {unknown} stored */
 function normalizeUserPreference(stored) {
-    const src = stored && typeof stored === 'object' ? stored : {};
+    const src = /** @type {Record<string, unknown>} */ (stored && typeof stored === 'object' ? stored : {});
     return {
         autoJoinOnMyMessages: typeof src.autoJoinOnMyMessages === 'boolean'
             ? src.autoJoinOnMyMessages
@@ -154,11 +154,11 @@ function autoAllowedOn(policy, surface) {
 }
 
 /**
- * @param {object} [deps]
- * @param {(key: string) => Promise<any>} [deps.getConfig]
- * @param {(key: string, value: any) => Promise<any>} [deps.setConfig]
- * @param {() => number} [deps.now]
- * @param {Record<string, string|undefined>} [deps.env]
+ * @param {{
+ *   getConfig?: (key: string) => Promise<any>,
+ *   setConfig?: (key: string, value: any) => Promise<any>,
+ *   now?: () => number,
+ *   env?: Record<string, string|undefined> }} [deps]
  */
 function makePolicy(deps = {}) {
     const getConfig = deps.getConfig || ((key) => require('../../stores/configStore').getConfig(key));
@@ -217,7 +217,7 @@ function makePolicy(deps = {}) {
     /**
      * Save an organisation's policy. The caller authorised the change.
      * @param {string} orgId
-     * @param {object} input
+     * @param {Record<string, unknown>} input
      * @param {{ updatedBy?: string|null }} [meta]
      */
     async function saveOrgPolicy(orgId, input, { updatedBy = null } = {}) {

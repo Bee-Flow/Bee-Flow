@@ -70,7 +70,7 @@ async function readStageBinding(projectId, projects = require('../stores/project
         return { stageOf: null, hasStages: !!row };
     } catch (err) {
         // No stage table yet: no stage either.
-        if (/** @type {any} */ (err)?.code !== '42P01') throw err;
+        if (/** @type {{ code?: string }|null|undefined} */ (err)?.code !== '42P01') throw err;
         return { stageOf: null, hasStages: false };
     }
 }

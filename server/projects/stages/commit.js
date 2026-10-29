@@ -321,7 +321,7 @@ async function toConverging(client, s, deployment) {
 
 /**
  * @param {{ deployment: object, stage: object, prepared: object }} input  `prepared` is prepare's result
- * @param {object} [deps]  stores (journal.storesOf), `applyKnowledge`, `referenceRowsModule`, `goLive`,
+ * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `applyKnowledge`, `referenceRowsModule`, `goLive`,
  *   `lifecycleFor(client)`, `beforeTables(client)` (a test's hook into the transaction)
  * @returns {Promise<object>} the deployment row, now `converging`
  */

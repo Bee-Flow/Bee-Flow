@@ -448,8 +448,8 @@ async function settingsPlan(stage, settingsPatch, deps) {
 }
 
 /**
- * @param {object} stage
- * @param {Map<string, object>} stamps
+ * @param {StageRow} stage
+ * @param {Map<string, Stamp>} stamps
  * @param {boolean} deleteData  the removal also deletes the stage's tables and knowledge bases with their data
  */
 function removePlan(stage, stamps, deleteData = false) {
@@ -470,17 +470,16 @@ function removePlan(stage, stamps, deleteData = false) {
 
 // ── plan ─────────────────────────────────────────────────────────────────────
 
+/** @typedef {{ stageProjectId: string, releaseId?: string|null, kind?: string, settingsPatch?: object|null, includeBound?: boolean, deleteData?: boolean|null }} PlanInput */
 /**
- * @param {{ stageProjectId: string, releaseId?: string|null, kind?: string, settingsPatch?: object|null,
- *   includeBound?: boolean, deleteData?: boolean|null }} input  `deleteData` (kind 'remove' only) also deletes
- *   the stage's tables and knowledge bases with their data and adds the `stage.delete_data` acknowledgement;
- *   `includeBound` adds `bound: [{ref, kind, entity, hash}]` (prepare's
- *   input; not part of the hash and never stored)
- * @param {object} [deps]  solutionStageStore, blueprintStore, the stagePayload readers' stores, readiness,
+ * @param {PlanInput} input  `deleteData` (kind 'remove' only) also deletes the stage's tables and knowledge bases with
+ *   their data and adds the `stage.delete_data` acknowledgement; `includeBound` adds `bound: [{ref, kind, entity, hash}]`
+ *   (prepare's input; not part of the hash and never stored)
+ * @param {Record<string, unknown>} [deps]  solutionStageStore, blueprintStore, the stagePayload readers' stores, readiness,
  *   scanStagePayloads, checkBeforeLiveCore, aiActState, releaseSucceededIn, readKbDocs, studioAppDataStore,
  *   datatableStore (tableFingerprint)
  */
-async function plan({ stageProjectId, releaseId = null, kind = 'deploy', settingsPatch = null, includeBound = false, deleteData = undefined } = /** @type {any} */ ({}), deps = {}) {
+async function plan({ stageProjectId, releaseId = null, kind = 'deploy', settingsPatch = null, includeBound = false, deleteData = undefined } = /** @type {PlanInput} */ ({}), deps = {}) {
     const { stageStore, blueprintStore } = stores(deps);
     const stage = await stageStore.getStage(stageProjectId);
     if (!stage) throw new HttpError(404, 'stage_not_found', 'This stage does not exist.');

@@ -118,15 +118,18 @@ function referenceWriteFindings(manifest, referenceRefs) {
 }
 
 /**
+ * @typedef {{ manifest: object, rawIds?: object[], captureFindings?: object[], variables?: object[],
+ *   referenceRefs?: Set<string>|string[], payloadFindings?: object[] }} StageOnlyInput
+ */
+/**
  * The checks that need no I/O. Pure.
  *
- * @param {{ manifest: object, rawIds?: object[], captureFindings?: object[], variables?: object[],
- *   referenceRefs?: Set<string>|string[], payloadFindings?: object[] }} input
+ * @param {StageOnlyInput} input
  * @returns {object[]}
  */
 function stageOnlyFindings({
     manifest, rawIds = [], captureFindings = [], variables = [], referenceRefs = [], payloadFindings = [],
-} = /** @type {any} */ ({})) {
+} = /** @type {StageOnlyInput} */ ({})) {
     return [
         ...(Array.isArray(captureFindings) ? captureFindings : []).map(f => ({ severity: 'blocking', ...f })),
         ...rawIdFindings(rawIds),
@@ -167,12 +170,12 @@ async function crossStageFindings({ solutionId, manifest }, deps = {}) {
  * Every stage-only finding of a pipeline cut.
  *
  * @param {Record<string, any>} [input]  stageOnlyFindings' input plus `solutionId`
- * @param {object} [deps] crossStageScan's (`solutionStageStore`, `db`, `ownersOf`)
+ * @param {import('./crossStageScan').ScanDeps} [deps] crossStageScan's (`solutionStageStore`, `db`, `ownersOf`)
  * @returns {Promise<{ blocked: boolean, findings: object[] }>}
  */
 async function releaseChecks(input = {}, deps = {}) {
     const findings = [
-        ...stageOnlyFindings(/** @type {any} */ (input)),
+        ...stageOnlyFindings(/** @type {StageOnlyInput} */ (input)),
         ...(await crossStageFindings({ solutionId: input.solutionId, manifest: input.manifest }, deps)),
     ];
     return { blocked: findings.some(f => f.severity === 'blocking'), findings };

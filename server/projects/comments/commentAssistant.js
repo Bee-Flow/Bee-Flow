@@ -60,6 +60,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} CommentProject */
 /** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} CommentThread */
 /** @typedef {Awaited<ReturnType<typeof import('./commentCrypto').forProject>>} CommentBox */
+/** @typedef {Function} LlmChat  `(modelId, messages, options) => { content, usage, stop_reason }`; loose: llmClient.chat declares no `stop_reason`, which the usage log reads */
 
 const CONTEXT_COMMENTS = 50;
 const PER_COMMENT_CHARS = 4000;
@@ -189,25 +190,21 @@ async function answerWithin(call, ms) {
 // ── The assistant ─────────────────────────────────────────────────────────
 
 /**
- * @param {object} [deps]
- * @param {any}   [deps.store]            stores/projectCommentStore surface
- * @param {any}   [deps.commentCrypto]    { forProject(project) }
- * @param {any}   [deps.locks]            { acquireTurn, releaseTurn }
- * @param {any}   [deps.shield]           projects/chatShield makeChatShield() surface
- * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds}) => string
- * @param {Function} [deps.listAudience]     (project) => string[] | null, chatAssistant.listProjectAudience
- * @param {any}   [deps.itemReader]       { read({projectId, targetType, targetId, userId, sectionId}) }
- * @param {Function} [deps.getUser]          (id) => user row
- * @param {Function} [deps.displayName]      (user) => display name
- * @param {Function} [deps.checkLimits]      (limitOrgId, userId) => error text | null
- * @param {Function} [deps.emit]             (projectId, event) => durable event
- * @param {Function} [deps.publishTransient] (projectId, event) => transient event
- * @param {Function} [deps.logUsage]         (entry) => usage row
- * @param {Function} [deps.recordReply]      (decision) => row: an answer somebody asked for, for the automatic cooldown
- * @param {number}   [deps.timeoutMs]
- * @param {Function} [deps.newId]
+ * Every dependency is a test seam whose default is the real module. `checkLimits` answers an error
+ * text or null; `recordReply` logs an answer somebody asked for, for the automatic cooldown.
+ *
+ * @param {{
+ *   store?: Pick<typeof import('../../stores/projectCommentStore'), 'listComments'|'appendComment'>,
+ *   commentCrypto?: Pick<typeof import('./commentCrypto'), 'forProject'>,
+ *   locks?: Pick<typeof import('../../stores/conversationLockStore'), 'acquireTurn'|'releaseTurn'>,
+ *   shield?: ReturnType<typeof import('../chatShield').makeChatShield>, llmChat?: LlmChat,
+ *   resolveModel?: typeof import('../chatAssistant').resolveChatModel, searchKnowledge?: typeof import('../chatAssistant').searchProjectKnowledge,
+ *   listAudience?: typeof import('../chatAssistant').listProjectAudience, itemReader?: Pick<ReturnType<typeof import('./passage').makeItemReader>, 'read'>,
+ *   getUser?: typeof import('../../stores/userStore').getUser, displayName?: typeof import('../chatAssistant').displayNameOf,
+ *   checkLimits?: (limitOrgId: string|null, userId: string|null) => Promise<string|null>,
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<unknown>,
+ *   publishTransient?: typeof import('../../core/projectEventBus').publishTransient, logUsage?: typeof import('../../stores/usageStore').logUsage,
+ *   recordReply?: typeof import('../../stores/projectAiParticipationStore').recordDecision, timeoutMs?: number, newId?: () => string }} [deps]
  */
 function makeCommentAssistant(deps = {}) {
     const store = () => deps.store || require('../../stores/projectCommentStore');
@@ -448,18 +445,13 @@ function makeCommentAssistant(deps = {}) {
     }
 
     /**
-     * Ask the assistant to answer `trigger` in `thread`.
+     * Ask the assistant to answer `trigger` (the stored comment that asked) in
+     * `thread` (the thread row, its anchor sealed); `triggerText` is the
+     * comment's plaintext and `userId` the asking member.
      *
-     * @param {object} p
-     * @param {any} p.project        the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
-     * @param {any} p.thread         the thread row (id, targetType, targetId, anchor sealed)
-     * @param {any} p.trigger        the stored comment that asked (id)
-     * @param {string} p.triggerText    its plaintext
-     * @param {string} p.userId         the asking member
-     * @param {'ask'|'mention'} [p.aiTrigger]
-     * @param {string|null} [p.orgId]
-     * @param {string|null} [p.limitOrgId]
-     * @param {any|null} [p.session]
+     * @param {{ project: CommentProject, thread: CommentThread, trigger: { id: string }, triggerText: string, userId: string,
+     *           aiTrigger?: 'ask'|'mention', orgId?: string|null, limitOrgId?: string|null,
+     *           session?: Parameters<typeof import('../chatAssistant').searchProjectKnowledge>[0]['session'] | null }} p
      * @returns {Promise<{ status: 'queued'|'busy'|'skipped', reason?: string, done?: Promise<{status: string}> }>}
      */
     async function requestReply({ project, thread, trigger, triggerText, userId, aiTrigger = 'mention', orgId = null, limitOrgId = null, session = null }) {

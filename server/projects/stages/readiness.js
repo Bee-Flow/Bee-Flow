@@ -247,15 +247,18 @@ async function policyFindings(stage, deps) {
 }
 
 /**
+ * @typedef {{ stage: import('./model').StageRow, manifest: { solution?: { slots?: Slot[], variables?: Declaration[] } }, bindings?: BindingRow[],
+ *   values?: Array<{ name?: string, value?: unknown }>, stamps?: Map<string, {entityId: string}> }} ReadinessInput
+ */
+/**
  * Every readiness finding of `stage` for this release.
  *
- * @param {{ stage: import('./model').StageRow, manifest: { solution?: { slots?: Slot[], variables?: Declaration[] } }, bindings?: BindingRow[],
- *   values?: Array<{ name?: string, value?: unknown }>, stamps?: Map<string, {entityId: string}> }} input
+ * @param {ReadinessInput} input
  * @param {Record<string, unknown>} [deps]  authorizeConnectionUse, groupsOf, providerForTool, providerAvailable, slugOwner,
  *   validateStages, groupMemberIds
  * @returns {Promise<Array<ReturnType<typeof finding>>>}
  */
-async function readiness({ stage, manifest, bindings = [], values = [], stamps = null } = /** @type {any} */ ({}), deps = {}) {
+async function readiness({ stage, manifest, bindings = [], values = [], stamps = null } = /** @type {ReadinessInput} */ ({}), deps = {}) {
     if (!stage) throw new TypeError('readiness: the stage row is required');
     const bindingRows = Array.isArray(bindings) ? bindings : [];
     const byslot = new Map(bindingRows.filter(b => b && b.slot).map(b => [b.slot, b.value]));

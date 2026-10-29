@@ -48,13 +48,17 @@ const CONTEXT_COMMENTS = 30;
 const ANSWER_CHARS = 10000;
 
 /**
- * @param {object} [deps]
- * @param {any}   [deps.store]          stores/projectCommentStore surface
- * @param {any}   [deps.commentCrypto]  { forProject(project) }
- * @param {Function} [deps.getProject]     (id) => project row
- * @param {any}   [deps.itemReader]     { read({projectId, targetType, targetId, userId, sectionId}) }
- * @param {Function} [deps.emit]           (projectId, event) => durable event
- * @param {Function} [deps.newId]
+ * Every dependency is a test seam whose default is the real module: the
+ * comment store, the project's comment crypto, the project lookup, the item
+ * reader, the durable feed event and the id maker.
+ *
+ * @param {{
+ *   store?: Pick<typeof import('../../stores/projectCommentStore'), 'appendComment'|'getComment'|'getThreadById'|'listComments'|'lookupTarget'>,
+ *   commentCrypto?: Pick<typeof import('./commentCrypto'), 'forProject'>,
+ *   getProject?: (id: string) => Promise<{ id: string, name?: string, organizationId?: string|null }|null>,
+ *   itemReader?: Pick<ReturnType<typeof import('./passage').makeItemReader>, 'read'>,
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<unknown>,
+ *   newId?: () => string }} [deps]
  */
 function makeCommentSurface(deps = {}) {
     const store = () => deps.store || require('../../stores/projectCommentStore');
@@ -83,7 +87,7 @@ function makeCommentSurface(deps = {}) {
 
     /**
      * The passage and its section, read as `userId`; '' when it cannot be read.
-     * @param {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} project
+     * @param {{ id: string }} project
      * @param {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} thread
      * @param {ReturnType<Awaited<ReturnType<typeof import('./commentCrypto').forProject>>['openAnchor']>} anchor
      * @param {string} userId

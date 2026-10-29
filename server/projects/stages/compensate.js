@@ -165,7 +165,7 @@ const UNDO = {
  * Undo a deployment's prepare, newest write first.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `compensating`
- * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `aiActState`, `documentStore`
+ * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `aiActState`, `documentStore`
  * @returns {Promise<{ undone: number, failed: number, skipped: number }>}
  */
 async function compensate({ deployment, stage }, deps = {}) {

@@ -83,17 +83,9 @@ const STALE_AFTER_MS = 30 * 60 * 1000;
 const FILE_ACTIONS = new Set(['file.added', 'file.removed']);
 
 /**
- * @typedef {object} DocRow  a `documents` row as far as this file reads it
- * @property {string} [id]
- * @property {string} [title]
- * @property {string} [mime]
- * @property {number|string} [size_bytes]
- * @property {string} [status]
- * @property {string} [status_reason]
- * @property {string} [pii_status]
- * @property {string} [created_by]
- * @property {string|Date} [created_at]
- * @property {string|Date} [updated_at]
+ * A `documents` row as far as this file reads it.
+ * @typedef {{ id?: string, title?: string, mime?: string, size_bytes?: number|string, status?: string, status_reason?: string,
+ *   pii_status?: string, created_by?: string, created_at?: string|Date, updated_at?: string|Date }} DocRow
  */
 
 const STALLED_REASON = 'Processing did not finish. Remove the file and upload it again.';
@@ -159,19 +151,22 @@ function toFile(doc, now) {
 
 
 /**
- * @param {object} [deps]
- * @param {typeof import('../stores/knowledgeBases')} [deps.kbStore]        stores/knowledgeBases
- * @param {typeof import('../stores/projectStore')} [deps.projectStore]   stores/projectStore (getProject, setFilesKbId, updateProject)
- * @param {typeof import('../core/kb/kbIngestionHelpers')} [deps.helpers]        core/kb/kbIngestionHelpers
- * @param {typeof import('../core/kb/ingestPrivacy')} [deps.ingestPrivacy]  core/kb/ingestPrivacy ({ applyShield, OUTCOME })
- * @param {typeof import('../core/kb/localKBIngest').getDocumentContent} [deps.getDocumentContent]
- * @param {typeof import('../core/kb/sources/ensureSource').ensureKbSource} [deps.ensureKbSource] core/kb/sources/ensureSource.ensureKbSource
- * @param {typeof import('../core/projectEventBus').publishTransient} [deps.publishTransient] core/projectEventBus.publishTransient
- * @param {typeof import('../core/kb/resolveProvider').resolveKbProvider} [deps.resolveKbProvider] core/kb/resolveProvider.resolveKbProvider
- * @param {typeof import('../core/kb/localKBIngest').deleteChunksLocally} [deps.deleteChunksLocally] core/kb/localKBIngest.deleteChunksLocally
- * @param {number}   [deps.maxKbIds]     the per-project base cap (projects/knowledgeBaseMembership)
- * @param {() => number} [deps.now]
- * @param {typeof import('../telemetry/log')} [deps.log]
+ * Every dependency is a test seam whose default is the real module;
+ * `maxKbIds` is the per-project base cap (projects/knowledgeBaseMembership).
+ *
+ * @param {{
+ *   kbStore?: typeof import('../stores/knowledgeBases'),
+ *   projectStore?: typeof import('../stores/projectStore'),
+ *   helpers?: typeof import('../core/kb/kbIngestionHelpers'),
+ *   ingestPrivacy?: typeof import('../core/kb/ingestPrivacy'),
+ *   getDocumentContent?: typeof import('../core/kb/localKBIngest').getDocumentContent,
+ *   ensureKbSource?: typeof import('../core/kb/sources/ensureSource').ensureKbSource,
+ *   publishTransient?: typeof import('../core/projectEventBus').publishTransient,
+ *   resolveKbProvider?: typeof import('../core/kb/resolveProvider').resolveKbProvider,
+ *   deleteChunksLocally?: typeof import('../core/kb/localKBIngest').deleteChunksLocally,
+ *   maxKbIds?: number,
+ *   now?: () => number,
+ *   log?: typeof import('../telemetry/log') }} [deps]
  */
 function makeProjectFiles(deps = {}) {
     const kbStore = () => deps.kbStore || require('../stores/knowledgeBases');

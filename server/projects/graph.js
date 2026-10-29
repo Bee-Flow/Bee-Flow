@@ -172,20 +172,17 @@ const SEVERITY = {
 function appDatatableIds(_app) { return []; }
 
 /**
- * @param {object} [input]
- * @param {Record<string, any>} [input.project]
- * @param {Array}  [input.automations]  every kind — blocks and layers included
- * @param {Array}  [input.apps]         WITH their definitions, not meta only
- * @param {Array}  [input.webpages]
- * @param {Array}  [input.datatables] the tables filed into this project
- * @param {Array}  [input.agents]     WITH their parsed `config`
- * @param {Array}  [input.knowledgeBases] the bases this project links
- * @param {Array}  [input.meetingSources] `{ knowledgeBaseId, tag }` per
- *                 `meeting_tag` knowledge source — READ by the caller, so this
- *                 module keeps doing no I/O of its own
- * @param {Set}    [input.knownAutomationIds]  ids that exist outside the project
- * @param {Set}    [input.knownDatatableIds]
- * @param {Set}    [input.knownKnowledgeBaseIds]
+ * `automations` are every kind (blocks and layers included); `apps` come WITH
+ * their definitions, not meta only; `datatables` are the tables filed into
+ * this project; `agents` come WITH their parsed `config`; `knowledgeBases`
+ * are the bases this project links; `meetingSources` holds `{ knowledgeBaseId,
+ * tag }` per `meeting_tag` knowledge source, READ by the caller, so this module
+ * keeps doing no I/O of its own; the `known*Ids` sets hold ids that exist
+ * outside the project.
+ *
+ * @param {{ project?: Record<string, any>|null, automations?: Array, apps?: Array, webpages?: Array, datatables?: Array,
+ *           agents?: Array, knowledgeBases?: Array, meetingSources?: Array, knownAutomationIds?: Set<string>|null,
+ *           knownDatatableIds?: Set<string>|null, knownKnowledgeBaseIds?: Set<string>|null }} [input]
  * @returns {{projectId?: string|null, nodes: Array, edges: Array, externals: Array, problems: Array}}
  */
 function buildProjectGraph({
