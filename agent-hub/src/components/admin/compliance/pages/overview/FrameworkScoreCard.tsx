@@ -230,8 +230,8 @@ function VerificationLine({ auto, attested, soa, t, testId }: VerificationLinePr
  * that simply never said — the one thing an unknown count may not do. A
  * breakdown we cannot state in full is not stated at all.
  *
- * KNOWN GAP (artboard 1a, ISO card): the design's fifth slot is "nog niet
- * gecheckt" — Annex A controls with no live result — and the ISO card has no
+ * KNOWN GAP (artboard 1a, ISO card): the design's fifth slot is "not yet
+ * checked" — Annex A controls with no live result — and the ISO card has no
  * "failing" slot at all. Neither number exists in the payload: computeScore
  * counts RESULTS, so a control that never ran is simply absent. Filling that
  * slot needs a controls-vs-results count from /overview; until it exists this
