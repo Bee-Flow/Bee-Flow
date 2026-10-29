@@ -1,7 +1,7 @@
 import { ArrowLeft, FolderKanban } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useComplianceRead } from '@/api/queries/complianceReads';
-import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { API, asArray, asObject, fetchJson, jsonInit, json } from '@/api/complianceApi';
 import useResource from '../data/useResource';
 import AttestDrawer from './custom/AttestDrawer';
