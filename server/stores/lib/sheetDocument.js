@@ -77,8 +77,8 @@ function applySheetRules(input, failure) {
  * (pointing it elsewhere would open somebody else's table through this
  * document).
  *
- * @param {any} current
- * @param {any} next      the document after the update, mutated in place
+ * @param {{ docType?: unknown, settings?: { sheet?: Record<string, unknown> } | null }} current
+ * @param {{ settings?: { sheet?: Record<string, unknown> } | null }} next      the document after the update, mutated in place
  * @param {string} nextType  normaliseType(next.docType)
  * @param {(message: string, status: number, errorClass: string) => Error} failure
  */
