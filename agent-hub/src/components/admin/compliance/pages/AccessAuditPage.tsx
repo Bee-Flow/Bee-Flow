@@ -2,8 +2,9 @@ import { Download, Filter } from 'lucide-react';
 import type { useAccessAudit } from '../data/registers';
 import { useMemo, useState } from 'react';
 import { actionLabel, actorName, detailOf, metaFor, subjectOf, when, type AccessAuditRow, type OrgUser } from './accessAuditLabels';
-import { Field, DateInput, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
-import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { Field, DateInput, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout, type UserSelectProps } from './audits/auditForms';
+import type { AccessAuditFilter } from '../data/registers.types';
+import { useTranslation, type TranslateFn, type TranslateParams } from '@/hooks/useTranslation';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
 import EmptyState from '@/components/shared/EmptyState';
 import FilterPills from '@/components/shared/FilterPills';
@@ -65,6 +66,40 @@ const COLUMNS = Object.freeze([
     Object.freeze({ id: 'detail', label: 'compliance.aa_col_detail', width: '1fr', foldBelow: 1180 }),
 ]);
 const COLUMN_FALLBACKS = Object.freeze({ when: 'When', event: 'Event', subject: 'Subject', actor: 'By', detail: 'Detail' });
+
+/** The date range and account filter behind the Filters toggle. */
+interface AccessAuditFiltersProps {
+    filter: AccessAuditFilter;
+    actorOptions: UserSelectProps['orgUsers'];
+    set: (patch: AccessAuditFilter) => void;
+    onClear: () => void;
+    t: TranslateFn;
+}
+
+function AccessAuditFilters({ filter, actorOptions, set, onClear, t }: AccessAuditFiltersProps) {
+    return (
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3 flex flex-wrap items-end gap-3" data-testid="access-audit-filters">
+            <Field label={t('compliance.aa_filter_since', 'From')} className="w-[160px]">
+                <DateInput value={filter.since || ''} onChange={(v) => set({ since: v || undefined })} data-testid="access-audit-since" />
+            </Field>
+            <Field label={t('compliance.aa_filter_until', 'To')} className="w-[160px]">
+                <DateInput value={filter.until || ''} onChange={(v) => set({ until: v || undefined })} data-testid="access-audit-until" />
+            </Field>
+            <Field label={t('compliance.aa_filter_actor', 'Account')} className="w-[220px]">
+                <UserSelect
+                    value={filter.actor || ''}
+                    orgUsers={actorOptions}
+                    noneLabel={t('compliance.aa_filter_any', 'Any')}
+                    onChange={(v) => set({ actor: v || undefined })}
+                    data-testid="access-audit-actor"
+                />
+            </Field>
+            <ActionButton onClick={onClear} data-testid="access-audit-clear">
+                {t('compliance.aa_filter_clear', 'Clear')}
+            </ActionButton>
+        </div>
+    );
+}
 
 interface AccessAuditPageArgs {
     data?: { accessAudit?: Partial<ReturnType<typeof useAccessAudit>> | null; orgUsers?: OrgUser[] | null };
@@ -181,26 +216,7 @@ export default function AccessAuditPage({ data = {}, isMobile = false, exportsEn
             )}
 
             {showFilters && (
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3 flex flex-wrap items-end gap-3" data-testid="access-audit-filters">
-                    <Field label={t('compliance.aa_filter_since', 'From')} className="w-[160px]">
-                        <DateInput value={filter.since || ''} onChange={(v) => set({ since: v || undefined })} data-testid="access-audit-since" />
-                    </Field>
-                    <Field label={t('compliance.aa_filter_until', 'To')} className="w-[160px]">
-                        <DateInput value={filter.until || ''} onChange={(v) => set({ until: v || undefined })} data-testid="access-audit-until" />
-                    </Field>
-                    <Field label={t('compliance.aa_filter_actor', 'Account')} className="w-[220px]">
-                        <UserSelect
-                            value={filter.actor || ''}
-                            orgUsers={actorOptions}
-                            noneLabel={t('compliance.aa_filter_any', 'Any')}
-                            onChange={(v) => set({ actor: v || undefined })}
-                            data-testid="access-audit-actor"
-                        />
-                    </Field>
-                    <ActionButton onClick={() => state.setFilter?.({})} data-testid="access-audit-clear">
-                        {t('compliance.aa_filter_clear', 'Clear')}
-                    </ActionButton>
-                </div>
+                <AccessAuditFilters filter={filter} actorOptions={actorOptions} set={set} onClear={() => state.setFilter?.({})} t={t} />
             )}
 
             <DataTable
