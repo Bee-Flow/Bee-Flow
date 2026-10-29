@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /**
  * CHARACTERISATION — the project live feed as it behaves today (PRJ-0).
@@ -18,11 +18,11 @@ import useProjectStream from './useProjectStream';
 import { authFetch } from '../utils/helpers';
 
 const enc = new TextEncoder();
-const frame = (event, data, id) =>
+const frame = (event: string, data: object, id?: number) =>
     `${id !== undefined ? `id: ${id}\n` : ''}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
 /** A response whose body streams `chunks` in order, then closes. */
-function streamOf(chunks) {
+function streamOf(chunks: string[]) {
     return {
         ok: true,
         status: 200,
@@ -36,7 +36,7 @@ function streamOf(chunks) {
 }
 
 /** A response that never closes — the normal case for a live connection. */
-function openStream(chunks) {
+function openStream(chunks: string[]) {
     return {
         ok: true,
         status: 200,
@@ -46,7 +46,7 @@ function openStream(chunks) {
     };
 }
 
-const urls = () => authFetch.mock.calls.map(c => c[0]);
+const urls = () => (authFetch as Mock).mock.calls.map(c => c[0]);
 
 const mount = (opts = {}) => {
     const onEvent = vi.fn();
@@ -59,22 +59,22 @@ afterEach(() => { vi.useRealTimers(); });
 
 describe('connecting', () => {
     it('opens the project feed from the very beginning', async () => {
-        authFetch.mockResolvedValue(openStream([]));
+        (authFetch as Mock).mockResolvedValue(openStream([]));
         mount();
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(urls()[0]).toBe('/api/projects/p1/stream?since=0');
-        expect(authFetch.mock.calls[0][1].headers).toEqual({ Accept: 'text/event-stream' });
+        expect((authFetch as Mock).mock.calls[0][1].headers).toEqual({ Accept: 'text/event-stream' });
     });
 
     it('opens nothing at all without a project', async () => {
-        authFetch.mockResolvedValue(openStream([]));
+        (authFetch as Mock).mockResolvedValue(openStream([]));
         mount({ projectId: null });
         await Promise.resolve();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
     it('opens nothing while the caller has it switched off', async () => {
-        authFetch.mockResolvedValue(openStream([]));
+        (authFetch as Mock).mockResolvedValue(openStream([]));
         mount({ enabled: false });
         await Promise.resolve();
         expect(authFetch).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe('connecting', () => {
 
     it('stays quiet while the tab is in the background', async () => {
         const spy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
-        authFetch.mockResolvedValue(openStream([]));
+        (authFetch as Mock).mockResolvedValue(openStream([]));
         mount();
         await Promise.resolve();
         expect(authFetch).not.toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('connecting', () => {
 
 describe('reading the feed', () => {
     it('hands each event to the caller, kind and payload apart', async () => {
-        authFetch.mockResolvedValue(openStream([
+        (authFetch as Mock).mockResolvedValue(openStream([
             frame('thread_shared', { targetId: 'c1' }, 1),
             frame('member_added', { targetId: 'u2' }, 2),
         ]));
@@ -103,7 +103,7 @@ describe('reading the feed', () => {
     });
 
     it('waits for the rest of a frame that arrived split across two chunks', async () => {
-        authFetch.mockResolvedValue(openStream([
+        (authFetch as Mock).mockResolvedValue(openStream([
             'event: thread_shared\ndata: {"targetId":"c',
             '1"}\n\n',
         ]));
@@ -112,7 +112,7 @@ describe('reading the feed', () => {
     });
 
     it('swallows the keep-alive frames rather than passing them on', async () => {
-        authFetch.mockResolvedValue(openStream([
+        (authFetch as Mock).mockResolvedValue(openStream([
             ': ping\n\n',
             frame('ping', {}),
             frame('ready', { ok: true }),
@@ -125,7 +125,7 @@ describe('reading the feed', () => {
     });
 
     it('skips a frame whose payload is not JSON instead of tearing the stream down', async () => {
-        authFetch.mockResolvedValue(openStream([
+        (authFetch as Mock).mockResolvedValue(openStream([
             'event: member_added\ndata: not-json\n\n',
             frame('thread_shared', { targetId: 'c1' }, 1),
         ]));
@@ -135,7 +135,7 @@ describe('reading the feed', () => {
     });
 
     it('defaults to the "message" kind for a frame with no event line', async () => {
-        authFetch.mockResolvedValue(openStream(['data: {"a":1}\n\n']));
+        (authFetch as Mock).mockResolvedValue(openStream(['data: {"a":1}\n\n']));
         const { onEvent } = mount();
         await waitFor(() => expect(onEvent).toHaveBeenCalledWith('message', { a: 1 }));
     });
@@ -144,7 +144,7 @@ describe('reading the feed', () => {
 describe('the cursor', () => {
     it('replays the gap from the last durable event after a reconnect', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('thread_shared', { targetId: 'c1' }, 7)]))
             .mockResolvedValue(openStream([]));
         mount();
@@ -155,7 +155,7 @@ describe('the cursor', () => {
 
     it('never lets a transient frame move the cursor — "Anna is typing" is not replayable', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([
                 frame('thread_shared', { targetId: 'c1' }, 4),
                 frame('typing', { userId: 'u2' }),          // no id: transient
@@ -168,7 +168,7 @@ describe('the cursor', () => {
 
     it('keeps the highest id it saw, not the last one', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([
                 frame('a', {}, 9),
                 frame('b', {}, 3),
@@ -184,7 +184,7 @@ describe('the cursor', () => {
     // cursor and a ping never can. The asymmetry is undocumented in the hook.
     it('lets a ready frame carrying an id move the cursor even though it is not delivered', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('ready', { ok: true }, 12)]))
             .mockResolvedValue(openStream([]));
         const { onEvent } = mount();
@@ -195,7 +195,7 @@ describe('the cursor', () => {
 
     it('starts a different project from scratch rather than carrying the cursor across', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('a', {}, 5)]))
             .mockResolvedValue(openStream([]));
         const onEvent = vi.fn();
@@ -213,7 +213,7 @@ describe('the cursor', () => {
 describe('when access is revoked mid-stream', () => {
     it('stops trying instead of reconnecting into a loop', async () => {
         vi.useFakeTimers();
-        authFetch.mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
+        (authFetch as Mock).mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
         mount();
         await vi.advanceTimersByTimeAsync(60_000);
         expect(authFetch).toHaveBeenCalledTimes(1);
@@ -227,7 +227,7 @@ describe('when access is revoked mid-stream', () => {
     // the lists), so the stream must deliver it.
     it('tells the caller it was forbidden, once', async () => {
         vi.useFakeTimers();
-        authFetch.mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
+        (authFetch as Mock).mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
         const { onEvent } = mount();
         await vi.advanceTimersByTimeAsync(60_000);
         expect(onEvent).toHaveBeenCalledTimes(1);
@@ -236,7 +236,7 @@ describe('when access is revoked mid-stream', () => {
 
     it('drops every event that was still queued behind the forbidden frame', async () => {
         vi.useFakeTimers();
-        authFetch.mockResolvedValue(streamOf([
+        (authFetch as Mock).mockResolvedValue(streamOf([
             frame('member_removed', { targetId: 'u2' }, 1),
             frame('forbidden', { reason: 'removed' }),
             frame('thread_shared', { targetId: 'c9' }, 2),
@@ -250,15 +250,15 @@ describe('when access is revoked mid-stream', () => {
 describe('when the stream cannot be established', () => {
     it('retries a failure before giving up on it', async () => {
         vi.useFakeTimers();
-        authFetch.mockRejectedValue(new Error('boom'));
+        (authFetch as Mock).mockRejectedValue(new Error('boom'));
         mount();
         await vi.advanceTimersByTimeAsync(2000);
-        expect(authFetch.mock.calls.length).toBeGreaterThan(1);
+        expect((authFetch as Mock).mock.calls.length).toBeGreaterThan(1);
     });
 
     it('falls back to polling the activity endpoint after three strikes', async () => {
         vi.useFakeTimers();
-        authFetch.mockRejectedValue(new Error('no sse here'));
+        (authFetch as Mock).mockRejectedValue(new Error('no sse here'));
         mount();
         await vi.advanceTimersByTimeAsync(30_000);
         expect(urls()).toContain('/api/projects/p1/activity?limit=25');
@@ -266,7 +266,7 @@ describe('when the stream cannot be established', () => {
 
     it('replays polled activity oldest-first and marks it as polled', async () => {
         vi.useFakeTimers();
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) {
                 return {
                     ok: true,
@@ -302,7 +302,7 @@ describe('when the stream cannot be established', () => {
         // never pin the status check. A 502 WITH a body would then be read as a living
         // stream, so never three strikes and never the polling fallback.
         // mockImplementation, not mockResolvedValue: a ReadableStream is readable only once.
-        authFetch.mockImplementation(async () => ({ ok: false, status: 502, body: openStream([]).body }));
+        (authFetch as Mock).mockImplementation(async () => ({ ok: false, status: 502, body: openStream([]).body }));
         mount();
         await vi.advanceTimersByTimeAsync(30_000);
         expect(urls()).toContain('/api/projects/p1/activity?limit=25');
@@ -312,20 +312,20 @@ describe('when the stream cannot be established', () => {
 describe('tearing down', () => {
     it('stops delivering events once the caller unmounts', async () => {
         vi.useFakeTimers();
-        authFetch.mockResolvedValue(streamOf([]));
+        (authFetch as Mock).mockResolvedValue(streamOf([]));
         const { unmount } = mount();
         await vi.advanceTimersByTimeAsync(100);
-        const before = authFetch.mock.calls.length;
+        const before = (authFetch as Mock).mock.calls.length;
         unmount();
         await vi.advanceTimersByTimeAsync(60_000);
-        expect(authFetch.mock.calls.length).toBe(before);
+        expect((authFetch as Mock).mock.calls.length).toBe(before);
     });
 });
 
 describe('the ready frame', () => {
     it('adopts the cursor the server started from, so an early reconnect does not skip the gap', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('ready', { since: 42, distributed: false })]))
             .mockResolvedValue(openStream([]));
         mount();
@@ -335,7 +335,7 @@ describe('the ready frame', () => {
 
     it('never moves the cursor backwards on a ready frame', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('a', {}, 9), frame('ready', { since: 3 })]))
             .mockResolvedValue(openStream([]));
         mount();
@@ -345,7 +345,7 @@ describe('the ready frame', () => {
 
     it('tells the caller about every connection, and which ones were reconnects', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('ready', { since: 5 })]))
             .mockResolvedValue(openStream([frame('ready', { since: 5 })]));
         const onReady = vi.fn();
@@ -358,7 +358,7 @@ describe('the ready frame', () => {
 
 describe('document frames', () => {
     it('joins a document and resumes it from the caller\'s own sequence', async () => {
-        authFetch.mockResolvedValue(openStream([]));
+        (authFetch as Mock).mockResolvedValue(openStream([]));
         mount({ doc: 'd 1', docSince: () => 7, pollActivity: false });
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(urls()[0]).toBe('/api/projects/p1/stream?since=0&doc=d%201&docSince=7');
@@ -366,7 +366,7 @@ describe('document frames', () => {
 
     it('keeps the project cursor when the document changes on the same project', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(openStream([frame('a', {}, 11)]))
             .mockResolvedValue(openStream([]));
         const onEvent = vi.fn();
@@ -382,7 +382,7 @@ describe('document frames', () => {
 
     it('opens the stream again on a new reconnect key, from the same cursor and the caller\'s current sequence', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(openStream([frame('a', {}, 11)]))
             .mockResolvedValue(openStream([]));
         let since = 3;
@@ -405,7 +405,7 @@ describe('document frames', () => {
 
     it('delivers transient document frames without moving the cursor', async () => {
         vi.useFakeTimers();
-        authFetch
+        (authFetch as Mock)
             .mockResolvedValueOnce(streamOf([frame('a', {}, 4), frame('doc.update', { docId: 'd1', seq: 2, u: 'AA==' })]))
             .mockResolvedValue(openStream([]));
         const { onEvent } = mount({ doc: 'd1', docSince: 0 });
@@ -419,7 +419,7 @@ describe('degraded mode', () => {
     it('keeps probing the stream while polling and stops polling once it is back', async () => {
         vi.useFakeTimers();
         let sseUp = false;
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) return { ok: true, status: 200, json: async () => ({ items: [] }) };
             if (!sseUp) throw new Error('no sse here');
             return openStream([]);
@@ -431,14 +431,14 @@ describe('degraded mode', () => {
         sseUp = true;
         await vi.advanceTimersByTimeAsync(31_000);
         expect(onStatus).toHaveBeenLastCalledWith('live');
-        const pollsBefore = urls().filter(u => u.includes('/activity')).length;
+        const pollsBefore = urls().filter((u: string) => u.includes('/activity')).length;
         await vi.advanceTimersByTimeAsync(60_000);
-        expect(urls().filter(u => u.includes('/activity')).length).toBe(pollsBefore);
+        expect(urls().filter((u: string) => u.includes('/activity')).length).toBe(pollsBefore);
     });
 
     it('delivers a polled activity item once, not on every tick', async () => {
         vi.useFakeTimers();
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url: string) => {
             if (url.includes('/activity')) {
                 return { ok: true, status: 200, json: async () => ({ items: [{ id: 1, action: 'member_added', details: { a: 1 } }] }) };
             }
@@ -452,15 +452,15 @@ describe('degraded mode', () => {
 
     it('does not poll the activity feed for a document-only subscription', async () => {
         vi.useFakeTimers();
-        authFetch.mockRejectedValue(new Error('no sse here'));
+        (authFetch as Mock).mockRejectedValue(new Error('no sse here'));
         mount({ doc: 'd1', pollActivity: false });
         await vi.advanceTimersByTimeAsync(30_000);
-        expect(urls().some(u => u.includes('/activity'))).toBe(false);
+        expect(urls().some((u: string) => u.includes('/activity'))).toBe(false);
     });
 
     it('reports a revoked stream as stopped', async () => {
         vi.useFakeTimers();
-        authFetch.mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
+        (authFetch as Mock).mockResolvedValue(streamOf([frame('forbidden', { reason: 'removed' })]));
         const onStatus = vi.fn();
         mount({ onStatus });
         await vi.advanceTimersByTimeAsync(1000);

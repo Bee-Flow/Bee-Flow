@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import useAutomationBuilderStream from './useAutomationBuilderStream';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import useAutomationBuilderStream, { type AutomationBuilderSendOptions } from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -21,26 +21,26 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  */
 
 const enc = new TextEncoder();
-const sse = (event, data) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+const sse = (event: string, data: object) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
 function openBody() {
-    let controller;
+    let controller: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream({ start(c) { controller = c; } });
-    return { stream, push: (chunk) => controller.enqueue(chunk), close: () => controller.close() };
+    return { stream, push: (chunk: Uint8Array) => controller.enqueue(chunk), close: () => controller.close() };
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-async function startTurn(sendArgs = { message: 'x', modelTier: 'fast' }) {
+async function startTurn(sendArgs: AutomationBuilderSendOptions = { message: 'x', modelTier: 'fast' }) {
     const body = openBody();
-    authFetch.mockResolvedValue({ ok: true, status: 200, body: body.stream });
+    (authFetch as Mock).mockResolvedValue({ ok: true, status: 200, body: body.stream });
     const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
-    let sending;
+    let sending: Promise<void>;
     await act(async () => {
         sending = result.current.send(sendArgs);
         await flush();
     });
-    const push = async (...events) => {
+    const push = async (...events: [string, object][]) => {
         await act(async () => {
             for (const [ev, data] of events) body.push(sse(ev, data));
             await flush();
@@ -57,9 +57,9 @@ async function startTurn(sendArgs = { message: 'x', modelTier: 'fast' }) {
 }
 
 describe('useAutomationBuilderStream — build visualisation feed', () => {
-    let clock;
+    let clock: number;
     beforeEach(() => {
-        authFetch.mockReset();
+        (authFetch as Mock).mockReset();
         clock = 5_000_000;
         vi.spyOn(Date, 'now').mockImplementation(() => { clock += 1000; return clock; });
     });
@@ -68,10 +68,10 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
     it('round_start opens a reading phase, records local/providerType and seeds the engine', async () => {
         const { result, push, finish } = await startTurn();
         expect(result.current.state.engine).toBeNull();
-        expect(result.current.state.turn.phase).toBeNull();
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBeNull();
 
         await push(['round_start', { iter: 0, modelId: 'qwen3.6-35b-a3b', promptChars: 90_000, effort: 'none', local: true, providerType: 'openai-compatible' }]);
-        const t = result.current.state.turn;
+        const t = result.current.state.turn as NonNullable<typeof result.current.state.turn>;
         expect(t.phase).toBe('reading');
         expect(t.iter).toBe(0);
         expect(t.local).toBe(true);
@@ -84,9 +84,9 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
     it('round_start without the new fields keeps working (old server)', async () => {
         const { result, push, finish } = await startTurn();
         await push(['round_start', { iter: 0, modelId: 'm', promptChars: 10 }]);
-        expect(result.current.state.turn.local).toBeNull();
-        expect(result.current.state.turn.phase).toBe('reading');
-        expect(result.current.state.engine.local).toBeNull();
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).local).toBeNull();
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('reading');
+        expect((result.current.state.engine as NonNullable<typeof result.current.state.engine>).local).toBeNull();
         await finish();
     });
 
@@ -96,10 +96,10 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
             ['round_start', { iter: 0, modelId: 'm', promptChars: 10, local: true }],
             ['prompt_progress', { iter: 0, total: '28000', cache: 26900, processed: 27400, timeMs: 3200 }],
         );
-        const t = result.current.state.turn;
+        const t = result.current.state.turn as NonNullable<typeof result.current.state.turn>;
         expect(t.phase).toBe('reading');
         expect(t.progress).toMatchObject({ total: 28000, cache: 26900, processed: 27400, timeMs: 3200 });
-        expect(t.progress.at).toEqual(expect.any(Number));
+        expect((t.progress as NonNullable<typeof t.progress>).at).toEqual(expect.any(Number));
         // The waiting card is still up: progress is not output.
         expect(t.firstEventAt).toBeNull();
         await finish();
@@ -115,15 +115,15 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
             steps: [{ type: 'action', tool: 'nextcloud_list_files', label: 'List invoices', partial: false }, { type: 'action', tool: 'nextcloud_read_file', label: 'Read ea', partial: true }],
             inspect: [],
         }]);
-        const d = result.current.state.toolDraft;
+        const d = result.current.state.toolDraft as NonNullable<typeof result.current.state.toolDraft>;
         expect(d.name).toBe('builder_add_steps');
         expect(d.steps).toHaveLength(2);
-        expect(d.steps[1]).toMatchObject({ tool: 'nextcloud_read_file', partial: true });
+        expect((d.steps as unknown[])[1]).toMatchObject({ tool: 'nextcloud_read_file', partial: true });
         expect(d.count).toBe(2);
         expect(d.chars).toBe(140);
         expect(d.iter).toBe(0);
         expect(d.at).toEqual(expect.any(Number));
-        const t = result.current.state.turn;
+        const t = result.current.state.turn as NonNullable<typeof result.current.state.turn>;
         expect(t.phase).toBe('writing');
         expect(t.firstEventAt).toEqual(expect.any(Number));
         await finish();
@@ -150,8 +150,8 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
         expect(result.current.state.toolDraft?.name).toBe('builder_request_dry_run');
         await push(['round_start', { iter: 1, modelId: 'm', promptChars: 12 }]);
         expect(result.current.state.toolDraft).toBeNull();
-        expect(result.current.state.turn.phase).toBe('reading');
-        expect(result.current.state.turn.iter).toBe(1);
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('reading');
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).iter).toBe(1);
         await finish();
     });
 
@@ -184,19 +184,19 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
                 totals: {},
             }],
         );
-        const e = result.current.state.engine;
+        const e = result.current.state.engine as NonNullable<typeof result.current.state.engine>;
         expect(e.lastUsage).toMatchObject({ promptTokens: 28_000, completionTokens: 410, cachedTokens: 26_900 });
         // 1100 tokens / 7.5 s ≈ 147 tok/s read; 410 / 18.6 s ≈ 22 tok/s write.
         expect(e.readTokPerSec).toBe(147);
         expect(e.writeTokPerSec).toBe(22);
-        expect(result.current.state.turn.usage).toBe(e.lastUsage);
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).usage).toBe(e.lastUsage);
         await finish();
 
         // Next turn: the engine facts survive the reset of `turn`.
         const engineBefore = result.current.state.engine;
         await act(async () => {
             const body = openBody();
-            authFetch.mockResolvedValue({ ok: true, status: 200, body: body.stream });
+            (authFetch as Mock).mockResolvedValue({ ok: true, status: 200, body: body.stream });
             const sending = result.current.send({ message: 'y', modelTier: 'fast' });
             await flush();
             body.push(sse('done', {}));
@@ -204,7 +204,7 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
             await sending;
         });
         expect(result.current.state.engine).toBe(engineBefore);
-        expect(result.current.state.turn.usage).toBeNull();
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).usage).toBeNull();
     });
 
     it('usage without timings (cloud runtime) keeps the previous rates', async () => {
@@ -213,24 +213,24 @@ describe('useAutomationBuilderStream — build visualisation feed', () => {
             ['usage', { prompt_tokens: 10, completion_tokens: 5, timings: { prompt_n: 100, prompt_ms: 1000, predicted_n: 50, predicted_ms: 1000 } }],
             ['usage', { prompt_tokens: 12, completion_tokens: 6 }],
         );
-        const e = result.current.state.engine;
+        const e = result.current.state.engine as NonNullable<typeof result.current.state.engine>;
         expect(e.readTokPerSec).toBe(100);
         expect(e.writeTokPerSec).toBe(50);
-        expect(e.lastUsage.timings).toBeNull();
-        expect(e.lastUsage.cachedTokens).toBeNull();
+        expect((e.lastUsage as NonNullable<typeof e.lastUsage>).timings).toBeNull();
+        expect((e.lastUsage as NonNullable<typeof e.lastUsage>).cachedTokens).toBeNull();
         await finish();
     });
 
     it('message / thinking_start after a round_start flip the phase to writing', async () => {
         const { result, push, finish } = await startTurn();
         await push(['round_start', { iter: 0, modelId: 'm', promptChars: 10 }]);
-        expect(result.current.state.turn.phase).toBe('reading');
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('reading');
         await push(['message', { content: 'Hi' }]);
-        expect(result.current.state.turn.phase).toBe('writing');
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('writing');
         await push(['round_start', { iter: 1, modelId: 'm', promptChars: 10 }]);
-        expect(result.current.state.turn.phase).toBe('reading');
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('reading');
         await push(['thinking_start', { partId: 'p1' }]);
-        expect(result.current.state.turn.phase).toBe('writing');
+        expect((result.current.state.turn as NonNullable<typeof result.current.state.turn>).phase).toBe('writing');
         await finish();
     });
 

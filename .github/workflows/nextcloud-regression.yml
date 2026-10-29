@@ -82,7 +82,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
 
       - name: Run chat stream-integrity tests
-        run: npx vitest run src/hooks/useChatEngine.streamIntegrity.test.js
+        run: npx vitest run src/hooks/useChatEngine.streamIntegrity.test.ts
 
       # Guards the "raw i18n key rendered in the UI" bug class. The block
       # notices the chat shows instead of an empty bubble are t() lookups, so a

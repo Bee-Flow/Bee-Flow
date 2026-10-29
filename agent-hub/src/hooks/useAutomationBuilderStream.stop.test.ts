@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import useAutomationBuilderStream from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
@@ -20,25 +20,25 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  */
 
 const enc = new TextEncoder();
-const sse = (event, data) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+const sse = (event: string, data: object) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function openBody() {
-    let controller;
+    let controller: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream({ start(c) { controller = c; } });
-    return { stream, push: (c) => controller.enqueue(c), close: () => controller.close() };
+    return { stream, push: (c: Uint8Array) => controller.enqueue(c), close: () => controller.close() };
 }
 
 describe('useAutomationBuilderStream.stop', () => {
-    let seenSignal;
+    let seenSignal: AbortSignal | null;
     beforeEach(() => {
         seenSignal = null;
-        authFetch.mockReset();
+        (authFetch as Mock).mockReset();
     });
 
     async function startBuilding() {
         const body = openBody();
-        authFetch.mockImplementation(async (url, opts) => {
+        (authFetch as Mock).mockImplementation(async (url, opts) => {
             seenSignal = opts?.signal || null;
             return { ok: true, status: 200, body: body.stream };
         });
@@ -60,7 +60,7 @@ describe('useAutomationBuilderStream.stop', () => {
 
         await act(async () => { result.current.stop(); await flush(); });
 
-        expect(seenSignal.aborted).toBe(true);
+        expect((seenSignal as AbortSignal).aborted).toBe(true);
         expect(result.current.state.running).toBe(false);
         expect(result.current.state.toolDraft).toBe(null);
     });

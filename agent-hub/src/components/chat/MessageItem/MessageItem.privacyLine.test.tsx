@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { describe, it, expect } from 'vitest';
 
 import MessageItem from './index';
+import type { TokenisationInfo } from '@/hooks/useChatEngine/types';
 
 /**
  * C7: the wiring, not the sentence.
@@ -25,9 +26,9 @@ const userMsg = (over = {}) => ({
     dlpCategories: ['Email'],
     ...over,
 });
-const answer = (tokenisationInfo) => ({ id: 'a1', role: 'assistant', content: 'Ik kijk het na.', tokenisationInfo });
+const answer = (tokenisationInfo: TokenisationInfo) => ({ id: 'a1', role: 'assistant', content: 'Ik kijk het na.', tokenisationInfo });
 
-function renderTurn(messages) {
+function renderTurn(messages: NonNullable<ComponentProps<typeof MessageItem>['allMessages']>) {
     return render(<MessageItem idx={0} msg={messages[0]} allMessages={messages} />);
 }
 

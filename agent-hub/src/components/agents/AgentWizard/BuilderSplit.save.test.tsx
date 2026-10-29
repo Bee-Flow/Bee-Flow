@@ -5,11 +5,11 @@
  * editor sends and what the screen shows afterwards, so moving these paths
  * into hooks (./builderSplit/) cannot change them unnoticed.
  *
- * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.save.test.jsx
+ * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.save.test.tsx
  */
 import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, type Mock } from 'vitest';
 
 vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
@@ -20,15 +20,15 @@ vi.mock('@/api/queries/automation/agentBindings', () => ({
     useLinkedAutomationIds: () => ({ data: undefined }),
 }));
 vi.mock('../../renderers/MarkdownRenderer', () => ({
-    default: ({ content }) => <div data-testid="markdown">{content}</div>,
+    default: ({ content }: { content: string }) => <div data-testid="markdown">{content}</div>,
 }));
 
 import { renderWithClient as render } from '@/test/render';
 import { authFetch } from '@/utils/helpers';
 import BuilderSplit from './BuilderSplit';
 
-const DEFAULT_FETCH = authFetch.getMockImplementation();
-afterEach(() => { cleanup(); authFetch.mockImplementation(DEFAULT_FETCH); authFetch.mockClear(); });
+const DEFAULT_FETCH = (authFetch as Mock).getMockImplementation();
+afterEach(() => { cleanup(); (authFetch as Mock).mockImplementation(DEFAULT_FETCH as NonNullable<typeof DEFAULT_FETCH>); (authFetch as Mock).mockClear(); });
 
 const agent = {
     id: 'agent-1',
@@ -42,11 +42,11 @@ const agent = {
 };
 const baseProps = { agent, plan: null, history: [], tier: 'fast', locale: 'en', onBack: () => {}, onPublished: () => {} };
 
-const reply = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body, text: async () => '' });
+const reply = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body, text: async () => '' });
 /** routes: [method, urlPart, (opts, n) => response]; first match wins; n counts hits on that route. */
-function routeFetch(routes) {
+function routeFetch(routes: [string, string, (opts: { body: string }, n: number) => unknown][]) {
     const hits = new Map();
-    authFetch.mockImplementation(async (url, opts = {}) => {
+    (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
         const method = opts.method || 'GET';
         for (const [m, part, fn] of routes) {
             if (m === method && String(url).includes(part)) {
@@ -58,7 +58,7 @@ function routeFetch(routes) {
         return reply(500, {});
     });
 }
-const calls = (method, part) => authFetch.mock.calls
+const calls = (method: string, part: string) => (authFetch as Mock).mock.calls
     .filter(([url, opts]) => (opts?.method || 'GET') === method && String(url).includes(part));
 
 // The component reads through react-query: every render gets its own client.
@@ -66,8 +66,8 @@ const calls = (method, part) => authFetch.mock.calls
 describe('BuilderSplit — standalone bootstrap', () => {
     it('reads the six pickers sources in this order when no provider is mounted', async () => {
         render(<BuilderSplit {...baseProps} />);
-        await waitFor(() => expect(authFetch.mock.calls.length).toBeGreaterThanOrEqual(6));
-        const urls = authFetch.mock.calls.map(([u]) => String(u));
+        await waitFor(() => expect((authFetch as Mock).mock.calls.length).toBeGreaterThanOrEqual(6));
+        const urls = (authFetch as Mock).mock.calls.map(([u]) => String(u));
         const boot = ['/api/skills', '/ai/user-settings', '/agents/categories', '/auth/groups',
             '/ai/config/tiers-for-user?taskType=direct_chat', '/automation'];
         const idx = boot.map(b => urls.indexOf(b));
@@ -80,7 +80,7 @@ describe('BuilderSplit — first save of a draft', () => {
     it('POSTs the full snapshot to /agents and hands the created agent to onPublished', async () => {
         const onPublished = vi.fn();
         routeFetch([
-            ['POST', '/agents', (opts) => reply(201, { ...JSON.parse(opts.body), id: 'new-1', rev: 1, system_prompt: 'Draft prompt' })],
+            ['POST', '/agents', (opts: { body: string; }) => reply(201, { ...JSON.parse(opts.body), id: 'new-1', rev: 1, system_prompt: 'Draft prompt' })],
         ]);
         const draft = { name: 'Draft', description: 'D', system_prompt: 'Draft prompt', config: { memoryEnabled: false } };
         render(<BuilderSplit {...baseProps} agent={draft} onPublished={onPublished} />);

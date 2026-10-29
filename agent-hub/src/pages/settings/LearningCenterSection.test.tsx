@@ -12,7 +12,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../components/licensing/LicenseContext', () => ({
@@ -34,7 +34,7 @@ vi.mock('../../api/achievements', () => ({
     downloadAsset: vi.fn(),
 }));
 vi.mock('../../components/onboarding/actionChecks', async (importOriginal) => {
-    const mod = await importOriginal();
+    const mod = await importOriginal<typeof import('../../components/onboarding/actionChecks')>();
     return { ...mod, runActionCheck: vi.fn(async () => ({ passes: {}, allPassed: false, error: null })) };
 });
 
@@ -44,14 +44,14 @@ import { authFetch } from '../../utils/helpers';
 
 const USER = { id: 'u1', role: 'admin', permissions: ['manage_agents', 'manage_skills', 'manage_knowledge', 'manage_users'] };
 
-function jsonResponse(body) {
+function jsonResponse(body: unknown) {
     return { ok: true, status: 200, json: async () => body };
 }
 
 beforeEach(() => {
     window.localStorage.clear();
-    authFetch.mockReset();
-    authFetch.mockImplementation(async (url) => {
+    (authFetch as Mock).mockReset();
+    (authFetch as Mock).mockImplementation(async (url) => {
         if (String(url).includes('/ai/user-settings')) {
             return jsonResponse({
                 learningPath: 'builder',
@@ -85,8 +85,8 @@ describe('LearningCenterSection — redesigned shell', () => {
 
     it('"Play" opens the player with the course id; "Beside the app" docks it', async () => {
         const user = userEvent.setup();
-        const seen = [];
-        const onOpen = (e) => seen.push(e.detail);
+        const seen: { courseId?: string; layout?: string | null }[] = [];
+        const onOpen = (e: Event) => seen.push((e as CustomEvent).detail);
         window.addEventListener(LESSON_PLAYER_OPEN_EVENT, onOpen);
         render(<LearningCenterSection user={USER} />);
         await user.click(await screen.findByTestId('learning-continue'));

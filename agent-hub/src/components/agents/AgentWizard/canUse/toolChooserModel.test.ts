@@ -39,15 +39,15 @@ describe('de beginstand: twee poorten, niet één', () => {
         const sel = chooserInitialSelection({
             toolsConfig: null, enabledIntegrations: ['gmail'], apps: APPS,
         });
-        expect([...sel.get('gmail')].sort()).toEqual(['gmail_compose', 'gmail_create_draft', 'gmail_search']);
-        expect([...sel.get('google-drive')]).toEqual([]);
+        expect([...(sel.get('gmail') as Set<string>)].sort()).toEqual(['gmail_compose', 'gmail_create_draft', 'gmail_search']);
+        expect([...(sel.get('google-drive') as Set<string>)]).toEqual([]);
     });
 
     it('klapt een aangezette app zonder entry uit naar al zijn acties', () => {
         const sel = chooserInitialSelection({
             toolsConfig: {}, enabledIntegrations: ['google-drive'], apps: APPS,
         });
-        expect([...sel.get('google-drive')].sort()).toEqual(['drive_search', 'drive_upload_file']);
+        expect([...(sel.get('google-drive') as Set<string>)].sort()).toEqual(['drive_search', 'drive_upload_file']);
     });
 
     it('houdt een app met ONBEKENDE acties op `null` — niet op "niets"', () => {
@@ -58,7 +58,7 @@ describe('de beginstand: twee poorten, niet één', () => {
     it('legacy `null` betekent "alles wat beschikbaar is staat aan"', () => {
         expect(isAppEnabled(null, 'gmail')).toBe(true);
         const sel = chooserInitialSelection({ toolsConfig: { gmail: { actions: ['gmail_search'] } }, enabledIntegrations: null, apps: APPS });
-        expect([...sel.get('gmail')]).toEqual(['gmail_search']);
+        expect([...(sel.get('gmail') as Set<string>)]).toEqual(['gmail_search']);
     });
 });
 
@@ -100,7 +100,7 @@ describe('toepassen: één schrijfbeurt, allebei de poorten', () => {
 
         const out = commitSelection({ toolsConfig: null, enabledIntegrations: [], apps, initial, selection });
         expect(out.enabledIntegrations).toEqual(['gmail']);
-        expect(out.tools.gmail.actions).toEqual(['gmail_search']);
+        expect((out.tools.gmail as { actions: unknown }).actions).toEqual(['gmail_search']);
         expect(out.enabledChanged).toBe(true);
     });
 
@@ -113,7 +113,7 @@ describe('toepassen: één schrijfbeurt, allebei de poorten', () => {
 
         const out = commitSelection({ toolsConfig: null, enabledIntegrations: ['gmail'], apps, initial, selection });
         expect(out.enabledIntegrations).toEqual([]);
-        expect(out.tools.gmail.actions).toEqual([]);
+        expect((out.tools.gmail as { actions: unknown }).actions).toEqual([]);
         expect(grantedActionsOf(out.tools, 'gmail')).toEqual([]);
     });
 
@@ -135,7 +135,7 @@ describe('toepassen: één schrijfbeurt, allebei de poorten', () => {
         selection.set('gmail', new Set(['gmail_search', 'gmail_compose', 'gmail_create_draft']));
 
         const out = commitSelection({ toolsConfig: { gmail: { actions: ['gmail_search'] } }, enabledIntegrations: ['gmail'], apps, initial, selection });
-        expect(out.tools.gmail.actions).toBe('*');
+        expect((out.tools.gmail as { actions: unknown }).actions).toBe('*');
     });
 
     it('laat het opgeslagen confirm/actAs van een app staan', () => {
@@ -219,7 +219,7 @@ describe('één rij per grant-subject', () => {
         const initial = chooserInitialSelection({
             toolsConfig: null, enabledIntegrations: ['outlook'], apps,
         });
-        expect([...initial.get('outlook')]).toHaveLength(4);
+        expect([...(initial.get('outlook') as Set<string>)]).toHaveLength(4);
         expect(initial.has('outlook-readonly')).toBe(false);
 
         // De eigenaar haalt één actie weg.
@@ -243,7 +243,7 @@ describe('één rij per grant-subject', () => {
             toolsConfig: before, enabledIntegrations: ['outlook'], apps, catalog,
         });
         // De kiezer opent met de EFFECTIEVE stand: search + compose.
-        expect([...initial.get('outlook')].sort()).toEqual(['outlook_compose', 'outlook_search']);
+        expect([...(initial.get('outlook') as Set<string>)].sort()).toEqual(['outlook_compose', 'outlook_search']);
 
         const selection = new Map(initial);
         selection.set('outlook', new Set(['outlook_search', 'outlook_read', 'outlook_compose']));
@@ -272,7 +272,7 @@ describe('de EERSTE curatie verandert de betekenis van zwijgen', () => {
         const apps = [GMAIL, BROWSER];
         const enabled = ['gmail', 'browser-fetch'];
         const initial = chooserInitialSelection({ toolsConfig: null, enabledIntegrations: enabled, apps });
-        expect([...initial.get('browser-fetch')]).toEqual(['browse_web']);
+        expect([...(initial.get('browser-fetch') as Set<string>)]).toEqual(['browse_web']);
 
         const selection = new Map(initial);
         selection.set('gmail', new Set(['gmail_search']));
@@ -304,7 +304,7 @@ describe('de EERSTE curatie verandert de betekenis van zwijgen', () => {
         });
         // Already curated ⇒ the browser opens with ZERO ticks (the server does not serve it either), and nothing is
         // written for it.
-        expect([...initial.get('browser-fetch')]).toEqual([]);
+        expect([...(initial.get('browser-fetch') as Set<string>)]).toEqual([]);
         const selection = new Map(initial);
         selection.set('gmail', new Set(['gmail_search', 'gmail_compose']));
         const { tools } = commitSelection({

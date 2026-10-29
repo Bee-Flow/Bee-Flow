@@ -1,6 +1,6 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /**
  * Voice profile settings + enrollment.
@@ -18,26 +18,30 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 // The fallback is what renders, so these assertions read as the English UI.
 // Requested keys are recorded so a dynamic key (the server's error code) can
 // be asserted without depending on dictionary contents.
-const tKeys = [];
+const tKeys: string[] = [];
 vi.mock('../../hooks/useTranslation', () => ({
     useTranslation: () => ({
-        t: (key, fallback, vars) => {
+        t: (key: string, fallback?: string | Record<string, unknown>, vars?: Record<string, unknown>) => {
             tKeys.push(key);
             const values = typeof fallback === 'object' && fallback !== null ? fallback : vars;
             const text = typeof fallback === 'string' ? fallback : key;
             return values
-                ? text.replace(/\{(\w+)\}/g, (m, k) => (k in values ? String(values[k]) : m))
+                ? text.replace(/\{(\w+)\}/g, (m: string, k: string) => (k in values ? String(values[k]) : m))
                 : text;
         },
         locale: 'en',
     }),
 }));
 
-const recorder = { current: null };
+type RecorderArgs = NonNullable<Parameters<typeof useAudioRecorder>[0]>;
+type OnStopped = NonNullable<RecorderArgs['onStopped']>;
+type Recorder = ReturnType<typeof makeRecorder>;
+const recorder: { current: Recorder | null; onStopped?: OnStopped } = { current: null };
 vi.mock('../meeting-notes/hooks/useAudioRecorder', () => ({
-    default: (opts) => { recorder.onStopped = opts?.onStopped; return recorder.current; },
+    default: (opts?: RecorderArgs) => { recorder.onStopped = opts?.onStopped; return recorder.current; },
 }));
 
+import type useAudioRecorder from '../meeting-notes/hooks/useAudioRecorder';
 import VoiceprintSection from './VoiceprintSection';
 import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
@@ -56,8 +60,8 @@ const makeRecorder = (over = {}) => ({
     ...over,
 });
 
-function respond(payload, ok = true) {
-    authFetch.mockResolvedValue({ ok, json: async () => payload });
+function respond(payload: object, ok: boolean = true) {
+    (authFetch as Mock).mockResolvedValue({ ok, json: async () => payload });
 }
 
 describe('VoiceprintSection', () => {
@@ -86,14 +90,14 @@ describe('VoiceprintSection', () => {
         render(<VoiceprintSection />);
         expect(await screen.findByText('No voice profile yet')).toBeTruthy();
         expect(screen.getByText(/3 of 12 colleagues/)).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'Record voice profile' })).toBeTruthy();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Record voice profile' })).toBeTruthy();
     });
 
     it('shows the enrolled state with the recording date', async () => {
         respond({ ...AVAILABLE, enrolled: true, voiceprint: { status: 'ready', createdAt: '2026-07-20T10:00:00Z' } });
         render(<VoiceprintSection />);
         expect(await screen.findByText('Your voice profile is active')).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'Record again' })).toBeTruthy();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Record again' })).toBeTruthy();
     });
 
     it('requires a confirmation before deleting', async () => {
@@ -103,7 +107,7 @@ describe('VoiceprintSection', () => {
         await user.click(await screen.findByRole('button', { name: 'Delete' }));
         expect(screen.getByText(/Delete your voice profile\?/)).toBeTruthy();
         // Nothing has been sent yet — only the availability probe ran.
-        expect(authFetch.mock.calls.filter(c => c[1]?.method === 'DELETE')).toHaveLength(0);
+        expect((authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'DELETE')).toHaveLength(0);
     });
 });
 
@@ -128,22 +132,22 @@ describe('VoiceprintEnrollModal timing + consent', () => {
         await openModal();
         expect(screen.getByText(/Good morning\./)).toBeTruthy();
 
-        const mic = screen.getByRole('button', { name: 'Start recording' });
+        const mic = screen.getByRole<HTMLButtonElement>('button', { name: 'Start recording' });
         expect(mic.disabled).toBe(true);
 
         await user.click(screen.getByRole('checkbox'));
-        expect(screen.getByRole('button', { name: 'Start recording' }).disabled).toBe(false);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Start recording' }).disabled).toBe(false);
     });
 
     it('cannot stop before the minimum length — a too-short clip is unsubmittable', async () => {
         await openModal({ state: 'recording', elapsed: 8 });
-        expect(screen.getByRole('button', { name: 'Stop recording' }).disabled).toBe(true);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Stop recording' }).disabled).toBe(true);
         expect(screen.getByText('Keep reading…')).toBeTruthy();
     });
 
     it('allows stopping once the minimum is reached', async () => {
         await openModal({ state: 'recording', elapsed: 14 });
-        expect(screen.getByRole('button', { name: 'Stop recording' }).disabled).toBe(false);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Stop recording' }).disabled).toBe(false);
         expect(screen.getByText('You can stop now')).toBeTruthy();
     });
 
@@ -155,29 +159,29 @@ describe('VoiceprintEnrollModal timing + consent', () => {
 
     it('uploads the clip with the consent flag once recording stops', async () => {
         await openModal({ state: 'recording', elapsed: 26 });
-        authFetch.mockResolvedValue({ ok: true, json: async () => ({ status: 'ready', voiceprint: { status: 'ready' } }) });
+        (authFetch as Mock).mockResolvedValue({ ok: true, json: async () => ({ status: 'ready', voiceprint: { status: 'ready' } }) });
 
         const file = new File(['x'], 'recording.webm', { type: 'audio/webm' });
-        await recorder.onStopped(file);
+        await (recorder.onStopped as OnStopped)(file);
 
-        const post = authFetch.mock.calls.find(c => c[1]?.method === 'POST');
+        const post = (authFetch as Mock).mock.calls.find(c => c[1]?.method === 'POST');
         expect(post).toBeTruthy();
-        expect(post[0]).toContain('/api/voiceprints/me');
-        expect(post[1].body.get('consent')).toBe('true');
-        expect(post[1].body.get('audio')).toBe(file);
+        expect((post as NonNullable<typeof post>)[0]).toContain('/api/voiceprints/me');
+        expect((post as NonNullable<typeof post>)[1].body.get('consent')).toBe('true');
+        expect((post as NonNullable<typeof post>)[1].body.get('audio')).toBe(file);
     });
 
     it('does not upload a clip that ended below the minimum', async () => {
         await openModal({ state: 'recording', elapsed: 4 });
-        await recorder.onStopped(new File(['x'], 'recording.webm'));
-        expect(authFetch.mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
+        await (recorder.onStopped as OnStopped)(new File(['x'], 'recording.webm'));
+        expect((authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'POST')).toHaveLength(0);
     });
 
     it('turns the server\'s error code into its own localized message', async () => {
         await openModal({ state: 'recording', elapsed: 26 });
         tKeys.length = 0;
-        authFetch.mockResolvedValue({ ok: false, json: async () => ({ code: 'multiple_speakers' }) });
-        await recorder.onStopped(new File(['x'], 'recording.webm'));
+        (authFetch as Mock).mockResolvedValue({ ok: false, json: async () => ({ code: 'multiple_speakers' }) });
+        await (recorder.onStopped as OnStopped)(new File(['x'], 'recording.webm'));
         // "record somewhere quiet with only you speaking" is actionable;
         // a generic failure is not — so the specific key must be the one asked for.
         await waitFor(() => expect(tKeys).toContain('voiceprint.error_multiple_speakers'));

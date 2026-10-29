@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import useAutomationBuilderStream from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
@@ -14,21 +14,21 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  */
 
 const enc = new TextEncoder();
-const sse = (event, data) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+const sse = (event: string, data: object) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function openBody() {
-    let controller;
+    let controller: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream({ start(c) { controller = c; } });
-    return { stream, push: (c) => controller.enqueue(c), close: () => controller.close() };
+    return { stream, push: (c: Uint8Array) => controller.enqueue(c), close: () => controller.close() };
 }
 
 describe('useAutomationBuilderStream — a dry run followed live', () => {
-    beforeEach(() => { authFetch.mockReset(); });
+    beforeEach(() => { (authFetch as Mock).mockReset(); });
 
     async function start() {
         const body = openBody();
-        authFetch.mockImplementation(async () => ({ ok: true, status: 200, body: body.stream }));
+        (authFetch as Mock).mockImplementation(async () => ({ ok: true, status: 200, body: body.stream }));
         const { result } = renderHook(() => useAutomationBuilderStream({}));
         await act(async () => { result.current.send({ message: 'build it', modelTier: 'fast' }); await flush(); });
         return { result, body };
@@ -70,7 +70,7 @@ describe('useAutomationBuilderStream — a dry run followed live', () => {
         expect(result.current.state.dryRun).toEqual({ id: 'run_3', status: 'running', startedAt: null });
         expect(result.current.state.steps).toEqual([]);
         await act(async () => { body.push(sse('dryrun', { run: { id: 'run_3', status: 'success' }, steps: [{ stepId: 's1', status: 'success' }] })); await flush(); });
-        expect(result.current.state.dryRun.id).toBe('run_3');
+        expect((result.current.state.dryRun as NonNullable<typeof result.current.state.dryRun>).id).toBe('run_3');
         expect(result.current.state.dryRunSeq).toBe(0);
     });
 });

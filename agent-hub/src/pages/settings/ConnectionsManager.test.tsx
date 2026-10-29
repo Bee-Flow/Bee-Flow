@@ -1,7 +1,8 @@
-import { screen, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, cleanup, waitFor, within, type Matcher } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import ConnectionsManager from './ConnectionsManager';
+import type { Connection } from './ConnectionsManager.types';
 import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
@@ -11,11 +12,11 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 // Mutable fixtures the authFetch mock serves; captured POST bodies for asserts.
-let connections = [];
-let posts = [];
+let connections: Connection[] = [];
+let posts: Record<string, unknown>[] = [];
 
 function installFetchMock() {
-    authFetch.mockImplementation(async (url, opts = {}) => {
+    (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
         if (opts.method === 'POST') {
             posts.push(JSON.parse(opts.body));
             return { ok: true, status: 201, json: async () => ({ connection: { id: 'c-new' } }) };
@@ -34,7 +35,7 @@ const openAddForm = async () => {
     return providerSelect;
 };
 
-const byPlaceholder = (ph) => screen.getByPlaceholderText(ph);
+const byPlaceholder = (ph: Matcher) => screen.getByPlaceholderText<HTMLInputElement>(ph);
 
 describe('ConnectionsManager — http provider', () => {
     beforeEach(() => {
@@ -163,7 +164,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
 
     it('shows the server error when set-default is rejected', async () => {
         const user = userEvent.setup();
-        authFetch.mockImplementation(async (url, opts = {}) => {
+        (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
             if (opts.method === 'PATCH') return { ok: false, status: 403, json: async () => ({ error: 'Forbidden' }) };
             if (String(url).includes('/grants')) return { ok: true, json: async () => ({ grants: [] }) };
             return { ok: true, json: async () => ({ connections }) };
@@ -175,7 +176,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
 
     it('falls back to a readable message when the error body is empty', async () => {
         const user = userEvent.setup();
-        authFetch.mockImplementation(async (url, opts = {}) => {
+        (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
             if (opts.method === 'PATCH') return { ok: false, status: 500, json: async () => { throw new Error('no body'); } };
             if (String(url).includes('/grants')) return { ok: true, json: async () => ({ grants: [] }) };
             return { ok: true, json: async () => ({ connections }) };
@@ -196,15 +197,15 @@ describe('ConnectionsManager — mutation failures are visible', () => {
         await user.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         // The list and grant reads keep landing while the dialog is up; only a DELETE would be wrong.
-        expect(authFetch.mock.calls.filter(([, o]) => o?.method === 'DELETE')).toHaveLength(0);
+        expect((authFetch as Mock).mock.calls.filter(([, o]) => o?.method === 'DELETE')).toHaveLength(0);
         confirmSpy.mockRestore();
     });
 
     it('a 409 on delete asks a second time and does not force when declined', async () => {
         const user = userEvent.setup();
         // First question (destructive) yes, second (revoke shares) no.
-        const deleteUrls = [];
-        authFetch.mockImplementation(async (url, opts = {}) => {
+        const deleteUrls: string[] = [];
+        (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
             if (opts.method === 'DELETE') {
                 deleteUrls.push(String(url));
                 return { ok: false, status: 409, json: async () => ({ error: 'Connection is shared' }) };
@@ -224,7 +225,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
     });
 
     it('a failed list surfaces an error instead of claiming there are no connections', async () => {
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url) => {
             if (String(url).includes('/grants')) return { ok: true, json: async () => ({ grants: [] }) };
             return { ok: false, status: 500, json: async () => ({ error: 'Could not load connections' }) };
         });
@@ -235,7 +236,7 @@ describe('ConnectionsManager — mutation failures are visible', () => {
 
     it('shows the grantee email rather than a raw user id', async () => {
         const user = userEvent.setup();
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url) => {
             if (String(url).includes('/grants')) {
                 return {
                     ok: true,
@@ -273,7 +274,7 @@ describe('ConnectionsManager — i18n', () => {
         vi.resetModules();
         vi.doMock('../../hooks/useTranslation', () => ({
             useTranslation: () => ({
-                t: (key, fallback) => (typeof fallback === 'string' ? `NL:${key}` : `NL:${key}`),
+                t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? `NL:${key}` : `NL:${key}`),
                 locale: 'nl',
             }),
         }));

@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * has SecurityKeysCard.test.tsx); what is pinned here is what the screen
  * around it does for each kind of account.
  *
- * No i18n mock, like SecuritySection.test.jsx: the strings asserted are the
+ * No i18n mock, like SecuritySection.test.tsx: the strings asserted are the
  * ones a user reads.
  */
 

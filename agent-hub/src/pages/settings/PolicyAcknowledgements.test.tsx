@@ -1,6 +1,6 @@
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, type Matcher, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { renderWithClient } from '@/test/render';
 
 /**
@@ -26,11 +26,18 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 import PolicyAcknowledgements from './PolicyAcknowledgements';
 import { authFetch } from '../../utils/helpers';
 
-const jsonRes = (body, status = 200) => ({
+const jsonRes = (body: object, status: number = 200) => ({
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
 });
+
+type Res = ReturnType<typeof jsonRes>;
+type ServeOpts = {
+    list?: Res | ((call: number) => Res);
+    body?: Res | ((url: string) => Res | Promise<unknown>);
+    ack?: Res | ((url: string) => Res | Promise<unknown>);
+};
 
 const LIST_URL = '/api/compliance/iso/docs/published/me';
 
@@ -46,9 +53,9 @@ const DOC = {
  * Route the three calls the panel makes. `list` may be a function so a test
  * can serve a different payload on the refresh after a confirm.
  */
-function serve({ list = jsonRes([DOC]), body = jsonRes({ body: '# Policy body' }), ack = jsonRes({ ok: true }) } = {}) {
+function serve({ list = jsonRes([DOC]), body = jsonRes({ body: '# Policy body' }), ack = jsonRes({ ok: true }) }: ServeOpts = {}) {
     let listCall = 0;
-    authFetch.mockImplementation(async (url, opts = {}) => {
+    (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
         const u = String(url);
         if (opts.method === 'POST') return typeof ack === 'function' ? ack(u) : ack;
         if (u.endsWith(LIST_URL)) return typeof list === 'function' ? list(listCall++) : list;
@@ -57,12 +64,12 @@ function serve({ list = jsonRes([DOC]), body = jsonRes({ body: '# Policy body' }
     });
 }
 
-const listCalls = () => authFetch.mock.calls.filter(c => String(c[0]).endsWith(LIST_URL));
-const bodyCalls = () => authFetch.mock.calls.filter(c => String(c[0]).endsWith('/body'));
-const postCalls = () => authFetch.mock.calls.filter(c => c[1]?.method === 'POST');
+const listCalls = () => (authFetch as Mock).mock.calls.filter(c => String(c[0]).endsWith(LIST_URL));
+const bodyCalls = () => (authFetch as Mock).mock.calls.filter(c => String(c[0]).endsWith('/body'));
+const postCalls = () => (authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'POST');
 
 /** Mount and wait until the first list call has resolved into a render. */
-async function mount(opts) {
+async function mount(opts?: ServeOpts) {
     serve(opts);
     const view = renderWithClient(<PolicyAcknowledgements />);
     await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
@@ -71,20 +78,22 @@ async function mount(opts) {
     return view;
 }
 
+type Resolve = (value: unknown) => void;
+
 /** A promise whose resolution the test controls. */
-function deferred() {
-    let resolve;
+function deferred(): { promise: Promise<unknown>; resolve: Resolve | undefined } {
+    let resolve: Resolve | undefined;
     const promise = new Promise(res => { resolve = res; });
     return { promise, resolve };
 }
 
-const rowFor = (title) => screen.getByText(title, { exact: false }).closest('div.rounded-lg');
+const rowFor = (title: Matcher) => screen.getByText(title, { exact: false }).closest('div.rounded-lg') as HTMLElement;
 
 beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('PolicyAcknowledgements — when the panel is visible at all', () => {
     it('renders nothing at all before the first response lands', () => {
-        authFetch.mockImplementation(() => new Promise(() => {}));
+        (authFetch as Mock).mockImplementation(() => new Promise(() => {}));
         const { container } = renderWithClient(<PolicyAcknowledgements />);
         expect(container).toBeEmptyDOMElement();
     });
@@ -117,7 +126,7 @@ describe('PolicyAcknowledgements — when the panel is visible at all', () => {
     });
 
     it('stays invisible when the network call rejects', async () => {
-        authFetch.mockRejectedValue(new Error('offline'));
+        (authFetch as Mock).mockRejectedValue(new Error('offline'));
         const { container } = renderWithClient(<PolicyAcknowledgements />);
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         await waitFor(() => expect(container).toBeEmptyDOMElement());
@@ -208,7 +217,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         const { container } = { container: document.body };
         await user.click(await screen.findByRole('button'));
         await waitFor(() => expect(container.querySelector('.animate-spin')).not.toBeNull());
-        d.resolve(jsonRes({ body: 'text' }));
+        (d.resolve as Resolve)(jsonRes({ body: 'text' }));
         expect(await screen.findByText('text')).toBeInTheDocument();
         expect(container.querySelector('.animate-spin')).toBeNull();
     });
@@ -239,7 +248,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
     it('offers the confirm button when the body request rejects outright (securityFinding)', async () => {
         const user = userEvent.setup();
         serve();
-        authFetch.mockImplementation(async (url, opts = {}) => {
+        (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
             const u = String(url);
             if (opts.method === 'POST') return jsonRes({ ok: true });
             if (u.endsWith('/body')) throw new Error('offline');
@@ -265,7 +274,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
     });
 
     /** Two published policies, A and B; `body` answers their body requests by url. */
-    async function mountTwoPolicies(body) {
+    async function mountTwoPolicies(body: ServeOpts['body']) {
         await mount({
             list: jsonRes([{ ...DOC, slug: 'a', title: 'Policy A' }, { ...DOC, slug: 'b', title: 'Policy B' }]),
             body,
@@ -275,7 +284,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
 
     it('opening a second policy drops the first body immediately, back to a spinner, before the new one lands', async () => {
         const slowB = deferred();
-        const user = await mountTwoPolicies((u) => (u.includes('/a/') ? jsonRes({ body: 'body of A' }) : slowB.promise));
+        const user = await mountTwoPolicies((u: string) => (u.includes('/a/') ? jsonRes({ body: 'body of A' }) : slowB.promise));
         await user.click(within(rowFor('Policy A')).getByRole('button'));
         expect(await screen.findByText('body of A')).toBeInTheDocument();
 
@@ -284,19 +293,19 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         expect(screen.queryByText('body of A')).toBeNull();
         expect(document.body.querySelector('.animate-spin')).not.toBeNull();
 
-        slowB.resolve(jsonRes({ body: 'body of B' }));
+        (slowB.resolve as Resolve)(jsonRes({ body: 'body of B' }));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
         expect(screen.queryByText('body of A')).toBeNull();
     });
 
     it('a slow first body never lands under the SECOND policy: the body is keyed by the policy it was asked for', async () => {
         const slowA = deferred();
-        const user = await mountTwoPolicies((u) => (u.includes('/a/') ? slowA.promise : jsonRes({ body: 'body of B' })));
+        const user = await mountTwoPolicies((u: string) => (u.includes('/a/') ? slowA.promise : jsonRes({ body: 'body of B' })));
         await user.click(within(rowFor('Policy A')).getByRole('button'));
         await user.click(within(rowFor('Policy B')).getByRole('button'));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
 
-        slowA.resolve(jsonRes({ body: 'body of A' }));
+        (slowA.resolve as Resolve)(jsonRes({ body: 'body of A' }));
         // A's late answer is kept for A; Policy B's panel still shows B's own body.
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
         expect(screen.queryByText('body of A')).toBeNull();
@@ -333,7 +342,7 @@ describe('PolicyAcknowledgements — confirming', () => {
     it('re-reads the list after a successful confirm and flips the badge', async () => {
         const user = userEvent.setup();
         await mount({
-            list: (n) => jsonRes([n === 0
+            list: (n: number) => jsonRes([n === 0
                 ? { ...DOC, acknowledged: false }
                 : { ...DOC, acknowledged: true, acknowledged_at: '2026-09-06T09:00:00Z' }]),
         });
@@ -350,7 +359,7 @@ describe('PolicyAcknowledgements — confirming', () => {
         const confirm = await openFirst();
         await user.click(confirm);
         await waitFor(() => expect(confirm).toBeDisabled());
-        d.resolve(jsonRes({ ok: true }));
+        (d.resolve as Resolve)(jsonRes({ ok: true }));
         await waitFor(() => expect(listCalls()).toHaveLength(2));
     });
 

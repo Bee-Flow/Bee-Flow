@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /**
  * Characterisation of Settings → Security: MFA status, TOTP enrollment, the
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * string asserted here is the string a user actually reads — which for a few
  * keys is NOT the inline fallback in the source.
  *
- * The vault is stubbed; it has its own file (TokenVaultSection.test.jsx).
+ * The vault is stubbed; it has its own file (TokenVaultSection.test.tsx).
  */
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -34,11 +34,14 @@ import SecuritySection from './SecuritySection';
 import { renderWithClient } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
-const jsonRes = (body, status = 200) => ({
+const jsonRes = (body: object, status: number = 200) => ({
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
 });
+
+type Res = ReturnType<typeof jsonRes>;
+type ServeOpts = Partial<Record<'status' | 'setup' | 'enable' | 'disable' | 'regenerate' | 'changePassword' | 'policies', Res>>;
 
 const ENABLED = { enabled: true, recoveryCodesRemaining: 8, hasPassword: true };
 const DISABLED = { enabled: false, recoveryCodesRemaining: 0, hasPassword: true };
@@ -48,8 +51,8 @@ const SETUP = { otpauthUrl: 'otpauth://totp/x', qr: 'data:image/png;base64,QQ=='
  * Route every call the screen makes. `status` may be a response object so a
  * test can pin a failing status probe; the rest default to plain successes.
  */
-function serve({ status = jsonRes(DISABLED), setup, enable, disable, regenerate, changePassword, policies } = {}) {
-    authFetch.mockImplementation(async (url) => {
+function serve({ status = jsonRes(DISABLED), setup, enable, disable, regenerate, changePassword, policies }: ServeOpts = {}) {
+    (authFetch as Mock).mockImplementation(async (url) => {
         const u = String(url);
         if (u.includes('/auth/mfa/status')) return status;
         if (u.includes('/auth/mfa/setup')) return setup || jsonRes(SETUP);
@@ -62,10 +65,10 @@ function serve({ status = jsonRes(DISABLED), setup, enable, disable, regenerate,
     });
 }
 
-const posts = (fragment) => authFetch.mock.calls.filter(c => c[1]?.method === 'POST' && String(c[0]).includes(fragment));
+const posts = (fragment: string) => (authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'POST' && String(c[0]).includes(fragment));
 
 /** Mount and wait for the status probe to settle. */
-async function mount(opts) {
+async function mount(opts?: ServeOpts) {
     serve(opts);
     const view = renderWithClient(<SecuritySection />);
     await screen.findByRole('heading', { name: 'Security' });
@@ -75,28 +78,28 @@ async function mount(opts) {
 /** Enabled account → open the "regenerate" confirm panel. */
 async function openRegenerate() {
     await mount({ status: jsonRes(ENABLED) });
-    fireEvent.click(screen.getByRole('button', { name: 'Regenerate recovery codes' }));
+    fireEvent.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' }));
     return screen.getByPlaceholderText('000000 or a1b2-c3d4');
 }
 
-const pwInputs = (container) => ({
-    current: container.querySelector('input[autocomplete="current-password"]'),
-    next: container.querySelectorAll('input[autocomplete="new-password"]')[0],
-    confirm: container.querySelectorAll('input[autocomplete="new-password"]')[1],
+const pwInputs = (container: HTMLElement) => ({
+    current: container.querySelector<HTMLInputElement>('input[autocomplete="current-password"]') as HTMLInputElement,
+    next: container.querySelectorAll<HTMLInputElement>('input[autocomplete="new-password"]')[0],
+    confirm: container.querySelectorAll<HTMLInputElement>('input[autocomplete="new-password"]')[1],
 });
 
 beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe('SecuritySection — status probe', () => {
     it('renders only a spinner until the status call resolves', async () => {
-        let release;
-        authFetch.mockImplementation(() => new Promise(res => { release = () => res(jsonRes(DISABLED)); }));
+        let release: (() => void) | undefined;
+        (authFetch as Mock).mockImplementation(() => new Promise(res => { release = () => res(jsonRes(DISABLED)); }));
         const { container } = renderWithClient(<SecuritySection />);
 
         expect(screen.queryByRole('heading', { name: 'Security' })).toBeNull();
         expect(container.querySelector('.animate-spin')).toBeTruthy();
 
-        release();
+        (release as () => void)();
         await screen.findByRole('heading', { name: 'Security' });
     });
 
@@ -104,15 +107,15 @@ describe('SecuritySection — status probe', () => {
         await mount({ status: jsonRes(DISABLED) });
         expect(screen.getByText('Two-factor authentication is off')).toBeInTheDocument();
         expect(screen.getByText('Use an authenticator app for an extra layer of security.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Enable' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' })).toBeInTheDocument();
     });
 
     it('shows the on state with the remaining recovery codes and both actions', async () => {
         await mount({ status: jsonRes(ENABLED) });
         expect(screen.getByText('Two-factor authentication is on')).toBeInTheDocument();
         expect(screen.getByText('8 recovery codes remaining')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Disable' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Disable' })).toBeInTheDocument();
     });
 
     it('SECURITY: a failing status probe says it failed, never "off" with an Enable button', async () => {
@@ -132,7 +135,7 @@ describe('SecuritySection — status probe', () => {
     });
 
     it('SECURITY: a thrown status probe shows the same error, and hides the password form', async () => {
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url) => {
             if (String(url).includes('/auth/mfa/status')) throw new Error('offline');
             return jsonRes({}, 402);
         });
@@ -150,7 +153,7 @@ describe('SecuritySection — status probe', () => {
         await mount({ status: jsonRes({ error: 'Failed to load MFA status' }, 500) });
 
         serve({ status: jsonRes(ENABLED) });
-        await user.click(screen.getByRole('button', { name: 'Try again' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Try again' }));
 
         expect(await screen.findByText('Two-factor authentication is on')).toBeInTheDocument();
         expect(screen.queryByTestId('mfa-status-error')).toBeNull();
@@ -185,7 +188,7 @@ describe('SecuritySection — enrollment', () => {
     it('posts an empty body to /auth/mfa/setup and shows the QR, the manual key and the steps', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
 
         const qr = await screen.findByAltText('MFA QR code');
         expect(qr).toHaveAttribute('src', SETUP.qr);
@@ -201,36 +204,36 @@ describe('SecuritySection — enrollment', () => {
     it('offers the AI help assistant inside enrollment', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
-        expect(screen.getByRole('button', { name: 'Questions? Ask the AI assistant' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Questions? Ask the AI assistant' })).toBeInTheDocument();
     });
 
     it('keeps the confirm button disabled until six digits are typed', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
 
-        const confirm = screen.getByRole('button', { name: 'Enable' });
+        const confirm = screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' });
         expect(confirm.disabled).toBe(true);
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '12345' } });
-        expect(screen.getByRole('button', { name: 'Enable' }).disabled).toBe(true);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }).disabled).toBe(true);
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
-        expect(screen.getByRole('button', { name: 'Enable' }).disabled).toBe(false);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }).disabled).toBe(false);
     });
 
     it('warns about a device clock more than 30s off the server', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED), setup: jsonRes({ ...SETUP, serverTime: Date.now() - 120_000 }) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         expect(await screen.findByText(/differs from the server by about 1[12][0-9] seconds/)).toBeInTheDocument();
     });
 
     it('stays quiet at a 20s drift, and also when the server sends no serverTime at all (wart)', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED), setup: jsonRes({ ...SETUP, serverTime: Date.now() - 20_000 }) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
         expect(screen.queryByText(/differs from the server/)).toBeNull();
 
@@ -238,7 +241,7 @@ describe('SecuritySection — enrollment', () => {
         vi.clearAllMocks();
         // An older server omitting serverTime is read as "no drift", not "unknown".
         await mount({ status: jsonRes(DISABLED), setup: jsonRes({ otpauthUrl: 'x', qr: 'data:,', secret: 'S' }) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
         expect(screen.queryByText(/differs from the server/)).toBeNull();
     });
@@ -246,10 +249,10 @@ describe('SecuritySection — enrollment', () => {
     it('cancelling enrollment drops the QR and returns to the off card', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
 
-        await user.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Cancel' }));
         expect(screen.queryByAltText('MFA QR code')).toBeNull();
         expect(screen.getByText('Two-factor authentication is off')).toBeInTheDocument();
     });
@@ -257,29 +260,29 @@ describe('SecuritySection — enrollment', () => {
     it('confirms with a trimmed code, shows the one-time sheet and re-reads the status', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
 
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: ' 123456 ' } });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
 
         expect(await screen.findByText(/Save these one-time recovery codes somewhere safe/)).toBeInTheDocument();
         expect(JSON.parse(posts('/auth/mfa/enable')[0][1].body)).toEqual({ code: '123456' });
         expect(screen.getByText('aaaa-1111')).toBeInTheDocument();
         expect(screen.getByText('bbbb-2222')).toBeInTheDocument();
-        await waitFor(() => expect(authFetch.mock.calls.filter(c => String(c[0]).includes('/auth/mfa/status'))).toHaveLength(2));
+        await waitFor(() => expect((authFetch as Mock).mock.calls.filter(c => String(c[0]).includes('/auth/mfa/status'))).toHaveLength(2));
     });
 
     it('WART: a server that returns no codes still renders the "save these codes" sheet — empty', async () => {
         const user = userEvent.setup();
         await mount({ status: jsonRes(DISABLED), enable: jsonRes({ success: true }) });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
         await screen.findByAltText('MFA QR code');
         fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
-        await user.click(screen.getByRole('button', { name: 'Enable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
 
         expect(await screen.findByText(/Save these one-time recovery codes somewhere safe/)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'I’ve saved them' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'I’ve saved them' })).toBeInTheDocument();
         expect(screen.queryByText(/^[a-z0-9]{4}-[a-z0-9]{4}$/)).toBeNull();
     });
 
@@ -289,17 +292,17 @@ describe('SecuritySection — enrollment', () => {
         // itself needs a working second factor. Nothing on this screen offers
         // "show them again", and this test is what a G6 change has to move.
         await mount({ status: jsonRes(ENABLED) });
-        await user.click(screen.getByRole('button', { name: 'Regenerate recovery codes' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' }));
         fireEvent.change(screen.getByPlaceholderText('000000 or a1b2-c3d4'), { target: { value: '123456' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('cccc-3333')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'I’ve saved them' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'I’ve saved them' }));
 
         expect(screen.queryByText('cccc-3333')).toBeNull();
         expect(screen.queryByText(/Save these one-time recovery codes somewhere safe/)).toBeNull();
         expect(screen.queryByRole('button', { name: /show/i })).toBeNull();
-        expect(screen.getByRole('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
     });
 });
 
@@ -308,21 +311,21 @@ describe('SecuritySection — disable and regenerate', () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         expect(screen.getByText('Enter a 6-digit code or a recovery code to confirm')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Regenerate' }).disabled).toBe(true);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }).disabled).toBe(true);
 
         fireEvent.change(input, { target: { value: 'a1b2-c3d4' } });
-        expect(screen.getByRole('button', { name: 'Regenerate' }).disabled).toBe(false);
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }).disabled).toBe(false);
 
-        await user.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Cancel' }));
         expect(screen.queryByPlaceholderText('000000 or a1b2-c3d4')).toBeNull();
-        expect(screen.getByRole('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
+        expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate recovery codes' })).toBeInTheDocument();
     });
 
     it('sends the trimmed confirmation code to the regenerate endpoint', async () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
         fireEvent.change(input, { target: { value: '  a1b2-c3d4  ' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         await waitFor(() => expect(posts('/auth/mfa/recovery-codes/regenerate')).toHaveLength(1));
         expect(JSON.parse(posts('/auth/mfa/recovery-codes/regenerate')[0][1].body)).toEqual({ code: 'a1b2-c3d4' });
@@ -332,7 +335,7 @@ describe('SecuritySection — disable and regenerate', () => {
         const user = userEvent.setup();
         let statusRes = jsonRes(ENABLED);
         serve({ status: jsonRes(ENABLED) });
-        authFetch.mockImplementation(async (url, opts = {}) => {
+        (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
             const u = String(url);
             if (u.includes('/auth/mfa/status')) return statusRes;
             if (u.includes('/auth/mfa/disable')) { statusRes = jsonRes(DISABLED); return jsonRes({ success: true }); }
@@ -342,9 +345,9 @@ describe('SecuritySection — disable and regenerate', () => {
         renderWithClient(<SecuritySection />);
         await screen.findByText('Two-factor authentication is on');
 
-        await user.click(screen.getByRole('button', { name: 'Disable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Disable' }));
         fireEvent.change(screen.getByPlaceholderText('000000 or a1b2-c3d4'), { target: { value: '123456' } });
-        await user.click(screen.getByRole('button', { name: 'Disable' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Disable' }));
 
         expect(await screen.findByText('Two-factor authentication is off')).toBeInTheDocument();
         expect(JSON.parse(posts('/auth/mfa/disable')[0][1].body)).toEqual({ code: '123456' });
@@ -360,7 +363,7 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'Invalid code.', code: 'invalid_code' }, 400) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Invalid code. Please try again.')).toBeInTheDocument();
         expect(screen.queryByText(/Check your authenticator app/)).toBeNull();
@@ -371,7 +374,7 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'slow down', code: 'invalid_code' }, 429) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Too many attempts — wait a few minutes and try again.')).toBeInTheDocument();
     });
@@ -381,7 +384,7 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ code: 'mfa_secret_unreadable' }, 400) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText(/Use a recovery code, or ask your administrator to reset two-factor authentication/)).toBeInTheDocument();
     });
@@ -391,7 +394,7 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ error: 'Start MFA setup first', code: 'setup_required' }, 400) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Start MFA setup first')).toBeInTheDocument();
     });
@@ -404,7 +407,7 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({}, 500) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('Request failed')).toBeInTheDocument();
         expect(screen.queryByText('Request failed. Please try again.')).toBeNull();
@@ -413,14 +416,14 @@ describe('SecuritySection — how server errors reach the user', () => {
     it('WART: a transport exception is printed verbatim on the page', async () => {
         const user = userEvent.setup();
         const input = await openRegenerate();
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url) => {
             const u = String(url);
             if (u.includes('/auth/mfa/status')) return jsonRes(ENABLED);
             if (u.includes('/api/compliance/iso/docs')) return jsonRes({}, 402);
             throw new Error('NetworkError when attempting to fetch resource.');
         });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
 
         expect(await screen.findByText('NetworkError when attempting to fetch resource.')).toBeInTheDocument();
     });
@@ -430,10 +433,10 @@ describe('SecuritySection — how server errors reach the user', () => {
         const input = await openRegenerate();
         serve({ status: jsonRes(ENABLED), regenerate: jsonRes({ code: 'invalid_code' }, 400) });
         fireEvent.change(input, { target: { value: '000000' } });
-        await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Regenerate' }));
         await screen.findByText('Invalid code. Please try again.');
 
-        await user.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Cancel' }));
         expect(screen.queryByText('Invalid code. Please try again.')).toBeNull();
     });
 });
@@ -464,7 +467,7 @@ describe('SecuritySection — change password', () => {
         fireEvent.change(f.current, { target: { value: 'oldpassword' } });
         fireEvent.change(f.next, { target: { value: 'short' } });
         fireEvent.change(f.confirm, { target: { value: 'short' } });
-        await user.click(screen.getByRole('button', { name: 'Update password' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
         expect(posts('/auth/change-password')).toHaveLength(0);
@@ -477,7 +480,7 @@ describe('SecuritySection — change password', () => {
         fireEvent.change(f.current, { target: { value: 'oldpassword' } });
         fireEvent.change(f.next, { target: { value: 'longenough1' } });
         fireEvent.change(f.confirm, { target: { value: 'longenough2' } });
-        await user.click(screen.getByRole('button', { name: 'Update password' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
         expect(posts('/auth/change-password')).toHaveLength(0);
@@ -490,13 +493,13 @@ describe('SecuritySection — change password', () => {
         fireEvent.change(f.current, { target: { value: 'oldpassword' } });
         fireEvent.change(f.next, { target: { value: 'longenough1' } });
         fireEvent.change(f.confirm, { target: { value: 'longenough1' } });
-        await user.click(screen.getByRole('button', { name: 'Update password' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Password changed successfully.')).toBeInTheDocument();
         expect(JSON.parse(posts('/auth/change-password')[0][1].body))
             .toEqual({ oldPassword: 'oldpassword', newPassword: 'longenough1' });
         const after = pwInputs(container);
-        expect(after.current.value).toBe('');
+        expect((after.current as NonNullable<typeof after.current>).value).toBe('');
         expect(after.next.value).toBe('');
     });
 
@@ -510,7 +513,7 @@ describe('SecuritySection — change password', () => {
         fireEvent.change(f.current, { target: { value: 'oldpassword' } });
         fireEvent.change(f.next, { target: { value: 'longenough1' } });
         fireEvent.change(f.confirm, { target: { value: 'longenough1' } });
-        await user.click(screen.getByRole('button', { name: 'Update password' }));
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Update password' }));
 
         expect(await screen.findByText('Current password is incorrect')).toBeInTheDocument();
         expect(screen.queryByText('Password changed successfully.')).toBeNull();
@@ -525,7 +528,7 @@ describe('SecuritySection — what else lives on this screen', () => {
 
     it('keeps the ISMS policy card invisible when the compliance call is refused', async () => {
         await mount({ status: jsonRes(DISABLED), policies: jsonRes({ error: 'unlicensed' }, 402) });
-        await waitFor(() => expect(authFetch.mock.calls.some(c => String(c[0]).includes('/api/compliance/iso/docs'))).toBe(true));
+        await waitFor(() => expect((authFetch as Mock).mock.calls.some(c => String(c[0]).includes('/api/compliance/iso/docs'))).toBe(true));
         // Assert the RENDERED heading, not the key: t() resolves
         // settings.policy_ack_title against the EN catalogue, so a query for
         // the bare key is null whether the card is on screen or not.

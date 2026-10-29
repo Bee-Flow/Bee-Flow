@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { act, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import useKnowledgeBases from './useKnowledgeBases';
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { renderHookWithClient } from '../test/render';
@@ -30,7 +30,7 @@ const SOURCES = {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    knowledgeApi.listSources.mockResolvedValue(SOURCES);
+    (knowledgeApi.listSources as Mock).mockResolvedValue(SOURCES);
 });
 
 describe('useKnowledgeBases — sources', () => {
@@ -44,7 +44,7 @@ describe('useKnowledgeBases — sources', () => {
     });
 
     it('reports a sources failure without pretending there are none', async () => {
-        knowledgeApi.listSources.mockRejectedValue(new Error('sources are down'));
+        (knowledgeApi.listSources as Mock).mockRejectedValue(new Error('sources are down'));
         const { result } = renderHookWithClient(() => useKnowledgeBases());
         await act(async () => { await result.current.fetchKBSources('kb1'); });
         expect(result.current.kbSourcesError).toBe('sources are down');
@@ -55,7 +55,7 @@ describe('useKnowledgeBases — sources', () => {
         const { result } = renderHookWithClient(() => useKnowledgeBases());
         await act(async () => { await result.current.fetchKBSources('kb1'); });
         await waitFor(() => expect(result.current.kbSources).toHaveLength(1));
-        knowledgeApi.listSources.mockClear();
+        (knowledgeApi.listSources as Mock).mockClear();
         await act(async () => { await result.current.fetchKBSources(null); });
         expect(knowledgeApi.listSources).not.toHaveBeenCalled();
         expect(result.current.kbSources).toEqual([]);

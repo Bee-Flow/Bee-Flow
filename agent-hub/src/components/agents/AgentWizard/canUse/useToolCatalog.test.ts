@@ -10,13 +10,14 @@
  * Therefore this hook asks the server, per agent, and gets back exactly one thing: for which apps lending is possible.
  * Not which connection hangs there.
  *
- * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.jsx
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.ts
  */
 import { waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const calls = [];
-let handler = async () => ({ ok: true, json: async () => ({}) });
+const calls: string[] = [];
+type Res = { ok: boolean; status?: number; json: () => Promise<unknown> };
+let handler: (url: string, opts?: object) => Promise<Res> = async () => ({ ok: true, json: async () => ({}) });
 
 vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
@@ -37,7 +38,7 @@ const CATALOG = {
     lendingEnabled: true,
 };
 
-const okHandler = async (url) => {
+const okHandler = async (url: string) => {
     if (url.includes('/agents/tool-catalog')) return { ok: true, json: async () => CATALOG };
     if (url.includes('/tool-lending')) return { ok: true, json: async () => ({ apps: ['gmail'], readable: true }) };
     return { ok: true, json: async () => ({}) };
@@ -59,7 +60,7 @@ describe('useToolCatalog — de leen-vraag gaat over de eigenaar', () => {
     });
 
     it('leest het antwoord als een JA/NEE PER APP', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/tool-lending')) {
                 return { ok: true, json: async () => ({ apps: ['gmail', 'google-drive'], readable: true }) };
             }
@@ -73,7 +74,7 @@ describe('useToolCatalog — de leen-vraag gaat over de eigenaar', () => {
 
 describe('useToolCatalog — onbekend versmalt', () => {
     it('`readable: false` is null (niet leeg) en landt op READ.ERROR', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/tool-lending')) return { ok: true, json: async () => ({ apps: [], readable: false }) };
             return okHandler(url);
         };
@@ -83,7 +84,7 @@ describe('useToolCatalog — onbekend versmalt', () => {
     });
 
     it('een weigering (403 — deze agent mag je niet bewerken) is geen lege lijst', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/tool-lending')) return { ok: false, status: 403, json: async () => ({}) };
             return okHandler(url);
         };
@@ -93,7 +94,7 @@ describe('useToolCatalog — onbekend versmalt', () => {
     });
 
     it('een antwoord zonder lijst is onleesbaar, niet leeg', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/tool-lending')) return { ok: true, json: async () => ({ readable: true }) };
             return okHandler(url);
         };
@@ -110,7 +111,7 @@ describe('useToolCatalog — onbekend versmalt', () => {
     });
 
     it('draagt `runtimeCurated` over — en onbekend blijft null', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/agents/tool-catalog')) return { ok: true, json: async () => CATALOG };
             if (url.includes('/tool-lending')) {
                 return { ok: true, json: async () => ({ apps: ['gmail'], readable: true, runtimeCurated: true }) };
@@ -134,8 +135,8 @@ describe('useToolCatalog — onbekend versmalt', () => {
         // kaart tijdens de lopende fetch met de leenlijst van de EIGENAAR VAN DE
         // VORIGE AGENT — en stond de eigenaar-schakelaar open op grond van
         // andermans lening.
-        let release;
-        handler = async (url) => {
+        let release: ((value?: unknown) => void) | undefined;
+        handler = async (url: string) => {
             if (url.includes('/agents/tool-catalog')) return { ok: true, json: async () => CATALOG };
             if (url.includes('/a1/tool-lending')) {
                 return { ok: true, json: async () => ({ apps: ['gmail'], readable: true, runtimeCurated: true }) };

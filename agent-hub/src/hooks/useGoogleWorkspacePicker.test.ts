@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import useGoogleWorkspacePicker from './useGoogleWorkspacePicker';
 import { authFetch } from '../utils/helpers';
 
@@ -21,16 +21,16 @@ const OPTIONS = {
     exportItem: async () => ({}),
 };
 
-let statusPayload;
+let statusPayload: { connected: boolean; configured: boolean; user?: string };
 
 beforeEach(() => {
     statusPayload = { connected: false, configured: true };
-    authFetch.mockReset();
-    authFetch.mockResolvedValue({ ok: true, json: async () => ({ url: AUTH_URL }) });
-    globalThis.fetch = vi.fn(async (url) => {
+    (authFetch as Mock).mockReset();
+    (authFetch as Mock).mockResolvedValue({ ok: true, json: async () => ({ url: AUTH_URL }) });
+    globalThis.fetch = (vi.fn(async (url) => {
         if (String(url).includes('/status')) return { ok: true, json: async () => statusPayload };
         return { ok: true, json: async () => ({ messages: [], nextPageToken: null }) };
-    });
+    }) as Mock);
 });
 
 afterEach(() => {
@@ -57,7 +57,7 @@ describe('useGoogleWorkspacePicker — handleConnect', () => {
     });
 
     it('surfaces the server error when the auth-url call fails, without opening a popup', async () => {
-        authFetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'google_not_configured' }) });
+        (authFetch as Mock).mockResolvedValue({ ok: false, json: async () => ({ error: 'google_not_configured' }) });
         const open = vi.spyOn(window, 'open');
 
         const { result } = renderHook(() => useGoogleWorkspacePicker(OPTIONS));
@@ -68,7 +68,7 @@ describe('useGoogleWorkspacePicker — handleConnect', () => {
     });
 
     it('re-checks status and loads items once the popup reports success', async () => {
-        vi.spyOn(window, 'open').mockReturnValue({ closed: false });
+        (vi.spyOn(window, 'open') as Mock).mockReturnValue({ closed: false });
 
         const { result } = renderHook(() => useGoogleWorkspacePicker(OPTIONS));
         await act(async () => {
@@ -83,7 +83,7 @@ describe('useGoogleWorkspacePicker — handleConnect', () => {
         });
 
         await waitFor(() => expect(result.current.status.connected).toBe(true));
-        expect(globalThis.fetch.mock.calls.some(([u]) => String(u).includes('/messages'))).toBe(true);
+        expect((globalThis.fetch as Mock).mock.calls.some(([u]) => String(u).includes('/messages'))).toBe(true);
         expect(result.current.error).toBeNull();
     });
 });

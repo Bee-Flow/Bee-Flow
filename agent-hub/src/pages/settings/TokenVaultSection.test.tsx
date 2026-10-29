@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /**
  * Characterisation of the personal tokenization vault (Settings → Security).
@@ -29,10 +29,10 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 //     the real catalogue keeps these assertions equal to the real screen.
 import EN from '../../i18n/en-defaults';
 
-const stableT = (key, fallbackOrParams, paramsArg) => {
+const stableT = (key: string, fallbackOrParams?: string | Record<string, unknown>, paramsArg?: Record<string, unknown>) => {
     const hasStringFallback = typeof fallbackOrParams === 'string';
     const params = hasStringFallback ? paramsArg : fallbackOrParams;
-    let value = EN[key];
+    let value = (EN as Record<string, string | undefined>)[key];
     if (typeof value !== 'string') value = hasStringFallback ? fallbackOrParams : key;
     if (params && typeof params === 'object') {
         for (const [k, v] of Object.entries(params)) {
@@ -50,7 +50,7 @@ vi.mock('../../hooks/useTranslation', () => ({
 import TokenVaultSection from './TokenVaultSection';
 import { authFetch } from '../../utils/helpers';
 
-const jsonRes = (body, status = 200) => ({
+const jsonRes = (body: object, status: number = 200) => ({
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
@@ -66,19 +66,19 @@ const ENTRY = {
 };
 
 /** Serve one GET payload; every DELETE succeeds unless a test says otherwise. */
-function serve(payload, { deleteRes = jsonRes({ ok: true }) } = {}) {
-    authFetch.mockImplementation(async (_url, opts = {}) => {
+function serve(payload: object, { deleteRes = jsonRes({ ok: true }) } = {}) {
+    (authFetch as Mock).mockImplementation(async (_url, opts = {}) => {
         if (opts.method === 'DELETE') return deleteRes;
         return jsonRes(payload);
     });
 }
 
-const gets = () => authFetch.mock.calls.filter(c => (c[1]?.method ?? 'GET') === 'GET');
-const deletes = () => authFetch.mock.calls.filter(c => c[1]?.method === 'DELETE');
+const gets = () => (authFetch as Mock).mock.calls.filter(c => (c[1]?.method ?? 'GET') === 'GET');
+const deletes = () => (authFetch as Mock).mock.calls.filter(c => c[1]?.method === 'DELETE');
 const lastGetUrl = () => String(gets().at(-1)?.[0]);
 
 /** Mount and wait until the first payload has landed. */
-async function mount(payload, opts) {
+async function mount(payload: object, opts?: Parameters<typeof serve>[1]) {
     serve(payload, opts);
     const view = render(<TokenVaultSection />);
     await waitFor(() => expect(authFetch).toHaveBeenCalled());
@@ -104,12 +104,12 @@ describe('TokenVaultSection — loading and the first request', () => {
     });
 
     it('shows the catalogue loading label while the first call is in flight', async () => {
-        let release;
-        authFetch.mockImplementation(() => new Promise(res => { release = () => res(jsonRes({ entries: [], total: 0 })); }));
+        let release: (() => void) | undefined;
+        (authFetch as Mock).mockImplementation(() => new Promise(res => { release = () => res(jsonRes({ entries: [], total: 0 })); }));
         render(<TokenVaultSection />);
         expect(screen.getByText('Loading...')).toBeInTheDocument();
         expect(screen.queryByRole('table')).toBeNull();
-        release();
+        (release as () => void)();
         await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
     });
 
@@ -160,7 +160,7 @@ describe('TokenVaultSection — what the list shows', () => {
             entries: [{ id: 'e2', token: '[ORG_1]', value: 'Acme BV' }],
             total: 1,
         });
-        const row = screen.getByText('Acme BV').closest('tr');
+        const row = screen.getByText('Acme BV').closest('tr') as HTMLTableRowElement;
         expect(within(row).getByText('—')).toBeInTheDocument();
         // useCount undefined renders the multiplier with nothing in front of it.
         expect(within(row).getByText('×')).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe('TokenVaultSection — failed loads', () => {
     beforeEach(() => { cleanup(); vi.clearAllMocks(); i18n.value = { ...i18n.value, t: stableT }; });
 
     it('SECURITY: a failed first load reads as an empty vault, error banner and all', async () => {
-        authFetch.mockResolvedValue(jsonRes({ error: 'boom' }, 500));
+        (authFetch as Mock).mockResolvedValue(jsonRes({ error: 'boom' }, 500));
         render(<TokenVaultSection />);
 
         expect(await screen.findByText('Could not load your vault. Please try again.')).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe('TokenVaultSection — failed loads', () => {
     });
 
     it('treats a thrown request exactly like a non-OK response', async () => {
-        authFetch.mockRejectedValue(new Error('offline'));
+        (authFetch as Mock).mockRejectedValue(new Error('offline'));
         render(<TokenVaultSection />);
         expect(await screen.findByText('Could not load your vault. Please try again.')).toBeInTheDocument();
         expect(screen.getByText('Nothing stored yet.')).toBeInTheDocument();
@@ -233,7 +233,7 @@ describe('TokenVaultSection — failed loads', () => {
 
     it('keeps the previously loaded rows on screen when a RELOAD fails', async () => {
         await mount({ entries: [ENTRY], total: 1 });
-        authFetch.mockResolvedValue(jsonRes({}, 500));
+        (authFetch as Mock).mockResolvedValue(jsonRes({}, 500));
         await userEvent.setup().click(screen.getByRole('button', { name: 'Refresh' }));
 
         expect(await screen.findByText('Could not load your vault. Please try again.')).toBeInTheDocument();

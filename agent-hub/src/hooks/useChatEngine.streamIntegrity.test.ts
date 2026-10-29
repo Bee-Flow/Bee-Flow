@@ -12,7 +12,7 @@
  * arrived, or the user is told what happened.
  */
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import useChatEngine from './useChatEngine';
 import { authFetch } from '../utils/helpers';
 
@@ -27,12 +27,12 @@ vi.mock('../utils/helpers', () => ({
 
 // i18n: return the key so assertions can match on it without pinning copy.
 vi.mock('./useTranslation', () => ({
-    default: () => ({ t: (k, vars) => (vars ? `${k}` : k) }),
-    useTranslation: () => ({ t: (k, vars) => (vars ? `${k}` : k) }),
+    default: () => ({ t: (k: string, vars?: unknown) => (vars ? `${k}` : k) }),
+    useTranslation: () => ({ t: (k: string, vars?: unknown) => (vars ? `${k}` : k) }),
 }));
 
 /** A Response whose body streams `chunks` (strings) then ends. */
-const streamResponse = (chunks, { status = 200 } = {}) => {
+const streamResponse = (chunks: string[], { status = 200 } = {}) => {
     const encoded = chunks.map((c) => new TextEncoder().encode(c));
     let i = 0;
     return {
@@ -58,7 +58,7 @@ const setup = (extra = {}) => renderHook(() => useChatEngine({
     ...extra,
 }));
 
-const lastAssistant = (result) => {
+const lastAssistant = (result: { current: ReturnType<typeof useChatEngine> }) => {
     const msgs = result.current.messages.filter((m) => m.role === 'assistant');
     return msgs[msgs.length - 1];
 };
@@ -71,7 +71,7 @@ beforeEach(() => {
 
 describe('useChatEngine — a turn never ends silently', () => {
     it('renders the answer for a well-formed stream', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: content\ndata: {"text":"Hallo"}\n\n',
             'event: done\ndata: {}\n\n',
         ]));
@@ -88,7 +88,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     // `Connection: close` and no Content-Length, so a stream cut at byte 0
     // arrives as a clean, successful, EMPTY 200 — no network error to catch.
     it('surfaces an error when the stream is truncated to nothing (no `done`)', async () => {
-        authFetch.mockResolvedValue(streamResponse([]));
+        (authFetch as Mock).mockResolvedValue(streamResponse([]));
         const { result } = setup();
         await act(async () => { await result.current.sendMessage('hi'); });
 
@@ -99,7 +99,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     });
 
     it('surfaces an interruption when the stream is cut after partial content', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: content\ndata: {"text":"Half an ans"}\n\n',
         ]));
         const { result } = setup();
@@ -115,7 +115,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     // A 200 carrying HTML (a misrouted proxy hop) or compressed bytes whose
     // Content-Encoding was stripped both look like this to the reader.
     it('surfaces an error when the body is not SSE at all', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             '<!doctype html><html><body>Nextcloud</body></html>',
         ]));
         const { result } = setup();
@@ -131,7 +131,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     // therefore the ONLY thing standing between a policy block and a bubble that
     // looks identical to a broken stream.
     it('tells the user when the privacy shield blocked the message', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: dlp_blocked\ndata: {"reason":"pii_unavailable"}\n\n',
             'event: done\ndata: {}\n\n',
         ]));
@@ -148,7 +148,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     it('distinguishes a too-large message from a transient shield outage', async () => {
         // "Try again in a moment" is actively wrong for an oversized message —
         // the retry scans the same text and fails identically.
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: dlp_blocked\ndata: {"reason":"pii_unavailable","kind":"too_large"}\n\n',
             'event: done\ndata: {}\n\n',
         ]));
@@ -162,7 +162,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     // may re-frame the stream with CRLF. Matching only 'data: ' + LF meant a
     // spec-legal stream parsed as zero events — another silent blank.
     it('parses spec-legal framing: no space after the colon, and CRLF', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event:content\r\ndata:{"text":"Hallo"}\r\n\r\n',
             'event:done\r\ndata:{}\r\n\r\n',
         ]));
@@ -175,7 +175,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     });
 
     it('still shows the explicit server error event', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: error\ndata: {"error":"Model unavailable"}\n\n',
             'event: done\ndata: {}\n\n',
         ]));
@@ -190,7 +190,7 @@ describe('useChatEngine — a turn never ends silently', () => {
     // The recovery poller was gated on a `reloadConversation` prop that the main
     // chat surface never supplied, so it never ran where it was needed.
     it('recovers the persisted reply after a dropped stream', async () => {
-        authFetch.mockResolvedValue(streamResponse([
+        (authFetch as Mock).mockResolvedValue(streamResponse([
             'event: content\ndata: {"text":"partial"}\n\n',
         ]));
         const reloadConversation = vi.fn().mockResolvedValue([

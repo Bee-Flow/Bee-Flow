@@ -9094,11 +9094,6 @@
       "count": 1
     }
   },
-  "src/pages/settings/TokenVaultSection.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/pages/settings/TokenVaultSection.tsx": {
     "max-lines-per-function": {
       "count": 1
