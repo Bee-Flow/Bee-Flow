@@ -12,7 +12,7 @@
  * signup wizard's plan step, the billing page) reads the normalized shape.
  */
 
-/** A plan as any of the three endpoints sends it (camelCase or snake_case). */
+/** A plan as each of the three endpoints sends it (camelCase or snake_case). */
 export interface RawPlan {
     id?: string;
     plan_id?: string;

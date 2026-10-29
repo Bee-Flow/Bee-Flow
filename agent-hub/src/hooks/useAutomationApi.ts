@@ -256,7 +256,7 @@ export default function useAutomationApi() {
         // AI one-liner describing what a layer does. Opt-in (gated behind an
         // off-by-default checkbox in the Layers drawer) — stateless: we send
         // the layer mini-definition the user is looking at and get { summary }.
-        summariseLayer: (layer: unknown) => send('POST', '/builder/summarise-layer', { layer }),
+        summariseLayer: <T = unknown>(layer: unknown) => send<T>('POST', '/builder/summarise-layer', { layer }),
         // Auto-label + auto-icon: the FAST tier names steps that are still
         // unnamed (empty + not user-locked). `allowedIcons` is the client's
         // renderable icon-name set so the model can only return icons we draw.

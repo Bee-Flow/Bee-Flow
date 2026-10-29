@@ -8,7 +8,7 @@ import { logger } from './logger';
  * useAutomationBuilderStream.js, extracted so callers don't re-implement it.
  *
  * @param {ReadableStream} body  - response.body from a fetch
- * @param {(event: string, data: any) => void} onEvent - called per parsed event
+ * @param {(event: string, data: unknown) => void} onEvent - called per parsed event
  * @param {AbortSignal} [signal] - stop reading when aborted
  */
 export async function readEventStream(body: ReadableStream<Uint8Array>, onEvent: (event: string, data: unknown) => void, signal?: AbortSignal | undefined) {

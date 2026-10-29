@@ -107,7 +107,7 @@ async function attempt<T>(method: string, path: string, opts: AttemptOptions = {
     }
     const res: Response = await authFetch(url, init);
     if (!res.ok) {
-        let parsed: any = null;
+        let parsed: { error?: string } | null = null;
         try { parsed = await res.json(); } catch (err) { logger.debug('not JSON', err); }
         throw new ApiError(parsed?.error || `HTTP ${res.status}`, { status: res.status, body: parsed });
     }

@@ -22,7 +22,7 @@
    Statically imported they compiled to ~220 modules sitting in the entry
    chunk — the single largest thing in it — downloaded and parsed by every
    visitor before React mounted. That cost is pure waste in the two cases that
-   matter most: any dev build (the gate returns false on `!env.PROD`) and any
+   matter most, any dev build (the gate returns false on `!env.PROD`) and any
    self-hosted or marketing pageview where no client token was ever baked in.
    A privacy product should not be shipping an unused RUM agent to readers of
    its own pricing page.

@@ -30,7 +30,7 @@ export function makeServer({ canEdit = true } = {}) {
             for (const [suffix, fn] of overrides) if (path.endsWith(suffix)) return fn(body);
             if (path.endsWith('/docs')) return { docId: 'd1', seq, canEdit };
             if (path.endsWith('/sync')) {
-                const sv = fromBase64((body as any).sv);
+                const sv = fromBase64((body as { sv: string }).sv);
                 return {
                     update: toBase64(Y.encodeStateAsUpdate(doc, sv)),
                     sv: toBase64(Y.encodeStateVector(doc)),
@@ -39,7 +39,7 @@ export function makeServer({ canEdit = true } = {}) {
                 };
             }
             if (path.endsWith('/updates')) {
-                for (const u of (body as any).updates) Y.applyUpdate(doc, fromBase64(u));
+                for (const u of (body as { updates: string[] }).updates) Y.applyUpdate(doc, fromBase64(u));
                 seq += 1;
                 return { seq };
             }
