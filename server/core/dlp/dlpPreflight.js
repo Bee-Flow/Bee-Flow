@@ -77,6 +77,7 @@ async function runDlpPreflight({
     // dead air on the stream and indistinguishable from a stall.
     const { startPrivacyScanPhase, messageText } = require('../agentRuntime/phaseEvents');
     const phase = startPrivacyScanPhase(emit, messageText(messages[messages.length - 1]));
+    /** @type {dlpRunner.DlpResult} */
     let dlpResult;
     try {
         dlpResult = await dlpRunner.scan({

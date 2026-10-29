@@ -122,6 +122,7 @@ async function list(d, { view = 'mine', parentId = null, q = null, pageToken = n
     const { drive } = await d.clients();
     const asked = listQuery({ view, parentId, q });
     if (!asked) return { items: [], nextPageToken: null };
+    /** @type {{ data: { files?: format.DriveFile[]; nextPageToken?: string; }; }} */
     let res;
     try {
         res = await drive.files.list({
@@ -147,6 +148,7 @@ async function list(d, { view = 'mine', parentId = null, q = null, pageToken = n
 async function probe(d, file) {
     const fileId = d.idOf(file);
     const { drive } = await d.clients();
+    /** @type {format.DriveFile} */
     let f;
     try {
         f = (await drive.files.get({ fileId, fields: FILE_FIELDS, supportsAllDrives: true })).data;
@@ -241,6 +243,7 @@ async function guard(d, file, ifMatch) {
 async function upload(d, file, buffer, { ifMatch = null, contentType = null } = {}) {
     const p = await d.guard(file, ifMatch);
     const { drive } = await d.clients();
+    /** @type {{ data: format.DriveFile; }} */
     let res;
     try {
         res = await drive.files.update({

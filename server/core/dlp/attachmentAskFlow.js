@@ -1,3 +1,4 @@
+/** @typedef {import('./decisionQueue').Decision} Decision */
 // @typecheck noImplicitAny
 /**
  * Resolves a single attachment's `action:'ask'` outcome from
@@ -66,6 +67,7 @@ async function resolveAttachmentAsk({ text, findings, summary, filename, provide
         defaultChoice: orgShield?.dlpMode === 'block' ? 'block' : 'redact',
     });
 
+    /** @type {Decision} */
     let decision;
     try {
         decision = await promise;

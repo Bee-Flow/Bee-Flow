@@ -287,6 +287,7 @@ async function appendRowAnywhere(d, file, sheet, cells) {
     const width = (cells || []).reduce((m, c) => Math.max(m, Number(c.col) + 1), 0);
     const row = new Array(width).fill(null);
     for (const c of cells || []) row[Number(c.col)] = rawValue(c.value, c.type);
+    /** @type {{ data: { updates?: { updatedRange?: string; }; }; }} */
     let res;
     try {
         res = await sheets.spreadsheets.values.append({
@@ -331,7 +332,7 @@ async function appendRow(d, file, sheet, cells, { ifMatch = null, afterRow = nul
     const rowNumber = (afterRow != null && Number.isInteger(Number(afterRow)) && Number(afterRow) >= 0)
         ? await writeRowAfter(d, file, sheet, cells, afterRow)
         : await appendRowAnywhere(d, file, sheet, cells);
-    const dateCols = (cells || []).filter((c) => c.type === 'date' || c.type === 'datetime');
+    const dateCols = (cells || []).filter((/** @type {{ type: string; }} */ c) => c.type === 'date' || c.type === 'datetime');
     if (dateCols.length) {
         const gid = await gidOf(d, file, sheet);
         await batchUpdate(d, file, dateCols.map((c) => ({
