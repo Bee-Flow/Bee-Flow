@@ -72,6 +72,7 @@ const SMALL_PATTERNS = [
  * 'reasoning' is an overlay: models that fit both reasoning AND
  * (frontier|small) get tagged as reasoning so the temperature drops to
  * 0 — reasoning models are sensitive to noise in tool-call JSON.
+ * @param {string | null} modelId
  */
 function classifyModel(modelId) {
     const id = String(modelId || '').toLowerCase();
@@ -258,11 +259,13 @@ function effortForIteration(iter, escalate, profile, tierEffort) {
 // Band rank: how reliably the class drives the structured tool protocol.
 // 'reasoning' sits between frontier and mid — capable, but terse/temperature-
 // sensitive, so a configured frontier model wins over it.
+/** @type {Record<string, number>} */
 const MODEL_BAND_RANK = { frontier: 3, reasoning: 2, mid: 1, small: 0 };
 
 // Within the Claude line, family breaks generation ties (opus-5 > sonnet-5)
 // and generation breaks family ties across releases (sonnet-5 > opus-4-8 —
 // "newest generation on top").
+/** @type {Record<string, number>} */
 const CLAUDE_FAMILY_RANK = { fable: 3, mythos: 3, opus: 2, sonnet: 1, haiku: 0 };
 
 /**
@@ -271,6 +274,7 @@ const CLAUDE_FAMILY_RANK = { fable: 3, mythos: 3, opus: 2, sonnet: 1, haiku: 0 }
  * claude-sonnet-5-20260115 → { family:'sonnet', generation:5 } (date suffix
  * ignored — a 1-2 digit run followed by another digit is never a version).
  * Legacy number-first ids (claude-3-5-sonnet-…) and non-Claude ids → null.
+ * @param {string | null} modelId
  */
 function parseClaudeModel(modelId) {
     const id = String(modelId || '').toLowerCase();
@@ -293,6 +297,7 @@ function parseClaudeModel(modelId) {
  * (this product's primary line) with the newest generation on top and family
  * (opus > sonnet > haiku) breaking same-generation ties. Pure + deterministic:
  * same id, same score.
+ * @param {string | null} modelId
  */
 function rankModelCapability(modelId) {
     const bandRank = MODEL_BAND_RANK[classifyModel(modelId)] ?? 1;
@@ -303,6 +308,9 @@ function rankModelCapability(modelId) {
     return bandRank * 1000 + claudeBonus;
 }
 
+/**
+ * @param {string} modelClass
+ */
 function getProfile(modelClass) {
     return PROFILES[modelClass] || PROFILES.mid;
 }
@@ -316,6 +324,7 @@ function getProfile(modelClass) {
  * patterns do not know. Only a KNOWN band name wins; anything else falls back
  * to classification, so a typo in the config degrades to today's behaviour
  * rather than to a missing profile.
+ * @param {string | null} modelId
  */
 function getProfileForModel(modelId, overrides = null) {
     const forced = overrides && typeof overrides === 'object' && !Array.isArray(overrides)
