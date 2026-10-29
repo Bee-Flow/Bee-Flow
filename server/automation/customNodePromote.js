@@ -109,6 +109,7 @@ function paramTypeOf(binding) {
  * `outputSchema` is read the way modelStepRules.js reads it — properties, or
  * the object itself when someone wrote the shape without the JSON-schema
  * wrapper — so the two never disagree about what a step declares.
+ * @param {CodeStep} step
  */
 function declaredOutputNames(step) {
     if (!isObject(step?.outputSchema)) return null;
@@ -235,6 +236,7 @@ function promoteCodeStep({ step, outputs = null, label = null } = {}) {
     }
     if (issues.length) return refuse(issues);
 
+    /** @type {Record<string, { kind: string; path: string; }>} */
     const fields = {};
     for (const n of [...new Set(names)]) fields[n] = { kind: 'ref', path: `${BODY_RESULT_PATH}.${n}` };
 
