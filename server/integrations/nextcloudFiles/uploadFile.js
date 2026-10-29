@@ -30,7 +30,7 @@ async function uploadNextcloudFile(args, ctx) {
     }
 
     // A folder path is only fine for a generated file, which takes its own name.
-    if (/\/$/.test(String(args.path)) && !(hasHandle && args.sourceHandle?.kind === 'generated_file')) {
+    if (/\/$/.test(String(args.path)) && !(hasHandle && args.sourceHandle?.kind === 'generated_file')) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a one-character end anchor
         return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
     }
 

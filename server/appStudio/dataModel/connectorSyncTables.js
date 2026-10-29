@@ -97,17 +97,17 @@ function childGrainErrors(child, cw, { syncTableId, tableIds, seenLevels }, erro
  * @param {string[]} errors
  */
 function childColumnErrors(child, cw, errors) {
-    if (typeof child.relationField !== 'string' || !KEY_RE.test(child.relationField)) {
+    if (typeof child.relationField !== 'string' || !KEY_RE.test(child.relationField)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored field-name pattern without nested quantifiers
         errors.push(`${cw}.relationField must be the column holding the parent's record`);
     }
-    if (child.keyField !== undefined && (typeof child.keyField !== 'string' || !SOURCE_PATH_RE.test(child.keyField))) {
+    if (child.keyField !== undefined && (typeof child.keyField !== 'string' || !SOURCE_PATH_RE.test(child.keyField))) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored field-name pattern without nested quantifiers
         errors.push(`${cw}.keyField must be a field path`);
     }
     if (child.mode !== undefined && !SYNC_MODES.includes(child.mode)) {
         errors.push(`${cw}.mode must be one of ${SYNC_MODES.join(', ')}`);
     }
     if (child.retentionField !== undefined
-        && (typeof child.retentionField !== 'string' || !KEY_RE.test(child.retentionField))) {
+        && (typeof child.retentionField !== 'string' || !KEY_RE.test(child.retentionField))) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored field-name pattern without nested quantifiers
         errors.push(`${cw}.retentionField must be the column holding this table's timestamp`);
     }
     if (child.retentionCascade !== undefined && typeof child.retentionCascade !== 'boolean') {
@@ -173,7 +173,7 @@ function validateSyncDependents(sync, tableIds, tablesById, where, errors) {
  */
 function dependentRetentionErrors(dep, depTable, dw, errors) {
     if (dep.retentionField !== undefined) {
-        if (typeof dep.retentionField !== 'string' || !KEY_RE.test(dep.retentionField)) {
+        if (typeof dep.retentionField !== 'string' || !KEY_RE.test(dep.retentionField)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored field-name pattern without nested quantifiers
             errors.push(`${dw}.retentionField must be the column holding this table's timestamp`);
         } else if (depTable) {
             const f = (Array.isArray(depTable.fields) ? depTable.fields : [])
@@ -206,7 +206,7 @@ function dependentCascadeErrors(dep, depTable, tableIds, dw, errors) {
     if (typeof dep.parentTableId !== 'string' || !tableIds.has(dep.parentTableId)) {
         errors.push(`${dw}.parentTableId must be a table in this app`);
     }
-    if (typeof dep.relationField !== 'string' || !KEY_RE.test(dep.relationField)) {
+    if (typeof dep.relationField !== 'string' || !KEY_RE.test(dep.relationField)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored field-name pattern without nested quantifiers
         errors.push(`${dw}.relationField must be the column holding the parent's record`);
     } else if (depTable) {
         const rel = (Array.isArray(depTable.fields) ? depTable.fields : [])

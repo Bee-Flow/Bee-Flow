@@ -10,8 +10,8 @@ import { Button, Text } from '@/shared/ui';
 const makeStyles = (theme: Theme) => StyleSheet.create({ box: { gap: theme.spacing.sm } });
 
 function hintFor(t: TranslateFn, taken: boolean, acknowledged: boolean): string | undefined {
-    if (!taken) return t('mobile.secret.hint_take', 'Copy or share the token first');
-    return acknowledged ? undefined : t('mobile.secret.hint_confirm', 'Confirm that you have saved it');
+    if (!taken) return t('mobile.secret.hint_take', 'Copy or share the token first'); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key about a one-time token, no secret value
+    return acknowledged ? undefined : t('mobile.secret.hint_confirm', 'Confirm that you have saved it'); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key, no secret value
 }
 
 export function SecretDone({
@@ -40,7 +40,8 @@ export function SecretDone({
             {ready ? null : (
                 <Text variant="caption" tone="tertiary" center accessibilityLiveRegion="polite">
                     {!taken
-                        ? t('mobile.secret.caption_take', 'Copy or share the token, then tick the box.')
+                        ? t('mobile.secret.caption_take', 'Copy or share the token, then tick the box.') // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key about a one-time token, no secret value
+                        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key about a one-time token, no secret value
                         : t('mobile.secret.caption_confirm', 'Tick the box to confirm you have saved it.')}
                 </Text>
             )}

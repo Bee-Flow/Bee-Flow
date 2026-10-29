@@ -67,7 +67,7 @@ function useSecretState(secret: string | null, shareTitle: string, t: TranslateF
         if (!secret) return;
         await Clipboard.setStringAsync(secret);
         setTaken(true);
-        toast(t('mobile.secret.copied', 'Copied to your clipboard'), 'success');
+        toast(t('mobile.secret.copied', 'Copied to your clipboard'), 'success'); // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key, no secret value
     };
 
     const share = async () => {
@@ -121,6 +121,7 @@ export function SecretOnce({
                             </Text>
                         </View>
                         <Banner tone="warning" icon="TriangleAlert">
+                            {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key about a one-time token, no secret value */}
                             {t('mobile.secret.shown_once', 'You will not be shown this again. Put it where the client that needs it can read it before you continue.')}
                         </Banner>
                         <Card padded>

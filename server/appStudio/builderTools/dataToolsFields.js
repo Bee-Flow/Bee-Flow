@@ -77,7 +77,7 @@ function normaliseFieldSpec(given, i, seenKeys, derivedFieldKeys) {
  * @returns {{ spec?: CheckedFieldSpec, error?: string, _fixHint?: string }}
  */
 function checkFieldSpec(raw, at, seenKeys) {
-    if (typeof raw.key !== 'string' || !DATA_KEY_RE.test(raw.key)) {
+    if (typeof raw.key !== 'string' || !DATA_KEY_RE.test(raw.key)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- DATA_KEY_RE is an anchored key pattern without nested quantifiers
         return { error: `${at}.key ${JSON.stringify(raw.key)} must be lowercase snake_case starting with a letter (max 63 chars).` };
     }
     if (SYSTEM_COLUMNS.includes(raw.key)) {

@@ -143,7 +143,7 @@ export function quickFixRefuser(ts, sf, bans) {
         if (tags.some((n) => names.has(n))) return true;
         if (!sf || !change) return false;
         const at = change.span.start;
-        if (/@type\b/.test(text) && varLines.has(sf.getLineAndCharacterOfPosition(at).line)) return true;
+        if (/@type\b/.test(text) && varLines.has(sf.getLineAndCharacterOfPosition(at).line)) return true; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a literal word with a boundary
         if (tags.length && /\.[cm]?js$/.test(sf.fileName)) {
             // the function the comment is written for: the first function-like node starting at or after the insertion
             let fn = null;

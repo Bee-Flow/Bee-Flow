@@ -62,7 +62,7 @@ async function readNextcloudFile(args, ctx) {
 function isFolderAnswer(path, contentType, buf) {
     const isWebdavBanner = /html/i.test(contentType)
         && /This is the WebDAV interface/i.test(buf.slice(0, 2048).toString('utf-8'));
-    return /\/$/.test(path) || isWebdavBanner;
+    return /\/$/.test(path) || isWebdavBanner; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a one-character end anchor
 }
 
 /**
