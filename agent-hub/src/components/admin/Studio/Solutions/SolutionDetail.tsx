@@ -1,30 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { effectiveStage, readStateOf, type PipelineReadState } from './pipeline/pipelineModel';
-import PipelineTab from './pipeline/PipelineTab';
-import StageSettingsTab from './pipeline/settings/StageSettingsTab';
-import VariablesDeclarations from './pipeline/settings/VariablesDeclarations';
-import StageHistory from './pipeline/StageHistory';
 import StageRail from './pipeline/StageRail';
 import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from '@/api/stagesApi';
-import StageStatus from './pipeline/StageStatus';
 import { useStageLabel } from './pipeline/StageSwitcher';
-import Notice from './Notice';
 import ProjectAudienceCapsule from './ProjectAudienceCapsule';
-import ProjectFlowTab from './ProjectFlowTab';
-import ProjectOverviewTab from './ProjectOverviewTab';
-import SolutionContentTable from './SolutionContentTable';
-import SolutionControlPanel from './SolutionControlPanel';
-import { blueprintVersionFor, controlBadge, humanizeActivity, OPEN_PATH, STAGE_TABS, SUB_TABS, useSolutionData } from './solutionDetailData';
+import { blueprintVersionFor, controlBadge, STAGE_TABS, SUB_TABS, useSolutionData } from './solutionDetailData';
+import { SolutionPanes, StagePanes } from './SolutionDetailPanes';
 import SolutionDetailDialogs, { type DialogName } from './SolutionDetailDialogs';
 import type { SolutionRole } from './SolutionAccessDialog';
-import type { SolutionItem } from './solutionSections';
 import { HeaderExtras, PublishButton } from './SolutionDetailParts';
-import SolutionInstallsTab, { installsBadge } from './SolutionInstallsTab';
-import SolutionVersionsTab from './SolutionVersionsTab';
-import { UpdateBanner, updateAvailability } from './upgradeClient';
-import { useTranslation } from '@/hooks/useTranslation';
+import { installsBadge } from './SolutionInstallsTab';
+import { updateAvailability } from './upgradeClient';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
-import { formatRelative } from '@/components/projects/relativeTime';
 import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
 import { logger } from '@/utils/logger';
@@ -32,6 +20,39 @@ import { mutate, errorBody, RefusedError } from '@/api/mutate';
 export type { SolutionProject } from './SolutionDetail.types';
 
 ;
+
+/** The header's tabs, with the Check and Installs badges on theirs. */
+function headerTabs(
+    tabList: typeof SUB_TABS,
+    t: TranslateFn,
+    badge: ReturnType<typeof controlBadge>,
+    installs: ReturnType<typeof installsBadge>,
+) {
+    return tabList.map(tabDef => ({
+        id: tabDef.id,
+        label: t(tabDef.labelKey, tabDef.fallback),
+        icon: tabDef.icon,
+        ...(tabDef.id === 'control' ? badge : {}),
+        ...(tabDef.id === 'installs' ? installs : {}),
+    }));
+}
+
+interface StatusChipArgs {
+    t: TranslateFn;
+    isStage: boolean;
+    stageRow: SolutionDetailViewProps['stageRow'];
+    stageText: string;
+    version: ReturnType<typeof blueprintVersionFor>;
+}
+
+/** The header chip: a stage and its release, or Dev's Blueprint version (none before the first publish). */
+function statusChipFor({ t, isStage, stageRow, stageText, version }: StatusChipArgs) {
+    return isStage
+        ? (stageRow?.currentRelease?.seq != null
+            ? t('solution_stages.chip_stage_release', '{stage} · Release {seq}', { stage: stageText, seq: stageRow.currentRelease.seq })
+            : stageText)
+        : (version ? t('solutions.blueprint_version', 'Blueprint v{version}').replace('{version}', String(version)) : null);
+}
 
 function SolutionDetailView({
     project, onBack, currentUserId, dataId, stage, stageRow, pipeline, pipelineState, onSelectStage, initialTab,
@@ -151,13 +172,7 @@ function SolutionDetailView({
         blueprints: data.blueprints,
     }), [project.installedFromBlueprintId, project.update?.installedVersion, data.blueprints]);
 
-    const tabs = tabList.map(tabDef => ({
-        id: tabDef.id,
-        label: t(tabDef.labelKey, tabDef.fallback),
-        icon: tabDef.icon,
-        ...(tabDef.id === 'control' ? badge : {}),
-        ...(tabDef.id === 'installs' ? installs : {}),
-    }));
+    const tabs = headerTabs(tabList, t, badge, installs);
 
     // THE publish gate. Not `findings.length > 0`: a 500, a network failure and
     // "not loaded yet" all leave `blocked` undefined, and every one of those
@@ -171,11 +186,7 @@ function SolutionDetailView({
                 title={name}
                 // A stage is named by its Solution: renaming is a Dev action.
                 onRename={canEdit && !isStage ? rename : undefined}
-                statusChip={isStage
-                    ? (stageRow?.currentRelease?.seq != null
-                        ? t('solution_stages.chip_stage_release', '{stage} · Release {seq}', { stage: stageLabel(stage), seq: stageRow.currentRelease.seq })
-                        : stageLabel(stage))
-                    : (version ? t('solutions.blueprint_version', 'Blueprint v{version}').replace('{version}', String(version)) : null)}
+                statusChip={statusChipFor({ t, isStage, stageRow, stageText: stageLabel(stage), version })}
                 tabs={tabs}
                 activeTab={tab}
                 onTab={setTab}
@@ -212,93 +223,17 @@ function SolutionDetailView({
 
             <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="max-w-5xl mx-auto px-4 md:px-6 py-5 space-y-6">
-                    {/* Above every tab, because “there is a newer version” concerns the Solution
-                        and not the tab that happens to be open. Only the owner can apply it —
-                        the same role the route requires — so only that person gets the button. */}
-                    {!isStage && (
-                        <UpdateBanner
-                            availability={availability}
-                            onOpen={isOwner ? () => setDialog('upgrade') : undefined}
-                        />
-                    )}
-                    {isStage && tab === 'status' && (
-                        <StageStatus solutionId={project.id} stage={stage} row={stageRow} refreshKey={pipelineTick} />
-                    )}
-                    {isStage && tab === 'history' && (
-                        <StageHistory
-                            solutionId={project.id}
-                            stage={stage}
-                            canAct={role === 'owner'}
-                            refreshKey={pipelineTick}
-                            onChanged={onReloadPipeline}
-                        />
-                    )}
-                    {isStage && tab === 'settings' && (
-                        <StageSettingsTab
-                            solutionId={project.id}
-                            solutionName={name}
-                            stage={stage}
-                            stageRow={stageRow}
-                            currentUserId={currentUserId}
-                            onChanged={onReloadPipeline}
-                        />
-                    )}
-                    {!isStage && tab === 'pipeline' && (
-                        <PipelineTab
-                            solutionId={project.id}
-                            solutionName={name}
-                            pipeline={pipeline}
-                            readState={pipelineState}
-                            owner={isOwner}
-                            onReload={onReloadPipeline}
-                            onOpenSettings={onOpenStageSettings}
-                            onOpenChecks={() => setTab('control')}
-                        />
-                    )}
-                    {!isStage && tab === 'pipeline' && pipeline?.dev && (
-                        <VariablesDeclarations solutionId={project.id} canEdit={canEdit} />
-                    )}
-                    {tab === 'content' && removeError && (
-                        <Notice tone="error" testId="solution-remove-error">{removeError}</Notice>
-                    )}
-                    {tab === 'content' && (
-                        <SolutionContentTable
-                            projectId={dataId}
-                            readOnly={isStage}
-                            resources={data.resources}
-                            loading={data.resourcesLoading}
-                            role={role}
-                            currentUserId={currentUserId}
-                            graph={data.graph}
-                            completeness={data.completeness}
-                            onOpen={(kind: keyof typeof OPEN_PATH, item: SolutionItem) => OPEN_PATH[kind] && window.location.assign(OPEN_PATH[kind](item.id))}
-                            onRemove={isStage ? undefined : removeResource}
-                            onAdded={() => { fetchResources(); fetchGraph(); if (!isStage) fetchCompleteness(); }}
-                        />
-                    )}
-                    {tab === 'control' && (
-                        <SolutionControlPanel
-                            completeness={data.completeness}
-                            readOnly={isStage}
-                            loading={data.completenessLoading}
-                            error={data.completenessError}
-                            onOpen={(href) => window.location.assign(href)}
-                        />
-                    )}
-                    {tab === 'versions' && <SolutionVersionsTab remote={data.releases} />}
-                    {tab === 'installs' && <SolutionInstallsTab remote={data.installs} />}
-                    {tab === 'flow' && <ProjectFlowTab graph={data.graph} loading={data.graphLoading} />}
-                    {tab === 'overview' && (
-                        <ProjectOverviewTab
-                            resources={data.resources}
-                            loading={data.resourcesLoading}
-                            activity={data.activityFailed ? null : data.activity}
-                            activeRuns={data.runs}
-                            onOpenTab={() => setTab('content')}
-                            formatActivity={humanizeActivity}
-                            formatRelative={formatRelative}
-                        />
-                    )}
+                    <StagePanes
+                        availability={availability} onOpenUpgrade={isOwner ? () => setDialog('upgrade') : undefined}
+                        tab={tab} solutionId={project.id} solutionName={name} stage={stage} stageRow={stageRow}
+                        pipeline={pipeline} pipelineState={pipelineState} pipelineTick={pipelineTick} role={role} isOwner={isOwner} canEdit={canEdit}
+                        currentUserId={currentUserId} onReloadPipeline={onReloadPipeline} onOpenStageSettings={onOpenStageSettings} onOpenChecks={() => setTab('control')}
+                    />
+                    <SolutionPanes
+                        tab={tab} isStage={isStage} dataId={dataId} data={data} role={role} currentUserId={currentUserId} removeError={removeError}
+                        onRemove={isStage ? undefined : removeResource} onAdded={() => { fetchResources(); fetchGraph(); if (!isStage) fetchCompleteness(); }}
+                        onOpenContent={() => setTab('content')}
+                    />
                 </div>
             </div>
 

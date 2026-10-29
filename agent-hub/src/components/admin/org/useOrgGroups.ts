@@ -60,6 +60,70 @@ export interface UseOrgGroupsOptions {
     }) => Promise<boolean>;
 }
 
+/** PUT a group's allowed tiers; a refusal is a toast with the status, success re-reads the directory. */
+async function updateGroupAllowedTiers(fetchData: UseOrgGroupsOptions['fetchData'], groupId: string, newAllowedTiers: string[]) {
+    try {
+        let res: Response | undefined;
+        try {
+            res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ allowedTiers: newAllowedTiers }),
+        });
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const body: { error?: string } = errorBody(err) ?? {};
+            console.error('Failed to update group allowedTiers:', err.status, body);
+            toast.error(`Failed to update allowed tiers (${err.status}): ${body.error || 'unknown error'}`);
+        }
+        if (res) {
+            await fetchData();
+        }
+    } catch (err) {
+        console.error('Failed to update group allowedTiers:', err);
+        toast.error(`Failed to update allowed tiers: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+/** PUT the org role a group grants, then re-read the directory. */
+async function updateGroupRole(fetchData: UseOrgGroupsOptions['fetchData'], groupId: string, newRole: string) {
+    try {
+        const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orgRole: newRole }),
+        }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) {
+            await fetchData();
+        }
+    } catch (err) {
+        console.error('Failed to update group role:', err);
+    }
+}
+
+/** Add or remove one group from a user's list, then re-read the directory. */
+async function toggleUserGroup(fetchData: UseOrgGroupsOptions['fetchData'], userId: string, groupId: string, currentGroups: string[]) {
+    const updatedGroups = currentGroups.includes(groupId)
+        ? currentGroups.filter(g => g !== groupId)
+        : [...currentGroups, groupId];
+    try {
+        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groups: updatedGroups }),
+        }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        if (res) await fetchData();
+    } catch (err) {
+        console.error('Failed to update user groups:', err);
+    }
+}
+
 /**
  * The Groups tab's own state and every write behind it: creating, renaming,
  * deleting, the role and the tiers a group grants, and membership from both
@@ -102,29 +166,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         }
     }, [organizations, newGroupOrg]);
 
-    const handleUpdateGroupAllowedTiers = async (groupId: string, newAllowedTiers: string[]) => {
-        try {
-            let res: Response | undefined;
-            try {
-                res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ allowedTiers: newAllowedTiers }),
-            });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body: { error?: string } = errorBody(err) ?? {};
-                console.error('Failed to update group allowedTiers:', err.status, body);
-                toast.error(`Failed to update allowed tiers (${err.status}): ${body.error || 'unknown error'}`);
-            }
-            if (res) {
-                await fetchData();
-            }
-        } catch (err) {
-            console.error('Failed to update group allowedTiers:', err);
-            toast.error(`Failed to update allowed tiers: ${err instanceof Error ? err.message : String(err)}`);
-        }
-    };
+    const handleUpdateGroupAllowedTiers = (groupId: string, newAllowedTiers: string[]) => updateGroupAllowedTiers(fetchData, groupId, newAllowedTiers);
 
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return;
@@ -187,42 +229,9 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         }
     };
 
-    const handleUpdateGroupRole = async (groupId: string, newRole: string) => {
-        try {
-            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orgRole: newRole }),
-            }).catch((err: unknown) => {
-                if (err instanceof ApiError) return null;
-                throw err;
-            });
-            if (res) {
-                await fetchData();
-            }
-        } catch (err) {
-            console.error('Failed to update group role:', err);
-        }
-    };
+    const handleUpdateGroupRole = (groupId: string, newRole: string) => updateGroupRole(fetchData, groupId, newRole);
 
-    const handleUserGroupToggle = async (userId: string, groupId: string, currentGroups: string[]) => {
-        const updatedGroups = currentGroups.includes(groupId)
-            ? currentGroups.filter(g => g !== groupId)
-            : [...currentGroups, groupId];
-        try {
-            const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ groups: updatedGroups }),
-            }).catch((err: unknown) => {
-                if (err instanceof ApiError) return null;
-                throw err;
-            });
-            if (res) await fetchData();
-        } catch (err) {
-            console.error('Failed to update user groups:', err);
-        }
-    };
+    const handleUserGroupToggle = (userId: string, groupId: string, currentGroups: string[]) => toggleUserGroup(fetchData, userId, groupId, currentGroups);
 
     const getGroupCount = (groupId: string) => {
         return users.filter(u => {

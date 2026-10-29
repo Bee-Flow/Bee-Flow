@@ -1,16 +1,17 @@
-import { CheckCircle2, ExternalLink, LayoutGrid, Loader2, Stethoscope } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AudiencePicker from './AudiencePicker';
 import dryRunIssues, { type DryRunIssue } from './dryRunIssues';
 import type { Findings, IssueTarget, PublishModalProps, PublishPayload } from './PublishModal.types';
+import type { HeaderApp } from './header/headerModel';
 import { GROUPS, ORG, PRIVATE } from './publishAccessSummary';
-import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { errorBodyRecord, errorStatus, messageOf } from '@/utils/caughtError';
 import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
-import { audienceOf, sharedGroupsOf, formatWhen, audienceLabel, resolveIssueTarget, asIssueList, resolveNodeScreen, ncMenuToast } from './PublishModal.helpers';
+import { audienceOf, sharedGroupsOf, formatWhen, resolveIssueTarget, asIssueList, resolveNodeScreen, ncMenuToast } from './PublishModal.helpers';
 import { BlockerList } from './BlockerList';
+import { CheckPanel, NcMenuOption, PublishFooter, PublishModalSection } from './PublishModalParts';
 export { resolveIssueTarget } from './PublishModal.helpers';
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
@@ -34,6 +35,62 @@ export { resolveIssueTarget } from './PublishModal.helpers';
  * The audience choice and what it hands people in the app's tables live in
  * AudiencePicker — the modal only owns the payload and the server's answer.
  */
+
+/** What Apply sends for the chosen audience. */
+function publishPayloadFor(audience: string, selectedGroups: Set<string>): PublishPayload {
+    if (audience === PRIVATE) return { isPublished: false };
+    if (audience === ORG) return { isPublished: true, sharedGroups: [] };
+    return { isPublished: true, sharedGroups: [...selectedGroups] };
+}
+
+interface PublishOutcome {
+    nextPublished: boolean;
+    nextGroups: string[];
+    nextNcMenu: boolean;
+    publishedVersion: number | null | undefined;
+}
+
+/** The app row as it stands after a publish, for the caller. */
+function publishedApp(app: HeaderApp, { nextPublished, nextGroups, nextNcMenu, publishedVersion }: PublishOutcome): HeaderApp {
+    return {
+        ...app,
+        isPublished: nextPublished,
+        sharedGroups: nextGroups,
+        nextcloudMenu: nextNcMenu,
+        // Which draft is now live — the server reports it so the "live
+        // copy is behind your edits" indicator settles immediately
+        // instead of waiting for the next app fetch.
+        publishedVersion: publishedVersion ?? app?.publishedVersion ?? null,
+        // Stamp an optimistic publish time; the server sets published_at
+        // = NOW() and keeps the previous value on unpublish.
+        publishedAt: nextPublished
+            ? new Date().toISOString()
+            : (app?.publishedAt ?? app?.published_at ?? null),
+    };
+}
+
+/** The toast after a successful Apply. */
+function publishedToast(t: TranslateFn, isPublished: boolean, audience: string) {
+    return isPublished
+        ? (audience === GROUPS
+            ? t('app_studio.publish.toast_groups', 'App shared with the selected groups.')
+            : t('app_studio.publish.toast_org', 'App published to your organization.'))
+        : t('app_studio.publish.toast_unpublished', 'App unpublished — it is a private draft again.');
+}
+
+/**
+ * Where "Show me" goes for one issue. The dry run names the COMPONENT it
+ * executed, not a validator path — so it has to work from an id as well as
+ * from a path.
+ */
+function issueTargetFor(resolveAgainst: Parameters<typeof resolveIssueTarget>[0], issue: DryRunIssue): IssueTarget | null {
+    if (issue?.nodeId && !issue?.path) {
+        const byId = resolveNodeScreen(resolveAgainst, issue.nodeId);
+        return byId || null;
+    }
+    const target = resolveIssueTarget(resolveAgainst, issue?.path);
+    return (target && (target.nodeId || target.screenId)) ? target : null;
+}
 
 export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }: PublishModalProps) {
     const { t } = useTranslation();
@@ -115,15 +172,9 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     const groupsIncomplete = audience === GROUPS && selectedGroups.size === 0;
     const canApply = !busy && !groupsIncomplete;
 
-    const buildPayload = (): PublishPayload => {
-        if (audience === PRIVATE) return { isPublished: false };
-        if (audience === ORG) return { isPublished: true, sharedGroups: [] };
-        return { isPublished: true, sharedGroups: [...selectedGroups] };
-    };
-
     const doApply = async () => {
         if (!app?.id || !canApply) return;
-        const payload = buildPayload();
+        const payload = publishPayloadFor(audience, selectedGroups);
         setBusy(true);
         setBlockers(null);
         try {
@@ -149,28 +200,8 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                 }
             }
 
-            onPublished?.({
-                ...app,
-                isPublished: nextPublished,
-                sharedGroups: nextGroups,
-                nextcloudMenu: nextNcMenu,
-                // Which draft is now live — the server reports it so the "live
-                // copy is behind your edits" indicator settles immediately
-                // instead of waiting for the next app fetch.
-                publishedVersion: res?.publishedVersion ?? app?.publishedVersion ?? null,
-                // Stamp an optimistic publish time; the server sets published_at
-                // = NOW() and keeps the previous value on unpublish.
-                publishedAt: nextPublished
-                    ? new Date().toISOString()
-                    : (app?.publishedAt ?? app?.published_at ?? null),
-            });
-            toast.success(
-                payload.isPublished
-                    ? (audience === GROUPS
-                        ? t('app_studio.publish.toast_groups', 'App shared with the selected groups.')
-                        : t('app_studio.publish.toast_org', 'App published to your organization.'))
-                    : t('app_studio.publish.toast_unpublished', 'App unpublished — it is a private draft again.'),
-            );
+            onPublished?.(publishedApp(app, { nextPublished, nextGroups, nextNcMenu, publishedVersion: res?.publishedVersion }));
+            toast.success(publishedToast(t, payload.isPublished, audience));
             onClose?.();
         } catch (err) {
             // 422 = the server already listed exactly what's wrong. Keep the
@@ -192,17 +223,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     // Prefer the live editor definition when the chrome hands one down; the
     // stored app row is the fallback for callers that only have the row.
     const resolveAgainst = definition ?? app?.definition ?? null;
-    const revealTarget = (issue: DryRunIssue): IssueTarget | null => {
-        if (!onRevealNode) return null;
-        // The dry run names the COMPONENT it executed, not a validator path —
-        // so "Show me" has to work from an id as well as from a path.
-        if (issue?.nodeId && !issue?.path) {
-            const byId = resolveNodeScreen(resolveAgainst, issue.nodeId);
-            return byId || null;
-        }
-        const target = resolveIssueTarget(resolveAgainst, issue?.path);
-        return (target && (target.nodeId || target.screenId)) ? target : null;
-    };
+    const revealTarget = (issue: DryRunIssue): IssueTarget | null => (onRevealNode ? issueTargetFor(resolveAgainst, issue) : null);
 
     const doReveal = (target: IssueTarget) => {
         onRevealNode?.({ nodeId: target.nodeId, screenId: target.screenId });
@@ -218,27 +239,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                 ? t('app_studio.header.publish_unknown_title', 'Choose who can use this app')
                 : t('app_studio.publish.desc', 'Choose who can open this app. Publishing takes a copy of the app as it is now — you can keep editing afterwards, and readers stay on that copy until you publish again.')}
             size="md"
-            footer={(
-                <>
-                    <button
-                        type="button"
-                        onClick={() => onClose?.()}
-                        disabled={busy}
-                        className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
-                    >
-                        {t('app_studio.publish.cancel', 'Cancel')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={doApply}
-                        disabled={!canApply}
-                        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
-                    >
-                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                        {t('app_studio.publish.apply', 'Apply')}
-                    </button>
-                </>
-            )}
+            footer={<PublishFooter t={t} busy={busy} canApply={canApply} onCancel={() => onClose?.()} onApply={doApply} />}
         >
             <div className="space-y-4">
                 {/* What the server refused to publish, and why */}
@@ -259,49 +260,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                   * that was renamed all surface here rather than in front of a
                   * colleague.
                   */}
-                {!managed && (
-                <div
-                    className="rounded-lg border px-3 py-2.5 border-[var(--border-subtle)] bg-[var(--bg-primary)]"
-                >
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={doCheck}
-                            disabled={checking || !app?.id}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
-                        >
-                            {checking
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                                : <Stethoscope className="h-3.5 w-3.5" aria-hidden="true" />}
-                            {checking
-                                ? t('app_studio.publish.checking', 'Checking…')
-                                : t('app_studio.publish.check', 'Check this app')}
-                        </button>
-                        <span className="text-xs text-[var(--text-tertiary)]">
-                            {t('app_studio.publish.check_hint', 'Tries the app’s screens and logic without changing anything.')}
-                        </span>
-                    </div>
-
-                    {checkResult && !checking ? (
-                        checkResult.errors.length === 0 && checkResult.warnings.length === 0 ? (
-                            <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                {t('app_studio.publish.check_all_good', 'Everything loaded and every step checks out.')}
-                            </p>
-                        ) : (
-                            <div className="mt-2.5">
-                                <BlockerList
-                                    errors={checkResult.errors}
-                                    warnings={checkResult.warnings}
-                                    revealTarget={revealTarget}
-                                    onReveal={doReveal}
-                                    context="check"
-                                />
-                            </div>
-                        )
-                    ) : null}
-                </div>
-                )}
+                {!managed && <CheckPanel t={t} checking={checking} canCheck={!!app?.id} onCheck={doCheck} checkResult={checkResult} revealTarget={revealTarget} onReveal={doReveal} />}
 
                 {/* Current status */}
                 <PublishModalSection t={t} currentAudience={currentAudience} currentGroups={currentGroups} isPublished={isPublished} publishedAt={publishedAt} liveHref={liveHref} />
@@ -327,56 +286,8 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                   * an org member outside it gets the "shared with specific
                   * groups" screen. The copy says exactly that.
                   */}
-                {audience !== PRIVATE ? (
-                    <label
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 border-[var(--border-subtle)] bg-[var(--bg-primary)]"
-                    >
-                        <input
-                            type="checkbox"
-                            checked={ncMenu}
-                            onChange={(e) => setNcMenu(e.target.checked)}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-primary)]"
-                        />
-                        <span className="min-w-0">
-                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-primary)]">
-                                <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                {t('app_studio.publish.nc_menu', 'Show in the Nextcloud app menu')}
-                            </span>
-                            <span className="mt-0.5 block text-xs text-[var(--text-tertiary)]">
-                                {t('app_studio.publish.nc_menu_desc', 'Adds this app to the top bar of your organization’s connected Nextcloud, opening on its own page. The icon shows up after you reload Nextcloud. Everyone on that Nextcloud sees the icon; only the audience you chose above can use the app — others see a notice that it is shared with specific groups.')}
-                            </span>
-                        </span>
-                    </label>
-                ) : null}
+                {audience !== PRIVATE ? <NcMenuOption t={t} checked={ncMenu} onChange={setNcMenu} /> : null}
             </div>
         </Modal>
     );
-}
-
-
-function PublishModalSection({ t, currentAudience, currentGroups, isPublished, publishedAt, liveHref }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; currentAudience: string; currentGroups: string[]; isPublished: boolean; publishedAt: string | null; liveHref: string | null; }) {
-    return <div
-        className="rounded-lg border px-3 py-2.5 text-xs border-[var(--border-subtle)] bg-[var(--bg-primary)]"
-    >
-        <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-            <span>{t('app_studio.publish.currently', 'Currently:')}</span>
-            <strong className="text-[var(--text-primary)]">{audienceLabel(t, currentAudience)}</strong>
-            {currentAudience === GROUPS ? (
-                <span className="text-[var(--text-tertiary)]">({currentGroups.length})</span>
-            ) : null}
-        </div>
-        {isPublished && publishedAt ? (
-            <div className="mt-1 text-[var(--text-tertiary)]">
-                {t('app_studio.publish.last_published', 'Last published {when}', { when: publishedAt })}
-            </div>
-        ) : null}
-        {isPublished && liveHref ? (
-            <a
-                href={liveHref}
-                className="mt-1.5 inline-flex items-center gap-1 font-medium hover:underline text-[var(--accent-primary)]"
-            >
-                {t('app_studio.publish.view_live', 'View live')} <ExternalLink className="h-3 w-3" aria-hidden="true" />
-            </a>
-        ) : null}
-    </div>;
 }

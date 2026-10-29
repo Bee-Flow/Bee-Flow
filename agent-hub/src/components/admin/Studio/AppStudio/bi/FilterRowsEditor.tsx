@@ -1,6 +1,6 @@
 import { FunctionSquare, Pencil, Type, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList } from '@/components/admin/product-website/fields';
 import ExpressionInput from '../inspector/logic/ExpressionInput';
@@ -249,48 +249,10 @@ export default function FilterRowsEditor({
                                 </select>
                             </div>
                             {needsValue ? (
-                                <div className="flex items-stretch gap-1.5">
-                                    {usesFormula ? (
-                                        <div className="min-w-0 flex-1">
-                                            <ExpressionInput
-                                                variant="inline"
-                                                value={(f.value as FormulaValue)?.expr ?? ''}
-                                                onChange={(expr) => update({ ...f, value: { kind: 'formula', expr } })}
-                                                definition={definition}
-                                                node={node}
-                                                placeholder={t('studio_apps_bi.filter.formula_placeholder', 'e.g. currentUser.id')}
-                                                ariaLabel={t('studio_apps_bi.filter.formula', 'Filter formula')}
-                                                showPicker={!!definition}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="min-w-0 flex-1">
-                                            <ValueControl control={control} f={f} field={field} update={update} />
-                                        </div>
-                                    )}
-                                    {!usesFormula && canEscape ? (
-                                        <button
-                                            type="button"
-                                            onClick={toggleEscape}
-                                            title={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
-                                            aria-label={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
-                                            className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                                        >
-                                            {control === 'text' ? <Undo2 size={13} /> : <Pencil size={13} />}
-                                        </button>
-                                    ) : null}
-                                    {allowFormula ? (
-                                        <button
-                                            type="button"
-                                            onClick={toggleFormula}
-                                            title={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
-                                            aria-label={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
-                                            className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                                        >
-                                            {usesFormula ? <Type size={13} /> : <FunctionSquare size={13} />}
-                                        </button>
-                                    ) : null}
-                                </div>
+                                <FilterValueRow
+                                    f={f} field={field} control={control} usesFormula={usesFormula} canEscape={canEscape} allowFormula={allowFormula}
+                                    definition={definition} node={node} update={update} onToggleEscape={toggleEscape} onToggleFormula={toggleFormula} t={t}
+                                />
                             ) : null}
 
                             {/*
@@ -301,23 +263,91 @@ export default function FilterRowsEditor({
                               * showing the wrong rows" failure. Offered only
                               * where a value can fail to resolve.
                               */}
-                            {allowFormula && needsValue ? (
-                                <Toggle
-                                    size="sm"
-                                    label={t('studio_apps_bi.filter.required_label', 'Show nothing until this has a value')}
-                                    description={t('studio_apps_bi.filter.required_desc', 'Otherwise an unset value means “no filter”, and every row shows.')}
-                                    checked={!!f.required}
-                                    onChange={(v) => {
-                                        const { required: _drop, ...rest } = f;
-                                        update(v ? { ...rest, required: true } : rest);
-                                    }}
-                                    ariaLabel={t('studio_apps_bi.filter.required_aria', 'Filter {n} required', { n: idx + 1 })}
-                                />
-                            ) : null}
+                            {allowFormula && needsValue ? <FilterRequiredToggle f={f} idx={idx} update={update} t={t} /> : null}
                         </div>
                     );
                 }}
             />
         </fieldset>
+    );
+}
+
+interface FilterValueRowProps {
+    f: FilterRow;
+    field: FilterField | null;
+    control: string;
+    usesFormula: boolean;
+    canEscape: boolean;
+    allowFormula: boolean;
+    definition: FilterRowsEditorProps['definition'];
+    node: FilterRowsEditorProps['node'];
+    update: (next: FilterRow) => void;
+    onToggleEscape: () => void;
+    onToggleFormula: () => void;
+    t: TranslateFn;
+}
+
+/** One filter row's value: the formula input or the typed control, plus the raw-text and formula toggles. */
+function FilterValueRow({ f, field, control, usesFormula, canEscape, allowFormula, definition, node, update, onToggleEscape, onToggleFormula, t }: FilterValueRowProps) {
+    return (
+        <div className="flex items-stretch gap-1.5">
+            {usesFormula ? (
+                <div className="min-w-0 flex-1">
+                    <ExpressionInput
+                        variant="inline"
+                        value={(f.value as FormulaValue)?.expr ?? ''}
+                        onChange={(expr) => update({ ...f, value: { kind: 'formula', expr } })}
+                        definition={definition}
+                        node={node}
+                        placeholder={t('studio_apps_bi.filter.formula_placeholder', 'e.g. currentUser.id')}
+                        ariaLabel={t('studio_apps_bi.filter.formula', 'Filter formula')}
+                        showPicker={!!definition}
+                    />
+                </div>
+            ) : (
+                <div className="min-w-0 flex-1">
+                    <ValueControl control={control} f={f} field={field} update={update} />
+                </div>
+            )}
+            {!usesFormula && canEscape ? (
+                <button
+                    type="button"
+                    onClick={onToggleEscape}
+                    title={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
+                    aria-label={control === 'text' ? t('studio_apps_bi.filter.back_to_picker', 'Back to the simple picker') : t('studio_apps_bi.filter.type_any', 'Type any value')}
+                    className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
+                >
+                    {control === 'text' ? <Undo2 size={13} /> : <Pencil size={13} />}
+                </button>
+            ) : null}
+            {allowFormula ? (
+                <button
+                    type="button"
+                    onClick={onToggleFormula}
+                    title={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
+                    aria-label={usesFormula ? t('studio_apps_bi.filter.use_fixed', 'Use a fixed value') : t('studio_apps_bi.filter.use_formula', 'Use a formula')}
+                    className="shrink-0 px-2 rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
+                >
+                    {usesFormula ? <Type size={13} /> : <FunctionSquare size={13} />}
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
+/** "Show nothing until this has a value" — writes the row's `required` flag, or drops it. */
+function FilterRequiredToggle({ f, idx, update, t }: { f: FilterRow; idx: number; update: (next: FilterRow) => void; t: TranslateFn }) {
+    return (
+        <Toggle
+            size="sm"
+            label={t('studio_apps_bi.filter.required_label', 'Show nothing until this has a value')}
+            description={t('studio_apps_bi.filter.required_desc', 'Otherwise an unset value means “no filter”, and every row shows.')}
+            checked={!!f.required}
+            onChange={(v) => {
+                const { required: _drop, ...rest } = f;
+                update(v ? { ...rest, required: true } : rest);
+            }}
+            ariaLabel={t('studio_apps_bi.filter.required_aria', 'Filter {n} required', { n: idx + 1 })}
+        />
     );
 }

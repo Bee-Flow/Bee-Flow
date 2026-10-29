@@ -2,16 +2,16 @@ import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { useCallback, useMemo, useState } from 'react';
 import type React from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import AppIcon from '@/components/icons/AppIcon';
 import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, type PeekGroupLabel, type PeekRow } from '../listPeek';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
-import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
+import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import type { ListProps } from './AppList.types';
-import { PEEK_WIDTH, relativeTime, badgeStyle, renderPeekPanel } from './AppList.helpers';
+import { relativeTime, renderPeekPanel } from './AppList.helpers';
+import { ListBadge, ListRowBody, groupRows, listLook, peekPosition, rowLook } from './AppListRow';
 
 /**
  * App Studio runtime — 'list'. Spec: server/appStudio/componentSpecs.js.
@@ -67,17 +67,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     const [openPeek, setOpenPeek] = useState<{ index: number; top: number; left: number; maxHeight: number } | null>(null);
     const showPeek = useCallback((index: number, anchor: (EventTarget & HTMLSpanElement) | (EventTarget & HTMLButtonElement)) => {
         if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return;
-        const rect = anchor.getBoundingClientRect();
-        const vw = window.innerWidth || 0;
-        const vh = window.innerHeight || 0;
-        // Open to the right of the row where there is room, and flip to its
-        // left where there is not — a rail on the right edge of a narrow window
-        // would otherwise push the panel off the screen it is meant to explain.
-        const left = vw - rect.right >= PEEK_WIDTH + 16
-            ? rect.right + 8
-            : Math.max(8, rect.left - PEEK_WIDTH - 8);
-        const top = Math.max(8, Math.min(rect.top, vh - 120));
-        setOpenPeek({ index, top, left, maxHeight: Math.max(120, vh - top - 16) });
+        setOpenPeek({ index, ...peekPosition(anchor.getBoundingClientRect(), window.innerWidth || 0, window.innerHeight || 0) });
     }, []);
     const hidePeek = useCallback(() => setOpenPeek(null), []);
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
@@ -93,17 +83,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     // definitions render byte-identically.
     const look = node.props?.look === 'cards' || node.props?.look === 'tiles' ? node.props.look : 'rows';
     const fillCls = isFill(node) ? ' app-fill h-full min-h-0 overflow-y-auto' : '';
-    let listCls = `flex flex-col gap-2${fillCls}`;
-    let listStyle: React.CSSProperties | undefined;
-    if (look === 'cards') {
-        // Elevated cards want more air between them than flat rows do.
-        listCls = `flex flex-col gap-3${fillCls}`;
-    } else if (look === 'tiles') {
-        // The tiles arrange INSIDE the component: the outer 12-col grid is
-        // untouched, the <ul> becomes its own responsive tile grid.
-        listCls = `grid gap-2.5${fillCls}`;
-        listStyle = { gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' };
-    }
+    const { listCls, listStyle } = listLook(look, fillCls);
 
     // 'meta' (identity) keeps the badge on the third line; 'subtitle' moves it
     // to the right of the subtitle line.
@@ -148,20 +128,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
         const badgeTone = (peekBadge && hasPeek ? peekBadgeTone(peekEntry) : null) || toneHit?.tone;
 
         const badgeEl = badge != null && badge !== '' ? (
-            <span
-                className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded"
-                style={{ ...badgeStyle(badgeTone), borderRadius: 'var(--app-radius)' }}
-                data-app-list-badge={badgeTone || 'neutral'}
-                data-app-list-peek={hasPeek ? 'true' : undefined}
-                // Hover lands on the BADGE rather than the whole row: the panel
-                // explains the number, and a popup that opens every time the
-                // pointer crosses a row on its way somewhere else is a flicker,
-                // not an aid. Keyboard users get it from the row's own focus.
-                onMouseEnter={hasPeek ? (e) => showPeek(i, e.currentTarget) : undefined}
-                onMouseLeave={hasPeek ? hidePeek : undefined}
-            >
-                {displayValue(badgeLabel)}
-            </span>
+            <ListBadge label={badgeLabel} tone={badgeTone} hasPeek={hasPeek} onShow={(e) => showPeek(i, e.currentTarget)} onHide={hidePeek} />
         ) : null;
 
         const peekPanel = hasPeek && openPeek && openPeek.index === i
@@ -171,106 +138,13 @@ export default function AppList({ node }: NodeProps<ListProps>) {
             : null;
 
         const body = (
-            <>
-                {icon ? (
-                    <span
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
-                    >
-                        <AppIcon name={icon} className="w-3.5 h-3.5" />
-                    </span>
-                ) : null}
-                {unread ? (
-                    <span
-                        className="h-1.5 w-1.5 rounded-full shrink-0 [background:var(--app-primary)]"
-                        aria-label={t('studio_apps_runtime.list.unread', 'Unread')}
-                        data-app-list-unread="true"
-                    />
-                ) : null}
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                        <span
-                            className={`${size === 'sm' ? 'text-xs' : 'text-sm'} truncate ${unread ? 'font-semibold' : 'font-medium'}`}
-                        >
-                            {displayValue(walkPath(item, titleKey))}
-                        </span>
-                        {stamp ? (
-                            <span className="ml-auto shrink-0 text-[11px] text-[var(--text-muted)]">
-                                {stamp}
-                            </span>
-                        ) : null}
-                    </div>
-                    {badgeInMeta ? (
-                        subtitle != null && subtitle !== '' ? (
-                            <div className="text-xs truncate text-[var(--text-secondary)]">
-                                {displayValue(subtitle)}
-                            </div>
-                        ) : null
-                    ) : (subtitle != null && subtitle !== '') || badgeEl ? (
-                        <div className="flex items-baseline gap-2">
-                            {subtitle != null && subtitle !== '' ? (
-                                <span className="text-xs truncate text-[var(--text-secondary)]">
-                                    {displayValue(subtitle)}
-                                </span>
-                            ) : null}
-                            {badgeEl ? <span className="ml-auto shrink-0">{badgeEl}</span> : null}
-                        </div>
-                    ) : null}
-                    {badgeInMeta ? (
-                        (meta != null && meta !== '') || badge != null ? (
-                            <div className="mt-1 flex items-center gap-1.5">
-                                {badgeEl}
-                                {meta != null && meta !== '' ? (
-                                    <span className="text-[11px] truncate text-[var(--text-muted)]">
-                                        {displayValue(meta)}
-                                    </span>
-                                ) : null}
-                            </div>
-                        ) : null
-                    ) : meta != null && meta !== '' ? (
-                        <div className="mt-1 flex items-center gap-1.5">
-                            <span className="text-[11px] truncate text-[var(--text-muted)]">
-                                {displayValue(meta)}
-                            </span>
-                        </div>
-                    ) : null}
-                    {detail != null && detail !== '' ? (
-                        <div className="mt-1 text-xs truncate [color:var(--app-primary)]!" data-app-list-detail="true">
-                            {displayValue(detail)}
-                        </div>
-                    ) : null}
-                </div>
-            </>
+            <ListRowBody
+                t={t} icon={icon} unread={unread} size={size} title={walkPath(item, titleKey)} stamp={stamp}
+                badgeInMeta={badgeInMeta} subtitle={subtitle} meta={meta} badge={badge} badgeEl={badgeEl} detail={detail}
+            />
         );
 
-        let cls = `flex items-center gap-2.5 border w-full text-left ${size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2'}`;
-        let style: React.CSSProperties = {
-            background: selected ? 'var(--app-primary-soft)' : 'var(--bg-card)',
-            borderColor: selected ? 'var(--app-primary)' : 'var(--border-default)',
-            borderRadius: 'var(--app-radius)',
-        };
-        if (look === 'cards') {
-            // Each item on its own elevated card: the hairline border gives way
-            // to semantic elevation (--app-shadow-1 becomes a ring in high
-            // contrast), with roomier padding. Selection keeps its primary
-            // border so it never relies on tint alone.
-            cls = `flex items-center gap-2.5 border w-full text-left ${size === 'sm' ? 'px-3 py-2' : 'px-3.5 py-3'}`;
-            style = {
-                background: selected ? 'var(--app-primary-soft)' : 'var(--bg-card)',
-                borderColor: selected ? 'var(--app-primary)' : 'transparent',
-                borderRadius: 'var(--app-radius)',
-                boxShadow: 'var(--app-shadow-1)',
-            };
-        } else if (look === 'tiles') {
-            // A tile stacks its content vertically and fills its grid cell, so a
-            // row of tiles reads as equal-height cards.
-            cls = `flex flex-col gap-2 border w-full h-full text-left ${size === 'sm' ? 'px-2.5 py-2' : 'px-3 py-2.5'}`;
-            style = {
-                background: selected ? 'var(--app-primary-soft)' : 'var(--bg-card)',
-                borderColor: selected ? 'var(--app-primary)' : 'var(--border-default)',
-                borderRadius: 'var(--app-radius)',
-                boxShadow: 'var(--app-shadow-1)',
-            };
-        }
+        const { cls, style } = rowLook(look, size, selected);
 
         return (
             <li key={i} data-app-list-row={i} data-app-list-selected={selected || undefined}>
@@ -305,32 +179,10 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     if (!groupKey) {
         children = items.map((item, i) => renderRow(item, i));
     } else {
-        const labelMap = new Map(
-            (Array.isArray(groupLabelMap) ? groupLabelMap : [])
-                .filter((m) => m && m.value != null)
-                .map((m) => [String(m.value), m.label]),
-        );
-        const order = (Array.isArray(groupOrder) ? groupOrder : []).map((v) => String(v));
-        const loose: [PeekRow, number][] = [];
-        const groups = new Map<string, [PeekRow, number][]>();
-        items.forEach((item, i) => {
-            const raw = walkPath(item, groupKey);
-            const name = typeof raw === 'string' ? raw.trim() : (raw == null ? '' : String(raw));
-            if (!name) { loose.push([item, i]); return; }
-            if (!groups.has(name)) groups.set(name, []);
-            groups.get(name)?.push([item, i]);
-        });
-        const ordered = [
-            ...order.filter((n) => groups.has(n)),
-            ...[...groups.keys()].filter((n) => !order.includes(n)),
-        ];
+        const { loose, sections } = groupRows(items, groupKey, groupOrder, groupLabelMap);
         children = [];
         loose.forEach(([item, i]) => children.push(renderRow(item, i)));
-        ordered.forEach((name) => {
-            const entries = groups.get(name);
-            if (!entries) return;
-            const mapped = labelMap.get(name);
-            const label = mapped != null && mapped !== '' ? mapped : name;
+        sections.forEach(({ name, label, entries }) => {
             children.push(
                 <li
                     key={`grp-${name}`}

@@ -29,50 +29,12 @@ interface MutationsInput extends Pick<PanelState,
     drainPendingSaves: ReturnType<typeof useCmsAutosave>['drainPendingSaves'];
 }
 
-export default function useCmsContentMutations({
-    pages, activePage, activePageId, activeLocale, locales, translateTier,
-    aiStatus, setAiStatus, localeOverrides, setLocaleOverrides, localeOverridesRef,
-    aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
-    history, scheduleSave, drainPendingSaves, confirm,
-}: MutationsInput) {
-    // ── page mutations ───────────────────────────────────────────────
+type OverrideWritersInput = Pick<PanelState, 'localeOverrides' | 'localeOverridesRef' | 'setLocaleOverrides' | 'aiRunningRef'> & {
+    scheduleSave: ReturnType<typeof useCmsAutosave>['scheduleSave'];
+};
 
-    // The history object is rebuilt per render; its commit is a stable callback.
-    const commitHistory = history.commit;
-    const updatePage = useCallback((pageId: string, updater: (p: CmsPageDoc) => CmsPageDoc) => {
-        const prevPages = pagesStateRef.current || [];
-        let found = false;
-        const nextPages = prevPages.map((p) => {
-            if (p.id !== pageId) return p;
-            found = true;
-            return updater(p);
-        });
-        if (!found) return;
-        commitHistory({ site: siteStateRef.current, pages: nextPages });
-    }, [commitHistory, pagesStateRef, siteStateRef]);
-
-    // Block content updated via panel editor
-    const updateBlockContent = useCallback((pageId: string, blockId: string, nextContent: unknown) => {
-        // Translations follow their items: the server re-aligns the locale
-        // overrides when the reordered content is saved and returns them
-        // (see useCmsAutosave), so no reorder warning is needed here.
-        updatePage(pageId, p => ({
-            ...p,
-            blocks: (p.blocks as CmsBlock[]).map(b => b.id === blockId ? { ...b, content: nextContent as CmsBlock['content'] } : b),
-        }));
-    }, [updatePage]);
-
-    // Block style overrides — same flow as content, just lands on block.style.
-    // Both run through updatePage → scheduleSave(pageId, …) → debounced PUT,
-    // so a content edit and a style edit in the same window coalesce into
-    // one PageDoc save.
-    const updateBlockStyle = useCallback((pageId: string, blockId: string, nextStyle: unknown) => {
-        updatePage(pageId, p => ({
-            ...p,
-            blocks: (p.blocks as CmsBlock[]).map(b => b.id === blockId ? { ...b, style: nextStyle as CmsBlock['style'] } : b),
-        }));
-    }, [updatePage]);
-
+/** The locale-override mutators (translation mode): sparse leaf writes that save, and whole replacements that do not. */
+function useLocaleOverrideWriters({ localeOverrides, localeOverridesRef, setLocaleOverrides, aiRunningRef, scheduleSave }: OverrideWritersInput) {
     // ── locale-override mutators (translation mode) ─────────────────
     // Keep a synchronous mirror so rapid edits read the latest override.
     useEffect(() => { localeOverridesRef.current = localeOverrides; }, [localeOverrides, localeOverridesRef]);
@@ -135,6 +97,57 @@ export default function useCmsContentMutations({
         localeOverridesRef.current = updated;
         setLocaleOverrides(updated);
     }, [localeOverridesRef, setLocaleOverrides]);
+
+    return { updatePageOverride, updateSiteOverride, replacePageOverride, replaceSiteOverride };
+}
+
+export default function useCmsContentMutations({
+    pages, activePage, activePageId, activeLocale, locales, translateTier,
+    aiStatus, setAiStatus, localeOverrides, setLocaleOverrides, localeOverridesRef,
+    aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
+    history, scheduleSave, drainPendingSaves, confirm,
+}: MutationsInput) {
+    // ── page mutations ───────────────────────────────────────────────
+
+    // The history object is rebuilt per render; its commit is a stable callback.
+    const commitHistory = history.commit;
+    const updatePage = useCallback((pageId: string, updater: (p: CmsPageDoc) => CmsPageDoc) => {
+        const prevPages = pagesStateRef.current || [];
+        let found = false;
+        const nextPages = prevPages.map((p) => {
+            if (p.id !== pageId) return p;
+            found = true;
+            return updater(p);
+        });
+        if (!found) return;
+        commitHistory({ site: siteStateRef.current, pages: nextPages });
+    }, [commitHistory, pagesStateRef, siteStateRef]);
+
+    // Block content updated via panel editor
+    const updateBlockContent = useCallback((pageId: string, blockId: string, nextContent: unknown) => {
+        // Translations follow their items: the server re-aligns the locale
+        // overrides when the reordered content is saved and returns them
+        // (see useCmsAutosave), so no reorder warning is needed here.
+        updatePage(pageId, p => ({
+            ...p,
+            blocks: (p.blocks as CmsBlock[]).map(b => b.id === blockId ? { ...b, content: nextContent as CmsBlock['content'] } : b),
+        }));
+    }, [updatePage]);
+
+    // Block style overrides — same flow as content, just lands on block.style.
+    // Both run through updatePage → scheduleSave(pageId, …) → debounced PUT,
+    // so a content edit and a style edit in the same window coalesce into
+    // one PageDoc save.
+    const updateBlockStyle = useCallback((pageId: string, blockId: string, nextStyle: unknown) => {
+        updatePage(pageId, p => ({
+            ...p,
+            blocks: (p.blocks as CmsBlock[]).map(b => b.id === blockId ? { ...b, style: nextStyle as CmsBlock['style'] } : b),
+        }));
+    }, [updatePage]);
+
+    const { updatePageOverride, updateSiteOverride, replacePageOverride, replaceSiteOverride } = useLocaleOverrideWriters({
+        localeOverrides, localeOverridesRef, setLocaleOverrides, aiRunningRef, scheduleSave,
+    });
 
     // AI pre-fill: translate the active page ('page') or site chrome ('site')
     // to the active locale. The server preserves existing manual translations

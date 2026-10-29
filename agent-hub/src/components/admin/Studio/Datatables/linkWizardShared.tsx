@@ -1,7 +1,8 @@
-import { Check, Link2, Lock, Plus, X } from 'lucide-react';
+import { ArrowLeft, Check, Link2, Loader2, Lock, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { WizardError } from './spreadsheet/wizardState';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /** A column as the editor sees it: the wizard's own column mapped onto `{ id, title, type }`. */
 export interface RelColumn {
@@ -275,5 +276,51 @@ export function AudienceLine({ t, scope, onChange }: AudienceLineProps) {
                 : t('datatables.nc_review_org', 'These tables will belong to your organisation.')}{' '}
             <button type="button" onClick={onChange} className="underline text-[var(--text-primary)]">{t('datatables.nc_review_change', 'Change')}</button>
         </p>
+    );
+}
+
+interface LinkWizardFooterProps {
+    t: TranslateFn;
+    busy: boolean;
+    isReview: boolean;
+    canNext: boolean;
+    selectedCount: number;
+    /** The Link button's text (it names what is linked). */
+    submitLabel: string;
+    /** A line beside Back; left out, the gap is a bare spacer. */
+    note?: React.ReactNode;
+    onBack: () => void;
+    onClose: () => void;
+    onNext: () => void;
+    onSubmit: () => void;
+}
+
+/** The link wizards' footer: Back · (note) · Cancel · Next, or Link on the review step. */
+export function LinkWizardFooter({ t, busy, isReview, canNext, selectedCount, submitLabel, note, onBack, onClose, onNext, onSubmit }: LinkWizardFooterProps) {
+    return (
+        <>
+            <button type="button" onClick={onBack} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                {t('datatables.nc_back', 'Back')}
+            </button>
+            {note === undefined
+                ? <span className="mr-auto" />
+                : <span className="mr-auto text-[11px] pl-2 text-[var(--text-tertiary)]">{note}</span>}
+            <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                {t('datatables.cancel', 'Cancel')}
+            </button>
+            {!isReview ? (
+                <button type="button" onClick={onNext} disabled={!canNext} className={`${BTN} font-medium disabled:opacity-50`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {t('datatables.nc_next', 'Next')}
+                </button>
+            ) : (
+                <button type="button" onClick={onSubmit} disabled={busy || !selectedCount} className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
+                    {submitLabel}
+                </button>
+            )}
+        </>
     );
 }

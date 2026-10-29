@@ -69,6 +69,81 @@ function SectionDropZone({ sectionId, container, onAddStarter, disabled }: Secti
     );
 }
 
+type EditorState = ReturnType<typeof useAppEditor>;
+
+/**
+ * Empty-section drop zones are portaled into the renderer's real
+ * <section data-section-id> elements so they align with the grid: the
+ * surface ref, and the section elements found under it after each render of
+ * the edit surface (cleared outside edit mode).
+ */
+function useSectionElements(definition: EditorState['definition'], screenId: EditorState['screenId'], mode: EditorState['mode']) {
+    const surfaceRef = useRef<HTMLDivElement>(null);
+    const [sectionEls, setSectionEls] = useState(() => new Map<string | null | undefined, Element>());
+    useLayoutEffect(() => {
+        if (mode !== 'edit') {
+            setSectionEls((prev) => (prev.size ? new Map() : prev));
+            return;
+        }
+        const root = surfaceRef.current;
+        if (!root) return;
+        const next = new Map<string | null | undefined, Element>();
+        for (const el of root.querySelectorAll('[data-section-id]')) {
+            next.set(el.getAttribute('data-section-id'), el);
+        }
+        setSectionEls((prev) => {
+            if (prev.size === next.size && [...next].every(([k, v]) => prev.get(k) === v)) return prev;
+            return next;
+        });
+    }, [definition, screenId, mode]);
+    return { surfaceRef, sectionEls };
+}
+
+type CanvasPreviewProps = Pick<CanvasBodyProps,
+    'appId' | 'onNavigate' | 'actionState' | 'dataState' | 'runAction' | 'vars' | 'setVar'
+    | 'forms' | 'screenParams' | 'registerFormValue' | 'confirmDialog'>
+    & Pick<EditorState, 'definition' | 'screenId' | 'previewRole' | 'previewUser'>;
+
+/**
+ * Preview == production: the same AppShell, with the preview user standing
+ * in for the viewer (UserMenu hides when there is none) and no onExit (the
+ * "Alle apps" link is a run-view affordance).
+ */
+function CanvasPreview({
+    definition, screenId, previewRole, previewUser, appId, onNavigate, actionState, dataState, runAction,
+    vars, setVar, forms, screenParams, registerFormValue, confirmDialog,
+}: CanvasPreviewProps) {
+    return (
+        <div className="h-full min-h-0">
+            <AppFontLoader definition={definition} />
+            <AppShell
+                definition={definition}
+                screenId={screenId}
+                onNavigate={onNavigate}
+                viewer={previewUser || null}
+                appId={appId}
+            >
+                <AppRenderer
+                    definition={definition}
+                    screenId={screenId}
+                    mode="run"
+                    actionState={actionState}
+                    dataState={dataState}
+                    runAction={runAction}
+                    previewRole={previewRole}
+                    currentUser={previewUser}
+                    vars={vars}
+                    setVar={setVar}
+                    forms={forms}
+                    screenParams={screenParams}
+                    registerFormValue={registerFormValue}
+                />
+            </AppShell>
+            {confirmDialog}
+        </div>
+    );
+}
+
 export function CanvasBody({
     appId, onCommit, editActionState, dataState, refresh, onDataState, refreshRef,
     actionState, runAction, vars, setVar, forms, screenParams, registerFormValue,
@@ -130,26 +205,7 @@ export function CanvasBody({
         return ids;
     }, [screen]);
 
-    // Empty-section drop zones are portaled into the renderer's real
-    // <section data-section-id> elements so they align with the grid.
-    const surfaceRef = useRef<HTMLDivElement>(null);
-    const [sectionEls, setSectionEls] = useState(() => new Map<string | null | undefined, Element>());
-    useLayoutEffect(() => {
-        if (mode !== 'edit') {
-            setSectionEls((prev) => (prev.size ? new Map() : prev));
-            return;
-        }
-        const root = surfaceRef.current;
-        if (!root) return;
-        const next = new Map<string | null | undefined, Element>();
-        for (const el of root.querySelectorAll('[data-section-id]')) {
-            next.set(el.getAttribute('data-section-id'), el);
-        }
-        setSectionEls((prev) => {
-            if (prev.size === next.size && [...next].every(([k, v]) => prev.get(k) === v)) return prev;
-            return next;
-        });
-    }, [definition, screenId, mode]);
+    const { surfaceRef, sectionEls } = useSectionElements(definition, screenId, mode);
 
     const emptySections = mode === 'edit'
         ? (screen?.sections || []).filter((s: AppSection) => !(s.children || []).length)
@@ -255,37 +311,12 @@ export function CanvasBody({
                     {ghost && ghostContainer ? <GhostCell draft={ghost} container={ghostContainer} /> : null}
                 </div>
             ) : (
-                <div className="h-full min-h-0">
-                    {/* Preview == production: the same AppShell, with the
-                        preview user standing in for the viewer (UserMenu hides
-                        when there is none) and no onExit (the "Alle apps" link
-                        is a run-view affordance). */}
-                    <AppFontLoader definition={definition} />
-                    <AppShell
-                        definition={definition}
-                        screenId={screenId}
-                        onNavigate={onNavigate}
-                        viewer={previewUser || null}
-                        appId={appId}
-                    >
-                        <AppRenderer
-                            definition={definition}
-                            screenId={screenId}
-                            mode="run"
-                            actionState={actionState}
-                            dataState={dataState}
-                            runAction={runAction}
-                            previewRole={previewRole}
-                            currentUser={previewUser}
-                            vars={vars}
-                            setVar={setVar}
-                            forms={forms}
-                            screenParams={screenParams}
-                            registerFormValue={registerFormValue}
-                        />
-                    </AppShell>
-                    {confirmDialog}
-                </div>
+                <CanvasPreview
+                    definition={definition} screenId={screenId} previewRole={previewRole} previewUser={previewUser}
+                    appId={appId} onNavigate={onNavigate} actionState={actionState} dataState={dataState} runAction={runAction}
+                    vars={vars} setVar={setVar} forms={forms} screenParams={screenParams} registerFormValue={registerFormValue}
+                    confirmDialog={confirmDialog}
+                />
             )}
 
             {/* streamLock shield — always mounted. It blocks pointer events on the

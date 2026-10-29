@@ -1,7 +1,7 @@
 import { Sparkles, Send, CheckCircle2, Loader2, Flag, Tag as TagIcon, Users, MessageSquareText, EyeOff, RotateCcw, Clock, Star, AlertTriangle } from 'lucide-react';
 import { useEffect, useState, useCallback, SetStateAction, Dispatch } from 'react';
 import TicketTimeline from './TicketTimeline';
-import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
+import useTranslation, { TranslateParams, type TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import { useSupportCanned, useSupportTags, useSupportTeammates } from '@/api/queries/studioSupport';
 import { toast } from '@/components/shared/Toast';
@@ -177,31 +177,7 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
                 </div>
             </div>
 
-            {showContext && (
-                <div className="px-5 py-2 border-b border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] flex flex-col gap-1">
-                    {!context ? <span className="italic text-[var(--text-tertiary)]">{t('support.common.loading', 'Loading…')}</span> : (
-                        <>
-                            {context.profile && (
-                                <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                                    <span><span className="text-[var(--text-tertiary)]">{t('support.context.name', 'Name')}:</span> {context.profile.name || '—'}</span>
-                                    <span><span className="text-[var(--text-tertiary)]">{t('support.context.org', 'Organization')}:</span> {context.profile.organizationName || '—'}</span>
-                                    <span><span className="text-[var(--text-tertiary)]">{t('support.context.role', 'Role')}:</span> {context.profile.orgRole || '—'}</span>
-                                    <span><span className="text-[var(--text-tertiary)]">{t('support.context.logged_in', 'Logged in')}:</span> {context.profile.loggedIn ? '✓' : '—'}</span>
-                                </div>
-                            )}
-                            {context.subscription && context.subscription.status && (
-                                <div><span className="text-[var(--text-tertiary)]">{t('support.context.plan', 'Plan')}:</span> {context.subscription.planName || context.subscription.planTier || '—'} · {context.subscription.status}</div>
-                            )}
-                            {Array.isArray(context.recentThreads) && context.recentThreads.length > 0 && (
-                                <div>
-                                    <span className="text-[var(--text-tertiary)]">{t('support.context.recent', 'Recent tickets')}:</span>{' '}
-                                    {context.recentThreads.map((rt, i) => <span key={i}>{i > 0 ? ', ' : ''}{rt.subject || '(no subject)'} ({statusLabel(t, rt.status)})</span>)}
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            )}
+            {showContext && <TicketContextPanel context={context} t={t} />}
 
             {showActivity && (
                 <div className="px-5 py-2 border-b border-[var(--border-default)] max-h-56 overflow-y-auto">
@@ -214,6 +190,35 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
             </div>
 
             <TicketDetailSection reply={reply} setReply={setReply} internal={internal} t={t} setInternal={setInternal} canned={canned} setShowCanned={setShowCanned} showCanned={showCanned} draftWithAi={draftWithAi} drafting={drafting} send={send} busy={busy} />
+        </div>
+    );
+}
+
+/** The customer panel: profile, plan and recent tickets, once the context has loaded. */
+function TicketContextPanel({ context, t }: { context: TicketContext | null; t: TranslateFn }) {
+    return (
+        <div className="px-5 py-2 border-b border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] flex flex-col gap-1">
+            {!context ? <span className="italic text-[var(--text-tertiary)]">{t('support.common.loading', 'Loading…')}</span> : (
+                <>
+                    {context.profile && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                            <span><span className="text-[var(--text-tertiary)]">{t('support.context.name', 'Name')}:</span> {context.profile.name || '—'}</span>
+                            <span><span className="text-[var(--text-tertiary)]">{t('support.context.org', 'Organization')}:</span> {context.profile.organizationName || '—'}</span>
+                            <span><span className="text-[var(--text-tertiary)]">{t('support.context.role', 'Role')}:</span> {context.profile.orgRole || '—'}</span>
+                            <span><span className="text-[var(--text-tertiary)]">{t('support.context.logged_in', 'Logged in')}:</span> {context.profile.loggedIn ? '✓' : '—'}</span>
+                        </div>
+                    )}
+                    {context.subscription && context.subscription.status && (
+                        <div><span className="text-[var(--text-tertiary)]">{t('support.context.plan', 'Plan')}:</span> {context.subscription.planName || context.subscription.planTier || '—'} · {context.subscription.status}</div>
+                    )}
+                    {Array.isArray(context.recentThreads) && context.recentThreads.length > 0 && (
+                        <div>
+                            <span className="text-[var(--text-tertiary)]">{t('support.context.recent', 'Recent tickets')}:</span>{' '}
+                            {context.recentThreads.map((rt, i) => <span key={i}>{i > 0 ? ', ' : ''}{rt.subject || '(no subject)'} ({statusLabel(t, rt.status)})</span>)}
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }

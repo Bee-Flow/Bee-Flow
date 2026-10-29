@@ -148,22 +148,7 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
         }
     }, [data, t]);
 
-    const title = (
-        <span className="flex items-center gap-3">
-            <span
-                data-testid="ladder-kind-tile"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-                style={{ background: tint('var(--kind-compliance)'), color: 'var(--kind-compliance)' }}
-            >
-                <Bot size={16} aria-hidden="true" />
-            </span>
-            <span className="text-[15px] font-semibold text-[var(--text-primary)]">
-                {kind === 'agent'
-                    ? t('compliance.ladder_title_agent', 'Does the AI Act apply to this agent?')
-                    : t('compliance.ladder_title_automation', 'Does the AI Act apply to this automation?')}
-            </span>
-        </span>
-    );
+    const title = <LadderTitle kind={kind} t={t} />;
 
     const subtitleParts = [name];
     if (stepCount !== null) {
@@ -179,38 +164,7 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
     if (surface) subtitleParts.push(t('compliance.ladder_sub_surface', 'customer-facing via {surface}', { surface }));
     const subtitle = subtitleParts.filter(Boolean).join(' · ');
 
-    const footer = (
-        <div className="flex flex-col gap-2 w-full">
-            {actionError && (
-                <div data-testid="ladder-action-error" className="text-xs" style={{ color: TONES.error.ink }}>
-                    {t('compliance.ladder_action_failed', 'That did not save — {error}', { error: String(actionError.message || actionError) })}
-                </div>
-            )}
-            <div className="flex items-center justify-end gap-2">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-3 py-1.5 rounded-lg text-sm border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
-                >
-                    {t('compliance.ladder_later', 'Later')}
-                </button>
-                <button
-                    type="button"
-                    data-testid="ladder-record"
-                    onClick={record}
-                    disabled={!canRecord}
-                    style={PRIMARY_ACTION_STYLE}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                    <PenLine size={14} aria-hidden="true" />
-                    {t('compliance.ladder_record', 'Record as self-declared')}
-                </button>
-            </div>
-            <p className="text-[11px] text-[var(--text-tertiary)] text-left">
-                {t('compliance.ladder_footer_note', 'Also reachable from Studio › Automations › Settings › Compliance and per agent. A declaration is stamped with who and when and expires after 12 months.')}
-            </p>
-        </div>
-    );
+    const footer = <LadderFooter t={t} actionError={actionError} onClose={onClose} onRecord={record} canRecord={canRecord} />;
 
     return (
         <Modal open={!!open} onClose={onClose} title={title} description={subtitle || undefined} footer={footer} size="xl" className="max-w-[760px]!">
@@ -253,6 +207,70 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
                 )}
             </div>
         </Modal>
+    );
+}
+
+/** The modal title: the compliance tile and the question, per kind. */
+function LadderTitle({ kind, t }: { kind: LadderModalViewProps['kind']; t: Translate }) {
+    return (
+        <span className="flex items-center gap-3">
+            <span
+                data-testid="ladder-kind-tile"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+                style={{ background: tint('var(--kind-compliance)'), color: 'var(--kind-compliance)' }}
+            >
+                <Bot size={16} aria-hidden="true" />
+            </span>
+            <span className="text-[15px] font-semibold text-[var(--text-primary)]">
+                {kind === 'agent'
+                    ? t('compliance.ladder_title_agent', 'Does the AI Act apply to this agent?')
+                    : t('compliance.ladder_title_automation', 'Does the AI Act apply to this automation?')}
+            </span>
+        </span>
+    );
+}
+
+interface LadderFooterProps {
+    t: Translate;
+    actionError: Error | null;
+    onClose: LadderModalViewProps['onClose'];
+    onRecord: () => void;
+    canRecord: boolean;
+}
+
+/** The save failure (if any), Later / Record as self-declared, and where else the ladder lives. */
+function LadderFooter({ t, actionError, onClose, onRecord, canRecord }: LadderFooterProps) {
+    return (
+        <div className="flex flex-col gap-2 w-full">
+            {actionError && (
+                <div data-testid="ladder-action-error" className="text-xs" style={{ color: TONES.error.ink }}>
+                    {t('compliance.ladder_action_failed', 'That did not save — {error}', { error: String(actionError.message || actionError) })}
+                </div>
+            )}
+            <div className="flex items-center justify-end gap-2">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-3 py-1.5 rounded-lg text-sm border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
+                >
+                    {t('compliance.ladder_later', 'Later')}
+                </button>
+                <button
+                    type="button"
+                    data-testid="ladder-record"
+                    onClick={onRecord}
+                    disabled={!canRecord}
+                    style={PRIMARY_ACTION_STYLE}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                    <PenLine size={14} aria-hidden="true" />
+                    {t('compliance.ladder_record', 'Record as self-declared')}
+                </button>
+            </div>
+            <p className="text-[11px] text-[var(--text-tertiary)] text-left">
+                {t('compliance.ladder_footer_note', 'Also reachable from Studio › Automations › Settings › Compliance and per agent. A declaration is stamped with who and when and expires after 12 months.')}
+            </p>
+        </div>
     );
 }
 

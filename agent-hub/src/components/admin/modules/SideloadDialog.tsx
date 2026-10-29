@@ -5,7 +5,7 @@ import { normalizePermissions } from './permissionCopy';
 import type { ModulePermission } from './permissionCopy';
 import { useActivateStaged, useOfflineGrant, useSideloadModule } from '@/api/queries/modules';
 import type { SideloadResponse } from '@/api/queries/modules.types';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 import { errorBodyRecord, errorMessage, errorStatus } from '@/utils/caughtError';
 
@@ -18,6 +18,33 @@ interface SideloadResult {
 interface SideloadDialogProps {
     onClose: () => void;
     onDone?: (res: unknown) => void;
+}
+
+/** The package is in: its version, and whether the server needs a restart. */
+function SideloadSuccess({ result, onClose, t }: { result: SideloadResult; onClose: () => void; t: TranslateFn }) {
+    return (
+        <>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-primary)]" data-testid="sideload-success">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                {result.activated
+                    ? t('modules.sideload_activated', { version: result.version })
+                    : t('modules.sideload_success', { version: result.version })}
+            </div>
+            {result.requiresRestart && (
+                <p className="text-xs px-3 py-2 rounded-lg [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
+                    {t('modules.sideload_restart_required')}
+                </p>
+            )}
+            <div className="flex justify-end pt-1">
+                <button
+                    onClick={onClose}
+                    className="px-4 py-2 rounded-lg text-sm font-medium [background:var(--accent-primary)] [color:#fff]!"
+                >
+                    {t('modules.close')}
+                </button>
+            </div>
+        </>
+    );
 }
 
 // Enterprise sideload: upload a raw .bfmod package. Two recoverable detours:
@@ -134,27 +161,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
             >
                 <div className="space-y-3">
                     {result ? (
-                        <>
-                            <div className="flex items-center gap-2 text-xs text-[var(--text-primary)]" data-testid="sideload-success">
-                                <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                {result.activated
-                                    ? t('modules.sideload_activated', { version: result.version })
-                                    : t('modules.sideload_success', { version: result.version })}
-                            </div>
-                            {result.requiresRestart && (
-                                <p className="text-xs px-3 py-2 rounded-lg [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
-                                    {t('modules.sideload_restart_required')}
-                                </p>
-                            )}
-                            <div className="flex justify-end pt-1">
-                                <button
-                                    onClick={onClose}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium [background:var(--accent-primary)] [color:#fff]!"
-                                >
-                                    {t('modules.close')}
-                                </button>
-                            </div>
-                        </>
+                        <SideloadSuccess result={result} onClose={onClose} t={t} />
                     ) : needGrant ? (
                         <>
                             <p className="text-xs leading-relaxed text-[var(--text-secondary)]">

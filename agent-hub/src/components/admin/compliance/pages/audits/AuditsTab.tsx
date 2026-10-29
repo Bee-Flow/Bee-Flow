@@ -1,22 +1,20 @@
-import { Plus, Play, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Plus, Play, CheckCircle2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    AUDIT_STATUS, FINDING_SEVERITY, labelOf, toneOf, userName, fmtDate,
-    Field, TextInput, TextArea, DateInput, Select, UserSelect, ActionButton, Fact, Intro, RegisterLayout,
+    AUDIT_STATUS, labelOf, toneOf, userName, fmtDate, ActionButton, Fact, Intro, RegisterLayout,
 } from './auditForms';
 import { notRaisedCount } from './isoProcessHelpers';
 import useHeaderPrimary from './useHeaderPrimary';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
 import EmptyState from '@/components/shared/EmptyState';
-import FindingRow from '@/components/shared/FindingRow';
 import SideDrawer, { DrawerSection, DrawerFooter } from '@/components/shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
-import StatusPill from '../../shared/StatusPill';
 import useDrawerMode from '../../shared/useDrawerMode';
 import type { OrgUser } from '../accessAuditLabels';
 import type { SetHeaderActions } from './useHeaderPrimary';
-import type { RowLike, TableColumn } from '@/components/shared/DataTable';
+import type { TableColumn } from '@/components/shared/DataTable';
+import { AddFindingSection, AuditCard, AuditFindingsList, AuditPlanFields, type Audit, type AuditDraft, type AuditFindingRow, type FindingDraft } from './AuditsTabParts';
 
 /**
  * AuditsTab — internal audits (clause 9.2): planned → in progress → closed,
@@ -34,43 +32,6 @@ import type { RowLike, TableColumn } from '@/components/shared/DataTable';
 const EMPTY_DRAFT: Readonly<AuditDraft> = Object.freeze({ title: '', scope_note: '', auditor_user_id: '', planned_at: '' });
 const EMPTY_FINDING: Readonly<FindingDraft> = Object.freeze({ severity: 'observation', control_ref: '', clause: '', description: '', evidence_ref: '' });
 
-interface Audit extends RowLike {
-    id: number;
-    title: string;
-    status: string;
-    scope_note?: string | null;
-    auditor_user_id?: string | null;
-    planned_at?: string | null;
-    started_at?: string | null;
-    closed_at?: string | null;
-}
-
-interface AuditFindingRow extends RowLike {
-    id: string | number;
-    audit_id: number;
-    severity: string;
-    control_ref?: string | null;
-    clause?: string | null;
-    description: string;
-    evidence_ref?: string | null;
-    nonconformity_id?: string | number | null;
-}
-
-interface FindingDraft {
-    severity: string;
-    control_ref: string;
-    clause: string;
-    description: string;
-    evidence_ref: string;
-}
-
-interface AuditDraft {
-    title: string;
-    scope_note: string;
-    auditor_user_id: string;
-    planned_at: string;
-}
-
 interface AuditsTabArgs {
     audit: {
         audits?: Audit[] | null;
@@ -86,6 +47,17 @@ interface AuditsTabArgs {
     isMobile?: boolean | undefined;
     focusId?: string | number | null;
     setHeaderActions?: SetHeaderActions;
+}
+
+/** The audit table's columns; auditor and date fold below 900px. */
+function auditColumns(t: TranslateFn): TableColumn[] {
+    return [
+    { id: 'title', width: '1fr', label: t('compliance.audit_f_title', 'Audit title') },
+    { id: 'status', width: '120px', label: t('compliance.obj_col_status', 'Status') },
+    { id: 'auditor', width: '140px', label: t('compliance.audit_f_auditor', 'Auditor'), foldBelow: 900 },
+    { id: 'planned', width: '104px', label: t('compliance.audit_f_planned', 'Planned date'), foldBelow: 900 },
+    { id: 'findings', width: '84px', label: t('compliance.audit_findings', 'Findings'), align: 'right' },
+    ];
 }
 
 export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId = null, setHeaderActions = undefined }: AuditsTabArgs) {
@@ -121,13 +93,7 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
     }, [findings]);
     const selected = useMemo(() => list.find(a => String(a.id) === String(selectedId)) || null, [list, selectedId]);
 
-    const columns: TableColumn[] = [
-        { id: 'title', width: '1fr', label: t('compliance.audit_f_title', 'Audit title') },
-        { id: 'status', width: '120px', label: t('compliance.obj_col_status', 'Status') },
-        { id: 'auditor', width: '140px', label: t('compliance.audit_f_auditor', 'Auditor'), foldBelow: 900 },
-        { id: 'planned', width: '104px', label: t('compliance.audit_f_planned', 'Planned date'), foldBelow: 900 },
-        { id: 'findings', width: '84px', label: t('compliance.audit_findings', 'Findings'), align: 'right' },
-    ];
+    const columns = auditColumns(t);
 
     const submitCreate = () => {
         if (!draft.title.trim()) return;
@@ -207,21 +173,7 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                         <ActionButton onClick={() => setCreating(false)}>{t('compliance.audit_cancel', 'Cancel')}</ActionButton>
                     </div>
                 )}>
-                <Field label={t('compliance.audit_f_title', 'Audit title')}>
-                    <TextInput value={draft.title} autoFocus onChange={v => setDraft(d => ({ ...d, title: v }))} data-testid="audit-f-title" />
-                </Field>
-                <Field label={t('compliance.audit_f_scope', 'Scope')}>
-                    <TextArea value={draft.scope_note} placeholder={t('compliance.audit_f_scope_ph', 'Which controls, processes or teams does this audit cover?')} onChange={v => setDraft(d => ({ ...d, scope_note: v }))} />
-                </Field>
-                <Field label={t('compliance.audit_f_auditor', 'Auditor')}>
-                    <UserSelect value={draft.auditor_user_id} orgUsers={orgUsers} noneLabel={t('compliance.audit_auditor_none', 'Select auditor…')} onChange={v => setDraft(d => ({ ...d, auditor_user_id: v }))} data-testid="audit-f-auditor" />
-                </Field>
-                <Field label={t('compliance.audit_f_planned', 'Planned date')}>
-                    <DateInput value={draft.planned_at} onChange={v => setDraft(d => ({ ...d, planned_at: v }))} />
-                </Field>
-                {independenceWarning && (
-                    <FindingRow size="sm" severity="warning" label={t('compliance.audit_independence_title', 'Auditor independence')} message={independenceWarning} testId="audit-independence" />
-                )}
+                <AuditPlanFields t={t} draft={draft} setDraft={setDraft} orgUsers={orgUsers} independenceWarning={independenceWarning} />
             </SideDrawer>
         );
     } else if (selected) {
@@ -245,53 +197,10 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                     {a.closed_at && <Fact label={t('compliance.audit_closed_on', 'Closed')}>{fmtDate(a.closed_at, resolvedLocale)}</Fact>}
                 </DrawerSection>
                 <DrawerSection label={t('compliance.audit_findings', 'Findings')} hint={rows.length ? String(rows.length) : undefined}>
-                    {rows.length === 0 ? (
-                        <div className="text-xs text-[var(--text-tertiary)]">{t('compliance.audit_no_findings', 'No findings recorded for this audit.')}</div>
-                    ) : rows.map(f => (
-                        <div key={f.id} className="flex flex-col gap-1 py-1.5 border-b border-[var(--border-default)] last:border-b-0" data-testid={`audit-finding-${f.id}`}>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                <StatusPill tone={toneOf(FINDING_SEVERITY, f.severity)}>{labelOf(t, FINDING_SEVERITY, f.severity)}</StatusPill>
-                                {f.control_ref && <span className="font-mono text-[11px] text-[var(--text-secondary)]">{f.control_ref}</span>}
-                                {f.clause && <span className="font-mono text-[11px] text-[var(--text-secondary)]">{t('compliance.audit_f_clause', 'Clause')} {f.clause}</span>}
-                            </div>
-                            <div className="text-xs text-[var(--text-secondary)]">
-                                {f.description}
-                                {f.evidence_ref && <span className="text-[11px] text-[var(--text-tertiary)]"> · {f.evidence_ref}</span>}
-                            </div>
-                            {f.nonconformity_id ? (
-                                <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.audit_nc_raised', 'Raised as NC')} #{f.nonconformity_id}</span>
-                            ) : (f.severity !== 'observation' && (
-                                <ActionButton size="sm" variant="error" icon={ArrowRight} disabled={busy} onClick={() => raiseNc(a, f)} className="self-start" data-testid={`audit-raise-nc-${f.id}`}>
-                                    {t('compliance.audit_raise_nc', 'Raise as nonconformity')}
-                                </ActionButton>
-                            ))}
-                        </div>
-                    ))}
+                    <AuditFindingsList t={t} rows={rows} busy={busy} onRaiseNc={(f) => raiseNc(a, f)} />
                 </DrawerSection>
                 {a.status !== 'closed' && (
-                    <DrawerSection label={t('compliance.audit_add_finding', 'Add finding')}>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Field label={t('compliance.audit_f_severity', 'Severity')}>
-                                <Select value={fd.severity} onChange={v => setFinding(a.id, { severity: v })} data-testid="audit-finding-severity"
-                                    options={Object.keys(FINDING_SEVERITY).map(k => ({ value: k, label: labelOf(t, FINDING_SEVERITY, k) }))} />
-                            </Field>
-                            <Field label={t('compliance.audit_f_control', 'Control ref')}>
-                                <TextInput value={fd.control_ref} placeholder="A.5.15" onChange={v => setFinding(a.id, { control_ref: v })} />
-                            </Field>
-                            <Field label={t('compliance.audit_f_clause', 'Clause')}>
-                                <TextInput value={fd.clause} placeholder="9.2" onChange={v => setFinding(a.id, { clause: v })} />
-                            </Field>
-                            <Field label={t('compliance.audit_f_evidence', 'Evidence ref (optional)')}>
-                                <TextInput value={fd.evidence_ref} onChange={v => setFinding(a.id, { evidence_ref: v })} />
-                            </Field>
-                        </div>
-                        <Field label={t('compliance.audit_f_finding', 'What was observed')}>
-                            <TextArea value={fd.description} placeholder={t('compliance.audit_f_finding_ph', 'What was examined, what the evidence showed, and where it falls short…')} onChange={v => setFinding(a.id, { description: v })} data-testid="audit-finding-description" />
-                        </Field>
-                        <ActionButton icon={Plus} disabled={busy || !fd.description.trim()} onClick={() => submitFinding(a.id)} className="self-start" data-testid="audit-finding-submit">
-                            {t('compliance.audit_add_finding', 'Add finding')}
-                        </ActionButton>
-                    </DrawerSection>
+                    <AddFindingSection t={t} fd={fd} busy={busy} onChange={(patch) => setFinding(a.id, patch)} onSubmit={() => submitFinding(a.id)} />
                 )}
             </SideDrawer>
         );
@@ -314,29 +223,11 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
                 ariaLabel={t('compliance.audit_tab', 'Internal audits')}
                 testId="audits-table"
                 empty={<EmptyState title={t('compliance.audit_empty_title', 'No internal audits yet')} description={t('compliance.audit_empty', 'No internal audits yet. Clause 9.2 expects audits at planned intervals — plan the first one to start the programme.')} />}
-                renderCard={(a) => {
-                    const n = (findingsByAudit.get(a.id) || []).length;
-                    const isSelected = !creating && String(selectedId) === String(a.id);
-                    return (
-                        <div className="w-full min-w-0 flex items-center gap-2" data-testid={`audit-card-${a.id}`} data-selected={isSelected || undefined}>
-                            <button
-                                type="button"
-                                onClick={() => { setCreating(false); setConfirmCloseId(null); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }}
-                                aria-selected={isSelected || undefined}
-                                className="flex-1 min-w-0 text-left min-h-[44px] flex flex-col justify-center gap-1"
-                            >
-                                <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{a.title}</span>
-                                {a.scope_note && <span className="text-[11px] text-[var(--text-tertiary)] truncate">{a.scope_note}</span>}
-                                <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-secondary)]">
-                                    <RegisterStatePill state={a.status} testId={`audit-card-state-${a.id}`}>{labelOf(t, AUDIT_STATUS, a.status)}</RegisterStatePill>
-                                    <span className="truncate">{userName(orgUsers, a.auditor_user_id) || '—'}</span>
-                                    <span className="tabular-nums whitespace-nowrap">{fmtDate(a.planned_at, resolvedLocale)}</span>
-                                    <span className="tabular-nums">{t('compliance.audit_findings', 'Findings')} {n}</span>
-                                </span>
-                            </button>
-                        </div>
-                    );
-                }}
+                renderCard={(a) => (
+                    <AuditCard t={t} a={a} findingCount={(findingsByAudit.get(a.id) || []).length} isSelected={!creating && String(selectedId) === String(a.id)}
+                        orgUsers={orgUsers} locale={resolvedLocale}
+                        onToggle={() => { setCreating(false); setConfirmCloseId(null); setSelectedId(prev => (String(prev) === String(a.id) ? null : a.id)); }} />
+                )}
                 renderRow={(a, ctx) => {
                     const n = (findingsByAudit.get(a.id) || []).length;
                     const isSelected = !creating && String(selectedId) === String(a.id);

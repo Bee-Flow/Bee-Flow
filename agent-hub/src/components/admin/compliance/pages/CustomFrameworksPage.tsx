@@ -1,15 +1,13 @@
-import { ArrowLeft, FileJson, FolderKanban, Pencil } from 'lucide-react';
+import { ArrowLeft, FolderKanban } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useComplianceRead } from '@/api/queries/complianceReads';
 import { useTranslation } from '@/hooks/useTranslation';
 import { API, asArray, asObject, fetchJson, jsonInit, json } from '@/api/complianceApi';
 import useResource from '../data/useResource';
-import ScoreRing from '../shared/ScoreRing';
-import StatusPill from '../shared/StatusPill';
 import AttestDrawer from './custom/AttestDrawer';
 import CustomChecksTable, { indexResults, type BuiltinCheck, type CustomCheckDef, type CustomResult, type JoinedCheck } from './custom/CustomChecksTable';
 import FrameworkEditorDrawer from './custom/FrameworkEditorDrawer';
-import QuestionnaireImport from './custom/QuestionnaireImport';
+import { FrameworkCard, FrameworkDetailHeader, SECONDARY_BUTTON } from './custom/FrameworkParts';
 import type { EditorFramework, toBody } from './custom/FrameworkEditorDrawer';
 import type { AttestBody } from './custom/AttestDrawer';
 import type { QuestionnaireRow } from './custom/QuestionnaireImport';
@@ -90,7 +88,85 @@ export function expiringCount(checks: readonly (CustomResult | null)[] | null | 
     return n;
 }
 
-const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-primary)] bg-[var(--bg-card)] disabled:opacity-60';
+
+interface FrameworkActionsArgs {
+    openId: string | null;
+    setOpenId: (id: string | null) => void;
+    setEditing: (framework: EditorFramework | null) => void;
+    setBusyId: (id: string | number | null) => void;
+    attesting: JoinedCheck | null;
+    setAttesting: (row: JoinedCheck | null) => void;
+    refreshAll: () => Promise<void>;
+}
+
+/** The page's writes: frameworks, their items, mappings and attestations. Each one ends by re-reading everything. */
+function frameworkActions({ openId, setOpenId, setEditing, setBusyId, attesting, setAttesting, refreshAll }: FrameworkActionsArgs) {
+    const saveFramework = async (body: ReturnType<typeof toBody>, framework: EditorFramework | null) => {
+        const isNew = !framework?.id;
+        const row = await fetchJson(
+            isNew ? `${API}/custom/frameworks` : `${API}/custom/frameworks/${encodeURIComponent(String(framework?.id))}`,
+            jsonInit(isNew ? 'POST' : 'PUT', body),
+        );
+        await refreshAll();
+        if (isNew && row?.id) setOpenId(String(row.id));
+        return row;
+    };
+
+    const archiveFramework = async (framework: EditorFramework | null) => {
+        if (!framework?.id) return;
+        setBusyId(framework.id);
+        try {
+            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(framework.id)}`, { method: 'DELETE' });
+            setEditing(null);
+            if (openId === framework.id) setOpenId(null);
+            await refreshAll();
+        } finally { setBusyId(null); }
+    };
+
+    const importChecks = async (rows: QuestionnaireRow[]) => {
+        if (!openId) return;
+        setBusyId(openId);
+        try {
+            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(openId)}/checks`, json({ checks: rows }));
+            await refreshAll();
+        } finally { setBusyId(null); }
+    };
+
+    const mapCheck = async (row: JoinedCheck, mappedCheckId: string | null) => {
+        if (!openId) return;
+        setBusyId(row.id);
+        try {
+            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(openId)}/checks`, json({
+                checks: [{
+                    ref: row.ref, title: row.title, description: row.description,
+                    severity: row.severity, evidence_required: row.evidence_required,
+                    mapped_check_id: mappedCheckId, sort_order: row.sort_order,
+                }],
+            }));
+            await refreshAll();
+        } finally { setBusyId(null); }
+    };
+
+    const deleteCheck = async (row: JoinedCheck) => {
+        setBusyId(row.id);
+        try {
+            await fetchJson(`${API}/custom/checks/${encodeURIComponent(row.id)}`, { method: 'DELETE' });
+            await refreshAll();
+        } finally { setBusyId(null); }
+    };
+
+    const openAttest = async (row: JoinedCheck) => { setAttesting(row); };
+
+    const attest = async ({ outcome, statement, evidence_refs: refs }: AttestBody) => {
+        if (!attesting) return;
+        await fetchJson(`${API}/custom/checks/${encodeURIComponent(attesting.id)}/attest`, json({
+            outcome, statement, evidence_refs: refs,
+        }));
+        await refreshAll();
+    };
+
+    return { saveFramework, archiveFramework, importChecks, mapCheck, deleteCheck, openAttest, attest };
+}
 
 export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
     const { navigate, focusId, exportsEnabled = true, dl, isMobile = false, setHeaderActions, data = {}, now } = props;
@@ -159,96 +235,17 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
         await core.refresh?.();
     }, [fw, hubList, own, openId, refetchDetail, data, core]);
 
-    const saveFramework = async (body: ReturnType<typeof toBody>, framework: EditorFramework | null) => {
-        const isNew = !framework?.id;
-        const row = await fetchJson(
-            isNew ? `${API}/custom/frameworks` : `${API}/custom/frameworks/${encodeURIComponent(String(framework?.id))}`,
-            jsonInit(isNew ? 'POST' : 'PUT', body),
-        );
-        await refreshAll();
-        if (isNew && row?.id) setOpenId(String(row.id));
-        return row;
-    };
-
-    const archiveFramework = async (framework: EditorFramework | null) => {
-        if (!framework?.id) return;
-        setBusyId(framework.id);
-        try {
-            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(framework.id)}`, { method: 'DELETE' });
-            setEditing(null);
-            if (openId === framework.id) setOpenId(null);
-            await refreshAll();
-        } finally { setBusyId(null); }
-    };
-
-    const importChecks = async (rows: QuestionnaireRow[]) => {
-        if (!openId) return;
-        setBusyId(openId);
-        try {
-            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(openId)}/checks`, json({ checks: rows }));
-            await refreshAll();
-        } finally { setBusyId(null); }
-    };
-
-    const mapCheck = async (row: JoinedCheck, mappedCheckId: string | null) => {
-        if (!openId) return;
-        setBusyId(row.id);
-        try {
-            await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(openId)}/checks`, json({
-                checks: [{
-                    ref: row.ref, title: row.title, description: row.description,
-                    severity: row.severity, evidence_required: row.evidence_required,
-                    mapped_check_id: mappedCheckId, sort_order: row.sort_order,
-                }],
-            }));
-            await refreshAll();
-        } finally { setBusyId(null); }
-    };
-
-    const deleteCheck = async (row: JoinedCheck) => {
-        setBusyId(row.id);
-        try {
-            await fetchJson(`${API}/custom/checks/${encodeURIComponent(row.id)}`, { method: 'DELETE' });
-            await refreshAll();
-        } finally { setBusyId(null); }
-    };
-
-    const openAttest = async (row: JoinedCheck) => { setAttesting(row); };
-
-    const attest = async ({ outcome, statement, evidence_refs: refs }: AttestBody) => {
-        if (!attesting) return;
-        await fetchJson(`${API}/custom/checks/${encodeURIComponent(attesting.id)}/attest`, json({
-            outcome, statement, evidence_refs: refs,
-        }));
-        await refreshAll();
-    };
+    const { saveFramework, archiveFramework, importChecks, mapCheck, deleteCheck, openAttest, attest } = frameworkActions({
+        openId, setOpenId, setEditing, setBusyId, attesting, setAttesting, refreshAll,
+    });
 
     // ── Detail ─────────────────────────────────────────────────────────────
     if (selected) {
         const exportUrl = dl?.(`${API}/custom/frameworks/${encodeURIComponent(selected.id)}/export.json`);
         return (
             <div className="relative h-full min-h-0 overflow-y-auto p-3.5 @[1100px]/cpage:px-7 @[1100px]/cpage:py-[18px] flex flex-col gap-3.5 text-xs" data-testid="custom-detail">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <button type="button" className={SECONDARY_BUTTON} onClick={() => setOpenId(null)} data-testid="custom-back">
-                        <ArrowLeft size={12} aria-hidden="true" />{t('compliance.custom_back', 'All frameworks')}
-                    </button>
-                    <span className="font-semibold text-[13px] truncate" data-testid="custom-detail-name">{selected.name}</span>
-                    <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{selected.code}</span>
-                    <StatusPill tone={selected.status === 'active' ? 'success' : 'neutral'} testId="custom-detail-status">
-                        {t(`compliance.custom_status_fw_${selected.status}`, selected.status === 'active' ? 'Active' : 'Draft')}
-                    </StatusPill>
-                    <div className="ml-auto flex items-center gap-2">
-                        <QuestionnaireImport onImport={importChecks} busy={busyId === openId} />
-                        {exportUrl && exportsEnabled && (
-                            <a className={SECONDARY_BUTTON} href={exportUrl} data-testid="custom-export">
-                                <FileJson size={12} aria-hidden="true" />{t('compliance.custom_export', 'Answer pack (JSON)')}
-                            </a>
-                        )}
-                        <button type="button" className={SECONDARY_BUTTON} onClick={() => setEditing(selected)} data-testid="custom-edit">
-                            <Pencil size={12} aria-hidden="true" />{t('common.edit', 'Edit')}
-                        </button>
-                    </div>
-                </div>
+                <FrameworkDetailHeader t={t} selected={selected} exportUrl={exportUrl} exportsEnabled={exportsEnabled} importBusy={busyId === openId}
+                    onImport={importChecks} onBack={() => setOpenId(null)} onEdit={() => setEditing(selected)} />
 
                 {detailFailed ? (
                     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 text-[var(--text-tertiary)]" data-testid="custom-detail-failed">
@@ -322,34 +319,7 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
                 </div>
             ) : (
                 <div className="grid gap-2.5 grid-cols-1 @[860px]/cpage:grid-cols-2" data-testid="custom-grid">
-                    {list.map(f => {
-                        const expiring = expiringCount(core.checks, f.code, now);
-                        return (
-                            <button
-                                key={f.id}
-                                type="button"
-                                onClick={() => setOpenId(f.id)}
-                                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)] [box-shadow:var(--shadow-sm)]"
-                                data-testid="custom-card"
-                                data-framework={f.id}
-                            >
-                                <ScoreRing score={f.score} size={36} label={f.name} testId="custom-card-score" />
-                                <div className="min-w-0 flex flex-col gap-0.5">
-                                    <span className="font-semibold truncate">{f.name}</span>
-                                    <span className="font-mono text-[10px] text-[var(--text-tertiary)] truncate">{f.code}{f.reference ? ` · ${f.reference}` : ''}</span>
-                                    <span className="text-[11px] text-[var(--text-secondary)]">
-                                        {typeof f.checks_count === 'number' && t('compliance.custom_card_items', '{n} items', { n: f.checks_count })}
-                                        {expiring !== null && expiring > 0 && (
-                                            <span data-testid="custom-card-expiring">{typeof f.checks_count === 'number' ? ' · ' : ''}{t('compliance.custom_card_expiring', '{n} expiring', { n: expiring })}</span>
-                                        )}
-                                    </span>
-                                </div>
-                                <StatusPill className="ml-auto" tone={f.status === 'active' ? 'success' : 'neutral'} testId="custom-card-status">
-                                    {t(`compliance.custom_status_fw_${f.status}`, f.status === 'active' ? 'Active' : 'Draft')}
-                                </StatusPill>
-                            </button>
-                        );
-                    })}
+                    {list.map(f => <FrameworkCard key={f.id} t={t} f={f} expiring={expiringCount(core.checks, f.code, now)} onOpen={() => setOpenId(f.id)} />)}
                 </div>
             )}
 

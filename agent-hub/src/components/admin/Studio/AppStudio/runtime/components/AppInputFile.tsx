@@ -88,28 +88,18 @@ interface InputFileProps {
     buttonLabel?: string | null;
 }
 
-export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
-    const { t } = useTranslation();
-    const { mode } = useRuntime();
-    const { appId } = useDataContext();
-    const { name, label = t('studio_apps_runtime.inputs.file', 'File'), accept = null, multiple = false, required = false, buttonLabel = null } = node.props || {};
-    const { value, setValue, error } = useFormField<FileValue | FileValue[]>({
-        name, defaultValue: multiple ? [] : null, required, label,
-    });
-    const [uploading, setUploading] = useState(false);
-    const [uploadError, setUploadError] = useState<string | null>(null);
-    const id = `${node.id}-input`;
-    const fireChange = useInputChange(node, name);
-
-    // Show the picture the visitor just picked, from the BROWSER's own copy.
-    //
-    // The obvious route — stream it back from the attachment endpoint — does
-    // not work for the person who needs it most: an attachment that is not on a
-    // record yet is not readable under the record-shaped access rule (see
-    // appStudio/attachmentAccess.js), and on a public intake form the record
-    // does not exist until submit. So the file the user chose is its own
-    // preview. Revoked on unmount and on removal; a reload loses the blob and
-    // falls back to the stored file's own URL, which by then usually resolves.
+/**
+ * Show the picture the visitor just picked, from the BROWSER's own copy.
+ *
+ * The obvious route — stream it back from the attachment endpoint — does
+ * not work for the person who needs it most: an attachment that is not on a
+ * record yet is not readable under the record-shaped access rule (see
+ * appStudio/attachmentAccess.js), and on a public intake form the record
+ * does not exist until submit. So the file the user chose is its own
+ * preview. Revoked on unmount and on removal; a reload loses the blob and
+ * falls back to the stored file's own URL, which by then usually resolves.
+ */
+function useLocalPreviews() {
     const previewsRef = useRef(new Map<string, string>());
     const [previewVersion, setPreviewVersion] = useState(0);
     const rememberPreview = useCallback((fileId: string, file: Blob | MediaSource) => {
@@ -134,6 +124,23 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
             map.clear();
         };
     }, []);
+    return { previewsRef, previewVersion, rememberPreview, forgetPreview };
+}
+
+export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
+    const { t } = useTranslation();
+    const { mode } = useRuntime();
+    const { appId } = useDataContext();
+    const { name, label = t('studio_apps_runtime.inputs.file', 'File'), accept = null, multiple = false, required = false, buttonLabel = null } = node.props || {};
+    const { value, setValue, error } = useFormField<FileValue | FileValue[]>({
+        name, defaultValue: multiple ? [] : null, required, label,
+    });
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const id = `${node.id}-input`;
+    const fireChange = useInputChange(node, name);
+
+    const { previewsRef, previewVersion, rememberPreview, forgetPreview } = useLocalPreviews();
 
     const entries = multiple ? (Array.isArray(value) ? value : []) : (value ? [value] : []) as FileValue[];
     const canUpload = mode === 'run' && !!appId;

@@ -8,7 +8,7 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { useOrgDirectory, type DirectoryEntry } from '../AppStudio/rbac/useAppRoles';
 import type { DtTable } from './rowBrowser/rowBrowserModel';
 import type { Body } from './datatablesApi.types';
-import type { TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { SharedTable, Principal, RequestError, DatatableSharingProps, OrgSharingProps, AudienceRowProps, ConsequenceLineProps } from './DatatableSharing.types';
 import { CARD, GrantList } from './GrantList';
 
@@ -193,58 +193,12 @@ function OrgSharing({ table, canEdit, onChanged }: OrgSharingProps) {
                     />
 
                     {shownAudience === GROUPS && (
-                        <div className={`px-4 py-3 space-y-1.5 [background:var(--bg-secondary)] ${audience === PRIVATE ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}>
-                            {audienceDraft === GROUPS && (
-                                <p className="text-xs text-[var(--text-secondary)]">
-                                    {t('datatables.share_groups_pending', 'Nothing has changed yet — picking a group is what shares the table.')}
-                                </p>
-                            )}
-                            {directory.isLoading && <p className="text-xs text-[var(--text-tertiary)]">{t('datatables.loading_groups', 'Loading groups…')}</p>}
-                            {!directory.available && !directory.isLoading && (
-                                <p className="text-xs text-[var(--text-tertiary)]">
-                                    {t('datatables.share_no_directory', 'You cannot see the organisation’s group list, so the groups are shown by id.')}
-                                </p>
-                            )}
-                            {(directory.groups || []).map(g => (
-                                <label key={g.id} className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        disabled={!canEdit || busy}
-                                        checked={(table.sharedGroups || []).includes(g.id)}
-                                        onChange={() => toggleGroup(g.id)}
-                                    />
-                                    <span className="text-[var(--text-primary)]">{g.name || g.id}</span>
-                                    {/* Only when the directory actually answers it —
-                                        an invented "0 people" beside a group is worse
-                                        than no number at all. */}
-                                    {Number.isFinite(g.memberCount) && (
-                                        <span className="text-[11px] text-[var(--text-tertiary)]">
-                                            {t('datatables.group_members', '{n} people', { n: g.memberCount })}
-                                        </span>
-                                    )}
-                                </label>
-                            ))}
-                        </div>
+                        <GroupPicker t={t} directory={directory} audienceDraft={audienceDraft} audience={audience}
+                            sharedGroups={table.sharedGroups} disabled={!canEdit || busy} onToggle={toggleGroup} />
                     )}
 
                     {audience !== PRIVATE && (
-                        <label className="flex items-start gap-2.5 px-4 py-3 text-sm">
-                            <input
-                                type="checkbox"
-                                className="mt-0.5"
-                                disabled={!canEdit || busy}
-                                checked={table.writeMode === 'audience'}
-                                onChange={(e) => setWriteMode(e.target.checked)}
-                            />
-                            <span>
-                                <span className="font-medium text-[var(--text-primary)]">
-                                    {t('datatables.share_write_toggle', 'Let everyone who can read it change it too')}
-                                </span>
-                                <span className="block text-xs text-[var(--text-secondary)]">
-                                    {t('datatables.share_write_help', 'Off by default. With this off, only the people you invite below can add, change or delete rows.')}
-                                </span>
-                            </span>
-                        </label>
+                        <WriteModeToggle t={t} checked={table.writeMode === 'audience'} disabled={!canEdit || busy} onChange={setWriteMode} />
                     )}
                 </fieldset>
                 <ConsequenceLine t={t} access={access} />
@@ -281,6 +235,77 @@ function OrgSharing({ table, canEdit, onChanged }: OrgSharingProps) {
                 onCancel={() => setConfirm(null)}
             />
         </div>
+    );
+}
+
+interface GroupPickerProps {
+    t: TranslateFn;
+    directory: ReturnType<typeof useOrgDirectory>;
+    audienceDraft: string | null;
+    audience: string;
+    sharedGroups: OrgSharingProps['table']['sharedGroups'];
+    disabled: boolean;
+    onToggle: (id: string) => void;
+}
+
+/** The organisation's groups to tick, under "Specific groups" (with the pending note while nothing is shared yet). */
+function GroupPicker({ t, directory, audienceDraft, audience, sharedGroups, disabled, onToggle }: GroupPickerProps) {
+    return (
+        <div className={`px-4 py-3 space-y-1.5 [background:var(--bg-secondary)] ${audience === PRIVATE ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}>
+            {audienceDraft === GROUPS && (
+                <p className="text-xs text-[var(--text-secondary)]">
+                    {t('datatables.share_groups_pending', 'Nothing has changed yet — picking a group is what shares the table.')}
+                </p>
+            )}
+            {directory.isLoading && <p className="text-xs text-[var(--text-tertiary)]">{t('datatables.loading_groups', 'Loading groups…')}</p>}
+            {!directory.available && !directory.isLoading && (
+                <p className="text-xs text-[var(--text-tertiary)]">
+                    {t('datatables.share_no_directory', 'You cannot see the organisation’s group list, so the groups are shown by id.')}
+                </p>
+            )}
+            {(directory.groups || []).map(g => (
+                <label key={g.id} className="flex items-center gap-2 text-sm">
+                    <input
+                        type="checkbox"
+                        disabled={disabled}
+                        checked={(sharedGroups || []).includes(g.id)}
+                        onChange={() => onToggle(g.id)}
+                    />
+                    <span className="text-[var(--text-primary)]">{g.name || g.id}</span>
+                    {/* Only when the directory actually answers it —
+                        an invented "0 people" beside a group is worse
+                        than no number at all. */}
+                    {Number.isFinite(g.memberCount) && (
+                        <span className="text-[11px] text-[var(--text-tertiary)]">
+                            {t('datatables.group_members', '{n} people', { n: g.memberCount })}
+                        </span>
+                    )}
+                </label>
+            ))}
+        </div>
+    );
+}
+
+/** "Let everyone who can read it change it too" — the write half of the audience. */
+function WriteModeToggle({ t, checked, disabled, onChange }: { t: TranslateFn; checked: boolean; disabled: boolean; onChange: (openToAudience: boolean) => void }) {
+    return (
+        <label className="flex items-start gap-2.5 px-4 py-3 text-sm">
+            <input
+                type="checkbox"
+                className="mt-0.5"
+                disabled={disabled}
+                checked={checked}
+                onChange={(e) => onChange(e.target.checked)}
+            />
+            <span>
+                <span className="font-medium text-[var(--text-primary)]">
+                    {t('datatables.share_write_toggle', 'Let everyone who can read it change it too')}
+                </span>
+                <span className="block text-xs text-[var(--text-secondary)]">
+                    {t('datatables.share_write_help', 'Off by default. With this off, only the people you invite below can add, change or delete rows.')}
+                </span>
+            </span>
+        </label>
     );
 }
 

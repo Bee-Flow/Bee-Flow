@@ -1,17 +1,15 @@
 import React, { useEffect } from 'react';
-import { contrastRatio } from './controls/colorUtils';
 import { Toggle, ImageField, FieldRow } from './fields';
 import { GOOGLE_FONTS, buildFontsHrefs, fontStack } from './googleFonts';
-import { SectionDivider, ColorRow, FontRow, SegmentedControl, FieldSelect } from './primitives';
+import { SectionDivider, FontRow, SegmentedControl, FieldSelect } from './primitives';
 import { THEME_PRESETS, applyPreset } from './themePresets';
 import AppIcon from '../../icons/AppIcon';
 import useConfirm from '../../shared/useConfirm';
 // Self-hosted Fontshare @font-face — needed here so the picker's dropdown
 // previews render in the chosen face. Same CSS file the iframe imports via ProductWebsite.tsx.
 import '@/marketing/self-hosted-fonts.css';
-import DisplayTrackingControl from './controls/DisplayTrackingControl';
-import DarkBandControl from './controls/DarkBandControl';
 import DesignRoleControls from './controls/DesignRoleControls';
+import { BrandColorsSection, ContrastBadge, DarkPaletteSection, NavigationSection, TypographySection } from './controls/DesignSections';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 import { DesignComponents, DesignLayout } from '@/marketing/ProductWebsite.types';
@@ -150,31 +148,9 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                     ))}
                 </div>
 
-                <SectionDivider label="Brand colors" />
-                <ColorRow label="Primary"        value={d.colors.primary}       onChange={v => setColor('primary',       v)} hint="Buttons, links, accents" />
-                <ColorRow label="Secondary"      value={d.colors.secondary}     onChange={v => setColor('secondary',     v)} hint="Strong contrast / dark blocks" />
-                <ColorRow label="Accent"         value={d.colors.accent}        onChange={v => setColor('accent',        v)} hint="Highlights, badges" />
-                <ColorRow label="Background"     value={d.colors.background}    onChange={v => setColor('background',    v)} hint="Page background" />
-                <ColorRow label="Surface"        value={d.colors.surface}       onChange={v => setColor('surface',       v)} hint="Cards, alternating sections" />
-                <ColorRow label="Text"           value={d.colors.textPrimary}   onChange={v => setColor('textPrimary',   v)} hint="Body copy" />
-                <ContrastBadge fg={d.colors.textPrimary} bg={d.colors.background} label="Body text on background" />
-                <ColorRow label="Text secondary" value={d.colors.textSecondary} onChange={v => setColor('textSecondary', v)} hint="Muted / supporting copy" />
-                <ContrastBadge fg={d.colors.textSecondary} bg={d.colors.background} label="Muted text on background" />
-                <ContrastBadge fg="#FFFFFF" bg={d.colors.primary} label="Button text on primary" />
+                <BrandColorsSection colors={d.colors} setColor={setColor} />
 
-                <SectionDivider label={t('cms_site.site.design.dark_palette', 'Dark mode palette')} />
-                <p className="text-[11px] text-[var(--text-muted)] mb-2">
-                    {t('cms_site.site.design.dark_help', 'Used while the site (or a visitor) is in dark mode. Brand colors above stay the same in both modes.')}
-                </p>
-                <ColorRow label="Background"     value={dk.background    || ''} onChange={v => setDarkColor('background',    v)} hint="Dark page background" />
-                <ColorRow label="Surface"        value={dk.surface       || ''} onChange={v => setDarkColor('surface',       v)} hint="Dark cards / bands" />
-                <ColorRow label="Text"           value={dk.textPrimary   || ''} onChange={v => setDarkColor('textPrimary',   v)} hint="Dark-mode body copy" />
-                <ContrastBadge fg={dk.textPrimary} bg={dk.background} label="Dark body text on dark background" />
-                <ColorRow label="Text secondary" value={dk.textSecondary || ''} onChange={v => setDarkColor('textSecondary', v)} hint="Dark-mode muted copy" />
-                {/* In the schema and honored by the renderer; these are their controls. */}
-                <ColorRow label="Primary override" value={dk.primary || ''} onChange={v => setDarkColor('primary', v)} hint="Optional. Leave empty to reuse the light-mode Primary in dark mode." />
-                <ColorRow label="Accent override"  value={dk.accent  || ''} onChange={v => setDarkColor('accent',  v)} hint="Optional. Leave empty to reuse the light-mode Accent." />
-                <DarkBandControl value={d.darkBand} onChange={v => onChange({ ...d, darkBand: v })} />
+                <DarkPaletteSection t={t} dk={dk} setDarkColor={setDarkColor} darkBand={d.darkBand} onDarkBand={v => onChange({ ...d, darkBand: v })} />
 
                 <SectionDivider label="Fonts" />
                 <FontRow label="Heading font" value={d.fonts.heading} onChange={v => setFont('heading', v)} sample="The quick brown fox jumps" weight={600} />
@@ -182,37 +158,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                 <FontRow label="Mono font"    value={d.fonts.mono || 'IBM Plex Mono'} onChange={v => setFont('mono', v)} sample="01 — PRIVATE BY DESIGN" weight={500} />
                 <TypeScalePreview design={d} />
 
-                <SectionDivider label="Typography" />
-                <FieldRow label="Hero display size" hint="Caps how large the hero headline can grow on wide screens.">
-                    <SegmentedControl
-                        value={ty.displaySize || 'lg'}
-                        onChange={v => setTypography('displaySize', v)}
-                        options={[
-                            { value: 'md', label: '64px' },
-                            { value: 'lg', label: '80px' },
-                            { value: 'xl', label: '96px' },
-                        ]}
-                    />
-                </FieldRow>
-                <FieldRow label="Heading weight" hint="Premium sites keep headings at 500–600, never heavy bold.">
-                    <SegmentedControl
-                        value={String(ty.headingWeight || 600)}
-                        onChange={v => setTypography('headingWeight', Number(v))}
-                        options={[500, 600, 700, 800, 900].map(w => ({ value: String(w), label: String(w) }))}
-                    />
-                </FieldRow>
-                <DisplayTrackingControl value={ty.displayTracking} onChange={v => setTypography('displayTracking', v)} />
-                <FieldRow label="Body size">
-                    <SegmentedControl
-                        value={String(ty.bodySize || 16)}
-                        onChange={v => setTypography('bodySize', Number(v))}
-                        options={[
-                            { value: '16', label: '16px' },
-                            { value: '17', label: '17px' },
-                            { value: '18', label: '18px' },
-                        ]}
-                    />
-                </FieldRow>
+                <TypographySection ty={ty} setTypography={setTypography} />
 
                 <SectionDivider label="Motion & texture" />
                 <FieldSelect
@@ -276,40 +222,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                     label="Button label on primary"
                 />
 
-                <SectionDivider label="Navigation" />
-                <FieldRow label="Style" hint="Floating detaches the bar into a rounded pill and swaps the underline hover for a chip.">
-                    <SegmentedControl
-                        value={cp.navStyle || 'bar'}
-                        onChange={v => setComponent('navStyle', v)}
-                        options={[
-                            { value: 'bar',      label: 'Bar' },
-                            { value: 'floating', label: 'Floating' },
-                            { value: 'bordered', label: 'Bordered' },
-                        ]}
-                    />
-                </FieldRow>
-                <FieldRow label="Height">
-                    <SegmentedControl
-                        value={cp.navHeight || 'default'}
-                        onChange={v => setComponent('navHeight', v)}
-                        options={[
-                            { value: 'compact', label: '60px' },
-                            { value: 'default', label: '72px' },
-                            { value: 'tall',    label: '88px' },
-                        ]}
-                    />
-                </FieldRow>
-                <FieldRow label="Logo size">
-                    <SegmentedControl
-                        value={cp.logoSize || 'md'}
-                        onChange={v => setComponent('logoSize', v)}
-                        options={[
-                            { value: 'sm', label: 'Small' },
-                            { value: 'md', label: 'Medium' },
-                            { value: 'lg', label: 'Large' },
-                        ]}
-                    />
-                </FieldRow>
+                <NavigationSection cp={cp} setComponent={setComponent} />
 
                 <SectionDivider label="Cards" />
                 <DesignEditorFieldRow2 cp={cp} setComponent={setComponent} />
@@ -495,22 +408,6 @@ function PresetCard({ preset, active, onApply }: { preset: ThemePreset; active: 
                 {active ? <span className="text-[10px] text-[var(--accent-primary)]">{t('cms_site.site.design.active', 'Active')}</span> : null}
             </div>
         </button>
-    );
-}
-
-// Advisory WCAG contrast hint — warns, never blocks.
-function ContrastBadge({ fg, bg, label }: { fg?: string | null; bg?: string | null; label: string }) {
-    const ratio = contrastRatio(fg, bg);
-    if (ratio === null) return null;
-    const rounded = Math.round(ratio * 10) / 10;
-    const good = ratio >= 4.5;
-    const okLarge = ratio >= 3;
-    const tone = good ? 'text-emerald-600' : okLarge ? 'text-amber-500' : 'text-red-500';
-    const verdict = good ? 'AA' : okLarge ? 'AA (large text only)' : 'Low contrast';
-    return (
-        <div className={`-mt-1 mb-2 text-[10px] ${tone}`} title={label}>
-            {verdict} · {rounded}:1{good ? '' : ` — ${label} may be hard to read`}
-        </div>
     );
 }
 

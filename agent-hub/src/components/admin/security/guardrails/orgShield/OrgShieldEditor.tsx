@@ -1,25 +1,19 @@
 import { BookOpen, Building2 } from 'lucide-react';
 import React, { useMemo } from 'react';
 
-import ActivityTab from './activity/ActivityTab';
 import useShieldEvidence from './activity/useShieldEvidence';
 import { derivePosture } from './orgShieldPosture';
 import { buildStripItems, dirtyChips } from './orgShieldStrip';
 import { ALL_TAB_IDS, DEFAULT_TAB, TAB_IDS, normaliseTab } from './orgShieldTabs';
-import { builtInOnly } from './ownData/ownDataModel';
 import type { TypeErrorEntry } from './ownData/OwnDataList';
-import OwnDataTab from './ownData/OwnDataTab';
 import HowItWorksPanel from './parts/HowItWorksPanel';
 import ShieldClampBanner from './parts/ShieldClampBanner';
 import ShieldHeader from './parts/ShieldHeader';
 import ShieldLoadError from './parts/ShieldLoadError';
+import ShieldPane from './parts/ShieldPane';
 import ShieldPipeline from './parts/ShieldPipeline';
 import ShieldSaveBar from './parts/ShieldSaveBar';
-import { SHIELD_PANE } from './shieldLayout';
 import { toolGapCount } from './tabs/checks/checksModel';
-import ChecksTab from './tabs/ChecksTab';
-import DetectionTab from './tabs/DetectionTab';
-import OverviewTab from './tabs/OverviewTab';
 import useOrgShield from './useOrgShield';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { useUrlQueryParam } from '@/hooks/useUrlTab';
@@ -228,75 +222,13 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
                     >
                         {/* Capped and centred, and the container every pane
                             lays itself out against — see shieldLayout.ts. */}
-                        <div className={SHIELD_PANE}>
-                        {tab === 'overview' && (
-                            <OverviewTab
-                                f={f}
-                                posture={posture}
-                                guard={guardStatus}
-                                meta={meta}
-                                readOnly={readOnly}
-                                evidence={evidence}
-                                showActivity={showActivity}
-                                licence={licence}
-                                t={t}
-                                onGoTo={setTab}
-                                onDiagnoseGuard={diagnoseGuard}
-                                onOpenCompliance={goToCompliance}
-                            />
-                        )}
-                        {tab === 'detection' && (
-                            <DetectionTab
-                                f={f}
-                                categories={PII_CATEGORIES_LIST}
-                                readOnly={readOnly}
-                                licence={licence}
-                                evidence={evidence}
-                                toggleToolPiiCat={toggleToolPiiCat}
-                                onGoTo={setTab}
-                                t={t}
-                            />
-                        )}
-                        {tab === 'owndata' && (
-                            <OwnDataTab
-                                f={f}
-                                orgId={selectedOrgId}
-                                licence={licence}
-                                guard={guardStatus}
-                                readOnly={readOnly}
-                                typeErrors={typeErrors}
-                                toggleToolPiiCat={toggleToolPiiCat}
-                                setToolPiiCats={setToolPiiCats}
-                                t={t}
-                            />
-                        )}
-                        {(tab === 'processing' || tab === 'outbound') && (
-                            <ChecksTab
-                                step={tab}
-                                f={f}
-                                readOnly={readOnly}
-                                licence={licence}
-                                env={env}
-                                evidence={evidence}
-                                onGoTo={setTab}
-                                t={t}
-                            />
-                        )}
-                        {tab === 'activity' && showActivityTab && (
-                            <ActivityTab
-                                t={t}
-                                shieldEnabled={!!f.enabled}
-                                licensed={canSeeActivity}
-                                upgradeUrl={upgradeUrl}
-                                onGoTo={setTab}
-                                toolHoldBack={{
-                                    // The saved policy: the findings describe what produced the data.
-                                    held: builtInOnly((saved || f).toolPiiPolicy?.external?.blockCategories).length,
-                                    total: PII_CATEGORIES_LIST.length,
-                                }}
-                            />
-                        )}
-                        </div>
+                        <ShieldPane
+                            tab={tab} f={f} posture={posture} guard={guardStatus} meta={meta} readOnly={readOnly} evidence={evidence}
+                            showActivity={showActivity} showActivityTab={showActivityTab} licence={licence} env={env} t={t} onGoTo={setTab}
+                            onDiagnoseGuard={diagnoseGuard} onOpenCompliance={goToCompliance} categories={PII_CATEGORIES_LIST}
+                            orgId={selectedOrgId} typeErrors={typeErrors} toggleToolPiiCat={toggleToolPiiCat} setToolPiiCats={setToolPiiCats}
+                            canSeeActivity={canSeeActivity} upgradeUrl={upgradeUrl} saved={saved}
+                        />
                     </div>
 
                     {/* The save bar belongs to the CONFIG panes; Activity is

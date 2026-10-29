@@ -16,8 +16,8 @@ import useOrgActions from './userManagement/useOrgActions';
 import UserModal from './userManagement/UserModal';
 import useRoleActions from './userManagement/useRoleActions';
 import useUserActions from './userManagement/useUserActions';
-import useUserManagementData from './userManagement/useUserManagementData';
-import { useTranslation } from '@/hooks/useTranslation';
+import useUserManagementData, { type UserManagementData } from './userManagement/useUserManagementData';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 
@@ -25,6 +25,22 @@ interface UserManagementProps {
     activeSection?: string;
     onNavigate?: (path: string) => void;
     user?: AdminCurrentUser | null;
+}
+
+/** The section tabs this person may open: everything for a full admin, users/groups (and their own organisation) otherwise. */
+function sectionsFor(isFullAdmin: boolean | undefined, hasOrg: boolean) {
+    return isFullAdmin ? [
+        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
+        { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg> },
+        { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
+        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
+        { key: 'roles', labelKey: 'admin.users_tab_roles', icon: Tag },
+        { key: 'permissions', labelKey: 'admin.users_tab_permissions', icon: Key },
+    ] : [
+        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
+        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
+        ...(hasOrg ? [{ key: 'my-organization', labelKey: 'admin.users_tab_my_org', icon: Building }] : []),
+    ];
 }
 
 const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }: UserManagementProps) => {
@@ -60,18 +76,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
-    const sections = isFullAdmin ? [
-        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg> },
-        { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
-        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
-        { key: 'roles', labelKey: 'admin.users_tab_roles', icon: Tag },
-        { key: 'permissions', labelKey: 'admin.users_tab_permissions', icon: Key },
-    ] : [
-        { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
-        ...(userOrgIds.length > 0 ? [{ key: 'my-organization', labelKey: 'admin.users_tab_my_org', icon: Building }] : []),
-    ];
+    const sections = sectionsFor(isFullAdmin, userOrgIds.length > 0);
 
     return (
         <div className="h-full flex flex-col">
@@ -186,65 +191,10 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                 )}
             </div>
 
-            <UserModal
-                open={userActions.showAddUser || userActions.showEditUser}
-                onClose={userActions.closeUserModal}
-                showEditUser={userActions.showEditUser}
-                userData={userActions.userData}
-                setUserData={userActions.setUserData}
-                showEmojiPicker={userActions.showEmojiPicker}
-                setShowEmojiPicker={userActions.setShowEmojiPicker}
-                groups={groups}
-                organizations={organizations}
-                isPlatformAdmin={isPlatformAdmin}
-                onSubmitAdd={userActions.handleAddUser}
-                onSubmitUpdate={userActions.handleUpdateUser}
-                onUploadAvatar={userActions.handleAvatarUpload}
-                onRemoveAvatar={userActions.handleAvatarRemove}
-                t={t}
-            />
-
-            <OrganizationModal
-                open={orgActions.showAddOrg || orgActions.showEditOrg}
-                onClose={orgActions.closeOrgModal}
-                showEditOrg={orgActions.showEditOrg}
-                orgData={orgActions.orgData}
-                setOrgData={orgActions.setOrgData}
-                groups={groups}
-                isFullAdmin={isFullAdmin}
-                onSubmitAdd={orgActions.handleAddOrg}
-                onSubmitUpdate={orgActions.handleUpdateOrg}
-                onUploadLogo={orgActions.handleOrgLogoUpload}
-                onRemoveLogo={orgActions.handleOrgLogoRemove}
-                t={t}
-            />
-
-            <GroupModal
-                open={groupActions.showAddGroup || groupActions.showEditGroup}
-                onClose={groupActions.closeGroupModal}
-                showEditGroup={groupActions.showEditGroup}
-                groupData={groupActions.groupData}
-                setGroupData={groupActions.setGroupData}
-                organizations={organizations}
-                permissions={permissions}
-                roles={roles}
-                isFullAdmin={isFullAdmin}
-                currentUser={currentUser}
-                onSubmitAdd={groupActions.handleAddGroup}
-                onSubmitUpdate={groupActions.handleUpdateGroup}
-                t={t}
-            />
-
-            <RoleModal
-                open={roleActions.showAddRole || roleActions.showEditRole}
-                onClose={roleActions.closeRoleModal}
-                showEditRole={roleActions.showEditRole}
-                roleData={roleActions.roleData}
-                setRoleData={roleActions.setRoleData}
-                permissions={permissions}
-                onSubmitAdd={roleActions.handleAddRole}
-                onSubmitUpdate={roleActions.handleUpdateRole}
-                t={t}
+            <UserManagementModals
+                userActions={userActions} orgActions={orgActions} groupActions={groupActions} roleActions={roleActions}
+                groups={groups} organizations={organizations} permissions={permissions} roles={roles}
+                isFullAdmin={isFullAdmin} isPlatformAdmin={isPlatformAdmin} currentUser={currentUser} t={t}
             />
 
             <ConfirmDialog
@@ -264,5 +214,91 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
         </div>
     );
 };
+
+interface UserManagementModalsProps {
+    userActions: ReturnType<typeof useUserActions>;
+    orgActions: ReturnType<typeof useOrgActions>;
+    groupActions: ReturnType<typeof useGroupActions>;
+    roleActions: ReturnType<typeof useRoleActions>;
+    groups: UserManagementData['groups'];
+    organizations: UserManagementData['organizations'];
+    permissions: UserManagementData['permissions'];
+    roles: UserManagementData['roles'];
+    isFullAdmin: boolean | undefined;
+    isPlatformAdmin: boolean;
+    currentUser: UserManagementProps['user'];
+    t: TranslateFn;
+}
+
+/** The four add/edit dialogs (user, organisation, group, role), each opened by its own actions hook. */
+function UserManagementModals({
+    userActions, orgActions, groupActions, roleActions, groups, organizations, permissions, roles,
+    isFullAdmin, isPlatformAdmin, currentUser, t,
+}: UserManagementModalsProps) {
+    return (
+        <>
+        <UserModal
+            open={userActions.showAddUser || userActions.showEditUser}
+            onClose={userActions.closeUserModal}
+            showEditUser={userActions.showEditUser}
+            userData={userActions.userData}
+            setUserData={userActions.setUserData}
+            showEmojiPicker={userActions.showEmojiPicker}
+            setShowEmojiPicker={userActions.setShowEmojiPicker}
+            groups={groups}
+            organizations={organizations}
+            isPlatformAdmin={isPlatformAdmin}
+            onSubmitAdd={userActions.handleAddUser}
+            onSubmitUpdate={userActions.handleUpdateUser}
+            onUploadAvatar={userActions.handleAvatarUpload}
+            onRemoveAvatar={userActions.handleAvatarRemove}
+            t={t}
+        />
+
+        <OrganizationModal
+            open={orgActions.showAddOrg || orgActions.showEditOrg}
+            onClose={orgActions.closeOrgModal}
+            showEditOrg={orgActions.showEditOrg}
+            orgData={orgActions.orgData}
+            setOrgData={orgActions.setOrgData}
+            groups={groups}
+            isFullAdmin={isFullAdmin}
+            onSubmitAdd={orgActions.handleAddOrg}
+            onSubmitUpdate={orgActions.handleUpdateOrg}
+            onUploadLogo={orgActions.handleOrgLogoUpload}
+            onRemoveLogo={orgActions.handleOrgLogoRemove}
+            t={t}
+        />
+
+        <GroupModal
+            open={groupActions.showAddGroup || groupActions.showEditGroup}
+            onClose={groupActions.closeGroupModal}
+            showEditGroup={groupActions.showEditGroup}
+            groupData={groupActions.groupData}
+            setGroupData={groupActions.setGroupData}
+            organizations={organizations}
+            permissions={permissions}
+            roles={roles}
+            isFullAdmin={isFullAdmin}
+            currentUser={currentUser}
+            onSubmitAdd={groupActions.handleAddGroup}
+            onSubmitUpdate={groupActions.handleUpdateGroup}
+            t={t}
+        />
+
+        <RoleModal
+            open={roleActions.showAddRole || roleActions.showEditRole}
+            onClose={roleActions.closeRoleModal}
+            showEditRole={roleActions.showEditRole}
+            roleData={roleActions.roleData}
+            setRoleData={roleActions.setRoleData}
+            permissions={permissions}
+            onSubmitAdd={roleActions.handleAddRole}
+            onSubmitUpdate={roleActions.handleUpdateRole}
+            t={t}
+        />
+        </>
+    );
+}
 
 export default UserManagement;

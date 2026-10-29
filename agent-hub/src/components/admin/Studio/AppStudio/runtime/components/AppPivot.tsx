@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React, { useMemo, useRef } from 'react';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -66,6 +66,45 @@ function formatCell(value: number | null, format: string, fmt: ReturnType<typeof
     return fmt(value);
 }
 
+/**
+ * One pass over the source bins every row into its row group AND its column
+ * bucket, so a cell is a map lookup. Columns are sorted and capped at
+ * MAX_COL_GROUPS; `hiddenCols` says how many the cap dropped.
+ */
+export function buildPivotModel(source: unknown, rowDims: PivotDim[], colDims: PivotDim[]) {
+    const src: PivotRow[] = (Array.isArray(source) ? source : []).filter((r) => r && typeof r === 'object');
+
+    const rowGroups: RowGroup[] = [];
+    const rowIndex = new Map<string, RowGroup>();
+    const colGroups: { key: string; values: string[] }[] = [];
+    const colIndex = new Map<string, boolean>();
+    const allByCol = new Map<string, PivotRow[]>();
+    for (const r of src) {
+        const vals = rowDims.map((d) => disp(r[d.key]));
+        const key = vals.join(SEP);
+        let g = rowIndex.get(key);
+        if (!g) { g = { key, values: vals, rows: [], byCol: new Map() }; rowIndex.set(key, g); rowGroups.push(g); }
+        g.rows.push(r);
+
+        if (!colDims.length) continue;
+        const colVals = colDims.map((d) => disp(r[d.key]));
+        const colKey = colVals.join(SEP);
+        if (!colIndex.has(colKey)) { colIndex.set(colKey, true); colGroups.push({ key: colKey, values: colVals }); }
+        if (!g.byCol.has(colKey)) g.byCol.set(colKey, []);
+        g.byCol.get(colKey)?.push(r);
+        if (!allByCol.has(colKey)) allByCol.set(colKey, []);
+        allByCol.get(colKey)?.push(r);
+    }
+    colGroups.sort((a, b) => a.key.localeCompare(b.key));
+
+    // How many the cap dropped, so the table can SAY so: row and grand
+    // totals aggregate over every row, and on a wide pivot that made the
+    // Total disagree with the sum of the visible columns for no stated
+    // reason.
+    const hiddenCols = Math.max(0, colGroups.length - MAX_COL_GROUPS);
+    return { rowGroups, colGroups: colGroups.slice(0, MAX_COL_GROUPS), allRows: src, allByCol, hiddenCols };
+}
+
 export default function AppPivot({ node }: NodeProps<PivotProps>) {
     const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
@@ -96,39 +135,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     // One pass over the source bins every row into its row group AND its column
     // bucket, so a cell is a map lookup. Re-deriving the bucket per cell makes
     // the render quadratic in (rows × columns).
-    const model = useMemo(() => {
-        const src: PivotRow[] = (Array.isArray(source) ? source : []).filter((r) => r && typeof r === 'object');
-
-        const rowGroups: RowGroup[] = [];
-        const rowIndex = new Map<string, RowGroup>();
-        const colGroups: { key: string; values: string[] }[] = [];
-        const colIndex = new Map<string, boolean>();
-        const allByCol = new Map<string, PivotRow[]>();
-        for (const r of src) {
-            const vals = rowDims.map((d) => disp(r[d.key]));
-            const key = vals.join(SEP);
-            let g = rowIndex.get(key);
-            if (!g) { g = { key, values: vals, rows: [], byCol: new Map() }; rowIndex.set(key, g); rowGroups.push(g); }
-            g.rows.push(r);
-
-            if (!colDims.length) continue;
-            const colVals = colDims.map((d) => disp(r[d.key]));
-            const colKey = colVals.join(SEP);
-            if (!colIndex.has(colKey)) { colIndex.set(colKey, true); colGroups.push({ key: colKey, values: colVals }); }
-            if (!g.byCol.has(colKey)) g.byCol.set(colKey, []);
-            g.byCol.get(colKey)?.push(r);
-            if (!allByCol.has(colKey)) allByCol.set(colKey, []);
-            allByCol.get(colKey)?.push(r);
-        }
-        colGroups.sort((a, b) => a.key.localeCompare(b.key));
-
-        // How many the cap dropped, so the table can SAY so: row and grand
-        // totals aggregate over every row, and on a wide pivot that made the
-        // Total disagree with the sum of the visible columns for no stated
-        // reason.
-        const hiddenCols = Math.max(0, colGroups.length - MAX_COL_GROUPS);
-        return { rowGroups, colGroups: colGroups.slice(0, MAX_COL_GROUPS), allRows: src, allByCol, hiddenCols };
-    }, [source, rowDims, colDims]);
+    const model = useMemo(() => buildPivotModel(source, rowDims, colDims), [source, rowDims, colDims]);
 
     const { rowGroups, colGroups, allRows, allByCol, hiddenCols } = model;
 
@@ -253,69 +260,9 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     const padBottom = virtualItems && virtualItems.length
         ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end : 0;
 
-    const headStyle = { color: 'var(--text-secondary)', borderColor: 'var(--border-default)' };
-
     const table = (
         <table className={`w-full ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>
-            <thead>
-                <tr>
-                    {rowDims.map((d) => (
-                        <th
-                            key={d.key}
-                            scope="col"
-                            rowSpan={hasCols && multiValue ? 2 : 1}
-                            className={`${cellPad} border-b text-left font-medium`}
-                            style={headStyle}
-                        >
-                            {d.label || d.key}
-                        </th>
-                    ))}
-                    {rowDims.length === 0 ? (
-                        <th scope="col" rowSpan={hasCols && multiValue ? 2 : 1} className={`${cellPad} border-b`} style={headStyle} />
-                    ) : null}
-                    {hasCols
-                        ? colGroups.map((cg) => (
-                            <th
-                                key={cg.key}
-                                scope="col"
-                                colSpan={values.length}
-                                className={`${cellPad} border-b text-center font-medium`}
-                                style={headStyle}
-                            >
-                                {cg.values.join(' / ')}
-                            </th>
-                        ))
-                        : values.map((v) => (
-                            <th key={v.key} scope="col" className={`${cellPad} border-b text-right font-medium`} style={headStyle}>
-                                {v.label || v.key}
-                            </th>
-                        ))}
-                    {hasCols && showTotals ? (
-                        <th
-                            scope="col"
-                            colSpan={values.length}
-                            className={`${cellPad} border-b text-center font-semibold`}
-                            style={{ ...headStyle, background: 'var(--bg-tertiary)' }}
-                        >
-                            {t('studio_apps_runtime.pivot.total', 'Total')}
-                        </th>
-                    ) : null}
-                </tr>
-                {hasCols && multiValue ? (
-                    <tr>
-                        {colGroups.map((cg) => values.map((v) => (
-                            <th key={`${cg.key}:${v.key}`} scope="col" className={`${cellPad} border-b text-right font-medium`} style={headStyle}>
-                                {v.label || v.key}
-                            </th>
-                        )))}
-                        {showTotals ? values.map((v) => (
-                            <th key={`th:${v.key}`} scope="col" className={`${cellPad} border-b text-right font-medium`} style={{ ...headStyle, background: 'var(--bg-tertiary)' }}>
-                                {v.label || v.key}
-                            </th>
-                        )) : null}
-                    </tr>
-                ) : null}
-            </thead>
+            <PivotHead t={t} rowDims={rowDims} colGroups={colGroups} values={values} hasCols={hasCols} multiValue={multiValue} showTotals={showTotals} cellPad={cellPad} />
             <tbody>
                 {virtualize ? (
                     <>
@@ -350,5 +297,82 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
                 </p>
             ) : null}
         </div>
+    );
+}
+
+interface PivotHeadProps {
+    t: TranslateFn;
+    rowDims: PivotDim[];
+    colGroups: { key: string; values: string[] }[];
+    values: PivotValueDef[];
+    hasCols: boolean;
+    multiValue: boolean;
+    showTotals: boolean;
+    cellPad: string;
+}
+
+/** The header: row-dimension labels, one group per column bucket (with a value row under it when there are several values), and Total. */
+function PivotHead({ t, rowDims, colGroups, values, hasCols, multiValue, showTotals, cellPad }: PivotHeadProps) {
+    const headStyle = { color: 'var(--text-secondary)', borderColor: 'var(--border-default)' };
+    return (
+        <thead>
+            <tr>
+                {rowDims.map((d) => (
+                    <th
+                        key={d.key}
+                        scope="col"
+                        rowSpan={hasCols && multiValue ? 2 : 1}
+                        className={`${cellPad} border-b text-left font-medium`}
+                        style={headStyle}
+                    >
+                        {d.label || d.key}
+                    </th>
+                ))}
+                {rowDims.length === 0 ? (
+                    <th scope="col" rowSpan={hasCols && multiValue ? 2 : 1} className={`${cellPad} border-b`} style={headStyle} />
+                ) : null}
+                {hasCols
+                    ? colGroups.map((cg) => (
+                        <th
+                            key={cg.key}
+                            scope="col"
+                            colSpan={values.length}
+                            className={`${cellPad} border-b text-center font-medium`}
+                            style={headStyle}
+                        >
+                            {cg.values.join(' / ')}
+                        </th>
+                    ))
+                    : values.map((v) => (
+                        <th key={v.key} scope="col" className={`${cellPad} border-b text-right font-medium`} style={headStyle}>
+                            {v.label || v.key}
+                        </th>
+                    ))}
+                {hasCols && showTotals ? (
+                    <th
+                        scope="col"
+                        colSpan={values.length}
+                        className={`${cellPad} border-b text-center font-semibold`}
+                        style={{ ...headStyle, background: 'var(--bg-tertiary)' }}
+                    >
+                        {t('studio_apps_runtime.pivot.total', 'Total')}
+                    </th>
+                ) : null}
+            </tr>
+            {hasCols && multiValue ? (
+                <tr>
+                    {colGroups.map((cg) => values.map((v) => (
+                        <th key={`${cg.key}:${v.key}`} scope="col" className={`${cellPad} border-b text-right font-medium`} style={headStyle}>
+                            {v.label || v.key}
+                        </th>
+                    )))}
+                    {showTotals ? values.map((v) => (
+                        <th key={`th:${v.key}`} scope="col" className={`${cellPad} border-b text-right font-medium`} style={{ ...headStyle, background: 'var(--bg-tertiary)' }}>
+                            {v.label || v.key}
+                        </th>
+                    )) : null}
+                </tr>
+            ) : null}
+        </thead>
     );
 }

@@ -67,6 +67,59 @@ interface RunsPage {
 const DEFAULT_FILTERS: ExecutionFilters = { status: 'all', range: '24h', trigger: null, automationId: null, mode: 'live' };
 
 /**
+ * Fold one live run event into the list (pure). `run.started` updates the
+ * row it addresses or injects a stub at the top when the status filter can
+ * show a running row; `run.finished` / `run.failed` patch an existing row.
+ */
+export function mergeRunEvent(prev: RunLogRow[], type: string, data: RunStreamEvent, runId: string, statusFilter: string): RunLogRow[] {
+    // Events carry the LEG that fired them, but the list shows journeys: a
+    // automation continued after a form pause runs in a child the table never
+    // lists. Address the head, and never inject a leg as a row of its own —
+    // its head is already there and would otherwise be duplicated.
+    const rowId = data.rootRunId || runId;
+    const isContinuation = !!data.rootRunId && data.rootRunId !== runId;
+
+    const idx = prev.findIndex(r => r.id === rowId);
+    if (type === 'run.started') {
+        const statusOk = statusFilter === 'all' || statusFilter === 'running';
+        if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], status: data.status || 'running' };
+            return next;
+        }
+        if (!statusOk || isContinuation) return prev; // don't inject a running row into a non-running filter, and never a leg
+        const stub = {
+            id: rowId,
+            journeyRunId: runId,
+            automationId: data.automationId,
+            automationTitle: data.title || null,
+            automationKind: data.kind || 'automation',
+            triggerKind: data.triggerKind || null,
+            mode: data.mode || 'live',
+            status: data.status || 'running',
+            startedAt: data.at || new Date().toISOString(),
+            durationMs: null,
+        };
+        return [stub, ...prev];
+    }
+    // run.finished / run.failed → patch an existing row's terminal state.
+    if (idx < 0) return prev;
+    const next = [...prev];
+    next[idx] = {
+        ...next[idx],
+        journeyRunId: runId,
+        status: data.status || next[idx].status,
+        // A leg reports its OWN duration; the row measures the whole
+        // journey, so only a self-contained run may set it here. The
+        // next refetch carries the journey total either way.
+        durationMs: isContinuation ? next[idx].durationMs : (data.durationMs ?? next[idx].durationMs),
+        error: data.error ?? next[idx].error,
+        errorClass: data.errorClass ?? next[idx].errorClass,
+    };
+    return next;
+}
+
+/**
  * Validate a stored filter blob field by field — key AND value. Spreading
  * parsed JSON into state let unknown keys live forever (every setFilters
  * re-serialised them) and let unknown values leak into server queries. Only
@@ -266,53 +319,8 @@ export default function useExecutions({ scope, automationId, stepId, runScope = 
         // Scope guard (global automation filter / per-automation surface).
         if (scopedAutomationId && data.automationId && data.automationId !== scopedAutomationId) return;
 
-        // Events carry the LEG that fired them, but the list shows journeys: a
-        // automation continued after a form pause runs in a child the table never
-        // lists. Address the head, and never inject a leg as a row of its own —
-        // its head is already there and would otherwise be duplicated.
-        const rowId = data.rootRunId || data.runId;
-        const isContinuation = !!data.rootRunId && data.rootRunId !== data.runId;
-
-        setRows(prev => {
-            const idx = prev.findIndex(r => r.id === rowId);
-            if (type === 'run.started') {
-                const statusOk = filters.status === 'all' || filters.status === 'running';
-                if (idx >= 0) {
-                    const next = [...prev];
-                    next[idx] = { ...next[idx], status: data.status || 'running' };
-                    return next;
-                }
-                if (!statusOk || isContinuation) return prev; // don't inject a running row into a non-running filter, and never a leg
-                const stub = {
-                    id: rowId,
-                    journeyRunId: data.runId,
-                    automationId: data.automationId,
-                    automationTitle: data.title || null,
-                    automationKind: data.kind || 'automation',
-                    triggerKind: data.triggerKind || null,
-                    mode: data.mode || 'live',
-                    status: data.status || 'running',
-                    startedAt: data.at || new Date().toISOString(),
-                    durationMs: null,
-                };
-                return [stub, ...prev];
-            }
-            // run.finished / run.failed → patch an existing row's terminal state.
-            if (idx < 0) return prev;
-            const next = [...prev];
-            next[idx] = {
-                ...next[idx],
-                journeyRunId: data.runId,
-                status: data.status || next[idx].status,
-                // A leg reports its OWN duration; the row measures the whole
-                // journey, so only a self-contained run may set it here. The
-                // next refetch carries the journey total either way.
-                durationMs: isContinuation ? next[idx].durationMs : (data.durationMs ?? next[idx].durationMs),
-                error: data.error ?? next[idx].error,
-                errorClass: data.errorClass ?? next[idx].errorClass,
-            };
-            return next;
-        });
+        const runId = data.runId;
+        setRows(prev => mergeRunEvent(prev, type, data, runId, filters.status));
     }, [filters.status, scopedAutomationId]);
 
     // Optimistic patch for ⋯ row actions.

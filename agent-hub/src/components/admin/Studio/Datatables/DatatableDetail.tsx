@@ -102,27 +102,7 @@ export default function DatatableDetail({
             console.warn('[datatables] rename failed:', (e as Error)?.message);
         }
     } : undefined;
-    // The delete dialog's notice: what deleting THIS table means.
-    const deleteNotice = isMirror && spec ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-            {Glyph && React.createElement(Glyph, { className: 'w-3.5 h-3.5 mt-0.5 shrink-0', style: { color: 'var(--type-data)' }, 'aria-hidden': 'true' })}
-            <span>{spec.unlinkNotice(t, sourceNameOf(table, mirror?.source))}</span>
-        </p>
-    ) : answers ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-            <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--type-pause)' }} aria-hidden="true" />
-            <span>{t('datatables.frm_delete_notice', 'This table holds the answers to a form. Deleting it deletes every answer; the form stays and stops collecting.')}</span>
-        </p>
-    ) : table.managedKind ? (
-        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-            <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
-            {/* A managed table's rows are third-party answers, so the
-                consequence of deleting it is not only "the rows go" —
-                every automation caching into it starts paying for every
-                call again. Say what it holds while it still exists. */}
-            <span>{t('datatables.managed_plaintext', 'Rows here hold what a third-party service answered, in plain text, readable and exportable by everyone with access to this table.')}</span>
-        </p>
-    ) : null;
+    const deleteNotice = deleteNoticeFor({ t, table, mirror, isMirror, spec, Glyph, answers });
     const columnCount = columns.length;
 
     return (
@@ -245,6 +225,40 @@ export default function DatatableDetail({
             <DatatableDetailModal deleting={deleting} setDeleting={setDeleting} isMirror={isMirror} t={t} table={table} usage={usage} currentUserId={currentUserId} onNavigate={onNavigate} deleteNotice={deleteNotice} onDeleted={onDeleted} />
         </div>
     );
+}
+
+interface DeleteNoticeArgs {
+    t: TranslateFn;
+    table: DetailTable;
+    mirror: ReturnType<typeof useSourceMirror>;
+    isMirror: boolean;
+    spec: ReturnType<typeof sourceKindSpec>;
+    Glyph: ReturnType<typeof sourceGlyphOf>;
+    answers: boolean;
+}
+
+/** The delete dialog's notice: what deleting THIS table means (null when nothing needs saying). */
+function deleteNoticeFor({ t, table, mirror, isMirror, spec, Glyph, answers }: DeleteNoticeArgs) {
+    return isMirror && spec ? (
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+            {Glyph && React.createElement(Glyph, { className: 'w-3.5 h-3.5 mt-0.5 shrink-0', style: { color: 'var(--type-data)' }, 'aria-hidden': 'true' })}
+            <span>{spec.unlinkNotice(t, sourceNameOf(table, mirror?.source))}</span>
+        </p>
+    ) : answers ? (
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+            <ClipboardList className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--type-pause)' }} aria-hidden="true" />
+            <span>{t('datatables.frm_delete_notice', 'This table holds the answers to a form. Deleting it deletes every answer; the form stays and stops collecting.')}</span>
+        </p>
+    ) : table.managedKind ? (
+        <p className="text-xs px-3 py-2 rounded flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+            <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+            {/* A managed table's rows are third-party answers, so the
+                consequence of deleting it is not only "the rows go" —
+                every automation caching into it starts paying for every
+                call again. Say what it holds while it still exists. */}
+            <span>{t('datatables.managed_plaintext', 'Rows here hold what a third-party service answered, in plain text, readable and exportable by everyone with access to this table.')}</span>
+        </p>
+    ) : null;
 }
 
 function DatatableDetailModal({ deleting, setDeleting, isMirror, t, table, usage, currentUserId, onNavigate, deleteNotice, onDeleted }: { deleting: boolean; setDeleting: React.Dispatch<React.SetStateAction<boolean>>; isMirror: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; table: DetailTable; usage: UsageSourceRow[] | null; currentUserId: string | null; onNavigate: ((path: string) => void) | null; deleteNotice: React.JSX.Element | null; onDeleted: () => void; }) {

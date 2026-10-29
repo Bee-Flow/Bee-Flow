@@ -2,7 +2,7 @@ import { Building2, Plus, AlertTriangle } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { OrgEditor } from './OrgEditor';
 import { QuickAssignDialog } from './QuickAssignDialog';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { errorBodyRecord, messageOf } from '@/utils/caughtError';
 import { Button } from '@/components/shared/Button';
 import EmptyState from '@/components/shared/EmptyState';
@@ -192,79 +192,12 @@ export function OrgsView() {
                                     : t('admin_subscriptions.orgs_no_matches_desc', 'Adjust the search or status filter.')}
                             />
                         ) : (
-                            <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
-                                <table className="w-full text-[13px]">
-                                    <thead className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                                        <tr>
-                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_org', 'Organization')}</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_plan', 'Plan')}</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_status', 'Status')}</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_messages', 'Messages')}</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_cost', 'Cost')}</th>
-                                            <th className="px-4 py-2.5"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredSubs.map(sub => {
-                                            const msgLimit  = sub.effective_limits?.max_messages_per_month;
-                                            const costLimit = sub.effective_limits?.max_cost_per_month;
-                                            const msgPct  = msgLimit  ? Math.round((sub.current_usage?.messages || 0) / msgLimit * 100) : null;
-                                            const costPct = costLimit ? Math.round((sub.current_usage?.cost || 0) / costLimit * 100) : null;
-                                            return (
-                                                <tr
-                                                    key={sub.organization_id}
-                                                    onClick={() => setEditing(sub)}
-                                                    className="cursor-pointer bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border-t border-[var(--border-default)]"
-                                                >
-                                                    <td className="px-4 py-2.5 font-semibold text-[var(--text-primary)]">{sub.org_name}</td>
-                                                    <td className="px-4 py-2.5 text-[var(--text-secondary)]">{sub.plan_name || t('admin_subscriptions.orgs_custom', 'Custom')}</td>
-                                                    <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
-                                                    <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
-                                                        {(sub.current_usage?.messages || 0).toLocaleString()}{msgLimit ? ` / ${msgLimit.toLocaleString()}` : ''}
-                                                        {msgPct != null && msgPct >= 80 && (
-                                                            <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${msgPct >= 90 ? 'text-rose-400' : 'text-amber-400'}`} />
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
-                                                        €{(sub.current_usage?.cost || 0).toFixed(4)}{costLimit ? ` / €${costLimit.toFixed(2)}` : ''}
-                                                        {costPct != null && costPct >= 80 && (
-                                                            <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${costPct >= 90 ? 'text-rose-400' : 'text-amber-400'}`} />
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-2.5 text-right text-[var(--text-muted)]">
-                                                        →
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <SubscriptionsTable t={t} subs={filteredSubs} onOpen={setEditing} />
                         )}
                     </div>
 
                     {/* Unsubscribed orgs */}
-                    {unsubscribedOrgs.length > 0 && (
-                        <div>
-                            <h3 className="text-[14px] font-bold text-[var(--text-secondary)] mb-3">
-                                {t('admin_subscriptions.orgs_unsubscribed_title', 'Unsubscribed organizations')}
-                                <span className="ml-2 text-[var(--text-muted)] font-normal">{unsubscribedOrgs.length}</span>
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                {unsubscribedOrgs.map(org => (
-                                    <div key={org.id} className="flex items-center justify-between p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                                        <div className="min-w-0">
-                                            <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{org.name}</div>
-                                            <div className="text-[11px] text-[var(--text-muted)]">
-                                                {t('admin_subscriptions.orgs_calls_cost', '{calls} calls · €{cost}', { calls: (org.total_calls || 0).toLocaleString(), cost: (org.estimated_cost || 0).toFixed(4) })}
-                                            </div>
-                                        </div>
-                                        <Button size="sm" icon={Plus} onClick={() => setAssigning(org)}>{t('admin_subscriptions.orgs_assign', 'Assign')}</Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {unsubscribedOrgs.length > 0 && <UnsubscribedOrgs t={t} orgs={unsubscribedOrgs} onAssign={setAssigning} />}
 
                     {orgs.length === 0 && subs.length === 0 && (
                         <EmptyState
@@ -295,6 +228,85 @@ export function OrgsView() {
                 message={t('admin_subscriptions.orgs_remove_message', 'The organization will lose all plan-assigned limits and features. This does not delete the org itself.')}
                 confirmLabel={t('admin_subscriptions.orgs_remove_confirm', 'Remove subscription')}
             />
+        </div>
+    );
+}
+
+/** The subscribed organisations: plan, status and this month's usage against its limits (a warning from 80 %). */
+function SubscriptionsTable({ t, subs, onOpen }: { t: TranslateFn; subs: OrgSubscription[]; onOpen: (sub: OrgSubscription) => void }) {
+    return (
+        <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
+            <table className="w-full text-[13px]">
+                <thead className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                    <tr>
+                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_org', 'Organization')}</th>
+                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_plan', 'Plan')}</th>
+                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_status', 'Status')}</th>
+                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_messages', 'Messages')}</th>
+                        <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_cost', 'Cost')}</th>
+                        <th className="px-4 py-2.5"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {subs.map(sub => {
+                        const msgLimit  = sub.effective_limits?.max_messages_per_month;
+                        const costLimit = sub.effective_limits?.max_cost_per_month;
+                        const msgPct  = msgLimit  ? Math.round((sub.current_usage?.messages || 0) / msgLimit * 100) : null;
+                        const costPct = costLimit ? Math.round((sub.current_usage?.cost || 0) / costLimit * 100) : null;
+                        return (
+                            <tr
+                                key={sub.organization_id}
+                                onClick={() => onOpen(sub)}
+                                className="cursor-pointer bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border-t border-[var(--border-default)]"
+                            >
+                                <td className="px-4 py-2.5 font-semibold text-[var(--text-primary)]">{sub.org_name}</td>
+                                <td className="px-4 py-2.5 text-[var(--text-secondary)]">{sub.plan_name || t('admin_subscriptions.orgs_custom', 'Custom')}</td>
+                                <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
+                                <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
+                                    {(sub.current_usage?.messages || 0).toLocaleString()}{msgLimit ? ` / ${msgLimit.toLocaleString()}` : ''}
+                                    {msgPct != null && msgPct >= 80 && (
+                                        <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${msgPct >= 90 ? 'text-rose-400' : 'text-amber-400'}`} />
+                                    )}
+                                </td>
+                                <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
+                                    €{(sub.current_usage?.cost || 0).toFixed(4)}{costLimit ? ` / €${costLimit.toFixed(2)}` : ''}
+                                    {costPct != null && costPct >= 80 && (
+                                        <AlertTriangle className={`inline w-3.5 h-3.5 ml-1 align-middle ${costPct >= 90 ? 'text-rose-400' : 'text-amber-400'}`} />
+                                    )}
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-[var(--text-muted)]">
+                                    →
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+/** Organisations without a subscription, each with Assign. */
+function UnsubscribedOrgs({ t, orgs, onAssign }: { t: TranslateFn; orgs: OrgRow[]; onAssign: (org: OrgRow) => void }) {
+    return (
+        <div>
+            <h3 className="text-[14px] font-bold text-[var(--text-secondary)] mb-3">
+                {t('admin_subscriptions.orgs_unsubscribed_title', 'Unsubscribed organizations')}
+                <span className="ml-2 text-[var(--text-muted)] font-normal">{orgs.length}</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {orgs.map(org => (
+                    <div key={org.id} className="flex items-center justify-between p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                        <div className="min-w-0">
+                            <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{org.name}</div>
+                            <div className="text-[11px] text-[var(--text-muted)]">
+                                {t('admin_subscriptions.orgs_calls_cost', '{calls} calls · €{cost}', { calls: (org.total_calls || 0).toLocaleString(), cost: (org.estimated_cost || 0).toFixed(4) })}
+                            </div>
+                        </div>
+                        <Button size="sm" icon={Plus} onClick={() => onAssign(org)}>{t('admin_subscriptions.orgs_assign', 'Assign')}</Button>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
