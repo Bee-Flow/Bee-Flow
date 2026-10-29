@@ -369,7 +369,7 @@ const ExecuteBody = z.object({
  * The signature comes before the schema: an unsigned caller learns nothing about the shape.
  * @param {NextFunction} next
  */
-async function requireConnectorSig(req, res, next) {
+async function requireConnectorSig(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     const org = await verifyConnectorSig(req);
     if (!org) return res.status(401).json({ error: 'Invalid or missing signature' });
     req.connectorOrg = org;

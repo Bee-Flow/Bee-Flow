@@ -288,7 +288,7 @@ async function createWebpageSource(res, next, { kb, name, cfg, userId, refreshPa
 }
 
 /** The plan's source cap, checked against the live count, never a stored number. */
-async function assertUnderSourceLimit(res, kb, req) {
+async function assertUnderSourceLimit(/** @type {import('express').Response} */ res, kb, /** @type {import('express').Request} */ req) {
     const max = await maxSourcesFor(kb, getUserId(req));
     if (max < 0) return true;
     const current = (await kbSourcesStore.listByKb(kb.id)).length;
@@ -302,7 +302,7 @@ async function assertUnderSourceLimit(res, kb, req) {
 }
 
 /** POST /:id/sources — create one (text | upload | webpage | meeting_tag | datatable). */
-async function createSource(req, res, next) {
+async function createSource(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
         const kb = await resolveKb(req, res, { manage: true });
         if (!kb) return;

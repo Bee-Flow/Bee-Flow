@@ -161,7 +161,7 @@ function makeRouter(injected = {}) {
     // ticket (id in the path, secret in X-Upload-Ticket) is the credential. verifyUploadTicket checks it, binds
     // the content type and size, re-applies the org policy and burns it, then
     // streams the body (cms/mcp/uploadReceiver.js).
-    const verifyUploadTicket = (req, contentLength) => getRuntime().receiver.handle({
+    const verifyUploadTicket = (/** @type {import('express').Request} */ req, contentLength) => getRuntime().receiver.handle({
         // A missing or repeated header yields a malformed ticket, refused like any other.
         ticket: `${req.params.ticketId}.${typeof req.headers['x-upload-ticket'] === 'string' ? req.headers['x-upload-ticket'] : ''}`,
         contentType: req.headers['content-type'],
