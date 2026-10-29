@@ -23,6 +23,9 @@ const knowledgeBases = require('../stores/knowledgeBases');
 const { ingestDocument, findDocumentBySourceUri, deleteDocumentChunks } = require('../core/kb/kbIngestionHelpers');
 const log = require('../telemetry/log');
 const { bestEffort, fallback: fallbackSwallowed } = require('../utils/bestEffort');
+const {
+    KB_INGEST_TOOLS, isKbIngestTool, targetRefusal, mergeArticles: _mergeArticles, readMetadata: _readMetadata,
+} = require('./kbIngestSupport');
 
 const SOURCE_TYPE = 'support_ticket';
 
@@ -44,42 +47,6 @@ const ORIGINS = Object.freeze({
     automation: { sourceType: 'automation_write', provider: 'automation', defaultTitle: 'Untitled' },
 });
 function originOf(context) { return ORIGINS[context && context.origin] || ORIGINS.support; }
-
-const KB_INGEST_TOOLS = [{
-    type: 'function',
-    function: {
-        name: 'knowledge_base_ingest',
-        description: 'Ingest a distilled article into an organisation knowledge base. Chunks, embeds and stores the content. Dedupes on exact content_hash AND simhash near-duplicate detection. Re-ingesting the same sourceUri refreshes the article in place; a near-duplicate of a different ticket is merged/skipped/replaced per nearDuplicateStrategy. Writes only to a KB owned by the running organisation.',
-        parameters: {
-            type: 'object',
-            properties: {
-                knowledgeBaseId: { type: 'string', description: 'Target knowledge base UUID (must belong to this organisation).' },
-                title: { type: 'string', description: 'Short article title.' },
-                content: { type: 'string', description: 'Markdown article body to ingest.' },
-                sourceUri: { type: 'string', description: "Provenance link, e.g. 'support://ticket/<id>'. Re-ingesting the same sourceUri refreshes the prior article in place." },
-                lang: { type: 'string', description: "Language hint or 'auto' (default)." },
-                dedupe: { type: 'boolean', description: 'Run content_hash + simhash dedup against other articles (default true). Set false to force a new document.' },
-                nearDuplicateStrategy: { type: 'string', enum: ['merge', 'skip', 'replace', 'add'], description: "What to do when a near-duplicate of a DIFFERENT ticket already exists: 'merge' (combine into one richer article — default for support), 'skip' (keep the existing one), 'replace' (overwrite with the new one), 'add' (store it anyway as its own document). Re-ingesting the SAME sourceUri always refreshes that document in place, whichever of these is set." },
-            },
-            required: ['knowledgeBaseId', 'content'],
-        },
-    },
-}];
-
-/**
- * @param {string} name
- */
-function isKbIngestTool(name) {
-    return name === 'knowledge_base_ingest';
-}
-
-/** documents.metadata may arrive as a JSON string or an object — normalise. */
-function _readMetadata(doc) {
-    const m = doc && doc.metadata;
-    if (!m) return {};
-    if (typeof m === 'string') { try { return JSON.parse(m) || {}; } catch { return {}; } }
-    return m;
-}
 
 /**
  * The kb_sources row this action's documents hang off: one `automation` source
@@ -104,30 +71,6 @@ async function _ensureAutomationSource(kbId, context = {}) {
         configMatch: automationId ? { automationId } : { sourceType: origin.sourceType },
         createdBy: context.userId || null,
     });
-}
-
-/**
- * Merge a prior article with a freshly-distilled one into a single, richer,
- * deduplicated article (DEFAULT_MERGE_PROMPT on a 'fast'-tier model).
- * @param {string} incomingArticle
- * @param {string | null} orgId
- */
-async function _mergeArticles(priorArticle, incomingArticle, orgId) {
-    const { createChatCompletion } = require('../agents/providerAdapters');
-    const { DEFAULT_MERGE_PROMPT } = require('../core/text/emailTextUtils');
-    const { resolveModelForTierName } = require('../core/llm/modelResolver');
-    const model = await resolveModelForTierName('fast', { userOrgId: orgId || null, fallback: 'gpt-4.1-mini' });
-    const res = await createChatCompletion({
-        model,
-        messages: [
-            { role: 'system', content: DEFAULT_MERGE_PROMPT },
-            { role: 'user', content: `${priorArticle}\n\n---\n\n${incomingArticle}` },
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-    });
-    const merged = res?.choices?.[0]?.message?.content?.trim();
-    return merged && merged.length >= 20 ? merged : null;
 }
 
 /**
@@ -213,15 +156,8 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
         if (!body) return { error: 'content is required.' };
 
         const kb = await knowledgeBases.getKB(knowledgeBaseId);
-        if (!kb) return { error: 'Knowledge base not found.' };
-        if (kb.tenant_id === 'system') return { error: 'Cannot ingest into a system knowledge base.' };
-        // Tenant isolation: never write into another org's KB.
-        if (kb.organization_id && orgId && kb.organization_id !== orgId) {
-            return { error: 'Knowledge base does not belong to this organisation.' };
-        }
-        if (kb.organization_id && !orgId) {
-            return { error: 'No organisation context for ingestion.' };
-        }
+        const refusal = targetRefusal(kb, orgId);
+        if (refusal) return refusal;
 
         /**
          * ── WHO IS WRITING, checked at RUN TIME (K10) ────────────────
@@ -380,61 +316,112 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
             }
             return { ok: true, deduped: false, documentId: res.document.id, chunks_created: res.chunks, sourceUri: sourceUri || null };
         } catch (e) {
-            // Exact duplicate → nothing new to add; the canonical doc covers it.
-            if (e.code === 'DUPLICATE') {
-                return { ok: true, deduped: true, reason: 'content_hash_dup', documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
-            }
-            // Near-duplicate of a DIFFERENT ticket → resolve per strategy.
-            if (e.code === 'NEAR_DUPLICATE') {
-                const existing = e.documentId ? await knowledgeBases.getDocument(e.documentId).catch((e) => fallbackSwallowed('integrations/kbIngestTools:executeKbIngestTool', e, null)) : null;
-
-                // 'add': a near-duplicate of a DIFFERENT subject is stored as
-                // its own document. The exact-duplicate branch above still
-                // dedupes, so this never stores a byte-identical copy.
-                if (nearDuplicateStrategy === 'add') {
-                    const res = await ingestDocument(tenantId, knowledgeBaseId, screenedBody, docTitle, origin.sourceType, sourceUri || null, {
-                        skipDedup: true, lang: lang || 'auto', metadata: baseMeta,
-                        sourceId, externalId: sourceUri || null, createdBy: context.userId || null,
-                        privacy: null, ...piiFields,
-                    });
-                    if (res.status === 'skipped') return { error: res.error || 'The document could not be stored.' };
-                    return { ok: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
-                }
-                if (nearDuplicateStrategy === 'skip' || !existing) {
-                    return { ok: true, deduped: true, reason: 'simhash_near_dup', nearDuplicateOf: e.documentId, documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
-                }
-
-                if (nearDuplicateStrategy === 'replace') {
-                    const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, screenedBody, docTitle, lang, { threadId, inboxId: context.inboxId || null, replacedBy: sourceUri || null }, sourceId, refreshOpts);
-                    return { ok: true, replaced: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
-                }
-
-                // 'merge' — combine prior + new into one richer article.
-                const prevMeta = _readMetadata(existing);
-                const priorArticle = (prevMeta.article && String(prevMeta.article).trim()) || null;
-                if (!priorArticle) {
-                    // Pre-change doc without stored article text → replace with latest.
-                    const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, screenedBody, docTitle, lang, { threadId, inboxId: context.inboxId || null, replacedBy: sourceUri || null }, sourceId, refreshOpts);
-                    return { ok: true, replaced: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
-                }
-                const merged = await _mergeArticles(priorArticle, screenedBody, orgId);
-                if (!merged) {
-                    // Merge LLM failed → keep the existing article unchanged.
-                    return { ok: true, deduped: true, reason: 'merge_failed_kept_existing', nearDuplicateOf: e.documentId, documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
-                }
-                const mergedSources = Array.from(new Set([
-                    ...(Array.isArray(prevMeta.mergedSources) ? prevMeta.mergedSources : (existing.source_uri ? [existing.source_uri] : [])),
-                    sourceUri || null,
-                ].filter(Boolean)));
-                const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, merged, docTitle, lang, { mergedSources }, sourceId, refreshOpts);
-                return { ok: true, merged: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, mergedSources, chunks_created: res.chunks, sourceUri: sourceUri || null };
-            }
-            throw e;
+            return await resolveIngestConflict(e, {
+                tenantId, knowledgeBaseId, body: screenedBody, docTitle, lang, sourceUri, baseMeta, sourceId,
+                context, threadId, piiFields, refreshOpts, origin, orgId, nearDuplicateStrategy,
+            });
         }
     } catch (e) {
         log.error('[kbIngestTools] ingest failed:', /** @type {Error} */ (e).message);
         return { error: /** @type {Error} */ (e).message };
     }
+}
+
+/**
+ * @typedef {{ tenantId: string, knowledgeBaseId: string, body: string, docTitle: string, lang?: string, sourceUri?: string,
+ *   baseMeta: Record<string, unknown>, sourceId: string | null, context: KbIngestContext, threadId: string | null,
+ *   piiFields: PiiFields, refreshOpts: { origin: KbOrigin, pii: PiiFields }, origin: KbOrigin, orgId: string | null,
+ *   nearDuplicateStrategy: string }} IngestJob  what the near-duplicate resolution needs of the write in progress
+ * @typedef {{ piiStatus?: string, piiCategories?: string[] }} PiiFields
+ * @typedef {Error & { code?: string, documentId?: string }} IngestConflict  what ingestDocument throws on a duplicate
+ */
+
+/**
+ * A refused new article: an exact duplicate adds nothing (the canonical document covers it), a
+ * near-duplicate of a DIFFERENT ticket is resolved per strategy, anything else is rethrown.
+ * @param {IngestConflict} e
+ * @param {IngestJob} job
+ */
+async function resolveIngestConflict(e, job) {
+    const { sourceUri } = job;
+    if (e.code === 'DUPLICATE') {
+        return { ok: true, deduped: true, reason: 'content_hash_dup', documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
+    }
+    if (e.code === 'NEAR_DUPLICATE') return resolveNearDuplicate(e, job);
+    throw e;
+}
+
+/**
+ * A near-duplicate of a DIFFERENT ticket: 'add' stores it as its own document, 'skip' (or no
+ * readable existing one) keeps the existing, 'replace' overwrites it, 'merge' combines the two.
+ * @param {IngestConflict} e
+ * @param {IngestJob} job
+ */
+async function resolveNearDuplicate(e, job) {
+    const { nearDuplicateStrategy, sourceUri } = job;
+    const existing = e.documentId ? await knowledgeBases.getDocument(e.documentId).catch((e) => fallbackSwallowed('integrations/kbIngestTools:executeKbIngestTool', e, null)) : null;
+
+    // 'add': a near-duplicate of a DIFFERENT subject is stored as
+    // its own document. The exact-duplicate branch still
+    // dedupes, so this never stores a byte-identical copy.
+    if (nearDuplicateStrategy === 'add') return storeNearDuplicateCopy(e, job);
+    if (nearDuplicateStrategy === 'skip' || !existing) {
+        return { ok: true, deduped: true, reason: 'simhash_near_dup', nearDuplicateOf: e.documentId, documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
+    }
+    if (nearDuplicateStrategy === 'replace') return replaceNearDuplicate(e, existing, job);
+    return mergeNearDuplicate(e, existing, job);
+}
+
+/** The 'add' strategy: the article stored as its own document, without dedup.
+ * @param {IngestConflict} e
+ * @param {IngestJob} job
+ */
+async function storeNearDuplicateCopy(e, job) {
+    const { tenantId, knowledgeBaseId, body, docTitle, origin, sourceUri, lang, baseMeta, sourceId, context, piiFields } = job;
+    const res = await ingestDocument(tenantId, knowledgeBaseId, body, docTitle, origin.sourceType, sourceUri || null, {
+        skipDedup: true, lang: lang || 'auto', metadata: baseMeta,
+        sourceId, externalId: sourceUri || null, createdBy: context.userId || null,
+        privacy: null, ...piiFields,
+    });
+    if (res.status === 'skipped') return { error: res.error || 'The document could not be stored.' };
+    return { ok: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
+}
+
+/**
+ * 'replace' (and 'merge' without stored article text): the existing document refreshed in place.
+ * @param {IngestConflict} e
+ * @param {KbDocumentRow} existing
+ * @param {IngestJob} job
+ */
+async function replaceNearDuplicate(e, existing, job) {
+    const { tenantId, knowledgeBaseId, body, docTitle, lang, threadId, context, sourceUri, sourceId, refreshOpts } = job;
+    const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, body, docTitle, lang, { threadId, inboxId: context.inboxId || null, replacedBy: sourceUri || null }, sourceId, refreshOpts);
+    return { ok: true, replaced: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
+}
+
+/**
+ * 'merge': prior and new article combined, refreshed in place with every source it now covers.
+ * @param {IngestConflict} e
+ * @param {KbDocumentRow} existing
+ * @param {IngestJob} job
+ */
+async function mergeNearDuplicate(e, existing, job) {
+    const { tenantId, knowledgeBaseId, body, docTitle, lang, sourceUri, sourceId, refreshOpts, orgId } = job;
+    const prevMeta = _readMetadata(existing);
+    const priorArticle = (prevMeta.article && String(prevMeta.article).trim()) || null;
+    // Pre-change doc without stored article text → replace with latest.
+    if (!priorArticle) return replaceNearDuplicate(e, existing, job);
+    const merged = await _mergeArticles(priorArticle, body, orgId);
+    if (!merged) {
+        // Merge LLM failed → keep the existing article unchanged.
+        return { ok: true, deduped: true, reason: 'merge_failed_kept_existing', nearDuplicateOf: e.documentId, documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };
+    }
+    const mergedSources = Array.from(new Set([
+        ...(Array.isArray(prevMeta.mergedSources) ? prevMeta.mergedSources : (existing.source_uri ? [existing.source_uri] : [])),
+        sourceUri || null,
+    ].filter(Boolean)));
+    const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, merged, docTitle, lang, { mergedSources }, sourceId, refreshOpts);
+    return { ok: true, merged: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, mergedSources, chunks_created: res.chunks, sourceUri: sourceUri || null };
 }
 
 module.exports = { KB_INGEST_TOOLS, isKbIngestTool, executeKbIngestTool, ORIGINS };

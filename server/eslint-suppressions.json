@@ -5605,9 +5605,6 @@
     "complexity": {
       "count": 1
     },
-    "max-depth": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
