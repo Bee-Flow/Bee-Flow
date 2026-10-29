@@ -977,13 +977,13 @@
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppKeyValue.tsx": {
