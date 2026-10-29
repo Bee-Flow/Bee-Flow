@@ -39,11 +39,64 @@ const { MAX_CUSTOM_SPAN_MS, RANGES, MAX_METRIC_LIMIT, MAX_SERIES_POINTS, METRIC_
 
 /**
  * `analytics` is core/cms/analyticsQueries.
- * @param {{ siteIdRe: RegExp, analytics: { preflight: Function, resolveTarget: Function, getSettings: Function },
+ * @typedef {{ siteIdRe: RegExp, analytics: { preflight: Function, resolveTarget: Function, getSettings: Function },
  *   umami: { isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function,
- *     getActive: Function, get: Function, post: Function }, now?: () => number }} deps
+ *     getActive: Function, get: Function, post: Function }, now?: () => number }} AnalyticsDeps
+ * @typedef {ReturnType<typeof createAnalyticsKit>} AnalyticsKit  the window, preflight and error guard every data tool shares
  */
-function createAnalyticsHandlers(deps) {
+
+/**
+ * The clean name/count rows of one metric type: the entry-page breakdown, the
+ * channel totals built from referrers, or one of Umami's own metric lists.
+ * @param {AnalyticsDeps['umami']} umami
+ * @param {string} type  a key of METRIC_TYPES
+ * @param {string} websiteId
+ * @param {{ startAt: number, endAt: number, unit: string }} window
+ * @returns {Promise<Array<{ name: string, count: number }>>}
+ */
+async function fetchMetricRows(umami, type, websiteId, window) {
+    const { startAt, endAt } = window;
+    // Ask for more than `limit`: several raw values can collapse into one
+    // clean name (a path with different query strings), and the top list
+    // is cut only after that.
+    const fetchLimit = 200;
+    let rows;
+    if (type === 'entry') {
+        const report = await umami.post('/api/reports/breakdown', buildReportBody({
+            type: 'breakdown', websiteId, window, extra: { fields: ['path'] },
+        }));
+        const list = Array.isArray(report) ? report : (Array.isArray(report?.data) ? report.data : []);
+        rows = toNameCounts(list.map((/** @type {Record<string, any>} */ r) => ({ x: r?.path, y: r?.visits })), cleanPath);
+    } else if (type === 'channel') {
+        const [referrers, stats] = await Promise.all([
+            umami.getMetrics(websiteId, { type: 'referrer', startAt, endAt, limit: 500 }),
+            umami.getStats(websiteId, { startAt, endAt }),
+        ]);
+        const named = toNameCounts(referrers, cleanReferrer);
+        const referred = named.filter((r) => r.name).reduce((a, r) => a + r.count, 0);
+        const blank = named.filter((r) => !r.name).reduce((a, r) => a + r.count, 0);
+        const totals = new Map();
+        const direct = Math.max(blank, (statNow(stats?.visits) || statNow(stats?.sessions)) - referred);
+        if (direct > 0) totals.set('Direct', direct);
+        for (const r of named.filter((x) => x.name)) {
+            const ch = channelOf(r.name);
+            totals.set(ch, (totals.get(ch) || 0) + r.count);
+        }
+        rows = [...totals.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    } else {
+        const raw = await umami.getMetrics(websiteId, { type: METRIC_TYPES[type], startAt, endAt, limit: fetchLimit });
+        const clean = PATH_LIKE.has(type) ? cleanPath : type === 'referrer' ? cleanReferrer : cleanLabel;
+        rows = toNameCounts(raw, clean);
+        if (type === 'referrer') rows = rows.map((r) => ({ ...r, name: r.name || '(direct)' }));
+    }
+    return rows;
+}
+
+/**
+ * The window parser, the preflight and the upstream-failure guard the handlers share.
+ * @param {AnalyticsDeps} deps
+ */
+function createAnalyticsKit(deps) {
     const { analytics, umami, siteIdRe } = deps;
     const now = deps.now || Date.now;
 
@@ -112,6 +165,16 @@ function createAnalyticsHandlers(deps) {
         }
     }
 
+    return { analytics, umami, siteIdRe, rangeInfo, prepare, guarded };
+}
+
+/**
+ * cms_analytics_status and cms_analytics_overview.
+ * @param {AnalyticsKit} kit
+ */
+function createSummaryHandlers(kit) {
+    const { analytics, umami, siteIdRe, rangeInfo, prepare, guarded } = kit;
+
     /** @param {Record<string, any>} args */
     async function status(args) {
         if (args.siteId !== undefined && args.siteId !== null && args.siteId !== ''
@@ -176,6 +239,16 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    return { status, overview };
+}
+
+/**
+ * cms_analytics_pageviews and cms_analytics_metrics.
+ * @param {AnalyticsKit} kit
+ */
+function createTrafficHandlers(kit) {
+    const { umami, rangeInfo, prepare, guarded } = kit;
+
     /** @param {Record<string, any>} args */
     async function pageviews(args) {
         const p = await prepare(args);
@@ -209,41 +282,7 @@ function createAnalyticsHandlers(deps) {
         const p = await prepare(args);
         if (p.stop) return p.stop;
         return guarded('metrics', async () => {
-            const { startAt, endAt } = p.window;
-            const websiteId = p.target.websiteId;
-            // Ask for more than `limit`: several raw values can collapse into one
-            // clean name (a path with different query strings), and the top list
-            // is cut only after that.
-            const fetchLimit = 200;
-            let rows;
-            if (type === 'entry') {
-                const report = await umami.post('/api/reports/breakdown', buildReportBody({
-                    type: 'breakdown', websiteId, window: p.window, extra: { fields: ['path'] },
-                }));
-                const list = Array.isArray(report) ? report : (Array.isArray(report?.data) ? report.data : []);
-                rows = toNameCounts(list.map((/** @type {Record<string, any>} */ r) => ({ x: r?.path, y: r?.visits })), cleanPath);
-            } else if (type === 'channel') {
-                const [referrers, stats] = await Promise.all([
-                    umami.getMetrics(websiteId, { type: 'referrer', startAt, endAt, limit: 500 }),
-                    umami.getStats(websiteId, { startAt, endAt }),
-                ]);
-                const named = toNameCounts(referrers, cleanReferrer);
-                const referred = named.filter((r) => r.name).reduce((a, r) => a + r.count, 0);
-                const blank = named.filter((r) => !r.name).reduce((a, r) => a + r.count, 0);
-                const totals = new Map();
-                const direct = Math.max(blank, (statNow(stats?.visits) || statNow(stats?.sessions)) - referred);
-                if (direct > 0) totals.set('Direct', direct);
-                for (const r of named.filter((x) => x.name)) {
-                    const ch = channelOf(r.name);
-                    totals.set(ch, (totals.get(ch) || 0) + r.count);
-                }
-                rows = [...totals.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-            } else {
-                const raw = await umami.getMetrics(websiteId, { type: METRIC_TYPES[type], startAt, endAt, limit: fetchLimit });
-                const clean = PATH_LIKE.has(type) ? cleanPath : type === 'referrer' ? cleanReferrer : cleanLabel;
-                rows = toNameCounts(raw, clean);
-                if (type === 'referrer') rows = rows.map((r) => ({ ...r, name: r.name || '(direct)' }));
-            }
+            const rows = await fetchMetricRows(umami, type, p.target.websiteId, p.window);
             const countLabel = type === 'entry' ? 'visits' : type === 'channel' ? 'visits' : type === 'event' ? 'times fired' : 'pageviews or visitors, as Umami counts this dimension';
             return {
                 result: {
@@ -256,6 +295,16 @@ function createAnalyticsHandlers(deps) {
             };
         });
     }
+
+    return { pageviews, metrics };
+}
+
+/**
+ * cms_analytics_realtime and cms_analytics_vitals.
+ * @param {AnalyticsKit} kit
+ */
+function createLiveHandlers(kit) {
+    const { umami, rangeInfo, prepare, guarded } = kit;
 
     /** @param {Record<string, any>} args */
     async function realtime(args) {
@@ -317,6 +366,18 @@ function createAnalyticsHandlers(deps) {
             };
         });
     }
+
+    return { realtime, vitals };
+}
+
+/**
+ * @param {AnalyticsDeps} deps
+ */
+function createAnalyticsHandlers(deps) {
+    const kit = createAnalyticsKit(deps);
+    const { status, overview } = createSummaryHandlers(kit);
+    const { pageviews, metrics } = createTrafficHandlers(kit);
+    const { realtime, vitals } = createLiveHandlers(kit);
 
     return {
         handlers: {

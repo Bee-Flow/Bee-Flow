@@ -149,6 +149,26 @@ function toFile(doc, now) {
     };
 }
 
+/**
+ * In-flight processing jobs, so tests and a graceful shutdown can wait for them (a failed job is logged, never thrown).
+ * @param {typeof import('../telemetry/log')} log
+ */
+function makeJobTracker(log) {
+    const pending = new Set();
+    /** @param {Promise<void>} promise */
+    function track(promise) {
+        const job = Promise.resolve(promise).catch((e) => {
+            log.error('[ProjectFiles] processing failed:', e && e.message ? e.message : e);
+        });
+        pending.add(job);
+        job.then(() => pending.delete(job));
+        return job;
+    }
+    async function settle() {
+        while (pending.size > 0) await Promise.all(Array.from(pending));
+    }
+    return { track, settle };
+}
 
 /**
  * Every dependency is a test seam whose default is the real module;
@@ -181,22 +201,7 @@ function makeProjectFiles(deps = {}) {
     const now = deps.now || (() => Date.now());
     const maxKbIds = () => deps.maxKbIds || require('./knowledgeBaseMembership').MAX_KB_IDS;
 
-    /** In-flight processing jobs, so tests and a graceful shutdown can wait for them. */
-    const pending = new Set();
-    /**
-     * @param {Promise<void>} promise
-     */
-    function track(promise) {
-        const job = Promise.resolve(promise).catch((e) => {
-            log.error('[ProjectFiles] processing failed:', e && e.message ? e.message : e);
-        });
-        pending.add(job);
-        job.then(() => pending.delete(job));
-        return job;
-    }
-    async function settle() {
-        while (pending.size > 0) await Promise.all(Array.from(pending));
-    }
+    const { track, settle } = makeJobTracker(log);
 
     const { getFilesKb, ensureFilesKb, removeFilesKb } = makeFilesKbAccess({
         kbStore, projectStore, helpers, maxKbIds, publishTransient, log,
@@ -373,7 +378,6 @@ function makeProjectFiles(deps = {}) {
         await helpers().deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
         return toFile(doc, now());
     }
-
 
     return {
         getFilesKb, ensureFilesKb, listFiles, fileContent, fileNames, nameFileActivity, addFile, removeFile, removeFilesKb, settle,

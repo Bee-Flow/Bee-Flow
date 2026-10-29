@@ -8,7 +8,10 @@
 const { t, assertStatus, resetState, _state, checks } = require('./harness');
 const log = require('../../../telemetry/log');
 
-module.exports = async function isoGithubRepos() {
+/**
+ * A.8.8 — dependency vulnerabilities (GitHub).
+ */
+async function dependencyVulnerabilities() {
     log.info('\n▶ ISO 27001 A.8.8 — Dependency vulnerabilities (GitHub)');
     await t('not applicable when the connector is disabled', async () => {
         resetState();
@@ -76,7 +79,12 @@ module.exports = async function isoGithubRepos() {
         }];
         assertStatus(await checks.isoGithubVuln.evaluate('x'), 'pass', 'clean');
     });
+}
 
+/**
+ * A.8.4 — source code branch protection.
+ */
+async function branchProtection() {
     log.info('\n▶ ISO 27001 A.8.4 — Source code branch protection');
     await t('not applicable when the connector is disabled', async () => {
         resetState();
@@ -130,7 +138,12 @@ module.exports = async function isoGithubRepos() {
         }];
         assertStatus(await checks.isoSourceProtection.evaluate('x'), 'pass', 'solid protection');
     });
+}
 
+/**
+ * A.8.28 — secret scanning in repositories.
+ */
+async function secretScanning() {
     log.info('\n▶ ISO 27001 A.8.28 — Secret scanning in repositories');
     await t('not applicable when the connector is disabled', async () => {
         resetState();
@@ -181,7 +194,12 @@ module.exports = async function isoGithubRepos() {
         ];
         assertStatus(await checks.isoSecureCoding.evaluate('x'), 'pass', 'both on everywhere');
     });
+}
 
+/**
+ * A.8.32 — change management on merges.
+ */
+async function changeManagement() {
     log.info('\n▶ ISO 27001 A.8.32 — Change management on merges');
     await t('not applicable when the connector is disabled', async () => {
         resetState();
@@ -240,4 +258,11 @@ module.exports = async function isoGithubRepos() {
         assertStatus(await checks.isoChangeMgmt.evaluate('x'), 'pass', 'clean sample');
     });
     // ═══ end ISO 27001 GitHub connector fragment ════════════════════════════
+}
+
+module.exports = async function isoGithubRepos() {
+    await dependencyVulnerabilities();
+    await branchProtection();
+    await secretScanning();
+    await changeManagement();
 };

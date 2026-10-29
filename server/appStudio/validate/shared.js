@@ -5,6 +5,9 @@
 
 'use strict';
 
+// The "did you mean" picker every validate/ module suggests with, required once here.
+const { pickClosestId } = require('../../automation/validate/helpers');
+
 /** @param {unknown} v */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -21,7 +24,7 @@ function pushDataRef(ctx, rec) {
     else ctx.pushE(rec);
 }
 
-module.exports = { isObject, pushDataRef };
+module.exports = { isObject, pushDataRef, pickClosestId };
 
 /**
  * @typedef {{ code: string; severity: string; path: string; message: string; hint: string; kind?: string; targetRef?: { kind: string; id: string | null; title?: string; path: string; nodeId: string | null; }; }} Finding

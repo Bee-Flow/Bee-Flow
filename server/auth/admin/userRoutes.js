@@ -13,7 +13,7 @@ const multer = require('multer');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor } = require('./userSupportRoutes');
+const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -241,14 +241,8 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     // failed one, and a failed one for a real escalation. Sibling refusals in
     // this file (role='admin' → 403 'Cannot assign super admin role') already
     // name what they reject; this does the same.
-    const unknownFields = Object.keys(body).filter(k => !USER_UPDATE_ALLOWED_KEYS.has(k));
-    if (unknownFields.length > 0) {
-        return res.status(400).json({
-            error: `Unsupported field(s): ${unknownFields.join(', ')}`,
-            code: 'unknown_fields',
-            fields: unknownFields,
-        });
-    }
+    const unknownFields = unknownFieldsRefusal(body);
+    if (unknownFields) return res.status(400).json(unknownFields);
 
     // Everything else is read through `updates` below, which is built from
     // USER_UPDATE_FIELDS so it cannot fall out of step with the allow-list.
@@ -399,15 +393,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         log.info(`[Audit] ${req.session.user?.id || 'system'} updated user '${id}' — fields: ${changedFields.join(', ')}`);
         // Capture only the access-relevant changes for audit (role, orgRole,
         // groups, organizationId, status) — never log password material.
-        const ACCESS_FIELDS = ['role', 'orgRole', 'groups', 'organizationId', 'status'];
-        const oldVals = {};
-        const newVals = {};
-        for (const f of ACCESS_FIELDS) {
-            if (updates[f] === undefined) continue;
-            if (prevUser && JSON.stringify(prevUser[f]) === JSON.stringify(updates[f])) continue;
-            oldVals[f] = prevUser ? prevUser[f] : null;
-            newVals[f] = updates[f];
-        }
+        const { oldVals, newVals } = accessChanges(prevUser, updates);
         if (Object.keys(newVals).length > 0) {
             await userStore.logAccessAudit(
                 'user.update',

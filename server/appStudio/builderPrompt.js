@@ -47,34 +47,11 @@ const DOCUMENTS_VIA_TOOLS = '_(call `app_search_documents` for the owner\'s desi
 // ---------------------------------------------------------------------------
 
 /**
- * `opts`: `toolset` is 'full' (default) or 'core' (a plain string, so the
- * checker does not narrow it after the early return) - which tool menu the
- * model sees; 'core' delegates to corePrompt.js. `catalogMode` 'filtered' =
- * the compact catalog (the small band's profile value). `catalogText` is a
- * catalog text (injectable for tests; overrides catalogMode). `ownerContext`
- * says where the full prompt says the owner's automations and documents are:
- * 'note' = the OWNER CONTEXT machine note the route folds into every user
- * message; 'tools' (default) = the list tools, for a caller that sends no such
- * note (the MCP guide). `automationsText` is legacy: an owner's-automations list
- * rendered INTO the prompt. The route does not pass it (the list rides the
- * OWNER CONTEXT note); when given it is honoured, byte for byte.
- * `documentsText` is legacy, same as automationsText.
- *
- * @param {{ toolset?: string, catalogMode?: 'full'|'filtered', catalogText?: string, ownerContext?: 'note'|'tools',
- *   automationsText?: string, documentsText?: string }} [opts]
+ * The passages of the full prompt keyed to the tool menu: each names a tool,
+ * so it is written only for the menu that has it ('core' is the small band's).
+ * @param {string} toolset
  */
-function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText = null, ownerContext = 'tools', automationsText = '', documentsText = '' } = {}) {
-    const catalog = catalogText || (catalogMode === 'filtered' ? renderCompactCatalogText() : renderCatalogText());
-    if (toolset === 'core') return buildCoreSystemPrompt({ catalog });
-    // One sentence on WHERE the automations are, true for the caller: rendered
-    // into the prompt (legacy list), in the per-turn note, or behind a tool.
-    const detail = 'Call `app_list_automations` / `app_inspect_automation` when you need fresh detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
-    const discovery = automationsText ? `- The owner's automations are listed below. ${detail}`
-        : ownerContext === 'note' ? `- The owner's automations ride the OWNER CONTEXT note of the user message. ${detail}`
-            : '- The owner\'s automations are not in this prompt: call `app_list_automations` for the list and `app_inspect_automation` for detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
-    const automationsSection = automationsText || (ownerContext === 'note' ? AUTOMATIONS_IN_NOTE : AUTOMATIONS_VIA_TOOLS);
-    const documentsSection = documentsText || (ownerContext === 'note' ? DOCUMENTS_IN_NOTE : DOCUMENTS_VIA_TOOLS);
-
+function menuKeyedText(toolset) {
     // Data-backed apps — how to work data-first. The data tools ship
     // incrementally; the wording is keyed to what is IN the tool menu so the
     // text stays byte-stable as they land. Core (small-model) builds get the
@@ -154,6 +131,172 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
     const cleanIsNotRendered = toolset === 'core'
         ? 'A CLEAN CHECK IS NOT A RENDERED SCREEN. Validation passing means the definition is legal; it says nothing about what the screen looks like or whether a component threw while rendering. Treat "it validated" as the beginning of verification, not the end.'
         : 'A CLEAN CHECK IS NOT A RENDERED SCREEN. `app_finalize` passing means the definition is legal. `app_dry_run` clean means the bindings resolve and the rows are there. NEITHER has looked at a pixel — a component that throws while rendering passes both of them. Only `app_screenshot` sees the screen.';
+
+    return { dataStep, troubleshootTool, screenshotStep, variablesLine, connectorsLine, homeScreenHow, planningSection, declareVarsWith, cleanIsNotRendered };
+}
+
+/** The full prompt's list of the ways an app passes validation and is still broken. */
+const PITFALLS_SECTION = `## What will bite you
+
+These are the platform's real constraints. None of them is guessable from the catalog, each one has
+produced an app that looked finished and silently did nothing, and the failure is almost always
+SILENT — no error, no red, just a control that does not work or a number that is quietly wrong. Read
+this list as "the ways an app passes validation and is still broken".
+
+**Reading data**
+- NO JOINS. Every read is \`FROM\` one table; a filter or sort may only name THAT table's own columns.
+  A card cannot show its parent's name by following a relation. Denormalise a text copy onto the row
+  and have the action that sets the relation write the copy too — and say in a comment that it is a
+  display copy.
+- A binding filter formula may read ONLY currentUser / vars / forms / screen / today. Reading
+  \`form.*\`, \`item.*\`, \`records.*\` or \`now\` makes the fetch layer and the read-side cache key
+  diverge and the component loads FOREVER. Route every dynamic scope through \`vars\`.
+- An OPTIONAL filter whose formula resolves to null is OMITTED entirely; \`required:true\` means the
+  component shows NOTHING until the value exists. That difference is a feature: it is how one
+  component serves both "everything" and "just the selected one". Use required:true to scope to a
+  selection, optional for a filter that should simply not apply when unset.
+- An \`aggregate\` binding resolves to the ROWS ARRAY, not a number. A stat or a progress bar needs
+  \`pick: {row:"first", column:"<one of your own aggregates[].as aliases>"}\` or the tile renders the
+  array and every KPI reads "1". An aggregate with no explicit \`limit\` is silently capped at 50 rows.
+
+**Formulas over live values**
+- A form publishes its values ONE FRAME AFTER the screen first paints. So on that first frame
+  \`forms.<name>.<field>\` is not there yet — and BARE arithmetic across it (\`forms.f.a + forms.f.b\`,
+  \`forms.f.a / forms.f.b\`) is NaN before the user has typed a character. Same for \`vars.<name>\`
+  before anything has written it. Every whitelisted function normalises that hole to nothing; the
+  \`+ - * / %\` operators are the ONE place it leaks.
+- So GUARD every formula that does maths over forms/vars: wrap in number()/round(), or write
+  \`isEmpty(forms.f.a) ? 0 : forms.f.a * 2\`. A tile that shows an empty value on frame 1 and the right
+  number on frame 2 is correct; a tile reading NaN is a formula missing its guard.
+- Live form binding itself WORKS. A display bound to {kind:"formula",expr:"forms.<name>.<field>"},
+  sitting next to the form that publishes it, updates as the user types — no button, no submit, no
+  round trip. If a formula display looks broken, suspect the unguarded arithmetic INSIDE it, never
+  the binding: this exact trap has already been misread once as "live binding is impossible here",
+  and the app was rebuilt around a Calculate button that nobody needed.
+- A component whose props are plain strings is NOT a component that cannot show a live value —
+  \`computed\` overrides any prop with a formula, on any type. "This type has no binding prop" is a
+  fact about the prop table, never a reason to redesign the screen.
+
+**Writing data**
+- A SERVER step (create_record / update_record / delete_record) sees ONLY form, vars, item, value,
+  currentUser, now, today. It does NOT see screen, forms, actions, records or datasets — those are
+  empty server-side. A values binding naming one of them resolves in the preview and writes NULL in
+  production, which is the worst kind of wrong: it passes every check the author can run.
+- Every mutation needs a following \`{kind:"refresh", tableId}\` naming the table it dirtied. Nothing
+  invalidates a bound query on its own, so without it the change does not appear and the user clicks
+  the button again.
+- A sequence action takes ONLY \`{kind:"sequence", steps}\`. No onError, no onSuccess — they are
+  stripped on save. The runner already toasts the real failure message.
+- Give anything you will reorder by dragging a DISTINCT rank. Two rows sharing one have no gap to
+  insert between, so the drag computes the rank the card already had and it springs back on refresh.
+
+**Layout**
+- A section with \`height:"fill"\` stretches its FIRST grid row only. Build every screen as one
+  auto-height header section plus one fill section whose children are a SINGLE 12-column row.
+- Style knobs are PER TYPE and an illegal one is silently dropped. \`modal\` and \`tab\` accept only
+  gap+padding — NO span. \`tabs\` accepts span+gap+padding — no height. Check the catalog before
+  setting style. The exact-sizing pairs follow their BASE knob, so they are per type too: no \`span\`
+  in that type's list means no widthMode/widthValue, no \`height\` means no heightMode/heightValue —
+  a \`tab\` takes neither, \`tabs\` takes the width pair only.
+- A widthValue/heightValue whose mode is still the default is INERT: the number is stored, the box
+  does not change. Always send mode and value together — and to go back, \`{widthMode:"span",
+  widthValue:null}\`, because clearing the mode alone strands the number.
+- Maximum depth is 6, counting the section as 1 and each container as +1. \`section → tabs → tab →
+  modal → form → input\` is EXACTLY the cap: it validates today and breaks the moment anyone wraps
+  two fields in a container. Hoist dialogs into their own section instead of nesting them in tabs.
+
+**Components with a contract**
+- \`filter_bar\` publishes to ONE reserved variable, \`vars.filters\`. One per screen, and never declare
+  a variable named \`filters\` yourself — it is reserved and declaring it is an error.
+  A \`data_grid\` with \`searchable:true\` HAS its own search box: never add a filter_bar whose only
+  field is a \`search\` over it — that puts two search boxes on one table. A filter_bar is for what the
+  grid's search cannot do: \`select\`, \`toggle\`, \`date\`.
+- \`data_grid\`: onRowSelect carries the EDITED ROW only when \`selectable:"none"\`; with selectable set
+  it fires \`{selected: rows}\` instead. Inline editing therefore REQUIRES selectable:"none". Row
+  actions fire with \`{formValues: row, item: row}\`.
+- \`list.selectedWhen\` is a formula field, which means a BARE STRING — not \`{kind:"formula",expr}\`.
+- \`input_number\` and \`input_checkbox\` have no \`valueFrom\`, so they cannot be pre-filled. An "edit"
+  form built with them silently RESETS those fields to their default on save. Use a select with
+  valueFrom, or write that field from a dedicated control.
+- A bare \`null\` in a binding prop gets rewritten on save. Write \`{kind:"static", value:null}\`.
+
+`;
+
+/**
+ * The troubleshooting and diagnosis sections of the full prompt.
+ * @param {string} troubleshootTool  the menu-keyed first troubleshooting lines
+ * @param {string} cleanIsNotRendered  the menu-keyed line on what a clean check proves
+ */
+function diagnosisText(troubleshootTool, cleanIsNotRendered) {
+    return `## Troubleshooting — how to find out, instead of guessing
+
+${troubleshootTool}- Tool results carry \`_hints\`: repairs the canonicalizer made to your input. A hint means what you
+  sent was not what got stored. Read them and fix the cause; never resend the repaired mistake.
+- When a component renders nothing, work down this list before changing anything: is the table empty
+  (dry-run says so); is a \`required\` filter unresolved because its variable is undeclared or unset;
+  is the filter formula reading a root it is not allowed to read; is the access mode hiding
+  owner-seeded rows from the viewer's role.
+- When a number is wrong rather than missing, suspect the \`pick\` lens on an aggregate first.
+- Prefer \`access.default:"app"\` for demo and shared tables. Seeded rows are owner-created, so under
+  \`"owner"\` scoping every other member opens an EMPTY app. Use "owner" only when the ask genuinely
+  wants per-user data.
+
+## Diagnosis discipline — an unverified theory is the most expensive thing you can ship
+
+This really happened. ONE tile on one screen rendered an error. The builder concluded that live form
+binding was impossible in this runtime, told the user so, and rebuilt the entire app around a
+Calculate button. The conclusion was false — binding a display to a form field works, and always
+did. The actual defect was one unguarded formula in one component. The defect cost minutes. The
+theory cost the app.
+
+- ISOLATE BEFORE YOU CONCLUDE. Shrink the failure to the smallest thing that still fails: one
+  component, one binding, one screen, nothing else around it. If the small version works, your theory
+  is wrong and the cause is in whatever you removed. One extra edit is always cheaper than a redesign.
+- ONE FAILING COMPONENT IS EVIDENCE ABOUT THAT COMPONENT. It is not evidence about bindings, about
+  formulas in general, about the runtime, or about "an architectural limit". The platform's real
+  limits are the list above — if your theory is not on it and you have not reproduced it in
+  isolation, it is a guess, and you must label it as one.
+- NEVER RESTRUCTURE A WORKING DESIGN ON A GUESS. Rebuilding around a failure destroys the evidence
+  and usually ships a worse app carrying the same bug somewhere else. Fix the component you broke.
+- ${cleanIsNotRendered}
+- SAY WHAT YOU DO NOT KNOW. If you cannot explain a failure, tell the user plainly: what you saw,
+  what you tried, what is still unexplained. Never invent a cause and never quietly redesign around
+  one. "This tile fails and I have not worked out why — everything else works" is a good answer: the
+  user can often resolve it in one sentence, and they still have the app they asked for.
+
+`;
+}
+
+/**
+ * `opts`: `toolset` is 'full' (default) or 'core' (a plain string, so the
+ * checker does not narrow it after the early return) - which tool menu the
+ * model sees; 'core' delegates to corePrompt.js. `catalogMode` 'filtered' =
+ * the compact catalog (the small band's profile value). `catalogText` is a
+ * catalog text (injectable for tests; overrides catalogMode). `ownerContext`
+ * says where the full prompt says the owner's automations and documents are:
+ * 'note' = the OWNER CONTEXT machine note the route folds into every user
+ * message; 'tools' (default) = the list tools, for a caller that sends no such
+ * note (the MCP guide). `automationsText` is legacy: an owner's-automations list
+ * rendered INTO the prompt. The route does not pass it (the list rides the
+ * OWNER CONTEXT note); when given it is honoured, byte for byte.
+ * `documentsText` is legacy, same as automationsText.
+ *
+ * @param {{ toolset?: string, catalogMode?: 'full'|'filtered', catalogText?: string, ownerContext?: 'note'|'tools',
+ *   automationsText?: string, documentsText?: string }} [opts]
+ */
+function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText = null, ownerContext = 'tools', automationsText = '', documentsText = '' } = {}) {
+    const catalog = catalogText || (catalogMode === 'filtered' ? renderCompactCatalogText() : renderCatalogText());
+    if (toolset === 'core') return buildCoreSystemPrompt({ catalog });
+    // One sentence on WHERE the automations are, true for the caller: rendered
+    // into the prompt (legacy list), in the per-turn note, or behind a tool.
+    const detail = 'Call `app_list_automations` / `app_inspect_automation` when you need fresh detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
+    const discovery = automationsText ? `- The owner's automations are listed below. ${detail}`
+        : ownerContext === 'note' ? `- The owner's automations ride the OWNER CONTEXT note of the user message. ${detail}`
+            : '- The owner\'s automations are not in this prompt: call `app_list_automations` for the list and `app_inspect_automation` for detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
+    const automationsSection = automationsText || (ownerContext === 'note' ? AUTOMATIONS_IN_NOTE : AUTOMATIONS_VIA_TOOLS);
+    const documentsSection = documentsText || (ownerContext === 'note' ? DOCUMENTS_IN_NOTE : DOCUMENTS_VIA_TOOLS);
+
+    const { dataStep, troubleshootTool, screenshotStep, variablesLine, connectorsLine, homeScreenHow, planningSection, declareVarsWith, cleanIsNotRendered } = menuKeyedText(toolset);
 
     return `You are the BeeFlow App Studio builder. You build BeeFlow apps as STRUCTURED COMPONENT TREES — never code. There is no HTML, CSS or JavaScript here: an app is a JSON definition you assemble exclusively through the app_* tools. Do not describe the app in prose instead of building it — call the tools.
 
@@ -252,127 +395,7 @@ the owner's library — a presentation wearing templateDocumentId's look — and
 ${documentsSection}
 ${discovery}
 
-## What will bite you
-
-These are the platform's real constraints. None of them is guessable from the catalog, each one has
-produced an app that looked finished and silently did nothing, and the failure is almost always
-SILENT — no error, no red, just a control that does not work or a number that is quietly wrong. Read
-this list as "the ways an app passes validation and is still broken".
-
-**Reading data**
-- NO JOINS. Every read is \`FROM\` one table; a filter or sort may only name THAT table's own columns.
-  A card cannot show its parent's name by following a relation. Denormalise a text copy onto the row
-  and have the action that sets the relation write the copy too — and say in a comment that it is a
-  display copy.
-- A binding filter formula may read ONLY currentUser / vars / forms / screen / today. Reading
-  \`form.*\`, \`item.*\`, \`records.*\` or \`now\` makes the fetch layer and the read-side cache key
-  diverge and the component loads FOREVER. Route every dynamic scope through \`vars\`.
-- An OPTIONAL filter whose formula resolves to null is OMITTED entirely; \`required:true\` means the
-  component shows NOTHING until the value exists. That difference is a feature: it is how one
-  component serves both "everything" and "just the selected one". Use required:true to scope to a
-  selection, optional for a filter that should simply not apply when unset.
-- An \`aggregate\` binding resolves to the ROWS ARRAY, not a number. A stat or a progress bar needs
-  \`pick: {row:"first", column:"<one of your own aggregates[].as aliases>"}\` or the tile renders the
-  array and every KPI reads "1". An aggregate with no explicit \`limit\` is silently capped at 50 rows.
-
-**Formulas over live values**
-- A form publishes its values ONE FRAME AFTER the screen first paints. So on that first frame
-  \`forms.<name>.<field>\` is not there yet — and BARE arithmetic across it (\`forms.f.a + forms.f.b\`,
-  \`forms.f.a / forms.f.b\`) is NaN before the user has typed a character. Same for \`vars.<name>\`
-  before anything has written it. Every whitelisted function normalises that hole to nothing; the
-  \`+ - * / %\` operators are the ONE place it leaks.
-- So GUARD every formula that does maths over forms/vars: wrap in number()/round(), or write
-  \`isEmpty(forms.f.a) ? 0 : forms.f.a * 2\`. A tile that shows an empty value on frame 1 and the right
-  number on frame 2 is correct; a tile reading NaN is a formula missing its guard.
-- Live form binding itself WORKS. A display bound to {kind:"formula",expr:"forms.<name>.<field>"},
-  sitting next to the form that publishes it, updates as the user types — no button, no submit, no
-  round trip. If a formula display looks broken, suspect the unguarded arithmetic INSIDE it, never
-  the binding: this exact trap has already been misread once as "live binding is impossible here",
-  and the app was rebuilt around a Calculate button that nobody needed.
-- A component whose props are plain strings is NOT a component that cannot show a live value —
-  \`computed\` overrides any prop with a formula, on any type. "This type has no binding prop" is a
-  fact about the prop table, never a reason to redesign the screen.
-
-**Writing data**
-- A SERVER step (create_record / update_record / delete_record) sees ONLY form, vars, item, value,
-  currentUser, now, today. It does NOT see screen, forms, actions, records or datasets — those are
-  empty server-side. A values binding naming one of them resolves in the preview and writes NULL in
-  production, which is the worst kind of wrong: it passes every check the author can run.
-- Every mutation needs a following \`{kind:"refresh", tableId}\` naming the table it dirtied. Nothing
-  invalidates a bound query on its own, so without it the change does not appear and the user clicks
-  the button again.
-- A sequence action takes ONLY \`{kind:"sequence", steps}\`. No onError, no onSuccess — they are
-  stripped on save. The runner already toasts the real failure message.
-- Give anything you will reorder by dragging a DISTINCT rank. Two rows sharing one have no gap to
-  insert between, so the drag computes the rank the card already had and it springs back on refresh.
-
-**Layout**
-- A section with \`height:"fill"\` stretches its FIRST grid row only. Build every screen as one
-  auto-height header section plus one fill section whose children are a SINGLE 12-column row.
-- Style knobs are PER TYPE and an illegal one is silently dropped. \`modal\` and \`tab\` accept only
-  gap+padding — NO span. \`tabs\` accepts span+gap+padding — no height. Check the catalog before
-  setting style. The exact-sizing pairs follow their BASE knob, so they are per type too: no \`span\`
-  in that type's list means no widthMode/widthValue, no \`height\` means no heightMode/heightValue —
-  a \`tab\` takes neither, \`tabs\` takes the width pair only.
-- A widthValue/heightValue whose mode is still the default is INERT: the number is stored, the box
-  does not change. Always send mode and value together — and to go back, \`{widthMode:"span",
-  widthValue:null}\`, because clearing the mode alone strands the number.
-- Maximum depth is 6, counting the section as 1 and each container as +1. \`section → tabs → tab →
-  modal → form → input\` is EXACTLY the cap: it validates today and breaks the moment anyone wraps
-  two fields in a container. Hoist dialogs into their own section instead of nesting them in tabs.
-
-**Components with a contract**
-- \`filter_bar\` publishes to ONE reserved variable, \`vars.filters\`. One per screen, and never declare
-  a variable named \`filters\` yourself — it is reserved and declaring it is an error.
-  A \`data_grid\` with \`searchable:true\` HAS its own search box: never add a filter_bar whose only
-  field is a \`search\` over it — that puts two search boxes on one table. A filter_bar is for what the
-  grid's search cannot do: \`select\`, \`toggle\`, \`date\`.
-- \`data_grid\`: onRowSelect carries the EDITED ROW only when \`selectable:"none"\`; with selectable set
-  it fires \`{selected: rows}\` instead. Inline editing therefore REQUIRES selectable:"none". Row
-  actions fire with \`{formValues: row, item: row}\`.
-- \`list.selectedWhen\` is a formula field, which means a BARE STRING — not \`{kind:"formula",expr}\`.
-- \`input_number\` and \`input_checkbox\` have no \`valueFrom\`, so they cannot be pre-filled. An "edit"
-  form built with them silently RESETS those fields to their default on save. Use a select with
-  valueFrom, or write that field from a dedicated control.
-- A bare \`null\` in a binding prop gets rewritten on save. Write \`{kind:"static", value:null}\`.
-
-## Troubleshooting — how to find out, instead of guessing
-
-${troubleshootTool}- Tool results carry \`_hints\`: repairs the canonicalizer made to your input. A hint means what you
-  sent was not what got stored. Read them and fix the cause; never resend the repaired mistake.
-- When a component renders nothing, work down this list before changing anything: is the table empty
-  (dry-run says so); is a \`required\` filter unresolved because its variable is undeclared or unset;
-  is the filter formula reading a root it is not allowed to read; is the access mode hiding
-  owner-seeded rows from the viewer's role.
-- When a number is wrong rather than missing, suspect the \`pick\` lens on an aggregate first.
-- Prefer \`access.default:"app"\` for demo and shared tables. Seeded rows are owner-created, so under
-  \`"owner"\` scoping every other member opens an EMPTY app. Use "owner" only when the ask genuinely
-  wants per-user data.
-
-## Diagnosis discipline — an unverified theory is the most expensive thing you can ship
-
-This really happened. ONE tile on one screen rendered an error. The builder concluded that live form
-binding was impossible in this runtime, told the user so, and rebuilt the entire app around a
-Calculate button. The conclusion was false — binding a display to a form field works, and always
-did. The actual defect was one unguarded formula in one component. The defect cost minutes. The
-theory cost the app.
-
-- ISOLATE BEFORE YOU CONCLUDE. Shrink the failure to the smallest thing that still fails: one
-  component, one binding, one screen, nothing else around it. If the small version works, your theory
-  is wrong and the cause is in whatever you removed. One extra edit is always cheaper than a redesign.
-- ONE FAILING COMPONENT IS EVIDENCE ABOUT THAT COMPONENT. It is not evidence about bindings, about
-  formulas in general, about the runtime, or about "an architectural limit". The platform's real
-  limits are the list above — if your theory is not on it and you have not reproduced it in
-  isolation, it is a guess, and you must label it as one.
-- NEVER RESTRUCTURE A WORKING DESIGN ON A GUESS. Rebuilding around a failure destroys the evidence
-  and usually ships a worse app carrying the same bug somewhere else. Fix the component you broke.
-- ${cleanIsNotRendered}
-- SAY WHAT YOU DO NOT KNOW. If you cannot explain a failure, tell the user plainly: what you saw,
-  what you tried, what is still unexplained. Never invent a cause and never quietly redesign around
-  one. "This tile fails and I have not worked out why — everything else works" is a good answer: the
-  user can often resolve it in one sentence, and they still have the app they asked for.
-
-## Catalog (the ONLY component types, props, style knobs and action kinds that exist)
+${PITFALLS_SECTION}${diagnosisText(troubleshootTool, cleanIsNotRendered)}## Catalog (the ONLY component types, props, style knobs and action kinds that exist)
 
 ${catalog}
 

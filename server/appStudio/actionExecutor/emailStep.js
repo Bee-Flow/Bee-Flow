@@ -16,8 +16,7 @@ const {
 } = require('./shared');
 const { writeRecord } = require('./records');
 const log = require('../../telemetry/log');
-const { screenOutboundEmail } = require('./outboundEmailDlp');
-const { fallback } = require('../../utils/bestEffort');
+const { screenOutboundEmail, htmlAttributeText, outboundScanText, logOutboundEmail } = require('./outboundEmailDlp');
 
 // ── send_email ──────────────────────────────────────────────────────
 
@@ -50,6 +49,9 @@ function messageTableFor(model, connector) {
     return table ? { table, relationField: null, threadTableId: null } : null;
 }
 
+/** The mail sender, required on first use (both the step and the recorded row read it). */
+const emailSendModule = () => require('../../services/email/send');
+
 /**
  * Send one reply from a mailbox connector.
  *
@@ -62,7 +64,7 @@ function messageTableFor(model, connector) {
 async function sendEmailStep(app, model, step, ctx) {
     const connectors = require('../connectors');
     const { resolveMailboxIdentity } = require('../mailboxIdentity');
-    const emailSend = require('../../services/email/send');
+    const emailSend = emailSendModule();
 
     const connector = connectors.findConnector(model, step.connectorId);
     if (!connector || connector.kind !== 'mailbox') {
@@ -80,53 +82,18 @@ async function sendEmailStep(app, model, step, ctx) {
         const recordId = coerceRecordId(resolveBinding(step.replyToRecordId, ctx, scope));
         if (!recordId) return { ok: false, error: 'Message not found' };
 
-        // Read through the RLS filter: replying to a message threads onto its
-        // headers and defaults to its sender, so seeing it is a precondition.
-        const accessFilter = rlsGateway.compileAccessFilter(messages.table, ctx.role, viewer, 'read');
-        const { sql, params } = queryCompiler.compileGetById(messages.table, recordId, accessFilter);
-        const res = await studioAppDbStore.query(app.userId, app.id, sql, params);
-        const row = (res?.rows || [])[0];
-        if (!row) return { ok: false, error: 'Message not found' };
-        reply = row;
+        reply = await readMessageRow(app, messages.table, recordId, ctx.role, viewer);
+        if (!reply) return { ok: false, error: 'Message not found' };
     } else if (step.replyToThreadKey !== undefined && step.replyToThreadKey !== null) {
         // A screen that lists CONVERSATIONS has a thread key, not a message id.
-        // Resolve it to the newest INBOUND message: the reply has to thread onto
-        // a message the customer actually sent, or the headers point at our own
-        // previous reply and some clients start a new conversation anyway.
         if (!messages) return { ok: false, error: 'The mailbox table is missing' };
         const threadKey = coerceText(resolveBinding(step.replyToThreadKey, ctx, scope));
         if (!threadKey) return { ok: false, error: 'This reply is not attached to a conversation' };
 
-        const accessFilter = rlsGateway.compileAccessFilter(messages.table, ctx.role, viewer, 'read');
-        const newest = async (filters) => {
-            const { sql, params } = queryCompiler.compileRecordList(messages.table, {
-                filters,
-                sort: [{ field: 'received_at', dir: 'desc' }],
-                limit: 1,
-            }, accessFilter);
-            const res = await studioAppDbStore.query(app.userId, app.id, sql, params);
-            return (res?.rows || [])[0] || null;
-        };
-
-        const inThread = { field: 'thread_key', op: 'eq', value: threadKey };
-        let row = await newest([inThread, { field: 'direction', op: 'eq', value: 'inbound' }]);
-        if (!row) {
-            // A conversation can hold nothing but our OWN messages: a mailbox
-            // that got the original by forward, a thread opened from here, or a
-            // sync that read every message as sent. Threading onto our own
-            // newest message is still threading — In-Reply-To pointing at a
-            // message we sent is exactly what a mail client does when you reply
-            // to your own sent mail, so the reply stays in the conversation and
-            // does not come back as a second ticket. That was the real fear
-            // here, and it is answered by threading, not by an inbound row.
-            // What must NOT be inherited from such a row is the sender: that is
-            // us, and defaulting the recipient to it mails ourselves.
-            row = await newest([inThread]);
-        }
+        reply = await newestThreadMessage(app, messages.table, threadKey, ctx.role, viewer);
         // Still nothing to thread onto — an unthreaded send WOULD come back as a
         // second ticket, so refusing remains the smaller failure.
-        if (!row) return { ok: false, error: 'This conversation has no message to reply to' };
-        reply = row;
+        if (!reply) return { ok: false, error: 'This conversation has no message to reply to' };
     }
 
     // ── Recipients + subject ────────────────────────────────────────────
@@ -202,31 +169,7 @@ async function sendEmailStep(app, model, step, ctx) {
     }
 
     // ── Attachments — ledger-verified only, never a URL ──────────────────
-    let attachments;
-    if (step.attachments !== undefined && step.attachments !== null) {
-        const raw = resolveBinding(step.attachments, ctx, scope);
-        const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-        attachments = [];
-        for (const desc of list.slice(0, 10)) {
-            const fileId = typeof desc === 'string' ? desc : desc?.fileId;
-            if (!fileId) continue;
-            const att = await studioAppDataStore.getAttachment(fileId, app.id, app.userId);
-            // Same bar as an automation file input: in this app's ledger, and
-            // past the malware scan.
-            if (!att || !att.scanned || att.quarantined) continue;
-            const storageStore = require('../../stores/storageStore');
-            const key = storageStore.buildStudioAppAttachmentKey(app.userId, app.id, att.sha256);
-            // The display name lives on the DESCRIPTOR — the ledger has no
-            // name column, so `att.name` alone was always undefined and every
-            // attachment went out as "bijlage". The ledger stays as a fallback
-            // for the day it grows one.
-            const rawName = (desc && typeof desc === 'object' && typeof desc.name === 'string' && desc.name)
-                ? desc.name : (typeof att.name === 'string' ? att.name : '');
-            const filename = rawName.replace(/[/\\\r\n\0"]/g, '').trim().slice(0, 200) || 'bijlage';
-            attachments.push({ filename, path: key, contentType: att.mimeType });
-        }
-        if (!attachments.length) attachments = undefined;
-    }
+    const attachments = await collectMailAttachments(app, step, ctx, scope);
 
     const sent = await emailSend.sendMailMessage({
         provider: identity.provider,
@@ -265,56 +208,9 @@ async function sendEmailStep(app, model, step, ctx) {
     let recordedId = null;
     let recordError = null;
     if (step.recordOutbound !== false) {
-        const table = messages?.table || null;
-        if (!table) {
-            recordError = 'this mailbox has no message table to record the reply in';
-        } else {
-            try {
-                // writeRecord owns the version/row-count bumps — doing them
-                // again here would double-count the table.
-                const written = await writeRecord(app, model, table, {
-                    provider_message_id: sent.providerMessageId || `local-${sent.rfc822MessageId || Date.now()}`,
-                    provider_thread_id: sent.providerThreadId || reply?.provider_thread_id || '',
-                    thread_key: reply?.thread_key || '',
-                    // Relate the reply to its conversation the same way the sync
-                    // does. Without it the message exists but the ticket's own
-                    // message list — filtered on the relation — never shows it.
-                    ...(messages.relationField && reply && reply[messages.relationField]
-                        ? { [messages.relationField]: reply[messages.relationField] }
-                        : {}),
-                    rfc822_message_id: sent.rfc822MessageId || '',
-                    in_reply_to: reply?.rfc822_message_id || '',
-                    references: emailSend.buildReferenceChain(reply?.references, reply?.rfc822_message_id) || '',
-                    direction: 'outbound',
-                    from_email: identity.mailbox.address,
-                    to_emails: to.join(', '),
-                    cc_emails: cc.join(', '),
-                    subject,
-                    body_text: textBody,
-                    body_html: htmlBody,
-                    received_at: new Date().toISOString(),
-                    is_read: true,
-                    mailbox_address: identity.mailbox.address,
-                    provider: identity.provider,
-                // Written as the OWNER, exactly like the connector sync writes
-                // an inbound message. This is system-authored ingestion, not a
-                // user record: the table is fixed by the connector and every
-                // value is server-derived from the send result and from a row
-                // the viewer was already allowed to read. Writing as the viewer
-                // would fail for any agent without create rights on the mailbox
-                // table — which is most of them — and the reply would silently
-                // vanish from the thread it was sent in.
-                }, { viewer: { id: app.userId, role: 'owner' } });
-                recordedId = written?.id || null;
-            } catch (e) {
-                // The mail is already gone; failing the step now would tell the
-                // agent it did not send when it did. But it must not be silent
-                // either — a reply that vanishes from the conversation is
-                // exactly what the agent then sends a second time.
-                recordError = e.message;
-                log.warn(`[ActionExecutor] send_email sent but could not be recorded on ${app.id}: ${e.message}`);
-            }
-        }
+        ({ recordedId, recordError } = await recordOutboundReply(app, model, messages, reply, {
+            sent, identity, to, cc, subject, textBody, htmlBody,
+        }));
     }
 
     return {
@@ -334,107 +230,201 @@ async function sendEmailStep(app, model, step, ctx) {
     };
 }
 
-const decodeEntities = (v) => String(v)
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return ''; } })
-    .replace(/&#(\d+);/g, (_, d) => { try { return String.fromCodePoint(Number(d)); } catch { return ''; } })
-    .replace(/&quot;/gi, '"').replace(/&apos;/gi, "'").replace(/&nbsp;/gi, ' ')
-    .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&amp;/gi, '&');
+/**
+ * The message a reply is addressed to, read through the RLS filter: replying
+ * threads onto its headers and defaults to its sender, so seeing it is a
+ * precondition. Null when the viewer cannot see it or it does not exist.
+ * @param {AppRef} app
+ * @param {import('./shared').DataTable} table  the message table
+ * @param {string} recordId
+ * @param {string|null|undefined} role
+ * @param {ReturnType<typeof writeViewer>} viewer
+ * @returns {Promise<MessageRow|null>}
+ */
+async function readMessageRow(app, table, recordId, role, viewer) {
+    const accessFilter = rlsGateway.compileAccessFilter(table, role, viewer, 'read');
+    const { sql, params } = queryCompiler.compileGetById(table, recordId, accessFilter);
+    const res = await studioAppDbStore.query(app.userId, app.id, sql, params);
+    return (res?.rows || [])[0] || null;
+}
 
 /**
- * The parameter values in the query string and fragment of a web link or image
- * source. Scheme, host and path are left out on purpose (a plain link would only
- * feed false positives to a gate that refuses the send), but a value such as
- * `?email=jan@klant.nl&name=Jan%20de%20Vries` is personal data that leaves with
- * the mail. data: and cid: sources are inline content, not links, and skipped.
+ * The message a reply to a conversation threads onto: the newest INBOUND
+ * message of the thread (the reply has to thread onto a message the customer
+ * actually sent, or the headers point at our own previous reply and some
+ * clients start a new conversation anyway), else the newest message at all.
+ * Read through the RLS filter; null when the thread holds nothing visible.
+ * @param {AppRef} app
+ * @param {import('./shared').DataTable} table  the message table
+ * @param {string} threadKey
+ * @param {string|null|undefined} role
+ * @param {ReturnType<typeof writeViewer>} viewer
+ * @returns {Promise<MessageRow|null>}
  */
-function urlParameterValues(url) {
-    if (!/^(?:https?:)?\/\//i.test(url)) return [];
-    const hashAt = url.indexOf('#');
-    const beforeHash = hashAt === -1 ? url : url.slice(0, hashAt);
-    const fragment = hashAt === -1 ? '' : url.slice(hashAt + 1);
-    const queryAt = beforeHash.indexOf('?');
-    const query = queryAt === -1 ? '' : beforeHash.slice(queryAt + 1);
-    const values = [];
-    // A fragment is an anchor unless it is shaped like parameters.
-    for (const part of [query, fragment.includes('=') ? fragment : '']) {
-        if (!part) continue;
-        for (const [key, value] of new URLSearchParams(part)) {
-            const v = (value || key).trim();
-            if (v) values.push(v);
-        }
+async function newestThreadMessage(app, table, threadKey, role, viewer) {
+    const accessFilter = rlsGateway.compileAccessFilter(table, role, viewer, 'read');
+    const newest = async (filters) => {
+        const { sql, params } = queryCompiler.compileRecordList(table, {
+            filters,
+            sort: [{ field: 'received_at', dir: 'desc' }],
+            limit: 1,
+        }, accessFilter);
+        const res = await studioAppDbStore.query(app.userId, app.id, sql, params);
+        return (res?.rows || [])[0] || null;
+    };
+
+    const inThread = { field: 'thread_key', op: 'eq', value: threadKey };
+    let row = await newest([inThread, { field: 'direction', op: 'eq', value: 'inbound' }]);
+    if (!row) {
+        // A conversation can hold nothing but our OWN messages: a mailbox
+        // that got the original by forward, a thread opened from here, or a
+        // sync that read every message as sent. Threading onto our own
+        // newest message is still threading — In-Reply-To pointing at a
+        // message we sent is exactly what a mail client does when you reply
+        // to your own sent mail, so the reply stays in the conversation and
+        // does not come back as a second ticket. That was the real fear
+        // here, and it is answered by threading, not by an inbound row.
+        // What must NOT be inherited from such a row is the sender: that is
+        // us, and defaulting the recipient to it mails ourselves.
+        row = await newest([inThread]);
     }
-    return values;
+    return row;
 }
 
 /**
- * What an HTML mail carries in attributes that htmlToText drops, one value per
- * line, entities decoded: the target of a mailto:/tel: href with the scheme
- * stripped, title and alt text, and the query/fragment parameter values of
- * http(s) href and src URLs. Narrower than scanning the raw HTML on purpose: tag
- * names, colours and the host and path of plain web links would only feed false
- * positives to a gate that refuses the send.
+ * The attachments of a reply: ledger-verified files only, never a URL; at most
+ * ten descriptors are read, and undefined when none passes.
+ * @param {AppRef} app
+ * @param {EmailStepDef} step
+ * @param {import('./shared').ExecCtx} ctx
+ * @param {import('./shared').ServerScope} scope
  */
-function htmlAttributeText(html) {
-    if (!html) return '';
-    const out = [];
-    const attr = /\b(href|src|title|alt)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
-    let m;
-    while ((m = attr.exec(String(html))) !== null) {
-        const name = m[1].toLowerCase();
-        const value = decodeEntities(m[2] !== undefined ? m[2] : m[3]).trim();
-        if (name === 'href' || name === 'src') {
-            const scheme = name === 'href' ? /^(mailto|tel):/i.exec(value) : null;
-            if (!scheme) { out.push(...urlParameterValues(value)); continue; }
-            let target = value.slice(scheme[0].length);
-            try { target = decodeURIComponent(target); } catch (err) { fallback('appStudio/actionExecutor/emailStep:htmlAttributeText', err); /* keep as written */ }
-            if (scheme[1].toLowerCase() === 'mailto') target = target.split('?')[0];
-            if (target) out.push(target);
-            continue;
-        }
-        if (value) out.push(value);
+async function collectMailAttachments(app, step, ctx, scope) {
+    if (step.attachments === undefined || step.attachments === null) return undefined;
+    const raw = resolveBinding(step.attachments, ctx, scope);
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    const attachments = [];
+    for (const desc of list.slice(0, 10)) {
+        const entry = await mailAttachmentFor(app, desc);
+        if (entry) attachments.push(entry);
     }
-    return out.join('\n');
-}
-
-/** The text handed to the outbound DLP scan: the body, plus attribute values for HTML. */
-function outboundScanText({ format, textBody, htmlBody }) {
-    if (format !== 'html') return textBody;
-    const attrs = htmlAttributeText(htmlBody);
-    return attrs ? `${textBody}\n${attrs}` : textBody;
+    return attachments.length ? attachments : undefined;
 }
 
 /**
- * Append to the outbound-mail ledger.
- *
- * BOTH identities are recorded on purpose: with a lend grant, viewer A sends
- * through grantor B's mailbox, and an audit that only knows one of them cannot
- * answer "who sent this".
+ * One attachment descriptor (a file id, or an object with fileId and name) as
+ * a mail attachment, or null when the file is not in this app's ledger or not
+ * past the malware scan.
+ * @param {AppRef} app
+ * @param {string | { fileId?: string, name?: unknown } | null | undefined} desc
  */
-async function logOutboundEmail(app, entry) {
+async function mailAttachmentFor(app, desc) {
+    const fileId = typeof desc === 'string' ? desc : desc?.fileId;
+    if (!fileId) return null;
+    const att = await studioAppDataStore.getAttachment(fileId, app.id, app.userId);
+    // Same bar as an automation file input: in this app's ledger, and
+    // past the malware scan.
+    if (!att || !att.scanned || att.quarantined) return null;
+    const storageStore = require('../../stores/storageStore');
+    const key = storageStore.buildStudioAppAttachmentKey(app.userId, app.id, att.sha256);
+    // The display name lives on the DESCRIPTOR — the ledger has no
+    // name column, so `att.name` alone was always undefined and every
+    // attachment went out as "bijlage". The ledger stays as a fallback
+    // for the day it grows one.
+    const rawName = (desc && typeof desc === 'object' && typeof desc.name === 'string' && desc.name)
+        ? desc.name : (typeof att.name === 'string' ? att.name : '');
+    const filename = rawName.replace(/[/\\\r\n\0"]/g, '').trim().slice(0, 200) || 'bijlage';
+    return { filename, path: key, contentType: att.mimeType };
+}
+
+/**
+ * Record a sent reply back into its thread, written as the OWNER. Not optional
+ * in practice: Gmail's sent mail never enters INBOX, so without this the
+ * agent's own reply is invisible in the app they sent it from. A failure is
+ * returned as recordError and logged, never thrown: the mail is already gone.
+ * @param {AppRef} app
+ * @param {import('./shared').DataModel} model
+ * @param {ReturnType<typeof messageTableFor>} messages
+ * @param {MessageRow|null} reply
+ * @param {SentReply} mail
+ * @returns {Promise<{ recordedId: string|null, recordError: string|null }>}
+ */
+async function recordOutboundReply(app, model, messages, reply, mail) {
+    const table = messages?.table || null;
+    if (!table) return { recordedId: null, recordError: 'this mailbox has no message table to record the reply in' };
     try {
-        await studioAppDataStore.logEmailSend({
-            appId: app.id,
-            connectorId: entry.connectorId,
-            viewerUserId: entry.viewerUserId,
-            effectiveUserId: entry.effectiveUserId,
-            // Masked: the ledger records that we mailed a customer, not a
-            // re-readable copy of their address.
-            toMasked: entry.to.map(maskEmail).join(', ').slice(0, 500),
-            subject: String(entry.subject || '').slice(0, 300),
-            providerMessageId: entry.providerMessageId || null,
-            threadKey: entry.threadKey || null,
-            dlpOutcome: entry.dlpOutcome || null,
-        });
+        // writeRecord owns the version/row-count bumps — doing them
+        // again here would double-count the table.
+        //
+        // Written as the OWNER, exactly like the connector sync writes
+        // an inbound message. This is system-authored ingestion, not a
+        // user record: the table is fixed by the connector and every
+        // value is server-derived from the send result and from a row
+        // the viewer was already allowed to read. Writing as the viewer
+        // would fail for any agent without create rights on the mailbox
+        // table — which is most of them — and the reply would silently
+        // vanish from the thread it was sent in.
+        const written = await writeRecord(app, model, table, outboundMessageValues(messages.relationField, reply, mail), { viewer: { id: app.userId, role: 'owner' } });
+        return { recordedId: written?.id || null, recordError: null };
     } catch (e) {
-        log.warn(`[ActionExecutor] outbound e-mail log failed for ${app.id}: ${e.message}`);
+        // The mail is already gone; failing the step now would tell the
+        // agent it did not send when it did. But it must not be silent
+        // either — a reply that vanishes from the conversation is
+        // exactly what the agent then sends a second time.
+        log.warn(`[ActionExecutor] send_email sent but could not be recorded on ${app.id}: ${e.message}`);
+        return { recordedId: null, recordError: e.message };
     }
 }
 
-function maskEmail(address) {
-    const [local, domain] = String(address || '').split('@');
-    if (!domain) return '***';
-    const head = local.slice(0, 2);
-    return `${head}${'*'.repeat(Math.max(1, local.length - 2))}@${domain}`;
+/**
+ * The row a sent reply is recorded as: its ids and threading headers from the
+ * send result and the parent message, the reply related to its conversation the
+ * same way the sync does, and the content as it went out.
+ * @param {string|null} relationField  the column relating a message to its conversation
+ * @param {MessageRow|null} reply
+ * @param {SentReply} mail
+ */
+function outboundMessageValues(relationField, reply, mail) {
+    const emailSend = emailSendModule();
+    const { sent, identity, to, cc, subject, textBody, htmlBody } = mail;
+    const parent = reply || {};
+    return {
+        provider_message_id: sent.providerMessageId || `local-${sent.rfc822MessageId || Date.now()}`,
+        provider_thread_id: sent.providerThreadId || parent.provider_thread_id || '',
+        thread_key: parent.thread_key || '',
+        // Relate the reply to its conversation the same way the sync
+        // does. Without it the message exists but the ticket's own
+        // message list — filtered on the relation — never shows it.
+        ...(relationField && parent[relationField]
+            ? { [relationField]: parent[relationField] }
+            : {}),
+        rfc822_message_id: sent.rfc822MessageId || '',
+        in_reply_to: parent.rfc822_message_id || '',
+        references: emailSend.buildReferenceChain(parent.references, parent.rfc822_message_id) || '',
+        direction: 'outbound',
+        from_email: identity.mailbox.address,
+        to_emails: to.join(', '),
+        cc_emails: cc.join(', '),
+        subject,
+        body_text: textBody,
+        body_html: htmlBody,
+        received_at: new Date().toISOString(),
+        is_read: true,
+        mailbox_address: identity.mailbox.address,
+        provider: identity.provider,
+    };
 }
+
+/**
+ * @typedef {{ id: string, userId: string, organizationId?: string|null }} AppRef
+ * @typedef {{ [column: string]: unknown, rfc822_message_id?: string, references?: string, provider_thread_id?: string,
+ *   thread_key?: string }} MessageRow  one stored message of a mailbox table
+ * @typedef {{ attachments?: import('./shared').Binding }} EmailStepDef  the send_email fields the attachment helper reads
+ * @typedef {{
+ *   sent: Awaited<ReturnType<typeof import('../../services/email/send').sendMailMessage>>,
+ *   identity: Awaited<ReturnType<typeof import('../mailboxIdentity').resolveMailboxIdentity>>,
+ *   to: string[], cc: string[], subject: string, textBody: string, htmlBody: string,
+ * }} SentReply  what went out, as the thread records it
+ */
 
 module.exports = { sendEmailStep, htmlAttributeText, outboundScanText };

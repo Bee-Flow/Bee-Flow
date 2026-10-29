@@ -174,6 +174,55 @@ function walk(node, path, visit) {
     }
 }
 
+/**
+ * Style v2 enum sanity on one block — invalid values are ignored by the
+ * renderer, so warnings only (the model self-corrects).
+ * @param {Record<string, unknown> | null | undefined} st  the block's style
+ * @param {string} path  where the style sits, e.g. "pages.p1.blocks[0].style"
+ * @param {Array<{ code: string, path: string, message: string, hint: string }>} warnings
+ */
+function checkBlockStyle(st, path, warnings) {
+    if (st && typeof st === 'object') {
+        const styleEnums = {
+            band:    ['default', 'surface', 'tint', 'dark', 'primary'],
+            rhythm:  ['tight', 'compact', 'default', 'spacious'],
+            reveal:  ['on', 'off'],
+        };
+        for (const [key, allowedVals] of Object.entries(styleEnums)) {
+            const v = st[key];
+            if (v !== undefined && v !== '' && !(/** @type {unknown[]} */ (allowedVals)).includes(v)) {
+                warnings.push({
+                    code: 'unknown_style_value',
+                    path: `${path}.${key}`,
+                    message: `style.${key} ${JSON.stringify(v)} is not a known value.`,
+                    hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
+                });
+            }
+        }
+        // Design keys (background placement, brand motif): the store drops
+        // an illegal value on save, so say which one went.
+        const cleaned = sanitizeBlockDesignStyle(st);
+        for (const key of Object.keys(st)) {
+            if (key in cleaned || !BLOCK_DESIGN_STYLE_KEYS.includes(key)) continue;
+            if (key === 'backgroundImage' || key === 'backgroundOverlay') continue;
+            warnings.push({
+                code: 'unknown_style_value',
+                path: `${path}.${key}`,
+                message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
+                hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; backgroundHideMobile / motifTiles: true | false.',
+            });
+        }
+        if (st.columns !== undefined && ![2, 3, 4].includes(Number(st.columns))) {
+            warnings.push({
+                code: 'unknown_style_value',
+                path: `${path}.columns`,
+                message: `style.columns ${JSON.stringify(st.columns)} is not a known value.`,
+                hint: 'Allowed: 2, 3, 4 (features/steps/security/techStats grids only). Invalid values are ignored.',
+            });
+        }
+    }
+}
+
 function validateSiteDraft(draftWrap) {
     const errors = [];
     const warnings = [];
@@ -334,48 +383,7 @@ function validateSiteDraft(draftWrap) {
             if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             warnings.push(...experimentWarnings(b, `pages.${entry.id}.blocks[${i}].content`));
-            // Style v2 enum sanity — invalid values are ignored by the
-            // renderer, so warnings only (the model self-corrects).
-            const st = b?.style;
-            if (st && typeof st === 'object') {
-                const styleEnums = {
-                    band:    ['default', 'surface', 'tint', 'dark', 'primary'],
-                    rhythm:  ['tight', 'compact', 'default', 'spacious'],
-                    reveal:  ['on', 'off'],
-                };
-                for (const [key, allowedVals] of Object.entries(styleEnums)) {
-                    const v = st[key];
-                    if (v !== undefined && v !== '' && !allowedVals.includes(v)) {
-                        warnings.push({
-                            code: 'unknown_style_value',
-                            path: `pages.${entry.id}.blocks[${i}].style.${key}`,
-                            message: `style.${key} ${JSON.stringify(v)} is not a known value.`,
-                            hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
-                        });
-                    }
-                }
-                // Design keys (background placement, brand motif): the store drops
-                // an illegal value on save, so say which one went.
-                const cleaned = sanitizeBlockDesignStyle(st);
-                for (const key of Object.keys(st)) {
-                    if (key in cleaned || !BLOCK_DESIGN_STYLE_KEYS.includes(key)) continue;
-                    if (key === 'backgroundImage' || key === 'backgroundOverlay') continue;
-                    warnings.push({
-                        code: 'unknown_style_value',
-                        path: `pages.${entry.id}.blocks[${i}].style.${key}`,
-                        message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
-                        hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; backgroundHideMobile / motifTiles: true | false.',
-                    });
-                }
-                if (st.columns !== undefined && ![2, 3, 4].includes(Number(st.columns))) {
-                    warnings.push({
-                        code: 'unknown_style_value',
-                        path: `pages.${entry.id}.blocks[${i}].style.columns`,
-                        message: `style.columns ${JSON.stringify(st.columns)} is not a known value.`,
-                        hint: 'Allowed: 2, 3, 4 (features/steps/security/techStats grids only). Invalid values are ignored.',
-                    });
-                }
-            }
+            checkBlockStyle(b?.style, `pages.${entry.id}.blocks[${i}].style`, warnings);
         });
     }
 
