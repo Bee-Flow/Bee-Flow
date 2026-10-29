@@ -2056,14 +2056,6 @@
       "count": 1
     }
   },
-  "cms/mcp/analytics.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "cms/mcp/blog.js": {
     "complexity": {
       "count": 3
