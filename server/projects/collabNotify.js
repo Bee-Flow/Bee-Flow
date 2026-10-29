@@ -23,13 +23,15 @@ const log = require('../telemetry/log');
 /** A group bigger than this is not fanned out: a mass ring is not a notification. */
 const GROUP_CAP = 200;
 
+/** @typedef {{ preferredLocale?: string|null, nc_uid?: string|null, ncUid?: string|null, organizationId?: string|null, displayName?: unknown, username?: unknown }} CollabUser  the user fields this file reads */
+/** @typedef {{ registrationSource?: string|null, registration_source?: string|null, nc_instance_id?: string|null, ncInstanceId?: string|null, nc_base_url?: string|null, ncBaseUrl?: string|null }} CollabOrg  the organisation fields this file reads */
+
 /**
  * Resolve `<key>.title` / `<key>.message` for a user in their own language.
- * A `role` variable (viewer/editor) is translated first.
+ * A `role` variable (viewer/editor) is translated first. `getUser` reads the
+ * user row with its preferredLocale.
  *
- * @param {object} [deps]
- * @param {Function} [deps.getUser]    (id) => user row with preferredLocale
- * @param {Function} [deps.translate]  (locale, key, vars) => Promise<string>
+ * @param {{ getUser?: (id: string) => Promise<CollabUser|null>, translate?: (locale: string, key: string, vars: Record<string, unknown>) => Promise<string> }} [deps]
  * @returns {(p: { userId: string, key: string, vars?: Record<string, string>, parts?: string[] }) => Promise<Record<string, string>>}
  *   `parts` names the sub-keys to resolve (default title + message; the mail asks for `detail`)
  */
@@ -50,18 +52,6 @@ function makeRenderText(deps = {}) {
     };
 }
 
-/**
- * @param {object} [deps]
- * @param {Function} [deps.createNotification]  ({ userId, category, title, message, link }) => notification
- * @param {{ filterRecipients: Function }} [deps.prefs]  (userIds, projectId, event) => { bell, email }
- * @param {Function} [deps.sendEmail]           ({ userId, event, vars: { project, actor, intro, detail }, ctaUrl }) => void; the mail of the same event (default: emailService.sendProjectCollabEmail)
- * @param {Function} [deps.clientHost]          () => the app's absolute origin, for the link in the mail
- * @param {Function} [deps.mailLink]            (userId, link) => the absolute URL in the recipient's mail; Nextcloud users get their Nextcloud portal's Bee Flow page with the path as ?path=, everyone else clientHost() + link
- * @param {Function} [deps.renderText]          ({ userId, key, vars }) => { title, message } in the recipient's locale
- * @param {Function} [deps.projectPath]         (projectId, section) => in-app path
- * @param {Function} [deps.groupMemberIds]      (groupId, cap) => { ids, total }
- * @param {Function} [deps.getUser]             (id) => user row, for the actor's display name
- */
 /**
  * Is this the address a recipient's browser can open? The stored base URL is
  * whatever the connector sent, which falls back to the Docker-internal
@@ -91,7 +81,7 @@ function looksBrowserReachable(url) {
  * the connector and has a known Nextcloud base URL; null for everyone else, so
  * the caller keeps its normal origin.
  * @param {string} userId
- * @param {{ getUser?: Function, getOrganization?: Function, appId?: string }} [deps]
+ * @param {{ getUser?: (id: string) => Promise<CollabUser|null>, getOrganization?: (id: string) => Promise<CollabOrg|null>, appId?: string }} [deps]
  * @returns {Promise<string|null>} e.g. "https://cloud.example/index.php/apps/app_api/embedded/bee_flow/main"
  */
 async function ncPortalBase(userId, { getUser, getOrganization, appId } = {}) {
@@ -111,6 +101,29 @@ async function ncPortalBase(userId, { getUser, getOrganization, appId } = {}) {
     }
 }
 
+/**
+ * Every dependency is a test seam whose default is the real module.
+ * `prefs.filterRecipients` splits the recipients into bell and mail;
+ * `sendEmail` sends the mail of the same event (default:
+ * emailService.sendProjectCollabEmail); `clientHost` is the app's absolute
+ * origin, for the link in the mail; `mailLink` is the absolute URL in the
+ * recipient's mail (Nextcloud users get their Nextcloud portal's Bee Flow page
+ * with the path as ?path=, everyone else clientHost() + link); `renderText`
+ * renders `{ title, message }` in the recipient's locale; `getUser` reads the
+ * actor for their display name.
+ *
+ * @param {{
+ *   createNotification?: (n: { userId: string, category?: string, title: string, message?: string, link?: string|null }) => Promise<unknown>,
+ *   prefs?: { filterRecipients: (userIds: string[], projectId: string, event: string) => Promise<{ bell: string[], email: string[] }> },
+ *   sendEmail?: (mail: { userId: string, event: string, vars: { project: string, actor: string, intro: string, detail: string }, ctaUrl: string|null }) => Promise<unknown>,
+ *   clientHost?: () => string,
+ *   mailLink?: (userId: string, link: string) => Promise<string>,
+ *   renderText?: ReturnType<typeof makeRenderText>,
+ *   projectPath?: (projectId: string, section?: string|null) => string,
+ *   groupMemberIds?: (groupId: string, cap: number) => Promise<{ ids: string[], total: number }|null>,
+ *   getUser?: (id: string) => Promise<CollabUser|null>,
+ *   getOrganization?: (id: string) => Promise<CollabOrg|null> }} [deps]
+ */
 function makeCollabNotifier(deps = {}) {
     const createNotification = deps.createNotification || ((n) => require('../stores/notificationStore').createNotification(n));
     const prefs = deps.prefs || { filterRecipients: (ids, projectId, event) => require('../stores/notificationPrefsStore').filterRecipients(ids, projectId, event) };

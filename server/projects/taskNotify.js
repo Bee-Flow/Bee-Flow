@@ -12,11 +12,16 @@
 const log = require('../telemetry/log');
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.createNotification]  ({ userId, category, title, message, link }) => notification
- * @param {Function} [deps.projectPath]         (projectId, section) => in-app path
- * @param {{ taskAssigned: Function }} [deps.collabNotifier]  the collaboration notifier that rings and mails an assignment (default: projects/collabNotify)
- * @param {Function} [deps.renderText]          ({ userId, key, vars }) => { title, message } in the recipient's locale (projects/collabNotify)
+ * Every dependency is a test seam whose default is the real module.
+ * `collabNotifier` is the collaboration notifier that rings and mails an
+ * assignment (default: projects/collabNotify); `renderText` renders
+ * `{ title, message }` in the recipient's locale (projects/collabNotify).
+ *
+ * @param {{
+ *   createNotification?: (n: Parameters<typeof import('../stores/notificationStore').createNotification>[0]) => Promise<unknown>,
+ *   projectPath?: (projectId: string, section?: string|null) => string,
+ *   collabNotifier?: Pick<ReturnType<typeof import('./collabNotify').makeCollabNotifier>, 'taskAssigned'>,
+ *   renderText?: ReturnType<typeof import('./collabNotify').makeRenderText> }} [deps]
  */
 function makeTaskNotifier(deps = {}) {
     const createNotification = deps.createNotification || ((/** @type {Parameters<typeof import('../stores/notificationStore').createNotification>[0]} */ n) => require('../stores/notificationStore').createNotification(n));

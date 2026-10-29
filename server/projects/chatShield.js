@@ -54,17 +54,22 @@ class PrivacyBlocked extends Error {
     }
 }
 
+/** @typedef {Awaited<ReturnType<typeof import('../core/privacy/orgShield').resolveShieldFor>>} ShieldConfig  the shield that applies to a member */
+
 /**
- * @param {object} [deps]
- * @param {Function} [deps.resolveShieldFor]     ({orgId, userId}) => shield|null
- * @param {Function} [deps.getAIConfig]          () => global AI config
- * @param {any}   [deps.dlp]                  { scan, applyRedactionChoice, clearConversationState }
- * @param {Function} [deps.validateInputForPii]  core/privacy/piiDetection.validateInputForPii
- * @param {Function} [deps.detectPii]            core/privacy/piiDetection.detectPii (the Web Search Guard)
- * @param {Function} [deps.logGuardrailEvent]    stores/guardrailEventStore.logGuardrailEvent
- * @param {string}   [deps.source]               guardrail event source: `project_chat` (the
- *                                               answer), `project_chat_gate` (the relevance
- *                                               gate), `project_comment_gate`, …
+ * Every dependency is a test seam whose default is the real module (the
+ * detectPii default is the Web Search Guard). `source` is the guardrail event
+ * source: `project_chat` (the answer), `project_chat_gate` (the relevance
+ * gate), `project_comment_gate`, …
+ *
+ * @param {{
+ *   resolveShieldFor?: typeof import('../core/privacy/orgShield').resolveShieldFor,
+ *   getAIConfig?: typeof import('../core/aiAgent').getAIConfig,
+ *   dlp?: Pick<typeof import('../core/dlp/dlpRunner'), 'scan'|'applyRedactionChoice'|'clearConversationState'>,
+ *   validateInputForPii?: typeof import('../core/privacy/piiDetection').validateInputForPii,
+ *   detectPii?: typeof import('../core/privacy/piiDetection').detectPii,
+ *   logGuardrailEvent?: (event: Record<string, unknown>) => unknown,
+ *   source?: string }} [deps]
  */
 function makeChatShield(deps = {}) {
     const source = typeof deps.source === 'string' && deps.source ? deps.source : 'project_chat';
@@ -108,14 +113,12 @@ function makeChatShield(deps = {}) {
     /**
      * Prepare the text that leaves for the model.
      *
-     * @param {object} p
-     * @param {any|null} p.shield           from resolve()
-     * @param {string|null} p.orgId
-     * @param {string} p.userId
-     * @param {string} p.text                  the outbound user message
-     * @param {string} p.conversationId        the per-run DLP scope
-     * @param {any} [p.providerConfig]      { providerType, url, displayName }
-     * @param {any} [p.auditBase]           ids for the guardrail event row
+     * `shield` comes from resolve(), `text` is the outbound user message,
+     * `conversationId` the per-run DLP scope, `auditBase` the ids for the
+     * guardrail event row.
+     *
+     * @param {{ shield: ShieldConfig|null, orgId: string|null, userId: string, text: string, conversationId: string,
+     *           providerConfig?: { providerType?: string, url?: string, displayName?: string }, auditBase?: Record<string, unknown> }} p
      * @returns {Promise<{ text: string, tokenMap: Record<string,string>|null, categories?: string[] }>}
      */
     async function protect({ shield, orgId, userId, text, conversationId, providerConfig = {}, auditBase = {} }) {
