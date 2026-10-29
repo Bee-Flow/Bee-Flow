@@ -996,7 +996,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "max-statements": {
       "count": 1
