@@ -1,3 +1,4 @@
+/** @typedef {import('./safety').SafetyPolicy} SafetyPolicy */
 // @typecheck
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
@@ -21,6 +22,10 @@ const PII_SCAN_MAX_WINDOWS = 40; // ~310K chars scanned before we bound it
 // payload" for the egress row's labels. The GUARD path uses _scanText below,
 // which additionally applies the org's allowlist + custom terms and reports
 // degradation instead of swallowing it.
+/**
+ * @param {string} text
+ * @param {SafetyPolicy} policy
+ */
 async function _detectPii(text, policy) {
     const r = await _rawDetect(text, policy);
     return r && r.entities.length ? { hasPii: true, entities: r.entities } : null;
@@ -28,6 +33,10 @@ async function _detectPii(text, policy) {
 
 // Windowed detectPii. Never throws; reports degradation rather than hiding it.
 // Returns { entities, degraded, degradedReason, degradedCategories, overflow }.
+/**
+ * @param {string} text
+ * @param {SafetyPolicy} policy
+ */
 async function _rawDetect(text, policy) {
     const full = String(text || '');
     const empty = { entities: [], degraded: false, degradedReason: null, degradedCategories: null, overflow: false };
