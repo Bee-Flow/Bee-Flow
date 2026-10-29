@@ -1087,7 +1087,7 @@ describe('AppDataGrid — grouping (groupBy / groupOrder)', () => {
         const header = getByRole('button', { name: /In orde/ });
         // roleTextColor mixes the role hue with --text-primary for dark mode.
         expect(header.getAttribute('style')).toContain('color-mix');
-        expect(container.querySelector('[data-app-grid-group="done"] td').getAttribute('style')).toContain('--bg-secondary');
+        expect(container.querySelector('[data-app-grid-group="done"] td').getAttribute('class')).toContain('--bg-secondary');
     });
 
     it('sorting still works WITHIN groups — rows reorder, groups stay put', async () => {

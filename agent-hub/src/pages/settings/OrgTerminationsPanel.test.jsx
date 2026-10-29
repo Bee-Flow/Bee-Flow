@@ -83,10 +83,10 @@ async function mount(opts, props = {}) {
 }
 
 /** The Card whose header carries `title`. */
-const cardFor = (title) => screen.getByText(title).closest('div[style]').parentElement.parentElement;
+const cardFor = (title) => screen.getByText(title).closest('div').parentElement.parentElement;
 
 /** The hero's grid, so KPI tiles can be read without hitting the filter bar. */
-const heroGrid = () => screen.getByText('Clean completion rate').closest('div[style]').parentElement.parentElement;
+const heroGrid = () => screen.getByText('Clean completion rate').closest('div').parentElement.parentElement;
 
 /** Value of one small KPI tile in the hero aside. */
 const kpi = (label) => within(heroGrid()).getByText(label).nextElementSibling.textContent;
