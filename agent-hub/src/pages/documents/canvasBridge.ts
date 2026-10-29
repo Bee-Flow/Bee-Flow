@@ -47,7 +47,7 @@ const str = (v: unknown, max = 500): string => (typeof v === 'string' ? v.slice(
 const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const ids = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 200) : []);
 
-function parseAnchor(raw: any): CommentAnchor | null {
+function parseAnchor(raw: Record<string, unknown> | null | undefined): CommentAnchor | null {
     if (!raw || typeof raw !== 'object' || typeof raw.quote !== 'string' || !raw.quote) return null;
     return {
         quote: str(raw.quote),
@@ -64,7 +64,7 @@ function parseOutline(d: Record<string, any>): FrameMessage | null {
     if (!Array.isArray(d.items)) return null;
     return {
         kind: 'outline',
-        items: d.items.slice(0, 300).map((it: any, i: number) => ({
+        items: d.items.slice(0, 300).map((it: Record<string, unknown> | null, i: number) => ({
             index: Math.floor(num(it?.index ?? i)),
             level: Math.min(3, Math.max(1, Math.floor(num(it?.level)) || 1)),
             text: str(it?.text, 120),

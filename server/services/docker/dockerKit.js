@@ -13,13 +13,14 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The slice of the dockerode client these helpers use (dockerode ships no usable typings here).
- * @typedef {object} DockerClient
- * @property {(image: string) => { inspect(): Promise<unknown> }} getImage
- * @property {(name: string) => { inspect(): Promise<unknown> }} getVolume
- * @property {(opts: { Name: string }) => Promise<unknown>} createVolume
- * @property {(opts: Record<string, unknown>) => Promise<{ start(): Promise<unknown> }>} createContainer
- * @property {(image: string, callback: (err: Error | null, stream: NodeJS.ReadableStream) => void) => void} pull
- * @property {{ followProgress(stream: NodeJS.ReadableStream, onFinished: (err: Error | null) => void, onProgress?: (event: { status?: string, id?: string }) => void): void }} modem
+ * @typedef {{
+ *   getImage: (image: string) => { inspect(): Promise<unknown> },
+ *   getVolume: (name: string) => { inspect(): Promise<unknown> },
+ *   createVolume: (opts: { Name: string }) => Promise<unknown>,
+ *   createContainer: (opts: Record<string, unknown>) => Promise<{ start(): Promise<unknown> }>,
+ *   pull: (image: string, callback: (err: Error | null, stream: NodeJS.ReadableStream) => void) => void,
+ *   modem: { followProgress(stream: NodeJS.ReadableStream, onFinished: (err: Error | null) => void, onProgress?: (event: { status?: string, id?: string }) => void): void },
+ * }} DockerClient
  */
 
 /**
@@ -65,6 +66,9 @@ function pullImage(docker, image, onProgress) {
     return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         docker.pull(image, (err, stream) => {
             if (err) return reject(err);
+            /**
+             * @param {Error | null} progressErr
+             */
             const onFinished = (progressErr) => progressErr ? reject(progressErr) : resolve();
             if (onProgress) docker.modem.followProgress(stream, onFinished, onProgress);
             else docker.modem.followProgress(stream, onFinished);

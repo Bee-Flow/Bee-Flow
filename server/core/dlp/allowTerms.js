@@ -34,7 +34,10 @@
 const { PUBLIC_ORGANISATIONS } = require('./publicOrgs');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 
-/** Case-, punctuation- and whitespace-insensitive comparison key. */
+/**
+ * Case-, punctuation- and whitespace-insensitive comparison key.
+ * @param {string | null | undefined} value
+ */
 function normaliseAllowValue(value) {
     return String(value || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }
@@ -47,7 +50,7 @@ const _PUBLIC_ORG_KEYS = new Set(
 /**
  * Build a matcher from an org shield config.
  *
- * @param {any} shieldConfig  `{ piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean }`
+ * @param {{ piiAllowTerms?: unknown, piiAllowPublicOrgs?: boolean, [key: string]: unknown }} shieldConfig
  * @returns {{ isAllowed(value: string | null | undefined, category: string | null | undefined): boolean, size: number }}
  */
 function buildAllowMatcher(shieldConfig = {}) {

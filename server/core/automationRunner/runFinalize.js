@@ -69,6 +69,7 @@ function reuseNotesOf(ctx) {
     const memoHits = memoStats.hits || 0;
     const durableHits = memoStats.durableHits || 0;
     const memoRefused = memoStats.refused || 0;
+    /** @type {string[]} */
     const reuseNotes = [];
     if (memoHits > 0) reuseNotes.push(`${memoHits} look-up(s) answered from earlier in the run`);
     if (durableHits > 0) reuseNotes.push(`${durableHits} answered from an earlier run`);
@@ -87,6 +88,9 @@ function runSummary({ automation, ctx, firstRunNeedsConfirm, runStatus, runError
     // pause lines above stay clean on purpose: a paused run is not finished,
     // and "Waiting for approval." is the sentence the run list reads.
     const reuseNotes = reuseNotesOf(ctx);
+    /**
+     * @param {string} text
+     */
     const withReuse = (text) => (reuseNotes.length ? `${text} — ${reuseNotes.join(', ')}` : text);
     // The reuse notes ride on the FAILURE line too. Kept only
     // in the success path, a run that fetched from an earlier run and
@@ -130,7 +134,7 @@ async function writeTerminalRow(deps, { run, firstRunNeedsConfirm, runStatus, fi
 }
 
 /**
- * @param {any} deps  execution.js's RUN_DEPS
+ * @param {RunDeps} deps  execution.js's RUN_DEPS
  * @param {any} outcome  what raceRunDag answered
  * @returns {Promise<any>} the run row, with `lastOutput` attached
  */
@@ -209,7 +213,7 @@ async function finalizeRun(deps, {
     // run down.
     if (typeof onRunFinished === 'function') {
         try { await onRunFinished(run, { status: finalStatus }); } catch (e) {
-            log.warn(`[automationRunner] onRunFinished hook failed for run ${run.id}: ${e.message}`);
+            log.warn(`[automationRunner] onRunFinished hook failed for run ${run.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (runStatus === 'error') {
@@ -237,7 +241,7 @@ async function writeRunOutcome(deps, input) {
         const outcome = await resolveRunOutcome(input, storeOutcomeDeps(automationStore));
         await automationStore.updateRun(input.runId, { outcome });
     } catch (e) {
-        log.warn(`[AutomationRunner] could not write the outcome of run ${input.runId}: ${e.message}`);
+        log.warn(`[AutomationRunner] could not write the outcome of run ${input.runId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 

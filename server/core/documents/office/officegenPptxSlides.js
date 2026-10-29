@@ -164,7 +164,7 @@ function addChartSlide(pptx, slide, s, th, top) {
     // So the biggest is drawn first and the fills are translucent.
     const overlapArea = c.type === 'area' && !c.stacked && c.series.length > 1;
     const order = overlapArea
-        ? c.series.map((ser, i) => ({ i, peak: Math.max(...ser.values.filter((v) => typeof v === 'number'), 0) })).sort((a, b) => b.peak - a.peak).map((x) => x.i)
+        ? c.series.map((ser, i) => ({ i, peak: Math.max(...ser.values.filter((v) => typeof v === 'number'), 0) })).sort((/** @type {{ peak: number; }} */ a, /** @type {{ peak: number; }} */ b) => b.peak - a.peak).map((x) => x.i)
         : c.series.map((_, i) => i);
     const data = order.map((i) => ({ name: c.series[i].name || `Series ${i + 1}`, labels: c.labels, values: c.series[i].values.map((v) => (typeof v === 'number' ? v : 0)) }));
     const colours = order.map((i) => th.chartColors[i % th.chartColors.length]);

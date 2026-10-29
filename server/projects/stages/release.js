@@ -264,16 +264,19 @@ async function consistentCut({ devProject, options, blueprintStore, deps }) {
 }
 
 /**
+ * @typedef {{ devProject: { id: string, ownerId?: string, stage?: string|null, organizationId?: string|null, name?: string },
+ *   actorId: string, requestKey?: string|null, notes?: string|object|null }} CutReleaseInput
+ */
+/**
  * Cut a pipeline release of a Dev Solution.
  *
- * @param {{ devProject: { id: string, ownerId?: string, stage?: string|null, organizationId?: string|null, name?: string },
- *   actorId: string, requestKey?: string|null, notes?: string|object|null }} input
- * @param {object} [deps]  blueprintStore, solutionStageStore, releaseGate(project), readCutState(project),
+ * @param {CutReleaseInput} input
+ * @param {Record<string, unknown>} [deps]  blueprintStore, solutionStageStore, releaseGate(project), readCutState(project),
  *   captureSolution(opts), capturePayloads({devProject, refs, options}), releaseChecks(input), diffEntities
  * @returns {Promise<{ release: object, reused: boolean, replayed: boolean, findings: object[] }>}
  * @throws {HttpError} 404 not_found (a stage), 403 solution_owner_only, 409 release_blocked, 409 capture_raced
  */
-async function cutRelease({ devProject, actorId, requestKey = null, notes = null } = /** @type {any} */ ({}), deps = {}) {
+async function cutRelease({ devProject, actorId, requestKey = null, notes = null } = /** @type {CutReleaseInput} */ ({}), deps = {}) {
     if (!devProject || typeof devProject.id !== 'string' || devProject.stage) throw new HttpError(404, 'not_found', 'Solution not found.');
     if (typeof actorId !== 'string' || !actorId) throw new HttpError(403, 'solution_owner_only', 'Only the Solution owner can cut a release.');
     if (devProject.ownerId && devProject.ownerId !== actorId) {

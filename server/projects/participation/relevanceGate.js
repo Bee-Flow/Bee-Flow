@@ -163,13 +163,7 @@ function gateLinesFrom(messages, now) {
     return kept;
 }
 
-/**
- * @typedef {Object} BuildGateInputArgs
- * @property {string} triggerKind
- * @property {{ label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; }[]} lines
- * @property {number | null} [memberCount]
- * @property {number | null} [readByOthers]
- */
+/** @typedef {{ triggerKind: string, lines: { label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; }[], memberCount?: number | null, readByOthers?: number | null }} BuildGateInputArgs */
 /**
  * The user message: the header facts, then the conversation as data.
  * @param {BuildGateInputArgs} param0
@@ -241,15 +235,18 @@ function withTimeout(promise, ms) {
 }
 
 /**
- * @param {object} deps
- * @param {typeof import('../../core/llm/llmClient').chatForcedTool} [deps.chat]
- * @param {(who: { orgId: string|null, userId: string }) => Promise<{ modelId: string, providerConfig?: object }|null>} [deps.resolveModel]
- * @param {{ resolve: Function, protect: Function, release: Function }} [deps.shield]  makeChatShield() surface
- * @param {(entry: object) => any} [deps.logUsage]
- * @param {(text: string) => number} [deps.estimateTokens]
- * @param {number} [deps.timeoutMs]
- * @param {() => number} [deps.now]
- * @param {() => string} [deps.newId]
+ * Every dependency is a test seam whose default is the real module; `shield`
+ * is the makeChatShield() surface.
+ *
+ * @param {{
+ *   chat?: typeof import('../../core/llm/llmClient').chatForcedTool,
+ *   resolveModel?: (who: { orgId: string|null, userId: string }) => Promise<{ modelId: string, providerConfig?: object }|null>,
+ *   shield?: { resolve: Function, protect: Function, release: Function },
+ *   logUsage?: (entry: object) => any,
+ *   estimateTokens?: (text: string) => number,
+ *   timeoutMs?: number,
+ *   now?: () => number,
+ *   newId?: () => string }} [deps]
  */
 function makeRelevanceGate(deps = {}) {
     const chat = deps.chat
@@ -283,16 +280,11 @@ function makeRelevanceGate(deps = {}) {
     const newId = deps.newId || (() => crypto.randomUUID());
 
     /**
-     * @param {object} p
-     * @param {'chat'|'comment'|string} [p.surface]
-     * @param {string} p.containerId
-     * @param {string|null} [p.orgId]
-     * @param {string|null} p.userId              the trigger's author: tier, EU mode, shield
-     * @param {'quiet'|'unanswered'} p.triggerKind
-     * @param {ReturnType<typeof gateLinesFrom>} p.lines
-     * @param {number|null} [p.memberCount]
-     * @param {number|null} [p.readByOthers]
-     * @param {number} p.threshold
+     * `userId` is the trigger's author: tier, EU mode, shield.
+     *
+     * @param {{ surface?: 'chat'|'comment'|string, containerId: string, orgId?: string|null, userId: string|null,
+     *           triggerKind: 'quiet'|'unanswered', lines: ReturnType<typeof gateLinesFrom>, memberCount?: number|null,
+     *           readByOthers?: number|null, threshold: number }} p
      * @returns {Promise<{ available: false, skipReason: string, model?: string }
      *   | { available: true, model: string, verdict: NonNullable<ReturnType<typeof parseParticipation>>, outcome: 'reply'|'wait'|'silent' }>}
      */

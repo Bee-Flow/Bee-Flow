@@ -62,7 +62,7 @@ export function ColumnRow({
     };
 
     return (
-        <li style={{ borderBottom: last ? 'none' : '1px solid var(--border-default)' }}
+        <li className={`${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}
             onDragOver={drag ? drag.over : undefined} onDrop={drag ? drag.drop : undefined}>
             <div className="grid items-center" style={{ ...GRID, padding: '9px 14px' }}>
                 {drag ? (

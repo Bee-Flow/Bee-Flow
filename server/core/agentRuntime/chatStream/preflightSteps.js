@@ -1,3 +1,4 @@
+/** @typedef {import('../../llm/modelCache').AIConfig} AIConfig */
 // @typecheck
 /**
  * The steps of ./turnPreflight, each one phase of "everything that has to be
@@ -13,7 +14,10 @@ const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
-/** The provider as the DLP scanner sees it. */
+/**
+ * The provider as the DLP scanner sees it.
+ * @param {AIConfig} config
+ */
 function dlpProviderConfig(config) {
     return {
         providerType: config.providerType,
@@ -22,6 +26,7 @@ function dlpProviderConfig(config) {
     };
 }
 
+/** @typedef {{ agent: AgentRow, userId: string, messages: ChatMessage[], config: AIConfig }} ResolveAndPrewarmShieldArgs */
 /**
  * Resolve the shield and pre-warm the guard scan of the user message.
  *
@@ -33,6 +38,7 @@ function dlpProviderConfig(config) {
  * joins it via the piiDetection single-flight table, and if guardrails rewrite
  * the message in between, the key mismatch discards the pre-warm instead of
  * misapplying it.
+ * @param {ResolveAndPrewarmShieldArgs} param0
  */
 async function resolveAndPrewarmShield({ agent, userId, messages, config }, d) {
     const dlpShield = await d.resolveShieldFor({ orgId: agent.organization_id, userId });
@@ -46,6 +52,7 @@ async function resolveAndPrewarmShield({ agent, userId, messages, config }, d) {
     return dlpShield;
 }
 
+/** @typedef {{ agent: AgentRow, agentId: string, userId: string, userMessage: string, userAuth?: UserAuth, messageMetadata?: MessageMetadata, tools: ToolDef[], validProjectId: string | null, onEvent: OnEvent, conversation?: ConversationRow, isStandardTier: boolean }} BuildPromptWithMemoryArgs */
 /**
  * MEMORY INTEGRATION and the two system-prompt halves.
  *
@@ -65,6 +72,7 @@ async function resolveAndPrewarmShield({ agent, userId, messages, config }, d) {
  * buildSystemPrompt reuses the same values so attached skills are treated as
  * dynamic-on-demand on the Flow tier, mirroring how direct chat handles its
  * session skills.
+ * @param {BuildPromptWithMemoryArgs} param0
  */
 async function buildPromptWithMemory({ agent, agentId, userId, userMessage, userAuth, messageMetadata, tools, validProjectId, onEvent, conversation, isStandardTier }, d) {
     const memoryPolicy = await d.resolveMemoryPolicy({
@@ -101,7 +109,11 @@ async function hydrateTokenVault(conversation, d) {
     catch (err) { bestEffort('core/agentRuntime/chatStream/preflightSteps:hydrateTokenVault', err); /* hydration is best-effort */ }
 }
 
-/** GUARDRAILS (before KB search — block early). */
+/** @typedef {{ agent: AgentRow, messages: ChatMessage[], userMessage: string, globalConfig: AIConfig, onEvent: OnEvent, userId: string, conversation?: ConversationRow, messageMetadata: MessageMetadata, modelToUse: string }} RunGuardrailsPhaseArgs */
+/**
+ * GUARDRAILS (before KB search — block early).
+ * @param {RunGuardrailsPhaseArgs} param0
+ */
 function runGuardrailsPhase({ agent, messages, userMessage, globalConfig, onEvent, userId, conversation, messageMetadata, modelToUse }, d) {
     return d.withPhase(onEvent, 'guardrails', null, () =>
         // `source` / `isDryRun`: a test turn writes its guardrail rows under
@@ -128,7 +140,7 @@ function dropWebSearchOnUpload({ tools, disableSearchOnUpload, messageMetadata, 
     const hasHistoryAttachments = conversation?.messages?.some(m => m.attachments && m.attachments.length > 0);
     if (!(hasCurrentAttachments || hasHistoryAttachments)) return tools;
     log.info(`[AgentRuntime] Web search disabled — ${hasCurrentAttachments ? 'current files attached' : 'files in conversation history'} (org policy)`);
-    return tools.filter(t => t.function?.name !== 'agent_search');
+    return tools.filter((/** @type {{ function: { name: string; }; }} */ t) => t.function?.name !== 'agent_search');
 }
 
 /**
@@ -170,6 +182,7 @@ async function runAgentDlpPreflight({ messages, dlpShield, agent, agentId, conve
 /**
  * The error a DLP block aborts the agent turn with; the caller turns it into
  * a short reply. Preserves the exact per-reason error codes/messages.
+ * @param {{ reason: string; }} dlp
  */
 function dlpBlockError(dlp) {
     const err = new Error(

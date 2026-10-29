@@ -7,6 +7,7 @@
 import React, { useCallback, useRef } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { EmptyState } from '@/shared/ui';
 
@@ -29,6 +30,7 @@ export function VoiceConversation({
     refreshing: boolean;
     onRefresh: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const scroller = useRef<ScrollView>(null);
@@ -62,13 +64,19 @@ export function VoiceConversation({
             ) : !talking ? (
                 <EmptyState
                     icon="Mic"
-                    title="Ask out loud"
+                    title={t('mobile.voice.ask_out_loud', 'Ask out loud')}
                     message={
                         connected
-                            ? 'Go ahead — it is listening. Everything you both say appears here as text too.'
-                            : 'Tap the button below and start talking. This conversation lives on the phone only, so it goes away when you leave.'
+                            ? t(
+                                  'mobile.voice.listening_hint',
+                                  'Go ahead — it is listening. Everything you both say appears here as text too.',
+                              )
+                            : t(
+                                  'mobile.voice.offline_hint',
+                                  'Tap the button below and start talking. This conversation lives on the phone only, so it goes away when you leave.',
+                              )
                     }
-                    actionLabel={connected ? undefined : 'Start talking'}
+                    actionLabel={connected ? undefined : t('mobile.voice.start_talking', 'Start talking')}
                     onAction={connected ? undefined : () => void voice.connect()}
                 />
             ) : (

@@ -20,10 +20,8 @@ const assert = require('node:assert');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 /**
- * @typedef {object} NlCatalogue
- * @property {Readonly<Record<string, string>>} NL_TRANSLATIONS
- * @property {readonly string[]} SAME_AS_ENGLISH
- * @property {(deps?: { languageStore?: { addMissingGUITranslations: (locale: string, translations: Record<string, string>) => Promise<{ added: number }> } }) => Promise<{ added: number }>} up
+ * @typedef {{ NL_TRANSLATIONS: Readonly<Record<string, string>>, SAME_AS_ENGLISH: readonly string[],
+ *   up: (deps?: { languageStore?: { addMissingGUITranslations: (locale: string, translations: Record<string, string>) => Promise<{ added: number }> } }) => Promise<{ added: number }> }} NlCatalogue
  */
 
 /** The `{name}` placeholders of a string, sorted, so two strings can be compared. */
@@ -32,15 +30,15 @@ const holes = (/** @type {unknown} */ s) => (String(s).match(/\{[a-z_]+\}/gi) ||
 /**
  * Registers the suite for one catalogue.
  *
- * @param {object} o
- * @param {string} o.name  the migration's name, as boot/bootMigrations.js lists it
- * @param {NlCatalogue} o.catalogue  the required migration module
- * @param {readonly string[]} o.mayHold  key prefixes the catalogue may hold keys from
- * @param {readonly string[]} o.mustCover  key prefixes where EVERY English key needs Dutch
- *   here: the families the catalogue owns outright, so a key added to them later without
- *   Dutch turns this red instead of reaching Dutch screens in English
- * @param {Record<string, string>} o.declaredFor  each SAME_AS_ENGLISH key with the English
- *   it was declared identical for
+ * `name` is the migration's name, as boot/bootMigrations.js lists it; `catalogue` the
+ * required migration module; `mayHold` the key prefixes the catalogue may hold keys from;
+ * `mustCover` the key prefixes where EVERY English key needs Dutch here: the families the
+ * catalogue owns outright, so a key added to them later without Dutch turns this red
+ * instead of reaching Dutch screens in English; `declaredFor` each SAME_AS_ENGLISH key
+ * with the English it was declared identical for.
+ *
+ * @param {{ name: string, catalogue: NlCatalogue, mayHold: readonly string[], mustCover: readonly string[],
+ *   declaredFor: Record<string, string> }} o
  */
 function registerNlCatalogueChecks({ name, catalogue, mayHold, mustCover, declaredFor }) {
     const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = catalogue;

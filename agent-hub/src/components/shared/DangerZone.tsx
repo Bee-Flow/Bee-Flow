@@ -75,11 +75,11 @@ export function inUsePayload(x: InUseShape | null | undefined) {
  * @param {object} props
  * @param {string}     props.entityName      the name the person must type
  * @param {Array|null} props.usage           the shared list: null = not loaded, [] = nothing depends on it
- * @param {(confirmedBreaking: boolean) => Promise<any>|any} props.onDelete
+ * @param {(confirmedBreaking: boolean) => Promise<unknown>|unknown} props.onDelete
  * @param {string}     [props.kindLabel]     "table", "agent" — for the copy; defaults to a neutral word
  * @param {string|null}[props.currentUserId] forwarded to the list (navigable-vs-plain-text rule)
  * @param {(href: string) => void} [props.onNavigate]
- * @param {(row: any) => object|null} [props.adapt]  legacy row → contract row, for both the list and a 409 payload
+ * @param {(row: unknown) => object|null} [props.adapt]  legacy row → contract row, for both the list and a 409 payload
  * @param {React.ReactNode} [props.notice]   an extra warning shown inside the armed card (e.g. "rows hold plaintext")
  * @param {string}     [props.openLabel]     the collapsed link's text
  * @param {boolean}    [props.requireName]   always ask for the name, even with no dependents — for a thing

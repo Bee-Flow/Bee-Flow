@@ -21,7 +21,7 @@ import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-re
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import EncryptExistingData from './EncryptExistingData';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { errorMessage, messageOf } from '@/utils/caughtError';
 import { API_BASE } from '@/utils/helpers';
 import ChoiceCards from '@/components/shared/ChoiceCards';
@@ -51,6 +51,61 @@ interface EncryptionSettings {
 }
 
 const TIER_ICON = { none: ShieldOff, managed: ShieldCheck, zk: KeyRound };
+
+/** The tier cards: label and description per tier, a locked tier disabled with its reason (and the upgrade link when it is the plan). */
+function tierChoiceOptions(server: EncryptionSettings | null, t: TranslateFn) {
+    const meta: Record<string, { label: string; description?: string }> = {
+        none: {
+            label: t('admin.encryption.tier_none', 'Off'),
+            description: t('admin.encryption.tier_none_desc', 'Messages are stored without content encryption.'),
+        },
+        managed: {
+            label: t('admin.encryption.tier_managed', 'Managed'),
+            description: t(
+                'admin.encryption.tier_managed_desc',
+                'Encrypted at rest. Your administrators can reset a password without the user losing their data.',
+            ),
+        },
+        zk: {
+            label: t('admin.encryption.tier_zk', 'Zero-knowledge'),
+            description: t(
+                'admin.encryption.tier_zk_desc',
+                'Encrypted with each user’s own secret. Nobody — not your administrators, not Bee Flow support — can recover a user’s data if they lose their password and recovery key.',
+            ),
+        },
+    };
+
+    return (server?.tierOptions || []).map((opt): ChoiceCardOption<EncryptionTier> => {
+        const m = meta[opt.tier] || { label: opt.tier };
+        const blockedByPlan = opt.blockedBy === 'entitlement';
+        return {
+            value: opt.tier,
+            label: m.label,
+            description: m.description,
+            Icon: TIER_ICON[opt.tier],
+            disabled: !opt.selectable,
+            badge: blockedByPlan ? t('license.enterprise', 'Enterprise') : undefined,
+            lockedNotice: !opt.selectable ? (
+                <>
+                    {opt.reason}
+                    {blockedByPlan && (
+                        <>
+                            {' '}
+                            <a
+                                href="https://beeflow.nl/pricing"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline"
+                            >
+                                {t('license.upgrade_at_beeflow', 'Upgrade at beeflow.nl')}
+                            </a>
+                        </>
+                    )}
+                </>
+            ) : undefined,
+        };
+    });
+}
 
 export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     const { t } = useTranslation();
@@ -129,59 +184,7 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
     // the shell's onStateChange — OrgInfoPanel already drives that for the org
     // form, and two writers would overwrite each other's state.
 
-    const options = useMemo(() => {
-        const meta: Record<string, { label: string; description?: string }> = {
-            none: {
-                label: t('admin.encryption.tier_none', 'Off'),
-                description: t('admin.encryption.tier_none_desc', 'Messages are stored without content encryption.'),
-            },
-            managed: {
-                label: t('admin.encryption.tier_managed', 'Managed'),
-                description: t(
-                    'admin.encryption.tier_managed_desc',
-                    'Encrypted at rest. Your administrators can reset a password without the user losing their data.',
-                ),
-            },
-            zk: {
-                label: t('admin.encryption.tier_zk', 'Zero-knowledge'),
-                description: t(
-                    'admin.encryption.tier_zk_desc',
-                    'Encrypted with each user’s own secret. Nobody — not your administrators, not Bee Flow support — can recover a user’s data if they lose their password and recovery key.',
-                ),
-            },
-        };
-
-        return (server?.tierOptions || []).map((opt): ChoiceCardOption<EncryptionTier> => {
-            const m = meta[opt.tier] || { label: opt.tier };
-            const blockedByPlan = opt.blockedBy === 'entitlement';
-            return {
-                value: opt.tier,
-                label: m.label,
-                description: m.description,
-                Icon: TIER_ICON[opt.tier],
-                disabled: !opt.selectable,
-                badge: blockedByPlan ? t('license.enterprise', 'Enterprise') : undefined,
-                lockedNotice: !opt.selectable ? (
-                    <>
-                        {opt.reason}
-                        {blockedByPlan && (
-                            <>
-                                {' '}
-                                <a
-                                    href="https://beeflow.nl/pricing"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline"
-                                >
-                                    {t('license.upgrade_at_beeflow', 'Upgrade at beeflow.nl')}
-                                </a>
-                            </>
-                        )}
-                    </>
-                ) : undefined,
-            };
-        });
-    }, [server, t]);
+    const options = useMemo(() => tierChoiceOptions(server, t), [server, t]);
 
     if (loading) {
         return <div className="p-4 text-sm opacity-70">{t('common.loading', 'Loading…')}</div>;

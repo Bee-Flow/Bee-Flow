@@ -84,13 +84,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
         // Page JSON still incomplete: show the loading indicator.
         if (parseBlock(codeString) === NOT_JSON) return <BlockLoading label="Creating page..." />;
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                whiteSpace: 'normal', // Override parent <pre> whitespace
-                fontFamily: 'var(--font-sans)' // Reset font from monospace
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
                 <PageRenderer
                     code={codeString}
                     // Stub handler: page actions have no chat-side behavior yet;
@@ -115,13 +109,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
         const researchData = parseBlock(codeString);
         if (researchData === NOT_JSON) return <BlockLoading label="Building research report..." />;
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                whiteSpace: 'normal',
-                fontFamily: 'var(--font-sans)'
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
                 <ResearchRenderer data={researchData as React.ComponentProps<typeof ResearchRenderer>['data']} />
             </div>
         );
@@ -141,13 +129,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
         const testData = parseBlock(codeString);
         if (testData === NOT_JSON) return <BlockLoading label="Building test report..." />;
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                whiteSpace: 'normal',
-                fontFamily: 'var(--font-sans)'
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
                 <TestReportRenderer data={testData as React.ComponentProps<typeof TestReportRenderer>['data']} />
             </div>
         );
@@ -168,13 +150,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
         // Vega-Lite JSON still incomplete: show loading.
         if (parseBlock(codeString) === NOT_JSON) return <BlockLoading label="Rendering chart..." />;
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'visible',
-                whiteSpace: 'normal',
-                fontFamily: 'var(--font-sans)'
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:visible] [white-space:normal] [font-family:var(--font-sans)]">
                 <Suspense fallback={null}><VegaLiteRenderer spec={codeString} /></Suspense>
             </div>
         );
@@ -190,13 +166,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
             );
         }
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'visible',
-                whiteSpace: 'normal',
-                fontFamily: 'var(--font-sans)'
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:visible] [white-space:normal] [font-family:var(--font-sans)]">
                 <Suspense fallback={null}><MermaidRenderer code={codeString} /></Suspense>
             </div>
         );
@@ -218,13 +188,7 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
         if (parsedMap === NOT_JSON || parsedMap == null) return <BlockLoading label="Loading map..." />;
         const mapData = parsedMap as { embedUrl?: string; title?: string; mapsLink?: string };
         return (
-            <div style={{
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                whiteSpace: 'normal',
-                fontFamily: 'var(--font-sans)'
-            }}>
+            <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
                 <MapEmbedRenderer
                     embedUrl={mapData.embedUrl}
                     title={mapData.title || 'Map'}

@@ -171,7 +171,7 @@ router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, /** @para
         const groups = await sync.listNcGroups(req.org);
         res.json({ groups });
     } catch (e) {
-        log.warn('[NcSync] listing Nextcloud groups failed:', e.message);
+        log.warn('[NcSync] listing Nextcloud groups failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'nextcloud_unreachable', 'Could not reach Nextcloud');
     }
 });

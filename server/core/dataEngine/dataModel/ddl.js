@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./migrationShape').ModelField} ModelField */
 /**
  * App Studio data model — the DDL surface: the per-dialect column-type mapping,
  * the quoting/literal helpers, CREATE TABLE for one table and the ALTER
@@ -92,11 +94,17 @@ function columnType(field, dialect) {
 // A field's expression can only be materialised as a physical STORED column at
 // CREATE-TABLE time (see security note). read-time computed fields have no
 // column at all.
+/**
+ * @param {ModelField} field
+ */
 function isStoredComputed(field) {
     return field.type === 'computed' && field.computed && field.computed.stored === true;
 }
 
 // Does this field get a real column when its table is CREATEd?
+/**
+ * @param {ModelField} field
+ */
 function isCreatePhysical(field) {
     if (field.type === 'computed') return isStoredComputed(field);
     return true;
@@ -105,6 +113,9 @@ function isCreatePhysical(field) {
 // Is this field eligible for ADD/DROP COLUMN during a migration? All physical
 // fields except computed — a stored-computed only materialises at table create,
 // and a read-time computed is never physical.
+/**
+ * @param {ModelField} field
+ */
 function isAlterPhysical(field) {
     return field.type !== 'computed';
 }
@@ -113,6 +124,9 @@ function isAlterPhysical(field) {
 // DDL helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} name
+ */
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
@@ -134,6 +148,10 @@ function sqlLiteral(value, field, dialect) {
 }
 
 // Deterministic, rename-proof unique-index name from stable ids.
+/**
+ * @param {string} tableId
+ * @param {string} fieldId
+ */
 function uniqueIndexName(tableId, fieldId) {
     return `uq_${tableId}_${fieldId}`;
 }
@@ -141,9 +159,15 @@ function uniqueIndexName(tableId, fieldId) {
 // The two indexes that follow from HOW every table is read, rather than from
 // anything its author declared. Named off the stable table id, so a rename does
 // not orphan them and a replay finds them already there.
+/**
+ * @param {string} tableId
+ */
 function recentIndexName(tableId) {
     return `ix_${tableId}_recent`;
 }
+/**
+ * @param {string} tableId
+ */
 function ownerIndexName(tableId) {
     return `ix_${tableId}_owner`;
 }
@@ -204,7 +228,7 @@ function columnDef(field, tableKeyById, dialect) {
  * Both are CREATE INDEX IF NOT EXISTS, so re-emitting them on an existing table
  * (a schema save, the repair button) is a no-op.
  *
- * @param {object} table
+ * @param {{ id: string, key: string, fields?: import('./migrationShape').ModelField[] }} table
  * @param {{ tableKeyById?: Map<string,string>, rowScope?: 'all'|'own', dialect?: 'pg'|'sqlite' }} [ctx]
  *   id→key map so same-db relations resolve to a real FOREIGN KEY (omit for a
  *   standalone, FK-less table), plus the table's row scope, plus the dialect
@@ -281,6 +305,9 @@ function ddlForStoredComputedColumn(tableKey, field, dialectOpt) {
  * the model and nowhere else, and a plan that dies on it can never repair
  * itself. SQLite has no such clause, so it keeps the bare form — which is also
  * what the migration tests pin.
+ * @param {string} tableKey
+ * @param {string} key
+ * @param {string} dialect
  */
 function dropColumnDdl(tableKey, key, dialect) {
     const dropClause = resolveDialect({ dialect }) === 'pg' ? 'DROP COLUMN IF EXISTS' : 'DROP COLUMN';

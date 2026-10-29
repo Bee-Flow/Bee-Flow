@@ -31,7 +31,7 @@ export function GeneratedDocumentList({
     search: string;
     onOpen: (doc: RenderedDocument) => void;
 }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const refresh = useUserRefresh(() => generated.refetch());
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
@@ -61,15 +61,24 @@ export function GeneratedDocumentList({
             }
             ListHeaderComponent={
                 <Text variant="label" tone="tertiary" style={styles.note}>
-                    PDFs Bee Flow rendered for you. They are temporary — download anything you
-                    want to keep.
+                    {t(
+                        'mobile.documents.rendered_note',
+                        'PDFs Bee Flow rendered for you. They are temporary — download anything you want to keep.',
+                    )}
                 </Text>
             }
             ListEmptyComponent={
                 <EmptyState
                     icon="Printer"
-                    title={search ? 'Nothing matches that' : 'Nothing rendered yet'}
-                    message="When an agent or an automation produces a PDF, it shows up here until it expires."
+                    title={
+                        search
+                            ? t('mobile.documents.rendered_no_match', 'Nothing matches that')
+                            : t('mobile.documents.rendered_empty', 'Nothing rendered yet')
+                    }
+                    message={t(
+                        'mobile.documents.rendered_empty_hint',
+                        'When an agent or an automation produces a PDF, it shows up here until it expires.',
+                    )}
                 />
             }
             contentContainerStyle={styles.content}

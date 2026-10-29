@@ -305,15 +305,15 @@ function collectRequires({ automations = [], graph = null } = {}) {
 }
 
 /**
- * The aggregation itself. Pure.
+ * The aggregation itself. Pure. `graph` is the result of buildGraphForProject
+ * (nodes/edges/problems); `apps` come WITH their definitions, `automations`
+ * WITH definition/isActive/isDraft; `knowledgeBases` are the bases filed into
+ * this project; `kbDocumentCounts` maps a kb id to its document count, or
+ * `null` per id when unread; `unavailable` names the sections the loader could
+ * not read.
  *
- * @param {object}   [input]
- * @param {Record<string, any>} [input.graph]          the result of buildGraphForProject (nodes/edges/problems)
- * @param {Array}    [input.apps]             apps WITH their definitions
- * @param {Array}    [input.automations]      automations WITH definition/isActive/isDraft
- * @param {Array}    [input.knowledgeBases]   the bases filed into this project
- * @param {Map|object} [input.kbDocumentCounts]  kb id → document count, or `null` per id when unread
- * @param {string[]} [input.unavailable]      sections the loader could not read
+ * @param {{ graph?: Record<string, any>|null, apps?: Array, automations?: Array, knowledgeBases?: Array,
+ *           kbDocumentCounts?: Map<string, number|null>|Record<string, number|null>|null, unavailable?: string[] }} [input]
  * @returns {{findings: object[], blocked: boolean, complete: boolean, unavailable: string[], requires: object}}
  */
 function buildCompleteness({

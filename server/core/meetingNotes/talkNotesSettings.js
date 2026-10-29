@@ -65,7 +65,13 @@ const DEFAULTS = {
     insightsPerPersonStats: true,
 };
 
+/**
+ * @param {string} orgId
+ */
 function orgKey(orgId) { return `org_talk_notes_${orgId}`; }
+/**
+ * @param {string} userId
+ */
 function userKey(userId) { return `user_talk_notes_${userId}`; }
 
 function asScope(v) { return v === 'all' ? 'all' : 'calendar'; }
@@ -87,6 +93,9 @@ async function resolveTalkNotesSettings(/** @type {{ orgId?: string | null, user
     const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings', e, null)) : null;
     const user = userId ? await configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings#2', e, null)) : null;
     const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
+    /**
+     * @param {string} k
+     */
     const pick = (k) => has(org, k) ? org[k]
         : has(user, k) ? user[k]
         : DEFAULTS[k];
@@ -106,11 +115,17 @@ async function resolveTalkNotesSettings(/** @type {{ orgId?: string | null, user
     };
 }
 
+/**
+ * @param {string} orgId
+ */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await configStore.getConfig(orgKey(orgId)) : null;
     return { ...DEFAULTS, ...(stored || {}) };
 }
 
+/**
+ * @param {string} userId
+ */
 async function getUserSettings(userId) {
     const stored = userId ? await configStore.getConfig(userKey(userId)) : null;
     // defaultOwnerUserId / insightsPerPersonStats are org-only; don't surface
@@ -196,7 +211,5 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} ResolveTalkNotesSettingsArgs
- * @property {string | null} [orgId]
- * @property {string | null} [userId]
+ * @typedef {{ orgId?: string | null, userId?: string | null }} ResolveTalkNotesSettingsArgs
  */

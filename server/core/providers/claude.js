@@ -190,7 +190,7 @@ class ClaudeProvider extends BaseProvider {
      * unsigned thinking block — and `redacted_thinking` needs its opaque
      * `data` payload echoed back verbatim (it carries no readable text).
      *
-     * @param {any} m Stored assistant message; `m.thinking` is the
+     * @param {ClaudeMessage | null | undefined} m Stored assistant message; `m.thinking` is the
      *   structured part array persisted by the chat runtimes.
      * @returns {Array} Claude content blocks, in the original order.
      */
@@ -224,10 +224,9 @@ class ClaudeProvider extends BaseProvider {
 
     /**
      * @param {Array} messages OpenAI-shape history.
-     * @param {object} [opts]
-     * @param {boolean} [opts.keepThinking=true] Replay stored thinking blocks.
-     *   Set false when this request runs with thinking off (the blocks would be
-     *   dead weight) or when retrying after Anthropic rejected a signature.
+     * @param {{ keepThinking?: boolean }} [opts] `keepThinking`: Replay stored thinking blocks. Set
+     *   false when this request runs with thinking off (the blocks would be dead weight) or when
+     *   retrying after Anthropic rejected a signature (default true)
      */
     normalizeMessages(messages, opts = {}) {
         const keepThinking = opts.keepThinking !== false;
@@ -365,6 +364,7 @@ class ClaudeProvider extends BaseProvider {
 
     /**
      * @param {string} model
+     * @param {ClaudeOptions} [options]
      */
     buildThinking(model, options = {}) {
         return buildThinking(this, model, options);
@@ -683,9 +683,9 @@ class ClaudeProvider extends BaseProvider {
                     // normal delta
                 } else if (event.type === 'message_stop') {
                     // normal stop
-                } else if (/** @type {any} */ (event).type === 'error') { // not in the SDK's event union; defensive
+                } else if (/** @type {{ type?: string }} */ (event).type === 'error') { // not in the SDK's event union; defensive
                     log.error('[Claude] Stream error event:', JSON.stringify(event));
-                    onEvent('error', { error: /** @type {any} */ (event).error?.message || 'Unknown stream error' });
+                    onEvent('error', { error: /** @type {{ error?: { message?: string } }} */ (event).error?.message || 'Unknown stream error' });
                 }
             }
 

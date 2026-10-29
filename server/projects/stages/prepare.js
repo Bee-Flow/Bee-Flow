@@ -537,7 +537,7 @@ async function defaultStageCompleteness(stageProjectId) {
 /**
  * @param {{ deployment: object, stage: object, plan: object }} input  the deployment row, its stage row and
  *   the plan it runs (its `parts` give each ref's action and goesLive)
- * @param {object} [deps]  stores and engine modules (storesOf), `checkBeforeLiveCore`, `aiActState`,
+ * @param {Record<string, unknown>} [deps]  stores and engine modules (storesOf), `checkBeforeLiveCore`, `aiActState`,
  *   `scanStagePayloads`, `readiness`, `stageCompleteness(projectId)`, `readers` (stagePayload)
  * @returns {Promise<object>} what the commit needs
  * @throws {HttpError} 409 prepare_blocked {findings} when a verification blocks, or the error of a write

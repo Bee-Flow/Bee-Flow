@@ -155,9 +155,8 @@ class AzureProvider extends OpenAIProvider {
 
     /**
      * @param {string} apiKey
-     * @param {object} [options]
-     * @param {string} [options.baseUrl] - the resource endpoint from AI Settings → Providers
-     * @param {string} [options.endpoint] - same, older spelling
+     * @param {{ baseUrl?: string, endpoint?: string }} [options] `baseUrl`: the resource endpoint from
+     *   AI Settings → Providers; `endpoint`: same, older spelling
      */
     createClient(apiKey, options = {}) {
         const endpoint = options.baseUrl || options.endpoint || process.env.AZURE_OPENAI_ENDPOINT;
@@ -289,7 +288,11 @@ class AzureProvider extends OpenAIProvider {
 
     // ─── Models ──────────────────────────────────────────────────
 
-    /** The admin-configured deployments; Azure has no deployment listing on the data plane. */
+    /**
+     * The admin-configured deployments; Azure has no deployment listing on the data plane.
+     * @param {string | undefined} [_apiKey]
+     * @param {string | null | undefined} [_baseUrl]
+     */
     async listModels(_apiKey, _baseUrl, _options = {}) {
         const list = await this._loadDeployments();
         if (!list?.length) {

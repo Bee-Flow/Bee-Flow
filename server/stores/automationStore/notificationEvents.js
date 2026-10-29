@@ -28,7 +28,7 @@
 const crypto = require('crypto');
 
 /**
- * @typedef {object} EventRow
+ * @typedef EventRow
  * @property {string} id
  * @property {string} automation_id
  * @property {string | null} [run_id]
@@ -71,6 +71,8 @@ function rowToEvent(r) {
     };
 }
 
+/** @typedef {{ limit?: number }} ListDigestAutomationsArgs */
+/** @typedef {{ days?: number }} PurgeNotificationEventsArgs */
 /**
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
@@ -87,7 +89,9 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         await ready();
         const list = (Array.isArray(rows) ? rows : []).filter(r => r && r.automationId && r.event && r.recipient && r.channel);
         if (!list.length) return 0;
+        /** @type {string[]} */
         const values = [];
+        /** @type {(string | boolean | null)[]} */
         const params = [];
         for (const r of list) {
             const created = iso(r.createdAt) || new Date().toISOString();
@@ -222,6 +226,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
     /**
      * Automations with the daily summary switched on (working copy; notification
      * settings are not part of what a run executes). Trash excluded.
+     * @param {ListDigestAutomationsArgs} [param0]
      */
     async function listDigestAutomations({ limit = 2000 } = {}) {
         await ready();
@@ -304,7 +309,10 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return r.rows.map(rowToEvent);
     }
 
-    /** Drop rows older than `days` (the ledger is operational, not history). */
+    /**
+     * Drop rows older than `days` (the ledger is operational, not history).
+     * @param {PurgeNotificationEventsArgs} [param0]
+     */
     async function purgeNotificationEvents({ days = 30 } = {}) {
         await ready();
         const r = await db.query(

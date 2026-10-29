@@ -114,8 +114,7 @@ export function GrantList({ table, grants, canEdit, directory, onChanged, onPayw
                     </div>
                 ))}
 
-                <div className="grid items-center gap-3 px-4 py-3"
-                    style={{ gridTemplateColumns: 'minmax(0,1fr) 200px 32px', borderBottom: canEdit ? '1px solid var(--border-default)' : 'none' }}>
+                <div className={`grid items-center gap-3 px-4 py-3 [grid-template-columns:minmax(0,1fr)_200px_32px] ${canEdit ? '[border-bottom:1px_solid_var(--border-default)]' : '[border-bottom:none]'}`}>
                     <span className="flex items-center gap-2.5 min-w-0">
                         <Avatar name={owner?.name || owner?.email || table.ownerUserId || '?'} />
                         <span className="min-w-0">

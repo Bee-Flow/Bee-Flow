@@ -465,7 +465,7 @@ router.delete('/:id', validate({ query: DeleteQuery, body: DeleteBody }), /** @p
         const scrubbed = await agentStore.scrubSkillFromAllAgents(orgId, req.params.id);
         if (scrubbed > 0) log.info(`[Skills] Scrubbed deleted skill ${req.params.id} from ${scrubbed} agent(s)`);
     } catch (scrubErr) {
-        log.warn('[Skills] Scrub after delete failed:', scrubErr.message);
+        log.warn('[Skills] Scrub after delete failed:', /** @type {Error} */ (scrubErr).message);
     }
 
     res.json({ success: true });

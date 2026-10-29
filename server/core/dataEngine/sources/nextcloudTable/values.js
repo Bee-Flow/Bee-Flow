@@ -92,7 +92,7 @@ function optionId(options, label) {
 
 /**
  * What the mirror stores for one cell.
- * @param {*} value      the raw `value` from a Nextcloud row cell
+ * @param {unknown} value      the raw `value` from a Nextcloud row cell
  * @param {{ ncType?: string, ncSubtype?: string, options?: Array<{ id: string|number, label: string }>, [k: string]: unknown }} entry the columnMap entry
  * @param {{ type?: string }} field the mirror field
  */

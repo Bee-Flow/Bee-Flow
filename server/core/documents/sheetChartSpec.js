@@ -84,7 +84,7 @@ function chartSummary(c) {
 /**
  * Store new charts on the document, on top of its NEWEST settings (a tab may
  * have been added in the same call).
- * @param {any} doc
+ * @param {import('../../stores/documentStore').DocumentView} doc
  * @param {any[]} charts  new ones
  * @param {{ documents?: any, actorUserId?: string }} deps
  * @param {{ updated?: any[], removed?: string[] }} [changes]  from chartsFrom

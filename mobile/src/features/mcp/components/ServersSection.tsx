@@ -10,6 +10,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Card, Divider, ListSkeleton, Section, Text } from '@/shared/ui';
 
@@ -34,6 +35,7 @@ function ServerList({ rows }: { rows: McpServer[] }) {
 }
 
 export function ServersSection({ servers }: { servers: ReturnType<typeof useMcpServers> }) {
+    const t = useTranslation();
     const rows = servers.data ?? [];
     let body: React.ReactNode;
     if (servers.isLoading) {
@@ -47,9 +49,7 @@ export function ServersSection({ servers }: { servers: ReturnType<typeof useMcpS
         body = (
             <Card>
                 <Text variant="body" tone="tertiary">
-                    No MCP servers are configured. An administrator adds them in the
-                    web app — each one needs a command or a URL, and usually a
-                    credential.
+                    {t('mobile.mcp.servers_empty', 'No MCP servers are configured. An administrator adds them in the web app — each one needs a command or a URL, and usually a credential.')}
                 </Text>
             </Card>
         );
@@ -58,7 +58,10 @@ export function ServersSection({ servers }: { servers: ReturnType<typeof useMcpS
     }
 
     return (
-        <Section title="Connected servers" subtitle="What Bee Flow can call out to">
+        <Section
+            title={t('mobile.mcp.servers_title', 'Connected servers')}
+            subtitle={t('mobile.mcp.servers_subtitle', 'What Bee Flow can call out to')}
+        >
             {body}
         </Section>
     );

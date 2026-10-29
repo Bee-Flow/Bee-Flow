@@ -38,7 +38,7 @@ const { resolveDeps, makeStageHandlers, authMw } = require('./projects/stages/st
 const { makeSettingsHandlers } = require('./projects/stages/settingsRoutes');
 
 /**
- * @param {object} [deps]  see routes/projects/stages/stageRoutes.resolveDeps
+ * @param {Record<string, unknown>} [deps]  see routes/projects/stages/stageRoutes.resolveDeps
  * @returns {import('express').Router}
  */
 function makeSolutionStagesDrainRouter(deps = {}) {

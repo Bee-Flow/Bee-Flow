@@ -123,7 +123,7 @@ async function _initDB() {
         }
         log.info('[SupportInboxStore] PostgreSQL initialized');
     } catch (err) {
-        log.error('[SupportInboxStore] Init error:', err.message);
+        log.error('[SupportInboxStore] Init error:', /** @type {Error} */ (err).message);
         throw err;
     }
 }

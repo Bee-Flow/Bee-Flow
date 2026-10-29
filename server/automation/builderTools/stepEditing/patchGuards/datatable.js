@@ -56,6 +56,7 @@ function linkDatatablePatch(stepId, step, patch, draftWrap, patchNotes) {
     // very table was refused as a re-point, and the model's next move was to
     // remove + re-add the step. The same table is a no-op and says so; a blank
     // step is filled with both id and key; a different table is the refusal.
+    /** @type {Builder.CatalogTable | null} */
     let filledTable = null;
     if (step.type === 'datatable' && ('datatableId' in patch || 'datatableKey' in patch)) {
         const linked = (typeof step.datatableId === 'string' && step.datatableId) ? step.datatableId : null;

@@ -283,7 +283,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} ParamRow  one declared argument, as the builder wrote it
+ * @typedef ParamRow  one declared argument, as the builder wrote it
  * @property {string|number} [name]
  * @property {string} [type]
  * @property {boolean} [required]
@@ -293,7 +293,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} PropertyDecl  one entry of a schema's `properties`, as the builder wrote it
+ * @typedef PropertyDecl  one entry of a schema's `properties`, as the builder wrote it
  * @property {string} [type]
  * @property {unknown} [description]
  * @property {unknown} [required]
@@ -302,7 +302,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} ParametersSchema
+ * @typedef ParametersSchema
  * @property {string} [type]
  * @property {Record<string, PropertyDecl>} [properties]
  * @property {string[]} [required]

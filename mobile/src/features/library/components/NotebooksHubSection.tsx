@@ -7,14 +7,14 @@ import { timeAgo, useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { countLabel } from '@/features/knowledge';
 import type { NotebookCard, useNotebookSearch } from '@/features/notebooks';
-import { plural } from '@/shared/lib/format';
+import { nOf } from '@/shared/lib/plural';
 import { Icon, ListRow } from '@/shared/ui';
 
 import { HubRows } from './HubRows';
 import { HubSection } from './HubSection';
 
 function NotebookHubRow({ nb }: { nb: NotebookCard }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const router = useRouter();
     return (
@@ -22,9 +22,9 @@ function NotebookHubRow({ nb }: { nb: NotebookCard }) {
             title={nb.name}
             subtitle={
                 countLabel([
-                    plural(nb.sourceCount, 'source'),
-                    nb.processingCount > 0 ? `${nb.processingCount} processing` : null,
-                    nb.messageCount > 0 ? plural(nb.messageCount, 'message') : null,
+                    nOf(t, 'knowledge.n_sources', nb.sourceCount, ['{count} source', '{count} sources']),
+                    nb.processingCount > 0 ? t('mobile.library.n_processing', '{count} processing', { count: nb.processingCount }) : null,
+                    nb.messageCount > 0 ? nOf(t, 'mobile.library.n_messages', nb.messageCount, ['{count} message', '{count} messages']) : null,
                 ]) || undefined
             }
             meta={timeAgo(nb.lastActivityAt ?? nb.updatedAt)}
@@ -41,11 +41,12 @@ function NotebookHubRow({ nb }: { nb: NotebookCard }) {
 }
 
 export function NotebooksHubSection({ notebooks }: { notebooks: ReturnType<typeof useNotebookSearch> }) {
+    const t = useTranslation();
     const router = useRouter();
     const page = notebooks.data;
     return (
         <HubSection
-            title="Notebooks"
+            title={t('notebooks.title', 'Notebooks')}
             icon="Book"
             // Only a truthful count: the hub asks for one page, so showing its
             // length when the server says there is more would understate it.
@@ -55,9 +56,9 @@ export function NotebooksHubSection({ notebooks }: { notebooks: ReturnType<typeo
             error={notebooks.isError ? notebooks.error : undefined}
             onRetry={() => void notebooks.refetch()}
             isEmpty={(page?.notebooks.length ?? 0) === 0}
-            emptyTitle="No notebooks yet"
-            emptyMessage="A notebook gathers sources — files, links, meetings — and lets you ask questions across all of them."
-            emptyActionLabel="Create one"
+            emptyTitle={t('mobile.library.nb_empty', 'No notebooks yet')}
+            emptyMessage={t('mobile.library.nb_empty_hint', 'A notebook gathers sources — files, links, meetings — and lets you ask questions across all of them.')}
+            emptyActionLabel={t('mobile.library.create_one', 'Create one')}
             onEmptyAction={() => router.push('/notebooks')}
         >
             <HubRows items={page?.notebooks ?? []} renderRow={(nb) => <NotebookHubRow nb={nb} />} />

@@ -11,20 +11,25 @@
 import React from 'react';
 
 import { ApiError } from '@/core/api/client';
+import { useTranslation } from '@/core/i18n';
 import { ErrorState, Screen, ScreenHeader } from '@/shared/ui';
 
 export function AppUnavailable({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+    const t = useTranslation();
     const notFound = error instanceof ApiError && error.status === 404;
     return (
         <Screen edges={['top', 'bottom']}>
-            <ScreenHeader title="App" />
+            <ScreenHeader title={t('studio_apps_bi.list.app_fallback', 'App')} />
             <ErrorState
                 error={
                     notFound
                         ? new Error(
-                              'This app is not published, or is not shared with you. If it was just unpublished, try again once it is back.',
+                              t(
+                                  'mobile.apps.unpublished',
+                                  'This app is not published, or is not shared with you. If it was just unpublished, try again once it is back.',
+                              ),
                           )
-                        : (error ?? new Error('This app is not available to you.'))
+                        : (error ?? new Error(t('mobile.apps.unavailable', 'This app is not available to you.')))
                 }
                 onRetry={onRetry}
             />

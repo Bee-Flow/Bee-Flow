@@ -23,12 +23,22 @@ const log = require('../../telemetry/log');
 const CONTEXT_MESSAGES = 30;
 
 /**
- * @param {object} [deps]
- * @param {any}   [deps.store]         stores/projectChatStore surface
- * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]    (id) => project row
- * @param {typeof import('../../stores/projectStore').getProjectShares} [deps.getProjectShares] (projectId) => share rows
- * @param {any}   [deps.chatCrypto]    { forProject(project) }
- * @param {any}   [deps.assistant]     { requestReply } (makeChatAssistant())
+ * The stores/projectChatStore surface (countReadersAtLeast, getChatById,
+ * listMessages). Loose: the store's listMessages declares entries that may be
+ * null, which loadContext reads without a check.
+ * @typedef {any} SurfaceChatStore
+ */
+
+/**
+ * Every dependency is a test seam whose default is the real module;
+ * `assistant` is makeChatAssistant()'s surface.
+ *
+ * @param {{
+ *   store?: SurfaceChatStore,
+ *   getProject?: typeof import('../../stores/projectStore').getProject,
+ *   getProjectShares?: typeof import('../../stores/projectStore').getProjectShares,
+ *   chatCrypto?: { forProject: typeof import('../chatCrypto').forProject },
+ *   assistant?: Pick<ReturnType<typeof import('../chatAssistant').makeChatAssistant>, 'requestReply'> }} [deps]
  */
 function makeChatSurface(deps = {}) {
     const store = () => deps.store || require('../../stores/projectChatStore');
@@ -93,7 +103,8 @@ function makeChatSurface(deps = {}) {
     }
 
     /**
-     * @param {{ ctx: any, watch: any, trigger: any, aiTrigger: string, reasonCode: string, gateLastSeq: number }} job
+     * @param {{ ctx: any, watch: any, trigger: any, reasonCode: string, gateLastSeq: number,
+     *           aiTrigger: Parameters<ReturnType<typeof import('../chatAssistant').makeChatAssistant>['requestReply']>[0]['aiTrigger'] }} job
      */
     async function answer({ ctx, watch, trigger, aiTrigger, reasonCode, gateLastSeq }) {
         const reply = await assistant().requestReply({

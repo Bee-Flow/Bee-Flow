@@ -156,7 +156,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                 if (caps.length === 0) return null;
                 const SectionIcon = section.icon;
                 return (
-                    <div key={section.kind} className="mb-5" style={{ opacity: unrestricted ? 0.6 : 1 }}>
+                    <div key={section.kind} className={`mb-5 ${unrestricted ? '[opacity:0.6]' : '[opacity:1]'}`}>
                         <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                             <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
                         </div>

@@ -1,3 +1,5 @@
+/** @typedef {import('../../core/automationModel/dslFilters').TriggerPayload} TriggerPayload */
+/** @typedef {import('../../core/automationModel/dslFilters').DslFilter} DslFilter */
 // @typecheck
 /**
  * Event dispatch fan-out (§WS5, extracted verbatim from triggerBus.js).
@@ -47,6 +49,9 @@ const NC_POLLER_OWNED_EVENTS = new Set(['file.new', 'file.changed']);
 // Scope declared by a trigger-source manifest, when there is one. Required
 // lazily and defensively: dispatch.js is on the hot path for every inbound
 // event and must not hard-depend on the registry being loadable.
+/**
+ * @param {string} provider
+ */
 function declaredScope(provider) {
     try {
         return require('../triggerSources').getProviderScope(provider) || null;
@@ -54,7 +59,13 @@ function declaredScope(provider) {
         return null;
     }
 }
+/**
+ * @param {string} p
+ */
 const isUserScoped = (p) => USER_SCOPED_PROVIDERS.has(p) || declaredScope(p) === 'user';
+/**
+ * @param {string} p
+ */
 const isOrgScoped = (p) => ORG_SCOPED_PROVIDERS.has(p) || declaredScope(p) === 'org';
 
 // Shared per-call userId → orgId resolver, used to scope fan-out to the
@@ -121,7 +132,7 @@ function runMatchedSubscription(sub, matcher, provider, event, payload) {
                 rootStepId: sub.triggerStepId || null,
             });
         } catch (e) {
-            log.error('[TriggerBus] dispatch error:', e.message);
+            log.error('[TriggerBus] dispatch error:', /** @type {Error} */ (e).message);
         }
     });
     return { subId: sub.id };
@@ -140,6 +151,10 @@ function runMatchedSubscription(sub, matcher, provider, event, payload) {
  */
 function dispatchToSubscription(sub, { provider, event, payload = {} }) {
     const baseMatcher = pickMatcher(provider, event);
+    /**
+     * @param {TriggerPayload} p
+     * @param {DslFilter | null} f
+     */
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
     const canonical = provider === 'nextcloud' ? normaliseNextcloudPayload(event, payload) : payload;
     const result = runMatchedSubscription(sub, matcher, provider, event, canonical);
@@ -197,7 +212,7 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
             require('../../core/meetingNotes/talkAutoIngest').maybeIngest({ payload, userId: userId || actorUserId, orgId })
                 .catch(e => log.error('[TalkAutoIngest] tap error:', e.message));
         } catch (e) {
-            log.error('[TalkAutoIngest] tap load error:', e.message);
+            log.error('[TalkAutoIngest] tap load error:', /** @type {Error} */ (e).message);
         }
     }
     // Side-effect tap: a finished meeting arms the knowledge sources that
@@ -210,7 +225,7 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
             Promise.resolve(require('../../jobs/kbSourceRefresh').onMeetingProcessed(payload))
                 .catch(e => log.error('[KBSourceRefresh] tap error:', e.message));
         } catch (e) {
-            log.error('[KBSourceRefresh] tap load error:', e.message);
+            log.error('[KBSourceRefresh] tap load error:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -220,6 +235,10 @@ async function dispatchEvent({ provider, event, payload: rawPayload = {}, userId
     // Wrap baseMatcher with the rich-filter DSL so any/none/expr/age work
     // for every matcher consistently (Phase 1.4). The DSL is no-op when
     // the filter has no DSL keys, so existing flows are unchanged.
+    /**
+     * @param {TriggerPayload} p
+     * @param {DslFilter | null} f
+     */
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
     // userId identifies the exact subscriber — filter to just that user.
     // Otherwise, for org-scoped providers (Nextcloud) scope fan-out to
@@ -309,6 +328,10 @@ async function ncDeliveryFor({ sub, event, payload, actorKnown, ncVisibility, me
 // subscription whose subscriber belongs to `orgId`. The per-call userId→orgId
 // cache avoids repeated userStore.getUser lookups when many subscriptions share
 // a subscriber.
+/**
+ * @param {string} provider
+ * @param {string} event
+ */
 async function dispatchOrgScopedEvent(provider, event, payload = {}, orgId = null) {
     if (!event) return [];
     // Security: this dispatch path exists specifically to scope fan-out to
@@ -330,6 +353,10 @@ async function dispatchOrgScopedEvent(provider, event, payload = {}, orgId = nul
     // silently ignored on this path, so an automation fired on events its
     // author had explicitly excluded.
     const baseMatcher = pickMatcher(provider, event);
+    /**
+     * @param {TriggerPayload} p
+     * @param {DslFilter | null} f
+     */
     const matcher = (p, f) => applyDslFilter(p, f, baseMatcher);
     for (const sub of subs) {
         const subOrg = await lookupOrg(sub.userId);
@@ -340,6 +367,9 @@ async function dispatchOrgScopedEvent(provider, event, payload = {}, orgId = nul
     return runs;
 }
 
+/**
+ * @param {string} event
+ */
 const dispatchSupportEvent = (event, payload = {}, orgId = null) =>
     dispatchOrgScopedEvent('support', event, payload, orgId);
 

@@ -109,8 +109,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                             aria-checked={voiceprintMatchingEnabled}
                             onClick={() => saveVoiceprintSettings({ voiceprintMatchingEnabled: !voiceprintMatchingEnabled })}
                             disabled={savingVoiceprint}
-                            className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 mt-1"
-                            style={{ background: voiceprintMatchingEnabled ? 'var(--accent-primary)' : 'var(--border-default)', opacity: savingVoiceprint ? 0.6 : 1 }}
+                            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 mt-1 ${voiceprintMatchingEnabled ? '[background:var(--accent-primary)]' : '[background:var(--border-default)]'} ${savingVoiceprint ? '[opacity:0.6]' : '[opacity:1]'}`}
                         >
                             <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"
                                 style={{ transform: voiceprintMatchingEnabled ? 'translateX(20px)' : 'translateX(0)' }} />

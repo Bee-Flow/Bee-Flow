@@ -234,12 +234,7 @@ function LayoutPicker({ value, onChange }: { value: string; onChange: (id: strin
                         aria-pressed={selected}
                     >
                         <div
-                            className="w-full flex items-center justify-center rounded"
-                            style={{
-                                height: 44,
-                                background: selected ? 'rgba(245, 166, 35, 0.06)' : 'var(--bg-secondary, #ffffff)',
-                                border: '1px solid var(--border-subtle, rgba(15,23,42,0.08))',
-                            }}
+                            className={`w-full flex items-center justify-center rounded [height:44px] [border:1px_solid_var(--border-subtle,_rgba(15,23,42,0.08))] ${selected ? '[background:rgba(245,_166,_35,_0.06)]' : '[background:var(--bg-secondary,_#ffffff)]'}`}
                         >
                             {opt.diagram}
                         </div>

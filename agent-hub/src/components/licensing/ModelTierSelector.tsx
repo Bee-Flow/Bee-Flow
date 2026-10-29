@@ -160,16 +160,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                     selected row without painting a hard border. */}
                                 <span
                                     aria-hidden="true"
-                                    style={{
-                                        width: '28px', height: '28px',
-                                        borderRadius: '7px',
-                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                        background: isSelected
-                                            ? 'color-mix(in srgb, var(--accent-primary) 16%, transparent)'
-                                            : 'var(--bg-secondary)',
-                                        flexShrink: 0,
-                                        transition: 'background 0.12s ease',
-                                    }}
+                                    className={`[width:28px] [height:28px] [border-radius:7px] [display:inline-flex] [align-items:center] [justify-content:center] [flex-shrink:0] [transition:background_0.12s_ease] ${isSelected ? '[background:color-mix(in_srgb,_var(--accent-primary)_16%,_transparent)]' : '[background:var(--bg-secondary)]'}`}
                                 >
                                     {meta.iconSrc ? (
                                         <img src={meta.iconSrc} alt="" className="w-[16px] h-[16px] [object-fit:contain]" />
@@ -245,11 +236,7 @@ function ModelTierSelectorSection({ setOpen, open, variant, t, currentMeta, valu
         )}
         <span>{t(`tier.${value}`, currentMeta.label)}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
-            style={{
-                opacity: 0.55,
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.18s ease',
-            }}>
+            className={`[opacity:0.55] [transition:transform_0.18s_ease] ${open ? '[transform:rotate(180deg)]' : '[transform:rotate(0deg)]'}`}>
             <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     </button>;

@@ -121,6 +121,7 @@ function fromMatrix(matrix, { headerRow = 1, maxRows, maxCols, dateCols = new Se
         throw new SpreadsheetSourceError(422, 'header_missing',
             `${sheet ? `Worksheet "${sheet}"` : 'The sheet'} has no header row there — pick the row that holds the column names.`, { ref: { sheet } });
     }
+    /** @type {string[]} */
     const warnings = [];
     let span = lastHeader + 1;
     if (span > maxCols) {
@@ -130,6 +131,7 @@ function fromMatrix(matrix, { headerRow = 1, maxRows, maxCols, dateCols = new Se
     const header = [];
     for (let c = 0; c < span; c += 1) header.push(headerCells[c] === undefined || headerCells[c] === '' ? null : headerCells[c]);
     const rows = [];
+    /** @type {number[]} */
     const rowNumbers = [];
     let lastDataRow = h;
     let beyond = false;
@@ -308,6 +310,7 @@ function writeModeFor({ provider, format, owned = false, writable = true, workbo
     if (format !== 'gsheet' && format !== 'xlsx' && format !== 'csv') return none('format');
     if (writable === false) return none('no_permission');
     if (!owned && !optIn) return none('not_owned');
+    /** @type {string} */
     let mode;
     if (format === 'gsheet') mode = 'sheets_api';
     else if (format === 'csv') mode = 'csv_put';

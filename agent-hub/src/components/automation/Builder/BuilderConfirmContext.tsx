@@ -28,9 +28,9 @@ interface ConfirmOptions {
     [key: string]: unknown;
 }
 
-type ConfirmFn = (opts?: ConfirmOptions) => Promise<unknown>;
+export type BuilderConfirmFn = (opts?: ConfirmOptions) => Promise<unknown>;
 
-const BuilderConfirmContext = createContext<ConfirmFn | null>(null);
+const BuilderConfirmContext = createContext<BuilderConfirmFn | null>(null);
 
 export const BuilderConfirmProvider = BuilderConfirmContext.Provider;
 

@@ -3,6 +3,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles } from '@/core/theme/ThemeProvider';
 import { Section, Text } from '@/shared/ui';
 
@@ -10,10 +11,11 @@ import { makeMeetingStyles } from './meetingStyles';
 import type { Chapter } from '../model/types';
 
 export function ChaptersSection({ chapters }: { chapters: Chapter[] }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeMeetingStyles);
     if (chapters.length === 0) return null;
     return (
-        <Section title="Chapters">
+        <Section title={t('mobile.recording.chapters', 'Chapters')}>
             <View style={styles.stackSm}>
                 {chapters.map((chapter, index) => (
                     <View key={`${index}-${chapter.start}`} style={styles.chapter}>

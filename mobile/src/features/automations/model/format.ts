@@ -22,7 +22,7 @@ export { absoluteTime, formatDuration, runElapsedMs } from './time';
 export { describeTrigger, triggerIcon } from './trigger';
 export {
     DEFAULT_SIMPLE_SCHEDULE,
-    WEEKDAY_NAMES,
+    WEEKDAYS,
     cronFromSimple,
     describeCron,
     pad,

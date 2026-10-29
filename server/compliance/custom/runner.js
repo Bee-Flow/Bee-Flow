@@ -47,26 +47,15 @@ const STATUS_RANK = { na: 0, pass: 1, warn: 2, fail: 3 };
 const MAPPED_RANK = { fail: 3, warn: 2, pass: 1 };
 
 /**
- * @typedef {object} CustomCheckRow
- * @property {string} [severity]
- * @property {string} [mapped_check_id]
- * @property {boolean} [evidence_required]
+ * @typedef {{ severity?: string, mapped_check_id?: string, evidence_required?: boolean }} CustomCheckRow
  */
 /**
- * @typedef {object} AttestationRow
- * @property {string} [id]
- * @property {string} [outcome]
- * @property {string} [attested_at]
- * @property {string|Date} [expires_at]
- * @property {string|any[]} [evidence_refs]
+ * @typedef {{ id?: string, outcome?: string, attested_at?: string, expires_at?: string|Date,
+ *   evidence_refs?: string|any[] }} AttestationRow
  */
 /**
- * @typedef {object} MappedResultRow
- * @property {string} [status]
- * @property {string} [severity]
- * @property {string} [check_id]
- * @property {string} [details]
- * @property {string} [run_at]
+ * @typedef {{ status?: string, severity?: string, check_id?: string, details?: string,
+ *   run_at?: string }} MappedResultRow
  */
 
 /**

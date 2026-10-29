@@ -20,7 +20,7 @@
  */
 
 /**
- * @param {any} pg  a PGlite handle
+ * @param {import('@electric-sql/pglite').PGlite} pg  a PGlite handle
  * @param {{ versions?: boolean }} [opts]
  */
 async function applyProjectCheckSchema(pg, { versions = true } = {}) {
@@ -68,7 +68,7 @@ async function applyProjectCheckSchema(pg, { versions = true } = {}) {
     }
 }
 
-/** @param {any} pg  a PGlite handle */
+/** @param {import('@electric-sql/pglite').PGlite} pg  a PGlite handle */
 function queryOf(pg) {
     return async (/** @type {string} */ sql, /** @type {any[] | undefined} */ params) => (await (params && params.length ? pg.query(sql, params) : pg.query(sql))).rows;
 }

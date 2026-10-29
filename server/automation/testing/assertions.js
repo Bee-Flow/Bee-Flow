@@ -43,7 +43,7 @@ const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 /** @param {unknown} v */
 const typeOf = (v) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
 /**
- * @param {object} o
+ * @param {unknown} o  an object (hasOwnProperty.call takes any receiver)
  * @param {PropertyKey} k
  */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -64,8 +64,8 @@ function cut(value) {
 
 /**
  * Deep equality with JSON semantics: key order is irrelevant.
- * @param {any} a
- * @param {any} b
+ * @param {unknown} a
+ * @param {unknown} b
  * @param {number} [depth]
  * @returns {boolean}
  */
@@ -73,12 +73,16 @@ function deepEqual(a, b, depth = 0) {
     if (a === b) return true;
     if (depth > MAX_DEPTH || typeof a !== typeof b || a === null || b === null || typeof a !== 'object') return false;
     if (Array.isArray(a) !== Array.isArray(b)) return false;
+    // From here both are non-null objects, and b is an array exactly when a is.
     if (Array.isArray(a)) {
-        return a.length === b.length && a.every((/** @type {unknown} */ x, /** @type {number} */ i) => deepEqual(x, b[i], depth + 1));
+        const bl = /** @type {unknown[]} */ (b);
+        return a.length === bl.length && a.every((/** @type {unknown} */ x, /** @type {number} */ i) => deepEqual(x, bl[i], depth + 1));
     }
-    const ka = Object.keys(a);
-    if (ka.length !== Object.keys(b).length) return false;
-    return ka.every((k) => hasOwn(b, k) && deepEqual(a[k], b[k], depth + 1));
+    const ra = /** @type {Record<string, unknown>} */ (a);
+    const rb = /** @type {Record<string, unknown>} */ (b);
+    const ka = Object.keys(ra);
+    if (ka.length !== Object.keys(rb).length) return false;
+    return ka.every((k) => hasOwn(rb, k) && deepEqual(ra[k], rb[k], depth + 1));
 }
 
 /**
@@ -132,7 +136,7 @@ function byteSize(v) {
 /**
  * The problem with an assertion's `value` for its op, or null.
  * @param {string} op
- * @param {any} value
+ * @param {unknown} value
  */
 function valueProblem(op, value) {
     if (op === 'equals' || op === 'not_equals') {
@@ -142,7 +146,7 @@ function valueProblem(op, value) {
         return ['string', 'number', 'boolean', 'object', 'array'].includes(typeOf(value)) ? null : 'must be text, a number, true/false, a list or an object';
     }
     if (op === 'has_key') return typeof value === 'string' && value !== '' ? null : 'must be a non-empty key name';
-    if (op === 'type_is') return TYPE_NAMES.includes(value) ? null : `must be one of ${TYPE_NAMES.join(', ')}`;
+    if (op === 'type_is') return /** @type {readonly unknown[]} */ (TYPE_NAMES).includes(value) ? null : `must be one of ${TYPE_NAMES.join(', ')}`;
     if (op === 'count_is') {
         return isObject(value) && CMPS.includes(value.cmp) && Number.isInteger(value.n) && value.n >= 0
             ? null : 'must be {cmp: eq|gte|lte, n: a whole number from 0}';

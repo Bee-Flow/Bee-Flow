@@ -28,7 +28,7 @@ export interface ProjectShare {
     createdAt?: string;
 }
 
-/** A member as any viewer of the project sees them: a display name, never an e-mail address. */
+/** A member the way every viewer of the project sees them: a display name, never an e-mail address. */
 interface ProjectPerson {
     name?: string;
     avatar?: string;

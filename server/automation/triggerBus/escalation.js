@@ -70,7 +70,7 @@ module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTI
 
 /**
  * The credentials a poller or renewal pass runs with (triggerBus.loadSession).
- * @typedef {Object} TriggerSession
+ * @typedef TriggerSession
  * @property {string} [accessToken]
  * @property {string | null} [refreshToken]
  * @property {string | null} [oauthProvider]
@@ -93,7 +93,7 @@ module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTI
 
 /**
  * What triggerBus.js hands to the extracted pollers, escalation and renewal.
- * @typedef {Object} TriggerBusCtx
+ * @typedef TriggerBusCtx
  * @property {() => typeof import('../../stores/automationStore')} store
  * @property {() => typeof import('../../integrations/googleClient')} googleClient
  * @property {() => typeof import('../../integrations/gmailTools')} gmailTools

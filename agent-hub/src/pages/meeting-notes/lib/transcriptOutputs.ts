@@ -53,7 +53,7 @@ function readNames(value: string | (string | number | null)[] | undefined) {
  * `lineCount` is also what distinguishes a filed rule from a kb that gathers this meeting via a TAG. The second is another claim — "everything with this label ends up here" — and belongs in the outputs bar, not in "taken out of this".
  *
  * @param {Array|null|undefined} usage rows from useUsage; `null` = not yet loaded
- * @param {{unchecked?: string[], error?: any}} [opts]
+ * @param {{unchecked?: string[], error?: unknown}} [opts]
  * @returns {{state: string, partial: boolean, rows: Array, total: number}}
  */
 interface UsageRow {

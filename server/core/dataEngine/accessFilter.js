@@ -81,6 +81,10 @@ const { parseExpr } = require('../../shared/expr/index.mjs');
 
 /** A 403-style (or 400 validation) access failure. */
 class AccessError extends Error {
+    /**
+     * @param {string} message
+     * @param {number} [status]
+     */
     constructor(message, status = 403) {
         super(message);
         this.name = 'AccessError';
@@ -88,6 +92,9 @@ class AccessError extends Error {
     }
 }
 
+/**
+ * @param {string} name
+ */
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
@@ -146,9 +153,14 @@ function canRead(tableMeta, role) {
 
 // ── Row filter → parameterised SQL ──────────────────────────────────
 
+/** @type {Record<string, string>} */
 const CMP = { '==': '=', '===': '=', '!=': '!=', '!==': '!=', '<': '<', '<=': '<=', '>': '>', '>=': '>=' };
+/** @type {Record<string, string>} */
 const LOGIC = { '&&': 'AND', '||': 'OR' };
 
+/**
+ * @param {string} message
+ */
 function reject(message) {
     return new AccessError(message, 400);
 }
@@ -261,7 +273,7 @@ function validateRowFilter(astOrExpr, tableMeta) {
         rowFilterToSql(astOrExpr, {}, tableMeta);
         return { ok: true, errors: [] };
     } catch (e) {
-        return { ok: false, errors: [e instanceof Error ? e.message : String(e)] };
+        return { ok: false, errors: [e instanceof Error ? /** @type {Error} */ (e).message : String(e)] };
     }
 }
 
@@ -292,6 +304,7 @@ function compileAccessFilter(tableMeta, role, viewer, action, opts = {}) {
     const viewerId = (viewer && viewer.id != null) ? viewer.id : null;
     const scope = resolveScope(tableMeta, role, action);
 
+    /** @type {string} */
     let where;
     let params;
     if (scope === 'all') { where = '1=1'; params = []; }

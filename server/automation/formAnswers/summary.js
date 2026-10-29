@@ -91,14 +91,18 @@ function questionColumns(source, meta) {
 // ── the summary ─────────────────────────────────────────────────────────
 
 /**
- * @param {object} args
- * @param {{ id?: string, name?: string, source?: { columnMap?: import('./derive').ColumnMap }, rowCount?: number|null, retentionDays?: number|null }} args.table  the datatables row (rowToDatatable shape)
- * @param {object} args.meta        the table descriptor WITH `access` (metaFor)
- * @param {import('../../core/dataEngine/queryCompiler').AccessFilter} args.filter      the caller's compiled access filter
- * @param {string} args.scopeKey
- * @param {{ from?: string | null, to?: string | null }} args.range
- * @param {(ids: string[]) => Promise<Array<{ id: string, username: string | null, displayName: string | null }>>} [args.lookupUsers]
- * @param {Date} [args.now]
+ * `table` is the datatables row (rowToDatatable shape), `meta` the table
+ * descriptor WITH `access` (metaFor; the compiler checks it, this module reads
+ * its fields), `filter` the caller's compiled access filter.
+ * @param {{
+ *   table: { id?: string, name?: string, source?: { columnMap?: import('./derive').ColumnMap }, rowCount?: number|null, retentionDays?: number|null },
+ *   meta: { fields?: Array<{ key: string }> },
+ *   filter: import('../../core/dataEngine/queryCompiler').AccessFilter,
+ *   scopeKey: string,
+ *   range?: { from?: string | null, to?: string | null },
+ *   lookupUsers?: ((ids: string[]) => Promise<Array<{ id: string, username: string | null, displayName: string | null }>>) | null,
+ *   now?: Date,
+ * }} args
  */
 async function answersSummary({ table, meta, filter, scopeKey, range: rawRange = {}, lookupUsers = null, now = new Date() }) {
     const range = resolveRange(rawRange, now);

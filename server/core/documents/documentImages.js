@@ -87,13 +87,14 @@ function sharedAuthorCache() {
 }
 
 /**
- * @param {object} args
- * @param {string} args.readerId
- * @param {{ id: string, userId?: string|null }} args.doc                       the document being rendered
- * @param {(documentId: string, needles: string[], opts?: { afterSeq?: number|null }) => Promise<{ createdBy: string|null } | null>} args.firstAuthorOf
- * @param {(documentId: string) => Promise<number|null>} [args.revisionSeqOf]  the latest revision's number; without it nothing is kept across renders
- * @param {(userId: string) => (ref: any) => Promise<string|null>} args.resolverFor  one person's storage reader
- * @param {ReturnType<typeof makeAuthorCache>} [args.cache]  answers kept across renders (default: this render only)
+ * @param {{ readerId: string, doc: { id: string, userId?: string|null },
+ *   firstAuthorOf: (documentId: string, needles: string[], opts?: { afterSeq?: number|null }) => Promise<{ createdBy: string|null } | null>,
+ *   revisionSeqOf?: (documentId: string) => Promise<number|null>,
+ *   resolverFor: (userId: string) => (ref: any) => Promise<string|null>,
+ *   cache?: ReturnType<typeof makeAuthorCache> }} args `doc`: the document being rendered;
+ *   `revisionSeqOf`: the latest revision's number; without it nothing is kept across renders;
+ *   `resolverFor`: one person's storage reader; `cache`: answers kept across renders (default: this
+ *   render only)
  * @returns {(ref: any) => Promise<string|null>}
  */
 function makeDocumentImageResolver({ readerId, doc, firstAuthorOf, revisionSeqOf, resolverFor, cache = makeAuthorCache() }) {

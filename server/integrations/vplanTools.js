@@ -26,23 +26,15 @@
 // @typecheck
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
-const { MAX_LIMIT, WITH_OPTIONS, MASTER_DATA_TYPES, TIME_FRAMES, TIME_TRACKING_GROUP_BY, VPLAN_TOOLS, VPLAN_TOOL_NAMES } = require('./vplanToolDefs');
+const { MAX_LIMIT, WITH_OPTIONS, TIME_TRACKING_GROUP_BY, VPLAN_TOOLS, VPLAN_TOOL_NAMES } = require('./vplanToolDefs');
 const { clampLimit, clampOffset, truncateRows, stripNoise, extractVplanErrorMessage, retryDelayMs, buildUrl, vplanRequest, vplanList } = require('./vplanClient');
 const { buildFilterParams, buildSortParam, buildWithParam, requireUuid, requireDate, buildListQuery } = require('./vplanQuery');
+const { getResourceAvailability, getCapacity, listMasterData } = require('./vplanPlanningTools');
 
 // Both credentials travel in request headers, so these regexes are the
 // header-injection guard: no whitespace, no CR, no LF.
 const API_KEY_RE = /^[A-Za-z0-9._~-]{16,512}$/;
 const API_ENV_RE = /^[A-Za-z0-9._~-]{4,128}$/;
-
-// Capacity scope → path suffix under /board/{board_id}/capacity.
-/** @type {Record<string, string>} */
-const CAPACITY_SCOPES = {
-    stage: 'stage',
-    resource: 'resource',
-    group: 'group',
-    resource_type: 'resource_type/stage',
-};
 
 // ─── Tool definitions (OpenAI function-calling format) ─────────
 
@@ -115,28 +107,8 @@ async function runVplanTool(toolName, args, creds) {
             return vplanList(creds, '/resource', query);
         }
 
-        case 'vplan_get_resource_availability': {
-            const id = requireUuid(args.resourceId, 'resourceId');
-            const start = requireDate(args.start, 'start');
-            const end = requireDate(args.end, 'end');
-            const schedule = await vplanList(creds, `/resource/${id}/schedule`, {
-                limit: String(clampLimit(args.limit, MAX_LIMIT)),
-                offset: String(clampOffset(args.offset)),
-                filter: `date:gte:'${start}',and,date:lte:'${end}'`,
-                sort: 'date:asc',
-            });
-            const result = { resourceId: id, start, end, schedule };
-            if (args.includeAbsences !== false) {
-                // An absence counts when it overlaps the range at either end.
-                result.absences = await vplanList(creds, `/resource/${id}/schedule_deviation`, {
-                    limit: String(MAX_LIMIT),
-                    offset: '0',
-                    filter: `end_date:gte:'${start}',and,start_date:lte:'${end}'`,
-                    sort: 'start_date:asc',
-                });
-            }
-            return result;
-        }
+        case 'vplan_get_resource_availability':
+            return getResourceAvailability(args, creds);
 
         case 'vplan_list_activities': {
             if (args.activityId) {
@@ -249,55 +221,11 @@ async function runVplanTool(toolName, args, creds) {
             return { summary: await vplanRequest(creds, '/time_tracking/export', query) };
         }
 
-        case 'vplan_get_capacity': {
-            const boardId = requireUuid(args.boardId, 'boardId');
-            const scope = String(args.scope || 'stage').trim().toLowerCase();
-            const suffix = CAPACITY_SCOPES[scope];
-            if (!suffix) {
-                throw new Error(`Invalid scope "${args.scope}". Use: ${Object.keys(CAPACITY_SCOPES).join(', ')}`);
-            }
-            /** @type {{ date_range_start: string; date_range_end: string; time_frame?: string; stage_id?: string }} */
-            const query = {
-                date_range_start: requireDate(args.dateRangeStart, 'dateRangeStart'),
-                date_range_end: requireDate(args.dateRangeEnd, 'dateRangeEnd'),
-            };
-            if (args.timeFrame) {
-                const timeFrame = String(args.timeFrame).trim().toLowerCase();
-                if (!TIME_FRAMES.includes(timeFrame)) {
-                    throw new Error(`Invalid timeFrame "${args.timeFrame}". Use: ${TIME_FRAMES.join(', ')}`);
-                }
-                query.time_frame = timeFrame;
-            }
-            if (args.stageId && scope === 'stage') {
-                query.stage_id = requireUuid(args.stageId, 'stageId');
-            }
-            const payload = await vplanRequest(creds, `/board/${boardId}/capacity/${suffix}`, query);
-            const all = (payload && Array.isArray(payload.data)) ? payload.data : [];
-            const { rows, truncated } = truncateRows(all);
-            const result = { boardId, scope, timeFrame: query.time_frame || 'day', unit: 'minutes', data: rows };
-            if (truncated) {
-                result.truncated = true;
-                result.message = `Response too large — showing ${rows.length} of ${all.length} buckets. Narrow the date range or use a larger timeFrame.`;
-            }
-            return result;
-        }
+        case 'vplan_get_capacity':
+            return getCapacity(args, creds);
 
-        case 'vplan_list_master_data': {
-            const type = String(args.type || '').trim().toLowerCase();
-            const spec = MASTER_DATA_TYPES[type];
-            if (!spec) {
-                throw new Error(`Invalid type "${args.type}". Use: ${Object.keys(MASTER_DATA_TYPES).join(', ')}`);
-            }
-            if (args.id) {
-                const id = requireUuid(args.id, 'id');
-                return { type, record: await vplanRequest(creds, `${spec.path}/${id}`) };
-            }
-            const query = buildListQuery(args, spec.withKey || null);
-            if (spec.supportsArchived && args.archived === true) query.archived = 'true';
-            const result = await vplanList(creds, spec.path, query);
-            result.type = type;
-            return result;
-        }
+        case 'vplan_list_master_data':
+            return listMasterData(args, creds);
 
         default:
             throw new Error(`Unknown vPlan tool: ${toolName}`);

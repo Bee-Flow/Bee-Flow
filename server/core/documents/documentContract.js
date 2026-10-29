@@ -1,3 +1,4 @@
+/** @typedef {import('cheerio').CheerioAPI} CheerioAPI */
 // @typecheck
 'use strict';
 
@@ -5,7 +6,13 @@ const { listPlaceholders, fillDocumentBody, _test: { lookup } } = require('./doc
 
 const TYPES = ['text', 'number', 'boolean', 'date', 'choice', 'list'];
 const OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_set'];
+/**
+ * @param {string} message
+ */
 const bad = (message) => Object.assign(new Error(message), { status: 422, errorClass: 'document_contract_invalid' });
+/**
+ * @param {string} path
+ */
 function safePath(path) {
     return typeof path === 'string' && /^[A-Za-z0-9_][A-Za-z0-9_.-]*$/.test(path)
         && path.split('.').every(p => p && !['__proto__', 'prototype', 'constructor'].includes(p));
@@ -20,31 +27,33 @@ function validateCondition(rule, depth = 0) {
     } else if (!safePath(rule.parameter) || !OPERATORS.includes(rule.operator)) throw bad('Invalid section rule.');
 }
 /**
- * @typedef {object} ContractParameter
- * @property {string} key
- * @property {string} type
- * @property {string} label
- * @property {boolean} required
- * @property {string} summary
- * @property {string} instructions
- * @property {any} [example]
- * @property {any} [default]
- * @property {string[]} [options]
- * @property {ContractParameter[]} [fields]
- * @property {boolean} [inferred]
- * @property {string[]} [usedInSections]
- * @property {string[]} [conditionForSections]
- * @property {boolean} [usedOutsideSections]
+ * @typedef {{
+ *   key: string,
+ *   type: string,
+ *   label: string,
+ *   required: boolean,
+ *   summary: string,
+ *   instructions: string,
+ *   example?: unknown,
+ *   default?: unknown,
+ *   options?: string[],
+ *   fields?: ContractParameter[],
+ *   inferred?: boolean,
+ *   usedInSections?: string[],
+ *   conditionForSections?: string[],
+ *   usedOutsideSections?: boolean,
+ * }} ContractParameter
  */
 
 /**
- * @typedef {object} ContractSection
- * @property {string} id
- * @property {string} title
- * @property {string} summary
- * @property {any} condition
- * @property {{ documentId: string, versionId: string }} [source]
- * @property {string|null} [parentId]
+ * @typedef {{
+ *   id: string,
+ *   title: string,
+ *   summary: string,
+ *   condition: unknown,
+ *   source?: { documentId: string, versionId: string },
+ *   parentId?: string|null,
+ * }} ContractSection
  */
 
 /**
@@ -156,6 +165,7 @@ function evaluateCondition(rule, values) {
     }
     const { found, value } = lookup(rule.parameter, [values]);
     if (!found || value === null) return { state: 'unresolved', reason: `Needs input: ${rule.parameter}` };
+    /** @type {boolean} */
     let yes;
     switch (rule.operator) {
         case 'is_set': yes = value !== ''; break;
@@ -185,7 +195,10 @@ function typeValid(p, value) {
  * stored defaults are strings, so without this a constant could never fill a
  * number parameter.
  */
-/** "1,000" / "12.345" (one separator, exactly 3 digits after it) or two separators: ambiguous, never guessed. */
+/**
+ * "1,000" / "12.345" (one separator, exactly 3 digits after it) or two separators: ambiguous, never guessed.
+ * @param {string} t
+ */
 function hasThousandsSeparator(t) {
     return /^-?\d{1,3}[.,]\d{3}$/.test(t) || /[.,].*[.,]/.test(t);
 }
@@ -223,6 +236,7 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
         if (!contract.sections.some(s => s.id === id) || !['automatic', 'include', 'exclude'].includes(choice)) issues.push({ code: 'invalid_override', sectionId: id, message: 'Invalid section choice' });
     }
     let bodyHtml = doc.bodyHtml || '';
+    /** @type {CheerioAPI} */
     let $;
     // A variable, not a literal: `decodeEntities` is passed through to the parser
     // but is not a declared CheerioOptions key (excess-property check).

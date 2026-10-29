@@ -69,13 +69,13 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
 
     return (
         <div className="pbk-stage-enter h-full flex items-start justify-center overflow-y-auto" style={{ padding: presenter ? '56px 32px' : '40px 24px' }} data-testid="playbook-done">
-            <div className="w-full rounded-2xl" style={{ maxWidth: 560, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-md)', padding: presenter ? 28 : 22 }}>
+            <div className={`w-full rounded-2xl [max-width:560px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-md)] ${presenter ? '[padding:28px]' : '[padding:22px]'}`}>
                 <div className="flex items-start gap-3">
                     {stopped
                         ? <Square className="w-6 h-6 mt-0.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                         : <CheckCircle2 className="w-6 h-6 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />}
                     <div className="min-w-0">
-                        <h2 className="font-semibold" style={{ fontSize: presenter ? 22 : 18, color: 'var(--text-primary)' }}>
+                        <h2 className={`font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:22px]' : '[font-size:18px]'}`}>
                             {stopped ? t('playbooks.done.stopped_title', 'Stopped — this is what landed') : t('playbooks.done.title', '{title} is ready', { title: playbook.title })}
                         </h2>
                         <p className="text-xs mt-1 flex flex-wrap gap-x-2 text-[var(--text-secondary)]">

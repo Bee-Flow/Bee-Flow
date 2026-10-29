@@ -84,12 +84,12 @@ function matchFieldIdFor(targetDatatableId, localFieldId, targetFieldId) {
 
 /**
  * @param {Array} ncColumns   describeColumn() objects, in table order
- * @param {object} [ctx]
- * @param {Array}  [ctx.existingFields]     the mirror's current fields (identity + kept keys)
- * @param {Map<number,string>} [ctx.linkedTargets]  ncTableId → datatableId of every mirror in scope
- * @param {Map<number,string>} [ctx.linkedViews]    ncViewId → datatableId (a relation may target a view)
- * @param {Array}  [ctx.declaredRelations]  [{ targetDatatableId, targetKey, localFieldId, targetFieldId }]
- * @param {Set<string>} [ctx.reservedKeys]  keys this mirror must not use (none today; hook for callers)
+ * @param {{ existingFields?: Array, linkedTargets?: Map<number,string>, linkedViews?: Map<number,string>,
+ *   declaredRelations?: Array, reservedKeys?: Set<string> }} [ctx] `existingFields`: the mirror's
+ *   current fields (identity + kept keys); `linkedTargets`: ncTableId → datatableId of every mirror in
+ *   scope; `linkedViews`: ncViewId → datatableId (a relation may target a view); `declaredRelations`:
+ *   [{ targetDatatableId, targetKey, localFieldId, targetFieldId }]; `reservedKeys`: keys this mirror
+ *   must not use (none today; hook for callers)
  * @returns {{ fields:Array, columnMap:object, relations:Array, warnings:string[], changes:string[], retyped:Array }}
  */
 function fieldsFromNcColumns(ncColumns, {

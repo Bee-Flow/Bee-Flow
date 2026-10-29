@@ -41,12 +41,15 @@ function renderField(overrides = {}) {
     return { ...utils, props };
 }
 
-const openManage = () => fireEvent.click(screen.getByTitle('Manage categories'));
+const openManage = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByTitle('Manage categories'));
+    };
 
 describe('CategoryField — manage popover (BFSF-272)', () => {
-    it('manage button opens a popover listing every category; hidden without categories', () => {
+    it('manage button opens a popover listing every category; hidden without categories', async () => {
         const { unmount } = renderField();
-        openManage();
+        await openManage();
         expect(screen.getAllByText('Sales').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Marketing').length).toBeGreaterThan(0);
         unmount();
@@ -59,7 +62,7 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
         const user = userEvent.setup();
         const onRename = vi.fn(async () => ({ ok: false, error: 'A category named "Marketing" already exists' }));
         renderField({ onRename });
-        openManage();
+        await openManage();
 
         await user.click(screen.getAllByTitle('Rename')[0]);
         const input = screen.getByDisplayValue('Sales');
@@ -79,7 +82,7 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
             .mockResolvedValueOnce({ ok: false, code: 'category_in_use', count: 3 })
             .mockResolvedValueOnce({ ok: true });
         renderField({ onDelete });
-        openManage();
+        await openManage();
 
         await user.click(screen.getAllByTitle('Delete')[0]);
         await user.click(screen.getByText('Delete', { selector: 'button' })); // ConfirmDialog confirm
@@ -141,7 +144,7 @@ describe('CategoryField — variant="tag" (A3)', () => {
         fireEvent.keyDown(input, { key: 'Enter' });
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith('Support'));
 
-        openManage();
+        await openManage();
         expect(screen.getAllByText('Sales').length).toBeGreaterThan(0);
     });
 

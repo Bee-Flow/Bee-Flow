@@ -98,12 +98,18 @@ function normaliseIp(raw) {
     return net.isIP(ip) ? ip.toLowerCase() : null;
 }
 
+/**
+ * @param {string | null} ip
+ */
 function familyOf(ip) {
     const v = ip ? net.isIP(ip) : 0;
     return v === 4 || v === 6 ? v : null;
 }
 
-/** Lowercased hostname, no brackets, no trailing dot, no port. */
+/**
+ * Lowercased hostname, no brackets, no trailing dot, no port.
+ * @param {string} raw
+ */
 function normaliseHost(raw) {
     if (typeof raw !== 'string' || !raw) return null;
     let h = raw.trim().toLowerCase();
@@ -117,6 +123,9 @@ function normaliseHost(raw) {
     return h || null;
 }
 
+/**
+ * @param {string} origin
+ */
 function urlParts(origin) {
     try {
         const u = new URL(String(origin));
@@ -163,7 +172,10 @@ function edgeFromObject(headers) {
 // for every peer of every probed call.
 const _envCache = { otlpRaw: /** @type {string | null} */ (null), otlpHosts: new Set(), proxyRaw: /** @type {string | null} */ (null), proxy: /** @type {({ host: string; port: number | null; noProxy: string[]; } | null) | null} */ (null) };
 
-/** Hosts of the OTLP exporter. A batch export started inside a call is not the call's egress. */
+/**
+ * Hosts of the OTLP exporter. A batch export started inside a call is not the call's egress.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function telemetryHosts(env = process.env) {
     const raw = [
         env.OTEL_EXPORTER_OTLP_ENDPOINT, env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
@@ -179,6 +191,8 @@ function telemetryHosts(env = process.env) {
 /**
  * The proxy this process would use for `targetHost`, or null.
  * @returns {{ host: string, port: number|null }|null}
+ * @param {string} targetHost
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function proxyFor(targetHost, env = process.env) {
     const raw = [
@@ -595,6 +609,7 @@ function recordPeer(peer, probe = liveProbe()) {
  * A pooled mail connection reused by this call: the address it was opened
  * to, from the last time this process saw it (no DNS). Null when unknown or
  * older than ten minutes.
+ * @param {string} host
  */
 function recordReusedConnection(host, probe = liveProbe()) {
     const key = normaliseHost(host);
@@ -632,52 +647,26 @@ module.exports = {
 /** @typedef {Record<string, string | null>} EdgeHeaders */
 
 /**
- * @typedef {object} Peer
- * @property {string} host
- * @property {string | null} ip
- * @property {number | null} port
- * @property {number | null} family
- * @property {boolean} reused
- * @property {boolean} sentBody
- * @property {string | null} method
- * @property {number | null} status
- * @property {EdgeHeaders | null} edge
- * @property {string} basis
- * @property {number} at
+ * @typedef {{ host: string, ip: string | null, port: number | null, family: number | null, reused: boolean,
+ *   sentBody: boolean, method: string | null, status: number | null, edge: EdgeHeaders | null, basis: string,
+ *   at: number }} Peer
  */
 
 /**
  * What addPeer accepts: every field optional, normalised on the way in.
- * @typedef {object} PeerInput
- * @property {string | null} [host]
- * @property {string | null} [ip]
- * @property {number | null} [port]
- * @property {boolean} [reused]
- * @property {boolean} [sentBody]
- * @property {string | null} [method]
- * @property {number | null} [status]
- * @property {EdgeHeaders | null} [edge]
- * @property {string} [basis]
- * @property {number} [at]
+ * @typedef {{ host?: string | null, ip?: string | null, port?: number | null, reused?: boolean,
+ *   sentBody?: boolean, method?: string | null, status?: number | null, edge?: EdgeHeaders | null,
+ *   basis?: string, at?: number }} PeerInput
  */
 
 /**
- * @typedef {object} Probe
- * @property {boolean} sealed
- * @property {boolean} is_local
- * @property {string | null} local_label
- * @property {Peer[]} peers
- * @property {Set<import('node:http').ClientRequest>} pendingHttp
+ * @typedef {{ sealed: boolean, is_local: boolean, local_label: string | null, peers: Peer[],
+ *   pendingHttp: Set<import('node:http').ClientRequest> }} Probe
  */
 
 /**
- * @typedef {object} RequestRecord
- * @property {Probe} probe
- * @property {string | null} host
- * @property {number | null} port
- * @property {string} method
- * @property {boolean} sentBody
- * @property {Peer | null} peer
+ * @typedef {{ probe: Probe, host: string | null, port: number | null, method: string, sentBody: boolean,
+ *   peer: Peer | null }} RequestRecord
  */
 
 /** @typedef {import('node:net').Socket & { _host?: string, _parent?: { _host?: string }, servername?: string }} TrackedSocket */
@@ -687,15 +676,10 @@ module.exports = {
 /** @typedef {(name: string, msg: unknown) => void} FaultHook */
 
 /**
- * @typedef {object} State
- * @property {AsyncLocalStorage<Probe>} store
- * @property {boolean} installed
- * @property {WeakMap<object, RequestRecord>} requests
- * @property {WeakSet<object>} seenSockets
- * @property {WeakSet<object>} untrackedHttp
- * @property {Map<string, { ip: string, port: number, at: number }>} recentMail
- * @property {FaultHook | null} faultHook
- * @property {number} lastWarnAt
+ * @typedef {{ store: AsyncLocalStorage<Probe>, installed: boolean, requests: WeakMap<object, RequestRecord>,
+ *   seenSockets: WeakSet<object>, untrackedHttp: WeakSet<object>,
+ *   recentMail: Map<string, { ip: string, port: number, at: number }>, faultHook: FaultHook | null,
+ *   lastWarnAt: number }} State
  */
 
 /** @typedef {ReturnType<typeof buildSnapshot>} Snapshot */

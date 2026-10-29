@@ -9,7 +9,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/builderSplit/AgentHero.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('@/utils/helpers', () => ({
@@ -64,10 +64,12 @@ describe('AgentHero — de omschrijving staat er altijd', () => {
         expect(screen.queryByText(/Add description/i)).toBeNull();
     });
 
-    it('geeft elke toetsaanslag door en klemt op 300 tekens', () => {
+    it('geeft elke toetsaanslag door en klemt op 300 tekens', async () => {
+        const user = userEvent.setup();
         const seen: unknown[] = [];
         render(<AgentHero {...omitted<ComponentProps<typeof AgentHero>>()} {...baseProps} updateDescription={(v) => seen.push(v)} />);
-        fireEvent.change(screen.getByTestId('agent-hero-description'), { target: { value: 'x'.repeat(340) } });
+        await user.clear(screen.getByTestId('agent-hero-description'));
+        await user.paste('x'.repeat(340));
         expect(seen).toHaveLength(1);
         expect(seen[0]).toHaveLength(300);
     });

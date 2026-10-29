@@ -68,8 +68,10 @@ function type(value) {
     fireEvent.change(screen.getByLabelText('Describe the outputs you want'), { target: { value } });
 }
 
-function answers(value) {
-    fireEvent.change(screen.getByLabelText('Name the possible answers'), { target: { value } });
+async function answers(value) {
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText('Name the possible answers'));
+    await user.paste(value);
 }
 
 /** Get to the state the offer belongs in: the model asked, and it could not. */
@@ -148,7 +150,7 @@ describe('what it shows before anything happens', () => {
     it('asks for a second answer rather than offering a one-output router', async () => {
         setup();
         await askAndFail();
-        answers('complaint');
+        await answers('complaint');
         expect(await screen.findByText(/at least two possible answers/i)).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Add the step/i })).toBeNull();
     });
@@ -156,7 +158,7 @@ describe('what it shows before anything happens', () => {
     it('previews the step and reads every output back as a sentence', async () => {
         setup();
         await askAndFail();
-        answers('complaint, question, something else');
+        await answers('complaint, question, something else');
         expect(await screen.findByText(/Classify: is this e-mail about a complaint/)).toBeTruthy();
         // The names of the ports...
         expect(screen.getByText('something_else')).toBeTruthy();
@@ -174,14 +176,14 @@ describe('what it shows before anything happens', () => {
         // would read as a broken rule rather than an unanswered question.
         setup({ sampleRows: [{ subject: 'a' }, { subject: 'b' }], unit: 'items', sourceRef: 'steps.gmail.output.messages' });
         await askAndFail();
-        answers('complaint, other');
+        await answers('complaint, other');
         expect(await screen.findByText(/Nothing can be counted against the sample items yet/i)).toBeTruthy();
     });
 
     it('names what the accept would cost on the canvas before it costs it', async () => {
         setup({ existingRuleCount: 2, wiredOutputNames: ['vip', 'complaint'] });
         await askAndFail();
-        answers('complaint, other');
+        await answers('complaint, other');
         expect(await screen.findByText(/replaces the 2 outputs already/i)).toBeTruthy();
         // 'complaint' survives because the plan reuses the name, so only 'vip'
         // actually loses its connection.
@@ -191,7 +193,7 @@ describe('what it shows before anything happens', () => {
     it('changes nothing at all while it is only being previewed', async () => {
         const { onApply, onApplyHandoff, onInsertUpstreamStep } = setup();
         await askAndFail();
-        answers('complaint, question, something else');
+        await answers('complaint, question, something else');
         await screen.findByRole('button', { name: /Add the step/i });
         expect(onInsertUpstreamStep).not.toHaveBeenCalled();
         expect(onApplyHandoff).not.toHaveBeenCalled();
@@ -204,7 +206,7 @@ describe('accepting it', () => {
         const user = userEvent.setup();
         const handles = setup(props);
         await askAndFail();
-        answers('complaint, question, something else');
+        await answers('complaint, question, something else');
         await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         return handles;
     }

@@ -74,8 +74,8 @@ function tryOpen(open, what) {
 }
 
 /**
- * @param {any} box
- * @param {any} chat
+ * @param {Awaited<ReturnType<typeof import('../../projects/chatCrypto').forProject>>} box
+ * @param {NonNullable<ReturnType<typeof import('../../stores/projectChatStore').rowToChat>>} chat  as stored, title sealed
  * @param {{ autoAllowed: boolean, alwaysAllowed: boolean }} allowed  what the organisation allows now
  */
 function presentChat(box, chat, allowed) {
@@ -102,8 +102,8 @@ function presentChat(box, chat, allowed) {
 }
 
 /**
- * @param {any} box
- * @param {any} m
+ * @param {Awaited<ReturnType<typeof import('../../projects/chatCrypto').forProject>>} box
+ * @param {NonNullable<ReturnType<typeof import('../../stores/projectChatStore').rowToMessage>>} m  as stored, content sealed
  * @param {string} [plaintext]
  * @param {Map<string, boolean>} [feedback]  the caller's own feedback, by message id
  */

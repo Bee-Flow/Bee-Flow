@@ -78,9 +78,9 @@ const log = require('../../telemetry/log');
  * table are in a Studio datatable, and the rights to it are not those of the app. The refusal
  * that then falls is a `readError` (status + `safe:true`) and is passed on literally by the
  * routers; it is never a fallback to `studioAppDbStore`.
- * @param {any} app
- * @param {any} model
- * @param {any} table
+ * @param {AppRef} app
+ * @param {import('./shared').DataModel} model
+ * @param {import('./shared').DataTable} table
  * @param {Record<string, any>} values
  * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any }} [opts]
  */

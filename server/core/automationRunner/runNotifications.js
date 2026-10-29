@@ -86,6 +86,7 @@ function defaultDeps() {
  * channel; the run view's SKIP_REASONS table (agent-hub statusTokens.ts, and
  * mobile format.ts) classifies them, so a new key belongs there too.
  */
+/** @type {Record<string, string>} */
 const EMAIL_SKIP_MESSAGES = {
     no_service_email: 'Email not sent: no service mailbox is connected on this Bee Flow server. An administrator can connect one; until then use the in-app bell.',
     no_owner_email: 'Email not sent: the person this automation belongs to has no email address on file.',
@@ -156,19 +157,16 @@ function lazyNcContext(dep, automation) {
 /**
  * Notify about one run event, following the automation's policy.
  *
- * @param {Function} dep  the notifier's collaborator lookup
- * @param {object} automation the automation (a run's view of it is fine)
+ * @param {<K extends keyof NotifierDeps>(name: K) => NotifierDeps[K]} dep  the notifier's collaborator lookup
+ * @param {{ id?: string, title?: string, userId?: string, organizationId?: string | null, runsLiveVersion?: boolean,
+ *   definition?: { notificationSettings?: unknown }, [key: string]: unknown }} automation the automation (a run's view of it is fine)
  * @param {'onError'|'onApproval'|'onSuccess'} event
- * @param {object} payload
- * @param {string} payload.title        Bee Flow bell / e-mail subject
- * @param {string} [payload.message]    Bee Flow bell / e-mail body
- * @param {string} [payload.link]       SPA path (default: the run, else the automation)
- * @param {string} [payload.runId]
- * @param {string} [payload.code]       notificationMessages code for Nextcloud/Talk
- * @param {string[]} [payload.approverIds] resolved approvers (onApproval)
- * @param {object} [payload.approval]   the approval row: Talk posts its card
- * @param {string[]} [payload.userIds]  explicit recipients, replacing the policy's
- * @param {object} [policy]             an event policy to use instead of the stored one
+ * @param {{ title: string, message?: string, link?: string, runId?: string, code?: string, approverIds?: string[],
+ *   approval?: { id?: string, [key: string]: unknown }, userIds?: string[] }} payload  title and message are the
+ *   bell / e-mail subject and body; link the SPA path (default: the run, else the automation); code the
+ *   notificationMessages code for Nextcloud/Talk; approverIds the resolved approvers (onApproval); approval
+ *   the approval row (Talk posts its card); userIds explicit recipients, replacing the policy's
+ * @param {Record<string, unknown>} [policy]             an event policy to use instead of the stored one
  * @returns {Promise<{ skipped?: string, recipients: string[], delivered: object[], bundled: number, digest: number }>}
  */
 async function notifyRunEvent(dep, automation, event, payload = {}, policy = null) {
@@ -206,12 +204,12 @@ async function notifyRunEvent(dep, automation, event, payload = {}, policy = nul
         }
         return report;
     } catch (e) {
-        log.warn(`[RunNotifications] ${event} notification failed for ${automation.id}: ${e.message}`);
+        log.warn(`[RunNotifications] ${event} notification failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
         return { ...report, skipped: 'error' };
     } finally {
         if (rows.length) {
             try { await dep('events').recordNotificationEvents(rows); }
-            catch (e) { log.warn(`[RunNotifications] ledger write failed for ${automation.id}: ${e.message}`); }
+            catch (e) { log.warn(`[RunNotifications] ledger write failed for ${automation.id}: ${/** @type {Error} */ (e).message}`); }
         }
     }
 }
@@ -235,8 +233,10 @@ async function dispatchRunNotification(dep, automation, policy, payload = {}) {
     return notifyRunEvent(dep, automation, event, withUsers, policy.event ? null : policy);
 }
 
+/** @typedef {ReturnType<typeof defaultDeps>} NotifierDeps */
+
 /**
- * @param {object} [overrides] any of defaultDeps()'s keys
+ * @param {Partial<Record<keyof NotifierDeps, unknown>>} [overrides] any of defaultDeps()'s keys
  */
 function makeRunNotifier(overrides = {}) {
     let _defaults = null;

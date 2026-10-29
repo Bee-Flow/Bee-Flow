@@ -9,6 +9,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, LoadingState, useToast } from '@/shared/ui';
 
@@ -16,11 +17,12 @@ import { useMfaSetup } from '../hooks/queries';
 import { clockDriftWarning } from '../model/device';
 
 export function EnrolmentCode({ open }: { open: boolean }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
     const setup = useMfaSetup(open);
 
-    if (setup.isLoading) return <LoadingState label="Preparing your code" />;
+    if (setup.isLoading) return <LoadingState label={t('mobile.security.enrol_preparing', 'Preparing your code')} />;
     if (setup.isError) return <Banner tone="error">{describeError(setup.error).message}</Banner>;
     if (!setup.data) return null;
     const { qr, secret, serverTime } = setup.data;
@@ -30,24 +32,22 @@ export function EnrolmentCode({ open }: { open: boolean }) {
             <View style={styles.qrBlock}>
                 <Image
                     source={{ uri: qr }}
-                    accessibilityLabel="Two-factor setup QR code"
+                    accessibilityLabel={t('mobile.security.enrol_qr', 'Two-factor setup QR code')}
                     style={styles.qr}
                     contentFit="contain"
                 />
                 <Button
-                    label="Copy setup key instead"
+                    label={t('mobile.security.enrol_copy_key', 'Copy setup key instead')}
                     variant="ghost"
                     onPress={() => {
                         void Clipboard.setStringAsync(secret);
-                        toast('Setup key copied', 'success');
+                        toast(t('mobile.security.enrol_key_copied', 'Setup key copied'), 'success');
                     }}
                 />
             </View>
             {clockDriftWarning(serverTime) ? (
                 <Banner tone="warning">
-                    This phone&rsquo;s clock is more than a minute off the server&rsquo;s.
-                    Time-based codes will be rejected until you fix it in Android&rsquo;s
-                    date and time settings.
+                    {t('mobile.security.clock_drift', 'This phone’s clock is more than a minute off the server’s. Time-based codes will be rejected until you fix it in Android’s date and time settings.')}
                 </Banner>
             ) : null}
         </>

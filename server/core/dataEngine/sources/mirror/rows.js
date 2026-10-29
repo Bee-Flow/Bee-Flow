@@ -22,12 +22,13 @@
 
 /**
  * @param {string} id                     the mirror row id the adapter derived
- * @param {object} ctx
- * @param {Record<string, { derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }>} ctx.columnMap          source.columnMap
- * @param {Map<string,{ key: string, type?: string }>} ctx.fieldsById   mirror fields by id
- * @param {(entry:{ derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }, field:{ key: string, type?: string }) => unknown} ctx.readCell   the adapter's cell reader
- * @param {Map<string,Map<string,string>>} [ctx.relationIndexes]  fieldId → (value → target id) for 'match'
- * @param {Map<string,Map<string,string>>} [ctx.labelIndexes]     fieldId → (target id → label) for 'nc'
+ * @param {{ columnMap: Record<string, { derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }>,
+ *   fieldsById: Map<string,{ key: string, type?: string }>,
+ *   readCell: (entry:{ derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }, field:{ key: string, type?: string }) => unknown,
+ *   relationIndexes?: Map<string,Map<string,string>>, labelIndexes?: Map<string,Map<string,string>> }} ctx
+ *   `columnMap`: source.columnMap; `fieldsById`: mirror fields by id; `readCell`: the adapter's cell
+ *   reader; `relationIndexes`: fieldId → (value → target id) for 'match'; `labelIndexes`: fieldId →
+ *   (target id → label) for 'nc'
  */
 function deriveRow(id, { columnMap, fieldsById, readCell, relationIndexes = new Map(), labelIndexes = new Map() }) {
     /** @type {Record<string, unknown>} */

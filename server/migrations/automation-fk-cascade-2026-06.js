@@ -23,13 +23,7 @@
 
 const { exec } = require('../db');
 
-/**
- * @typedef {Object} AddFkArgs
- * @property {string} table
- * @property {string} column
- * @property {string} refTable
- * @property {string} constraint
- */
+/** @typedef {{ table: string, column: string, refTable: string, constraint: string }} AddFkArgs */
 /**
  * @param {AddFkArgs} param0
  */

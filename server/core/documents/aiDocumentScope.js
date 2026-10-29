@@ -79,10 +79,10 @@ function matches(re, text) {
 }
 
 /**
- * @param {object} [input]
- * @param {unknown} [input.sidePanelDocument]  the untrusted request field
- * @param {Array<{ role?: string, content?: unknown, toolHistory?: Array<{ name?: string, resultPreview?: unknown }> }>} [input.history]          the conversation's messages so far
- * @param {string} [input.message]             the user's message of this turn
+ * @param {{ sidePanelDocument?: unknown,
+ *   history?: Array<{ role?: string, content?: unknown, toolHistory?: Array<{ name?: string, resultPreview?: unknown }> }>,
+ *   message?: string }} [input] `sidePanelDocument`: the untrusted request field; `history`: the
+ *   conversation's messages so far; `message`: the user's message of this turn
  * @returns {{ has(id: unknown): boolean, add(id: unknown): void, markCreated(id: unknown): void, createdInChat(id: unknown): boolean, ids(): string[] }}
  */
 function createDocumentScope({ sidePanelDocument, history, message } = {}) {

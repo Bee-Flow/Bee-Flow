@@ -93,11 +93,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                 {status === 'executed' && <CheckCircle2 size={14} className="[color:rgb(22,163,74)]" />}
                 <ChevronRight
                     size={14}
-                    style={{
-                        color: 'var(--text-tertiary)',
-                        transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform .12s',
-                    }}
+                    className={`[color:var(--text-tertiary)] [transition:transform_.12s] ${expanded ? '[transform:rotate(90deg)]' : '[transform:rotate(0deg)]'}`}
                 />
             </button>
 

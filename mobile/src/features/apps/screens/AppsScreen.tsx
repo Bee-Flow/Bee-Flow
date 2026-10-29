@@ -42,7 +42,7 @@ export function AppsScreen() {
         <Screen>
             <ScreenHeader
                 title={t('sidebar.apps', 'Apps')}
-                subtitle={visible.length ? `${visible.length} you can run` : undefined}
+                subtitle={visible.length ? t('mobile.apps.you_can_run', '{count} you can run', { count: visible.length }) : undefined}
             />
 
             <QueryList
@@ -58,7 +58,7 @@ export function AppsScreen() {
                 keyExtractor={(app) => app.id}
                 renderItem={({ item }) => <AppRow app={item} onPress={() => router.push(`/apps/${item.id}`)} />}
                 search={{
-                    placeholder: 'Search apps',
+                    placeholder: t('apps.picker_search_label', 'Search apps'),
                     value: search,
                     onChange: setSearch,
                     match: (app, n) => `${app.name} ${app.description}`.toLowerCase().includes(n),

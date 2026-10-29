@@ -52,8 +52,7 @@ function RoleMenuItem({ label, checked, onClick }: { label: string; checked: boo
         >
             <span
                 aria-hidden="true"
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ background: checked ? 'var(--accent-primary)' : 'transparent', boxShadow: checked ? 'none' : 'inset 0 0 0 1.5px var(--text-tertiary)' }}
+                className={`h-2 w-2 shrink-0 rounded-full ${checked ? '[background:var(--accent-primary)] [box-shadow:none]' : '[background:transparent] [box-shadow:inset_0_0_0_1.5px_var(--text-tertiary)]'}`}
             />
             <span className="flex-1">{label}</span>
         </button>
@@ -91,7 +90,7 @@ export function ViewAsMenu({ roles, previewRole, previewRoleName, setPreviewRole
                     color: 'var(--text-primary)',
                 }}
             >
-                <Eye className="h-3.5 w-3.5 shrink-0" style={{ color: previewRole ? 'var(--accent-primary)' : 'var(--text-tertiary)' }} aria-hidden="true" />
+                <Eye className={`h-3.5 w-3.5 shrink-0 ${previewRole ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`} aria-hidden="true" />
                 <span className="@max-6xl/edhead:hidden text-[var(--text-secondary)]">{t('app_studio.header.view_as', 'View as')}</span>
                 <span className="font-semibold">{previewRoleName || ownerLabel}</span>
                 <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" aria-hidden="true" />

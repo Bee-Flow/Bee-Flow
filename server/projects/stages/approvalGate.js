@@ -47,17 +47,18 @@ function needsApprover(message, details = {}) {
     return new HttpError(400, 'approval_policy_needs_approver', message, details);
 }
 
+/** @typedef {{ orgId?: string|null, ownerId: string }} PolicyOwner */
 /**
  * The stage chain of a policy, checked: every seat in the organisation
  * (validateStages) and every active stage with a seat that is not the owner.
  *
  * @param {{ stages?: object[] }|object[]|null} policy
- * @param {{ orgId?: string|null, ownerId: string }} who
- * @param {object} [deps]  `{ validateStages, groupMemberIds }`
+ * @param {PolicyOwner} who
+ * @param {Record<string, unknown>} [deps]  `{ validateStages, groupMemberIds }`
  * @returns {Promise<object[]>} the validated chain
  * @throws {HttpError} 400 approval_policy_needs_approver
  */
-async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {any} */ ({}), deps = {}) {
+async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {PolicyOwner} */ ({}), deps = {}) {
     const authored = Array.isArray(policy) ? { stages: policy } : (policy || {});
     const chain = stagesRules().desugarApprovalStages(authored);
     if (!chain) throw needsApprover('Production approval needs at least one approver who is not the Solution owner.');
@@ -81,14 +82,7 @@ async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {any
     return stages;
 }
 
-/**
- * @typedef {Object} TitleForArgs
- * @property {boolean} [deleteData]
- * @property {unknown} kind
- * @property {unknown} releaseSeq
- * @property {unknown} solutionName
- * @property {unknown} stage
- */
+/** @typedef {{ deleteData?: boolean, kind: unknown, releaseSeq: unknown, solutionName: unknown, stage: unknown }} TitleForArgs */
 /**
  * @param {TitleForArgs} param0
  */
@@ -125,17 +119,18 @@ function detailsFor(plan) {
     return lines.join('\n') || null;
 }
 
+/** @typedef {{ deployment: object, stage: object, plan?: object, actor: { id: string } }} ApprovalRequest */
 /**
  * Open the approval of an `awaiting_approval` deployment.
  *
- * @param {{ deployment: object, stage: object, plan?: object, actor: { id: string } }} input
+ * @param {ApprovalRequest} input
  *   `stage` is the solution_stages row (approvalPolicy, organizationId, runAsUserId, projectId)
- * @param {object} [deps]  automationStore (createApproval, appendApprovalAudit), solutionStageStore
+ * @param {Record<string, unknown>} [deps]  automationStore (createApproval, appendApprovalAudit), solutionStageStore
  *   (setApprovalId), projectStore (getProject), approvalEvents, notifyApproval, panelRecipientIds,
  *   validateStages, groupMemberIds, now
  * @returns {Promise<object>} the approval row
  */
-async function request({ deployment, stage, plan = null, actor } = /** @type {any} */ ({}), deps = {}) {
+async function request({ deployment, stage, plan = null, actor } = /** @type {ApprovalRequest} */ ({}), deps = {}) {
     if (!deployment || !deployment.id) throw new TypeError('approvalGate.request: a deployment is required');
     if (!stage || !stage.projectId) throw new TypeError('approvalGate.request: the stage row is required');
     const automationStore = dep(deps, 'automationStore', () => require('../../stores/automationStore'));

@@ -79,6 +79,7 @@ async function listForMember(req) {
         const personal = own && own.status === 'active' && (!shared || own.id !== shared.connection_id);
         const entry = d.meta && d.meta.catalogId ? getCatalogEntry(d.meta.catalogId) : null;
         const cred = entry && entry.auth && entry.auth.credential;
+        /** @type {string | null} */
         let host = null;
         try { host = new URL(d.mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/members:listForMember#2', err); /* unknown */ }
         servers.push({

@@ -58,12 +58,12 @@ function currentCallDepth() {
 /**
  * Run `fn` as one more nested automation call, or refuse before it starts.
  *
- * @param {object}   call
- * @param {string}   call.automationId     the automation being started
- * @param {string}   [call.callerAgentId]  the agent that asked for it
- * @param {string}   [call.callerConversationId]
- * @param {string}   [call.callerRunId]    the run the calling agent step is in
- * @param {Function} fn                    starts the automation; receives the frame
+ * @template T
+ * @param {{ automationId: string, callerAgentId?: string, callerConversationId?: string, callerRunId?: string }} call
+ *   `automationId` is the automation being started, `callerAgentId` the agent that asked for it,
+ *   `callerRunId` the run the calling agent step is in
+ * @param {(frame: { depth: number, chain: Array<string|null>, automationId: string|null, callerAgentId: string|null,
+ *   callerConversationId: string|null, callerRunId: string|null }) => T} fn  starts the automation; receives the frame
  * @param {{ max?: number }} [opts]
  * @throws {AutomationCallDepthError} when the chain is already at the limit
  */

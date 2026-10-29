@@ -57,10 +57,11 @@ async function readColumn(scope, targetDatatableId, fieldId) {
 
 /**
  * @param {{kind:string,id:string}} scope
- * @param {any} source    the mirror's `source` (relations + columnMap)
- * @param {object} [hooks]
- * @param {((rel:object, target:object) => string|null) | null} [hooks.labelFieldFor]
- *   for an 'nc' relation: the target mirror's field that holds the label
+ * @param {{ relations?: Array<{ kind?: string, fieldId?: string, targetDatatableId?: string, targetFieldId?: string } | null>,
+ *   [key: string]: unknown } | null | undefined} source
+ *   the mirror's `source` (relations + columnMap)
+ * @param {{ labelFieldFor?: ((rel:object, target:object) => string|null) | null }} [hooks]
+ *   `labelFieldFor`: for an 'nc' relation: the target mirror's field that holds the label
  * @returns {Promise<{ relationIndexes:Map<string, Map<string, string>>, labelIndexes:Map<string, Map<string, string>>, warnings:string[] }>}
  */
 async function buildRelationIndexes(scope, source, { labelFieldFor = null } = {}) {

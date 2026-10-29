@@ -1,4 +1,5 @@
 /** @typedef {import('../core/llm/webSearchInferenceResolver').InferenceEntry} InferenceEntry */
+/** @typedef {import('./kbSearchShaping').KbChunk} KbChunk */
 /**
  * Knowledge Base Search Tool
  *
@@ -14,6 +15,9 @@ const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const {
+    smallTalkCore, scoredResults, dedupeNearDuplicates, stripRepeatedHeadings, labelSections,
+} = require('./kbSearchShaping');
 
 /** @type {Array<Record<string, any>>} */ const KB_SEARCH_TOOLS = [
     {
@@ -143,6 +147,85 @@ async function executeKbFetchTool(args, context = {}) {
 }
 
 /**
+ * One kb_search through the search service: the chunks it found, or the tool
+ * error when it answered with a failure status. A network failure throws.
+ * The sidecar call is recorded either way.
+ * @param {string} userId  the tenant the search runs for
+ * @param {string[]} kbIds  the bases the person may read
+ * @param {string} query
+ * @param {number} topK
+ * @returns {Promise<{ chunks?: KbChunk[], error?: string }>}
+ */
+async function searchViaService(userId, kbIds, query, topK) {
+    const searchUrl = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
+    // Resolve the admin's Web-Search Inference Routing config so the
+    // search-service knows which backend to use per task. Falls back
+    // to the service's own env defaults when unresolved.
+    /** @type {{ embed: InferenceEntry; rerank: InferenceEntry; cleanup: InferenceEntry; } | null} */
+    let inferenceRouting = null;
+    try {
+        const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
+        inferenceRouting = await resolveInferenceTargetsWithSecrets();
+    } catch (err) { fallback('integrations/kbSearchTools:executeKbSearchTool', err); /* non-fatal */ }
+    const sidecarT0 = Date.now();
+    /** @type {Response} */
+    let searchRes;
+    try {
+        searchRes = await fetch(`${searchUrl}/tools/kb-search`, {
+            method: 'POST',
+            headers: getServiceHeaders(),
+            body: JSON.stringify({
+                tenant_id: userId,
+                kb_ids: kbIds,
+                query,
+                top_k: topK,
+                rerank: true,
+                inference_routing: inferenceRouting,
+            }),
+            signal: AbortSignal.timeout(15000)
+        });
+    } catch (netErr) {
+        recordSidecarCall({ service: 'search', status: 'error', durationMs: Date.now() - sidecarT0 });
+        throw netErr;
+    }
+
+    if (!searchRes.ok) {
+        recordSidecarCall({ service: 'search', status: 'error', durationMs: Date.now() - sidecarT0 });
+        log.warn(`[KBSearch] Search-service error: ${searchRes.status}`);
+        return { error: `Knowledge base search failed (${searchRes.status})` };
+    }
+    recordSidecarCall({ service: 'search', status: 'ok', durationMs: Date.now() - sidecarT0 });
+
+    const searchData = await searchRes.json();
+    return { chunks: searchData.chunks || searchData.results || [] };
+}
+
+/**
+ * The chunks whose document still exists in one of the bases (a chunk without
+ * a document id is kept). On a database failure the filter is skipped and the
+ * chunks come back as they were.
+ * @param {KbChunk[]} chunks
+ * @param {string[]} kbIds
+ * @returns {Promise<KbChunk[]>}
+ */
+async function dropOrphanChunks(chunks, kbIds) {
+    try {
+        const { getAll } = require('../db');
+        const dbDocs = await getAll('SELECT id FROM documents WHERE knowledge_base_id = ANY($1::uuid[])', [kbIds]);
+        const validDocIds = new Set(dbDocs.map(d => String(d.id).toLowerCase()));
+        const before = chunks.length;
+        const kept = chunks.filter(c => !c.document_id || validDocIds.has(String(c.document_id).toLowerCase()));
+        if (kept.length < before) {
+            log.info(`[KBSearch] Orphan filter: removed ${before - kept.length} orphaned chunks`);
+        }
+        return kept;
+    } catch (filterErr) {
+        log.warn('[KBSearch] Orphan filter failed, skipping:', /** @type {Error} */ (filterErr).message);
+        return chunks;
+    }
+}
+
+/**
  * @param {string} toolName
  */
 async function executeKbSearchTool(toolName, args, context = {}) {
@@ -156,17 +239,9 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     const { query, top_k } = args;
     if (!query) return { error: 'query is required' };
 
-    // ── Greeting / small-talk guard ─────────────────────────────────
-    // Skip search for trivial inputs — the LLM sometimes calls this tool
-    // with greetings like "servicedesk assistent welkom hi", which wastes
-    // embedding + reranker API calls.
-    const GREETING_WORDS = /\b(h(i|oi|ey|ello|allo|ee)|dag|goeie(morgen|middag|avond)?|yo|sup|thanks?|thankyou|thank\s*you|dank(je|jewel|u)?|bedankt|doei|bye|tot\s*ziens|how\s*are\s*you|hoe\s*gaat\s*het|welkom|welcome)\b/i;
-    // Strip filler words (agent names, "assistent", etc.) and check if what remains is just a greeting
-    const queryCore = query.trim()
-        .replace(/\b(assistent|assistant|servicedesk|service\s*desk|helpdesk|agent|bot)\b/gi, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-    if (GREETING_WORDS.test(queryCore) && queryCore.split(/\s+/).filter(w => w.length >= 2).length <= 3) {
+    // ── Greeting / small-talk guard (smallTalkCore) ─────────────────
+    const queryCore = smallTalkCore(query);
+    if (queryCore !== null) {
         log.info(`[KBSearch] Skipped — greeting/small-talk: "${query}" (core: "${queryCore}")`);
         return {
             _action: 'kb_sources',
@@ -246,65 +321,16 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             chunks = localResults;
         } else {
             // ── Search-service path ────────────────────────────────
-            const searchUrl = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
-            // Resolve the admin's Web-Search Inference Routing config so the
-            // search-service knows which backend to use per task. Falls back
-            // to the service's own env defaults when unresolved.
-            /** @type {{ embed: InferenceEntry; rerank: InferenceEntry; cleanup: InferenceEntry; } | null} */
-            let inferenceRouting = null;
-            try {
-                const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
-                inferenceRouting = await resolveInferenceTargetsWithSecrets();
-            } catch (err) { fallback('integrations/kbSearchTools:executeKbSearchTool', err); /* non-fatal */ }
-            const sidecarT0 = Date.now();
-            /** @type {Response} */
-            let searchRes;
-            try {
-                searchRes = await fetch(`${searchUrl}/tools/kb-search`, {
-                    method: 'POST',
-                    headers: getServiceHeaders(),
-                    body: JSON.stringify({
-                        tenant_id: userId,
-                        kb_ids: kbIds,
-                        query,
-                        top_k: topK,
-                        rerank: true,
-                        inference_routing: inferenceRouting,
-                    }),
-                    signal: AbortSignal.timeout(15000)
-                });
-            } catch (netErr) {
-                recordSidecarCall({ service: 'search', status: 'error', durationMs: Date.now() - sidecarT0 });
-                throw netErr;
-            }
-
-            if (!searchRes.ok) {
-                recordSidecarCall({ service: 'search', status: 'error', durationMs: Date.now() - sidecarT0 });
-                log.warn(`[KBSearch] Search-service error: ${searchRes.status}`);
-                return { error: `Knowledge base search failed (${searchRes.status})` };
-            }
-            recordSidecarCall({ service: 'search', status: 'ok', durationMs: Date.now() - sidecarT0 });
-
-            const searchData = await searchRes.json();
-            chunks = searchData.chunks || searchData.results || [];
+            const searched = await searchViaService(userId, kbIds, query, topK);
+            if (searched.error) return searched;
+            chunks = searched.chunks;
         }
 
         // ── Filter Orphaned Chunks ────────────────────────────────────
         // searchLocally() already filters orphans (returns ._orphanFiltered = true).
         // Only run this for the search-service path which doesn't do its own filtering.
         if (chunks.length > 0 && !chunks._orphanFiltered && chunks.some(c => c.document_id)) {
-            try {
-                const { getAll } = require('../db');
-                const dbDocs = await getAll('SELECT id FROM documents WHERE knowledge_base_id = ANY($1::uuid[])', [kbIds]);
-                const validDocIds = new Set(dbDocs.map(d => String(d.id).toLowerCase()));
-                const before = chunks.length;
-                chunks = chunks.filter(c => !c.document_id || validDocIds.has(String(c.document_id).toLowerCase()));
-                if (chunks.length < before) {
-                    log.info(`[KBSearch] Orphan filter: removed ${before - chunks.length} orphaned chunks`);
-                }
-            } catch (filterErr) {
-                log.warn('[KBSearch] Orphan filter failed, skipping:', /** @type {Error} */ (filterErr).message);
-            }
+            chunks = await dropOrphanChunks(chunks, kbIds);
         }
 
         // Reranker scores below ~0.35 are noise (UI clutter, wasted tokens); KB_MIN_SCORE overrides.
@@ -312,86 +338,21 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         const scoreThreshold = Number.isFinite(parsedMin) ? parsedMin : 0.35;
 
         const preFilterCount = chunks.length;
-        const results = chunks
-            .filter(c => (c.score || c.rerank_score || 0) >= scoreThreshold)
-            .map((c, i) => ({
-                ...c, // keep the ids so the citation opens and kb_fetch resolves the passage
-                // kb_chunks.chunk_id is an ordinal within the document; kb_fetch looks up the row `id`.
-                chunk_id: c.id ?? c.chunk_id ?? null,
-                result_number: i + 1,
-                title: c.title || c.source_uri || 'Knowledge Base',
-                source_url: c.source_uri || null,
-                content: c.content,
-                score: Math.round((c.score || c.rerank_score || 0) * 1000) / 1000
-            }));
+        const results = scoredResults(chunks, scoreThreshold);
         if (preFilterCount > results.length) {
             log.info(`[KBSearch] Score filter (>= ${scoreThreshold}): kept ${results.length}/${preFilterCount}`);
         }
 
-        // ── Near-duplicate deduplication (Jaccard on word tokens) ────
-        function getTokenSet(text) {
-            if (!text) return new Set();
-            const body = text.replace(/^#{1,6}\s+.+$/gm, '').trim();
-            return new Set(body.toLowerCase().split(/\s+/).filter(t => t.length > 2));
-        }
-        function jaccard(a, b) {
-            if (a.size === 0 && b.size === 0) return 1;
-            let inter = 0;
-            for (const t of a) { if (b.has(t)) inter++; }
-            return inter / (a.size + b.size - inter);
-        }
-        const dedupResults = [];
-        const dedupSets = [];
-        for (const r of results) {
-            const ts = getTokenSet(r.content);
-            if (!dedupSets.some(ex => jaccard(ts, ex) >= 0.85)) {
-                dedupResults.push(r);
-                dedupSets.push(ts);
-            }
-        }
-
-        // ── Strip repeated heading breadcrumbs ───────────────────────
-        // When multiple chunks come from the same document, parent heading
-        // lines are duplicated. Strip them for subsequent chunks.
+        // ── Near-duplicate deduplication, then repeated heading breadcrumbs ──
+        const dedupResults = dedupeNearDuplicates(results);
         const MAX_CHUNK_CHARS = 3000;
-        const seenDocHeadings = new Map(); // title → Set of heading lines already sent
-        for (const r of dedupResults) {
-            const docKey = r.title || 'unknown';
-            const seen = seenDocHeadings.get(docKey);
-            if (seen && r.content) {
-                // Strip heading lines that were already in a previous chunk from this doc
-                r.content = r.content.split('\n').filter(line => {
-                    if (/^#{1,6}\s+/.test(line) && seen.has(line.trim())) return false;
-                    return true;
-                }).join('\n').replace(/^\n+/, '');
-            }
-            // Record headings from this chunk
-            const headings = (r.content || '').match(/^#{1,6}\s+.+$/gm) || [];
-            if (!seen) {
-                seenDocHeadings.set(docKey, new Set(headings.map(h => h.trim())));
-            } else {
-                headings.forEach(h => seen.add(h.trim()));
-            }
-            // Cap content length
-            if (r.content && r.content.length > MAX_CHUNK_CHARS) {
-                r.content = r.content.slice(0, MAX_CHUNK_CHARS) + '…';
-            }
-        }
+        stripRepeatedHeadings(dedupResults, MAX_CHUNK_CHARS);
 
         const topScore = chunks.length > 0 ? Math.max(...chunks.map(c => c.score || c.rerank_score || 0)) : 0;
         log.info(`[KBSearch] Found ${dedupResults.length} results (from ${chunks.length} chunks, deduped from ${results.length}, threshold=${scoreThreshold}, topScore=${topScore.toFixed(4)})`);
 
         // Build per-chunk section label (deepest heading + short snippet) once and reuse.
-        const annotated = dedupResults.map((r, i) => {
-            const headings = (r.content || '').match(/^#{1,6}\s+(.+)$/gm) || [];
-            const deepest = headings.length > 0 ? headings[headings.length - 1].replace(/^#{1,6}\s+/, '').trim() : null;
-            const body = (r.content || '').replace(/^#{1,6}\s+.+$/gm, '').replace(/^\|.*$/gm, '').trim();
-            const snippet = body.split(/[.!?\n]/).filter(s => s.trim().length > 10)[0]?.trim() || '';
-            const sectionLabel = deepest
-                ? (snippet ? `${deepest} — ${snippet.slice(0, 60)}` : deepest)
-                : (snippet ? snippet.slice(0, 80) : `Chunk ${i + 1}`);
-            return { r, sectionLabel };
-        });
+        const annotated = labelSections(dedupResults);
 
         const previewMode = process.env.KB_PREVIEW_MODE === 'true';
 

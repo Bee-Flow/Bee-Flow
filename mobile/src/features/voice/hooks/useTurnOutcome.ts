@@ -11,6 +11,7 @@ import * as Crypto from 'expo-crypto';
 import { useCallback } from 'react';
 
 import { ApiError } from '@/core/api/client';
+import { translate } from '@/core/i18n';
 
 import type { VoiceTurnDeps } from './useVoiceTurn';
 import { audioModeFor } from '../model/audio';
@@ -69,7 +70,7 @@ export function useTurnOutcome(deps: VoiceTurnDeps) {
                     playback.watchPlayback(() => phaseRef.current === 'speaking', () => void startListening());
                     return;
                 }
-                setNotice('The reply could not be played aloud.');
+                setNotice(translate('mobile.voice.playback_failed', 'The reply could not be played aloud.'));
             }
             void startListening();
         },

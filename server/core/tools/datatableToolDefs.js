@@ -85,6 +85,7 @@ async function resolveAsker(userId, deps) {
     let userGroups = [];
     let orgRole = null;
     let homeOrgId = null;
+    /** @type {string | null} */
     let identityError = null;
 
     try {
@@ -92,7 +93,7 @@ async function resolveAsker(userId, deps) {
         orgIds = ctx?.orgIds instanceof Set ? ctx.orgIds : new Set(ctx?.orgIds || []);
         userGroups = Array.isArray(ctx?.userGroups) ? ctx.userGroups : [];
     } catch (e) {
-        identityError = `the organisations of the person asking could not be read (${e.message})`;
+        identityError = `the organisations of the person asking could not be read (${/** @type {Error} */ (e).message})`;
     }
     try {
         const user = await deps.userStore.getUser(userId);
@@ -102,7 +103,7 @@ async function resolveAsker(userId, deps) {
         // on as a tenant key is how a non-tenant becomes one.
         homeOrgId = user?.organizationId || null;
     } catch (e) {
-        identityError = identityError || `the account of the person asking could not be read (${e.message})`;
+        identityError = identityError || `the account of the person asking could not be read (${/** @type {Error} */ (e).message})`;
     }
     return { userId, orgIds, userGroups, orgRole, homeOrgId, identityError };
 }
@@ -201,7 +202,7 @@ async function describeGrantedTable(datatableId, grant, asker, deps) {
     } catch (e) {
         const answered = e && ANSWERED_REFUSALS.has(e.errorClass);
         if (!answered) {
-            log.warn(`[DatatableTools] granted table ${datatableId} could not be checked: ${e && e.message}`);
+            log.warn(`[DatatableTools] granted table ${datatableId} could not be checked: ${e && /** @type {Error} */ (e).message}`);
             return { unavailable: true };
         }
         return { refused: true };
@@ -336,7 +337,7 @@ async function buildDatatableTools({ userId, agentConfig, deps: injected } = {})
         if (tables.length === 0) return [];
         return [toolDefinitionFor(tables, { unavailable })];
     } catch (e) {
-        log.warn('[DatatableTools] datatable_query not offered:', e && e.message);
+        log.warn('[DatatableTools] datatable_query not offered:', e && /** @type {Error} */ (e).message);
         return [];
     }
 }

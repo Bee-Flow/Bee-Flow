@@ -64,19 +64,20 @@ async function transcribeOnDevice({ filePath, language }) {
         const whisperxUrl = process.env.WHISPERX_URL || await configStore.getSecret('whisperx_url');
         const azureKey = await configStore.getSecret('azure_speech_key');
         const azureRegion = await configStore.getConfig('azure_speech_region');
+        /** @type {string | null} */
         let cloud = null;
         if (mistralKey) cloud = 'voxtral';
         else if (whisperxUrl) cloud = 'whisperx';
         else if (azureKey && azureRegion) cloud = 'azure';
 
         if (!cloud) {
-            throw new Error(err.message + '. No cloud provider is configured — ask an admin to enable Voxtral, WhisperX or Azure, or split the recording.');
+            throw new Error(/** @type {Error} */ (err).message + '. No cloud provider is configured — ask an admin to enable Voxtral, WhisperX or Azure, or split the recording.');
         }
         log.info(`[Transcriptions] Local cap exceeded — falling back to ${cloud}`);
         return {
             response: null,
             provider: cloud,
-            providerFallback: { from: 'local', to: cloud, reason: 'too_long', message: err.message },
+            providerFallback: { from: 'local', to: cloud, reason: 'too_long', message: /** @type {Error} */ (err).message },
         };
     }
 }
@@ -98,6 +99,7 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
     // The phone's crash-safe .aac goes over as .m4a (audioPreprocess.asM4aIfAdts).
     // nosemgrep: ajinabraham.njsscan.traversal.path_traversal.generic_path_traversal -- filePath is the random name multer wrote under uploadsDir, and the repack is a fresh os.tmpdir() file: no client-supplied path is read
     const voxtralAudio = await asM4aIfAdts(filePath, fileName);
+    /** @type {NonSharedBuffer} */
     let fileContent;
     try {
         fileContent = await fs.promises.readFile(voxtralAudio.path);
@@ -327,7 +329,7 @@ async function finishUpload({ transcriptionId, userId, userOrgId, transcribed, a
             orgId: userOrgId,
         });
     } catch (e) {
-        log.warn('[Transcriptions] meeting.processed unavailable:', e.message);
+        log.warn('[Transcriptions] meeting.processed unavailable:', /** @type {Error} */ (e).message);
     }
 }
 

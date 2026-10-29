@@ -43,7 +43,7 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
         } catch (e) {
             // If we can't resolve the catalog, fail closed for side-effects
             // and pass-through for read-only tools.
-            log.warn(`[AutomationRunner] Permission catalog lookup failed: ${e.message}`);
+            log.warn(`[AutomationRunner] Permission catalog lookup failed: ${/** @type {Error} */ (e).message}`);
             if (sideEffect) throw new Error('Could not verify your permission for this tool. The automation has been paused — please re-open it after refreshing your permissions.');
             ctx.allowedToolNames = null; // sentinel — skip subsequent checks this run
         }
@@ -147,7 +147,7 @@ async function resolveDurableTier({ memo, memoEligible, step, stepOrgId, callIde
         } catch (e) {
             // A cache that cannot be consulted is a cache miss, never an error:
             // the only correct response is to make the call for real.
-            log.warn('[AutomationRunner] durable cache unavailable:', e.message);
+            log.warn('[AutomationRunner] durable cache unavailable:', /** @type {Error} */ (e).message);
             durable = null;
         }
     }
@@ -158,18 +158,19 @@ module.exports = { assertStepToolPermitted, resolveLendingIdentity, resolveDurab
 
 /**
  * What execAi.js hands the integration-action modules (its integrationActionDeps).
- * @typedef {object} IntegrationActionDeps
- * @property {typeof import('./safety')} safety
- * @property {typeof import('./integrationCachePolicy').envFlagOn} envFlagOn
- * @property {typeof import('./shared').isEmptyToolResult} isEmptyToolResult
- * @property {typeof import('./shared').isToolErrorResult} isToolErrorResult
- * @property {typeof import('./shared').isEnvironmentToolError} isEnvironmentToolError
- * @property {typeof import('./shared').enrichNextcloudError} enrichNextcloudError
- * @property {typeof import('./shared').stepInputsSynthetic} stepInputsSynthetic
- * @property {() => typeof import('./integrationCachePolicy')} integrationCachePolicy
- * @property {() => typeof import('../tools/toolDispatcher')} toolDispatcher
- * @property {() => typeof import('../integrations/integrationTools')} integrationTools
- * @property {() => typeof import('../integrations/connectionResolution')} connectionResolution
+ * @typedef {{
+ *   safety: typeof import('./safety'),
+ *   envFlagOn: typeof import('./integrationCachePolicy').envFlagOn,
+ *   isEmptyToolResult: typeof import('./shared').isEmptyToolResult,
+ *   isToolErrorResult: typeof import('./shared').isToolErrorResult,
+ *   isEnvironmentToolError: typeof import('./shared').isEnvironmentToolError,
+ *   enrichNextcloudError: typeof import('./shared').enrichNextcloudError,
+ *   stepInputsSynthetic: typeof import('./shared').stepInputsSynthetic,
+ *   integrationCachePolicy: () => typeof import('./integrationCachePolicy'),
+ *   toolDispatcher: () => typeof import('../tools/toolDispatcher'),
+ *   integrationTools: () => typeof import('../integrations/integrationTools'),
+ *   connectionResolution: () => typeof import('../integrations/connectionResolution'),
+ * }} IntegrationActionDeps
  */
 
 /**

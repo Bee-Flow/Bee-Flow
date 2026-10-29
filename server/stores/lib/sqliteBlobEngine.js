@@ -58,23 +58,20 @@ const { fallback } = require('../../utils/bestEffort');
 /**
  * Build one engine instance.
  *
- * @param {object} config
- * @param {string}   config.workDir     Absolute dir for local .db materialisation
- *                                      (wrapper resolves its env-var fallback).
- * @param {Function} config.buildKey    (ownerId, id) => RustFS object key.
- * @param {string}   config.metaTable   Postgres table for the db_sha256/db_size
- *                                      metadata UPDATEs (column set is identical
- *                                      across both stores and stays hard-coded).
- * @param {string}   config.logPrefix   Console tag, e.g. 'StudioAppDB' → `[StudioAppDB] …`.
- * @param {string}   config.entityLabel Error noun, e.g. 'Studio App DB' →
- *                                      `Studio App DB handle owned by another user — …`.
- * @param {object}   config.storage     storageStore-shaped: isAvailable(),
- *                                      streamFile(key), uploadFile(key, buf, ct),
- *                                      deleteFile(key). Injected — see header.
- * @param {Function} config.runQuery    async (sql, params) => result. Wrappers pass db.run.
- * @param {Function} [config.assertServable] optional guard run before a handle is served.
+ * @param {{
+ *   workDir: string, buildKey: (ownerId: string, id: string) => string, metaTable: string, logPrefix: string,
+ *   entityLabel: string, storage: Pick<typeof import('../storageStore'), 'isAvailable' | 'streamFile' | 'uploadFile' | 'deleteFile'>,
+ *   runQuery: typeof import('../../db').run, assertServable?: (ownerId: string, id: string) => Promise<unknown>,
+ * }} config
+ *   workDir: absolute dir for local .db materialisation (wrapper resolves its env-var fallback).
+ *   buildKey: (ownerId, id) => RustFS object key. metaTable: Postgres table for the db_sha256/db_size
+ *   metadata UPDATEs (column set is identical across both stores and stays hard-coded).
+ *   logPrefix: console tag, e.g. 'StudioAppDB' → `[StudioAppDB] …`. entityLabel: error noun, e.g.
+ *   'Studio App DB' → `Studio App DB handle owned by another user — …`. storage: storageStore-shaped,
+ *   injected — see header. runQuery: wrappers pass db.run. assertServable: optional guard run before
+ *   a handle is served.
  */
-function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery, assertServable } = /** @type {any} */ ({})) {
+function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery, assertServable } = /** @type {NonNullable<Parameters<typeof createSqliteBlobEngine>[0]>} */ ({})) {
     if (!workDir || typeof buildKey !== 'function' || !metaTable || !logPrefix || !entityLabel
         || !storage || typeof runQuery !== 'function') {
         throw new Error('createSqliteBlobEngine requires workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery');

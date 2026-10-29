@@ -62,9 +62,18 @@ const { bestEffort } = require('../utils/bestEffort');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+/**
+ * @param {string} message
+ */
 const texts = (message) => z.array(worded(message), { error: message }).min(1, message);
+/**
+ * @param {string} message
+ */
 const id = (message) => worded(message).min(1, message);
 // Coerced, like pydantic's lax mode: "5" is 5 on the Python side too.
+/**
+ * @param {string} message
+ */
 const count = (message) => z.coerce.number({ error: typeError({ invalid: message }) }).int(message).min(1, message);
 /** Sent for the Python service, unused by this twin: declared, never policed. */
 const ignored = z.unknown().optional();
@@ -160,7 +169,7 @@ const DeleteBody = bodyOf(scopeOf());
 // ─── Auth middleware ────────────────────────────────────────────
 // Mirrors the guard-service contract: if SERVICES_API_KEY is set,
 // callers must present it via X-API-Key. /health is always public.
-function apiKeyAuth(req, res, next) {
+function apiKeyAuth(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     if (req.path === '/health') return next();
     const expected = process.env.SERVICES_API_KEY;
     if (!expected) return next(); // unset → open (dev / single-node)

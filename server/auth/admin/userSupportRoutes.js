@@ -150,7 +150,7 @@ async function isKnownRoleId(value) {
         return (roles || []).some(r => r?.id === v);
     } catch (e) {
         // Fail closed: an unverifiable role is not a role.
-        log.warn('[adminRoutes] role allow-list lookup failed:', e.message);
+        log.warn('[adminRoutes] role allow-list lookup failed:', /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -193,4 +193,43 @@ function needsAdminPasswordFloor(u) {
     return u?.role === 'admin' || isOrgAdminRole(u?.orgRole);
 }
 
-module.exports = { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor };
+/**
+ * The refusal for a user update that carries a field outside the allow-list,
+ * or null. Refused, never silently dropped: a 200 for a privilege change that
+ * did not happen is how a real escalation gets mistaken for a failed one.
+ * @param {Record<string, unknown>} body
+ * @returns {{ error: string, code: 'unknown_fields', fields: string[] } | null}
+ */
+function unknownFieldsRefusal(body) {
+    const unknownFields = Object.keys(body).filter(k => !USER_UPDATE_ALLOWED_KEYS.has(k));
+    if (unknownFields.length === 0) return null;
+    return {
+        error: `Unsupported field(s): ${unknownFields.join(', ')}`,
+        code: 'unknown_fields',
+        fields: unknownFields,
+    };
+}
+
+/**
+ * The access-relevant changes of a user update, for the audit row: role,
+ * orgRole, groups, organizationId and status, each only when it is written
+ * and differs from what the user had — never password material.
+ * @param {Record<string, unknown> | null} prevUser  the user before the update
+ * @param {Record<string, unknown>} updates
+ */
+function accessChanges(prevUser, updates) {
+    const ACCESS_FIELDS = ['role', 'orgRole', 'groups', 'organizationId', 'status'];
+    /** @type {Record<string, unknown>} */
+    const oldVals = {};
+    /** @type {Record<string, unknown>} */
+    const newVals = {};
+    for (const f of ACCESS_FIELDS) {
+        if (updates[f] === undefined) continue;
+        if (prevUser && JSON.stringify(prevUser[f]) === JSON.stringify(updates[f])) continue;
+        oldVals[f] = prevUser ? prevUser[f] : null;
+        newVals[f] = updates[f];
+    }
+    return { oldVals, newVals };
+}
+
+module.exports = { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges };

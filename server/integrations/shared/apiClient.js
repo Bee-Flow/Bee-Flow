@@ -18,17 +18,6 @@
  *
  * Connection reuse is handled by undici's global dispatcher (keep-alive by
  * default), so no per-request agent is created.
- *
- * @param {string} url absolute URL
- * @param {object} [opts]
- * @param {string} [opts.method='GET']
- * @param {Record<string,string>} [opts.headers]
- * @param {any} [opts.body] object (JSON-encoded) or string
- * @param {number} [opts.timeoutMs=30000]
- * @param {string} [opts.errorPrefix='API'] prefix for thrown error messages
- * @param {number} [opts.maxErrorChars=500] error-body truncation length
- * @param {boolean} [opts.allowPrivate=false] skip the SSRF pre-filter (self-host internal services)
- * @returns {Promise<any>} parsed JSON, raw text, or null (empty body)
  */
 const { isPrivateTarget } = require('../../utils/isPrivateTarget');
 
@@ -45,9 +34,13 @@ function _truncate(s, n) {
 }
 
 /**
- * @param {string} url
+ * Answers the parsed JSON, the raw text, or null (an empty body).
+ * @param {string} url  absolute URL
  * @param {{ method?: string, headers?: Record<string, string>, body?: unknown, timeoutMs?: number,
- *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean }} [opts]
+ *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean }} [opts]  `method` GET by
+ *   default; `body` an object (JSON-encoded) or a string; `timeoutMs` 30000 by default; `errorPrefix`
+ *   ('API') starts thrown error messages; `maxErrorChars` (500) truncates the error body;
+ *   `allowPrivate` skips the SSRF pre-filter (self-host internal services)
  */
 async function jsonApiRequest(url, opts = {}) {
     const {

@@ -426,4 +426,6 @@ module.exports = {
     'studio_apps_bi.sync.the_app': 'the app',
     'studio_apps_bi.sync.when_rows_come_back': 'When rows come back',
     'studio_apps_bi.sync.your_timezone': 'your timezone',
+    'studio_apps_bi.connectors.auth_bearer': 'Bearer',
+    'studio_apps_bi.connectors.auth_type_header': 'Header',
 };

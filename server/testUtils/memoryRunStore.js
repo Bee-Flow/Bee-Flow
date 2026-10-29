@@ -26,7 +26,7 @@ function makeMemoryRunStore() {
     // keyed `runId|stepId|attempts`.
     /** @type {Map<string, any>} */
     const fullCopies = new Map();
-    const mem = { runs, stepsByRun, updateRunCalls, fullCopies, automation: /** @type {any} */ (null), seq: 0 };
+    const mem = { runs, stepsByRun, updateRunCalls, fullCopies, automation: /** @type {unknown} */ (null), seq: 0 };
 
     /**
      * @param {{ automationId: string, version?: number, userId: string, triggerKind: string, triggerPayload?: unknown,
@@ -51,9 +51,9 @@ function makeMemoryRunStore() {
 
     const methods = {
         initDB: async () => {},
-        createRun: async (/** @type {any} */ args) => makeRun(args),
+        createRun: async (/** @type {Parameters<typeof makeRun>[0]} */ args) => makeRun(args),
         getRun: async (/** @type {string} */ id) => runs.get(id) || null,
-        updateRun: async (/** @type {string} */ id, /** @type {any} */ updates) => {
+        updateRun: async (/** @type {string} */ id, /** @type {Record<string, unknown>} */ updates) => {
             updateRunCalls.push({ id, updates: { ...updates } });
             const r = runs.get(id);
             if (!r) return false;
@@ -66,7 +66,7 @@ function makeMemoryRunStore() {
         // ON CONFLICT clause. The runner writes a 'running' row when a step starts
         // and the real row when it lands; a stub that merely appended kept both,
         // so a lookup by stepId found the placeholder instead of the result.
-        recordRunStep: async (/** @type {any} */ row) => {
+        recordRunStep: async (/** @type {{ runId: string, stepId: string, attempts?: number } & Record<string, unknown>} */ row) => {
             const rows = stepsByRun.get(row.runId) || [];
             const i = rows.findIndex(r => r.stepId === row.stepId && r.attempts === row.attempts);
             if (i >= 0) rows[i] = { ...row }; else rows.push({ ...row });

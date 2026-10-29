@@ -247,7 +247,7 @@ def _snap_start_to_word(text: str, start: int, max_back: int = 40) -> int:
     return start
 
 
-def _token_index_at_char(offsets: list, char_pos: int) -> int:
+def _token_index_at_char(offsets: list[Any], char_pos: int) -> int:
     """First token index whose char-start is >= char_pos (binary search)."""
     lo, hi = 0, len(offsets)
     while lo < hi:

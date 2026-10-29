@@ -74,7 +74,7 @@ function liftBinding(binding) {
 }
 
 /**
- * @param {object} step
+ * @param {RepairableStep} step
  * @returns {object|null} the repaired step, or null when it needs no repair or
  *   cannot be repaired faithfully.
  */
@@ -163,8 +163,9 @@ function repairStep(step) {
  * path (rowToAutomation runs per row of every list query) depend on that, and
  * on the cheap `some()` scan that precedes any copying.
  *
- * @param {object} definition
- * @returns {object} the definition, repaired or untouched
+ * @template T
+ * @param {T} definition
+ * @returns {T} the definition, repaired or untouched
  */
 function repairBuiltinToolSteps(definition) {
     if (!definition || typeof definition !== 'object') return definition;

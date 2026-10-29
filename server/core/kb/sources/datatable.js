@@ -590,9 +590,8 @@ async function fetch(item) {
 /**
  * @param {Record<string, any>} row
  * @param {string[]} columns
- * @param {object} [opts]
- * @param {Array<{column:string, table:string}>} [opts.relations]  relation columns
- * @param {Map<string, Map<string, string>>} [opts.labels]        table → (id → label)
+ * @param {{ relations?: Array<{column:string, table:string}>, labels?: Map<string, Map<string, string>> }} [opts]
+ *   `relations`: relation columns; `labels`: table → (id → label)
  */
 function renderRow(row, columns, opts = {}) {
     const byColumn = new Map((opts.relations || []).map(r => [r.column, r.table]));

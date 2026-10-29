@@ -103,6 +103,7 @@ function unavailable(message) {
  * @returns {Promise<{ userId: string, session: any|null, orgId: string|null, userGroupIds: string[], orgRole: string|null, homeOrgId: string|null, isAdmin: boolean }>}
  * @param {string} callerUserId
  * @param {string | null} runOrgId
+ * @param {CallerDeps} deps
  */
 async function buildCallerIdentity(deps, callerUserId, runOrgId) {
     const user = await deps.loadUserStore().getUser(callerUserId);
@@ -197,7 +198,7 @@ async function failRunBeforeSteps(deps, { error, run, heartbeatTimer, startedAt,
  * place (stored on ctx.callerOnly by the caller), or `{ failedRow }` when a
  * live run was refused. Every failure to build the identity fails closed.
  *
- * @param {any} deps
+ * @param {CallerDeps} deps
  * @param {{ callerUserId: string|null, missingStarter?: boolean, automation: any, runOrgId: string|null,
  *           effectiveMode: string, locked?: boolean, failCtx: any }} args
  */

@@ -264,9 +264,9 @@ async function verify(outBuffer, before, removedIds, terms, removedTexts) {
 
 /**
  * @param {Buffer} buffer
- * @param {object} [opts]
- * @param {string[]} [opts.terms]    extra words that identify the customer (company name, brand)
- * @param {Array<{page:number,id:number,category?:string}>} [opts.aiMarks]  text runs an AI flagged
+ * @param {{ terms?: string[], aiMarks?: Array<{page:number,id:number,category?:string}> }} [opts]
+ *   `terms`: extra words that identify the customer (company name, brand); `aiMarks`: text runs an AI
+ *   flagged
  * @returns {Promise<{ buffer: Buffer, removed: Array, summary: object, terms: string[], warnings: string[] }>}
  */
 async function redactPdf(buffer, { terms: userTerms = [], aiMarks = [] } = {}) {

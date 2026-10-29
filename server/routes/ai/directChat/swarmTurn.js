@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/http/sseHelpers').SseResponse} SseResponse */
 // @typecheck
 /**
  * Direct Chat — the Swarm tier branch of the streaming turn.
@@ -44,6 +45,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
 
         // Resolve the Swarm tier's configured model (used as a fallback
         // any time a worker's tier doesn't resolve to a specific model).
+        /** @type {string | null} */
         let fallbackModelId = null;
         let userOrgId = null;
         try {
@@ -54,7 +56,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
             userOrgId = localUser?.organizationId || null;
             fallbackModelId = await resolveSwarmTierModel('tier:swarm', { userOrgId, userId, fallbackTier: 'fast' });
         } catch (e) {
-            log.warn('[DirectChat/Swarm] tier model resolution failed:', e.message);
+            log.warn('[DirectChat/Swarm] tier model resolution failed:', /** @type {Error} */ (e).message);
         }
         if (!fallbackModelId) {
             return res.status(400).json({ error: 'No model is configured for the Swarm tier. Ask an admin to set one in Chat Model Tiers → Swarm (Direct).' });
@@ -76,6 +78,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         // The last stored message this turn is asked on: a swarm run is long,
         // and a turn that finishes on this conversation in the meantime must
         // stay below this question (see placeTurnRows).
+        /** @type {string | null} */
         let anchorId = null;
         // This turn's id and the time it was asked, taken at the start.
         const turnMark = { turnId: require('crypto').randomUUID(), askedAt: new Date().toISOString() };
@@ -150,14 +153,14 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                     }
                 }
             } catch (persistErr) {
-                log.warn('[DirectChat/Swarm] persist failed:', persistErr.message);
+                log.warn('[DirectChat/Swarm] persist failed:', /** @type {Error} */ (persistErr).message);
             }
 
             send('done', {});
             return res.end();
         } catch (err) {
             log.error('[DirectChat/Swarm] run failed:', err);
-            send('error', { error: err.message || 'Swarm execution failed' });
+            send('error', { error: /** @type {Error} */ (err).message || 'Swarm execution failed' });
             return res.end();
         }
 }

@@ -24,6 +24,7 @@ const { pipeline: streamPipeline } = require('stream/promises');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/** @type {Record<string, string>} */
 const MIME_BY_EXT = {
     '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
     '.ogg': 'audio/ogg', '.webm': 'audio/webm', '.flac': 'audio/flac',
@@ -43,7 +44,10 @@ const SAVED_RECORDINGS_DIR = path.resolve(__dirname, '../../data/uploads/saved-r
  */
 const AUDIO_SCRATCH_DIR = path.join(os.tmpdir(), 'beeflow-audio');
 
-/** Object-storage key for a saved recording, from its local basename. */
+/**
+ * Object-storage key for a saved recording, from its local basename.
+ * @param {string} basename
+ */
 function savedAudioKey(basename) {
     return `saved-recordings/${basename}`;
 }
@@ -69,6 +73,9 @@ function contentTypeForAudio(nameOrKey, reported = null) {
 const PERSIST_ATTEMPTS = 3;
 const PERSIST_BACKOFF_MS = [400, 1500];   // total inline budget stays under ~4s
 
+/**
+ * @param {number} ms
+ */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
@@ -124,7 +131,10 @@ async function persistSavedAudioToStorage(key, source, ext) {
     return { ok: false, key: null, reason: 'failed', error: lastErr?.message };
 }
 
-/** Is this path inside the saved-recordings folder we own? */
+/**
+ * Is this path inside the saved-recordings folder we own?
+ * @param {string | undefined} p
+ */
 function insideSavedDir(p) {
     if (!p) return false;
     const resolved = path.resolve(p);
@@ -200,10 +210,10 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
         };
     } catch (e) {
         try { await fs.promises.unlink(dest); } catch (err) { bestEffort('core/meetingNotes/savedAudioStore:resolveSavedAudio#2', err); /* never created */ }
-        log.error('[SavedAudio] Object-storage fetch failed:', e.message);
+        log.error('[SavedAudio] Object-storage fetch failed:', /** @type {Error} */ (e).message);
         // A key that exists but will not fetch means RustFS lost the object —
         // terminal, and worth noticing separately from an outage.
-        const notFound = e && (e.name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404);
+        const notFound = e && (/** @type {Error} */ (e).name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404);
         return { path: null, reason: notFound ? 'fetch_failed' : 'storage_unavailable' };
     }
 }
@@ -236,7 +246,7 @@ async function repairSavedAudio({ id, ownerId, audioPath, audioStorageKey } = {}
         log.info(`[SavedAudio] Repaired durable copy for note ${id} → ${key}`);
         return key;
     } catch (e) {
-        log.warn(`[SavedAudio] Repair failed for note ${id}: ${e.message}`);
+        log.warn(`[SavedAudio] Repair failed for note ${id}: ${/** @type {Error} */ (e).message}`);
         return null;
     } finally {
         repairsInFlight.delete(basename);
@@ -256,14 +266,14 @@ async function repairSavedAudio({ id, ownerId, audioPath, audioStorageKey } = {}
 async function discardSavedAudio({ audioPath = null, audioStorageKey = null } = {}) {
     if (audioPath) {
         try { await fs.promises.unlink(audioPath); }
-        catch (e) { if (e.code !== 'ENOENT') log.warn('[SavedAudio] Could not discard local copy:', e.message); }
+        catch (e) { if (e.code !== 'ENOENT') log.warn('[SavedAudio] Could not discard local copy:', /** @type {Error} */ (e).message); }
     }
     if (audioStorageKey) {
         try {
             const storageStore = require('../../stores/storageStore');
             if (storageStore.isAvailable()) await storageStore.deleteFile(audioStorageKey);
         } catch (e) {
-            log.warn('[SavedAudio] Could not discard durable copy:', e.message);
+            log.warn('[SavedAudio] Could not discard durable copy:', /** @type {Error} */ (e).message);
         }
     }
 }
@@ -281,7 +291,5 @@ module.exports = {
 };
 
 /**
- * @typedef {Object} DiscardSavedAudioArgs
- * @property {string | null} [audioPath]
- * @property {string | null} [audioStorageKey]
+ * @typedef {{ audioPath?: string | null, audioStorageKey?: string | null }} DiscardSavedAudioArgs
  */

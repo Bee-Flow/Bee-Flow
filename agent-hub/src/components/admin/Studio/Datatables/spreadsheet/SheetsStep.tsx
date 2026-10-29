@@ -149,7 +149,7 @@ function FileSection({ t, file, fileKey, describe, sheetDescribes, selection, ma
                         const checked = selection.has(sheetKeyOf(fileKey, sh.name));
                         return (
                             <li key={sh.name}>
-                                <label className={`flex items-center gap-2 text-sm ${linked ? 'cursor-not-allowed' : 'cursor-pointer'}`} style={{ opacity: linked ? 0.6 : 1 }}>
+                                <label className={`flex items-center gap-2 text-sm ${linked ? 'cursor-not-allowed' : 'cursor-pointer'} ${linked ? '[opacity:0.6]' : '[opacity:1]'}`}>
                                     <input type="checkbox" checked={checked} disabled={linked} onChange={() => onToggleSheet(file, sh.name)} aria-label={`${sh.name} — ${file.name}`} />
                                     <span className="text-[var(--text-primary)]">{sh.name}</span>
                                     {sh.hidden && <span className="text-[10px] px-1.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('datatables.ss_sheet_hidden', 'hidden')}</span>}

@@ -76,6 +76,7 @@ function normalizeScopes(input) {
         if (spec.tools !== undefined && spec.tools !== null) {
             if (!Array.isArray(spec.tools)) throw badRequest('invalid_scopes', `The tool list for "${server}" must be an array of names.`);
             if (spec.tools.length > MAX_TOOLS) throw badRequest('invalid_scopes', `The tool list for "${server}" can hold at most ${MAX_TOOLS} names.`);
+            /** @type {string[]} */
             const names = [];
             for (const name of spec.tools) {
                 if (typeof name !== 'string' || !name.trim() || name.length > MAX_TOOL_NAME) {

@@ -105,9 +105,9 @@ const TOOL_REGISTRY = [
     { app: 'video-gen',               label: 'Video Generation',       module: '../core/tools/videoGenTool',                 arrayName: 'VIDEO_GEN_TOOLS',            enabledKey: 'video-gen' },
     { app: 'elevenlabs',              label: 'ElevenLabs',             module: '../core/tools/elevenLabsTools',              arrayName: 'ELEVENLABS_TOOLS',           enabledKey: 'elevenlabs' },
     { app: 'transcription',           label: 'Transcription',          module: '../integrations/transcriptionTools',        arrayName: 'TRANSCRIPTION_TOOLS',        enabledKey: 'transcription' },
-    // Dezelfde module, dezelfde credentials, een strikte subset van dezelfde
-    // toolnamen als `outlook`. Twee apps voor de org-gate, één grant-subject:
-    // zie `grantsVia` in de kop.
+    // The same module, the same credentials, a strict subset of the same tool
+    // names as `outlook`. Two apps for the org gate, one grant subject: see
+    // `grantsVia` in the header.
     { app: 'outlook-readonly',        label: 'Outlook (read-only)',    module: '../integrations/outlookTools',              arrayName: 'OUTLOOK_READONLY_TOOLS',     enabledKey: 'outlook-readonly',   grantsVia: 'outlook' },
 ];
 
@@ -323,7 +323,7 @@ module.exports = {
 
 /**
  * One app that owns tool names.
- * @typedef {Object} ToolAppEntry
+ * @typedef ToolAppEntry
  * @property {string} app
  * @property {string} label
  * @property {string} module  require path of the module that exports the TOOLS array

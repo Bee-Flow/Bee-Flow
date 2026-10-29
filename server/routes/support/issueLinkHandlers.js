@@ -55,12 +55,12 @@ async function credsFor(req) {
 
 // ── Connection ────────────────────────────────────────────────────────────
 
-async function connectionStatus(req, res) {
+async function connectionStatus(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const status = await ytc.ping({ userId: getUserId(req) });
     res.json({ ...status, includeSubject: await includeSubjectEnabled() });
 }
 
-async function saveConnection(req, res) {
+async function saveConnection(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { url, token, project, includeSubject } = req.body;
     if (url !== undefined) {
         const trimmed = String(url || '').trim().replace(/\/+$/, '');
@@ -106,7 +106,7 @@ async function findIssues(creds, q) {
     return ytc.searchIssues(creds, scoped, { limit: 25 });
 }
 
-async function search(req, res) {
+async function search(req, /** @type {import('express').Response} */ res) {
     try {
         const creds = await credsFor(req);
         if (!creds) return res.status(409).json({ error: 'YouTrack is not connected' });
@@ -135,7 +135,7 @@ async function search(req, res) {
 }
 
 /** The reverse view: who else is waiting on this issue. */
-async function issueThreads(req, res) {
+async function issueThreads(req, /** @type {import('express').Response} */ res) {
     const { issueId } = req.params;
     if (!ytc.ISSUE_ID_RE.test(issueId)) return res.status(400).json({ error: 'invalid issue id' });
     const threads = await supportStore.listThreadsForIssue(issueId);
@@ -157,7 +157,7 @@ async function issueThreads(req, res) {
 
 // ── Links on a ticket ─────────────────────────────────────────────────────
 
-async function threadIssues(req, res) {
+async function threadIssues(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const links = await supportStore.listIssueLinks(req.params.id);
     const counts = await supportStore.countThreadsPerIssue(links.map(l => l.issue_id));
     res.json({
@@ -174,7 +174,7 @@ async function threadIssues(req, res) {
  * first: linking an id that does not exist would leave a row that can never
  * sync and reads as "no data yet".
  */
-async function attachIssues(req, res) {
+async function attachIssues(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const thread = await supportStore.getThread(req.params.id);
     if (!thread) return res.status(404).json({ error: 'thread not found' });
 
@@ -217,7 +217,7 @@ async function attachIssues(req, res) {
     ok(res, { issues: linked });
 }
 
-async function detachIssue(req, res) {
+async function detachIssue(req, /** @type {import('express').Response} */ res) {
     const { id, issueId } = req.params;
     const removed = await supportStore.unlinkIssue(id, issueId);
     if (!removed) return res.status(404).json({ error: 'not linked' });
@@ -233,7 +233,7 @@ async function detachIssue(req, res) {
  * Screen what the agent wrote AND what was assembled (the subject, when enabled, rides along).
  * @param {{ summary: string; description: string; ticketRef: string; url: string; }} payload
  */
-async function screenPayload(req, res, thread, payload) {
+async function screenPayload(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, thread, payload) {
     const screen = await egress.screenText(`${payload.summary}\n${payload.description}`, { thread });
     if (screen.ok) return screen;
     supportStore.recordAuditEvent({
@@ -251,7 +251,7 @@ async function screenPayload(req, res, thread, payload) {
 }
 
 /** Link the issue just created (or handed back) to the ticket, tag it, and record it. */
-async function recordCreatedIssue(req, { thread, creds, result, payload, projectId, screen }) {
+async function recordCreatedIssue(/** @type {import('express').Request} */ req, { thread, creds, result, payload, projectId, screen }) {
     const issueId = result.id;
     const row = await supportStore.linkIssue({
         threadId: thread.id,
@@ -286,7 +286,7 @@ async function recordCreatedIssue(req, { thread, creds, result, payload, project
  * issueEgress from an allow-list and screened before anything is sent; a
  * detection blocks the send, with no override.
  */
-async function createIssue(req, res) {
+async function createIssue(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const thread = await supportStore.getThread(req.params.id);
         if (!thread) return res.status(404).json({ error: 'thread not found' });
@@ -329,7 +329,7 @@ async function createIssue(req, res) {
     }
 }
 
-async function refreshIssues(req, res) {
+async function refreshIssues(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const threadId = req.params.id;
         const last = refreshCooldown.get(threadId) || 0;

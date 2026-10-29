@@ -107,8 +107,7 @@ export function ChatColumn({ chatSlot, pane, streamLock }: ChatColumnProps) {
                         title={streamLock
                             ? t('app_studio.shell.ai_building', 'The AI is building — click to watch')
                             : t('app_studio.shell.ai_show', 'Show the AI builder')}
-                        className={`rounded-md p-1.5 hover:bg-[var(--bg-card-hover)] ${streamLock ? 'animate-pulse' : ''}`}
-                        style={{ color: streamLock ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+                        className={`rounded-md p-1.5 hover:bg-[var(--bg-card-hover)] ${streamLock ? 'animate-pulse' : ''} ${streamLock ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}
                     >
                         <Sparkles className="h-4 w-4" aria-hidden="true" />
                     </button>

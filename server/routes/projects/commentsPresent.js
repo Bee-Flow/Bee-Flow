@@ -51,8 +51,8 @@ function tryOpen(open, what) {
 }
 
 /**
- * @param {any} box
- * @param {any} c  the comment row
+ * @param {import('./commentsContext').CommentBox} box
+ * @param {NonNullable<import('./commentsContext').CommentRow>} c  the comment row
  * @param {string} [plaintext]  when the caller already has it
  * @param {Map<string, boolean>} [feedback]  the caller's own feedback on automatic answers
  */
@@ -84,7 +84,7 @@ function presentComment(box, c, plaintext, feedback) {
 }
 
 /**
- * @param {any} box  the opened project key
+ * @param {import('./commentsContext').CommentBox} box  the opened project key
  * @param {any} t    the thread row
  * @param {any[]} comments  its comment rows
  * @param {Map<string, string>} [known]  plaintext the caller already has, by comment id

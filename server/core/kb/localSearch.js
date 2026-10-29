@@ -63,8 +63,7 @@ function setCachedEmbedding(query, embedding) {
  * @param {string} tenantId — user ID
  * @param {string[]} kbIds — knowledge base IDs to search
  * @param {string} query — user query text
- * @param {object} options
- * @param {number} [options.topK=10]
+ * @param {{ topK?: number }} options `topK`: defaults to 10
  * @returns {Promise<Array<{content: string, title: string, source_uri: string, score: number}>>}
  */
 async function searchLocally(tenantId, kbIds, query, options = {}) {

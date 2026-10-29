@@ -67,11 +67,10 @@ function computeRenderScale({ width, height, scale = null, targetLongEdge = null
  * Render PDF pages to PNG images.
  *
  * @param {Buffer|Uint8Array} pdfBuffer
- * @param {object} [opts]
- * @param {number} [opts.maxPages=20]      - hard cap on page count to avoid runaway cost/context
- * @param {number} [opts.scale]            - fixed render scale; wins when given (legacy behaviour)
- * @param {number} [opts.targetLongEdge]   - px; per-page scale so the longer edge lands here (clamped 1.0–4.0)
- * @param {string} [opts.filename]
+ * @param {{ maxPages?: number, scale?: number, targetLongEdge?: number, filename?: string }} [opts]
+ *   `maxPages`: hard cap on page count to avoid runaway cost/context; `scale`: fixed render scale; wins
+ *   when given (legacy behaviour); `targetLongEdge`: px; per-page scale so the longer edge lands here
+ *   (clamped 1.0–4.0)
  * @returns {Promise<{ images: Array<{ base64: string, mimeType: 'image/png' }>, totalPages: number, truncated: boolean } | null>}
  *          Returns null if canvas is unavailable or rendering fails outright.
  */

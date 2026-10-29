@@ -197,7 +197,7 @@ function pdfFilename(name, extension = 'pdf') {
  * presentation the slide viewer — the outline as written (tokens and all)
  * unless `values` fills it. `draft` previews unsaved edits without storing.
  */
-async function previewHtmlFor(req, doc, { mode = 'print', values = null, sectionOverrides = {}, draft = null } = {}) {
+async function previewHtmlFor(/** @type {import('express').Request} */ req, doc, { mode = 'print', values = null, sectionOverrides = {}, draft = null } = {}) {
     if (isDeckDocument(doc)) {
         const out = await renderDeckDocument({
             document: doc, values, sectionOverrides, draft, format: 'html', orgId: orgIdOf(req),
@@ -213,7 +213,7 @@ async function previewHtmlFor(req, doc, { mode = 'print', values = null, section
  * and a colleague's that the colleague put into this document themselves (a
  * deck filed into a project; core/documents/documentImages.js).
  */
-function imageResolverFor(req, doc) {
+function imageResolverFor(/** @type {import('express').Request} */ req, doc) {
     const { makeUserImageResolver } = require('../services/presentationRenderer');
     const { makeDocumentImageResolver, sharedAuthorCache } = require('../core/documents/documentImages');
     return makeDocumentImageResolver({
@@ -262,7 +262,7 @@ function orgIdOf(req) {
  * editor preview, the download here and the PDF an automation mails out can never
  * disagree about whether a document is wearing the letterhead.
  */
-function houseStyleCssFor(req, doc) {
+function houseStyleCssFor(/** @type {import('express').Request} */ req, doc) {
     return houseStyleCssForDocument(doc, orgIdOf(req));
 }
 

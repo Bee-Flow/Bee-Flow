@@ -39,7 +39,10 @@ function retiredColumnKey(fieldId) {
     return RETIRED_PREFIX + (plain ? id : crypto.createHash('sha256').update(id, 'utf8').digest('hex').slice(0, 40));
 }
 
-/** Does this field have a column in the table at all? */
+/**
+ * Does this field have a column in the table at all?
+ * @param {ModelField} field
+ */
 function hasColumn(field) {
     return isAlterPhysical(field) || isStoredComputed(field);
 }
@@ -101,6 +104,9 @@ function retireMetaFor(field, state) {
  * qualifies the names; without it they resolve through the search path.
  */
 async function readRetireState(client, { tableKey, tableId, field, schema = null }) {
+    /**
+     * @param {string} name
+     */
     const qualify = (name) => (schema ? `${qi(schema)}.${qi(name)}` : qi(name));
     const r = await client.query(
         `SELECT a.attnotnull AS not_null,
@@ -208,6 +214,9 @@ function retainConflicts(oldModel, newModel, opts = {}) {
     return conflictsOf(oldC, newC, retain, (id) => !only || only.has(id));
 }
 
+/**
+ * @param {string} v
+ */
 const sqlText = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
 /** Name of the FOREIGN KEY an unretire adds back, from stable ids. */
@@ -215,7 +224,11 @@ function retainedFkName(tableId, fieldId) {
     return `fk_${tableId}_${fieldId}`;
 }
 
-/** SQL that is true when `table` has a live column named `column`. */
+/**
+ * SQL that is true when `table` has a live column named `column`.
+ * @param {string} tableKey
+ * @param {string} columnKey
+ */
 function columnExists(tableKey, columnKey) {
     return `EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass(${sqlText(qi(tableKey))}) `
         + `AND attname = ${sqlText(columnKey)} AND attnum > 0 AND NOT attisdropped)`;
@@ -225,6 +238,8 @@ function columnExists(tableKey, columnKey) {
  * Every FOREIGN KEY on `table.column`, dropped — found in pg_constraint, since
  * the inline REFERENCES of a CREATE TABLE got a name Postgres chose. to_regclass
  * and %I resolve through the migration's search_path (the scope's schema).
+ * @param {string} tableKey
+ * @param {string} columnKey
  */
 function dropFkDdl(tableKey, columnKey) {
     return `DO $$ DECLARE c record; BEGIN `
@@ -247,6 +262,7 @@ function dropFkDdl(tableKey, columnKey) {
 function retireDdl(table, field) {
     if (!hasColumn(field)) return []; // a read-time computed field has no column
     const to = retiredColumnKey(field.id);
+    /** @type {string[]} */
     const out = [];
     if (field.unique && isAlterPhysical(field)) out.push(`DROP INDEX IF EXISTS ${qi(uniqueIndexName(table.id, field.id))}`);
     out.push(
@@ -274,6 +290,7 @@ function retireDdl(table, field) {
  */
 function unretireDdl(table, field, meta, newKeyById, dialect) {
     if (!hasColumn(field)) return [];
+    /** @type {string[]} */
     const out = [];
     const stored = isStoredComputed(field);
     const aside = retiredColumnKey(field.id);

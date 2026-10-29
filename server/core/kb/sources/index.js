@@ -327,7 +327,7 @@ async function syncSource(source, opts = {}) {
             // One document failing is a row with a reason on it, not a failed
             // refresh: the other 37 files in the folder still belong here.
             counts.failed += 1;
-            ctx.log(`source ${source.id} item ${externalId} failed: ${e.message}`);
+            ctx.log(`source ${source.id} item ${externalId} failed: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -344,7 +344,7 @@ async function syncSource(source, opts = {}) {
                 counts.removed += 1;
             } catch (e) {
                 counts.failed += 1;
-                ctx.log(`source ${source.id} delete ${doc.id} failed: ${e.message}`);
+                ctx.log(`source ${source.id} delete ${doc.id} failed: ${/** @type {Error} */ (e).message}`);
             }
         }
     }
@@ -387,7 +387,7 @@ async function syncSource(source, opts = {}) {
             if (version !== null) await deps.kbSourcesStore.setSeenDataVersion(source.id, version, related);
         } catch (e) {
             // The backstop simply arms once more; nothing is lost.
-            ctx.log(`could not record the table version for source ${source.id}: ${e.message}`);
+            ctx.log(`could not record the table version for source ${source.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -424,7 +424,7 @@ async function labelDocuments(items, ctx, deps) {
                 const r = await summariser.summarise({ text: item.text, title: item.title });
                 if (r?.summary) await deps.kbStore.replaceDocumentContent(item.docId, { extractSummary: r.summary });
             } catch (e) {
-                ctx.log(`summary for ${item.docId} skipped: ${e.message}`);
+                ctx.log(`summary for ${item.docId} skipped: ${/** @type {Error} */ (e).message}`);
             }
         }
     });

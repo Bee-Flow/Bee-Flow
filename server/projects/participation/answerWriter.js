@@ -36,17 +36,24 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const LOCK_MARGIN_MS = 30_000;
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getProject]      (id) => project row
- * @param {Function} [deps.getUser]         (id) => user row
- * @param {any}   [deps.locks]           { acquireTurn, releaseTurn }
- * @param {Function} [deps.resolveModel]    ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {Function} [deps.searchKnowledge] chatAssistant.searchProjectKnowledge
- * @param {Function} [deps.listAudience]    (project) => string[] | null
- * @param {Function} [deps.shieldFor]       (surface) => makeChatShield() surface
- * @param {Function} [deps.llmChat]         (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.logUsage]
- * @param {number}   [deps.timeoutMs]
+ * Every dependency is a test seam whose default is the real module; each is
+ * typed by what this file reads of it. `shieldFor` gives the
+ * makeChatShield() surface of one surface (`chat` or `comment`).
+ *
+ * @param {{
+ *   getProject?: (id: string) => Promise<{ id: string, name: string, ownerId?: string|null, customInstructions?: unknown, knowledgeBaseIds?: string[] }|null>,
+ *   getUser?: (id: string) => Promise<{ displayName?: unknown, username?: unknown }|null>,
+ *   locks?: {
+ *     acquireTurn: (opts: Parameters<typeof import('../../stores/conversationLockStore').acquireTurn>[0]) => Promise<{ acquired: boolean }|null>,
+ *     releaseTurn: (opts: Parameters<typeof import('../../stores/conversationLockStore').releaseTurn>[0]) => Promise<unknown> },
+ *   resolveModel?: (who: { userId: string, orgId: string|null }) => Promise<{ modelId: string, options?: Record<string, unknown>, providerConfig?: Record<string, unknown> }|null>,
+ *   searchKnowledge?: typeof import('../chatAssistant').searchProjectKnowledge,
+ *   listAudience?: (project: { id: string, ownerId?: string|null }) => Promise<string[]|null>,
+ *   shieldFor?: (surface: string) => Pick<ReturnType<typeof import('../chatShield').makeChatShield>, 'protect'|'tokenAddendum'|'restore'|'release'>
+ *     & { resolve: (who: { orgId: string|null, userId: string }) => Promise<unknown> },
+ *   llmChat?: (modelId: string, messages: Array<{ role: string, content: string }>, options: Record<string, unknown>) => Promise<{ content?: unknown, usage?: Record<string, unknown>, stop_reason?: unknown }>,
+ *   logUsage?: (entry: Record<string, unknown>) => Promise<unknown>,
+ *   timeoutMs?: number }} [deps]
  */
 function makeAnswerWriter(deps = {}) {
     const assistant = () => require('../chatAssistant');
@@ -66,6 +73,7 @@ function makeAnswerWriter(deps = {}) {
     const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
 
     function transcript(messages, names, askerName) {
+        /** @type {string[]} */
         const lines = [];
         let total = 0;
         for (let i = messages.length - 1; i >= 0; i--) {
@@ -115,7 +123,7 @@ function makeAnswerWriter(deps = {}) {
         try {
             model = await resolveModel({ userId, orgId });
         } catch (err) {
-            log.warn(`[AiParticipation] answer model lookup failed for ${surface} ${watch.containerId}: ${err && err.message}`);
+            log.warn(`[AiParticipation] answer model lookup failed for ${surface} ${watch.containerId}: ${err && /** @type {Error} */ (err).message}`);
             return { status: 'unavailable' };
         }
         if (!model || !model.modelId) return { status: 'no_model' };
@@ -131,7 +139,7 @@ function makeAnswerWriter(deps = {}) {
                 ttlMs: timeoutMs + LOCK_MARGIN_MS,
             });
         } catch (err) {
-            log.warn(`[AiParticipation] turn claim failed for ${surface} ${watch.containerId}: ${err && err.message}`);
+            log.warn(`[AiParticipation] turn claim failed for ${surface} ${watch.containerId}: ${err && /** @type {Error} */ (err).message}`);
             return { status: 'unavailable' };
         }
         if (!claim || !claim.acquired) return { status: 'busy' };
@@ -157,7 +165,7 @@ function makeAnswerWriter(deps = {}) {
                     project, userId, query: trigger.text, session: null, shield: config, audienceIds: await listAudience(project),
                 }) || '';
             } catch (err) {
-                log.warn(`[AiParticipation] knowledge search failed for ${surface} ${watch.containerId}: ${err && err.message}`);
+                log.warn(`[AiParticipation] knowledge search failed for ${surface} ${watch.containerId}: ${err && /** @type {Error} */ (err).message}`);
             }
             const extra = typeof ctx.extraContext === 'string' && ctx.extraContext.trim()
                 ? `The passage the discussion refers to:\n<passage>\n${ctx.extraContext.slice(0, EXTRA_CONTEXT_CHARS)}\n</passage>\n\n`
@@ -193,7 +201,7 @@ function makeAnswerWriter(deps = {}) {
                     conversation_id: watch.containerId,
                 });
             } catch (err) {
-                log.warn(`[AiParticipation] usage logging failed: ${err && err.message}`);
+                log.warn(`[AiParticipation] usage logging failed: ${err && /** @type {Error} */ (err).message}`);
             }
 
             const raw = typeof result?.content === 'string' ? result.content.trim() : '';
@@ -218,13 +226,13 @@ function makeAnswerWriter(deps = {}) {
             return { status: 'answered', messageId: posted.messageId };
         } catch (err) {
             const status = err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : 'failed';
-            log.warn(`[AiParticipation] automatic answer in ${surface} ${watch.containerId} (run ${runId}) ${status}: ${err?.code || err?.name || 'error'}`);
+            log.warn(`[AiParticipation] automatic answer in ${surface} ${watch.containerId} (run ${runId}) ${status}: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}`);
             return { status };
         } finally {
             try {
                 await locks().releaseTurn({ conversationId: watch.containerId, runId });
             } catch (err) {
-                log.warn(`[AiParticipation] turn release failed for ${surface} ${watch.containerId}; it expires on its own: ${err && err.message}`);
+                log.warn(`[AiParticipation] turn release failed for ${surface} ${watch.containerId}; it expires on its own: ${err && /** @type {Error} */ (err).message}`);
             }
             try { shield.release(dlpConversationId); } catch (err) { bestEffort('projects/participation/answerWriter:write', err); /* nothing held */ }
         }

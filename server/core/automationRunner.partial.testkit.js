@@ -14,7 +14,7 @@
 
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
-    require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });
+    require.cache[resolved] = /** @type {NodeJS.Module} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });
 }
 
 function installPartialRunHarness(/** @type {{getRunsForAutomation?: Function}} */ { getRunsForAutomation } = {}) {

@@ -36,6 +36,7 @@ const { z } = require('../utils/zod');
 /**
  * No body at all (Express 5 leaves `req.body` undefined then), or an empty
  * one. Every refusal is a sentence that names the keys it would have ignored.
+ * @param {string} why
  */
 const noBody = (why) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
@@ -79,7 +80,7 @@ router.use(requireAuth);
  * body mirrors sendAgentNotEditable in routes/agents/crud.js so clients can
  * translate it and flip into read-only mode.
  */
-async function requireEditableAgent(req, res) {
+async function requireEditableAgent(req, /** @type {import('express').Response} */ res) {
     const agent = await agentStore.getAgent(req.params.agentId);
     if (!agent) {
         res.status(404).json({ error: 'Agent not found' });

@@ -1,3 +1,4 @@
+/** @typedef {import('../integrations/nextcloudClient.types').NcAuth} NcAuth */
 /**
  * approvalDelivery — putting an approval card where the approver already is.
  *
@@ -46,11 +47,15 @@ const {
 } = require('./approvalAnnouncement');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
-/** Org-level default conversation for approval cards (plain config, not a secret). */
+/**
+ * Org-level default conversation for approval cards (plain config, not a secret).
+ * @param {string} orgId
+ */
 function talkRoomConfigKey(orgId) {
     return `nc_approvals_talk_room_${orgId}`;
 }
 
+/** @typedef {{ automation?: ApprovalAutomation | null, approval?: Approval | null, orgId?: string | null }} ResolveTalkRoomArgs */
 /**
  * Which Talk conversation does this approval's card belong in?
  *
@@ -60,6 +65,7 @@ function talkRoomConfigKey(orgId) {
  * conversations a moderator deliberately added it to, so an invented room
  * would 401, and posting as an impersonated user into someone's private chat
  * is a different product decision than the one this feature made.
+ * @param {ResolveTalkRoomArgs} param0
  */
 async function resolveTalkRoom({ automation = null, approval = null, orgId = null }) {
     // `talkRoom` is the handoff 5 name; `ncTalkRoom` what older automations stored.
@@ -76,7 +82,10 @@ async function resolveTalkRoom({ automation = null, approval = null, orgId = nul
     } catch { return null; }
 }
 
-/** The stage a card is announcing, and where it sits in the chain. */
+/**
+ * The stage a card is announcing, and where it sits in the chain.
+ * @param {Approval} approval
+ */
 function stageContext(approval) {
     try {
         const approvalService = require('./approvalService');
@@ -106,6 +115,8 @@ function talkCardText(announcement) {
 /**
  * `text` cut to at most `max` UTF-16 units, ending in '…' when cut. Never
  * splits a surrogate pair, so an emoji at the cut does not become mojibake.
+ * @param {string} text
+ * @param {number} max
  */
 function clampText(text, max) {
     if (text.length <= max) return text;
@@ -222,6 +233,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
 
     try {
         const { TALK_V1 } = talkBot;
+        /** @type {{ message: string; silent: boolean; replyTo?: number }} */
         const body = { message: String(message || ''), silent: !!silent };
         if (Number.isFinite(Number(replyTo)) && Number(replyTo) > 0) body.replyTo = Number(replyTo);
         const res = await ctx.fetch(`${ctx.baseUrl}${TALK_V1}/chat/${encodeURIComponent(roomToken)}?format=json`, {
@@ -236,7 +248,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
         const id = data?.ocs?.data?.id;
         return { ok: true, via: 'user', roomToken, messageId: id != null ? String(id) : null };
     } catch (e) {
-        return { ok: false, via: 'user', error: e.message };
+        return { ok: false, via: 'user', error: /** @type {Error} */ (e).message };
     }
 }
 
@@ -244,11 +256,10 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
  * Deliver one approval's card on the Nextcloud channels the policy selected.
  * Never throws; returns a small report the caller may log.
  *
- * @param {object}   p
- * @param {object}   p.approval      the durable approval row
- * @param {object}   [p.automation]  the automation it paused (for the title/room)
- * @param {string[]} p.channels      the resolved notification policy's channels
- * @param {string[]} [p.recipientIds] Bee Flow user ids the bell should reach
+ * @param {{ approval: import('./approvalRulebook').Approval, automation?: ApprovalAutomation | null, channels: string[], recipientIds?: string[] }} p
+ *   approval: the durable approval row; automation: the automation it paused (for the
+ *   title/room); channels: the resolved notification policy's channels;
+ *   recipientIds: Bee Flow user ids the bell should reach
  */
 async function deliverApprovalToNextcloud({ approval, automation = null, channels = [], recipientIds = [] }) {
     const report = { talk: null, notifications: [] };
@@ -378,3 +389,5 @@ module.exports = {
 /** @typedef {{ ok: boolean, apiVersion?: string|null, status?: number, error?: string }} BellResult */
 
 /** @typedef {{ ok: boolean, via?: string|null, roomToken?: string, messageId?: string|null, referenceId?: string, error?: string }} TalkCardResult */
+
+/** @typedef {{ title?: string, organizationId?: string | null, userId?: string, definition?: unknown }} ApprovalAutomation  the parts of an automation a card reads */

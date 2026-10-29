@@ -68,7 +68,7 @@ async function formOf(req) {
             mine: a.userId === req.datatablePrincipal.userId,
         };
     } catch (e) {
-        log.warn('[datatables] answers form lookup failed:', e.message);
+        log.warn('[datatables] answers form lookup failed:', /** @type {Error} */ (e).message);
         return { automationId, title: null, live: false, url: null, linked: req.datatable.source.linked !== false, mine: false };
     }
 }

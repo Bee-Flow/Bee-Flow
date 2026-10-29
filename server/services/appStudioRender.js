@@ -472,15 +472,15 @@ function unavailable(reason, code) {
 /**
  * Render one App Studio screen headless and screenshot it.
  *
- * @param {object} [input]
- * @param {any}  [input.app]      - the studio_apps row ({ id, userId }); data pass skipped without it
- * @param {any}  [input.definition] - canonical app definition
- * @param {any}  [input.model]    - the app's data model (or null)
- * @param {string}  [input.screenId] - screen to render (default: home screen)
- * @param {string}  [input.asRole]   - render + read data as this role (must exist in model.roles)
- * @param {string|any} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
- * @param {any}  [input.deps]     - injectable edges (tests): readBundle, capture,
- *                                     dbQuery, runDataset, getDataset, hardTimeoutMs
+ * `input`: `app` is the studio_apps row (data pass skipped without it), `definition` the canonical app
+ * definition, `model` the app's data model or null (its `roles` read defensively), `screenId` the screen to
+ * render (default: home screen), `asRole` the role to render + read data as (must exist in model.roles),
+ * `deps` the injectable edges (tests): readBundle, capture, dbQuery, runDataset, getDataset, hardTimeoutMs.
+ *
+ * @param {{ app?: { id: string, userId: string } | null, definition?: AppDefinition | null,
+ *   model?: (Omit<DataModel, 'roles'> & { roles?: unknown }) | null, screenId?: string | null, asRole?: string | null,
+ *   viewport?: 'desktop' | 'tablet' | 'mobile' | string | { width: number, height: number },
+ *   deps?: Partial<ReturnType<typeof defaultDeps>> | null }} [input]
  */
 async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
     try {

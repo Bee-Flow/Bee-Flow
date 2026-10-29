@@ -94,7 +94,7 @@ function datasetAdapter(ds) {
                 return Buffer.concat(chunks);
             } catch (e) {
                 // An absent shard just means "no rs numbers hashed here".
-                if (e?.name === 'NoSuchKey') return Buffer.alloc(0);
+                if (/** @type {Error} */ (e)?.name === 'NoSuchKey') return Buffer.alloc(0);
                 throw e;
             }
         },
@@ -105,7 +105,7 @@ function datasetAdapter(ds) {
  * Resolve + authorize the dataset named by a step/tool argument. Shared with
  * aiRuntime's query_genome_dataset tool so the two paths cannot drift.
  * @param {{ id: string, userId: string }} app
- * @param {*} rawValue what the binding resolved to (a descriptor or an id)
+ * @param {unknown} rawValue what the binding resolved to (a descriptor or an id)
  * @param {string|null|undefined} actorId the person the step runs as (ctx.viewerId);
  *   only the dataset's uploader resolves it, and naming nobody resolves nothing
  * @returns {Promise<NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>>} the manifest row — throws a client-safe error otherwise.
@@ -187,7 +187,7 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
         });
     } catch (e) {
         if (e instanceof DatasetQueryError) {
-            const err = new Error(e.message);
+            const err = new Error(/** @type {Error} */ (e).message);
             err.status = 400;
             throw err;
         }
@@ -262,16 +262,9 @@ module.exports = { datasetQueryStep, resolveReadyDataset, datasetAdapter, _inter
  * @typedef {import('./actionExecutor/shared').ExecCtx} ExecCtx
  * @typedef {import('./actionExecutor/shared').DataModel} DataModel
  * @typedef {import('./actionExecutor/shared').DataTable} DataTable
- * @typedef {object} DatasetQueryStepDef  the authored dataset_query step
- * @property {string} [kind]
- * @property {Binding} [dataset]
- * @property {Binding} [gene]
- * @property {Binding} [region]
- * @property {Binding} [rsid]
- * @property {boolean} [filterPass]
- * @property {number} [minQual]
- * @property {number} [limit]
- * @property {boolean} [includeGenotypes]
- * @property {string} [resultDetail]
- * @property {{ tableId?: string, mapping?: Record<string, unknown>, constants?: Record<string, Binding>, upsertOn?: string }} [writeTo]
+ * @typedef {{
+ *   kind?: string, dataset?: Binding, gene?: Binding, region?: Binding, rsid?: Binding, filterPass?: boolean, minQual?: number,
+ *   limit?: number, includeGenotypes?: boolean, resultDetail?: string,
+ *   writeTo?: { tableId?: string, mapping?: Record<string, unknown>, constants?: Record<string, Binding>, upsertOn?: string },
+ * }} DatasetQueryStepDef  the authored dataset_query step
  */

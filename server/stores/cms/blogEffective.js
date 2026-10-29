@@ -26,14 +26,19 @@ const { deriveExcerpt, readingMinutes } = require('./postText');
 const BLOG_BASE = 'blog';
 const LABEL_PREFIX = 'cms_blog.public.';
 
-/** Visitor-facing labels for one locale, from the GUI dictionary (en defaults + Dutch catalogue). */
+/**
+ * Visitor-facing labels for one locale, from the GUI dictionary (en defaults + Dutch catalogue).
+ * @param {string} locale
+ */
 async function blogLabels(locale) {
+    /** @type {Record<string, string>} */
     let strings;
     try {
         strings = await require('../languageStore').getEffectiveGUIStrings(locale);
     } catch (_) {
         strings = require('../../i18n/defaults/en').GUI_DEFAULTS;
     }
+    /** @type {Record<string, string>} */
     const out = {};
     for (const [k, v] of Object.entries(strings || {})) {
         if (k.startsWith(LABEL_PREFIX) && typeof v === 'string') out[k.substring(LABEL_PREFIX.length)] = v;
@@ -57,6 +62,9 @@ function localizePost(post, override) {
     return { ...post, ...merged };
 }
 
+/**
+ * @param {string[]} tags
+ */
 function tagObjects(tags) {
     return (Array.isArray(tags) ? tags : []).map(label => ({ slug: tagSlug(label), label })).filter(t => t.slug);
 }

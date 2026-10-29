@@ -16,7 +16,7 @@
  * worth making.
  */
 
-import { formatMoment } from '@/core/i18n';
+import { formatMoment, translate } from '@/core/i18n';
 
 /**
  * The full server VALID_REPEAT_INTERVALS set, in order. It has to be complete:
@@ -24,17 +24,25 @@ import { formatMoment } from '@/core/i18n';
  * or `yearly`, and a value missing from this list has no matching option, so a
  * picker silently rewrites the schedule to "Once" the moment anything is saved.
  */
-export const COWORK_REPEAT_OPTIONS: { value: string; label: string }[] = [
-    { value: '', label: 'Once' },
-    { value: 'hourly', label: 'Every hour' },
-    { value: 'daily', label: 'Every day' },
-    { value: 'weekdays', label: 'Every weekday' },
-    { value: 'weekly', label: 'Every week' },
-    { value: 'biweekly', label: 'Every 2 weeks' },
-    { value: 'monthly', label: 'Every month' },
-    { value: 'quarterly', label: 'Every quarter' },
-    { value: 'yearly', label: 'Every year' },
+const REPEAT_WORDS: { value: string; i18nKey: string; en: string }[] = [
+    { value: '', i18nKey: 'cowork.repeat.once', en: 'Once' },
+    { value: 'hourly', i18nKey: 'cowork.repeat.hourly', en: 'Every hour' },
+    { value: 'daily', i18nKey: 'cowork.repeat.daily', en: 'Every day' },
+    { value: 'weekdays', i18nKey: 'cowork.repeat.weekdays', en: 'Every weekday' },
+    { value: 'weekly', i18nKey: 'cowork.repeat.weekly', en: 'Every week' },
+    { value: 'biweekly', i18nKey: 'cowork.repeat.biweekly', en: 'Every 2 weeks' },
+    { value: 'monthly', i18nKey: 'cowork.repeat.monthly', en: 'Every month' },
+    { value: 'quarterly', i18nKey: 'cowork.repeat.quarterly', en: 'Every quarter' },
+    { value: 'yearly', i18nKey: 'cowork.repeat.yearly', en: 'Every year' },
 ];
+
+/** The label is a getter, so it is read in the language the app has NOW. */
+export const COWORK_REPEAT_OPTIONS: { value: string; readonly label: string }[] = REPEAT_WORDS.map((word) => ({
+    value: word.value,
+    get label() {
+        return translate(word.i18nKey, word.en);
+    },
+}));
 
 export function repeatLabel(value: string | null | undefined): string {
     const opt = COWORK_REPEAT_OPTIONS.find((o) => o.value === (value || ''));
@@ -175,12 +183,15 @@ export function describeSchedule(
     }: { presetId: string; runAt: Date | string | null; repeatInterval: string | null },
     { now = new Date() }: { now?: Date } = {},
 ): string {
-    const repeat = repeatInterval ? `, ${repeatLabel(repeatInterval).toLowerCase()}` : '';
+    const repeat = repeatInterval ? repeatLabel(repeatInterval).toLowerCase() : '';
     if (presetId === 'now') {
-        return `Now${repeatInterval ? `, then ${repeatLabel(repeatInterval).toLowerCase()}` : ''}`;
+        return repeat
+            ? translate('mobile.cowork.now_then', 'Now, then {repeat}', { repeat })
+            : translate('cowork.when.chip_now', 'Now');
     }
-    if (!runAt) return 'Pick a moment';
-    return `${describeMoment(runAt, { now })}${repeat}`;
+    if (!runAt) return translate('cowork.when.chip_pick', 'Pick a moment');
+    const moment = describeMoment(runAt, { now });
+    return repeat ? translate('mobile.cowork.moment_repeat', '{moment}, {repeat}', { moment, repeat }) : moment;
 }
 
 export interface CoworkPayload {

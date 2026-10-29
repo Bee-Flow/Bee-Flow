@@ -209,16 +209,9 @@ function todoFromIcal(vtodo) {
 }
 
 /**
- * @typedef {object} Todo
- * @property {string|null} uid
- * @property {string|null} summary
- * @property {string|null} description
- * @property {string|null} due
- * @property {number} priority
- * @property {string} status
- * @property {number} percentComplete
- * @property {string|null} completed
- * @property {string[]} categories
+ * @typedef {{ uid: string|null, summary: string|null, description: string|null, due: string|null,
+ *   priority: number, status: string, percentComplete: number, completed: string|null,
+ *   categories: string[] }} Todo
  */
 
 /** @param {string} text @returns {Todo[]} */

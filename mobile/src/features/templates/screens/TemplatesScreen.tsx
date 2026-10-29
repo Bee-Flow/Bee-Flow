@@ -16,6 +16,7 @@ import { Stack } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { EmptyState, Icon, IconButton, Screen, ScreenHeader, SearchField } from '@/shared/ui';
 
@@ -34,6 +35,7 @@ const makeStyles = (theme: Theme) =>
 export function TemplatesScreen() {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const [search, setSearch] = useState('');
     const [detailOf, setDetailOf] = useState<Template | null>(null);
     const [chatWith, setChatWith] = useState<Template | null>(null);
@@ -48,12 +50,12 @@ export function TemplatesScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <ScreenHeader
-                title="Templates"
+                title={t('templates.title', 'Templates')}
                 actions={
                     unavailable ? null : (
                         <IconButton
                             icon={<Icon name="Upload" size={20} color={theme.colors.textPrimary} />}
-                            accessibilityLabel="Upload a Word template"
+                            accessibilityLabel={t('mobile.templates.upload_word', 'Upload a Word template')}
                             onPress={() => void pick()}
                         />
                     )
@@ -63,13 +65,16 @@ export function TemplatesScreen() {
             {unavailable ? (
                 <EmptyState
                     icon="Lock"
-                    title="Templates are not enabled"
-                    message="Templates are a beta feature on this server. An administrator can switch them on for your organisation."
+                    title={t('mobile.templates.disabled_title', 'Templates are not enabled')}
+                    message={t(
+                        'mobile.templates.disabled_message',
+                        'Templates are a beta feature on this server. An administrator can switch them on for your organisation.',
+                    )}
                 />
             ) : (
                 <>
                     <View style={styles.search}>
-                        <SearchField value={search} onChangeText={setSearch} placeholder="Search templates" />
+                        <SearchField value={search} onChangeText={setSearch} placeholder={t('automations.templates.search', 'Search templates')} />
                     </View>
                     <TemplateList
                         query={query}

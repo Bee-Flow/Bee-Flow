@@ -2628,6 +2628,8 @@
   },
   "sameAsEnglish": [
     "studio_apps_bi.chart.type_donut",
+    "studio_apps_bi.connectors.auth_bearer",
+    "studio_apps_bi.connectors.auth_type_header",
     "studio_apps_bi.connectors.default_name",
     "studio_apps_bi.connectors.kind_app_tag",
     "studio_apps_bi.connectors.kind_mailbox_tag",

@@ -66,6 +66,7 @@ function humaniseLabel(category) {
  */
 async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] } = {}) {
     if (!text || typeof text !== 'string') return { scrubbed: text || '', replacedCategories: [] };
+    /** @type {string[] | null} */
     let enabledForKnown = null;
 
     try {
@@ -92,7 +93,7 @@ async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] }
         // The account values are known without a detector: those still go.
         const known = withKnownEntities(text, [], knownEntities, enabledForKnown);
         if (known.length) return labelEntities(text, known);
-        log.warn('[ScrubMemory] PII scrub skipped (fail-open):', err.message);
+        log.warn('[ScrubMemory] PII scrub skipped (fail-open):', /** @type {Error} */ (err).message);
         return { scrubbed: text, replacedCategories: [] };
     }
 }
@@ -161,6 +162,7 @@ function withTokenNote(text, tokenMap, knownEntities = []) {
     if (!tokens.length) return text;
     // Say outright which placeholder is the user, so "what is my name?" in any
     // language resolves to it rather than to another person in the notes.
+    /** @type {string[]} */
     const own = [];
     for (const k of knownEntities || []) {
         const want = String(k?.text || '').trim().toLowerCase();
@@ -219,6 +221,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
     /** @type {PiiSpan[]} */
     let entities;
     let d;
+    /** @type {string[] | null} */
     let enabledCategories = null;
     try {
         d = deps || realTokenizeDeps();
@@ -237,7 +240,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
         // hide, except the account values, which are known without one.
         entities = withKnownEntities(text, [], knownEntities, enabledCategories);
         if (!entities.length || !d) {
-            log.warn('[ScrubMemory] PII detection skipped (fail-open):', err.message);
+            log.warn('[ScrubMemory] PII detection skipped (fail-open):', /** @type {Error} */ (err).message);
             return { text, tokenMap: {}, replacedCategories: [], mode: 'none' };
         }
     }
@@ -258,7 +261,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
         const cats = [...new Set(entities.map((e) => humaniseLabel(e.category)))];
         return { text: withTokenNote(tokenizedText, tokenMap, knownEntities), tokenMap, replacedCategories: cats, mode: 'tokens' };
     } catch (err) {
-        log.warn('[ScrubMemory] tokenising failed, using labels:', err.message);
+        log.warn('[ScrubMemory] tokenising failed, using labels:', /** @type {Error} */ (err).message);
         const { scrubbed, replacedCategories } = labelEntities(text, entities);
         return { text: scrubbed, tokenMap: {}, replacedCategories, mode: 'labels' };
     }

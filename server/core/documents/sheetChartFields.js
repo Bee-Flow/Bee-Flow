@@ -63,21 +63,22 @@ function chartProblem(c) {
 
 /**
  * The stored fields of a chart; each is present only when the request had it.
- * @typedef {object} ChartFields
- * @property {string} [type]
- * @property {string} [dataRange]
- * @property {string} [categoriesRange]
- * @property {string} [compareRange]
- * @property {string} [anchor]
- * @property {string} [title]
- * @property {string} [label]
- * @property {string} [format]
- * @property {string} [currency]
- * @property {string[]} [colors]
- * @property {boolean} [showValues]
- * @property {boolean} [colorByCategory]
- * @property {number} [width]
- * @property {number} [height]
+ * @typedef {{
+ *   type?: string,
+ *   dataRange?: string,
+ *   categoriesRange?: string,
+ *   compareRange?: string,
+ *   anchor?: string,
+ *   title?: string,
+ *   label?: string,
+ *   format?: string,
+ *   currency?: string,
+ *   colors?: string[],
+ *   showValues?: boolean,
+ *   colorByCategory?: boolean,
+ *   width?: number,
+ *   height?: number,
+ * }} ChartFields
  */
 
 /**

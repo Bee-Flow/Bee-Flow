@@ -1,3 +1,5 @@
+/** @typedef {import('../../../core/providers').BaseProvider} BaseProvider */
+/** @typedef {import('../../../core/llm/modelCache').AIConfig} AIConfig */
 /**
  * Webpage chat: the messages of one turn (routes/ai/webpageChat.js). The
  * system prompt, the plan-approval authorisation, the history, and the user's
@@ -26,6 +28,10 @@ async function buildTurnMessages({
     // The Privacy Shield's attachment scan (see webpageChat.js): tokenise PII
     // or block per org policy before the text enters the prompt.
     const { scanAttachmentText: _scanAttText } = require('../../../core/dlp/attachmentScanner');
+    /**
+     * @param {string | undefined} text
+     * @param {string} filename
+     */
     const _scanExtracted = async (text, filename) => {
         if (!_dlpActive || !text) return text;
         const r = await _scanAttText({ text, filename, orgShield: _psShield, conversationId: _dlpConvId });
@@ -123,8 +129,8 @@ async function buildTurnMessages({
                 }
             } catch (err) {
                 if (err?.code === 'ATTACHMENT_PII_BLOCKED') throw err;
-                log.warn(`[WebpageChat] Attachment processing failed for ${log.nameForLog(att?.name)}: ${err.message}`);
-                contentParts.push({ type: 'text', text: `[${att?.name || 'attachment'} — failed to read: ${err.message}]` });
+                log.warn(`[WebpageChat] Attachment processing failed for ${log.nameForLog(att?.name)}: ${/** @type {Error} */ (err).message}`);
+                contentParts.push({ type: 'text', text: `[${att?.name || 'attachment'} — failed to read: ${/** @type {Error} */ (err).message}]` });
             }
         }
         } catch (e) {

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,13 +35,14 @@ describe('CaptureControls', () => {
         recorderMock.current = makeRecorder();
     });
 
-    function openAdvanced() {
-        fireEvent.click(screen.getByRole('button', { name: /Advanced/ }));
+    async function openAdvanced() {
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: /Advanced/ }));
     }
 
-    it('renders a readable label for EVERY language — no blank options', () => {
+    it('renders a readable label for EVERY language — no blank options', async () => {
         render(<CaptureControls />);
-        openAdvanced();
+        await openAdvanced();
 
         const options = screen.getAllByRole('option');
         expect(options).toHaveLength(LANGUAGES.length);
@@ -52,9 +53,9 @@ describe('CaptureControls', () => {
         expect(options.map(o => o.textContent)).toEqual(LANGUAGES.map(l => l.label));
     });
 
-    it('shows the option values as language codes the backend understands', () => {
+    it('shows the option values as language codes the backend understands', async () => {
         render(<CaptureControls />);
-        openAdvanced();
+        await openAdvanced();
         expect(screen.getAllByRole('option').map(o => o.value)).toEqual(LANGUAGES.map(l => l.code));
     });
 
@@ -83,7 +84,7 @@ describe('CaptureControls', () => {
             return <CaptureControls />;
         }
         render(<Harness />);
-        openAdvanced();
+        await openAdvanced();
 
         const select = screen.getByRole('combobox');
         expect(select.value).toBe('nl');

@@ -127,11 +127,11 @@ async function askModel(ctx, {
     const tools = ctx.projectTools();
     const guardedTools = {
         ...tools,
-        forAnswer: (/** @type {any} */ a) => {
+        forAnswer: (/** @type {Parameters<typeof tools.forAnswer>[0]} */ a) => {
             const run = tools.forAnswer(a);
             return {
                 get created() { return run.created; },
-                execute: async (/** @type {string} */ name, /** @type {any} */ args) => (givenUp
+                execute: async (/** @type {string} */ name, /** @type {Parameters<ReturnType<typeof tools.forAnswer>['execute']>[1]} */ args) => (givenUp
                     ? JSON.stringify({ ok: false, error: 'This answer was given up on; nothing more can be made.' })
                     : run.execute(name, args)),
             };
@@ -303,24 +303,24 @@ module.exports = { writeAnswer };
 
 /**
  * The collaborators makeChatAssistant resolved (chatAssistant.js `answerCtx`).
- * @typedef {object} AnswerCtx
- * @property {() => typeof import('../stores/projectChatStore')} store
- * @property {() => { forProject: typeof import('./chatCrypto').forProject }} chatCrypto
- * @property {() => typeof import('../stores/conversationLockStore')} locks
- * @property {ChatShield} shield
- * @property {typeof import('../core/llm/llmClient').runToolLoop} runToolLoop
- * @property {() => ReturnType<typeof import('./chatTools').makeProjectChatTools>} projectTools
- * @property {typeof import('../core/llm/llmClient').chat} llmChat
- * @property {(p: { agentId: string, userId: string }) => Promise<Persona|null>} resolvePersona
- * @property {(p: { project: ProjectRef, userId: string, query: string, session?: any|null, shield?: ShieldConfig|null, audienceIds?: string[]|null }) => Promise<string>} searchKnowledge
- * @property {(refs: unknown[], opts: { userId: string, project: ProjectRef }) => Promise<Array<{ kind: string, id?: string, name: string, text: string }>>} loadTagged
- * @property {(project: ProjectRef) => Promise<string[]|null>} listAudience
- * @property {(projectId: string, event: { kind: string, actorId?: string|null, targetType?: string, targetId?: string, payload?: object }) => Promise<unknown>} emit
- * @property {(entry: Record<string, unknown>) => Promise<unknown>} logUsage
- * @property {(reasonCode: string|null) => string} reasonText
- * @property {number} timeoutMs
- * @property {() => string} newId
- * @property {(projectId: string, kind: string, actorId: string, chatId: string, status: string) => Promise<void>} announce
- * @property {(userIds: string[]) => Promise<Map<string, string>>} namesFor
- * @property {(p: { project: ProjectRef, chat: ChatRef, trigger: TriggerRef, aiTrigger: string, messageId: string, orgId: string|null }) => Promise<void>} noteExplicitReply
+ * @typedef {{
+ *   store: () => typeof import('../stores/projectChatStore'),
+ *   chatCrypto: () => { forProject: typeof import('./chatCrypto').forProject },
+ *   locks: () => typeof import('../stores/conversationLockStore'),
+ *   shield: ChatShield,
+ *   runToolLoop: typeof import('../core/llm/llmClient').runToolLoop,
+ *   projectTools: () => ReturnType<typeof import('./chatTools').makeProjectChatTools>,
+ *   llmChat: typeof import('../core/llm/llmClient').chat,
+ *   resolvePersona: (p: { agentId: string, userId: string }) => Promise<Persona|null>,
+ *   searchKnowledge: (p: { project: ProjectRef, userId: string, query: string, session?: any|null, shield?: ShieldConfig|null, audienceIds?: string[]|null }) => Promise<string>,
+ *   loadTagged: (refs: unknown[], opts: { userId: string, project: ProjectRef }) => Promise<Array<{ kind: string, id?: string, name: string, text: string }>>,
+ *   listAudience: (project: ProjectRef) => Promise<string[]|null>,
+ *   emit: (projectId: string, event: { kind: string, actorId?: string|null, targetType?: string, targetId?: string, payload?: object }) => Promise<unknown>,
+ *   logUsage: (entry: Record<string, unknown>) => Promise<unknown>,
+ *   reasonText: (reasonCode: string|null) => string,
+ *   timeoutMs: number,
+ *   newId: () => string,
+ *   announce: (projectId: string, kind: string, actorId: string, chatId: string, status: string) => Promise<void>,
+ *   namesFor: (userIds: string[]) => Promise<Map<string, string>>,
+ *   noteExplicitReply: (p: { project: ProjectRef, chat: ChatRef, trigger: TriggerRef, aiTrigger: string, messageId: string, orgId: string|null }) => Promise<void> }} AnswerCtx
  */

@@ -54,9 +54,9 @@ function PromptList({ data, translations, selectedPrompt, onSelect }: PromptList
                             >
                                 <span className="truncate flex-1">{labels[id] || id}</span>
                                 {translations[id] ? (
-                                    <Check className="w-3 h-3 shrink-0" style={{ color: active ? '#fff' : '#22c55e' }} />
+                                    <Check className={`w-3 h-3 shrink-0 ${active ? '[color:#fff]' : '[color:#22c55e]'}`} />
                                 ) : (
-                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: active ? 'rgba(255,255,255,0.4)' : 'var(--text-muted)', opacity: 0.4 }} />
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 [opacity:0.4] ${active ? '[background:rgba(255,255,255,0.4)]' : '[background:var(--text-muted)]'}`} />
                                 )}
                             </button>
                         );

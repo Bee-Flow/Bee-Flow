@@ -29,7 +29,7 @@ async function recordDeploymentOutcome(approval) {
     try {
         await require('../stores/solutionStageStore').recordDeploymentDecision(approval);
     } catch (e) {
-        log.warn(`[approvalService] deployment decision for ${approval.id} not recorded (reconcile will retry): ${e.message}`);
+        log.warn(`[approvalService] deployment decision for ${approval.id} not recorded (reconcile will retry): ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -179,7 +179,7 @@ module.exports = { outcome, recordDeploymentOutcome, userDisplayName, deciderNam
 /** @typedef {import('./approvalRulebook').ApprovalVote} ApprovalVote */
 
 /**
- * @typedef {object} DecisionCall  what decide hands to the vote and decision writers
+ * @typedef DecisionCall  what decide hands to the vote and decision writers
  * @property {Approval} approval
  * @property {Record<string, any>|null} run  the run row the approval pauses (null for a run-less approval)
  * @property {string} deciderId

@@ -40,7 +40,9 @@ def _engine_fp(enabled_regions: Any = None, custom_labels: Any = None) -> str | 
         return None
 
 
-def _custom_log_fields(custom_labels: Any, result: dict) -> tuple[int, int, str]:
+def _custom_log_fields(
+    custom_labels: Any, result: dict[str, Any]
+) -> tuple[int, int, str]:
     """(labels asked, entities found, found per id). Opaque ids and counts
     ONLY: a prompt is customer-authored text about what their data looks like,
     and must never reach a log line."""

@@ -32,8 +32,7 @@ const TEST_CHAT_SOURCE = 'agent_test_chat';
  * and counting one of them as "a conversation" would round the count up on an assumption.
  *
  * @param {string[]} agentIds
- * @param {object} [opts]
- * @param {any} [opts.db] injection point for the tests
+ * @param {{ db?: DbQueryable | null }} [opts]  db: injection point for the tests
  * @returns {Promise<Map<string, number>>} one entry per requested id; zero is here an
  *   established fact, not a missing answer.
  */
@@ -97,9 +96,8 @@ const RUN_COUNT_WINDOWS = {
  * `organization_id` NULL.
  *
  * @param {string[]} appIds
- * @param {object} [opts]
- * @param {string} [opts.window='month'] key from RUN_COUNT_WINDOWS
- * @param {any} [opts.db] injection point for the tests
+ * @param {{ window?: string, db?: DbQueryable | null }} [opts]  window: key from RUN_COUNT_WINDOWS
+ *   (default 'month'); db: injection point for the tests
  * @returns {Promise<Map<string, number>>} one entry per requested id; zero is here an
  *   established fact, not a missing answer.
  */

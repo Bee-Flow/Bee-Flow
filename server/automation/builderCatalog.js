@@ -1,3 +1,4 @@
+/** @typedef {import('../core/agentRuntime/chatStream/turnState').ToolDef} ToolDef */
 // @typecheck
 /**
  * The builder's app/action catalog — "what can this user wire up?".
@@ -51,7 +52,7 @@ const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {string} userId
- * @param {any} session  Live request session, or the offline session
+ * @param {Partial<Express.Session> | null} session  Live request session, or the offline session
  *   from automation/triggerBus loadSession() for unattended/MCP callers.
  */
 async function buildCatalogForUser(userId, session) {
@@ -71,13 +72,14 @@ async function buildCatalogForUser(userId, session) {
         // The resolved tool DEFINITIONS, kept beside the names for the
         // auto-derived app_event providers (builderPickerCatalog.js). Attached
         // below as a non-enumerable property: only that one reader wants them.
+        /** @type {ToolDef[]} */
         let userToolDefs = [];
         try {
             // `automationStep: true` because design time must equal run time: it is
             // what execAi passes when it resolves the same set to authorise a
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
-            const r = await getIntegrationTools(/** @type {any} */ ({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true }));
+            const r = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true }));
             userToolDefs = Array.isArray(r.tools) ? r.tools : [];
             for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {

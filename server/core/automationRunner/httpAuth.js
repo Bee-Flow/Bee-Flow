@@ -124,6 +124,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
 
     const { renderAuthValue } = runnerPort('customIntegrations');
     const headers = {};
+    /** @type {string[]} */
     const maskValues = [];
     // Every raw secret string is a mask needle, plus every DERIVED header
     // value (Basic base64, "Bearer …", fetched token) — redactForPersistence
@@ -204,6 +205,7 @@ async function getOAuth2Token(conn, secret, { blockPrivateTargets = true } = {},
 
 async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
     const meta = conn.secretMeta || {};
+    /** @type {URL | null} */
     let tokenUrl = null;
     try { tokenUrl = new URL(String(meta.tokenUrl || '')); } catch (err) { fallback('core/automationRunner/httpAuth:fetchOAuth2Token', err); /* handled below */ }
     if (!tokenUrl || (tokenUrl.protocol !== 'http:' && tokenUrl.protocol !== 'https:')) {
@@ -212,6 +214,7 @@ async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
 
     const params = new URLSearchParams({ grant_type: 'client_credentials' });
     if (typeof meta.scope === 'string' && meta.scope.trim()) params.set('scope', meta.scope.trim());
+    /** @type {{ "Content-Type": string; Authorization?: string }} */
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     if (meta.tokenAuthMethod === 'client_secret_basic') {
         headers.Authorization = 'Basic ' + Buffer.from(`${secret.client_id}:${secret.client_secret}`, 'utf8').toString('base64');
@@ -235,7 +238,7 @@ async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
         if (blockPrivateTargets && isPrivateAddressError(e)) {
             throw new Error(`http_request: refused — the OAuth2 token URL for credential "${conn.label}" resolves to a private/internal address.`);
         }
-        if (e.name === 'AbortError') {
+        if (/** @type {Error} */ (e).name === 'AbortError') {
             throw new Error(`http_request: the OAuth2 token request for credential "${conn.label}" timed out after ${TOKEN_FETCH_TIMEOUT_MS}ms.`);
         }
         // Sanitized: network error text can echo the URL but never a secret.

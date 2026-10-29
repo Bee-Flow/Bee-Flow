@@ -30,10 +30,11 @@ const { bestEffort, fallback } = require('../../utils/bestEffort');
  * Throws on rejection; resolves with the validated parsed URL on success.
  *
  * @param {string} url
- * @param {object} [options]
- * @param {Function} [options.lookup] resolver (default dns.promises.lookup); injectable for tests
+ * @param {{ lookup?: (host: string, opts: { all: true }) => Promise<import('dns').LookupAddress[]> }} [options]
+ *   `lookup` is the resolver (default dns.promises.lookup), injectable for tests
  */
 async function assertUrlIsPublic(url, { lookup = (host, opts) => dns.lookup(host, opts) } = {}) {
+    /** @type {URL} */
     let parsed;
     try { parsed = new URL(url); }
     catch (_) { throw new Error('Invalid URL'); }
@@ -44,6 +45,7 @@ async function assertUrlIsPublic(url, { lookup = (host, opts) => dns.lookup(host
     if (!host) throw new Error('URL is missing a hostname');
 
     // Resolve hostnames to one or more addresses; literal IPs short-circuit.
+    /** @type {{ address: string; family: number; }[]} */
     let addresses;
     if (net.isIP(host)) {
         addresses = [{ address: host, family: net.isIP(host) }];
@@ -51,7 +53,7 @@ async function assertUrlIsPublic(url, { lookup = (host, opts) => dns.lookup(host
         try {
             addresses = await lookup(host, { all: true });
         } catch (e) {
-            throw new Error(`DNS lookup failed for ${host}: ${e.message}`);
+            throw new Error(`DNS lookup failed for ${host}: ${/** @type {Error} */ (e).message}`);
         }
     }
     for (const a of addresses) {
@@ -124,7 +126,7 @@ async function fetchUrlContent(url) {
         }
     } catch (fetchErr) {
         if (fetchErr?.oversize) throw fetchErr; // a refusal, not a failure: the headless fallback would load the same page
-        log.info(`[KBHelpers] Simple fetch failed for ${url}: ${fetchErr.message}, trying headless browser...`);
+        log.info(`[KBHelpers] Simple fetch failed for ${url}: ${/** @type {Error} */ (fetchErr).message}, trying headless browser...`);
         content = '';
     }
 
@@ -138,7 +140,7 @@ async function fetchUrlContent(url) {
             resolvedUrl = result.resolvedUrl || resolvedUrl;
             log.info(`[KBHelpers] Playwright extracted ${content.length} chars from ${url}`);
         } catch (pwErr) {
-            log.error(`[KBHelpers] Playwright fallback failed for ${url}:`, pwErr.message);
+            log.error(`[KBHelpers] Playwright fallback failed for ${url}:`, /** @type {Error} */ (pwErr).message);
             throw new Error(`No meaningful content extracted from URL (simple fetch and headless browser both failed)`);
         }
     }
@@ -171,11 +173,9 @@ async function fetchUrlContent(url) {
  * settles, mirroring the redirect re-check in fetchUrlContent() above.
  *
  * @param {string} url
- * @param {Object}   [opts]
- * @param {(base64Jpeg: string) => void} [opts.onFrame] - called on each
- *   throttled screenshot while the page loads (chat live preview). Omit for
- *   the default KB-ingestion behavior (no screenshots taken).
- * @param {string}   [opts.waitForSelector] - CSS selector to wait for before
+ * @param {{ onFrame?: (base64Jpeg: string) => void, waitForSelector?: string }} [opts]  `onFrame` is called on
+ *   each throttled screenshot while the page loads (chat live preview); omit it for the default
+ *   KB-ingestion behavior (no screenshots taken). `waitForSelector`: a CSS selector to wait for before
  *   extracting content; best-effort, a timeout here is swallowed.
  * @returns {Promise<{content: string, title: string, resolvedUrl: string}>}
  */
@@ -189,6 +189,7 @@ async function fetchWithPlaywright(url, opts = {}) {
         },
         async (context) => {
             await context.route('**/*', (route) => {
+                /** @type {URL} */
                 let target;
                 try { target = new URL(route.request().url()); } catch (_) { return route.abort('blockedbyclient'); }
                 if (!['http:', 'https:'].includes(target.protocol)) return route.abort('blockedbyclient');
@@ -198,6 +199,7 @@ async function fetchWithPlaywright(url, opts = {}) {
 
             const page = await context.newPage();
 
+            /** @type {NodeJS.Timeout | null} */
             let frameTimer = null;
             if (typeof opts.onFrame === 'function') {
                 let capturing = false;
@@ -228,7 +230,7 @@ async function fetchWithPlaywright(url, opts = {}) {
                     // A direct link to a file (PDF, zip, ...) makes Playwright
                     // reject navigation instead of loading a page — that's not a
                     // broken fetch, it's the wrong tool for a non-HTML resource.
-                    if (/download is starting/i.test(navErr.message)) downloadTriggered = true;
+                    if (/download is starting/i.test(/** @type {Error} */ (navErr).message)) downloadTriggered = true;
                     else throw navErr;
                 }
                 if (downloadTriggered) {

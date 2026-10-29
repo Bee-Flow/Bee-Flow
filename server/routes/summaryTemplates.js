@@ -162,6 +162,7 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {
     if (!orgId) return res.status(400).json({ error: 'You are not part of an organisation' });
     if (!(await isOrgAdminForOrg(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
 
+    /** @type {string | undefined | null} */
     let groupId = null;
     if (scope === 'group') {
         groupId = req.body.groupId;

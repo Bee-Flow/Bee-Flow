@@ -127,7 +127,7 @@ function parsePart(chunk) {
     const headEnd = rest.search(/\r?\n\r?\n/);
     const headers = parseHeaderBlock(headEnd < 0 ? rest : rest.slice(0, headEnd));
     const bodyText = headEnd < 0 ? '' : rest.slice(headEnd).replace(/^\r?\n\r?\n/, '').replace(/\r?\n$/, '');
-    /** @type {any} */
+    /** @type {unknown} */
     let body = bodyText;
     if (bodyText && (headers['content-type'] || '').includes('json')) {
         try { body = JSON.parse(bodyText); } catch (err) { fallback('integrations/googleBatch:parsePart', err); /* keep the text */ }
@@ -180,7 +180,7 @@ function isRetryablePart(part) {
     if (part.status !== 403) return false;
     const error = part.body && typeof part.body === 'object' ? part.body.error : null;
     if (error?.status === 'RESOURCE_EXHAUSTED') return true;
-    return Array.isArray(error?.errors) && error.errors.some((/** @type {any} */ e) => RATE_LIMIT_REASONS.has(e?.reason));
+    return Array.isArray(error?.errors) && error.errors.some((/** @type {{ reason: string }} */ e) => RATE_LIMIT_REASONS.has(e?.reason));
 }
 
 /**
@@ -189,16 +189,14 @@ function isRetryablePart(part) {
  * @param {GoogleSession} session - live session (mutated on token refresh, like googleFetch)
  * @param {BatchRequest[]} requests - `path` is the path and query on the API host,
  *   e.g. `/gmail/v1/users/me/messages/<id>?format=full`
- * @param {object} [opts]
- * @param {string} [opts.endpoint] - the API's batch endpoint (Gmail by default)
- * @param {number} [opts.partsPerBatch] - at most 100; 50 by default
- * @param {number} [opts.maxAttempts] - sends per part, the first included
- * @param {AbortSignal | null} [opts.signal] - stops between batches and during a backoff
- * @param {(request: BatchRequest) => Promise<void> | void} [opts.beforePart] - called before
- *   each part is sent (again), e.g. to spend a per-user quota bucket
- * @param {typeof fetch} [opts.fetchImpl]
- * @param {(ms: number, signal?: AbortSignal | null) => Promise<void>} [opts.sleepImpl]
- * @param {(session: GoogleSession) => Promise<unknown>} [opts.refreshImpl] - token refresh (googleClient's by default)
+ * @param {{ endpoint?: string, partsPerBatch?: number, maxAttempts?: number, signal?: AbortSignal | null,
+ *   beforePart?: ((request: BatchRequest) => Promise<void> | void) | null, fetchImpl?: typeof fetch,
+ *   sleepImpl?: (ms: number, signal?: AbortSignal | null) => Promise<void>,
+ *   refreshImpl?: (session: GoogleSession) => Promise<unknown> }} [opts] - `endpoint` is the API's
+ *   batch endpoint (Gmail by default); `partsPerBatch` at most 100, 50 by default; `maxAttempts`
+ *   the sends per part, the first included; `signal` stops between batches and during a backoff;
+ *   `beforePart` is called before each part is sent (again), e.g. to spend a per-user quota
+ *   bucket; `refreshImpl` refreshes the token (googleClient's by default)
  * @returns {Promise<Map<string, BatchPart>>} one entry per request id; a part that never
  *   answered has status 0
  */
@@ -238,7 +236,7 @@ async function googleBatch(session, requests, opts = {}) {
                 // The connection kept failing for reads: those parts get no answer
                 // and the chunks already read stay read. A batch with a write in
                 // it cannot be judged (did it arrive?), so that is an error.
-                if (!(/** @type {any} */ (err)).transport || !onlyReads(pending)) throw err;
+                if (!(/** @type {Error & { transport?: boolean }} */ (err)).transport || !onlyReads(pending)) throw err;
                 const message = `no answer from Google: ${/** @type {Error} */ (err).message}`;
                 for (const r of pending) results.set(r.id, { status: 0, headers: {}, body: { error: { message } } });
                 return;

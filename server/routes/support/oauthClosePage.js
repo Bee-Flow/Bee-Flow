@@ -26,10 +26,9 @@ function scriptString(value) {
 }
 
 /**
- * @typedef {Object} ClosePageArgs
- * @property {string} type
- * @property {string} title
- * @property {string} okText
+ * @typedef {{ type: string,
+ *   title: string,
+ *   okText: string }} ClosePageArgs
  */
 /**
  * @param {ClosePageArgs} param0

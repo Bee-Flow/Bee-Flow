@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { useServerHealth } from '@/features/settings';
 import { FormSheet } from '@/shared/patterns';
@@ -23,6 +24,7 @@ export function ComposeSheet({
     onFiled: () => void;
 }) {
     const theme = useTheme();
+    const t = useTranslation();
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [attachDetails, setAttachDetails] = useState(true);
@@ -50,35 +52,35 @@ export function ComposeSheet({
         <FormSheet
             visible={visible}
             onClose={onClose}
-            title="Ask for help"
-            subtitle="Bee Flow answers first; a person takes over if it cannot"
-            submitLabel="Send"
+            title={t('mobile.support.compose_title', 'Ask for help')}
+            subtitle={t('mobile.support.compose_subtitle', 'Bee Flow answers first; a person takes over if it cannot')}
+            submitLabel={t('support.composer.send', 'Send')}
             onSubmit={send}
             canSubmit={subject.trim().length > 0 && message.trim().length > 0}
             submitting={create.isPending}
             error={create.isError ? create.error : undefined}
         >
             <TextField
-                label="What is this about?"
+                label={t('mobile.support.compose_subject', 'What is this about?')}
                 value={subject}
                 onChangeText={setSubject}
                 maxLength={200}
-                placeholder="Recording will not upload"
+                placeholder={t('mobile.support.compose_subject_example', 'Recording will not upload')}
             />
             <TextField
-                label="What happened?"
+                label={t('mobile.support.compose_message', 'What happened?')}
                 value={message}
                 onChangeText={setMessage}
                 multiline
                 maxLines={8}
                 maxLength={5000}
-                placeholder="What you did, what you expected, and what happened instead."
+                placeholder={t('mobile.support.compose_message_hint', 'What you did, what you expected, and what happened instead.')}
             />
             <Button
                 label={
                     attachDetails
-                        ? 'Version details will be attached'
-                        : 'Version details will not be attached'
+                        ? t('mobile.support.details_attached', 'Version details will be attached')
+                        : t('mobile.support.details_not_attached', 'Version details will not be attached')
                 }
                 variant="ghost"
                 onPress={() => setAttachDetails((v) => !v)}
@@ -91,8 +93,7 @@ export function ComposeSheet({
                 }
             />
             <Text variant="caption" tone="tertiary">
-                Your message and, if you leave it on, your app and server versions are sent.
-                Nothing else — no chat contents, no files.
+                {t('mobile.support.compose_privacy', 'Your message and, if you leave it on, your app and server versions are sent. Nothing else — no chat contents, no files.')}
             </Text>
         </FormSheet>
     );

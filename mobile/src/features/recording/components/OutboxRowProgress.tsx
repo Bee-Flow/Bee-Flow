@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, ProgressBar, Text } from '@/shared/ui';
 
@@ -26,6 +27,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function OutboxRowProgress({ item }: { item: PendingRecording }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
 
@@ -33,9 +35,11 @@ export function OutboxRowProgress({ item }: { item: PendingRecording }) {
         const percent = Math.round(item.progress * 100);
         return (
             <View style={styles.progress} accessibilityLiveRegion="polite">
-                <ProgressBar fraction={item.progress} label={`Uploading ${item.settings.title || item.fileName}`} />
+                <ProgressBar fraction={item.progress} label={t('mobile.recording.uploading_label', 'Uploading {name}', { name: item.settings.title || item.fileName })} />
                 <Text variant="caption" tone="tertiary">
-                    {percent < 100 ? `Uploading — ${percent}%` : 'Uploaded. Waiting for the server to accept it…'}
+                    {percent < 100
+                        ? t('mobile.recording.uploading_percent', 'Uploading — {percent}%', { percent })
+                        : t('mobile.recording.uploaded_waiting', 'Uploaded. Waiting for the server to accept it…')}
                 </Text>
             </View>
         );
@@ -50,7 +54,7 @@ export function OutboxRowProgress({ item }: { item: PendingRecording }) {
                     {item.error}
                 </Text>
                 <Text variant="caption" tone="tertiary">
-                    The audio is safe on this phone. Nothing is lost by trying again.
+                    {t('mobile.recording.outbox_safe', 'The audio is safe on this phone. Nothing is lost by trying again.')}
                 </Text>
             </View>
         </View>

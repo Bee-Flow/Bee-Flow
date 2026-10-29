@@ -120,7 +120,7 @@ async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((se
         } catch (err) { fallback('appStudio/builderTools/dataToolsShared:persistDataModel', err); /* stale counts are advisory */ }
         return { ok: true, version: res.version, model };
     } catch (e) {
-        return { error: `Could not save the data model: ${e.message}` };
+        return { error: `Could not save the data model: ${/** @type {Error} */ (e).message}` };
     }
 }
 

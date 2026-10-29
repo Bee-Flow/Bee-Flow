@@ -27,7 +27,11 @@ async function chooseProvider(requestedProvider, transcriptResponse) {
     return provider;
 }
 
-/** Voxtral, the fallback when no other engine is chosen. */
+/** @typedef {{ filePath: string, fileName: string, language: string | null, contextTerms: string }} TranscribeWithVoxtralArgs */
+/**
+ * Voxtral, the fallback when no other engine is chosen.
+ * @param {TranscribeWithVoxtralArgs} param0
+ */
 async function transcribeWithVoxtral({ filePath, fileName, language, contextTerms }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) {

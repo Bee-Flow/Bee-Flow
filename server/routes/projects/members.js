@@ -35,15 +35,14 @@ const { memberAvatar, makeMemberDirectory } = require('./memberDirectory');
 const { fallback } = require('../../utils/bestEffort');
 
 /**
- * @param {object} deps
- * @param {Function} deps.requireProjectRole   (minRole, opts?) => middleware named requireProjectRoleMw
- * @param {object}   deps.projectStore         stores/projectStore
- * @param {object}   deps.userStore            stores/userStore
- * @param {Function} deps.getUserId            (req) => the caller's user id
- * @param {Function} deps.resolveUserGroups    (userId) => Promise<groupIds>
- * @param {Function} deps.recordProjectChange  projects/changeFeed recordProjectChange
- * @param {object}   deps.collabNotifier       projects/collabNotify makeCollabNotifier()
- * @param {Function} deps.perUserRateLimit     utils/perUserRateLimit perUserRateLimit
+ * @param {{ requireProjectRole: typeof import('../../auth/projectAccess').requireProjectRole, // middleware named requireProjectRoleMw
+ *   projectStore: typeof import('../../stores/projectStore'),
+ *   userStore: typeof import('../../stores/userStore'),
+ *   getUserId: (req: import('express').Request) => string|undefined, // the caller's user id
+ *   resolveUserGroups: typeof import('../../auth/audience').resolveUserGroups,
+ *   recordProjectChange: typeof import('../../projects/changeFeed').recordProjectChange,
+ *   collabNotifier: ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>,
+ *   perUserRateLimit: typeof import('../../utils/perUserRateLimit').perUserRateLimit }} deps
  */
 function makeMembersRouter(deps) {
     const router = express.Router();
@@ -181,6 +180,9 @@ function makeMembersRouter(deps) {
         const orgId = await projectOrgOf(project);
         if (!orgId) return res.json({ users: [], groups: [] });
         const needle = String(req.query.q || '').trim().toLowerCase();
+        /**
+         * @param {string} label
+         */
         const matches = (label) => !needle || String(label).toLowerCase().includes(needle);
 
         const members = await Promise.resolve(userStore.getOrgMembersForDirectory(orgId)).catch((err) => {

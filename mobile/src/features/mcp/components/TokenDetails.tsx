@@ -3,6 +3,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { LinkActions } from '@/features/webpages';
 import { Badge, Button, Text } from '@/shared/ui';
@@ -28,45 +29,46 @@ export function TokenDetails({
     endpoint: string | null;
     flow: TokenFlow;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const exists = Boolean(status?.exists);
 
     return (
         <>
             <View style={styles.state}>
-                <Badge label={exists ? 'Active' : 'None'} tone={exists ? 'success' : 'neutral'} />
+                <Badge label={exists ? t('skills.state_active', 'Active') : t('common.none', 'None')} tone={exists ? 'success' : 'neutral'} />
                 <Text variant="caption" tone="tertiary" style={styles.grow}>
-                    {exists ? 'A client is holding a working token.' : 'No token yet — a client cannot reach Bee Flow.'}
+                    {exists
+                        ? t('mobile.mcp.token_held', 'A client is holding a working token.')
+                        : t('mobile.mcp.token_none', 'No token yet — a client cannot reach Bee Flow.')}
                 </Text>
             </View>
 
             <Text variant="caption" tone="tertiary">
-                A token grants exactly what you can do in chat — no more.
-                Your organisation&apos;s integration and group rules still
-                apply on every call.
+                {t('mobile.mcp.token_scope', "A token grants exactly what you can do in chat — no more. Your organisation's integration and group rules still apply on every call.")}
             </Text>
 
             {endpoint ? (
                 <View style={styles.endpoint}>
                     <Text variant="label" tone="tertiary">
-                        Endpoint · {status?.transport}
+                        {t('mobile.mcp.endpoint', 'Endpoint · {transport}', { transport: status?.transport ?? '' })}
                     </Text>
                     {/* It answers MCP over HTTP, not HTML — opening it in a
                         browser shows a protocol error, not a page. */}
-                    <LinkActions url={endpoint} shareTitle="Bee Flow MCP endpoint" allowOpen={false} />
+                    <LinkActions url={endpoint} shareTitle={t('mobile.mcp.endpoint_share', 'Bee Flow MCP endpoint')} allowOpen={false} />
                 </View>
             ) : null}
 
             <View style={styles.buttons}>
                 <Button
-                    label={exists ? 'Replace token' : 'Create token'}
+                    label={exists ? t('mobile.mcp.replace_token', 'Replace token') : t('mobile.mcp.create_token', 'Create token')}
                     loading={flow.mint.isPending}
                     onPress={() => (exists ? flow.setConfirmMint(true) : flow.mint.mutate())}
                     style={styles.half}
                 />
                 {exists ? (
                     <Button
-                        label="Revoke"
+                        label={t('connections.revoke', 'Revoke')}
                         variant="danger"
                         onPress={() => flow.setConfirmRevoke(true)}
                         style={styles.half}

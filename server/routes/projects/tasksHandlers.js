@@ -190,12 +190,12 @@ async function deleteTask(ctx, /** @type {import('express').Request} */ req, /**
     try {
         await ctx.store().dropLinksTo(project.id, 'task', task.id);
     } catch (err) {
-        log.warn(`[ProjectTasks] links to deleted task ${task.id} not removed: ${err && err.message}`);
+        log.warn(`[ProjectTasks] links to deleted task ${task.id} not removed: ${err && /** @type {Error} */ (err).message}`);
     }
     try {
         await ctx.commentStore().deleteForTarget('task', task.id);
     } catch (err) {
-        log.warn(`[ProjectTasks] comment threads of task ${task.id} not removed: ${err && err.message}`);
+        log.warn(`[ProjectTasks] comment threads of task ${task.id} not removed: ${err && /** @type {Error} */ (err).message}`);
     }
     await ctx.audit(project.id, userId, 'task.deleted', task.id);
     await ctx.emit(project.id, taskEvent('task.deleted', userId, task.id));

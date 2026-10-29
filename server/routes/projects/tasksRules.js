@@ -29,7 +29,7 @@ const NOT_IN_PROJECT = 'You can only link documents, notebooks, meetings, chats 
 
 /** A dependency points from this task to a predecessor; reject cycles. */
 async function rejectDependencyCycles(ctx, projectId, kept, taskId) {
-    for (const link of kept.filter(l => l.kind === 'task' && l.relation === 'depends_on')) {
+    for (const link of kept.filter((/** @type {{ kind: string; relation: string; }} */ l) => l.kind === 'task' && l.relation === 'depends_on')) {
         const seen = new Set();
         const pending = [link.id];
         while (pending.length) {

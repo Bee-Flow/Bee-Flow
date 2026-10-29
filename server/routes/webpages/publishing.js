@@ -244,7 +244,7 @@ function register(router) {
                 await webpageStore.setPublishedVersion(req.params.id, wp.userId, null);
                 publishedVersionId = null;
             } catch (e) {
-                log.warn('[Webpages] Could not clear published pointer after unpublish:', e.message);
+                log.warn('[Webpages] Could not clear published pointer after unpublish:', /** @type {Error} */ (e).message);
             }
         }
 

@@ -144,6 +144,7 @@ function buildRuntime() {
  */
 function makeRouter(injected = {}) {
     const router = express.Router();
+    /** @type {{ mcp: object; receiver: object; } | null} */
     let runtime = null;
     const getRuntime = () => {
         if (!runtime) runtime = (injected.runtime || buildRuntime)();
@@ -160,7 +161,7 @@ function makeRouter(injected = {}) {
     // ticket (id in the path, secret in X-Upload-Ticket) is the credential. verifyUploadTicket checks it, binds
     // the content type and size, re-applies the org policy and burns it, then
     // streams the body (cms/mcp/uploadReceiver.js).
-    const verifyUploadTicket = (req, contentLength) => getRuntime().receiver.handle({
+    const verifyUploadTicket = (/** @type {import('express').Request} */ req, contentLength) => getRuntime().receiver.handle({
         // A missing or repeated header yields a malformed ticket, refused like any other.
         ticket: `${req.params.ticketId}.${typeof req.headers['x-upload-ticket'] === 'string' ? req.headers['x-upload-ticket'] : ''}`,
         contentType: req.headers['content-type'],
@@ -210,7 +211,7 @@ function makeRouter(injected = {}) {
                 const out = await getRuntime().mcp.handleRpc(message, ctx);
                 if (out) responses.push(out);
             } catch (err) {
-                log.error('[cms-mcp] handler error:', err.message);
+                log.error('[cms-mcp] handler error:', /** @type {Error} */ (err).message);
                 // Only a request is answered — not even an error goes back to a notification.
                 if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
             }

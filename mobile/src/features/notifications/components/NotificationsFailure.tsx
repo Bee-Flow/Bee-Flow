@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { DescribedError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Icon, IconButton } from '@/shared/ui';
 
@@ -15,6 +16,7 @@ const makeStyles = (theme: Theme) =>
     StyleSheet.create({ frame: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm } });
 
 export function NotificationsFailure({ failure, onDismiss }: { failure: DescribedError; onDismiss: () => void }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -24,7 +26,7 @@ export function NotificationsFailure({ failure, onDismiss }: { failure: Describe
                 action={
                     <IconButton
                         icon={<Icon name="X" size={16} color={theme.colors.textMuted} />}
-                        accessibilityLabel="Dismiss this message"
+                        accessibilityLabel={t('mobile.notifications.dismiss', 'Dismiss this message')}
                         onPress={onDismiss}
                     />
                 }

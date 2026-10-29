@@ -58,6 +58,7 @@ function _result(patch) {
 async function _readBounded(body, maxBytes) {
     if (!body || typeof body.getReader !== 'function') return { text: '', truncated: false, bytes: 0 };
     const reader = body.getReader();
+    /** @type {Uint8Array<ArrayBufferLike>[]} */
     const chunks = [];
     let total = 0;
     let truncated = false;

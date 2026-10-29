@@ -338,7 +338,7 @@ function toMs(at) {
  * @param {{ provider: string, model: string, tier?: string, at?: Date|number|string }} q
  * @returns {any|null}
  */
-function lookup({ provider, model, tier = 'standard', at } = /** @type {any} */ ({})) {
+function lookup({ provider, model, tier = 'standard', at } = /** @type {{ provider: string, model: string, tier?: string, at?: Date|number|string }} */ ({})) {
     if (!model) return null;
     _maybeRefresh();
     const p = normalizeProvider(provider);

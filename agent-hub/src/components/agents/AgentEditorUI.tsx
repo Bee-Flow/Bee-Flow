@@ -208,8 +208,7 @@ const AgentEditorUI = ({
                                                 }
                                             }}
                                             disabled={!newCategoryName.trim()}
-                                            className="px-3 py-2 rounded-lg text-xs font-medium text-white transition-all"
-                                            style={{ background: newCategoryName.trim() ? 'var(--accent-primary)' : 'var(--bg-secondary)' }}
+                                            className={`px-3 py-2 rounded-lg text-xs font-medium text-white transition-all ${newCategoryName.trim() ? '[background:var(--accent-primary)]' : '[background:var(--bg-secondary)]'}`}
                                         >
                                             {t('agent.agent_editor_ui_create', 'Create')}
                                         </button>

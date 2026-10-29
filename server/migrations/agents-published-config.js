@@ -45,8 +45,7 @@ async function up() {
 }
 
 /**
- * @param {object} [opts]
- * @param {boolean} [opts.dryRun=false] Count candidates, write nothing.
+ * @param {{ dryRun?: boolean }} [opts]  dryRun (default false): count candidates, write nothing.
  * @returns {Promise<{dryRun:boolean, candidates:number, updated:number, invalidConfig:string[]}>}
  */
 async function backfillPublished({ dryRun = false } = {}) {

@@ -24,7 +24,10 @@
 const { isObj, isPendingDatatableId, walkDatatableRefs, boundDatatableIds } = require('./boundDatatables');
 const MAX_PENDING_TABLES = 5;
 
-/** n = 1 + the highest n in the list, so a ref is never reused within a proposal. */
+/**
+ * n = 1 + the highest n in the list, so a ref is never reused within a proposal.
+ * @param {PendingDatatable[]} list
+ */
 function nextPendingRef(list) {
     let max = 0;
     for (const e of Array.isArray(list) ? list : []) {
@@ -87,6 +90,7 @@ function stepsByScope(def) {
  * review card: `newlyBound` = the flow did not reference that table before.
  * @param {WeakKey} baseDef
  * @param {WeakKey} def
+ * @param {DatatableCatalogEntry[] | null | undefined} catalog
  */
 function usedDatatables(baseDef, def, catalog, pending = []) {
     const byId = new Map();
@@ -118,6 +122,8 @@ function usedDatatables(baseDef, def, catalog, pending = []) {
  * The validator always flags a pending id (datatable.table_pending); a table
  * this proposal STAGED is legitimately pending, so its flags are dropped here.
  * Any other pending ref stays an error.
+ * @param {{ ok: boolean; errors: object[]; warnings: object[]; }} validation
+ * @param {Set<string>} refs
  */
 function withoutStagedTableIssues(validation, refs) {
     if (!validation || typeof validation !== 'object') return validation;
@@ -132,9 +138,9 @@ const strip = (s) => String(s || '').trim();
  * builder_create_datatable in a preview: record the table in the proposal and
  * answer as if it existed, with a pending id. See the module header.
  *
- * @param {object} draftWrap  uses _datatables (catalog; null = unreadable), _pendingDatatables,
+ * @param {DraftWrap} draftWrap  uses _datatables (catalog; null = unreadable), _pendingDatatables,
  *        _datatableCreate (access check made at turn start), _approvedDatatableIds
- * @param {object} args       { name, fields, description?, key? }
+ * @param {Builder.Args} args       { name, fields, description?, key? }
  * @param {object} deps       { normaliseFieldArgs, normalizeFields, keyFromTitle, normaliseKey }
  */
 function stagePendingDatatable(draftWrap, args, deps) {

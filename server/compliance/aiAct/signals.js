@@ -37,7 +37,8 @@
 
 const { getOne, getAll } = require('../../db');
 const graph = require('../../automation/automationGraph');
-const { hasDisclosure } = /** @type {any} */ (require('../checks/aia/art50-ai-disclosure'));
+// hasDisclosure is attached non-enumerably (Object.defineProperty), so the module's own type does not list it.
+const { hasDisclosure } = /** @type {typeof import('../checks/aia/art50-ai-disclosure') & { hasDisclosure: (text: unknown) => boolean }} */ (require('../checks/aia/art50-ai-disclosure'));
 const complianceStore = require('../../stores/complianceStore');
 
 // The Annex III catalogue — ten domains, their keyword hints and the point of

@@ -3,6 +3,7 @@
 import React from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Badge, BadgeRow, Icon, LoadingState, NoteRow, Text } from '@/shared/ui';
 
@@ -17,6 +18,7 @@ export interface MfaQuery {
 
 export function MfaStatusRow({ mfa }: { mfa: MfaQuery }) {
     const theme = useTheme();
+    const t = useTranslation();
     if (mfa.isLoading) {
         return (
             <NoteRow>
@@ -36,7 +38,7 @@ export function MfaStatusRow({ mfa }: { mfa: MfaQuery }) {
     const on = Boolean(mfa.data?.enabled);
     return (
         <BadgeRow
-            label="Status"
+            label={t('common.status', 'Status')}
             leading={
                 <Icon
                     name="Shield"
@@ -45,7 +47,7 @@ export function MfaStatusRow({ mfa }: { mfa: MfaQuery }) {
                 />
             }
         >
-            <Badge label={on ? 'On' : 'Off'} tone={on ? 'success' : 'neutral'} />
+            <Badge label={on ? t('common.on', 'On') : t('common.off', 'Off')} tone={on ? 'success' : 'neutral'} />
         </BadgeRow>
     );
 }

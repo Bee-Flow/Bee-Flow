@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Favorites Routes
  *
@@ -23,7 +23,7 @@ const BulkFavoritesBody = z.object({
         .transform((ids) => ids.filter(Boolean)),
 }).strict();
 
-function requireUser(req, res) {
+function requireUser(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = req.session?.user?.id;
     if (!userId) {
         res.status(401).json({ error: 'Not authenticated' });

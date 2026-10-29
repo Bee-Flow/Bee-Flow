@@ -40,7 +40,7 @@ function resolveTimezone(tz) {
 /** @param {unknown} tz */
 function timezoneError(tz) {
     const err = new Error(`datetime: unknown timezone "${String(tz)}"; use an IANA name such as Europe/Amsterdam or UTC`);
-    /** @type {any} */ (err).errorClass = 'datetime_timezone_invalid';
+    /** @type {Error & { errorClass?: string }} */ (err).errorClass = 'datetime_timezone_invalid';
     return err;
 }
 

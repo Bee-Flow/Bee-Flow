@@ -78,7 +78,7 @@ router.get('/registries', async (req, res) => {
             enabled: s.enabled !== false,
         }));
     } catch (e) {
-        log.warn('[Subscriptions] registries: mcp list unavailable:', e.message);
+        log.warn('[Subscriptions] registries: mcp list unavailable:', /** @type {Error} */ (e).message);
     }
 
     // Module layer: a beta owned by an un-imported platform module must not
@@ -134,7 +134,7 @@ router.put('/trial-config', validate({ body: TrialConfigBody }), async (/** @typ
         res.json(newCfg);
     } catch (e) {
         log.error('[Subscriptions] setTrialConfig error:', e);
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -175,7 +175,7 @@ router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (/** 
         res.json(after);
     } catch (e) {
         log.error('[Subscriptions] setCurrencyRates error:', e);
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 

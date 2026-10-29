@@ -147,7 +147,7 @@ export function MetricCard({ icon: Icon, label, value, color, subtitle, delta, d
 
 export function InOutLabel({ input, output, inputCost, outputCost, showCost }: InOutLabelProps) {
     return (
-        <div style={{ display: 'flex', gap: showCost ? 14 : 10, fontSize: '11px', color: 'var(--text-muted, #888)' }}>
+        <div className={`[display:flex] [font-size:11px] [color:var(--text-muted,_#888)] ${showCost ? '[gap:14px]' : '[gap:10px]'}`}>
             <span className="[display:flex] [align-items:center] [gap:3px]">
                 <span style={{ width: 6, height: 6, borderRadius: 2, background: COLORS.blue, display: 'inline-block' }} />
                 <span style={{ color: COLORS.blue, fontWeight: 600 }}>{fmt(input)}</span>
@@ -320,10 +320,7 @@ export function AgentRow({ agent: a, index, detailed }: { agent: UsageRecord; in
                     padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
                     background: style.bg, color: style.text, flexShrink: 0,
                 }}>{a.agent_type || 'chat'}</span>
-                <span style={{
-                    fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: detailed ? '200px' : '130px',
-                }}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
+                <span className={`[font-size:12px] [font-weight:600] [color:var(--text-primary,_#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${detailed ? '[max-width:200px]' : '[max-width:130px]'}`}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
             </div>
             <div className="[display:flex] [align-items:center] [gap:16px] [font-size:12px] [flex-shrink:0]">
                 {detailed && (

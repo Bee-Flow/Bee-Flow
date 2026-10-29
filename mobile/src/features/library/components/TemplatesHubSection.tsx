@@ -7,22 +7,24 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { isUnavailable, type Template, type useTemplates } from '@/features/templates';
-import { plural } from '@/shared/lib/format';
+import { nOf } from '@/shared/lib/plural';
 import { Icon, ListRow } from '@/shared/ui';
 
 import { HubRows } from './HubRows';
 import { HubSection } from './HubSection';
 
 function TemplateHubRow({ template }: { template: Template }) {
+    const t = useTranslation();
     const theme = useTheme();
     const router = useRouter();
     return (
         <ListRow
             title={template.name}
             subtitle={template.description || template.fileName || undefined}
-            meta={plural(template.parameters.length, 'field')}
+            meta={nOf(t, 'mobile.library.n_fields', template.parameters.length, ['{count} field', '{count} fields'])}
             wrapTitle
             leading={<Icon name="PanelsTopLeft" size={16} color={theme.colors.textMuted} />}
             onPress={() => router.push('/templates')}
@@ -31,11 +33,12 @@ function TemplateHubRow({ template }: { template: Template }) {
 }
 
 export function TemplatesHubSection({ templates }: { templates: ReturnType<typeof useTemplates> }) {
+    const t = useTranslation();
     const router = useRouter();
     const off = isUnavailable(templates.error);
     return (
         <HubSection
-            title="Templates"
+            title={t('documents.library.templates', 'Templates')}
             icon="PanelsTopLeft"
             count={templates.data?.length}
             onSeeAll={() => router.push('/templates')}
@@ -43,16 +46,16 @@ export function TemplatesHubSection({ templates }: { templates: ReturnType<typeo
             error={templates.isError && !off ? templates.error : undefined}
             onRetry={() => void templates.refetch()}
             isEmpty={(templates.data?.length ?? 0) === 0 || off}
-            emptyTitle={off ? 'Templates are not enabled' : 'No templates yet'}
+            emptyTitle={off ? t('mobile.library.templates_off', 'Templates are not enabled') : t('mobile.library.templates_empty', 'No templates yet')}
             emptyMessage={
                 off
-                    ? 'Templates are a beta feature. An administrator can switch them on for your organisation.'
-                    : 'Upload a Word document with {{placeholders}} and Bee Flow will fill it in for you.'
+                    ? t('mobile.library.templates_off_hint', 'Templates are a beta feature. An administrator can switch them on for your organisation.')
+                    : t('mobile.library.templates_empty_hint', 'Upload a Word document with {{placeholders}} and Bee Flow will fill it in for you.')
             }
-            emptyActionLabel={off ? undefined : 'Open templates'}
+            emptyActionLabel={off ? undefined : t('mobile.library.templates_open', 'Open templates')}
             onEmptyAction={off ? undefined : () => router.push('/templates')}
         >
-            <HubRows items={templates.data ?? []} renderRow={(t) => <TemplateHubRow template={t} />} />
+            <HubRows items={templates.data ?? []} renderRow={(template) => <TemplateHubRow template={template} />} />
         </HubSection>
     );
 }

@@ -101,12 +101,7 @@ function ShieldPill({ state, t }: { state: 'active' | 'unverified'; t: Translate
                 data-testid="header-shield-dot"
                 data-shield-state={state}
                 aria-hidden="true"
-                style={{
-                    width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-                    // --success/--warning, never --status-*: the raw artboard
-                    // names do not exist in this codebase.
-                    background: active ? 'var(--success)' : 'var(--warning)',
-                }}
+                className={`[width:6px] [height:6px] [border-radius:50%] [flex-shrink:0] ${active ? '[background:var(--success)]' : '[background:var(--warning)]'}`}
             />
             <span className="min-w-[0] [overflow:hidden] [text-overflow:ellipsis]">
                 {t(

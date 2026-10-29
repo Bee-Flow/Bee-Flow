@@ -46,7 +46,10 @@ const AgentPreviewQuery = z.object({
     disabledAgentSkillIds: z.string({ error: typeError({ invalid: 'disabledAgentSkillIds is a comma-separated list of skill ids.' }) }).optional(),
 }).strict();
 
-/** A comma-separated id list from the query; absent reads as none. */
+/**
+ * A comma-separated id list from the query; absent reads as none.
+ * @param {string | undefined} v
+ */
 const idList = (v) => (typeof v === 'string' ? v.split(',').map((n) => n.trim()).filter(Boolean) : []);
 
 /** The step editor's readers, required only when a preview asks for them. */
@@ -95,7 +98,10 @@ function registerAgentStepRoutes(router) {
      * the reason (it lists only agents the caller can already see); this route
      * cannot, because it will answer about any id it is handed.
      */
-    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (/** @type {import('express').Request<{ agentId: string }, any, any, import('zod').infer<typeof AgentPreviewQuery>>} */ req, res) => {
+    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (/** @type {import('express').Request<{ agentId: string }, any, any, import('zod').infer<typeof AgentPreviewQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+        /**
+         * @param {string | undefined} v
+         */
         const yes = (v) => v === '1' || v === 'true';
         const permissions = {
             startAutomations: yes(req.query.startAutomations),
@@ -209,7 +215,7 @@ function registerAgentStepRoutes(router) {
      * visibility rule the run applies when it loads the step's skills. A skill
      * that does not exist and one that is not shared with them get the same 404.
      */
-    router.get('/catalog/skill/:skillId', async (req, res) => {
+    router.get('/catalog/skill/:skillId', async (req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
         const principal = await resolveDatatablePrincipal(req);

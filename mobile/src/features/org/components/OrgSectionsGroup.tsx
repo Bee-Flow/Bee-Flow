@@ -38,7 +38,7 @@ export function OrgSectionsGroup({
                     <SettingRow
                         key={section.id}
                         testID={`org-section-${section.id}`}
-                        label={t(section.labelKey, section.label)}
+                        label={t(section.labelKey, section.labelFallback)}
                         value={value?.text}
                         icon={<SectionTile section={section} warning={value?.warning} />}
                         onPress={() => router.push(section.href as never)}

@@ -53,7 +53,7 @@ const UPGRADE_URL_RE = /^\/api\/webpages-preview\/([^/?]+)\/full(?:\/|$)/;
  * here, not as an ambiguous proxy-layer failure.
  * @param {(value?: HttpError) => void} next
  */
-async function ensureFullTierTarget(req, res, next) {
+async function ensureFullTierTarget(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     const claims = req.previewClaims;
     try {
         const ctx = await loadAuthorContext(claims.webpageId);
@@ -107,7 +107,7 @@ function mountFullTierProxy(app, server) {
 
     app.use(MOUNT_PATH, requirePreviewToken, dbBridgeLimiter, ensureFullTierTarget, proxy);
 
-    server.on('upgrade', (req, socket, head) => {
+    server.on('upgrade', (/** @type {import('express').Request} */ req, socket, head) => {
         const match = typeof req.url === 'string' && req.url.match(UPGRADE_URL_RE);
         if (!match) return; // not a full-tier proxy path — leave it for any other upgrade listener
         const webpageId = decodeURIComponent(match[1]);

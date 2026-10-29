@@ -149,7 +149,7 @@ function cookieBannerProblem(section) {
  * First problem in the chrome of a SiteDoc, as a sentence a person can act on,
  * or null when it is sound. Sections that are absent are fine (the defaults
  * fill them in); a section that is present must have the right shape.
- * @param {any} site
+ * @param {unknown} site
  * @returns {string | null}
  */
 function validateSiteChrome(site) {

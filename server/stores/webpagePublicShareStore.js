@@ -55,7 +55,7 @@ async function _initDB() {
     if (webpageStore.ready) {
         try { await webpageStore.ready; }
         catch (e) {
-            log.error('[WebpagePublicShareStore] Parent init failed:', e.message);
+            log.error('[WebpagePublicShareStore] Parent init failed:', /** @type {Error} */ (e).message);
             throw e;
         }
     }
@@ -208,15 +208,12 @@ function mapRow(r) {
  * exactly once — only its hash is persisted. Caller is responsible for
  * writing the sanitized snapshot bytes (use webpageSnapshot.writeSnapshot).
  *
- * @param {object} args
- * @param {string} args.webpageId
- * @param {string} args.createdBy
- * @param {string|null} args.organizationId
- * @param {'unlisted'|'password'|'email'} args.accessMode
- * @param {string} [args.password] - raw password, hashed with argon2id
- * @param {string[]} [args.allowedEmails] - lowercased emails
- * @param {Date|null} args.expiresAt - null means no expiry
- * @param {string} args.title - human-readable label for the publisher's list
+ * @param {{
+ *   webpageId: string, createdBy: string, organizationId: string|null, accessMode: 'unlisted'|'password'|'email',
+ *   password?: string, allowedEmails?: string[], expiresAt: Date|null, title: string,
+ * }} args
+ *   password: raw password, hashed with argon2id; allowedEmails: lowercased emails; expiresAt: null means no
+ *   expiry; title: human-readable label for the publisher's list
  */
 async function createShare({ webpageId, createdBy, organizationId, accessMode, password, allowedEmails, expiresAt, title }) {
     await initDB();
@@ -482,7 +479,7 @@ async function purgeSnapshotObjects(shareId) {
         }
         return keys.length;
     } catch (err) {
-        log.warn('[WebpagePublicShareStore] Purge failed:', err.message);
+        log.warn('[WebpagePublicShareStore] Purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }

@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useToast } from '@/shared/ui';
 
 import { useSetActionItems } from './mutations';
@@ -25,6 +26,7 @@ import type { Transcription } from '../model/types';
 export type MeetingSheet = 'none' | 'actions' | 'rename' | 'speakers' | 'regenerate' | 'ask' | 'tags';
 
 export function useMeetingScreen(id: string) {
+    const t = useTranslation();
     const router = useRouter();
     const { toast } = useToast();
     const query = useTranscription(id);
@@ -52,7 +54,7 @@ export function useMeetingScreen(id: string) {
         onCopy: () => {
             void Clipboard.setStringAsync(meeting.transcript || meeting.fullText);
             close();
-            toast('Transcript copied', 'success');
+            toast(t('meetings.transcript_copied', 'Transcript copied'), 'success');
         },
         onRetranscribe: () => {
             close();

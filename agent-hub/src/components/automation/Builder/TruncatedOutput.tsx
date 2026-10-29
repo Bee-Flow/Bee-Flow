@@ -18,7 +18,7 @@ import { fetchRunFullOutput, fullOutputRefOf, type FullOutputRef } from '@/api/q
  * When the server kept a full copy beside the row, the sentinel names it
  * (`fullOutputRef`) and this offers it: loaded on request, then handed to
  * `renderFull`, which OutputView points back at itself so the whole output
- * gets the same Table and JSON views, drill-down and search as any other.
+ * gets the same Table and JSON views, drill-down and search as every other.
  * Without a copy (older rows, or an output above the copy limit) it says so
  * plainly and shows the head sample.
  *

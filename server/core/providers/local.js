@@ -549,7 +549,7 @@ class LocalProvider extends BaseProvider {
      *
      * @param {number} maxTokens - the ceiling BaseProvider resolved
      * @param {boolean|string|null} thinking - _resolveThinking's answer
-     * @param {any} options - the adapter options (budgetTokens, reasoningEffort)
+     * @param {{ budgetTokens?: number, reasoningEffort?: string }} options - the adapter options
      * @returns {number} the ceiling to send
      */
     _withReasoningHeadroom(maxTokens, thinking, options = {}) {

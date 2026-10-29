@@ -86,7 +86,7 @@ async function resolveEntry(runEntry, automation, goldenRun) {
 
 /**
  * What replayGoldens resolves its collaborators to (the real modules, unless overridden).
- * @typedef {Object} ReplayDeps
+ * @typedef ReplayDeps
  * @property {typeof import('../../stores/automationStore')} store
  * @property {{ setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }} testingStore
  * @property {typeof import('../../core/automationRunner').executeAutomation} executeAutomation
@@ -129,8 +129,8 @@ async function replayOne(golden, input, deps) {
 
         const result = await deps.compareRuns({
             runA: goldenRun, runB: replay,
-            legsA: legs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
-            legsB: replayLegs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
+            legsA: legs.filter((/** @type {Parameters<typeof canReadRunData>[0]} */ l) => canReadRunData(l, userId)),
+            legsB: replayLegs.filter((/** @type {Parameters<typeof canReadRunData>[0]} */ l) => canReadRunData(l, userId)),
             viewerId: userId, ignorePaths: golden.ignorePaths || [],
         });
         await testingStore.setGoldenReplay(golden.id, { status: result.verdict, summary: result.summary, replayRunId, errorCode: null });

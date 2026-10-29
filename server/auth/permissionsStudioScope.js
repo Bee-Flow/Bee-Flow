@@ -21,12 +21,9 @@ const { resolveUserOrgIds } = require('./permissionsResolve');
  * still get back the orgId they supplied (or null if none).
  *
  * Usage:
- *   try {
- *     const orgId = await assertUserCanUseOrg(req, req.body.organizationId);
- *     // proceed with orgId
- *   } catch (err) {
- *     return res.status(err.status || 500).json({ error: err.message });
- *   }
+ *   const orgId = await assertUserCanUseOrg(req, req.body.organizationId);
+ *   // proceed with orgId; a thrown error carries its status and reaches
+ *   // core/http/terminalErrorHandler.js, which answers the caller
  */
 async function assertUserCanUseOrg(req, orgId) {
     const userOrgIds = await resolveUserOrgIds(req);
@@ -63,12 +60,9 @@ async function assertUserCanUseOrg(req, orgId) {
  * [] there answers "share with these groups" with "share with everyone".
  *
  * Usage:
- *   try {
- *     const groups = await validateSharedGroupsForOrg(orgId, sharedGroups);
- *     await store.setPublished(id, true, groups);
- *   } catch (err) {
- *     return res.status(err.status || 500).json({ error: err.message });
- *   }
+ *   const groups = await validateSharedGroupsForOrg(orgId, sharedGroups);
+ *   await store.setPublished(id, true, groups);
+ *   // a thrown error carries its status and reaches core/http/terminalErrorHandler.js
  */
 async function validateSharedGroupsForOrg(orgId, sharedGroupIds, { requireNonEmpty = false } = {}) {
     const groupsRequired = () => {

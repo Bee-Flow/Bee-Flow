@@ -20,14 +20,16 @@ const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
 
 /**
- * @typedef {object} SearchChunk  one passage as the search service (or the local search) returns it
- * @property {string} [content]
- * @property {string} [title]
- * @property {string} [source_uri]
- * @property {number} [score]
- * @property {number} [rerank_score]
- * @property {string|number} [document_id]
- * @property {string|number} [chunk_id]
+ * one passage as the search service (or the local search) returns it.
+ * @typedef {{
+ *   content?: string,
+ *   title?: string,
+ *   source_uri?: string,
+ *   score?: number,
+ *   rerank_score?: number,
+ *   document_id?: string|number,
+ *   chunk_id?: string|number,
+ * }} SearchChunk
  */
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
@@ -118,20 +120,13 @@ function findSourceForChunk(chunk, sources) {
 /**
  * Perform a single KB search with reranking, score filtering, and Azure support.
  *
- * @param {object}   params
- * @param {string}   params.userId     — tenant ID
- * @param {string[]} params.kbIds      — knowledge base IDs
- * @param {string}   params.query      — search query
- * @param {object}   [params.options]
- * @param {number}   [params.options.topK=10]          - max chunks to retrieve
- * @param {boolean}  [params.options.rerank=true]       - enable reranking
- * @param {number}   [params.options.minScore=0.2]      - minimum score threshold
- * @param {number}   [params.options.maxChunkChars=1500] - truncate chunks
- * @param {boolean}  [params.options.preprocessQuery=true] - clean query
- * @param {number}   [params.options.timeoutMs=12000]   - request timeout
- * @param {Array<{id: string, name: string}>} [params.sources] - the notebook's sources;
- *        when given, chunks are labelled with the source NAME (not its id) in the
- *        prompt and the citations
+ * @param {{ userId: string, kbIds: string[], query: string,
+ *   options?: { topK?: number, rerank?: boolean, minScore?: number, maxChunkChars?: number, preprocessQuery?: boolean, timeoutMs?: number },
+ *   sources?: Array<{id: string, name: string}> | null }} params  `userId` is the tenant ID; `options`: topK
+ *   (max chunks to retrieve, 10), rerank (true), minScore (minimum score threshold, 0.2), maxChunkChars
+ *   (truncate chunks, 1500), preprocessQuery (clean the query, true), timeoutMs (request timeout, 12000);
+ *   `sources` the notebook's sources: when given, chunks are labelled with the source NAME (not its id)
+ *   in the prompt and the citations
  * @returns {Promise<{chunks: SearchChunk[], contextPrompt: string, citations: Array<{ index: number, title: string, rawTitle: string, content: string, score: number }>}>}
  */
 async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = null }) {
@@ -185,7 +180,7 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
             }
         }
     } catch (err) {
-        log.warn('[NotebookKBSearch] Search failed:', err.message);
+        log.warn('[NotebookKBSearch] Search failed:', /** @type {Error} */ (err).message);
         return { chunks: [], contextPrompt: '', citations: [] };
     }
 
@@ -263,15 +258,11 @@ ${kbText}`;
  * Unlike searchNotebookKB (optimized for single-query chat), this retrieves
  * broad content across all sources using 1-2 smart queries with deduplication.
  *
- * @param {object}   params
- * @param {string}   params.userId      — tenant ID
- * @param {string[]} params.kbIds       — knowledge base IDs
- * @param {Array<{id: string, name: string}>} params.sources — ready source records (with name, id)
- * @param {string}   [params.documentContent] - notebook editor content
- * @param {object}   [params.options]
- * @param {number}   [params.options.maxChars=50000]  - total content budget
- * @param {number}   [params.options.topK=25]         - max chunks per query
- * @param {number}   [params.options.minScore=0.15]   - lower threshold for generation
+ * @param {{ userId: string, kbIds: string[], sources: Array<{id: string, name: string}>, documentContent?: string,
+ *   options?: { maxChars?: number, topK?: number, minScore?: number } }} params  `userId` is the tenant ID;
+ *   `sources` the ready source records; `documentContent` the notebook editor content; `options`: maxChars
+ *   (total content budget, 50000), topK (max chunks per query, 25), minScore (lower threshold for
+ *   generation, 0.15)
  * @returns {Promise<{content: string, sourceCount: number}>}
  */
 async function gatherNotebookContent({ userId, kbIds, sources, documentContent, options = {} }) {
@@ -358,7 +349,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
             }
         }
     } catch (e) {
-        log.warn('[NotebookKBSearch] Comprehensive search failed:', e.message);
+        log.warn('[NotebookKBSearch] Comprehensive search failed:', /** @type {Error} */ (e).message);
     }
 
     // 3. If we got very few results, do a second broader query
@@ -391,7 +382,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
                 }
             }
         } catch (e) {
-            log.warn('[NotebookKBSearch] Fallback search failed:', e.message);
+            log.warn('[NotebookKBSearch] Fallback search failed:', /** @type {Error} */ (e).message);
         }
     }
 

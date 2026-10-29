@@ -50,10 +50,9 @@ function reminderFor(dueDate, today, tomorrow, sent) {
 }
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.query]      (sql, params) => { rows }
- * @param {Function} [deps.now]        () => ms
- * @param {{ due: Function }} [deps.notifier]   projects/taskNotify surface
+ * `notifier` is the projects/taskNotify surface.
+ * @param {{ query?: (sql: string, params: unknown[]) => Promise<{ rows: DueTaskRow[] }>, now?: () => number,
+ *   notifier?: { due: Function } }} [deps]
  */
 async function run(deps = {}) {
     const query = deps.query || ((/** @type {string} */ sql, /** @type {unknown[]} */ params) => pool.query(sql, params));
@@ -126,5 +125,11 @@ function start() {
 function stop() {
     if (_timer) { clearInterval(_timer); _timer = null; }
 }
+
+/**
+ * One open, assigned task due by tomorrow, as run()'s SELECT reads it.
+ * @typedef {{ id: string, project_id: string, assignee_ids: string[] | string, due_day: string,
+ *   notified_due_tier: string | null, project_name: string | null }} DueTaskRow
+ */
 
 module.exports = { start, stop, run, reminderFor };

@@ -1,3 +1,4 @@
+/** @typedef {import('./validate/helpers').GraphDoc} GraphDoc */
 // @typecheck
 /**
  * Keep `automation_schedules` in step with an automation's ADDITIONAL schedule
@@ -15,6 +16,9 @@
 
 const DEFAULT_TZ = require('./triggerColumns').DEFAULT_SCHEDULE_TZ;
 
+/**
+ * @param {GraphDoc} def
+ */
 function secondarySchedules(def) {
     return (Array.isArray(def?.triggers) ? def.triggers : [])
         .filter(t => t && typeof t === 'object' && t.kind === 'schedule' && typeof t.id === 'string' && t.id
@@ -29,16 +33,18 @@ function secondarySchedules(def) {
         }));
 }
 
-/** Order-insensitive fingerprint of the secondary schedules' firing config. */
+/**
+ * Order-insensitive fingerprint of the secondary schedules' firing config.
+ * @param {GraphDoc} def
+ */
 function scheduleFingerprint(def) {
     return JSON.stringify(secondarySchedules(def).sort((a, b) => a.id.localeCompare(b.id)));
 }
 
 /**
  * @param {string} automationId
- * @param {object} def            the automation definition
- * @param {object} [opts]
- * @param {boolean} [opts.rearm]  recompute every next_run_at (activation)
+ * @param {import('./automationGraph').AutomationDefinition} def            the automation definition
+ * @param {{ rearm?: boolean }} [opts]  rearm: recompute every next_run_at (activation)
  * @param {{automationStore?: any, cron?: any}} [deps]         { automationStore, cron } — injectable for tests
  * @returns {Promise<{ synced: string[], removed: boolean }>}
  */

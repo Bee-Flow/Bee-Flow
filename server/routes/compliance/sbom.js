@@ -37,6 +37,9 @@ function _locator() {
     }
 }
 
+/**
+ * @param {string} format
+ */
 function contentTypeFor(format) {
     return CONTENT_TYPES[format] || 'application/json';
 }

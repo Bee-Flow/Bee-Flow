@@ -7,6 +7,7 @@
 import React from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { UploadQueue, type IngestFlow } from '@/features/knowledge';
 import { useUserRefresh } from '@/shared/patterns';
@@ -43,6 +44,7 @@ export function TemplateList({
 }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const refresh = useUserRefresh(() => query.refetch());
 
     if (query.isLoading) return <ListSkeleton />;
@@ -51,8 +53,8 @@ export function TemplateList({
     const needle = search.trim().toLowerCase();
     return (
         <FlatList
-            data={(query.data ?? []).filter((t) => matches(t, needle))}
-            keyExtractor={(t) => t.id}
+            data={(query.data ?? []).filter((template) => matches(template, needle))}
+            keyExtractor={(template) => template.id}
             refreshControl={
                 <RefreshControl
                     refreshing={refresh.refreshing}
@@ -77,13 +79,20 @@ export function TemplateList({
                 uploads.active ? null : (
                     <EmptyState
                         icon="PanelsTopLeft"
-                        title={search ? 'Nothing matches that' : 'No templates yet'}
+                        title={
+                            search
+                                ? t('mobile.templates.no_match', 'Nothing matches that')
+                                : t('mobile.templates.empty_title', 'No templates yet')
+                        }
                         message={
                             search
-                                ? 'Try a different word.'
-                                : 'Upload a Word document with {{placeholders}} in it. Bee Flow finds them and fills them in for you.'
+                                ? t('mobile.templates.try_other_word', 'Try a different word.')
+                                : t(
+                                      'mobile.templates.empty_message',
+                                      'Upload a Word document with {{placeholders}} in it. Bee Flow finds them and fills them in for you.',
+                                  )
                         }
-                        actionLabel={search ? undefined : 'Upload a .docx'}
+                        actionLabel={search ? undefined : t('mobile.templates.upload_docx', 'Upload a .docx')}
                         onAction={search ? undefined : onUpload}
                     />
                 )

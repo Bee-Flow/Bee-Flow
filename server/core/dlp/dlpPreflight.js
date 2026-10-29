@@ -30,18 +30,18 @@ const { bestEffort } = require('../../utils/bestEffort');
  *     `redactedText` (for chatStream's `processedUserMessage`) and `tokenMap`
  *     (for directChat's `piiTokenMap`).
  *
- * @param {Object}   p
- * @param {Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> }>} p.messages         Chat messages; last user message redacted in place on 'redact'.
- * @param {{ showRawPayload?: boolean, dlpMode?: string, piiDetectionConfidenceThreshold?: number, [key: string]: unknown }} p.resolvedShield   Already-resolved org shield (resolveOrgShield result). Required.
- * @param {string}   [p.orgId]
- * @param {string}   [p.conversationId]
- * @param {string}   [p.userId]
- * @param {*}        [p.model]          Model id used for the `privacy_payload` provider field.
- * @param {Object}   p.providerConfig   { providerType, url, displayName }
- * @param {import('../agentRuntime/phaseEvents').PhaseSend} p.emit             (type, data) => void — onEvent (agent) / send (route).
- * @param {Object}   p.audit            Base fields for logDlpDecision (org/user/agent/model/source).
- * @param {Function} [p.registerDecision] decisionQueue.register (injected for tests).
- * @param {boolean}  [p.hasAttachments]  the turn carries attachments (scanned separately).
+ * @param {{ messages: Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> }>,
+ *   resolvedShield: { showRawPayload?: boolean, dlpMode?: string, piiDetectionConfidenceThreshold?: number, [key: string]: unknown },
+ *   orgId?: string, conversationId?: string, userId?: string, model?: string | null,
+ *   providerConfig: Parameters<typeof import('../providers/classification').classifyProvider>[0],
+ *   emit: import('../agentRuntime/phaseEvents').PhaseSend, audit: Record<string, unknown>,
+ *   registerDecision?: typeof import('./decisionQueue').register,
+ *   hasAttachments?: boolean }} p `messages`: Chat messages; last user message redacted in place on
+ *   'redact'; `resolvedShield`: Already-resolved org shield (resolveOrgShield result). Required;
+ *   `model`: Model id used for the `privacy_payload` provider field; `providerConfig`: { providerType,
+ *   url, displayName }; `emit`: (type, data) => void — onEvent (agent) / send (route); `audit`: Base
+ *   fields for logDlpDecision (org/user/agent/model/source); `registerDecision`: decisionQueue.register
+ *   (injected for tests); `hasAttachments`: the turn carries attachments (scanned separately)
  * @returns {Promise<{outcome:'allow'|'redacted'|'blocked'|'scan_failed', blocked:boolean,
  *   reason?:string, tokenMap?:Record<string, string>, redactedText?:(string|null),
  *   userPrivacyMeta?:{ dlpRedactedCount: number, dlpCategories: string[] }, assistantTokenisationInfo?:DlpTokenisationInfo,
@@ -77,6 +77,7 @@ async function runDlpPreflight({
     // dead air on the stream and indistinguishable from a stall.
     const { startPrivacyScanPhase, messageText } = require('../agentRuntime/phaseEvents');
     const phase = startPrivacyScanPhase(emit, messageText(messages[messages.length - 1]));
+    /** @type {dlpRunner.DlpResult} */
     let dlpResult;
     try {
         dlpResult = await dlpRunner.scan({

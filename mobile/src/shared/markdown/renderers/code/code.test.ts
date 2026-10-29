@@ -27,9 +27,9 @@ describe('lockstep with the web', () => {
     });
 
     it('paints the web’s panel', () => {
-        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(WEB).toContain(`'${colour}'`);
-        expect(WEB).toContain(`background: '${CODE_PANEL.headerBackground}'`);
-        expect(WEB).toContain(`borderBottom: '1px solid ${CODE_PANEL.headerBorder}'`);
+        for (const colour of [CODE_PANEL.background, CODE_PANEL.headerText, CODE_PANEL.copied]) expect(WEB).toContain(colour);
+        expect(WEB).toContain(`[background:${CODE_PANEL.headerBackground}]`);
+        expect(WEB).toContain(`[border-bottom:1px_solid_${CODE_PANEL.headerBorder}]`);
         expect(WEB).toContain("import 'highlight.js/styles/github-dark.min.css';");
     });
 

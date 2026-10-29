@@ -143,7 +143,7 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
     const card = (children: React.ReactNode) => (
         <div className="h-[100vh] [display:flex] [align-items:center] [justify-content:center] [background:var(--bg-primary)] [padding:24px]">
             <div className="max-w-[420px] w-[100%] [text-align:center] [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [border-radius:24px] [padding:40px_32px] [box-shadow:0_20px_60px_rgba(0,0,0,0.15)]">
-                <img src={beeFlowIcon} alt="Bee Flow" className="w-[64px] h-[64px] [border-radius:18px] [margin:0_auto_20px] [object-fit:contain] [display:block]" />
+                <img src={beeFlowIcon} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-[64px] h-[64px] [border-radius:18px] [margin:0_auto_20px] [object-fit:contain] [display:block]" />
                 {children}
             </div>
         </div>
@@ -240,7 +240,7 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
                 <button
                     onClick={() => requestCode({ isResend: true })}
                     disabled={resending}
-                    style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: resending ? 'default' : 'pointer', fontWeight: 600, fontSize: 13, padding: 0 }}
+                    className={`[background:none] [border:none] [color:var(--accent-primary)] [font-weight:600] [font-size:13px] [padding:0] ${resending ? '[cursor:default]' : '[cursor:pointer]'}`}
                 >
                     {resending ? t('app.nc_verify_resending', 'Sending…') : t('app.nc_verify_resend', 'Resend code')}
                 </button>

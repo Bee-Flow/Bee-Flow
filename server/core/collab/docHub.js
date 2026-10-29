@@ -115,7 +115,7 @@ function makeDocHub(deps) {
     const authorOf = (/** @type {{ userId: string|null, origin: string, agentId: string|null }} */ r) =>
         (r.origin === 'ai' ? `ai:${r.agentId || 'assistant'}` : (r.userId || r.origin));
 
-    /** @param {Subscriber} s @param {string} kind @param {object} payload */
+    /** @param {Subscriber} s @param {string} kind @param {Record<string, unknown>} payload */
     function sendTo(s, kind, payload) {
         if (s.gone) return;
         let ok = true;
@@ -239,7 +239,7 @@ function makeDocHub(deps) {
         try { return !!isDistributed(); } catch (_) { return false; }
     }
 
-    /** @param {Entry} entry @param {any} ev */
+    /** @param {Entry} entry @param {{ docId?: string, kind?: string, seq?: unknown, u?: unknown, left?: unknown, reason?: unknown } | null | undefined} ev */
     function onBusEvent(entry, ev) {
         if (!ev || ev.docId !== entry.doc.id || entry.closed) return;
         if (ev.kind === 'doc.moved') {

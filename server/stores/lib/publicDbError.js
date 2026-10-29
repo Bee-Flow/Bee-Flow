@@ -19,7 +19,7 @@ const PATH_LIKE = /(?:[A-Za-z]:)?[\\/][\w.@~ -]+[\\/]|\.db\b|\bENOENT\b|\bEACCES
  * @returns {string}
  */
 function publicDbErrorMessage(err) {
-    const e = /** @type {any} */ (err);
+    const e = /** @type {{ message?: unknown, code?: unknown } | null | undefined} */ (err);
     const message = String(e?.message || '');
     const code = typeof e?.code === 'string' ? e.code : '';
     const foreign = (code && !code.startsWith('SQLITE_')) || PATH_LIKE.test(message);

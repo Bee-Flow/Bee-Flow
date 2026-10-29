@@ -20,6 +20,8 @@ const { resolvePersonaWrite } = require('./agentPersonaWrite');
  * standard and custom tiers are checked (getPermittedTierKeys returns all keys
  * permitted for the user's groups + beta features). Non-tier raw model
  * strings (legacy) pass through unchanged. Returns false after refusing.
+ * @param {string} model
+ * @param {string} userId
  */
 async function checkTierAllowed(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, model, userId) {
     if (!(typeof model === 'string' && model.startsWith('tier:'))) return true;
@@ -73,6 +75,7 @@ async function resolvePersonaAndConfig(/** @type {import('express').Request} */ 
     let configToSave = config;
     let saveWarnings = [];
     let personaToSave;              // undefined ⇒ preserve the column
+    /** @type {string | null} */
     let personaPrompt = null;       // null ⇒ keep the caller's systemPrompt
     if (hasPersona) {
         if (persona === null) {
@@ -270,11 +273,10 @@ module.exports = { makeUpdateAgentHandler };
 
 /**
  * @typedef {import('./crud').AgentRow} LoadedAgent
- * @typedef {object} UpdateDeps
- * @property {import('./crud').CrudRouter['canModifyAgent']} canModifyAgent
- * @property {(res: import('express').Response) => unknown} sendAgentNotEditable
- * @property {(config: unknown) => string|null} rejectUnsafeConfigKeys
- * @property {import('./crud').CrudRouter['validateAgentConfigReferences']} validateAgentConfigReferences
- * @property {import('./crud').CrudRouter['applyConfigValidation']} applyConfigValidation
- * @property {typeof import('../../auth').resolveUserOrgIds} resolveUserOrgIds
+ * @typedef {{ canModifyAgent: import('./crud').CrudRouter['canModifyAgent'],
+ *   sendAgentNotEditable: (res: import('express').Response) => unknown,
+ *   rejectUnsafeConfigKeys: (config: unknown) => string|null,
+ *   validateAgentConfigReferences: import('./crud').CrudRouter['validateAgentConfigReferences'],
+ *   applyConfigValidation: import('./crud').CrudRouter['applyConfigValidation'],
+ *   resolveUserOrgIds: typeof import('../../auth').resolveUserOrgIds }} UpdateDeps
  */

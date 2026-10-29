@@ -47,7 +47,10 @@ const openOn = (pinnedOutput: string, onSaveStep = vi.fn().mockResolvedValue(und
     return onSaveStep;
 };
 
-const save = () => fireEvent.click(screen.getByText('Save output'));
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save output'));
+    };
 const savedOutput = (onSaveStep: Mock) => onSaveStep.mock.calls.at(-1)![0].steps[0].pinnedOutput;
 
 const BODY = 'Dear Ada,\n\nThanks for your order.\n\nKind regards';
@@ -76,10 +79,12 @@ describe('NodeDetailView — a multi-paragraph value keeps its paragraphs', () =
     });
 
     it('saves the paragraphs back after an edit inside them', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn(stub<Parameters<typeof openOn>[0]>({ body: BODY }));
 
-        fireEvent.change(screen.getByLabelText('body value'), { target: { value: `${BODY}\n\nAda` } });
-        save();
+        await user.clear(screen.getByLabelText('body value'));
+        await user.paste(`${BODY}\n\nAda`);
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ body: `${BODY}\n\nAda` });
@@ -107,7 +112,7 @@ describe('NodeDetailView — a multi-paragraph value keeps its paragraphs', () =
 
         await user.clear(screen.getByLabelText('subject value'));
         await user.type(screen.getByLabelText('subject value'), 'Bye');
-        save();
+        await save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ body: BODY, subject: 'Bye' });

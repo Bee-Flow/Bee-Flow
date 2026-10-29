@@ -100,12 +100,8 @@ async function buildAgentPickerForUser(userId, { principal = null, deps = null }
  *
  * Throws on a failed read; the callers decide what that means.
  *
- * @param {object} p
- * @param {string} p.userId
- * @param {Set<string>} p.orgIds       ALWAYS a Set: `canUserManageKB` reads a null as super-admin
- * @param {string[]} p.userGroups
- * @param {boolean} p.canManage        holds `manage_knowledge`
- * @param {boolean} p.isOrgAdmin
+ * @param {{ userId: string, orgIds: Set<string>, userGroups: string[], canManage: boolean, isOrgAdmin: boolean }} p
+ *   orgIds: ALWAYS a Set (`canUserManageKB` reads a null as super-admin); canManage: holds `manage_knowledge`
  */
 async function listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin }, { deps = null } = {}) {
     const kbStore = depsOf(deps).kbStore();
@@ -154,13 +150,8 @@ async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
  * Throws only for what no check can absorb; every individual check is
  * fail-closed on its own.
  *
- * @param {object} p
- * @param {string} p.userId
- * @param {object|null} p.session
- * @param {Array} p.apps           the catalog's apps (`id`, `label`, `available`)
- * @param {Set<string>} p.userToolNames
- * @param {Array} p.userToolDefs   the resolved tool definitions (auto-derived providers)
- * @param {string|null} p.orgId
+ * @param {{ userId: string, session: object|null, apps: Array, userToolNames: Set<string>, userToolDefs: Array, orgId: string|null }} p
+ *   apps: the catalog's apps (`id`, `label`, `available`); userToolDefs: the resolved tool definitions (auto-derived providers)
  */
 async function buildAppEventProvidersFor({ userId, session, apps, userToolNames, userToolDefs, orgId }, { deps = null } = {}) {
     const d = depsOf(deps);
@@ -219,9 +210,9 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
  *
  * @param {string} userId
  * @param {object|null} session
- * @param {object} catalog   from buildCatalogForUser
+ * @param {Awaited<ReturnType<typeof import('./builderCatalog').buildCatalogForUser>>} catalog   from buildCatalogForUser
  * @param {{providers?: boolean, deps?: object}} [opts]  `providers:false` skips the app_event list; `deps` replaces collaborators (tests)
- * @returns {Promise<{agents, agentsError, knowledgeBases, knowledgeBasesError, appEventProviders, appEventProvidersError}>}
+ * @returns {Promise<{agents, agentsError: unknown, knowledgeBases, knowledgeBasesError: unknown, appEventProviders: unknown, appEventProvidersError: unknown}>}
  */
 async function buildPickerCatalogsForUser(userId, session, catalog, { providers: withProviders = true, deps = null } = {}) {
     const providers = (async () => {

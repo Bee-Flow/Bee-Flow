@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { Home, MoreHorizontal, PanelsTopLeft, Pencil, Plus, Trash2, type LucideIcon } from 'lucide-react';
-import { useEffect, useRef, useState, type AnimationEventHandler } from 'react';
+import { useEffect, useRef, useState, type AnimationEventHandler, type RefObject } from 'react';
 import { screenTabDroppableId } from './dnd';
 import NavGroupsDialog from './NavGroupsDialog';
 import AppIcon from '@/components/icons/AppIcon';
@@ -8,7 +8,7 @@ import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { useAppEditor } from '../state/AppEditorContext';
 import { addScreen, removeScreen, updateScreen } from '../state/definitionOps';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import type React from 'react';
 import type { AppDefinition, AppScreen } from '../inspector/appDefinition';
 import type { NavDefinition } from '../runtime/shell/navModel';
@@ -175,59 +175,19 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                             recent={recentlyAddedIds instanceof Set && recentlyAddedIds.has(screen.id as string)}
                             onRevealed={() => dispatch({ type: 'clear_recent_id', nodeId: screen.id as string })}
                         >
-                            {renamingId === screen.id ? (
-                                <input
-                                    ref={renameInputRef}
-                                    value={renameValue}
-                                    onChange={(e) => setRenameValue(e.target.value)}
-                                    onBlur={commitRename}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') commitRename();
-                                        else if (e.key === 'Escape') setRenamingId(null);
-                                    }}
-                                    aria-label={t('app_studio.screens.name_aria', 'Screen name')}
-                                    className="mx-0.5 my-0.5 w-32 rounded border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-secondary)] [border-color:var(--editor-accent)] [color:var(--text-primary)]!"
-                                />
-                            ) : (
-                                <>
-                                    <button
-                                        type="button"
-                                        ref={(el) => { tabRefs.current[screen.id as string] = el; }}
-                                        disabled={streamLock}
-                                        onClick={() => dispatch({ type: 'set_screen', screenId: screen.id as string })}
-                                        onDoubleClick={() => !streamLock && startRename(screen)}
-                                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md py-1 pl-2.5 pr-1 disabled:opacity-50"
-                                        style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                                        aria-current={active ? 'page' : undefined}
-                                    >
-                                        {screen.icon ? <AppIcon name={String(screen.icon)} className="h-3 w-3 shrink-0" /> : null}
-                                        <span className="max-w-[10rem] truncate">{screen.name || untitled}</span>
-                                        {isHome ? (
-                                            <Home
-                                                className="h-3 w-3 shrink-0"
-                                                aria-label={t('app_studio.screens.home_aria', 'Home screen')}
-                                                style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
-                                            />
-                                        ) : null}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={streamLock}
-                                        aria-label={t('app_studio.screens.options_aria', 'Screen options for {name}', { name: screen.name || untitled })}
-                                        title={t('app_studio.screens.options', 'Screen options')}
-                                        aria-haspopup="menu"
-                                        aria-expanded={menuFor === screen.id}
-                                        onClick={(e) => {
-                                            menuAnchorRef.current = e.currentTarget;
-                                            setMenuFor(menuFor === screen.id ? null : screen.id);
-                                        }}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        className={`mr-1 rounded p-0.5 transition-opacity hover:bg-[var(--bg-card-hover)] disabled:opacity-0 ${active || menuFor === screen.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} [color:var(--text-tertiary)]`}
-                                    >
-                                        <MoreHorizontal className="h-3 w-3" />
-                                    </button>
-                                </>
-                            )}
+                            <ScreenTabBody
+                                screen={screen} active={active} isHome={isHome} untitled={untitled} t={t}
+                                renaming={renamingId === screen.id} renameValue={renameValue} onRenameValue={setRenameValue}
+                                onCommitRename={commitRename} onCancelRename={() => setRenamingId(null)} renameInputRef={renameInputRef}
+                                tabRef={(el) => { tabRefs.current[screen.id as string] = el; }}
+                                streamLock={streamLock} menuOpen={menuFor === screen.id}
+                                onSelect={() => dispatch({ type: 'set_screen', screenId: screen.id as string })}
+                                onStartRename={() => startRename(screen)}
+                                onToggleMenu={(e) => {
+                                    menuAnchorRef.current = e.currentTarget;
+                                    setMenuFor(menuFor === screen.id ? null : screen.id);
+                                }}
+                            />
                         </DroppableTab>
                     );
                 })}
@@ -311,6 +271,81 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
         >
             {strip}
         </div>
+    );
+}
+
+interface ScreenTabBodyProps {
+    screen: AppScreen;
+    active: boolean;
+    isHome: boolean;
+    untitled: string;
+    t: TranslateFn;
+    renaming: boolean;
+    renameValue: string;
+    onRenameValue: (value: string) => void;
+    onCommitRename: () => void;
+    onCancelRename: () => void;
+    renameInputRef: RefObject<HTMLInputElement | null>;
+    tabRef: (el: HTMLButtonElement | null) => void;
+    streamLock: boolean;
+    menuOpen: boolean;
+    onSelect: () => void;
+    onStartRename: () => void;
+    onToggleMenu: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+/** Inside one screen pill: the inline rename field, or the tab button and its kebab. */
+function ScreenTabBody({
+    screen, active, isHome, untitled, t, renaming, renameValue, onRenameValue, onCommitRename, onCancelRename,
+    renameInputRef, tabRef, streamLock, menuOpen, onSelect, onStartRename, onToggleMenu,
+}: ScreenTabBodyProps) {
+    return renaming ? (
+        <input
+            ref={renameInputRef}
+            value={renameValue}
+            onChange={(e) => onRenameValue(e.target.value)}
+            onBlur={onCommitRename}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') onCommitRename();
+                else if (e.key === 'Escape') onCancelRename();
+            }}
+            aria-label={t('app_studio.screens.name_aria', 'Screen name')}
+            className="mx-0.5 my-0.5 w-32 rounded border px-2 py-0.5 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-secondary)] [border-color:var(--editor-accent)] [color:var(--text-primary)]!"
+        />
+    ) : (
+        <>
+            <button
+                type="button"
+                ref={tabRef}
+                disabled={streamLock}
+                onClick={onSelect}
+                onDoubleClick={() => !streamLock && onStartRename()}
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md py-1 pl-2.5 pr-1 disabled:opacity-50 ${active ? '[color:var(--text-primary)]' : '[color:var(--text-secondary)]'}`}
+                aria-current={active ? 'page' : undefined}
+            >
+                {screen.icon ? <AppIcon name={String(screen.icon)} className="h-3 w-3 shrink-0" /> : null}
+                <span className="max-w-[10rem] truncate">{screen.name || untitled}</span>
+                {isHome ? (
+                    <Home
+                        className={`h-3 w-3 shrink-0 ${active ? '[color:var(--text-primary)]' : '[color:var(--text-tertiary)]'}`}
+                        aria-label={t('app_studio.screens.home_aria', 'Home screen')}
+                    />
+                ) : null}
+            </button>
+            <button
+                type="button"
+                disabled={streamLock}
+                aria-label={t('app_studio.screens.options_aria', 'Screen options for {name}', { name: screen.name || untitled })}
+                title={t('app_studio.screens.options', 'Screen options')}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={onToggleMenu}
+                onPointerDown={(e) => e.stopPropagation()}
+                className={`mr-1 rounded p-0.5 transition-opacity hover:bg-[var(--bg-card-hover)] disabled:opacity-0 ${active || menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} [color:var(--text-tertiary)]`}
+            >
+                <MoreHorizontal className="h-3 w-3" />
+            </button>
+        </>
     );
 }
 

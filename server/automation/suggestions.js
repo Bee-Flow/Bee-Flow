@@ -263,13 +263,12 @@ function stripTokens(text) {
  * suggestion object, or null when the element is too malformed to keep or is a
  * near-duplicate of an automation the user already has.
  *
- * @param {object} raw
- * @param {object} opts
- * @param {Iterable<string>} [opts.availableIntegrationIds] integration ids the
- *        user can actually use. Required ids outside this set are kept but moved
- *        to `unavailableIntegrations` (shown as a muted "needs X" hint).
- * @param {string[]} [opts.existingTitles] titles of the user's current
- *        automations, for duplicate suppression.
+ * @param {unknown} raw
+ * @param {{ availableIntegrationIds?: Iterable<string>, existingTitles?: string[] }} [opts]
+ *        availableIntegrationIds: integration ids the user can actually use. Required
+ *        ids outside this set are kept but moved to `unavailableIntegrations`
+ *        (shown as a muted "needs X" hint). existingTitles: titles of the user's
+ *        current automations, for duplicate suppression.
  */
 function validateAndRepairSuggestion(raw, { availableIntegrationIds, existingTitles = [] } = {}) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -321,6 +320,7 @@ function validateAndRepairSuggestion(raw, { availableIntegrationIds, existingTit
  * Validate+repair a whole batch: drop malformed/duplicate elements, suppress
  * cross-suggestion duplicates, sort activity-grounded ideas first, and cap to
  * `max`.
+ * @param {unknown} rawArray @param {{ availableIntegrationIds?: Iterable<string>, existingTitles?: string[], max?: number, activityIndex?: ReturnType<typeof buildActivityIndex> | null }} [opts]
  */
 function normaliseSuggestions(rawArray, { availableIntegrationIds, existingTitles = [], max = DEFAULT_MAX_SUGGESTIONS, activityIndex = null } = {}) {
     if (!Array.isArray(rawArray)) return [];

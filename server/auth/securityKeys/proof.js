@@ -53,7 +53,7 @@ function createSecondFactorProof({ userStore, mfa, ceremony }) {
     }
 
     /**
-     * @param {any} session
+     * @param {import('express').Request['session']} session
      * @param {{ id: string, mfa_secret?: string|null, mfa_recovery_codes?: any }} row
      * @param {ProofBody} body
      * @returns {Promise<ProofResult>}

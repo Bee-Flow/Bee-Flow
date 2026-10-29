@@ -43,7 +43,10 @@ class DatasetQueryError extends Error {
     }
 }
 
-/** "chr17:43,044,295-43,125,364" | "17:100-200" | "chrX:1234" → {chrom,start,end} */
+/**
+ * "chr17:43,044,295-43,125,364" | "17:100-200" | "chrX:1234" → {chrom,start,end}
+ * @param {string} region
+ */
 function parseRegionString(region) {
     const m = /^\s*([\w.]+)\s*:\s*([\d,]+)\s*(?:-\s*([\d,]+))?\s*$/.exec(String(region || ''));
     if (!m) throw new DatasetQueryError(`unreadable region "${region}" — expected chrom:start-end`);
@@ -55,7 +58,11 @@ function parseRegionString(region) {
     return { chrom: m[1], start, end };
 }
 
-/** The file's own spelling of a chromosome ("chr17" vs "17" vs "MT"). */
+/**
+ * The file's own spelling of a chromosome ("chr17" vs "17" vs "MT").
+ * @param {string} requested
+ * @param {BlockIndex} index
+ */
 function normalizeContig(requested, index) {
     const cands = [requested];
     if (requested.startsWith('chr')) cands.push(requested.slice(3));
@@ -69,6 +76,9 @@ function normalizeContig(requested, index) {
 /**
  * @param {number} start
  * @param {number} end
+ * @param {Buffer<ArrayBufferLike>} bytes
+ * @param {string} contigName
+ * @param {{ limit: number; filterPass: boolean; minQual: number | null; includeGenotypes: boolean; charBudget: number; samples: string[]; }} opts
  */
 function scanWindow(bytes, contigName, start, end, opts) {
     const { filterPass, minQual, limit, includeGenotypes, charBudget, samples } = opts;
@@ -131,10 +141,13 @@ function scanWindow(bytes, contigName, start, end, opts) {
 }
 
 /**
- * @param {object} dataset — see module header
- * @param {object} params — { gene | region | rsid | (chrom,start,end), filterPass,
- *   minQual, limit, includeGenotypes, charBudget }
- * @returns {Promise<{rows, rowCount, truncated, notes, region, gene, rsid, build, scannedBlocks}>}
+ * @param {{ build?: string | null, samples?: string[], loadIndex: () => Promise<import('./blockIndex').BlockIndex>,
+ *   readRange: (startOffset: number, endOffsetExclusive: number) => Promise<Buffer>,
+ *   readRsidShard: (shard: number) => Promise<Buffer | null> }} dataset — see module header
+ * @param {{ gene?: string, region?: string, rsid?: string | number, chrom?: string, start?: number, end?: number,
+ *   filterPass?: boolean, minQual?: number, limit?: number, includeGenotypes?: boolean, charBudget?: number }} [params]
+ *   exactly one of gene | region | rsid | (chrom,start,end)
+ * @returns {Promise<{rows, rowCount: unknown, truncated: unknown, notes, region, gene: unknown, rsid: unknown, build: unknown, scannedBlocks}>}
  */
 async function queryRegion(dataset, params = {}) {
     const { gene, rsid } = params;
@@ -160,6 +173,7 @@ async function queryRegion(dataset, params = {}) {
     const notes = [];
 
     // ── Resolve the selector to one or more spans ─────────────────────────────
+    /** @type {{ chrom: string; start: number; end: number; }[]} */
     let spans; // [{chrom (requested spelling), start, end}]
     /** @type {{ chrom: string; start: number; end: number; symbol: string; } | null} */
     let resolvedGene = null;
@@ -221,6 +235,7 @@ async function queryRegion(dataset, params = {}) {
     let rowCount = 0;
     let truncated = false;
     let scannedBlocks = 0;
+    /** @type {{ chrom: string; start: number; end: number; } | null} */
     let firstSpanRegion = null;
 
     for (const span of spans) {

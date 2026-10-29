@@ -86,6 +86,7 @@ async function fetchJson(url) {
  */
 async function loadStats(previous) {
     const repo = await fetchJson(`https://api.github.com/repos/${REPO}`);
+    /** @type {{ tag: string; publishedAt: string | null; } | { tag: string; publishedAt: string | null; } | null} */
     let latestRelease = null;
     let releaseUnknown = false;
     try {

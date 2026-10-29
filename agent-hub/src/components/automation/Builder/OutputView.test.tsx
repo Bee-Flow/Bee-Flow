@@ -26,7 +26,8 @@ function dndEvent() {
 describe('OutputView — drag/click mapping', () => {
     beforeEach(() => cleanup());
 
-    it('maps a table column to an absolute [*] path (not a relative segment)', () => {
+    it('maps a table column to an absolute [*] path (not a relative segment)', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         const { container } = render(
             <OutputView value={VALUE} basePath={BASE} enableDrag onPickPath={onPick} />,
@@ -34,22 +35,23 @@ describe('OutputView — drag/click mapping', () => {
         // The `output` column header maps every row's whole output object.
         const th = container.querySelector('[title*="steps.x.output.results[*].output)"]');
         expect(th).toBeTruthy();
-        fireEvent.click(th!);
+        await user.click(th!);
         expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output', { raw: false });
     });
 
-    it('drills an object column so a single nested field (content) is mappable', () => {
+    it('drills an object column so a single nested field (content) is mappable', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         const { container } = render(
             <OutputView value={VALUE} basePath={BASE} enableDrag onPickPath={onPick} />,
         );
         // Expand the `output` object column into its leaf sub-columns.
         const expandBtn = screen.getByLabelText('Show fields');
-        fireEvent.click(expandBtn);
+        await user.click(expandBtn);
         // Now a `content` sub-column header maps every row's content only.
         const contentTh = container.querySelector('[title*="steps.x.output.results[*].output.content)"]');
         expect(contentTh).toBeTruthy();
-        fireEvent.click(contentTh!);
+        await user.click(contentTh!);
         expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].output.content', { raw: false });
     });
 
@@ -63,14 +65,15 @@ describe('OutputView — drag/click mapping', () => {
         expect(dataTransfer.setData).toHaveBeenCalledWith('application/x-binding-path', 'steps.x.output.results[*].output');
     });
 
-    it('a single cell maps the indexed path', () => {
+    it('a single cell maps the indexed path', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         const { container } = render(
             <OutputView value={VALUE} basePath={BASE} enableDrag onPickPath={onPick} />,
         );
         const cell = container.querySelector('td[title*="steps.x.output.results[0].output"]');
         expect(cell).toBeTruthy();
-        fireEvent.click(cell!);
+        await user.click(cell!);
         expect(onPick).toHaveBeenCalledWith('steps.x.output.results[0].output', { raw: false });
     });
 
@@ -94,14 +97,15 @@ describe('OutputView — drag/click mapping', () => {
 });
 
 describe('OutputView — long text is readable, not silently cut', () => {
-    it('clamps a long string but offers the rest', () => {
+    it('clamps a long string but offers the rest', async () => {
+        const user = userEvent.setup();
         const long = 'a'.repeat(1200);
         render(<OutputView value={long} />);
         const toggle = screen.getByText('Show all 1200 characters');
         expect(document.body.textContent).not.toContain(long);
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(document.body.textContent).toContain(long);
-        fireEvent.click(screen.getByText('Show less'));
+        await user.click(screen.getByText('Show less'));
         expect(document.body.textContent).not.toContain(long);
     });
 
@@ -133,10 +137,11 @@ describe('OutputView — array columns (the list-in-a-table complaint)', () => {
         expect(screen.getByText('none')).toBeTruthy();
     });
 
-    it('an array column expands into [*] children whose cells actually resolve', () => {
+    it('an array column expands into [*] children whose cells actually resolve', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         render(<OutputView value={MAIL} basePath={BASE} enableDrag onPickPath={onPick} />);
-        fireEvent.click(screen.getByLabelText('Open the list in Attachments'));
+        await user.click(screen.getByLabelText('Open the list in Attachments'));
         // The wildcard cells resolve through the runtime's [*] flatten —
         // a naive dotted walk would render `—` in every one of them.
         expect(screen.getAllByText('a1.pdf, a2.pdf').length).toBeGreaterThan(0);
@@ -144,28 +149,30 @@ describe('OutputView — array columns (the list-in-a-table complaint)', () => {
         // The expanded header maps the CHAINED wildcard column.
         const th = document.querySelector('[title*="results[*].attachments[*].filename"]');
         expect(th).toBeTruthy();
-        fireEvent.click(th!);
+        await user.click(th!);
         expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].attachments[*].filename', { raw: false });
     });
 
-    it('the per-column chooser button does not collide with "Show fields"', () => {
+    it('the per-column chooser button does not collide with "Show fields"', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         render(<OutputView value={MAIL} basePath={BASE} enableDrag onPickPath={onPick} />);
         // The chooser is its own affordance with its own name…
-        fireEvent.click(screen.getByLabelText("Choose how to use every row's Subject"));
+        await user.click(screen.getByLabelText("Choose how to use every row's Subject"));
         expect(onPick).toHaveBeenCalledWith('steps.x.output.results[*].subject', { raw: false });
         // …and the expand chevron for the OBJECT column keeps its label.
         render(<OutputView value={VALUE} basePath={BASE} enableDrag onPickPath={vi.fn()} />);
         expect(screen.getByLabelText('Show fields')).toBeTruthy();
     });
 
-    it('says how many columns the cap dropped, and hands them over on request', () => {
+    it('says how many columns the cap dropped, and hands them over on request', async () => {
+        const user = userEvent.setup();
         const wide = [Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`col${i}`, i]))];
         render(<OutputView value={wide} basePath={BASE} />);
         const more = screen.getByText('+6 more columns');
         expect(more).toBeTruthy();
         // A dead label was the complaint: the cap has to be a way THROUGH.
-        fireEvent.click(more);
+        await user.click(more);
         expect(screen.getByText('Col29')).toBeTruthy();
         expect(screen.getByText('Fewer columns')).toBeTruthy();
     });
@@ -183,11 +190,12 @@ describe('OutputView — reaching a nested list without a drag target (BFSF-402)
         ],
     };
 
-    it('drills a column open even where nothing is draggable', () => {
+    it('drills a column open even where nothing is draggable', async () => {
+        const user = userEvent.setup();
         const { container } = render(<OutputView value={TASKS} basePath={BASE} allowExpand />);
         // Reading, not mapping: the chevron is there, the drag handles are not.
         expect(container.querySelector('thead th')!.getAttribute('draggable')).toBeNull();
-        fireEvent.click(screen.getByLabelText('Show fields'));
+        await user.click(screen.getByLabelText('Show fields'));
         expect(screen.getByText('Items')).toBeTruthy();
     });
 

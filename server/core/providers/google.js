@@ -503,7 +503,7 @@ class GoogleProvider extends BaseProvider {
         // the FULL content as received, so we fall back to a part-wide scan.
         let fallbackSig = null;
         for (const part of parts) {
-            const sig = part.thoughtSignature || /** @type {any} */ (part).thought_signature;
+            const sig = part.thoughtSignature || /** @type {{ thought_signature?: string }} */ (part).thought_signature;
             if (sig) { fallbackSig = sig; break; }
         }
 
@@ -678,7 +678,7 @@ class GoogleProvider extends BaseProvider {
                             onEvent('thinking', { text: part.text, partId: thinkingPartId });
                         } else if (part.functionCall) {
                             // Tool call in streaming response
-                            const sig = part.thoughtSignature || /** @type {any} */ (part).thought_signature;
+                            const sig = part.thoughtSignature || /** @type {{ thought_signature?: string }} */ (part).thought_signature;
                             onEvent('tool_use', {
                                 id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                                 name: part.functionCall.name,
@@ -733,7 +733,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt
-     * @param {any} options - { aspectRatio, thinkingLevel }
+     * @param {{ model?: string, aspectRatio?: string, thinkingLevel?: string }} options
      * @returns {Promise<{ text: string|null, imageBase64: string|null, mimeType: string|null }>}
      */
     async generateImage(apiKey, prompt, options = {}) {
@@ -791,7 +791,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - Music description (e.g. "lofi hiphop, chill vibes")
-     * @param {any} options - { bpm, durationSeconds, temperature, weightedPrompts }
+     * @param {{ bpm?: number, durationSeconds?: number, temperature?: number, density?: number, brightness?: number, guidance?: number, musicGenerationMode?: string, muteBass?: boolean, muteDrums?: boolean, weightedPrompts?: Array<{ text: string, weight: number }> }} options
      * @returns {Promise<{ audioBase64: string|null, mimeType: string }>}
      */
     async generateMusic(apiKey, prompt, options = {}) {
@@ -952,7 +952,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - Video description
-     * @param {any} options - { aspectRatio, durationSeconds, resolution, model }
+     * @param {{ model?: string, aspectRatio?: string, durationSeconds?: number, resolution?: string, generateAudio?: boolean, negativePrompt?: string }} options
      * @returns {Promise<{ videoBase64: string|null, mimeType: string }>}
      */
     async generateVideo(apiKey, prompt, options = {}) {

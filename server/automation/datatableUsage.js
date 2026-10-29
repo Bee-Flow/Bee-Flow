@@ -1,3 +1,4 @@
+/** @typedef {import('./validate/helpers').GraphDoc} GraphDoc */
 // @typecheck
 /**
  * Which steps of an automation touch which datatable.
@@ -24,12 +25,16 @@
 const { walkSteps } = require('./stepContract');
 const { DATATABLE_WRITE_OPS } = require('./validate/constants');
 
+/**
+ * @param {GraphDoc} v
+ */
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
  * Every column key a step names, so the destructive-change guard can answer
  * "which automations read the column you are about to delete". Conditions and
  * written values both count: losing either breaks the step.
+ * @param {GraphDoc} step
  */
 function columnsOf(step) {
     const keys = new Set();
@@ -45,7 +50,7 @@ function columnsOf(step) {
 }
 
 /**
- * @param {any} definition an automation definition
+ * @param {import('./automationGraph').AutomationDefinition} definition an automation definition
  * @returns {Array<{datatableId, stepId, mode, columns}>}
  */
 function collectDatatableUsage(definition) {
@@ -53,6 +58,9 @@ function collectDatatableUsage(definition) {
     const out = [];
     const seen = new Set();
 
+    /**
+     * @param {GraphDoc} s
+     */
     const visit = (s) => {
         if (!isObject(s) || s.type !== 'datatable') return;
         if (!s.datatableId || typeof s.datatableId !== 'string') return;
@@ -76,7 +84,10 @@ function collectDatatableUsage(definition) {
     return out;
 }
 
-/** The distinct table ids an automation touches — for a cheap "does it use any?". */
+/**
+ * The distinct table ids an automation touches — for a cheap "does it use any?".
+ * @param {GraphDoc} definition
+ */
 function datatableIdsUsed(definition) {
     return [...new Set(collectDatatableUsage(definition).map(u => u.datatableId))];
 }

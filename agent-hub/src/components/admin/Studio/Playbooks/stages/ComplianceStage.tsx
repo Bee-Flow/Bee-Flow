@@ -1,15 +1,15 @@
-import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Loader2, RefreshCw, ScaleIcon, ShieldCheck } from 'lucide-react';
+import { ExternalLink, ScaleIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import StageShell from './StageShell';
-import { TONES } from '@/components/shared/statusTone';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
 import { playbooksApi } from '../playbooksApi';
 import { CENTER_PATH, groupFindings, methodLine, verdictOf, writtenWords, type ComplianceArtifacts } from './complianceView';
 import FindingRow from './FindingRow';
 import RegisterPanel from './RegisterPanel';
-import { applyResolvePlan, resolveSummary } from './resolveApply';
+import { ComplianceStatus, QuietNotes, VerdictCard } from './ComplianceStageParts';
+import { applyResolvePlan } from './resolveApply';
 import type { Finding, ResolvePlan } from './compliance.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
@@ -48,9 +48,6 @@ async function put(path: string, body: unknown, method: string = 'PUT') {
  * writes, and every write goes out through the endpoint that already owns and
  * audits it.
  */
-// The verdict's ink, per tone. `none` is the one the count alone could never
-// express: nothing was checked, so nothing can be said to be clean.
-const VERDICT_INK: Record<string, string> = { clear: 'var(--kind-playbook)', none: 'var(--warning-ink)', attention: 'var(--type-ai)', tidy: 'var(--type-ai)' };
 
 interface ComplianceStageProps {
     playbook?: (PlaybookLike & { id: string }) | null;
@@ -59,6 +56,63 @@ interface ComplianceStageProps {
     t: TranslateFn;
     onNavigate?: ((to: string) => void) | null;
     presenter?: boolean;
+}
+
+interface ResolveArgs {
+    playbookId: string | null | undefined;
+    phaseKey: string;
+    facts: ComplianceArtifacts['facts'] | null;
+    t: TranslateFn;
+    recheck: () => Promise<void>;
+}
+
+/** Resolve: propose a fix per finding, apply it through the endpoints that own the writes, then read the review again. */
+function useResolve({ playbookId, phaseKey, facts, t, recheck }: ResolveArgs) {
+    // ── Resolve: propose, then apply, then read it again ────────────
+    const automationApi = useAutomationApi();
+    const appId = (facts && facts.app && facts.app.id) || null;
+    const [plans, setPlans] = useState<Record<string, ResolvePlan | null>>({});           // code → plan
+    const [planBusy, setPlanBusy] = useState<string | null>(null);   // the code being worked out
+    const [planErrors, setPlanErrors] = useState<Record<string, string | null>>({});
+    const [applying, setApplying] = useState<string | null>(null);
+    const [applied, setApplied] = useState<{ code: string; out: Awaited<ReturnType<typeof applyResolvePlan>> } | null>(null);
+
+    const propose = useCallback(async (code: string) => {
+        setPlanBusy(code);
+        setPlanErrors((m) => ({ ...m, [code]: null }));
+        try {
+            const body = await playbooksApi.resolvePlan(playbookId as string, phaseKey, code);
+            setPlans((m) => ({ ...m, [code]: body && body.plan }));
+        } catch (e) {
+            setPlanErrors((m) => ({ ...m, [code]: (e as Error)?.message || t('playbooks.compliance.fix_plan_failed', 'A fix for this one could not be worked out.') }));
+        } finally {
+            setPlanBusy(null);
+        }
+    }, [playbookId, phaseKey, t]);
+
+    const apply = useCallback(async (code: string, plan: ResolvePlan) => {
+        setApplying(code);
+        setApplied(null);
+        const out = await applyResolvePlan(plan, {
+            register: (body) => playbooksApi.register(playbookId as string, phaseKey, { ...body, risks: [] }),
+            saveAutomation: (id, definition) => automationApi.updateAutomation(id, { definition }),
+            publish: (id, body) => studioAppsApi.publish(id, body),
+            // Both of these go straight at their endpoint rather than through
+            // the hooks that own them elsewhere (useAppRoles wants a query
+            // client, useComplianceCore toasts and refetches a page that is
+            // not on screen) — a stage should not need either to make one call.
+            assignMember: (userId, roleKey) => put(`/api/studio-apps/${encodeURIComponent(String(appId))}/members`, { userId, roleKey }, 'POST'),
+            saveComplianceSettings: (body) => put('/api/compliance/settings', body),
+        });
+        setApplying(null);
+        setApplied({ code, out });
+        setPlans((m) => ({ ...m, [code]: null }));
+        // Whatever landed, the review is re-read: the point of a fix is being
+        // able to see that it worked.
+        if (out.applied.length) await recheck();
+    }, [playbookId, phaseKey, automationApi, appId, recheck]);
+
+    return { plans, planBusy, planErrors, applying, applied, propose, apply };
 }
 
 export default function ComplianceStage({ playbook = null, phase, dispatch, t, presenter = false, onNavigate = null }: ComplianceStageProps) {
@@ -108,49 +162,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
         }
     }, [playbookId, phase.key, dispatch, rechecking, t]);
 
-    // ── Resolve: propose, then apply, then read it again ────────────
-    const automationApi = useAutomationApi();
-    const appId = (facts && facts.app && facts.app.id) || null;
-    const [plans, setPlans] = useState<Record<string, ResolvePlan | null>>({});           // code → plan
-    const [planBusy, setPlanBusy] = useState<string | null>(null);   // the code being worked out
-    const [planErrors, setPlanErrors] = useState<Record<string, string | null>>({});
-    const [applying, setApplying] = useState<string | null>(null);
-    const [applied, setApplied] = useState<{ code: string; out: Awaited<ReturnType<typeof applyResolvePlan>> } | null>(null);
-
-    const propose = useCallback(async (code: string) => {
-        setPlanBusy(code);
-        setPlanErrors((m) => ({ ...m, [code]: null }));
-        try {
-            const body = await playbooksApi.resolvePlan(playbookId as string, phase.key, code);
-            setPlans((m) => ({ ...m, [code]: body && body.plan }));
-        } catch (e) {
-            setPlanErrors((m) => ({ ...m, [code]: (e as Error)?.message || t('playbooks.compliance.fix_plan_failed', 'A fix for this one could not be worked out.') }));
-        } finally {
-            setPlanBusy(null);
-        }
-    }, [playbookId, phase.key, t]);
-
-    const apply = useCallback(async (code: string, plan: ResolvePlan) => {
-        setApplying(code);
-        setApplied(null);
-        const out = await applyResolvePlan(plan, {
-            register: (body) => playbooksApi.register(playbookId as string, phase.key, { ...body, risks: [] }),
-            saveAutomation: (id, definition) => automationApi.updateAutomation(id, { definition }),
-            publish: (id, body) => studioAppsApi.publish(id, body),
-            // Both of these go straight at their endpoint rather than through
-            // the hooks that own them elsewhere (useAppRoles wants a query
-            // client, useComplianceCore toasts and refetches a page that is
-            // not on screen) — a stage should not need either to make one call.
-            assignMember: (userId, roleKey) => put(`/api/studio-apps/${encodeURIComponent(String(appId))}/members`, { userId, roleKey }, 'POST'),
-            saveComplianceSettings: (body) => put('/api/compliance/settings', body),
-        });
-        setApplying(null);
-        setApplied({ code, out });
-        setPlans((m) => ({ ...m, [code]: null }));
-        // Whatever landed, the review is re-read: the point of a fix is being
-        // able to see that it worked.
-        if (out.applied.length) await recheck();
-    }, [playbookId, phase.key, automationApi, appId, recheck]);
+    const { plans, planBusy, planErrors, applying, applied, propose, apply } = useResolve({ playbookId, phaseKey: phase.key, facts, t, recheck });
 
     const register = useCallback(async (reg: { lawfulBasis: string; retentionDays: number | string; retentionField: string; subjectColumn: string }) => {
         if (busy) return;
@@ -225,19 +237,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
             phaseKey={phase?.key}
             title={t('playbooks.compliance.title', 'Checked against your frameworks')}
             tone={failed ? 'error' : 'busy'}
-            status={(
-                <>
-                    {failed && <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />}
-                    {running && <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />}
-                    {failed
-                        ? (phase?.error || t('playbooks.compliance.failed', 'The review did not run — try it again.'))
-                        : running
-                            ? t('playbooks.compliance.running', 'Reading the table, the automations and the app…')
-                            : frameworks.length
-                                ? t('playbooks.compliance.against', 'Against: {list}', { list: frameworks.join(', ') })
-                                : t('playbooks.compliance.none_active', 'No framework is switched on in the Compliance Center, so there was nothing to check against.')}
-                </>
-            )}
+            status={<ComplianceStatus t={t} failed={failed} running={running} error={phase?.error} frameworks={frameworks} />}
             actions={onNavigate ? (
                 <button type="button" onClick={() => onNavigate(CENTER_PATH)} className="inline-flex items-center gap-1 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [outline-color:var(--accent-primary)]!" data-testid="playbook-compliance-open">
                     {t('playbooks.compliance.open_center', 'Compliance Center')}<ExternalLink className="w-3 h-3" aria-hidden="true" />
@@ -247,66 +247,8 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
 
                 {/* The verdict — what was checked, and what came back clean. */}
                 {landed && (
-                    <section
-                        className="rounded-2xl"
-                        style={{
-                            background: 'var(--bg-card)',
-                            border: `1px solid ${verdict.tone === 'clear' ? 'var(--kind-playbook)' : verdict.tone === 'none' ? TONES.warning.raw : 'var(--border-default)'}`,
-                            boxShadow: 'var(--shadow-md)',
-                            padding: presenter ? 28 : 20,
-                        }}
-                        data-testid="playbook-compliance-verdict"
-                        data-tone={verdict.tone}
-                    >
-                        <div className="flex items-start gap-3">
-                            <span className="inline-flex items-center justify-center shrink-0 rounded-xl" style={{ width: presenter ? 44 : 36, height: presenter ? 44 : 36, background: `color-mix(in srgb, ${VERDICT_INK[verdict.tone] || 'var(--type-ai)'} 12%, transparent)`, color: VERDICT_INK[verdict.tone] || 'var(--type-ai)' }}>
-                                {verdict.tone === 'clear'
-                                    ? <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
-                                    : verdict.tone === 'none'
-                                        ? <AlertTriangle className="w-5 h-5" aria-hidden="true" />
-                                        : <ShieldCheck className="w-5 h-5" aria-hidden="true" />}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="font-semibold" role="status" aria-live="polite" style={{ fontSize: presenter ? 20 : 16, color: 'var(--text-primary)' }} data-testid="playbook-compliance-headline">
-                                    {verdict.headline}
-                                </p>
-                                {verdict.cleanLine && (
-                                    <p className="mt-0.5 flex items-center gap-1.5" style={{ fontSize: presenter ? 14 : 12, color: 'var(--text-secondary)' }} data-testid="playbook-compliance-clean-count">
-                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
-                                        {verdict.cleanLine}
-                                    </p>
-                                )}
-                                {method && <p className="mt-0.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-method">{method}</p>}
-                                {lastRecheck && lastRecheck.was > lastRecheck.now && (
-                                    <p className="mt-1 font-medium" style={{ fontSize: presenter ? 14 : 12, color: TONES.success.ink }} data-testid="playbook-compliance-delta">
-                                        {t('playbooks.compliance.delta', '{n} fewer than a moment ago.', { n: lastRecheck.was - lastRecheck.now })}
-                                    </p>
-                                )}
-                                {applied && (
-                                    <p className="mt-1" style={{ fontSize: presenter ? 13 : 11, color: applied.out.failed.length ? TONES.warning.ink : 'var(--text-secondary)' }} data-testid="playbook-compliance-applied">
-                                        {resolveSummary(applied.out, t)}
-                                    </p>
-                                )}
-                                {art.modelFailed && (
-                                    <p className="mt-1 [font-size:11px] [color:var(--text-tertiary)]" data-testid="playbook-compliance-model-note">
-                                        {t('playbooks.compliance.model_note', 'The AI reviewer could not be reached — what you see is what the rules alone found.')}
-                                    </p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={recheck}
-                                disabled={rechecking}
-                                className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)] [outline-color:var(--accent-primary)]!"
-                                data-testid="playbook-compliance-recheck"
-                            >
-                                {rechecking
-                                    ? <Loader2 className="w-3 h-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                                    : <RefreshCw className="w-3 h-3" aria-hidden="true" />}
-                                {t('playbooks.compliance.recheck', 'Check again')}
-                            </button>
-                        </div>
-                    </section>
+                    <VerdictCard t={t} presenter={presenter} verdict={verdict} method={method} lastRecheck={lastRecheck} applied={applied}
+                        modelFailed={!!art.modelFailed} rechecking={rechecking} onRecheck={recheck} />
                 )}
 
                 {landed && findings.length === 0 && (
@@ -322,27 +264,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                 )}
 
                 {/* The quiet ones, behind a count — they are notes, not problems. */}
-                {groups.low.length > 0 && (
-                    <div>
-                        <button
-                            type="button"
-                            onClick={() => setShowLow((v) => !v)}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
-                            aria-expanded={showLow}
-                            data-testid="playbook-compliance-notes-toggle"
-                        >
-                            <ChevronDown className="w-3 h-3 transition-transform motion-reduce:transition-none" style={{ transform: showLow ? 'rotate(0deg)' : 'rotate(-90deg)' }} aria-hidden="true" />
-                            {groups.low.length === 1
-                                ? t('playbooks.compliance.notes_one', '1 note, good to know')
-                                : t('playbooks.compliance.notes', '{n} notes, good to know', { n: groups.low.length })}
-                        </button>
-                        {showLow && (
-                            <ul className="mt-2 space-y-2" data-testid="playbook-compliance-notes">
-                                {groups.low.map((f) => <FindingRow key={f.code} {...rowProps(f)} />)}
-                            </ul>
-                        )}
-                    </div>
-                )}
+                {groups.low.length > 0 && <QuietNotes t={t} low={groups.low} showLow={showLow} setShowLow={setShowLow} rowProps={rowProps} />}
 
                 {landed && facts && facts.table && (
                     <RegisterPanel

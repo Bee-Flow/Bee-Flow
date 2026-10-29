@@ -25,7 +25,7 @@ export function OrgSearchResults({ places }: { places: readonly Destination[] })
                     key={place.id}
                     testID={`org-place-${place.id}`}
                     title={place.i18nKey ? t(place.i18nKey, place.label) : place.label}
-                    subtitle={place.hint}
+                    subtitle={place.hintKey ? t(place.hintKey, place.hint) : place.hint}
                     leading={<Icon name={place.icon} size={18} color={theme.colors.textMuted} />}
                     onPress={() => openRoute(router, place.href)}
                 />

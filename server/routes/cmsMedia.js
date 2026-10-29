@@ -48,6 +48,7 @@ function isVttFile(file) {
 function isValidVtt(buf) {
     if (!Buffer.isBuffer(buf) || buf.length === 0 || buf.length > VTT_MAX_BYTES) return false;
     if (buf.includes(0)) return false;
+    /** @type {string} */
     let text;
     try {
         text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
@@ -116,6 +117,7 @@ async function streamIntoStorage(filePath, size, key, contentType, signal = null
     const { uploadId } = await storageStore.beginMultipartUpload(key, contentType);
     const handle = await fs.promises.open(filePath, 'r');
     try {
+        /** @type {{ partNumber: number; etag: string; }[]} */
         const parts = [];
         let offset = 0;
         let partNumber = 1;
@@ -151,6 +153,7 @@ async function streamIntoStorage(filePath, size, key, contentType, signal = null
 async function handleClipUpload(req, res) {
     const file = req.file;
     if (!file) throw badRequest('no_file', 'No file provided');
+    /** @type {{ success: boolean; key: string; url: string; }} */
     let result;
     try {
         if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');

@@ -18,6 +18,7 @@ not a request path.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from .cache import _get_inference_semaphore
 from .custom_labels import _CustomSpec
@@ -37,13 +38,13 @@ class ProbeUnavailable(RuntimeError):
 
 
 def _raw_spans(
-    text: str, units: list[_ScanUnit], outcomes: list, custom: _CustomSpec
-) -> list[dict]:
+    text: str, units: list[_ScanUnit], outcomes: list[Any], custom: _CustomSpec
+) -> list[dict[str, Any]]:
     """Every span the model returned for one text, at document offsets.
 
     A failed pass is not a partial answer here: a tuning run on half the
     chunks would fit a floor to the wrong distribution, so it raises."""
-    raw: list[dict] = []
+    raw: list[dict[str, Any]] = []
     for unit, (batched, exc) in zip(units, outcomes, strict=False):
         if exc is not None or batched is None:
             raise ProbeUnavailable("inference_failed")
@@ -66,7 +67,9 @@ def _raw_spans(
     return raw
 
 
-def _candidates(text_idx: int, text: str, raw: list[dict]) -> list[dict]:
+def _candidates(
+    text_idx: int, text: str, raw: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Word-edge repair, then one candidate per (label, extent) at its best
     score: overlapping chunks see the same span twice, and a repair can fold
     two clipped readings onto one extent."""
@@ -89,7 +92,9 @@ def _candidates(text_idx: int, text: str, raw: list[dict]) -> list[dict]:
 class _Probe(_PiiState):
     """``PiiService``'s tuning surface. Mixed into the service."""
 
-    def probe(self, texts: list[str], label_set: dict[str, str]) -> list[dict]:
+    def probe(
+        self, texts: list[str], label_set: dict[str, str]
+    ) -> list[dict[str, Any]]:
         """Raw candidates for ``label_set`` (``{id: prompt}``) on each text."""
         if not self._ready or self._model is None:
             raise ProbeUnavailable("model_not_ready")
@@ -106,7 +111,7 @@ class _Probe(_PiiState):
         units = [unit for _, _, text_units in plans for unit in text_units]
         outcomes, _workers = self._run_scan_units(units, _Timings())
 
-        candidates: list[dict] = []
+        candidates: list[dict[str, Any]] = []
         cursor = 0
         for text_idx, text, text_units in plans:
             mine = outcomes[cursor : cursor + len(text_units)]
@@ -117,7 +122,7 @@ class _Probe(_PiiState):
 
     async def probe_async(
         self, texts: list[str], label_set: dict[str, str]
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """probe() under the pod's inference gate, off the event loop: a
         tuning run is model work like any scan and queues with the scans."""
         import asyncio

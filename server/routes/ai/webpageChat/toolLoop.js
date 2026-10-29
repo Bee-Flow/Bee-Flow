@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/providers').BaseProvider} BaseProvider */
 /**
  * Webpage chat: the tool rounds of one turn (routes/ai/webpageChat.js). The
  * tool menu and options, the turn's shared state, the termination monitor's
@@ -234,13 +235,13 @@ async function runToolLoop({
         try {
             await adapter.stream(apiKey, apiUrl, modelId, messages, streamOptions, streamCallback);
         } catch (err) {
-            log.error('[WebpageChat] Stream error:', err.message);
+            log.error('[WebpageChat] Stream error:', /** @type {Error} */ (err).message);
             terminationStore.logTermination({
                 ..._terminationBase(),
                 termination_type: 'error',
                 ...sanitizeError(err),
             }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#2', e));
-            send('error', { error: `Chat error: ${err.message}` });
+            send('error', { error: `Chat error: ${/** @type {Error} */ (err).message}` });
             break;
         }
 
@@ -298,7 +299,7 @@ async function runToolLoop({
             try {
                 await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, streamCallback);
             } catch (err) {
-                log.error('[WebpageChat] Plan wrap-up stream error:', err.message);
+                log.error('[WebpageChat] Plan wrap-up stream error:', /** @type {Error} */ (err).message);
                 terminationStore.logTermination({
                     ..._terminationBase(),
                     termination_type: 'error',
@@ -316,7 +317,7 @@ async function runToolLoop({
         try {
             await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, streamCallback);
         } catch (err) {
-            log.error('[WebpageChat] Final wrap-up stream error:', err.message);
+            log.error('[WebpageChat] Final wrap-up stream error:', /** @type {Error} */ (err).message);
             terminationStore.logTermination({
                 ..._terminationBase(),
                 termination_type: 'error',

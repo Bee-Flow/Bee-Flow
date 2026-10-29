@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -31,7 +31,10 @@ const renderBox = (props = {}) => {
     return { onChoose };
 };
 
-const expandOptions = () => fireEvent.click(screen.getByRole('button', { name: 'List options' }));
+const expandOptions = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'List options' }));
+    };
 
 describe('MismatchResolver', () => {
     beforeEach(cleanup);
@@ -57,9 +60,9 @@ describe('MismatchResolver', () => {
         expect(screen.getByRole('button', { name: 'List options' }).getAttribute('aria-expanded')).toBe('false');
     });
 
-    it('offers the four choices in the design order once "List options" is opened, the applied one selected', () => {
+    it('offers the four choices in the design order once "List options" is opened, the applied one selected', async () => {
         renderBox();
-        expandOptions();
+        await expandOptions();
         const labels = ['All of them, one per line', 'Only the first', 'Only the count (2)', 'A separate run for each item'];
         for (const l of labels) expect(screen.getByRole('button', { name: l })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'All of them, one per line' }).getAttribute('aria-pressed')).toBe('true');
@@ -69,7 +72,7 @@ describe('MismatchResolver', () => {
     it('a choice hands back the binding it writes, and the collapsed summary follows it', async () => {
         const user = userEvent.setup();
         const { onChoose } = renderBox();
-        expandOptions();
+        await expandOptions();
         await user.click(screen.getByRole('button', { name: 'Only the first' }));
         expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: 'first', binding: { kind: 'expr', value: 'first(steps.a.output.warnings)' } }));
         await user.click(screen.getByRole('button', { name: 'A separate run for each item' }));
@@ -83,7 +86,7 @@ describe('MismatchResolver', () => {
         const user = userEvent.setup();
         renderBox();
         expect(screen.queryByRole('button', { name: 'Keep the whole list' })).toBeNull();
-        expandOptions();
+        await expandOptions();
         expect(screen.queryByRole('button', { name: 'Keep the whole list' })).toBeNull();
         await user.click(screen.getByRole('button', { name: /more/ }));
         expect(screen.getByRole('button', { name: 'Keep the whole list' })).toBeTruthy();
@@ -104,9 +107,9 @@ describe('MismatchResolver', () => {
         expect(screen.getByTestId('mismatch-selected').textContent).toBe('Keep the whole list');
     });
 
-    it('leaves out the per-item run when the host cannot offer it', () => {
+    it('leaves out the per-item run when the host cannot offer it', async () => {
         renderBox({ allowForEach: false });
-        expandOptions();
+        await expandOptions();
         expect(screen.queryByRole('button', { name: 'A separate run for each item' })).toBeNull();
     });
 

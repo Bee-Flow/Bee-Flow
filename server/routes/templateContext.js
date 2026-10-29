@@ -78,6 +78,7 @@ First write the description, then the separator line, then the instructions. Do 
     log.info(`[Templates] AI response (${raw.length} chars)`);
 
     // Split on the separator
+    /** @type {{ description?: string; instructions?: string }} */
     const updates = {};
     if (raw.includes('---INSTRUCTIONS---')) {
         const parts = raw.split('---INSTRUCTIONS---');

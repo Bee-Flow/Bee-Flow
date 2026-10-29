@@ -31,21 +31,26 @@ function toolsPrompt(definitions) {
 }
 
 /**
- * @param {object} p
- * @param {any} p.tools           projects/chatTools surface (forAnswer)
- * @param {any[]} p.definitions      what was offered
- * @param {Function} p.runToolLoop   llmClient.runToolLoop-shaped: (modelId, messages, tools, options, executeTool, maxRounds)
- * @param {any} p.shield             projects/chatShield surface (toolGate, restoreArgs)
- * @param {any|null} p.shieldConfig
- * @param {{ id: string, organizationId?: string|null }} p.project
- * @param {string} p.userId
- * @param {string|null} p.orgId
- * @param {any|null} p.session
- * @param {string} p.modelId
- * @param {any[]} p.messages
- * @param {any} p.options
- * @param {Record<string,string>|null} p.tokenMap  placeholders the model saw, to put back in what it writes
- * @param {any} p.auditBase       ids for the guardrail event rows
+ * `tools` is the projects/chatTools surface, `definitions` what was offered,
+ * `shield` the projects/chatShield surface; `tokenMap` holds the placeholders
+ * the model saw, to put back in what it writes, and `auditBase` the ids for
+ * the guardrail event rows.
+ *
+ * @param {{
+ *   tools: Pick<ReturnType<typeof import('./chatTools').makeProjectChatTools>, 'forAnswer'>,
+ *   definitions: any[],
+ *   runToolLoop: typeof import('../core/llm/llmClient').runToolLoop,
+ *   shield: Pick<ReturnType<typeof import('./chatShield').makeChatShield>, 'toolGate'|'searchGuard'|'restoreArgs'>,
+ *   shieldConfig: any|null,
+ *   project: { id: string, organizationId?: string|null },
+ *   userId: string,
+ *   orgId: string|null,
+ *   session: any|null,
+ *   modelId: string,
+ *   messages: any[],
+ *   options: Parameters<typeof import('../core/llm/llmClient').runToolLoop>[3],
+ *   tokenMap: Record<string,string>|null,
+ *   auditBase: Record<string, unknown> }} p
  */
 async function answerWithTools({ tools, definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session, modelId, messages, options, tokenMap, auditBase }) {
     const run = tools.forAnswer({ project, userId, orgId, session });

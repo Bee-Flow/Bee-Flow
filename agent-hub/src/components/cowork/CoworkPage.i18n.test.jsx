@@ -19,7 +19,7 @@
  * See cowork.i18n.test.jsx for why an echoing translator is what makes these
  * bite: paste a literal back into the JSX and the English reappears.
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -84,10 +84,11 @@ beforeEach(() => {
 
 describe('CoworkPage — the delete confirmation', () => {
     async function openConfirm() {
+        const user = userEvent.setup();
         seed([ITEM]);
         render(withQueryClient(<CoworkPage />));
-        fireEvent.click(await screen.findByTestId('cowork-row'));
-        fireEvent.click(await screen.findByTestId('cowork-delete'));
+        await user.click(await screen.findByTestId('cowork-row'));
+        await user.click(await screen.findByTestId('cowork-delete'));
         return screen.findByTestId('cowork-confirm-delete');
     }
 

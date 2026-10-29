@@ -205,7 +205,7 @@ const _builtInPart = (list, max = Infinity) => (Array.isArray(list)
  * Throws the same 400 `validate` answers with, naming every stranger.
  * @param {object | undefined} body
  * @param {unknown} stored
- * @param {object} shape
+ * @param {Record<string, unknown>} shape  the schema's keys
  * @param {string} [where]
  */
 function refuseStrangers(body, stored, shape, where = 'body') {

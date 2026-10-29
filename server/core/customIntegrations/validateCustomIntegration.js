@@ -43,17 +43,12 @@ const { validateRestTool } = require('./validateRestTool');
  * Validate a definition for an org-scoped custom integration.
  *
  * @param {{ specVersion?: number, meta?: object, api?: object, auth?: object, tools?: object[], mcp?: object }} def  the JSONB definition blob
- * @param {object} [opts]
- * @param {string} [opts.kind='rest']  'rest' | 'mcp_remote'
- * @param {boolean} [opts.strict]      promote lint findings to errors (activation)
- * @param {boolean} [opts.librarySource] the MCP library's own install path:
- *                                       `meta.source` must then be 'mcp_library'.
- *                                       Anywhere else `meta.source` is refused,
- *                                       because that marker decides which gate
- *                                       and licence govern a row
- *                                       (customIntegrations/mcpLibrary/gate.js).
- * @param {string} [opts.slug]         integration slug; enables the combined
- *                                     cint_<slug>_<tool> length check
+ * @param {{ kind?: string, strict?: boolean, librarySource?: boolean, slug?: string }} [opts]
+ *   `kind`: 'rest' | 'mcp_remote'; defaults to 'rest'; `strict`: promote lint findings to errors
+ *   (activation); `librarySource`: the MCP library's own install path: `meta.source` must then be
+ *   'mcp_library'. Anywhere else `meta.source` is refused, because that marker decides which gate and
+ *   licence govern a row (customIntegrations/mcpLibrary/gate.js); `slug`: integration slug; enables the
+ *   combined cint_<slug>_<tool> length check
  */
 function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = null, librarySource = false } = {}) {
     const r = makeReporter(strict);

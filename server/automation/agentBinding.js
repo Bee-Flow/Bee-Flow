@@ -177,12 +177,8 @@ async function toolNameTaken({ automation, agentId, store }) {
  * touched by this call: taking an agent's access away, like handing it out,
  * needs edit rights on that agent as well as on the automation.
  *
- * @param {object} p
- * @param {object} p.automation  a store row (rowToAutomation shape)
- * @param {string[]} p.agentIds
- * @param {string} p.actorId     the person (or builder session) asking
- * @param {object|null} [p.session]
- * @param {object} [p.deps]
+ * @param {{ automation: AutomationRow, agentIds: string[], actorId: string, session?: object|null, deps?: object }} p
+ *   automation: a store row (rowToAutomation shape); actorId: the person (or builder session) asking
  * @returns {Promise<{ bindings: Array, added: string[], removed: string[], kept: number }>}
  * @throws {HttpError}
  */
@@ -521,7 +517,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} BindingDeps  injectable collaborators (tests pass fakes)
+ * @typedef BindingDeps  injectable collaborators (tests pass fakes)
  * @property {typeof import('../stores/automationStore')} [store]
  * @property {typeof import('../stores/automationStore')} [automationStore]
  * @property {typeof import('../stores/agentStore')} [agentStore]
@@ -539,7 +535,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AutomationRow  the parts of a store row this module reads
+ * @typedef AutomationRow  the parts of a store row this module reads
  * @property {string} id
  * @property {string} [userId]
  * @property {string} [kind]

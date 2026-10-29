@@ -241,7 +241,7 @@ function LimitsConfigSection({ t, onNavigateToTab, status, kbProvider, cpuRerank
                 className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
             >
                 <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
-                <div className="font-semibold mt-0.5" style={{ color: status.embedModel ? 'var(--text-primary)' : '#f59e0b' }}>
+                <div className={`font-semibold mt-0.5 ${status.embedModel ? '[color:var(--text-primary)]' : '[color:#f59e0b]'}`}>
                     {status.embedModel ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}` : t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}
                 </div>
             </button>

@@ -116,17 +116,16 @@ export default function RegisterPanel({
     if (registered) {
         return (
             <section
-                className="rounded-2xl"
-                style={{ border: `1px solid var(--kind-playbook)`, background: 'color-mix(in srgb, var(--kind-playbook) 6%, transparent)', padding: presenter ? 22 : 16 }}
+                className={`rounded-2xl [border:1px_solid_var(--kind-playbook)] [background:color-mix(in_srgb,_var(--kind-playbook)_6%,_transparent)] ${presenter ? '[padding:22px]' : '[padding:16px]'}`}
                 data-testid="playbook-compliance-registered"
             >
-                <p className="flex items-center gap-2 font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>
+                <p className={`flex items-center gap-2 font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:17px]' : '[font-size:14px]'}`}>
                     <CheckCircle2 className="w-4 h-4 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                     {t('playbooks.compliance.registered', 'Registered. It is in the Compliance Center now.')}
                 </p>
                 <ul className="mt-1.5 space-y-0.5">
                     {writtenLines.map((line, i) => (
-                        <li key={i} className="flex items-start gap-1.5" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }}>
+                        <li key={i} className={`flex items-start gap-1.5 [color:var(--text-secondary)] ${presenter ? '[font-size:13px]' : '[font-size:11px]'}`}>
                             <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />{line}
                         </li>
                     ))}
@@ -157,13 +156,12 @@ export default function RegisterPanel({
 
     return (
         <section
-            className="rounded-2xl space-y-3"
-            style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)', boxShadow: 'var(--shadow-md)', padding: presenter ? 22 : 16 }}
+            className={`rounded-2xl space-y-3 [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [box-shadow:var(--shadow-md)] ${presenter ? '[padding:22px]' : '[padding:16px]'}`}
             data-testid="playbook-compliance-register"
         >
             <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>
+                    <h3 className={`font-semibold [color:var(--text-primary)] ${presenter ? '[font-size:17px]' : '[font-size:14px]'}`}>
                         {t('playbooks.compliance.register_title', 'Record this processing')}
                     </h3>
                     <p className="text-[11px] text-[var(--text-secondary)]">

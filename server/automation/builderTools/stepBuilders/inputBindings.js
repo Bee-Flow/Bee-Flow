@@ -198,8 +198,14 @@ function boundInputNote(b, res, forEach) {
  * identical resend, which would bind for a delete by the back door.
  */
 function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap) {
+    /**
+     * @param {string} why
+     */
     const cand = (why) => (candidates || []).find(c => c.why === why && missing.includes(c.key));
     const patchable = !isSideEffect(tool);
+    /**
+     * @param {string} k
+     */
     const noun = (k) => (FILE_LOCATION_FIELDS.has(k) ? 'file' : 'value');
     const res = forEach && typeof forEach.overRef === 'string' ? fieldsAtRef(graph, forEach.overRef, draftWrap) : null;
 

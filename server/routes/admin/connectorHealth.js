@@ -85,7 +85,7 @@ const EventsQuery = z.object({
 /**
  * @param {() => void} next
  */
-async function _checkOrgAdmin(req, res, next) {
+async function _checkOrgAdmin(req, /** @type {import('express').Response} */ res, next) {
     const orgId = req.params.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
     if (!(await isOrgAdminForOrg(req, orgId))) {

@@ -23,14 +23,13 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
     // The gate
     return (
         <section
-            className="rounded-2xl"
-            style={{ border: '1px solid var(--kind-playbook)', background: 'color-mix(in srgb, var(--kind-playbook) 6%, transparent)', padding: presenter ? 22 : 16 }}
+            className={`rounded-2xl [border:1px_solid_var(--kind-playbook)] [background:color-mix(in_srgb,_var(--kind-playbook)_6%,_transparent)] ${presenter ? '[padding:22px]' : '[padding:16px]'}`}
             data-testid="playbook-access-approve-box"
         >
             {/* What Approve will do, one line each. It used to be a
                 single run-on sentence under a button that publishes an
                 app and hands out access. */}
-            <p className="font-semibold mb-1" style={{ fontSize: presenter ? 15 : 13, color: 'var(--text-primary)' }}>
+            <p className={`font-semibold mb-1 [color:var(--text-primary)] ${presenter ? '[font-size:15px]' : '[font-size:13px]'}`}>
                 {changes.length
                     ? t('playbooks.access.will_do', 'Approving will:')
                     : t('playbooks.access.will_nothing', 'Nothing chosen yet')}
@@ -40,8 +39,7 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
                     {changes.map((c, i) => (
                         <li
                             key={i}
-                            className="flex items-start gap-1.5"
-                            style={{ fontSize: presenter ? 13 : 11, color: c.kind === 'note' ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
+                            className={`flex items-start gap-1.5 ${presenter ? '[font-size:13px]' : '[font-size:11px]'} ${c.kind === 'note' ? '[color:var(--text-tertiary)]' : '[color:var(--text-secondary)]'}`}
                             data-kind={c.kind}
                         >
                             {c.kind === 'note'
@@ -53,7 +51,7 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
                 </ul>
             )}
             {blocked && (
-                <p className="mb-2" style={{ fontSize: presenter ? 13 : 11, color: 'var(--text-secondary)' }} data-testid="playbook-access-why-disabled">
+                <p className={`mb-2 [color:var(--text-secondary)] ${presenter ? '[font-size:13px]' : '[font-size:11px]'}`} data-testid="playbook-access-why-disabled">
                     {blocked}
                 </p>
             )}

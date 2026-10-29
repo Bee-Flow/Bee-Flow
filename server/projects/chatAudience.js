@@ -46,12 +46,13 @@ async function listProjectAudience(project, deps = {}) {
 }
 
 /**
- * @typedef {object} ChatAgentDeps  replaceable collaborators (a test's doubles)
- * @property {typeof import('../stores/agentStore')} [agentStore]
- * @property {(id: string) => Promise<{ organizationId?: string|null }|null|undefined>} [getUser]
- * @property {(id: string) => Promise<string[]|null|undefined>} [resolveUserGroups]
- * @property {(project: { id: string }) => Promise<string[]|null>} [listAudience]
- * @property {typeof listChatAgents} [listChatAgents]
+ * Replaceable collaborators (a test's doubles).
+ * @typedef {{
+ *   agentStore?: typeof import('../stores/agentStore'),
+ *   getUser?: (id: string) => Promise<{ organizationId?: string|null }|null|undefined>,
+ *   resolveUserGroups?: (id: string) => Promise<string[]|null|undefined>,
+ *   listAudience?: (project: { id: string }) => Promise<string[]|null>,
+ *   listChatAgents?: typeof listChatAgents }} ChatAgentDeps
  */
 
 /**

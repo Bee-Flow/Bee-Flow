@@ -1,7 +1,8 @@
-import { Check, Link2, Lock, Plus, X } from 'lucide-react';
+import { ArrowLeft, Check, Link2, Loader2, Lock, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { WizardError } from './spreadsheet/wizardState';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /** A column as the editor sees it: the wizard's own column mapped onto `{ id, title, type }`. */
 export interface RelColumn {
@@ -63,7 +64,7 @@ const MATCHABLE = new Set(['text', 'number', 'select', 'richtext']);
 
 export const INPUT = 'w-full px-3 py-2 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1';
 export const INPUT_STYLE = { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' };
-export const BTN = 'px-3 py-2 rounded-[10px] text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+const BTN = 'px-3 py-2 rounded-[10px] text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 export const CARD = { borderRadius: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-default)' };
 const SELECT = `${INPUT} appearance-none`;
 
@@ -89,8 +90,7 @@ export function StepStrip({ t, at, labels }: StepStripProps) {
     return (
         <ol className="flex items-center gap-2 text-[11px]" aria-label={t('datatables.nc_steps', 'Steps')}>
             {labels.map((label, i) => (
-                <li key={label} className="inline-flex items-center gap-1.5" aria-current={i === at ? 'step' : undefined}
-                    style={{ color: i === at ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: i === at ? 600 : 400 }}>
+                <li key={label} className={`inline-flex items-center gap-1.5 ${i === at ? '[color:var(--text-primary)] [font-weight:600]' : '[color:var(--text-tertiary)] [font-weight:400]'}`} aria-current={i === at ? 'step' : undefined}>
                     <span className="grid place-items-center w-4 h-4 rounded-full text-[10px]"
                         style={{ background: i < at ? 'var(--accent-primary)' : 'var(--bg-secondary)', color: i < at ? '#fff' : 'inherit', border: '1px solid var(--border-default)' }}>
                         {i < at ? <Check className="w-2.5 h-2.5" aria-hidden="true" /> : i + 1}
@@ -276,5 +276,51 @@ export function AudienceLine({ t, scope, onChange }: AudienceLineProps) {
                 : t('datatables.nc_review_org', 'These tables will belong to your organisation.')}{' '}
             <button type="button" onClick={onChange} className="underline text-[var(--text-primary)]">{t('datatables.nc_review_change', 'Change')}</button>
         </p>
+    );
+}
+
+interface LinkWizardFooterProps {
+    t: TranslateFn;
+    busy: boolean;
+    isReview: boolean;
+    canNext: boolean;
+    selectedCount: number;
+    /** The Link button's text (it names what is linked). */
+    submitLabel: string;
+    /** A line beside Back; left out, the gap is a bare spacer. */
+    note?: React.ReactNode;
+    onBack: () => void;
+    onClose: () => void;
+    onNext: () => void;
+    onSubmit: () => void;
+}
+
+/** The link wizards' footer: Back · (note) · Cancel · Next, or Link on the review step. */
+export function LinkWizardFooter({ t, busy, isReview, canNext, selectedCount, submitLabel, note, onBack, onClose, onNext, onSubmit }: LinkWizardFooterProps) {
+    return (
+        <>
+            <button type="button" onClick={onBack} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                {t('datatables.nc_back', 'Back')}
+            </button>
+            {note === undefined
+                ? <span className="mr-auto" />
+                : <span className="mr-auto text-[11px] pl-2 text-[var(--text-tertiary)]">{note}</span>}
+            <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                {t('datatables.cancel', 'Cancel')}
+            </button>
+            {!isReview ? (
+                <button type="button" onClick={onNext} disabled={!canNext} className={`${BTN} font-medium disabled:opacity-50`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {t('datatables.nc_next', 'Next')}
+                </button>
+            ) : (
+                <button type="button" onClick={onSubmit} disabled={busy || !selectedCount} className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
+                    {submitLabel}
+                </button>
+            )}
+        </>
     );
 }

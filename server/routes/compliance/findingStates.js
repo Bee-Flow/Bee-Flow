@@ -69,6 +69,7 @@ function _defaults() {
 
 /** `until` from the body, as an ISO string, or an HttpError. */
 function _until(body, nowMs, required) {
+    /** @type {number | null} */
     let ms = null;
     if (body.days != null) ms = nowMs + body.days * DAY_MS;
     else if (body.until) {

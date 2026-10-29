@@ -155,7 +155,9 @@ async function savePhases(id, userId, { phases, currentPhase, status, title } = 
 async function deletePlaybook(id, userId) {
     await initDB();
     const res = await run(`DELETE FROM playbooks WHERE id = $1 AND user_id = $2`, [id, userId]);
-    const n = res && typeof res.rowCount === 'number' ? res.rowCount : (res && typeof /** @type {any} */ (res).changes === 'number' ? /** @type {any} */ (res).changes : 0);
+    // `changes` is the SQLite driver's count; reading it once from the plain result object has no effect of its own.
+    const changes = res ? /** @type {{ changes?: unknown }} */ (res).changes : undefined;
+    const n = res && typeof res.rowCount === 'number' ? res.rowCount : (typeof changes === 'number' ? changes : 0);
     return n > 0;
 }
 

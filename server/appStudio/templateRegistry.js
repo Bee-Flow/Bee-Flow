@@ -65,19 +65,13 @@ async function listAvailableTemplates(/** @type {{userId?: any, orgIds?: any[]}}
 }
 
 /**
- * @typedef {object} ResolvedTemplate  A template with its payload: built-in or captured.
- * @property {string} id
- * @property {string} [source]  'builtin' for a built-in one.
- * @property {number} [version]
- * @property {string} [title]
- * @property {string} [description]
- * @property {string} [category]
- * @property {string} [icon]
- * @property {string[]} [tags]
- * @property {object} [definition]  Absent only on the payload-less list rows.
- * @property {object} [dataModel]
- * @property {object} [seed]
- * @property {object} [datasets]
+ * A template with its payload: built-in or captured. `source` is 'builtin' for
+ * a built-in one; `definition` is absent only on the payload-less list rows.
+ * @typedef {{
+ *   id: string, source?: string, version?: number, title?: string, description?: string, category?: string, icon?: string,
+ *   tags?: string[], definition?: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, unknown>,
+ *   datasets?: unknown[],
+ * }} ResolvedTemplate
  */
 
 /**

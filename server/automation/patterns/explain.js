@@ -232,7 +232,7 @@ const NamedPattern = z.object({
 });
 
 /**
- * @param {any} structured
+ * @param {{ patterns?: unknown } | null} structured
  * @returns {Map<string, { title: string, why?: string, buildPrompt?: string }>}
  */
 function parseNaming(structured) {
@@ -243,7 +243,7 @@ function parseNaming(structured) {
         const parsed = NamedPattern.safeParse(item);
         if (!parsed.success) continue;
         const ref = parsed.data.ref.toUpperCase();
-        if (!out.has(ref)) out.set(ref, /** @type {any} */ (parsed.data));
+        if (!out.has(ref)) out.set(ref, /** @type {{ title: string, why?: string, buildPrompt?: string }} */ (parsed.data));
     }
     return out;
 }
@@ -301,7 +301,7 @@ async function namePatterns(candidates, opts = {}) {
             if (g?.blocked) return { names: allFallback(), categories, usage: null, blocked: true, called: false };
         } catch (err) {
             // Fail closed: an unchecked card never reaches a model.
-            log.warn('[RepeatingWork] naming guard failed, using deterministic names:', /** @type {any} */ (err)?.message);
+            log.warn('[RepeatingWork] naming guard failed, using deterministic names:', /** @type {Error} */ (err)?.message);
             return { names: allFallback(), categories, usage: null, blocked: true, called: false };
         }
     }
@@ -314,7 +314,7 @@ async function namePatterns(candidates, opts = {}) {
         structured = res?.structured || null;
         usage = res?.usage || null;
     } catch (err) {
-        if (!opts.signal?.aborted) log.warn('[RepeatingWork] naming call failed, using deterministic names:', /** @type {any} */ (err)?.message);
+        if (!opts.signal?.aborted) log.warn('[RepeatingWork] naming call failed, using deterministic names:', /** @type {Error} */ (err)?.message);
     }
 
     const named = parseNaming(structured);

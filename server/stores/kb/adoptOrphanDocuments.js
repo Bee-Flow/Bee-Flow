@@ -13,7 +13,7 @@ const { planSourcesForKb, truncate } = require('./sourcePlan');
  */
 function makeAdoptOrphanDocuments(initDB, deps = {}) {
     const getOne = deps.getOne || ((/** @type {string} */ sql, /** @type {any[]} */ params) => require('../../db').getOne(sql, params));
-    const withTransaction = deps.withTransaction || ((/** @type {any} */ fn) => require('../../db').withTransaction(fn));
+    const withTransaction = deps.withTransaction || ((/** @type {Parameters<typeof import('../../db').withTransaction>[0]} */ fn) => require('../../db').withTransaction(fn));
     const managedInfoForKb = (/** @type {string} */ id) => (deps.managedParts || require('../managedPartsDefault')).managedInfoForKb(id);
 
     /**

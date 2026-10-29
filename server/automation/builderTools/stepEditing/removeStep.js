@@ -30,7 +30,7 @@ function findDanglingRefs(graph, id) {
     // grammar (dotted or bracketed id, never a prefix match), an expression
     // by its parser (a quoted "read" is a value). A half-typed expression is
     // still searched for the paths in it, so a typo does not hide a read.
-    const readsId = (r) => {
+    const readsId = (/** @type {{ kind: string; path: string; src: string; }} */ r) => {
         if (r.kind === 'ref') {
             const h = refHead(r.path);
             return h.root === 'steps' && h.second === id;

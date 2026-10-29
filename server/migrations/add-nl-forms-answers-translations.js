@@ -187,7 +187,7 @@ const NL_TRANSLATIONS = {
     'forms.settings.delete_open': 'Dit formulier verwijderen',
     'forms.settings.delete_notice': 'Het formulier verwijderen verwijdert de automatisering erachter. De antwoordentabel blijft staan — haal die weg onder Datatabellen als de antwoorden niet meer nodig zijn.',
 
-    // ── Antwoorden (het dashboard) ─────────────────────────────────────
+    // ── Answers (the dashboard) ─────────────────────────────────────
     'forms.answers.label': 'Antwoordendashboard',
     'forms.answers.range_label': 'Periode',
     'forms.answers.range_today': 'Vandaag',

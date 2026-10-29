@@ -15,6 +15,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useUserRefresh } from '@/shared/patterns';
 import { Chip, ErrorState, Icon, IconButton, ListSkeleton, Screen, ScreenHeader } from '@/shared/ui';
@@ -35,6 +36,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function NotificationsScreen() {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const inbox = useNotificationInbox();
@@ -68,20 +70,24 @@ export function NotificationsScreen() {
         <Screen edges={['top', 'bottom']}>
             <Stack.Screen options={{ headerShown: false }} />
             <ScreenHeader
-                title="Notifications"
-                subtitle={unread === 0 ? 'All caught up' : `${unread} unread`}
+                title={t('notifications.title', 'Notifications')}
+                subtitle={
+                    unread === 0
+                        ? t('mobile.notifications.all_caught_up', 'All caught up')
+                        : t('mobile.notifications.n_unread', '{count} unread', { count: unread })
+                }
                 actions={
                     <IconButton
                         icon={<Icon name="CircleCheckBig" size={20} color={theme.colors.textPrimary} />}
-                        accessibilityLabel="Mark all as read"
+                        accessibilityLabel={t('notifications.mark_all_read_title', 'Mark all as read')}
                         disabled={unread === 0 || markAll.isPending}
                         onPress={() => markAll.mutate()}
                     />
                 }
             />
             <View style={styles.filters}>
-                <Chip label="All" selected={!unreadOnly} onPress={() => setUnreadOnly(false)} />
-                <Chip label="Unread" selected={unreadOnly} onPress={() => setUnreadOnly(true)} />
+                <Chip label={t('common.all', 'All')} selected={!unreadOnly} onPress={() => setUnreadOnly(false)} />
+                <Chip label={t('mobile.notifications.filter_unread', 'Unread')} selected={unreadOnly} onPress={() => setUnreadOnly(true)} />
             </View>
             {inbox.failure ? <NotificationsFailure failure={inbox.failure} onDismiss={inbox.dismissFailure} /> : null}
             {body}

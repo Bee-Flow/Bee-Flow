@@ -53,8 +53,7 @@ function _isOutbound(m) {
  *
  * @param {SupportMessage[]} messages - support_messages rows (internal notes
  *   already excluded by getThreadMessages({includeInternal:false}))
- * @param {object} [opts]
- * @param {boolean} [opts.redactPII=true]
+ * @param {{ redactPII?: boolean }} [opts]  `redactPII` defaults to true
  * @returns {string}
  */
 function buildCustomerTranscript(messages = [], { redactPII = true } = {}) {
@@ -80,9 +79,8 @@ function buildCustomerTranscript(messages = [], { redactPII = true } = {}) {
  * distilling into the KB.
  *
  * @param {SupportMessage[]} messages
- * @param {object} [opts]
- * @param {string|null} [opts.inboxAddress] - the connected mailbox address (self-loop guard)
- * @param {string|null} [opts.requesterEmail] - the ticket requester address
+ * @param {{ inboxAddress?: string|null, requesterEmail?: string|null }} [opts]  `inboxAddress` is the connected mailbox
+ *   address (self-loop guard), `requesterEmail` the ticket requester address
  * @returns {{ genuine:boolean, genuineInbound:boolean, outboundSent:boolean }}
  */
 function evaluateGenuineContact(messages = [], { inboxAddress = null, requesterEmail = null } = {}) {

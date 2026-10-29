@@ -28,7 +28,7 @@ function safeKey(key) {
     return k;
 }
 
-/** @param {any} v */
+/** @param {unknown} v */
 function typeOf(v) {
     if (v === null) return 'null';
     if (Array.isArray(v)) return 'array';
@@ -63,11 +63,11 @@ function mergeShapes(a, b) {
  * in it. `counts` is filled in as the walk goes; a walk that reaches the node
  * cap stops descending and says so (`counts.cutOff`).
  *
- * @param {any} value
+ * @param {unknown} value
  * @param {{ keys: number, nodes: number }} limits  0 = unlimited
  * @param {ReturnType<typeof newCounts> & { cutOff?: boolean }} counts
  * @param {number} [depth]
- * @returns {any}
+ * @returns {Shape}
  */
 function shapeOf(value, limits, counts, depth = 1) {
     counts.nodes += 1;
@@ -80,7 +80,7 @@ function shapeOf(value, limits, counts, depth = 1) {
     if (depth >= MAX_SHAPE_DEPTH) { counts.cutOff = true; return { type: typeOf(value), cutOff: true }; }
     if (Array.isArray(value)) {
         counts.arrays += 1;
-        /** @type {any} */
+        /** @type {Shape | null} */
         let items = null;
         for (let i = 0; i < Math.min(value.length, SHAPE_SAMPLE_ITEMS); i++) {
             items = mergeShapes(items, shapeOf(value[i], limits, counts, depth + 1));
@@ -145,8 +145,8 @@ const REDACTED_MARKER_RE = /^«redacted:[a-z-]+»$/;
  * stay; a Privacy Shield token and a credential marker stay as they are.
  * Keys pass through safeKey. Non-mutating.
  *
- * @param {any} value
- * @returns {any}
+ * @param {unknown} value
+ * @returns {unknown}
  * @param {number} [depth]
  */
 function placeholderize(value, depth = 1) {

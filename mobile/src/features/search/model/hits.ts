@@ -4,7 +4,8 @@
  * still in flight.
  */
 
-import { timeAgo } from '@/core/i18n';
+import { timeAgo, translate } from '@/core/i18n';
+import { nOf } from '@/shared/lib/plural';
 
 import { conversationSnippet, matches, snippetAround } from './format';
 import type {
@@ -27,8 +28,14 @@ export function chatHits(rows: ConversationSearchRow[], term: string): SearchHit
         return {
             key: `chat:${row.kind ?? 'agent'}:${row.id}`,
             group: 'chats',
-            title: row.title || 'Untitled chat',
-            subtitle: snippet ?? (isDirect ? 'Matched in the title' : `${row.agent_name ?? 'Agent'} · matched in the title`),
+            title: row.title || translate('project_chat.untitled_chat', 'Untitled chat'),
+            subtitle:
+                snippet ??
+                (isDirect
+                    ? translate('mobile.search.matched_title', 'Matched in the title')
+                    : translate('mobile.search.agent_matched_title', '{agent} · matched in the title', {
+                          agent: row.agent_name ?? translate('project_chat.agent_fallback', 'Agent'),
+                      })),
             meta: timeAgo(row.updated_at),
             // Agent conversations have no screen on the phone yet; they open in
             // the agent's own chat on the web. Showing them anyway is the point
@@ -42,11 +49,11 @@ export function notebookHits(rows: NotebookSearchRow[], term: string): SearchHit
     return rows.slice(0, PER_GROUP_LIMIT).map<SearchHit>((row) => ({
         key: `notebook:${row.id}`,
         group: 'notebooks',
-        title: row.name || 'Untitled notebook',
+        title: row.name || translate('documents.notebook.untitled', 'Untitled notebook'),
         subtitle:
             (row.description && snippetAround(row.description, term)) ||
             (row.preview && snippetAround(row.preview, term)) ||
-            `${row.sourceCount} source${row.sourceCount === 1 ? '' : 's'}`,
+            nOf(translate, 'knowledge.n_sources', row.sourceCount, ['{count} source', '{count} sources']),
         meta: timeAgo(row.lastActivityAt ?? row.updatedAt),
         href: `/notebooks/${row.id}`,
     }));
@@ -74,7 +81,7 @@ function passageHits(
         out.push({
             key,
             group: 'documents',
-            title: owner?.title || passage.title || passage.source_uri || 'Untitled document',
+            title: owner?.title || passage.title || passage.source_uri || translate('documents.untitled', 'Untitled document'),
             subtitle: snippetAround(passage.content ?? '', term),
             meta: owner?.kbName,
             // Unjoinable passage: the chunk is real but we cannot say which
@@ -96,8 +103,11 @@ function titleHits(documents: CorpusDocument[], q: string, seen: Set<string>, ro
         out.push({
             key,
             group: 'documents',
-            title: doc.title || doc.source_uri || 'Untitled document',
-            subtitle: `${doc.kbName} · ${doc.chunk_count} chunk${doc.chunk_count === 1 ? '' : 's'}`,
+            title: doc.title || doc.source_uri || translate('documents.untitled', 'Untitled document'),
+            subtitle: translate('mobile.search.kb_chunks', '{kb} · {chunks}', {
+                kb: doc.kbName,
+                chunks: nOf(translate, 'mobile.search.chunks', doc.chunk_count, ['{count} chunk', '{count} chunks']),
+            }),
             meta: timeAgo(doc.created_at),
             href: `/knowledge/${doc.knowledge_base_id}`,
         });
@@ -127,7 +137,10 @@ export function knowledgeHits(rows: KnowledgeBaseRow[], q: string): SearchHit[] 
             group: 'knowledge',
             title: row.name,
             subtitle: row.description ?? undefined,
-            meta: row.document_count === undefined ? undefined : `${row.document_count} docs`,
+            meta:
+                row.document_count === undefined
+                    ? undefined
+                    : translate('mobile.search.docs_count', '{count} docs', { count: row.document_count }),
             href: `/knowledge/${row.id}`,
         }));
 }
@@ -139,8 +152,12 @@ export function automationHits(rows: AutomationSearchRow[], q: string): SearchHi
         .map<SearchHit>((row) => ({
             key: `automation:${row.id}`,
             group: 'automations',
-            title: row.title || 'Untitled automation',
-            subtitle: row.description ?? (row.isActive ? 'Active' : 'Paused'),
+            title: row.title || translate('automations.header.untitled', 'Untitled automation'),
+            subtitle:
+                row.description ??
+                (row.isActive
+                    ? translate('studio_apps_insp.automation_picker.active', 'Active')
+                    : translate('automations.paused', 'Paused')),
             meta: timeAgo(row.lastRunAt ?? row.updatedAt),
             href: `/automations/${row.id}`,
         }));
@@ -172,7 +189,7 @@ export function transcriptHits(rows: TranscriptSearchRow[], term: string): Searc
             return {
                 key: `transcript:${row.id}`,
                 group: 'transcripts',
-                title: row.title || row.fileName || 'Untitled recording',
+                title: row.title || row.fileName || translate('mobile.search.untitled_recording', 'Untitled recording'),
                 subtitle: body ? snippetAround(body, term) : (row.summarySnippet ?? undefined),
                 meta: timeAgo(row.createdAt ?? row.updatedAt),
                 href: `/recordings/${row.id}`,

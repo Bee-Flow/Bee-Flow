@@ -315,18 +315,17 @@ function skillIdsForStep(step, binding) {
 /**
  * The tool stack for an agent-driven AI step.
  *
- * @param {object}   opts
- * @param {object}   opts.binding      the result of `resolveStepAgent`
- * @param {object}   opts.ctx          the run context (the ASKER is `ctx.userId`)
- * @param {Array}    [opts.extraTools] tools from outside the catalogue (e.g.
- *   `activate_skill`). Those go through the same subtraction AND past the switch
- *   that governs them, so there is no second door beside the gate.
- * @param {boolean}  [opts.extraToolsStartAutomations] `extraTools` may start an
- *   automation (a skill with an `automationId` runs `executeAutomation` as soon as
- *   the model calls `activate_skill`). Then they hang on `startAutomations`, like
- *   every other automation starter.
- * @param {string[]|null} [opts.allowList] `step.tools`, if the author set it
- *   explicitly; can only narrow
+ * @param {{ binding: Awaited<ReturnType<typeof resolveStepAgent>>, ctx: import('./toolIdentity').IdentityCtx,
+ *   extraTools?: AgentTool[], extraToolsStartAutomations?: boolean, allowList?: string[]|null,
+ *   skillApps?: string[]|null, skillAutomationIds?: string[]|null,
+ *   deps?: { integrationTools?: typeof import('../integrations/integrationTools') } }} opts
+ *   `binding` is the result of `resolveStepAgent`; `ctx` the run context (the ASKER is `ctx.userId`).
+ *   `extraTools` are tools from outside the catalogue (e.g. `activate_skill`). Those go through the
+ *   same subtraction AND past the switch that governs them, so there is no second door beside the gate.
+ *   `extraToolsStartAutomations`: `extraTools` may start an automation (a skill with an
+ *   `automationId` runs `executeAutomation` as soon as the model calls `activate_skill`). Then they
+ *   hang on `startAutomations`, like every other automation starter.
+ *   `allowList` is `step.tools`, if the author set it explicitly; can only narrow.
  * @returns {Promise<{tools: Array, withheld: string[], reasons: Object,
  *   degraded: boolean, catalogError: string|null}>}
  */

@@ -98,6 +98,9 @@ function mapRow(r) {
     };
 }
 
+/**
+ * @param {string} id
+ */
 async function getById(id) {
     await initDB();
     const row = await getOne(`SELECT ${COLS} FROM summary_templates WHERE id = $1`, [id]);
@@ -150,7 +153,11 @@ async function listForOrg(orgId) {
     return rows.map(mapRow);
 }
 
-/** Clear the current default for the scope-owner of `row` (before setting a new one). */
+/** @typedef {{ scope: string, userId: string | null, organizationId: string | null, groupId: string | null }} ClearDefaultArgs */
+/**
+ * Clear the current default for the scope-owner of `row` (before setting a new one).
+ * @param {ClearDefaultArgs} param0
+ */
 async function clearDefault({ scope, userId, organizationId, groupId }) {
     await initDB();
     if (scope === 'user') {
@@ -162,6 +169,10 @@ async function clearDefault({ scope, userId, organizationId, groupId }) {
     }
 }
 
+/** @typedef {{ scope: string, name: string, prompt: string, userId?: string | null, organizationId?: string | null, groupId?: string | null | undefined, isDefault?: boolean, createdBy?: string | null }} CreateArgs */
+/**
+ * @param {CreateArgs} param0
+ */
 async function create({ scope, name, prompt, userId = null, organizationId = null, groupId = null, isDefault = false, createdBy = null }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -187,6 +198,7 @@ async function create({ scope, name, prompt, userId = null, organizationId = nul
  * exactly the same prompt drift apart on screen, and would suggest to the earlier
  * version a change that never took place. A save button that sends back the same
  * text (the UI fills in the field) is not a new version for the same reason.
+ * @param {string} id
  */
 async function update(id, updates = {}) {
     await initDB();
@@ -202,6 +214,7 @@ async function update(id, updates = {}) {
         columnMap: SUMMARY_TEMPLATE_COLUMNS,
     });
     const values = built ? built.params : [];
+    /** @type {string[]} */
     const fields = [];
     if (promptChanged) {
         // COALESCE, because `version` can still be NULL on a row from before the ladder;
@@ -227,6 +240,9 @@ async function update(id, updates = {}) {
     return getById(id);
 }
 
+/**
+ * @param {string} id
+ */
 async function remove(id) {
     await initDB();
     const { rowCount } = await run(`DELETE FROM summary_templates WHERE id = $1`, [id]);

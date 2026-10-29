@@ -410,7 +410,7 @@ async function copyObject(sourceKey, destKey) {
  * @param {string} key - S3 object key (use buildKey() to generate)
  * @param {Buffer} buffer - File content
  * @param {string} contentType - MIME type (e.g. 'image/png', 'video/mp4')
- * @param {Object} [metadata] - Optional flat string map persisted alongside
+ * @param {Record<string, string> | null} [metadata] - Optional flat string map persisted alongside
  *   the object. In S3 mode it lands in user-defined metadata (returned by
  *   HEAD/GET as `x-amz-meta-*`). In local mode it's written to a `.tags`
  *   sidecar next to the bytes. Used today to flag SVGs as sanitized.

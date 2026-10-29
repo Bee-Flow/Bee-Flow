@@ -45,8 +45,8 @@ const TRUNCATION_PLACEHOLDER = '(reply cut off at the length limit before any to
  * carries `notePrefix` so the loop's history sanitiser drops it from
  * cross-turn history like its validation reports. Pure.
  *
- * @param {any} content
- * @param {any} thinkingForReplay
+ * @param {unknown} content
+ * @param {unknown} thinkingForReplay
  * @param {{ notePrefix?: string }} [opts]
  */
 function truncationRetryMessages(content, thinkingForReplay, { notePrefix } = {}) {
@@ -89,8 +89,8 @@ function isBlankReply(content) {
  * this menu", "the arguments did not parse") instead of a generic "try again".
  * The user note carries `notePrefix` so the history sanitiser drops it. Pure.
  *
- * @param {any} content
- * @param {any} thinkingForReplay
+ * @param {string | null} content
+ * @param {unknown} thinkingForReplay
  * @param {{ notePrefix?: string, rejected?: any }} [opts]
  */
 function emptyReplyRetryMessages(content, thinkingForReplay, { notePrefix, rejected } = {}) {
@@ -177,7 +177,7 @@ function emptyUsageTotals() {
  * that takes parameters (the signature of a reply cut off mid-call). Empty
  * args for a tool in `paramless` are valid.
  *
- * @param {any} raw
+ * @param {unknown} raw
  * @param {string} toolName
  * @param {{ paramless?: Set<string> }} [opts]
  */

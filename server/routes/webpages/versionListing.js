@@ -48,7 +48,7 @@ async function versionActorNames(rows, sessionUser) {
     } catch (e) {
         // A failed name lookup must not cost the history — the rows then come back with an
         // unknown maker, which is true.
-        log.warn('[Webpages] Version actor lookup failed:', e.message);
+        log.warn('[Webpages] Version actor lookup failed:', /** @type {Error} */ (e).message);
     }
     return names;
 }

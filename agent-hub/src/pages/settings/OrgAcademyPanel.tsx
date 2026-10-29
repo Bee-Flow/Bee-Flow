@@ -229,11 +229,7 @@ function OrgAcademyOverview() {
                                                 const done = (m.coursesDone || []).includes(c.id);
                                                 return (
                                                     <span key={c.id} title={`${c.title}${done ? ' ✓' : ''}`}
-                                                        className="w-2.5 h-2.5 rounded-full inline-block"
-                                                        style={{
-                                                            background: done ? '#059669' : 'transparent',
-                                                            border: done ? 'none' : '1.5px solid var(--border-default)',
-                                                        }} />
+                                                        className={`w-2.5 h-2.5 rounded-full inline-block ${done ? '[background:#059669] [border:none]' : '[background:transparent] [border:1.5px_solid_var(--border-default)]'}`} />
                                                 );
                                             })}
                                             <span className="text-[11px] ml-1 text-[var(--text-muted)]">

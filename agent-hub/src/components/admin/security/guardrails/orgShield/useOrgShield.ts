@@ -1,13 +1,13 @@
-import { useState, useEffect, useEffectEvent, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useEffectEvent, useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from 'react';
 import { describeClampsOnLoad, describeSaveResult } from './orgShieldClamps';
 import { dirtyStages as computeDirtyStages } from './orgShieldDirty';
 import { buildPayload, normaliseDoc } from './orgShieldDoc';
 import type { ShieldFields, ToolPiiPolicy } from './orgShieldDoc';
 import useShieldEnvironment from './useShieldEnvironment';
 import type { ShieldOrg } from './useShieldEnvironment';
-import useShieldFields from './useShieldFields';
+import useShieldFields, { type ShieldFieldsState } from './useShieldFields';
 import { piiCategoriesLocalized } from '@/config/piiCategories';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { deepEqual } from '@/utils/deepEqual';
 import { API_BASE } from '@/utils/helpers';
 import useConfirm from '@/components/shared/useConfirm';
@@ -30,6 +30,9 @@ interface ShieldSaveResult {
     termErrors?: unknown[];
     typeErrors?: unknown[];
 }
+
+/** Who last saved this policy and when (server-written provenance). */
+type ShieldMeta = { updatedAt: string | null; updatedBy: string | null };
 
 interface UseOrgShieldOptions {
     /** Pinned organisation. Wins over everything. */
@@ -64,6 +67,95 @@ function useShieldBaseline() {
     const [snapshotVersion, setSnapshotVersion] = useState(0);
     const bump = useCallback(() => setSnapshotVersion(v => v + 1), []);
     return { loadedDocRef, snapshotRef, snapshotVersion, bump };
+}
+
+type Baseline = ReturnType<typeof useShieldBaseline>;
+
+/**
+ * Refresh / close with pending edits. In-app navigation cannot be guarded —
+ * there is no router to hook — so this covers what it can and nothing
+ * pretends otherwise.
+ */
+function useBeforeUnloadWhileDirty(isDirty: boolean) {
+    useEffect(() => {
+        if (!isDirty) return undefined;
+        const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, [isDirty]);
+}
+
+interface FetchShieldArgs {
+    categories: ReturnType<typeof piiCategoriesLocalized>;
+    applyFields: ShieldFieldsState['applyFields'];
+    t: TranslateFn;
+    bump: Baseline['bump'];
+    loadedDocRef: Baseline['loadedDocRef'];
+    snapshotRef: Baseline['snapshotRef'];
+    setShieldLoading: Dispatch<SetStateAction<boolean>>;
+    setLoadError: Dispatch<SetStateAction<{ status: number } | null>>;
+    setMeta: Dispatch<SetStateAction<ShieldMeta>>;
+    setMessage: Dispatch<SetStateAction<ShieldMessage | null>>;
+}
+
+/** Load one organisation's shield: the document becomes the baseline and the form; a refusal or failure leaves no document to save over. */
+function useFetchShield({ categories, applyFields, t, bump, loadedDocRef, snapshotRef, setShieldLoading, setLoadError, setMeta, setMessage }: FetchShieldArgs) {
+    return useCallback(async (orgId: string) => {
+        if (!orgId) return;
+        setShieldLoading(true);
+        setLoadError(null);
+        try {
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/org-privacy-shield/${orgId}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                loadedDocRef.current = null;
+                snapshotRef.current = null;
+                setLoadError({ status: err.status });
+                return;
+            }
+            const data = await res.json();
+            const f = normaliseDoc(data, new Set(categories.map(c => c.id)));
+
+            loadedDocRef.current = data;
+            snapshotRef.current = buildPayload(data, f);
+
+            applyFields(f);
+            setMeta({ updatedAt: data.updatedAt || null, updatedBy: data.updatedBy || null });
+
+            // The server clamps fields the org's plan doesn't allow and reports
+            // them in `clamped_fields`. Surface WHY the shown value differs from
+            // what was picked — otherwise the setting looks like it "didn't save".
+            if (Array.isArray(data.clamped_fields) && data.clamped_fields.length > 0) {
+                setMessage({ type: 'warning', text: describeClampsOnLoad(data.clamped_fields, t) });
+            } else {
+                setMessage(null);
+            }
+        } catch (e) {
+            console.error('[OrgShield] Failed to fetch shield', e);
+            loadedDocRef.current = null;
+            snapshotRef.current = null;
+            setLoadError({ status: 0 });
+        } finally {
+            setShieldLoading(false);
+            bump();
+        }
+    }, [categories, applyFields, t, bump, loadedDocRef, snapshotRef, setShieldLoading, setLoadError, setMeta, setMessage]);
+}
+
+/**
+ * Follow an explicitly-supplied organisation, including one that arrives
+ * after mount. Guarded on `pinnedOrgId` alone so a picker selection in the
+ * admin view is never overridden by a stale prop.
+ */
+function useFollowPinnedOrg(pinnedOrgId: string | null, selectedOrgId: string, setSelectedOrgId: (id: string) => void, fetchShield: (orgId: string) => Promise<void>) {
+    const followPinnedOrg = useEffectEvent(() => {
+        if (!pinnedOrgId || pinnedOrgId === selectedOrgId) return;
+        setSelectedOrgId(pinnedOrgId);
+        fetchShield(pinnedOrgId);
+    });
+    useEffect(() => { followPinnedOrg(); }, [pinnedOrgId]);
 }
 
 /**
@@ -103,7 +195,7 @@ function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: Use
     // Provenance the server writes and this page only reads: who last saved
     // this policy and when. State rather than a read through `loadedDocRef`,
     // because a ref does not re-render and the line would go stale after a save.
-    const [meta, setMeta] = useState<{ updatedAt: string | null; updatedBy: string | null }>({ updatedAt: null, updatedBy: null });
+    const [meta, setMeta] = useState<ShieldMeta>({ updatedAt: null, updatedBy: null });
 
     const categories = useMemo(() => piiCategoriesLocalized(t), [t]);
 
@@ -145,15 +237,7 @@ function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: Use
     // Save is only meaningful when we hold a document we trust.
     const canSave = !!selectedOrgId && !loadError && !shieldLoading && currentPayload !== null;
 
-    // Refresh / close with pending edits. In-app navigation cannot be guarded —
-    // there is no router to hook — so this covers what it can and nothing
-    // pretends otherwise.
-    useEffect(() => {
-        if (!isDirty) return undefined;
-        const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
-        window.addEventListener('beforeunload', onBeforeUnload);
-        return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, [isDirty]);
+    useBeforeUnloadWhileDirty(isDirty);
 
     /**
      * Throw away every pending edit and go back to the last known-good
@@ -169,48 +253,9 @@ function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: Use
         setMessage(null);
     }, [applyFields, categories, loadedDocRef]);
 
-    const fetchShield = useCallback(async (orgId: string) => {
-        if (!orgId) return;
-        setShieldLoading(true);
-        setLoadError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/org-privacy-shield/${orgId}`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                loadedDocRef.current = null;
-                snapshotRef.current = null;
-                setLoadError({ status: err.status });
-                return;
-            }
-            const data = await res.json();
-            const f = normaliseDoc(data, new Set(categories.map(c => c.id)));
-
-            loadedDocRef.current = data;
-            snapshotRef.current = buildPayload(data, f);
-
-            applyFields(f);
-            setMeta({ updatedAt: data.updatedAt || null, updatedBy: data.updatedBy || null });
-
-            // The server clamps fields the org's plan doesn't allow and reports
-            // them in `clamped_fields`. Surface WHY the shown value differs from
-            // what was picked — otherwise the setting looks like it "didn't save".
-            if (Array.isArray(data.clamped_fields) && data.clamped_fields.length > 0) {
-                setMessage({ type: 'warning', text: describeClampsOnLoad(data.clamped_fields, t) });
-            } else {
-                setMessage(null);
-            }
-        } catch (e) {
-            console.error('[OrgShield] Failed to fetch shield', e);
-            loadedDocRef.current = null;
-            snapshotRef.current = null;
-            setLoadError({ status: 0 });
-        } finally {
-            setShieldLoading(false);
-            bump();
-        }
-    }, [categories, applyFields, t, bump, loadedDocRef, snapshotRef]);
+    const fetchShield = useFetchShield({
+        categories, applyFields, t, bump, loadedDocRef, snapshotRef, setShieldLoading, setLoadError, setMeta, setMessage,
+    });
 
     // Mount: environment flags + the org list. `pinnedOrgId` is handled by its
     // own effect — the embedding page resolves its org asynchronously and
@@ -226,15 +271,7 @@ function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: Use
         }
     });
 
-    // Follow an explicitly-supplied organisation, including one that arrives
-    // after mount. Guarded on `pinnedOrgId` alone so a picker selection in the
-    // admin view is never overridden by a stale prop.
-    const followPinnedOrg = useEffectEvent(() => {
-        if (!pinnedOrgId || pinnedOrgId === selectedOrgId) return;
-        setSelectedOrgId(pinnedOrgId);
-        fetchShield(pinnedOrgId);
-    });
-    useEffect(() => { followPinnedOrg(); }, [pinnedOrgId]);
+    useFollowPinnedOrg(pinnedOrgId, selectedOrgId, setSelectedOrgId, fetchShield);
 
     // Switching organisation reloads the form, discarding edits. It is the one
     // in-component navigation that can silently throw away work, so it is the

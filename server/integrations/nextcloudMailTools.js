@@ -26,11 +26,11 @@
  */
 
 const ncClient = require('./nextcloudClient');
-const { mailError, normaliseRole, mailBodyText } = require('./nextcloudMailShapes');
-const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../core/http/httpResponseLimits');
+const {
+    mailError, normaliseRole, mailBodyText, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody,
+} = require('./nextcloudMailShapes');
+const { readMailAttachment, sendMail } = require('./nextcloudMailActions');
 
-const MAIL_API_BASE = '/index.php/apps/mail/api';
-const MAX_BODY_BYTES = 200 * 1024;
 
 const NEXTCLOUD_MAIL_TOOLS = [
     {
@@ -174,24 +174,6 @@ const NEXTCLOUD_MAIL_TOOLS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
-async function readJsonSafe(res) {
-    const text = await res.text().catch(() => '');
-    try { return JSON.parse(text); } catch { return text; }
-}
-
-/**
- * @param {string} baseUrl
- * @param {string} path
- */
-function api(baseUrl, path) {
-    return `${baseUrl}${MAIL_API_BASE}${path}`;
-}
-
-const baseHeaders = {
-    'Accept': 'application/json',
-    'OCS-APIRequest': 'true', // harmless on non-OCS routes; required by some NC reverse proxies
-};
-
 function summariseMessage(m) {
     const header = m.messageId ?? (typeof m.id === 'string' && m.id.startsWith('<') ? m.id : null);
     return {
@@ -219,15 +201,6 @@ function summariseAttachment(a) {
         size: a.size || 0,
         isInline: !!a.isInline,
     };
-}
-
-/**
- * @param {string} text
- */
-function trimBody(text) {
-    if (!text) return text;
-    if (text.length <= MAX_BODY_BYTES) return text;
-    return text.slice(0, MAX_BODY_BYTES) + '\n\n... [truncated — body too large]';
 }
 
 // ─── Tool execution ──────────────────────────────────────────────
@@ -336,60 +309,8 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             };
         }
 
-        case 'nextcloud_mail_read_attachment': {
-            if (args.messageId == null || !args.attachmentId) return { error: 'messageId and attachmentId are required' };
-            const url = api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/attachment/${encodeURIComponent(args.attachmentId)}`);
-            const res = await ncFetch(url, { headers: { ...baseHeaders, 'Accept': '*/*' } });
-            if (!res.ok) return mailError(res, authError, 'attachment download');
-            const contentType = res.headers.get('content-type') || 'application/octet-stream';
-            const filename = args.filename || `attachment-${args.attachmentId}`;
-            const cap = toolFileMaxBytes();
-            const { buffer: buf, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
-            if (tooBig || !buf) return { error: fileTooLargeMessage(filename, declaredBytes, cap) };
-
-            // Same extraction pipeline used by chat-uploads + nextcloud_read_file.
-            const { extractAttachment, isPdf, isDocx, isSpreadsheet } = require('../core/documents/attachmentExtractor');
-            const att = { name: filename, type: contentType, content: buf.toString('base64') };
-            if (isPdf(att) || isDocx(att) || isSpreadsheet(att)) {
-                /** @type {{ kind: string, text?: string, source?: string, meta?: any, reason?: string, images?: any }} */
-                const result = await extractAttachment(att);
-                if (result.kind === 'text') {
-                    const truncated = result.text.length > MAX_BODY_BYTES;
-                    return {
-                        messageId: args.messageId,
-                        attachmentId: args.attachmentId,
-                        filename,
-                        mimeType: contentType,
-                        size: buf.length,
-                        extractedVia: result.source,
-                        truncated,
-                        content: truncated ? result.text.slice(0, MAX_BODY_BYTES) + '\n\n... [truncated]' : result.text,
-                        meta: result.meta,
-                    };
-                }
-            }
-            // Plain text or unrecognised — try utf-8 if it looks textual.
-            if (contentType.startsWith('text/')) {
-                const text = buf.toString('utf-8');
-                return {
-                    messageId: args.messageId,
-                    attachmentId: args.attachmentId,
-                    filename,
-                    mimeType: contentType,
-                    size: buf.length,
-                    truncated: text.length > MAX_BODY_BYTES,
-                    content: trimBody(text),
-                };
-            }
-            return {
-                messageId: args.messageId,
-                attachmentId: args.attachmentId,
-                filename,
-                mimeType: contentType,
-                size: buf.length,
-                error: 'Attachment is not a text/PDF/DOCX/XLSX file — use nextcloud_mail_save_attachment to persist it to Files instead.',
-            };
-        }
+        case 'nextcloud_mail_read_attachment':
+            return readMailAttachment(args, ctx);
 
         case 'nextcloud_mail_save_attachment': {
             if (args.messageId == null || !args.attachmentId || !args.targetPath) {
@@ -411,50 +332,8 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             };
         }
 
-        case 'nextcloud_mail_send': {
-            if (args.accountId == null || !args.to || !args.subject || !args.body) {
-                return { error: 'accountId, to, subject, and body are required' };
-            }
-            const draftBody = {
-                accountId: args.accountId,
-                subject: args.subject,
-                body: args.body,
-                isHtml: !!args.isHtml,
-                to: String(args.to).split(',').map(e => ({ email: e.trim(), label: e.trim() })).filter(x => x.email),
-                cc: args.cc ? String(args.cc).split(',').map(e => ({ email: e.trim(), label: e.trim() })).filter(x => x.email) : [],
-                bcc: args.bcc ? String(args.bcc).split(',').map(e => ({ email: e.trim(), label: e.trim() })).filter(x => x.email) : [],
-                attachments: [],
-            };
-            if (args.replyTo) draftBody.inReplyToMessageId = args.replyTo;
-
-            // Step 1: create a draft. The Mail app's outbox endpoint takes a
-            // draft id, so we always go via this two-step path.
-            const draftRes = await ncFetch(api(baseUrl, '/outbox'), {
-                method: 'POST',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify(draftBody),
-            });
-            if (draftRes.status === 401) return { error: authError };
-            if (!draftRes.ok && draftRes.status !== 200 && draftRes.status !== 201) {
-                const detail = await readJsonSafe(draftRes);
-                return { error: `Mail draft failed (${draftRes.status})`, detail };
-            }
-            const draft = await readJsonSafe(draftRes);
-            const outboxId = draft?.id ?? draft?.data?.id;
-            if (!outboxId) return { error: 'Mail draft created but no outbox id returned', detail: draft };
-
-            // Step 2: dispatch the outbox message immediately. The send route
-            // is `POST /api/outbox/{id}` (named outbox#send) — no /send suffix.
-            const sendRes = await ncFetch(api(baseUrl, `/outbox/${encodeURIComponent(outboxId)}`), {
-                method: 'POST',
-                headers: baseHeaders,
-            });
-            if (!sendRes.ok && sendRes.status !== 200 && sendRes.status !== 202) {
-                const detail = await readJsonSafe(sendRes);
-                return { error: `Mail send failed (${sendRes.status})`, detail, outboxId };
-            }
-            return { success: true, outboxId, to: args.to, subject: args.subject };
-        }
+        case 'nextcloud_mail_send':
+            return sendMail(args, ctx);
 
         case 'nextcloud_mail_set_flags': {
             if (args.messageId == null) return { error: 'messageId is required' };

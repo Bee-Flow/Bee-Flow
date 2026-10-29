@@ -40,8 +40,14 @@ const deps = {
 };
 function setDeps(next = {}) { overrides = { ...next }; }
 
+/**
+ * @param {string} orgId
+ */
 const storageKey = (orgId) => `org_${orgId}_mcp_access`;
 
+/**
+ * @param {string} what
+ */
 const idList = (what) => z.array(z.string().trim().min(1).max(200), { error: typeError({ invalid: `${what} must be a list.` }) }).max(MAX_LIST, `${what} can hold at most ${MAX_LIST} entries.`);
 
 /** The request / storage shape. Unknown keys are refused, so a typo is not silently dropped. */
@@ -51,7 +57,7 @@ const PolicySchema = z.object({
         try {
             return parseCidrList(list);
         } catch (err) {
-            ctx.addIssue({ code: 'custom', message: err.message });
+            ctx.addIssue({ code: 'custom', message: /** @type {Error} */ (err).message });
             return z.NEVER;
         }
     }),
@@ -87,6 +93,7 @@ function normalizePolicy(input) {
  * The org's policy, or the default. A stored document that cannot be read or
  * parsed THROWS rather than falling back to the open default: a policy that
  * fails to load must not silently lift an IP restriction.
+ * @param {string | null | undefined} orgId
  */
 async function getOrgMcpPolicy(orgId) {
     if (!orgId) return structuredClone(DEFAULT_POLICY);
@@ -96,7 +103,7 @@ async function getOrgMcpPolicy(orgId) {
     try {
         doc = typeof raw === 'string' ? JSON.parse(raw) : raw;
     } catch (err) {
-        log.error(`[McpAccess] stored policy for org ${orgId} is not valid JSON: ${err.message}`);
+        log.error(`[McpAccess] stored policy for org ${orgId} is not valid JSON: ${/** @type {Error} */ (err).message}`);
         throw new Error('The stored MCP access policy could not be read.');
     }
     // The stored document was normalised on write; this only fills in fields a

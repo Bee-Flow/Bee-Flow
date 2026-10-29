@@ -1,45 +1,19 @@
 // @typecheck
-const { FIELD_TYPES, DATA_LIMITS, SYSTEM_COLUMNS, KEY_RE: DATA_KEY_RE, newTableId, newFieldId, canonicalizeDataModel, validateDataModel, migrationPlan } = require('../dataModel');
+const { DATA_LIMITS, KEY_RE: DATA_KEY_RE, newTableId, canonicalizeDataModel, validateDataModel, migrationPlan } = require('../dataModel');
 const { isDatatableBacked } = require('../datatableSource');
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
 const { pickClosestId, linkedTableRefusal, currentDataModel, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
 const { findTableRefs, applyRemoveTable, applySetRoles } = require('./dataToolsRoles');
+const { normaliseFieldSpec, checkFieldSpec, priorField, buildField } = require('./dataToolsFields');
+
 
 /**
  * PURE merge of one app_upsert_table call into a data model. Returns
  * { model, table, hints } or { error, _fixHint }. Never touches the input.
+ * @returns {import('./dataTools').TableMerge}
  */
-/**
- * A field's `default` as the column will hold it, or an error.
- *
- * The tool schema types `default` as a string — the one shape every
- * provider's template renders cleanly (since 2026-09-17; untyped before), so
- * a model that follows it writes "false" on a bool and "0" on a number. The
- * DDL reads a bool default by truthiness (`value ? TRUE : FALSE`), and the
- * string "false" is truthy: `default:"false"` on a bool became `DEFAULT
- * TRUE`, the opposite of what was asked, silently (caught in review
- * 2026-09-18). So the value is read by the field's type here, once, and one
- * that cannot be read is refused rather than stored. Dates and text keep
- * the string as written.
- */
-function coerceFieldDefault(value, type, at) {
-    if (value === null || value === undefined) return { value };
-    if (type === 'bool') {
-        if (typeof value === 'boolean') return { value };
-        const s = String(value).trim().toLowerCase();
-        if (s === 'true' || s === '1') return { value: true };
-        if (s === 'false' || s === '0' || s === '') return { value: false };
-        return { error: `${at}.default ${JSON.stringify(value)} is not a boolean — a bool field's default is "true" or "false".` };
-    }
-    if (type === 'number') {
-        const n = typeof value === 'number' ? value : (String(value).trim() === '' ? NaN : Number(String(value).trim()));
-        if (!Number.isFinite(n)) return { error: `${at}.default ${JSON.stringify(value)} is not a number — a number field's default is a numeric literal such as "0".` };
-        return { value: n };
-    }
-    return { value };
-}
-
 function mergeTableOp(model, args, rowCounts = {}) {
+    /** @type {string[]} */
     const hints = [];
     const tables = Array.isArray(model.tables) ? model.tables : [];
 
@@ -112,49 +86,20 @@ function mergeTableOp(model, args, rowCounts = {}) {
 
     const seenKeys = new Set();
     const fields = [];
+    /** @type {string[]} */
     const derivedFieldKeys = [];
     for (const [i, given] of rawFields.entries()) {
         const at = `fields[${i}]`;
         if (!given || typeof given !== 'object' || Array.isArray(given)) {
             return { error: `${at} must be an object { key, type, … }.` };
         }
-        // Same tolerance per field: `label` is what a form-minded model calls
-        // `name`, and a field with a name but no key gets the slug of its name
-        // (unique within this call). An explicit key always wins.
-        const raw = { ...given };
-        if (raw.name === undefined && typeof raw.label === 'string') { raw.name = raw.label; delete raw.label; }
-        if ((raw.key === undefined || raw.key === null) && typeof raw.name === 'string' && raw.name.trim()) {
-            raw.key = keyFromTitle(raw.name, i, new Set([...seenKeys, ...SYSTEM_COLUMNS]));
-            derivedFieldKeys.push(`${JSON.stringify(raw.name)} → ${raw.key}`);
-        }
-        if (typeof raw.key !== 'string' || !DATA_KEY_RE.test(raw.key)) {
-            return { error: `${at}.key ${JSON.stringify(raw.key)} must be lowercase snake_case starting with a letter (max 63 chars).` };
-        }
-        if (SYSTEM_COLUMNS.includes(raw.key)) {
-            return {
-                error: `${at}.key "${raw.key}" collides with a reserved system column (${SYSTEM_COLUMNS.join(', ')}).`,
-                _fixHint: 'System columns exist on every table automatically — bind to them, never declare them.',
-            };
-        }
-        if (seenKeys.has(raw.key)) return { error: `${at}.key "${raw.key}" is duplicated in this call.` };
-        seenKeys.add(raw.key);
-        if (!FIELD_TYPES.includes(raw.type)) {
-            const suggestion = pickClosestId(raw.type, FIELD_TYPES);
-            return { error: `${at}.type ${JSON.stringify(raw.type)} is not a field type.${suggestion ? ` Did you mean "${suggestion}"?` : ''} Legal types: ${FIELD_TYPES.join(', ')}.` };
-        }
+        const checked = checkFieldSpec(normaliseFieldSpec(given, i, seenKeys, derivedFieldKeys), at, seenKeys);
+        if (checked.error) return checked;
+        const raw = checked.spec;
 
-        let old = null;
-        if (raw.fieldId !== undefined && raw.fieldId !== null) {
-            old = byId.get(raw.fieldId) || null;
-            if (!old) {
-                return {
-                    error: `${at}.fieldId ${JSON.stringify(raw.fieldId)} does not exist on ${tableId}.`,
-                    _fixHint: `Field ids on the table: ${oldFields.map((f) => f.id).join(', ') || '(none)'} — omit fieldId for a new field.`,
-                };
-            }
-        } else {
-            old = byKey.get(raw.key) || null; // same key = same field (stable id — no drop+add)
-        }
+        const prior = priorField(raw, at, { byId, byKey, oldFields, tableId });
+        if (prior.error) return prior;
+        const old = prior.old;
         if (old && old.type !== raw.type) {
             return {
                 error: `Field "${raw.key}" is ${old.type} — DDL v1 cannot convert a column's type in place (to ${raw.type}).`,
@@ -162,60 +107,9 @@ function mergeTableOp(model, args, rowCounts = {}) {
             };
         }
 
-        const field = {
-            id: old ? old.id : newFieldId(),
-            key: raw.key,
-            name: (typeof raw.name === 'string' && raw.name) ? raw.name : (old ? old.name : raw.key),
-            type: raw.type,
-            required: raw.required === true,
-            unique: raw.unique === true,
-        };
-        if (raw.subtype !== undefined) field.subtype = raw.subtype;
-        else if (old && old.subtype !== undefined) field.subtype = old.subtype;
-        if (raw.default !== undefined) {
-            const coerced = coerceFieldDefault(raw.default, raw.type, at);
-            if (coerced.error) return { error: coerced.error };
-            field.default = coerced.value;
-        } else if (old && old.default !== undefined) {
-            field.default = old.default;
-        }
-
-        if (raw.type === 'select' || raw.type === 'multiselect') {
-            const options = Array.isArray(raw.options) ? raw.options
-                : (old && Array.isArray(old.options) ? old.options : []);
-            if (!options.length) return { error: `${at} (${raw.type}) requires a non-empty options array (strings or {value,label}).` };
-            field.options = options;
-        }
-        if (raw.type === 'relation') {
-            const rel = (raw.relation && typeof raw.relation === 'object') ? raw.relation : null;
-            const target = rel ? (rel.tableId || rel.table) : (old && old.relation ? old.relation.table : null);
-            if (typeof target !== 'string' || !target) {
-                return { error: `${at} (relation) requires relation: { tableId } — the tbl_… id of the table it points at.`, _fixHint: tableIdHint(model) };
-            }
-            field.relation = { table: target };
-            const display = rel ? (rel.displayFieldKey || rel.displayField) : (old && old.relation ? old.relation.displayField : null);
-            if (typeof display === 'string' && display) field.relation.displayField = display;
-        }
-        if (raw.type === 'computed') {
-            const comp = (raw.computed && typeof raw.computed === 'object') ? raw.computed : (old ? old.computed : null);
-            if (!comp || typeof comp.expr !== 'string' || !comp.expr.trim()) {
-                return { error: `${at} (computed) requires computed: { expr, type? }.` };
-            }
-            // `stored` decides whether this is a real column (filterable,
-            // sortable, aggregatable) or a read-time expression, and it used
-            // to be dropped here — rebuilt from expr and type alone. Two ways
-            // that bit: a stored column could not be authored through this
-            // tool at all, and re-sending an existing table (to edit some
-            // OTHER field) silently DOWNGRADED one to read-time. Every filter
-            // and aggregate on it then failed with "is a read-time computed
-            // field and cannot be queried", from a call that never mentioned
-            // it. So: an explicit value wins, otherwise inherit what the field
-            // already was — a caller who says nothing changes nothing.
-            const stored = typeof comp.stored === 'boolean'
-                ? comp.stored
-                : Boolean(old && old.computed && old.computed.stored);
-            field.computed = { expr: comp.expr, ...(comp.type ? { type: comp.type } : {}), ...(stored ? { stored: true } : {}) };
-        }
+        const built = buildField(raw, old, at, model);
+        if (built.error) return built;
+        const field = built.field;
 
         // DDL v1: a NOT NULL column can't be ADDed to a populated table without
         // a default — the column lands nullable; teach instead of surprising.
@@ -295,6 +189,7 @@ async function applyUpsertTable(draftWrap, args) {
     const { validateRowFilter } = require('../rlsGateway');
     const canonTable = findModelTable(canonical, merged.table.id) || merged.table;
     const rowFilters = (canonTable.access && typeof canonTable.access.rowFilters === 'object') ? canonTable.access.rowFilters : null;
+    /** @type {string[]} */
     const rowFilterErrors = [];
     for (const roleKey of Object.keys(rowFilters || {})) {
         const { ok, errors } = validateRowFilter(rowFilters[roleKey], canonTable);

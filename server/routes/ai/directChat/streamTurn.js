@@ -90,7 +90,7 @@ function makeInterruptedTurnPersister(turn) {
             const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
             await agentStore.updateDirectConversation(turn.convId, placeTurnRows(convNow?.messages || [], rows, anchorId), userId, null, encryptionOpts(req));
         } catch (e) {
-            log.warn('[DirectChat] Interrupted-turn persistence failed:', e.message);
+            log.warn('[DirectChat] Interrupted-turn persistence failed:', /** @type {Error} */ (e).message);
         }
     };
 }
@@ -172,7 +172,7 @@ async function handleTurnError(error, { turn, clientAbort, persistInterruptedTur
             send('error', { error: friendly, raw });
         }
     } catch (sendErr) {
-        log.warn('[DirectChat] Failed to send SSE error event:', sendErr.message);
+        log.warn('[DirectChat] Failed to send SSE error event:', /** @type {Error} */ (sendErr).message);
     }
 }
 
@@ -197,7 +197,7 @@ async function releaseTurn(turn) {
             }
         }
     } catch (e) {
-        log.warn('[DirectChat] turn release failed:', e.message);
+        log.warn('[DirectChat] turn release failed:', /** @type {Error} */ (e).message);
     }
     try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
 }

@@ -184,12 +184,10 @@ function fail(error) {
  * Verify a `.bfmod` ZIP buffer in memory.
  *
  * @param {Buffer} buf
- * @param {object} [opts]
- * @param {(kid:(string|undefined)) => (Promise<any>|any)} [opts.publicKeyResolver]
- *        Resolve the package trust-root public key (PEM or KeyObject) for the
- *        JWS `kid`. Return null/undefined for an unknown kid.
- * @param {number} [opts.now]  Reserved for future iat sanity checks (unused;
- *        the package-signature contract carries no exp/nbf).
+ * @param {{ publicKeyResolver?: (kid: (string|undefined)) => (Promise<any>|any), now?: number }} [opts]
+ *   `publicKeyResolver` resolves the package trust-root public key (PEM or KeyObject) for the
+ *   JWS `kid`, null/undefined for an unknown kid; `now` is reserved for iat sanity checks
+ *   (unused: the package-signature contract carries no exp/nbf).
  * @returns {Promise<{ ok: boolean, error?: string, manifest?: PackageManifest, files?: Map<string,Buffer>,
  *                     signature?: { payload: { [claim: string]: any }, kid: (string|null) } }>}
  *          `error` is set when `ok` is false; the rest when it is true

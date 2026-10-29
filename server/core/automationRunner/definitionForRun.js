@@ -88,10 +88,11 @@ function withWorkingSettings(live, working) {
 }
 
 /**
- * @typedef {Object} IsTestRunArgs
- * @property {string | undefined} [mode]
- * @property {string | null | undefined} [triggerKind]
- * @property {boolean | undefined} [isTest]
+ * @typedef {{
+ *   mode?: string | undefined,
+ *   triggerKind?: string | null | undefined,
+ *   isTest?: boolean | undefined,
+ * }} IsTestRunArgs
  */
 /**
  * True when this run executes the working copy.

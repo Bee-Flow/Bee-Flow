@@ -60,14 +60,11 @@ async function houseStyleCssFor(doc, orgId) {
 /**
  * Fill a document and render it.
  *
- * @param {object} args
- * @param {any}  args.document  a documentStore document (both slots)
- * @param {any}  [args.values]  the run's data for the placeholders
- * @param {string}  [args.orgId]   whose letterhead applies
- * @param {any}  [args.marking] resolved AI-content marking, or null
- * @param {Record<string, any>} [args.sectionOverrides]
- * @param {'pptx'|'pdf'|'html'|null} [args.format]  a presentation's output format
- * @param {Function} [args.resolveImage]
+ * @param {{ document: import('../../stores/documentStore').DocumentView, values?: Record<string, unknown>, orgId?: string | null,
+ *   marking?: import('./render/documentRenderer').AiMarking | null, sectionOverrides?: Record<string, any>, format?: 'pptx'|'pdf'|'html'|null,
+ *   resolveImage?: ((ref: unknown) => Promise<string|null>) | null }} args  `document` is a documentStore
+ *   document (both slots); `values` the run's data for the placeholders; `orgId` whose letterhead applies;
+ *   `marking` the resolved AI-content marking, or null; `format` a presentation's output format
  * @returns {Promise<{buffer: Buffer, contentType: string, degraded: boolean,
  *                    marking: any|null, fill: any, empty?: boolean, extension?: string}>}
  *

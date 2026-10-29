@@ -44,7 +44,7 @@ const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: Spark
         return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
     return (
-        <svg width={width} height={height} style={{ display: 'block', marginTop: 2 }}>
+        <svg width={width} height={height} className="[display:block] [margin-top:2px]">
             <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
     );
@@ -77,7 +77,7 @@ export const TrendChip = ({ delta, display, title, goodWhenDown = false }: Trend
             display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 5,
             background: delta === 0 ? 'var(--bg-tertiary)' : `${color}15`, color, fontSize: 11, fontWeight: 800,
         }}>
-            <span style={{ fontSize: 13 }}>{arrow}</span>{display}
+            <span className="[font-size:13px]">{arrow}</span>{display}
         </span>
     );
 };
@@ -94,10 +94,10 @@ export const Card = ({ children, style, title, icon: Icon, right, pad }: CardPro
             ...(padded ? { padding: TOKENS.cardPad } : null), ...style,
         }}>
             {(title || right) && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="[display:flex] [align-items:center] [justify-content:space-between] [gap:8px] [margin-bottom:10px]">
+                    <div className="[display:flex] [align-items:center] [gap:6px]">
                         {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.8 }} />}
-                        {title && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>}
+                        {title && <span className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{title}</span>}
                     </div>
                     {right}
                 </div>
@@ -122,9 +122,9 @@ export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtit
                 <div style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}15`, flexShrink: 0 }}>
                     {Icon && <Icon style={{ width: 14, height: 14, color }} />}
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>{label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{value}</div>
+                <div className="[min-width:0] [flex:1]">
+                    <div className="[font-size:9px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.06em] [color:var(--text-muted)]">{label}</div>
+                    <div className="[font-size:18px] [font-weight:800] [color:var(--text-primary)] [letter-spacing:-0.02em]">{value}</div>
                     {Array.isArray(spark) && spark.length > 1 && <Sparkline values={spark} color={color} />}
                 </div>
             </div>
@@ -137,14 +137,14 @@ export const MetricCard = ({ icon: Icon, label, value, color = '#0ea5e9', subtit
             background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', borderRadius: 12,
             padding: 14, display: 'flex', flexDirection: 'column', gap: 5, cursor: onClick ? 'pointer' : 'default',
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="[display:flex] [align-items:center] [gap:8px]">
                 <div style={{ width: chip, height: chip, borderRadius: 7, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {Icon && <Icon style={{ width: 13, height: 13, color }} />}
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>{label}</span>
+                <span className="[font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.06em] [color:var(--text-muted)]">{label}</span>
             </div>
             <span style={{ fontSize: valueSize, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.05 }}>{value}</span>
-            {subtitle && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{subtitle}</span>}
+            {subtitle && <span className="[font-size:11px] [color:var(--text-muted)]">{subtitle}</span>}
         </div>
     );
 };
@@ -178,17 +178,17 @@ export const MonitorHero = ({
         <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: aside ? `${leftRatio}fr 1fr` : '1fr', gap: 24, alignItems: 'center' }}>
             <div>
                 {eyebrow && (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{eyebrow}</span>
+                    <div className="[display:flex] [align-items:baseline] [gap:10px] [margin-bottom:4px]">
+                        <span className="[font-size:11px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.08em] [color:var(--text-muted)]">{eyebrow}</span>
                         {infoTip}
                     </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+                <div className="[display:flex] [align-items:baseline] [gap:12px] [margin-bottom:6px] [flex-wrap:wrap]">
                     <span style={{ fontSize: valueSize, fontWeight: 800, color: valueColor || accent, letterSpacing: '-0.04em', lineHeight: 1 }}>{value}</span>
                     {status && <StatusPill label={status.label} color={status.color} />}
                     {trend}
                 </div>
-                {subline && <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{subline}</div>}
+                {subline && <div className="[font-size:11px] [color:var(--text-muted)] [font-weight:500]">{subline}</div>}
                 {children}
             </div>
             {aside && <div>{aside}</div>}
@@ -201,22 +201,22 @@ export const MonitorHero = ({
 // `iconColor` must be a hex (drives the chip tint). `actions` holds the range
 // control / refresh on the panels.
 export const TabHeader = ({ icon: Icon, iconColor = '#0ea5e9', title, description, status, actions }: TabHeaderProps) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+    <div className="[display:flex] [align-items:center] [justify-content:space-between] [gap:16px] [flex-wrap:wrap]">
+        <div className="[display:flex] [align-items:center] [gap:10px] [min-width:0] [flex:1]">
             {Icon && (
                 <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${iconColor}18`, flexShrink: 0 }}>
                     <Icon style={{ width: 16, height: 16, color: iconColor }} />
                 </div>
             )}
-            <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>{title}</h3>
+            <div className="[min-width:0]">
+                <div className="[display:flex] [align-items:center] [gap:8px]">
+                    <h3 className="[font-size:15px] [font-weight:800] [color:var(--text-primary)] [margin:0] [letter-spacing:-0.01em]">{title}</h3>
                     {status && <StatusPill label={status.label} color={status.color} dot={status.dot} />}
                 </div>
-                {description && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0', fontWeight: 400 }}>{description}</p>}
+                {description && <p className="[font-size:11px] [color:var(--text-muted)] [margin:2px_0_0] [font-weight:400]">{description}</p>}
             </div>
         </div>
-        {actions && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{actions}</div>}
+        {actions && <div className="[display:flex] [align-items:center] [gap:8px] [flex-wrap:wrap]">{actions}</div>}
     </div>
 );
 
@@ -233,9 +233,9 @@ export const AlertBanner = ({ severity = 'amber', title = 'Action required', mes
             <div style={{ width: 32, height: 32, borderRadius: 8, background: `${c}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon style={{ width: 16, height: 16, color: c }} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="[flex:1] [min-width:0]">
                 <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: c }}>{title}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 1 }}>{message}</div>
+                <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [margin-top:1px]">{message}</div>
             </div>
             {ctaLabel && onCta && (
                 <button onClick={onCta} style={{
@@ -243,7 +243,7 @@ export const AlertBanner = ({ severity = 'amber', title = 'Action required', mes
                     background: c, color: 'white', fontWeight: 700, fontSize: 12,
                     display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
                 }}>
-                    {ctaLabel} <ChevronRight style={{ width: 14, height: 14 }} />
+                    {ctaLabel} <ChevronRight className="[width:14px] [height:14px]" />
                 </button>
             )}
         </div>
@@ -252,10 +252,10 @@ export const AlertBanner = ({ severity = 'amber', title = 'Action required', mes
 
 // ── SectionTitle ─────────────────────────────────────────────────────────────
 export const SectionTitle = ({ children, icon: Icon, right }: SectionTitleProps) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px]">
+        <div className="[display:flex] [align-items:center] [gap:6px]">
             {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.7 }} />}
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{children}</span>
+            <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{children}</span>
         </div>
         {right}
     </div>
@@ -286,7 +286,7 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
     const pad = size === 'sm' ? '4px 10px' : '5px 12px';
     const fs = size === 'sm' ? 10 : 11;
     return (
-        <div style={{ display: 'flex', gap: size === 'sm' ? 4 : 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className={`[display:flex] [flex-wrap:wrap] [align-items:center] ${size === 'sm' ? '[gap:4px]' : '[gap:6px]'}`}>
             {options.map(o => {
                 const active = value === o.value;
                 const color = o.color;
@@ -321,18 +321,11 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
 const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
     const { t } = useTranslation();
     return (
-    <div style={{ marginBottom: 8 }}>
-        <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 6px 5px 10px', borderRadius: 99,
-            background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', fontSize: 11, color: 'var(--text-primary)',
-        }}>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0ea5e9' }}>{axis}</span>
-            <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{String(label || '').replace(/_/g, ' ')}</span>
-            <button onClick={onClear} aria-label={t('usage.kit.clear_filter', 'Clear filter')} style={{
-                width: 18, height: 18, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
-            }}>✕</button>
+    <div className="[margin-bottom:8px]">
+        <span className="[display:inline-flex] [align-items:center] [gap:8px] [padding:5px_6px_5px_10px] [border-radius:99px] [background:rgba(14,165,233,0.08)] [border:1px_solid_rgba(14,165,233,0.25)] [font-size:11px] [color:var(--text-primary)]">
+            <span className="[font-size:9px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.06em] [color:#0ea5e9]">{axis}</span>
+            <span className="[font-weight:700] [text-transform:capitalize]">{String(label || '').replace(/_/g, ' ')}</span>
+            <button onClick={onClear} aria-label={t('usage.kit.clear_filter', 'Clear filter')} className="[width:18px] [height:18px] [border-radius:50%] [border:none] [cursor:pointer] [background:var(--bg-secondary)] [color:var(--text-secondary)] [display:inline-flex] [align-items:center] [justify-content:center] [font-size:11px]">✕</button>
         </span>
     </div>
     );
@@ -340,11 +333,7 @@ const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
 
 // ── ShowMore ─────────────────────────────────────────────────────────────────
 export const ShowMore = ({ remaining, onMore, label = 'Show more' }: ShowMoreProps) => (
-    <button onClick={onMore} style={{
-        width: '100%', padding: '10px 0', border: 'none', cursor: 'pointer',
-        background: 'var(--bg-tertiary)', color: 'var(--text-muted)', fontSize: 11, fontWeight: 600,
-        transition: 'all 0.15s', borderTop: '1px solid var(--border-subtle)',
-    }}
+    <button onClick={onMore} className="[width:100%] [padding:10px_0] [border:none] [cursor:pointer] [background:var(--bg-tertiary)] [color:var(--text-muted)] [font-size:11px] [font-weight:600] [transition:all_0.15s] [border-top:1px_solid_var(--border-subtle)]"
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
     >
@@ -359,14 +348,12 @@ export const CollapsibleSection = ({ title, icon: Icon, count, defaultOpen = fal
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8 }}>
-                <button onClick={() => setOpen(o => !o)} style={{
-                    display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                }}>
-                    <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-muted)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+            <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px] [gap:8px]">
+                <button onClick={() => setOpen(o => !o)} className="[display:flex] [align-items:center] [gap:6px] [background:none] [border:none] [cursor:pointer] [padding:0]">
+                    <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted)] [transition:transform_0.2s] ${open ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                     {Icon && <Icon style={{ width: 14, height: 14, color: 'var(--accent-primary)', opacity: 0.7 }} />}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
-                    {count != null && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', background: 'var(--bg-tertiary)', padding: '1px 7px', borderRadius: 8 }}>{count}</span>}
+                    <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{title}</span>
+                    {count != null && <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [background:var(--bg-tertiary)] [padding:1px_7px] [border-radius:8px]">{count}</span>}
                 </button>
                 {open && right}
             </div>

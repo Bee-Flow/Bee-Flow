@@ -69,7 +69,7 @@ const refused = (role) => (role
  * @param {import('express').Request} req
  * @param {{ dev?: 'viewer'|'editor'|'owner', stage?: 'viewer'|'editor'|'owner', devStage?: 'viewer'|'editor'|'owner',
  *   anyStage?: 'viewer'|'editor'|'owner', orgAdmin?: boolean }} [opts]
- * @param {object} [deps]  stageStore, projectStore, getProjectRole(userId, projectId), isOrgAdminForOrg(req, orgId)
+ * @param {Partial<StageAuthDeps>} [deps]  stageStore, projectStore, getProjectRole(userId, projectId), isOrgAdminForOrg(req, orgId)
  * @returns {Promise<object>} the context (also on `req.stageCtx`)
  * @throws {HttpError} 401, 403 insufficient_permissions, 404
  */
@@ -158,9 +158,9 @@ function stageAuthMw(opts = {}, deps = {}) {
 module.exports = { stageAuth, stageAuthMw, RANK, rank };
 
 /**
- * @typedef {object} StageAuthDeps
- * @property {typeof import('../../stores/solutionStageStore')} stageStore
- * @property {typeof import('../../stores/projectStore')} projectStore
- * @property {typeof import('../../auth/projectAccess').getProjectRole} getProjectRole
- * @property {typeof import('../../auth/permissions').isOrgAdminForOrg} isOrgAdminForOrg
+ * @typedef {{
+ *   stageStore: typeof import('../../stores/solutionStageStore'),
+ *   projectStore: typeof import('../../stores/projectStore'),
+ *   getProjectRole: typeof import('../../auth/projectAccess').getProjectRole,
+ *   isOrgAdminForOrg: typeof import('../../auth/permissions').isOrgAdminForOrg }} StageAuthDeps
  */

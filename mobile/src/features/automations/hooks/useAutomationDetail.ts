@@ -58,11 +58,11 @@ export function useAutomationDetail(id: string) {
         setRunNote(null);
         if (!result) return;
         if (result.skipped) {
-            setRunNote(result.message ?? 'There was nothing to test this trigger against.');
+            setRunNote(result.message ?? t('mobile.automations.nothing_to_test', 'There was nothing to test this trigger against.'));
             return;
         }
         if (result.pending) {
-            toast('Still running — follow it below');
+            toast(t('mobile.automations.still_running', 'Still running — follow it below'));
             return;
         }
         const token = statusToken(result.run?.status);
@@ -71,11 +71,16 @@ export function useAutomationDetail(id: string) {
     const run = useRunAutomation(id, { onSuccess: onRunResult });
 
     const setActive = useSetAutomationActive(id, {
-        onSuccess: (updated) => toast(updated?.isActive ? 'Automation is on' : 'Automation paused', 'success'),
+        onSuccess: (updated) => toast(
+                updated?.isActive
+                    ? t('mobile.automations.is_on', 'Automation is on')
+                    : t('mobile.automations.paused', 'Automation paused'),
+                'success',
+            ),
     });
 
     const stop = useCancelRun(refresh, {
-        onSuccess: () => toast('Stop requested — it ends after the current step'),
+        onSuccess: () => toast(t('mobile.automations.stop_requested', 'Stop requested — it ends after the current step')),
         onError: (err) => toast(describeError(err).message, 'error'),
     });
 

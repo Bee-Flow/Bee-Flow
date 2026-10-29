@@ -46,6 +46,10 @@ const COMMON_HEADERS = Object.freeze({
     'Accept': 'application/json',
 });
 
+/**
+ * @param {string} s
+ * @param {number} max
+ */
 function clamp(s, max) {
     const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
     return t.length > max ? `${t.slice(0, max - 1)}…` : t;
@@ -82,6 +86,7 @@ async function sendAdminNotification({ ncFetch, baseUrl, ncUid, subject, message
     }
 
     // ── v3: rich objects, so the deep link is a clickable pill ───────────
+    /** @type {{ subject: string; message: string; messageParameters?: { open: { type: string; id: string; name: string; link: string; }; } }} */
     const v3Body = {
         subject: shortMessage,
         message: longMessage || '',
@@ -111,7 +116,7 @@ async function sendAdminNotification({ ncFetch, baseUrl, ncUid, subject, message
             return { ok: false, apiVersion: 'v3', status: res.status, error: explain(res.status) };
         }
     } catch (e) {
-        return { ok: false, apiVersion: 'v3', status: 0, error: e.message };
+        return { ok: false, apiVersion: 'v3', status: 0, error: /** @type {Error} */ (e).message };
     }
 
     // ── v2: plain text, form-encoded. The link rides in the body text. ───
@@ -130,7 +135,7 @@ async function sendAdminNotification({ ncFetch, baseUrl, ncUid, subject, message
         if (res.ok || res.status === 200) return { ok: true, apiVersion: 'v2', status: res.status };
         return { ok: false, apiVersion: 'v2', status: res.status, error: explain(res.status) };
     } catch (e) {
-        return { ok: false, apiVersion: 'v2', status: 0, error: e.message };
+        return { ok: false, apiVersion: 'v2', status: 0, error: /** @type {Error} */ (e).message };
     }
 }
 

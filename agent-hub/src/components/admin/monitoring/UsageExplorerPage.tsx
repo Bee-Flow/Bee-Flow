@@ -254,11 +254,7 @@ function UsageExplorerPageCard({ t, filteredAgents, expandedAgent, setExpandedAg
                             <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
                                 {fmtCost(a.estimated_cost || 0)}
                             </span>
-                            <ChevronRight style={{
-                                width: 14, height: 14, color: 'var(--text-muted, #888)',
-                                transform: isExpanded ? 'rotate(90deg)' : 'none',
-                                transition: 'transform 0.2s',
-                            }} />
+                            <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted,_#888)] [transition:transform_0.2s] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                         </div>
                     </div>
                     {/* Expanded sub-models */}

@@ -60,6 +60,7 @@ function sameScope(table, scope) {
  * The automation's answers table in this scope: the linked one, else the newest
  * one that once was. Null when the automation never collected.
  * @param {string | undefined} automationId
+ * @param {{ kind: 'org'; id: string; } | { kind: 'user'; id: string; }} scope
  */
 async function tableFor(automationId, scope) {
     if (!automationId || !scope) return null;

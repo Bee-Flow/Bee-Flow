@@ -29,7 +29,11 @@ const {
 } = require('../../core/meetingNotes/summaryHelpers');
 const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../../core/meetingNotes/actionItems');
 
-/** Mistral Voxtral: a stored .aac from the phone goes over as .m4a. */
+/** @typedef {{ audioPath: string, fileName: string, language: string | null }} TranscribeWithVoxtralArgs */
+/**
+ * Mistral Voxtral: a stored .aac from the phone goes over as .m4a.
+ * @param {TranscribeWithVoxtralArgs} param0
+ */
 async function transcribeWithVoxtral({ audioPath, fileName, language }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) throw new Error('Mistral API key not configured');
@@ -38,6 +42,7 @@ async function transcribeWithVoxtral({ audioPath, fileName, language }) {
     const client = createVoxtralClient(apiKey, { timeoutMs: VOXTRAL_TIMEOUT_MS });
 
     const voxtralAudio = await asM4aIfAdts(audioPath, fileName);
+    /** @type {NonSharedBuffer} */
     let fileContent;
     try {
         fileContent = await fs.promises.readFile(voxtralAudio.path);
@@ -61,9 +66,13 @@ async function transcribeWithVoxtral({ audioPath, fileName, language }) {
  */
 async function transcribeStoredAudio({ provider, audioPath, fileName, language, numSpeakers, transcription, userId }) {
     let response;
+    /** @type {{ reason: 'inactivity' | 'overall_timeout'; atSeconds: number; } | null} */
     let truncationNotice = null;
+    /** @type {{ [x: string]: string; } | null} */
     let voiceprintMapping = null;
+    /** @type {string[]} */
     let voiceprintRoster = [];
+    /** @type {{ [x: string]: string[]; } | null} */
     let voiceprintRuledOut = null;
     let voiceprintInfo = null;
 

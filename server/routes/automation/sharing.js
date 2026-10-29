@@ -59,15 +59,14 @@ const keyOf = (s) => `${s.principalType}:${s.principalId}`;
 const nameOf = (u) => (u ? (u.displayName || u.username || null) : null);
 
 /**
- * @param {object} [overrides]
- * @param {object} [overrides.store]            automationStore surface
- * @param {Function} [overrides.getUser]        (id) => user row
- * @param {Function} [overrides.getGroup]       (id) => group row
- * @param {Function} [overrides.hasPermission]  (userId, perm, session) => bool
- * @param {Function} [overrides.validateGroups] (orgId, ids) => ids (throws 400)
- * @param {Function} [overrides.sharingGate]    Express middleware for `automation_sharing`
- * @param {Function} [overrides.sharingAvailable] async (req) => bool
- * @param {object} [overrides.subscriptions]    { revokeRemoteSubscriptions, syncAppEventSubscription, hasAppEventTrigger }
+ * @param {{ store?: typeof import('../../stores/automationStore'),
+ *   getUser?: typeof import('../../stores/userStore').getUser,
+ *   getGroup?: typeof import('../../stores/userStore').getGroup,
+ *   hasPermission?: typeof import('../../auth/permissions').hasPermission,
+ *   validateGroups?: typeof import('../../auth/permissions').validateSharedGroupsForOrg, // throws 400
+ *   sharingGate?: import('express').RequestHandler, // for `automation_sharing`
+ *   sharingAvailable?: (req: import('express').Request) => Promise<boolean>,
+ *   subscriptions?: Pick<typeof import('../../automation/subscriptionSync'), 'revokeRemoteSubscriptions'|'syncAppEventSubscription'|'hasAppEventTrigger'> }} [overrides]
  */
 function makeSharingRouter(overrides = {}) {
     const router = express.Router();
@@ -85,7 +84,7 @@ function makeSharingRouter(overrides = {}) {
     });
 
     let defaultGate = null;
-    const sharingGate = overrides.sharingGate || ((req, res, next) => {
+    const sharingGate = overrides.sharingGate || ((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (!defaultGate) defaultGate = require('../../core/entitlements/entitlements').requireCapability('automation_sharing');
         return defaultGate(req, res, next);
     });
@@ -104,7 +103,7 @@ function makeSharingRouter(overrides = {}) {
     /**
      * @param {string} need
      */
-    async function loadAutomation(req, res, need) {
+    async function loadAutomation(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
         const acc = await access.guard(req, res, a, need);

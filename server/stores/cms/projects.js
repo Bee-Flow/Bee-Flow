@@ -10,7 +10,7 @@ const { getAll } = require('../../db');
 const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
     KEY_PROJECTS_INDEX, SITE_VERSION, INDEX_VERSION,
-    newId, isPlainObject, clone, normalizeSlug, isReservedSlug, assertSiteId,
+    newId, isPlainObject, isRecord, clone, normalizeSlug, isReservedSlug, assertSiteId,
     sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, publishedKey,
 } = require('./shared');
@@ -146,13 +146,13 @@ async function getProject(siteId, { fresh = false } = {}) {
  * deleted pages and orphan new ones. Product code edits chrome through
  * updateSiteChrome and the page list through the page-list operations below.
  * @param {string} siteId
- * @param {any} site
+ * @param {unknown} site
  * @param {{ localeOverrides?: Record<string, any> }} [report] receives the site translations that were re-aligned
  * @param {{ expectedRev?: number }} [opts]
  */
 async function setProject(siteId, site, report, { expectedRev } = {}) {
     assertSiteId(siteId);
-    if (!isPlainObject(site)) throw new Error('Site must be an object');
+    if (!isRecord(site)) throw new Error('Site must be an object');
     const sanitized = sanitizeSite(siteId, site);
     /** @type {{ localeOverrides?: Record<string, any>, rev?: number }} */
     const written = report || {};
@@ -186,7 +186,7 @@ async function setProject(siteId, site, report, { expectedRev } = {}) {
  */
 async function mutateProject(siteId, mutator, { expectedRev, bumpRev = false } = {}) {
     assertSiteId(siteId);
-    /** @type {any} */
+    /** @type {T} (assigned by the mutator inside the transaction; a failed transaction throws before the return) */
     let result;
     /** @type {Record<string, any>} */
     let moved = {};

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FieldKeyCombobox from './FieldKeyCombobox';
+import userEvent from '@testing-library/user-event';
 
 function dndEvent(path: string) {
     return { getData: vi.fn((type) => (type === 'application/x-binding-path' ? path : '')), types: ['application/x-binding-path'] };
@@ -23,10 +24,12 @@ describe('FieldKeyCombobox', () => {
         expect(onChange).toHaveBeenCalledWith('email');
     });
 
-    it('free text emits through onChange', () => {
+    it('free text emits through onChange', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<FieldKeyCombobox value="" onChange={onChange} options={options} />);
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'customKey' } });
+        await user.clear(screen.getByRole('textbox'));
+        await user.paste('customKey');
         expect(onChange).toHaveBeenCalledWith('customKey');
     });
 

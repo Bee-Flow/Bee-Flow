@@ -51,7 +51,7 @@ async function setupSharedThreadTurnLock({ conversation, isEphemeral, userId, _p
                 if (!claim.acquired) {
                     throw Object.assign(
                         new Error('Another member is asking the AI in this conversation. Try again in a moment.'),
-                        { code: 'TURN_BUSY', holderUserId: /** @type {any} */ (claim).holder?.holderUserId || null }
+                        { code: 'TURN_BUSY', holderUserId: /** @type {{ holder?: { holderUserId?: string | null } | null }} */ (claim).holder?.holderUserId || null }
                     );
                 }
                 _turnLock = { conversationId: conversation.id, runId };
@@ -62,7 +62,7 @@ async function setupSharedThreadTurnLock({ conversation, isEphemeral, userId, _p
             }
         } catch (lockErr) {
             if (lockErr.code === 'CONVERSATION_READ_ONLY' || lockErr.code === 'TURN_BUSY') throw lockErr;
-            log.warn('[AgentRuntime] shared-thread setup failed:', lockErr.message);
+            log.warn('[AgentRuntime] shared-thread setup failed:', /** @type {Error} */ (lockErr).message);
         }
     }
     // Park the release with the wrapper, which owns the one `finally` every

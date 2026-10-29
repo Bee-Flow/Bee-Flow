@@ -1,3 +1,5 @@
+/** @typedef {import('zod').ZodBoolean} ZodBoolean */
+/** @typedef {import('zod').ZodString} ZodString */
 // @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
@@ -26,7 +28,7 @@ const log = require('../../telemetry/log');
 // Attach the server-side edit verdict to each agent row so clients render
 // read-only editors from the SAME policy the mutating endpoints enforce
 // (BFSF-271). The context is prefetched once per request — no N× lookups.
-async function withCanEdit(agents, userId, req) {
+async function withCanEdit(agents, userId, /** @type {import('express').Request} */ req) {
     if (!userId) return agents.map(a => ({ ...a, can_edit: false }));
     const ctx = await buildCanModifyContext(userId, req);
     return Promise.all(agents.map(async a => ({
@@ -93,24 +95,26 @@ function withGrounding(agents) {
  *
  * The counter is VIEWER-RELATIVE. It therefore must never be cached or reused between users.
  */
-async function withListStats(agents, req, viewerId = null) {
+async function withListStats(agents, /** @type {import('express').Request} */ req, viewerId = null) {
     const ids = agents.map(a => a.id).filter(Boolean);
     if (ids.length === 0) return agents;
 
+    /** @type {Map<string, { conversationCount: number; userCount: number; othersConversationCount: number; lastUsedAt: string | null; }>} */
     let stats = null;
     try {
         stats = await agentStore.getAgentChatStats(ids, { excludeUserId: viewerId || null });
     } catch (e) {
-        log.warn('[agents] list chat stats unavailable:', e.message);
+        log.warn('[agents] list chat stats unavailable:', /** @type {Error} */ (e).message);
     }
 
     const wantsUsage = req.query?.usage === '1' || req.query?.usage === 'true';
+    /** @type {Record<string, { counts: Record<string, number>; partial: string[]; }> | null} */
     let usage = null;
     if (wantsUsage) {
         try {
             usage = await agentStore.usageCountsForAgents(ids);
         } catch (e) {
-            log.warn('[agents] list usage counters unavailable:', e.message);
+            log.warn('[agents] list usage counters unavailable:', /** @type {Error} */ (e).message);
             usage = {};
         }
     }
@@ -153,7 +157,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 // as it is" (the route reads `undefined` that way on purpose), so an agent
 // published to a new group stayed shared with the old one under a 200.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {{ isPublished: import('zod').ZodOptional<ZodBoolean>; sharedGroups: import('zod').ZodOptional<import('zod').ZodNullable<import('zod').ZodArray<ZodString>>>; }} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const USAGE_TEXT = 'usage is "1" or "0".';

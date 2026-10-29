@@ -35,18 +35,18 @@ const MAX_FILE_MB = 20;
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {Function} [deps.getProject]          (id) => project | null
- * @param {typeof import('../../projects/projectFiles')}   [deps.projectFiles]        projects/projectFiles surface
- * @param {typeof import('../../projects/myProjectChats')}   [deps.myChats]             projects/myProjectChats surface ({ list })
- * @param {Function} [deps.logActivity]         projectStore.logActivity
- * @param {Function} [deps.emitProjectEvent]    core/projectFeed.emitProjectEvent
- * @param {Function} [deps.publishTransient]    core/projectEventBus.publishTransient
- * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {import('express').RequestHandler} [deps.uploadLimiter]       rate-limit middleware for uploads
- * @param {import('express').RequestHandler} [deps.presenceLimiter]     rate-limit middleware for presence pings
- * @param {number}   [deps.maxFileBytes]
- * @param {typeof import('../../telemetry/log')}   [deps.log]
+ * @param {import('./roleGate').ProjectRoleGate} [deps.requireProjectRole]  middleware named requireProjectRoleMw
+ * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]
+ * @param {typeof import('../../projects/projectFiles')} [deps.projectFiles]
+ * @param {typeof import('../../projects/myProjectChats')} [deps.myChats]  ({ list })
+ * @param {typeof import('../../stores/projectStore').logActivity} [deps.logActivity]
+ * @param {typeof import('../../core/projectFeed').emitProjectEvent} [deps.emitProjectEvent]
+ * @param {typeof import('../../core/projectEventBus').publishTransient} [deps.publishTransient]
+ * @param {typeof import('./complianceSignal').signalProjectChanged} [deps.signalProjectChanged]
+ * @param {import('express').RequestHandler} [deps.uploadLimiter]  rate limit for uploads
+ * @param {import('express').RequestHandler} [deps.presenceLimiter]  rate limit for presence pings
+ * @param {number} [deps.maxFileBytes]
+ * @param {typeof import('../../telemetry/log')} [deps.log]
  */
 function makeWorkspaceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -60,9 +60,9 @@ function makeWorkspaceRouter(deps = {}) {
     const getProject = (id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
     /** @param {...unknown} a */
     const logActivity = (...a) => (deps.logActivity || require('../../stores/projectStore').logActivity)(...a);
-    /** @param {...unknown} a */
+    /** @type {typeof import('../../core/projectFeed').emitProjectEvent} */
     const emitProjectEvent = (...a) => (deps.emitProjectEvent || require('../../core/projectFeed').emitProjectEvent)(...a);
-    /** @param {...unknown} a */
+    /** @type {typeof import('../../core/projectEventBus').publishTransient} */
     const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // The project's files are something the project compliance checks read.
     /** @param {{ id: string }} project */
@@ -232,7 +232,7 @@ function makeWorkspaceRouter(deps = {}) {
             res.json({ ok: true });
         } catch (err) {
             // Presence is decoration. Never fail a request over it.
-            log.warn('[Projects] presence publish failed:', err.message);
+            log.warn('[Projects] presence publish failed:', /** @type {Error} */ (err).message);
             res.json({ ok: false });
         }
     });

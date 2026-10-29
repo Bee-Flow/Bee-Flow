@@ -23,12 +23,7 @@ export default function ActivityBar({ active, onSelect }: { active: string | nul
                         aria-label={title}
                         aria-pressed={isActive}
                         onClick={() => onSelect(id)}
-                        className="flex items-center justify-center w-12 h-12 transition-colors"
-                        style={{
-                            color: isActive ? 'var(--vsc-actbar-icon-active)' : 'var(--vsc-actbar-icon)',
-                            borderLeft: isActive ? '2px solid var(--vsc-statusbar-bg)' : '2px solid transparent',
-                            background: 'transparent',
-                        }}
+                        className={`flex items-center justify-center w-12 h-12 transition-colors [background:transparent] ${isActive ? '[color:var(--vsc-actbar-icon-active)] [border-left:2px_solid_var(--vsc-statusbar-bg)]' : '[color:var(--vsc-actbar-icon)] [border-left:2px_solid_transparent]'}`}
                     >
                         <Icon size={22} strokeWidth={isActive ? 1.8 : 1.5} />
                     </button>

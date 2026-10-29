@@ -71,7 +71,7 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
     return (
         <div className="[display:flex] [gap:12px] [align-items:baseline]">
             <span className="min-w-[110px] [font-size:11px] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.04em]">{label}</span>
-            <span style={{ fontFamily: mono ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit', wordBreak: 'break-all', flex: 1, color: value ? 'var(--text-primary)' : 'var(--text-muted)' }}>{value || '—'}</span>
+            <span className={`[word-break:break-all] [flex:1] ${mono ? '[font-family:var(--font-mono,_ui-monospace,_monospace)]' : '[font-family:inherit]'} ${value ? '[color:var(--text-primary)]' : '[color:var(--text-muted)]'}`}>{value || '—'}</span>
         </div>
     );
 }
@@ -133,7 +133,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
 
     const refreshBtn = (
         <button onClick={fetchData} title={t('org.terminations_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
-            <RefreshCw style={{ width: 13, height: 13, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw className={`[width:13px] [height:13px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
         </button>
     );
 
@@ -218,18 +218,18 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                     <Card>
                         <div className="[display:flex] [gap:8px] [margin-bottom:12px] [flex-wrap:wrap] [align-items:center]">
                             <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [flex:0_1_220px]">
-                                <Search style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
+                                <Search className="[width:12px] [height:12px] [color:var(--text-muted)]" />
                                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('org.terminations_search_placeholder')} className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary)] w-[100%]" />
                             </div>
                             <div style={filterSelectWrapper}>
-                                <Filter style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
+                                <Filter className="[width:12px] [height:12px] [color:var(--text-muted)]" />
                                 <select value={filterType} onChange={e => setFilterType(e.target.value)} style={filterSelectStyle}>
                                     <option value="">{t('org.terminations_all_types')}</option>
                                     {TYPE_ORDER.map(tk => <option key={tk} value={tk}>{t(`org.terminations_type_${tk}`)}</option>)}
                                 </select>
                             </div>
                             <div style={filterSelectWrapper}>
-                                <Bot style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
+                                <Bot className="[width:12px] [height:12px] [color:var(--text-muted)]" />
                                 <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} style={filterSelectStyle}>
                                     <option value="">{t('org.terminations_all_agents')}</option>
                                     {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -266,7 +266,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                             <TypeBadge type={r.termination_type} t={t} />
                                             {isLargeInput(r, showTokens) && (
                                                 <span title={t('org.terminations_large_input_hint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: `${C.amber}15`, color: C.amber, border: `1px solid ${C.amber}30`, marginLeft: 6 }}>
-                                                    <FileWarning style={{ width: 10, height: 10 }} />{t('org.terminations_large_input')}
+                                                    <FileWarning className="[width:10px] [height:10px]" />{t('org.terminations_large_input')}
                                                 </span>
                                             )}
                                         </span>
@@ -299,7 +299,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                             <DetailRow label={t('org.terminations_detail_attachments')} value={r.attachment_count > 0 ? `${r.attachment_count} · ${fmtBytes(r.attachment_bytes || 0)}` : null} />
                                             {isLargeInput(r, showTokens) && (
                                                 <div style={{ marginTop: 6, padding: '8px 10px', borderRadius: 8, background: `${C.amber}12`, border: `1px solid ${C.amber}30`, fontSize: 11, color: C.amber, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                                                    <FileWarning style={{ width: 12, height: 12, marginTop: 1, flexShrink: 0 }} />
+                                                    <FileWarning className="[width:12px] [height:12px] [margin-top:1px] [flex-shrink:0]" />
                                                     <span><strong>{t('org.terminations_large_input_strong')}</strong> {t('org.terminations_large_input_explain')}</span>
                                                 </div>
                                             )}

@@ -21,6 +21,7 @@ const { PROVIDERS } = require('./index');
  */
 function resolveDeclared(relations, created, siblings) {
     const byTable = new Map();
+    /** @type {string[]} */
     const warnings = [];
     const createdByRef = new Map(created.map(({ plan, table }) => [plan.refKey, { plan, table }]));
 

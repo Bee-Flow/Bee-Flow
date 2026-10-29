@@ -4,7 +4,7 @@
 // state: awaiting-payment ids, the in-flight install (progress polling), and
 // the pending permission-consent request.
 
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useState, type Dispatch, type SetStateAction } from 'react';
 import { normalizePermissions } from './permissionCopy';
 import { buildPurchaseReturnUrls } from './purchaseReturn';
 import type { PolicyChange } from './UpdatePolicySelector';
@@ -35,46 +35,22 @@ interface UseModuleActionsArgs {
     refetchMarketplace: () => void;
 }
 
-export function useModuleActions({ t: tOverride, flash, reloadEntitlements, refetchMarketplace }: UseModuleActionsArgs) {
-    const { t: tHook } = useTranslation();
-    const t = tOverride || tHook;
+type InstallingModule = { id: string; name: string; };
+type ConsentRequest = { module: ModuleRef; permissions: { id: string }[]; mode: 'install' | 'update' };
 
-    const purchase = usePurchaseModule();
-    const refreshEnt = useRefreshEntitlements();
-    const install = useInstallModule();
-    const update = useUpdateModule();
-    const reactivate = useReactivateModule();
-    const rollback = useRollbackModule();
-    const activateStaged = useActivateStaged();
-    const updatePolicy = useUpdatePolicy();
+interface InstallSettlementArgs {
+    installing: InstallingModule | null;
+    setInstalling: Dispatch<SetStateAction<InstallingModule | null>>;
+    progress: ReturnType<typeof useInstallProgress>;
+    setConsent: Dispatch<SetStateAction<ConsentRequest | null>>;
+    refreshAll: () => void;
+    refetchMarketplace: () => void;
+    flash: UseModuleActionsArgs['flash'];
+    t: NonNullable<UseModuleActionsArgs['t']>;
+}
 
-    // Modules whose Checkout was opened and are awaiting payment confirmation.
-    const [awaitingIds, setAwaitingIds] = useState(() => new Set<string>());
-    // The module currently installing on this node (drives progress polling).
-    const [installing, setInstalling] = useState<{ id: string; name: string; } | null>(null); // { id, name } | null
-    // Pending consent request: { module, permissions:[{id,reason?}], mode }.
-    const [consent, setConsent] = useState<{ module: ModuleRef; permissions: { id: string }[]; mode: 'install' | 'update' } | null>(null);
-    const progress = useInstallProgress(installing?.id || null, { enabled: !!installing });
-
-    const refreshAll = () => {
-        reloadEntitlements();
-        refetchMarketplace();
-    };
-
-    // ── Error → user text ──
-    const purchaseErrText = (e: ModuleApiError) => {
-        if (e?.body?.error === 'already_entitled' || e?.status === 409) return null; // benign
-        return t('modules.purchase_failed');
-    };
-    const installErrText = (e: ModuleApiError) => {
-        if (e?.status === 402 || e?.body?.error === 'not_entitled') return t('modules.error_not_entitled');
-        if (e?.status === 409 || e?.body?.error === 'install_in_progress' || e?.body?.error === 'module_unavailable') {
-            return t('modules.error_install_in_progress');
-        }
-        return t('modules.install_failed');
-    };
-
-    // ── Install progress → terminal handling ──
+/** Install progress → terminal handling: done, staged, error (maybe a consent request), or a vanished record. */
+function useInstallSettlement({ installing, setInstalling, progress, setConsent, refreshAll, refetchMarketplace, flash, t }: InstallSettlementArgs) {
     const settleInstall = useEffectEvent(() => {
         if (!installing) return;
         const phase = progress.data?.phase;
@@ -111,6 +87,48 @@ export function useModuleActions({ t: tOverride, flash, reloadEntitlements, refe
     useEffect(() => {
         if (installing) settleInstall();
     }, [progress.data?.phase, progress.isError, installing]);
+}
+
+export function useModuleActions({ t: tOverride, flash, reloadEntitlements, refetchMarketplace }: UseModuleActionsArgs) {
+    const { t: tHook } = useTranslation();
+    const t = tOverride || tHook;
+
+    const purchase = usePurchaseModule();
+    const refreshEnt = useRefreshEntitlements();
+    const install = useInstallModule();
+    const update = useUpdateModule();
+    const reactivate = useReactivateModule();
+    const rollback = useRollbackModule();
+    const activateStaged = useActivateStaged();
+    const updatePolicy = useUpdatePolicy();
+
+    // Modules whose Checkout was opened and are awaiting payment confirmation.
+    const [awaitingIds, setAwaitingIds] = useState(() => new Set<string>());
+    // The module currently installing on this node (drives progress polling).
+    const [installing, setInstalling] = useState<InstallingModule | null>(null); // { id, name } | null
+    // Pending consent request: { module, permissions:[{id,reason?}], mode }.
+    const [consent, setConsent] = useState<ConsentRequest | null>(null);
+    const progress = useInstallProgress(installing?.id || null, { enabled: !!installing });
+
+    const refreshAll = () => {
+        reloadEntitlements();
+        refetchMarketplace();
+    };
+
+    // ── Error → user text ──
+    const purchaseErrText = (e: ModuleApiError) => {
+        if (e?.body?.error === 'already_entitled' || e?.status === 409) return null; // benign
+        return t('modules.purchase_failed');
+    };
+    const installErrText = (e: ModuleApiError) => {
+        if (e?.status === 402 || e?.body?.error === 'not_entitled') return t('modules.error_not_entitled');
+        if (e?.status === 409 || e?.body?.error === 'install_in_progress' || e?.body?.error === 'module_unavailable') {
+            return t('modules.error_install_in_progress');
+        }
+        return t('modules.install_failed');
+    };
+
+    useInstallSettlement({ installing, setInstalling, progress, setConsent, refreshAll, refetchMarketplace, flash, t });
 
     // ── Actions ──
     const buy = (module: MarketplaceModule) => {

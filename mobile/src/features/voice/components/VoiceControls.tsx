@@ -7,6 +7,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Icon, IconButton } from '@/shared/ui';
 
@@ -25,6 +26,7 @@ const makeStyles = (theme: Theme) => ({
 });
 
 export function VoiceControls({ voice, needsPermission }: { voice: UseVoiceSession; needsPermission: boolean }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const dismissIcon = <Icon name="X" size={16} color={theme.colors.textSecondary} />;
@@ -36,7 +38,7 @@ export function VoiceControls({ voice, needsPermission }: { voice: UseVoiceSessi
                     action={
                         <IconButton
                             icon={dismissIcon}
-                            accessibilityLabel="Dismiss this problem"
+                            accessibilityLabel={t('mobile.voice.dismiss_problem', 'Dismiss this problem')}
                             onPress={voice.clearError}
                         />
                     }
@@ -51,7 +53,11 @@ export function VoiceControls({ voice, needsPermission }: { voice: UseVoiceSessi
                 <Banner
                     tone="info"
                     action={
-                        <IconButton icon={dismissIcon} accessibilityLabel="Dismiss this note" onPress={voice.clearNotice} />
+                        <IconButton
+                            icon={dismissIcon}
+                            accessibilityLabel={t('mobile.voice.dismiss_note', 'Dismiss this note')}
+                            onPress={voice.clearNotice}
+                        />
                     }
                 >
                     {voice.notice}
@@ -64,13 +70,13 @@ export function VoiceControls({ voice, needsPermission }: { voice: UseVoiceSessi
 
             {voice.phase !== 'offline' ? (
                 <Button
-                    label="End"
+                    label={t('automations.ndv.family.end', 'End')}
                     variant="danger"
                     size="lg"
                     fullWidth
                     iconName="PhoneOff"
                     onPress={voice.hangUp}
-                    accessibilityHint="Stops listening and closes the microphone"
+                    accessibilityHint={t('mobile.voice.end_hint', 'Stops listening and closes the microphone')}
                 />
             ) : null}
         </View>

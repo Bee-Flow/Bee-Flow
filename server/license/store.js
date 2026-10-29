@@ -54,19 +54,7 @@ function rowToLicense(row) {
     };
 }
 
-/**
- * @typedef {Object} UpsertLicenseArgs
- * @property {string} [licenseId]
- * @property {string | null | undefined} [organizationId]
- * @property {string} [scope]
- * @property {string} [rawToken]
- * @property {string} [tier]
- * @property {string} issuer
- * @property {string} issuedAt
- * @property {string} expiresAt
- * @property {string} [billingInterval]
- * @property {string | null} [activatedBy]
- */
+/** @typedef {{ licenseId?: string, organizationId?: string | null | undefined, scope?: string, rawToken?: string, tier?: string, issuer: string, issuedAt: string, expiresAt: string, billingInterval?: string, activatedBy?: string | null }} UpsertLicenseArgs */
 /**
  * Insert or replace a license activation. Older active licenses for the same
  * scope target are marked expired so only one is "current".
@@ -344,11 +332,7 @@ async function markRevoked(licenseId, reason = null) {
     }
 }
 
-/**
- * @typedef {Object} GetAdminIssuedLicensesArgs
- * @property {string | null} [organizationId]
- * @property {boolean} [includeInactive]
- */
+/** @typedef {{ organizationId?: string | null, includeInactive?: boolean }} GetAdminIssuedLicensesArgs */
 /**
  * List licenses issued by the admin console (issuer = 'beeflow.admin.console').
  * Pass `organizationId` to scope to a single org. Includes expired/revoked rows
@@ -449,22 +433,10 @@ module.exports = {
 };
 
 /**
- * @typedef {object} LicenseRecord
- * @property {string} id
- * @property {string | null} organizationId
- * @property {string | null} userId
- * @property {string} scope
- * @property {string} rawToken
- * @property {string} tier
- * @property {string | null} issuer
- * @property {string | Date | null} issuedAt
- * @property {string | Date | null} expiresAt
- * @property {string | null} billingInterval
- * @property {string | Date | null} lastRefreshAt
- * @property {string} refreshStatus
- * @property {string | Date | null} revokedAt
- * @property {string | null} activatedBy
- * @property {Record<string, unknown>} metadata
- * @property {string | Date} createdAt
- * @property {string | Date} updatedAt
+ * @typedef {{ id: string, organizationId: string | null, userId: string | null, scope: string,
+ *   rawToken: string, tier: string, issuer: string | null, issuedAt: string | Date | null,
+ *   expiresAt: string | Date | null, billingInterval: string | null,
+ *   lastRefreshAt: string | Date | null, refreshStatus: string, revokedAt: string | Date | null,
+ *   activatedBy: string | null, metadata: Record<string, unknown>, createdAt: string | Date,
+ *   updatedAt: string | Date }} LicenseRecord
  */

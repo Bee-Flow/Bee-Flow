@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('../../stores/agent/agentUsage').UsageRow} UsageRow */
 /**
  * Agents — who uses them.
  *
@@ -97,13 +99,15 @@ function audienceOf(agent) {
  * disagreement people meet is a tab saying "used by nothing" beside a delete
  * that will not go through.
  *
- * @param {object} agent   the concept row (getAgent)
+ * @param {import('./crud').AgentRow} agent   the concept row (getAgent)
  * @param {string} askerId whose conversations are "their own", and whose rows
  *                         keep their names
  */
 async function gatherUsage(agent, askerId) {
+    /** @type {string[]} */
     const unchecked = [];
 
+    /** @type {Omit<UsageRow, 'agentId'>[]} */
     let rows = [];
     try {
         const scan = await agentStore.usageForAgent(agent.id);
@@ -117,10 +121,11 @@ async function gatherUsage(agent, askerId) {
     } catch (e) {
         // usageForAgent already degrades per kind, so reaching here means the
         // whole pass failed. Nothing is known, and nothing is claimed.
-        log.warn('[agents] usage scan unavailable:', e.message);
+        log.warn('[agents] usage scan unavailable:', /** @type {Error} */ (e).message);
         unchecked.push(...USAGE_KINDS);
     }
 
+    /** @type {{ conversationCount: number; userCount: number; othersConversationCount: number; lastUsedAt: string | null; } | null} */
     let chat = null;
     try {
         const stats = await agentStore.getAgentChatStats([agent.id], { excludeUserId: askerId || null });
@@ -128,7 +133,7 @@ async function gatherUsage(agent, askerId) {
     } catch (e) {
         // Unknown, not zero: the delete guard reads `othersConversationCount`
         // to decide whether it is about to destroy colleagues' history.
-        log.warn('[agents] chat stats unavailable:', e.message);
+        log.warn('[agents] chat stats unavailable:', /** @type {Error} */ (e).message);
     }
     // One place decides what `chat: null` means, so a batch that came back
     // without this agent in it cannot slip through as a silent null the
@@ -141,6 +146,7 @@ async function gatherUsage(agent, askerId) {
     // above, not in the footer and not in the history. It does cost money, though, so it sits under its own source in the
     // usage log — and THERE it can be counted, without ever being added to the number next to it. Two numbers that have
     // nothing to do with each other therefore also carry two names here.
+    /** @type {number | null | undefined} */
     let testChats = null;
     try {
         const usageStore = require('../../stores/usageStore');
@@ -149,7 +155,7 @@ async function gatherUsage(agent, askerId) {
         testChats = Number.isFinite(n) ? n : null;
     } catch (e) {
         // Unknown, not zero. Zero is a claim.
-        log.warn('[agents] test-chat count unavailable:', e.message);
+        log.warn('[agents] test-chat count unavailable:', /** @type {Error} */ (e).message);
     }
     // DELIBERATELY NOT in `unchecked`. That list is what the deletion guarantee reads as
     // "in use", and rightly so: an unreadable scan could hide someone else's automation or page. A test chat

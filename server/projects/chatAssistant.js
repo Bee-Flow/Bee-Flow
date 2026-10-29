@@ -97,30 +97,42 @@ const { DEFAULT_TIMEOUT_MS, LOCK_MARGIN_MS, DEFAULT_LOCK_POLL_MS, EXPLICIT_TRIGG
 // ── The assistant ─────────────────────────────────────────────────────────
 
 /**
- * @param {object} [deps]
- * @param {any}   [deps.store]            stores/projectChatStore surface
- * @param {any}   [deps.chatCrypto]       { forProject(project) }
- * @param {any}   [deps.locks]            { acquireTurn, releaseTurn }
- * @param {any}   [deps.shield]           makeChatShield() surface
- * @param {import('./chatAnswerSteps').AnswerCtx['llmChat']} [deps.llmChat]          (modelId, messages, options) => { content, usage }
- * @param {import('./chatAnswerSteps').AnswerCtx['runToolLoop']} [deps.runToolLoop]      (modelId, messages, tools, options, executeTool, maxRounds) => { content, usage }, for the project tools
- * @param {any}   [deps.projectTools]     projects/chatTools surface: offered, forAnswer
- * @param {typeof resolveChatModel} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {import('./chatAnswerSteps').AnswerCtx['resolvePersona']} [deps.resolvePersona]   ({agentId, userId}) => { agentId, name, systemPrompt } | null
- * @param {import('./chatAnswerSteps').AnswerCtx['searchKnowledge']} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds?}) => string
- * @param {import('./chatAnswerSteps').AnswerCtx['loadTagged']} [deps.loadTagged]       (refs, {userId}) => [{kind, name, text}], the tagged documents and notebooks the asker may read
- * @param {import('./chatAnswerSteps').AnswerCtx['listAudience']} [deps.listAudience]     (project) => string[] | null, for automatic answers
- * @param {(id: string) => Promise<any>} [deps.getUser]          (id) => user row
- * @param {(limitOrgId: string|null, userId: string) => Promise<string|null>} [deps.checkLimits]      (limitOrgId, userId) => error text | null
- * @param {import('./chatAnswerSteps').AnswerCtx['emit']} [deps.emit]             (projectId, event) => durable event
- * @param {(projectId: string, event: object) => Promise<unknown>} [deps.publishTransient] (projectId, event) => transient event
- * @param {import('./chatAnswerSteps').AnswerCtx['logUsage']} [deps.logUsage]         (entry) => usage row
- * @param {(decision: object) => Promise<unknown>} [deps.recordReply]      (decision) => row: an explicit answer, for the automatic cooldown
- * @param {import('./chatAnswerSteps').AnswerCtx['reasonText']} [deps.reasonText]       (reasonCode) => the reason in words, for the automatic prompt
- * @param {number}   [deps.timeoutMs]
- * @param {number}   [deps.lockPollMs]       how often an explicit ask waits-and-retries for a held turn
- * @param {number}   [deps.lockWaitMs]       how long it waits at most (default: the longest answer that could hold the turn)
- * @param {() => string} [deps.newId]
+ * Every dependency is a test seam whose default is the real module: the chat
+ * store, the project's chat crypto, the turn locks, the shield
+ * (makeChatShield()), the model call and the tool loop for the project tools,
+ * the project tools themselves, the model and persona lookups, the knowledge
+ * search, the tagged documents and notebooks the asker may read, the audience
+ * of automatic answers, the user lookup, the limit check (error text or null),
+ * the durable and the transient feed event, usage logging, `recordReply` (an
+ * explicit answer, for the automatic cooldown) and `reasonText` (the gate's
+ * reason in words, for the automatic prompt). `lockPollMs` is how often an
+ * explicit ask waits-and-retries for a held turn, `lockWaitMs` how long it
+ * waits at most (default: the longest answer that could hold the turn).
+ *
+ * @param {{
+ *   store?: typeof import('../stores/projectChatStore'),
+ *   chatCrypto?: { forProject: typeof import('./chatCrypto').forProject },
+ *   locks?: typeof import('../stores/conversationLockStore'),
+ *   shield?: import('./chatAnswerSteps').ChatShield,
+ *   llmChat?: import('./chatAnswerSteps').AnswerCtx['llmChat'],
+ *   runToolLoop?: import('./chatAnswerSteps').AnswerCtx['runToolLoop'],
+ *   projectTools?: ReturnType<typeof import('./chatTools').makeProjectChatTools>,
+ *   resolveModel?: typeof resolveChatModel,
+ *   resolvePersona?: import('./chatAnswerSteps').AnswerCtx['resolvePersona'],
+ *   searchKnowledge?: import('./chatAnswerSteps').AnswerCtx['searchKnowledge'],
+ *   loadTagged?: import('./chatAnswerSteps').AnswerCtx['loadTagged'],
+ *   listAudience?: import('./chatAnswerSteps').AnswerCtx['listAudience'],
+ *   getUser?: typeof import('../stores/userStore').getUser,
+ *   checkLimits?: (limitOrgId: string|null, userId: string) => Promise<string|null>,
+ *   emit?: import('./chatAnswerSteps').AnswerCtx['emit'],
+ *   publishTransient?: (projectId: string, event: Record<string, unknown>) => Promise<unknown>,
+ *   logUsage?: import('./chatAnswerSteps').AnswerCtx['logUsage'],
+ *   recordReply?: typeof import('../stores/projectAiParticipationStore').recordDecision,
+ *   reasonText?: import('./chatAnswerSteps').AnswerCtx['reasonText'],
+ *   timeoutMs?: number,
+ *   lockPollMs?: number,
+ *   lockWaitMs?: number,
+ *   newId?: () => string }} [deps]
  */
 function makeChatAssistant(deps = {}) {
     const store = () => deps.store || require('../stores/projectChatStore');
@@ -222,19 +234,19 @@ function makeChatAssistant(deps = {}) {
      * An explicit ask that finds the turn held is `queued` too: `done` waits for the turn
      * (and is `busy` only when it never came); an automatic answer is `busy` at once.
      *
-     * @param {object} p
-     * @param {any} p.project       the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
-     * @param {any} p.chat          the chat row (id, agentId)
-     * @param {any} p.trigger       the stored message that asked (id)
-     * @param {string} p.triggerText   its plaintext
-     * @param {string} p.userId        the asking member (for an automatic answer: the trigger's author)
-     * @param {string|null} [p.orgId]  their org for tiers and the shield
-     * @param {string|null} [p.limitOrgId] their org for subscription limits
-     * @param {any|null} [p.session]
-     * @param {'ask'|'mention'|'always'|'auto_quiet'|'auto_unanswered'} [p.aiTrigger]  why the AI answers
-     * @param {string|null} [p.reasonCode]   the gate's reason code (automatic answers)
-     * @param {number|null} [p.gateLastSeq]  the last seq the gate read (automatic answers)
-     * @param {string|null} [p.modelTier]  the response depth the asker picked (explicit asks only)
+     * `project` is the project row, `chat` the chat row, `trigger` the stored
+     * message that asked and `triggerText` its plaintext; `userId` is the asking
+     * member (for an automatic answer: the trigger's author), `orgId` their org
+     * for tiers and the shield, `limitOrgId` their org for subscription limits.
+     * `aiTrigger` is why the AI answers; `reasonCode` and `gateLastSeq` are the
+     * gate's reason code and the last seq it read (automatic answers);
+     * `modelTier` is the response depth the asker picked (explicit asks only).
+     *
+     * @param {{ project: import('./chatAnswerSteps').ProjectRef, chat: import('./chatAnswerSteps').ChatRef,
+     *           trigger: import('./chatAnswerSteps').TriggerRef, triggerText: string, userId: string,
+     *           orgId?: string|null, limitOrgId?: string|null, session?: unknown,
+     *           aiTrigger?: 'ask'|'mention'|'always'|'auto_quiet'|'auto_unanswered',
+     *           reasonCode?: string|null, gateLastSeq?: number|null, modelTier?: string|null }} p
      * @returns {Promise<{ status: 'queued'|'busy'|'skipped', reason?: string,
      *   done?: Promise<{ status: string, messageId?: string, reason?: string }> }>}
      */
@@ -318,17 +330,25 @@ function makeChatAssistant(deps = {}) {
     }
 
     /** @param {string} chatId */
-    async function getStatus(chatId) {
-        const turn = await locks().getTurn(chatId);
-        if (!turn) return { status: 'idle', threadId: /** @type {string|null} */ (null) };
-        /** @type {string | null} */
-        let threadId = null;
-        if (turn.runId?.startsWith('pc:')) {
-            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
-        }
-        return { status: 'running', threadId, startedAt: turn.acquiredAt };
-    }
+    const getStatus = (chatId) => chatTurnStatus(locks(), chatId);
     return { requestReply, getStatus };
+}
+
+/**
+ * Whether the assistant holds a chat's turn, and for which thread (read from
+ * the lock's run id, `pc:<thread>:<id>`).
+ * @param {typeof import('../stores/conversationLockStore')} lockStore
+ * @param {string} chatId
+ */
+async function chatTurnStatus(lockStore, chatId) {
+    const turn = await lockStore.getTurn(chatId);
+    if (!turn) return { status: 'idle', threadId: /** @type {string|null} */ (null) };
+    /** @type {string | null} */
+    let threadId = null;
+    if (turn.runId?.startsWith('pc:')) {
+        try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
+    }
+    return { status: 'running', threadId, startedAt: turn.acquiredAt };
 }
 
 module.exports = {

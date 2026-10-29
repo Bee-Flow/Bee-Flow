@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/llm/modelCache').AIConfig} AIConfig */
 /** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
 // @typecheck
 /**
@@ -56,7 +57,9 @@ async function resolveTurnModel(turn) {
         }
     }
 
+    /** @type {string | null} */
     let modelId;
+    /** @type {AIConfig} */
     let cfg;
     let tier = {};
     {

@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/agentRuntime/phaseEvents').PhaseSend} PhaseSend */
 // @typecheck
 /**
  * Notebook chat: what one turn puts in front of the model besides the
@@ -31,6 +32,7 @@ const { STOP } = require('./privacyScans');
 async function retrieveKbContext({ req, notebook, userId, message, readySources, send, notebookId, docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans }) {
     const { _failClosed, _abortFailClosed, _scanViaLedger, _abortBlocked } = scans;
     let kbContext = '';
+    /** @type {{ title: string; index: number; rawTitle: string; content: string; score: number; }[]} */
     let citationSources = [];
     // Re-authorize at read time: rows written before kb ids were validated
     // on update may still carry an id this user can't access, and the search
@@ -61,6 +63,9 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
                 // searchNotebookKB already mapped each chunk to its source by id
                 // (exact). What is left is a title that matched no source id, e.g.
                 // a hit from a base attached by hand: fuzzy-match those only.
+                /**
+                 * @param {string} rawTitle
+                 */
                 const resolveSourceName = (rawTitle) => {
                     if (!rawTitle) return 'Unknown Source';
                     return findSourceForChunk({ title: rawTitle }, readySources)?.name || rawTitle;
@@ -99,13 +104,13 @@ async function retrieveKbContext({ req, notebook, userId, message, readySources,
                         const _rev = buildReverseReplacer(dlpRunner.getConversationTokenMap(notebookId));
                         if (_rev) kbContext = _rev(kbContext);
                     } catch (kbScanErr) {
-                        log.warn('[NotebookChat] KB context PII scan failed:', kbScanErr.message);
+                        log.warn('[NotebookChat] KB context PII scan failed:', /** @type {Error} */ (kbScanErr).message);
                         if (_failClosed) { _abortFailClosed('kb-context'); return STOP; }
                     }
                 }
             }
         } catch (kbErr) {
-            log.warn('[NotebookChat] KB search failed:', kbErr.message);
+            log.warn('[NotebookChat] KB search failed:', /** @type {Error} */ (kbErr).message);
         }
         emitPhaseEnd(send, 'kb_search', Date.now() - _kbT);
     }
@@ -136,6 +141,7 @@ async function buildDocumentContext({ documentContent, notebook, notebookId, doc
     const { fitIntoTokenBudget } = require('../../../core/llm/tokenBudget');
     const DOCUMENT_CONTEXT_TOKENS = 20000;
     let documentContext = '';
+    /** @type {{ originalTokens: number; keptTokens: number; } | null} */
     let documentTruncation = null; // { originalTokens, keptTokens, approxPagesCut }
     // Privacy Shield — scan the notebook document body BEFORE it lands
     // in the system prompt. Without this, PII inside the TipTap editor
@@ -163,7 +169,7 @@ async function buildDocumentContext({ documentContent, notebook, notebookId, doc
                 if (_revDoc) scannedDocumentContent = _revDoc(scannedDocumentContent);
             }
         } catch (docScanErr) {
-            log.warn('[NotebookChat] Document PII scan failed, falling back to raw content:', docScanErr.message);
+            log.warn('[NotebookChat] Document PII scan failed, falling back to raw content:', /** @type {Error} */ (docScanErr).message);
             if (_failClosed) { _abortFailClosed('document'); return STOP; }
         }
     }

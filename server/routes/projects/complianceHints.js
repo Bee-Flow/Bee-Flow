@@ -97,7 +97,7 @@ function makeComplianceHintsRouter(deps = {}) {
             }
         } catch (e) {
             if (e instanceof HttpError) throw e;
-            log.warn(`[ProjectComplianceHints] project ${req.params.id}: no hint (${e?.message || e})`);
+            log.warn(`[ProjectComplianceHints] project ${req.params.id}: no hint (${/** @type {Error} */ (e)?.message || e})`);
             hint = null;
         }
         res.json({ hint });

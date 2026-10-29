@@ -9,6 +9,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, Icon, Sheet, Text } from '@/shared/ui';
 
@@ -37,6 +38,7 @@ function ProposalBody({
     onCreate: () => void;
     onDismiss: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -65,13 +67,15 @@ function ProposalBody({
                 <Button
                     label={
                         proposal.repeat
-                            ? `Schedule it — ${repeatLabel(proposal.repeat).toLowerCase()}`
-                            : 'Schedule it'
+                            ? t('mobile.cowork.schedule_it_repeat', 'Schedule it — {repeat}', {
+                                  repeat: repeatLabel(proposal.repeat).toLowerCase(),
+                              })
+                            : t('mobile.cowork.schedule_it', 'Schedule it')
                     }
                     onPress={onCreate}
                     loading={creating}
                 />
-                <Button label="Not this" variant="ghost" onPress={onDismiss} />
+                <Button label={t('shield_data.act_not_this', 'Not this')} variant="ghost" onPress={onDismiss} />
             </View>
         </View>
     );
@@ -90,8 +94,9 @@ export function ConfirmCoworkSheet({
     onCreate: (proposal: Proposal) => void;
     onDismiss: () => void;
 }) {
+    const t = useTranslation();
     return (
-        <Sheet visible={Boolean(proposal)} onClose={onDismiss} title="Schedule this?">
+        <Sheet visible={Boolean(proposal)} onClose={onDismiss} title={t('mobile.cowork.schedule_this', 'Schedule this?')}>
             {proposal ? (
                 <ProposalBody
                     proposal={proposal}

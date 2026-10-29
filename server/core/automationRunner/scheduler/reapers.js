@@ -223,6 +223,7 @@ async function reapExpiredRunTables() {
         const rows = await automationStore.listExpiredRunTables(200);
         if (!rows.length) return;
         const storageStore = require('../../../stores/storageStore');
+        /** @type {string[]} */
         const reaped = [];
         for (const row of rows) {
             try {

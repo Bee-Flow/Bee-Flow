@@ -13,7 +13,7 @@
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
-/** @param {any} ctx */
+/** @param {Pick<import('./gmail').PollerCtx, 'store' | 'googleClient'>} ctx */
 function createGoogleCalendarPollers(ctx) {
     return {
         'event.changed': async (sub, session) => {

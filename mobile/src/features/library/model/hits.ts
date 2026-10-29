@@ -6,12 +6,12 @@
  * the hub anyway, so they are filtered here.
  */
 
-import { timeAgo } from '@/core/i18n';
+import { timeAgo, translate, type TranslateFn } from '@/core/i18n';
 import type { OwnedDocument } from '@/features/documents';
 import type { KnowledgeBase } from '@/features/knowledge';
 import type { NotebookCard } from '@/features/notebooks';
 import type { Template } from '@/features/templates';
-import { plural } from '@/shared/lib/format';
+import { nOf } from '@/shared/lib/plural';
 import type { IconName } from '@/shared/ui';
 
 import type { LibraryHit } from './types';
@@ -30,12 +30,18 @@ export const KIND_ICON: Record<LibraryHit['kind'], IconName> = {
     template: 'PanelsTopLeft',
 };
 
-export const KIND_LABEL: Record<LibraryHit['kind'], string> = {
-    notebook: 'Notebook',
-    knowledge: 'Knowledge',
-    document: 'Document',
-    template: 'Template',
-};
+export function kindLabel(t: TranslateFn, kind: LibraryHit['kind']): string {
+    switch (kind) {
+        case 'notebook':
+            return t('mobile.library.kind_notebook', 'Notebook');
+        case 'knowledge':
+            return t('mobile.library.kind_knowledge', 'Knowledge');
+        case 'document':
+            return t('automations.document_fields.document', 'Document');
+        case 'template':
+            return t('mobile.library.kind_template', 'Template');
+    }
+}
 
 const notebookHit = (nb: NotebookCard): LibraryHit => ({
     kind: 'notebook',
@@ -51,14 +57,14 @@ const baseHit = (kb: KnowledgeBase): LibraryHit => ({
     id: kb.id,
     title: kb.name,
     subtitle: kb.description || undefined,
-    meta: `${Number(kb.document_count ?? 0)} docs`,
+    meta: nOf(translate, 'mobile.library.n_docs', Number(kb.document_count ?? 0), ['{count} doc', '{count} docs']),
     href: `/knowledge/${kb.id}`,
 });
 
 const documentHit = (doc: OwnedDocument): LibraryHit => ({
     kind: 'document',
     id: doc.id,
-    title: doc.title || 'Untitled document',
+    title: doc.title || translate('mobile.knowledge.untitled_document', 'Untitled document'),
     subtitle: doc.kbName,
     meta: timeAgo(doc.created_at),
     href: `/knowledge/${doc.kbId}`,
@@ -69,7 +75,7 @@ const templateHit = (t: Template): LibraryHit => ({
     id: t.id,
     title: t.name,
     subtitle: t.description || undefined,
-    meta: plural(t.parameters.length, 'field'),
+    meta: nOf(translate, 'mobile.library.n_fields', t.parameters.length, ['{count} field', '{count} fields']),
     href: '/templates',
 });
 

@@ -147,7 +147,7 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
             { role: 'user', content: userMsg },
         ], LABEL_STEPS_TOOL, { maxTokens: 1024, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
-        log.error('[automationBuilder/label-steps] inference failed:', e.message);
+        log.error('[automationBuilder/label-steps] inference failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'label_steps_unavailable', 'Could not generate labels right now.');
     }
 

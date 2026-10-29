@@ -23,7 +23,10 @@ const SIGN_OK_BEFORE_RE = /[\p{L}\p{N}]$/u;
 /** @typedef {{ value: number, decimals: number }} NumberCandidate */
 /** @typedef {{ cands: NumberCandidate[], percent: boolean }} NumberEntry */
 
-/** Digits after the decimal point of a JS number (as it would print). */
+/**
+ * Digits after the decimal point of a JS number (as it would print).
+ * @param {number} n
+ */
 function decimalsOf(n) {
     if (!Number.isFinite(n) || Number.isInteger(n)) return 0;
     const s = String(n);
@@ -36,14 +39,21 @@ function decimalsOf(n) {
     return s.includes('.') ? s.split('.')[1].length : 0;
 }
 
-/** Strip placeholders (always) and dates (when asked) so their digits are not read. */
+/**
+ * Strip placeholders (always) and dates (when asked) so their digits are not read.
+ * @param {string} text
+ * @param {boolean} ignoreDates
+ */
 function stripNoise(text, ignoreDates) {
     let s = String(text).replace(PLACEHOLDER_RE, ' ');
     if (ignoreDates) s = s.replace(ISO_DATE_RE, ' ').replace(DMY_DATE_RE, ' ');
     return s;
 }
 
-/** The readings of one digit run such as `1.234,5` (see the file header). */
+/**
+ * The readings of one digit run such as `1.234,5` (see the file header).
+ * @param {string} raw
+ */
 function readingsOf(raw) {
     const groups = raw.split(/\D/);
     const seps = raw.replace(/\d/g, '').split('');
@@ -51,7 +61,11 @@ function readingsOf(raw) {
     if (k === 0) return [{ value: Number(groups[0]), decimals: 0 }];
     const lead = groups[0];
     const leadOk = lead.length >= 1 && lead.length <= 3 && !(lead.length > 1 && lead.startsWith('0')) && lead !== '0';
+    /**
+     * @param {number} to
+     */
     const middleOk = (to) => groups.slice(1, to).every((g) => g.length === 3);
+    /** @type {{ value: number; decimals: number; }[]} */
     const out = [];
     // A: every separator is a thousands separator (all later groups hold 3 digits).
     if (leadOk && middleOk(k + 1)) out.push({ value: Number(groups.join('')), decimals: 0 });
@@ -77,8 +91,10 @@ function extractNumbers(text, opts = {}) {
     const { ignoreDates = true, ignoreUpTo = 0 } = opts;
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the date and placeholder patterns have no nested repeats, the digit-group pattern needs a separator between repeats: linear
     const s = stripNoise(text, ignoreDates);
+    /** @type {{ cands: { value: number; decimals: number; }[]; percent: boolean; }[]} */
     const out = [];
     NUMBER_RE.lastIndex = 0;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = NUMBER_RE.exec(s)) !== null) {
         const before = s.slice(0, m.index);
@@ -94,6 +110,7 @@ function extractNumbers(text, opts = {}) {
 
 /** Every number found anywhere in a run value (numbers directly, strings scanned), sorted. */
 function collectSourceNumbers(value) {
+    /** @type {number[]} */
     const nums = [];
     const seen = new Set();
     const stack = [value];
@@ -111,7 +128,12 @@ function collectSourceNumbers(value) {
     return Float64Array.from(nums).sort();
 }
 
-/** Is there a source number in [lo, hi]? `sorted` is ascending. */
+/**
+ * Is there a source number in [lo, hi]? `sorted` is ascending.
+ * @param {Float64Array<ArrayBufferLike>} sorted
+ * @param {number} lo
+ * @param {number} hi
+ */
 function anyInWindow(sorted, lo, hi) {
     let a = 0;
     let b = sorted.length;
@@ -150,7 +172,7 @@ function entriesOfValue(value, opts, out = []) {
 
 /**
  * Does `value` hold a number the source does not support?
- * @param {any} value
+ * @param {unknown} value
  * @param {Float64Array} sorted from collectSourceNumbers
  * @param {{ tolerance?: number, ignoreUpTo?: number, percent?: boolean, ignoreDates?: boolean }} [opts]
  */

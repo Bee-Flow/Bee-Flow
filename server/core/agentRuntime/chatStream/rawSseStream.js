@@ -94,7 +94,7 @@ async function streamRawSseRound({
         }
         onEvent('content', { text });
     };
-    const sseThinkSplitter = createThinkTagSplitter(/** @type {any} */ ({
+    const sseThinkSplitter = createThinkTagSplitter(/** @type {Parameters<typeof createThinkTagSplitter>[0]} */ ({
         onText: _emitVisibleText,
         onThinking: (/** @type {string} */ text) => {
             onEvent('thinking', { text });

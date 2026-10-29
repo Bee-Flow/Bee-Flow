@@ -226,36 +226,7 @@ export default function SettingsTab({
             </section>
 
             {/* ── Duplicate ─────────────────────────────────────── */}
-            {canManage && kb?.id && (
-                <section className="flex flex-col gap-2" data-testid="kb-duplicate">
-                    <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
-                        {t('knowledge.settings.duplicate_title', 'Make a copy')}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            disabled={saving}
-                            onClick={() => duplicate(false)}
-                            data-testid="kb-duplicate-shell"
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
-                        >
-                            {t('knowledge.settings.duplicate_shell', 'Empty copy')}
-                        </button>
-                        <button
-                            type="button"
-                            disabled={saving}
-                            onClick={() => duplicate(true)}
-                            data-testid="kb-duplicate-sources"
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
-                        >
-                            {t('knowledge.settings.duplicate_sources', 'Copy with its sources')}
-                        </button>
-                    </div>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">
-                        {t('knowledge.settings.duplicate_hint', 'Documents are never copied. A copied source reads its own files and pages again on its first refresh, so the copy gets what is there now.')}
-                    </p>
-                </section>
-            )}
+            {canManage && kb?.id && <DuplicateSection t={t} saving={saving} duplicate={duplicate} />}
 
             {/* ── Danger zone ───────────────────────────────────── */}
             {canManage && kb?.id && (
@@ -288,6 +259,40 @@ export default function SettingsTab({
                 />
             )}
         </div>
+    );
+}
+
+/** Make a copy: an empty shell, or one that reads the same sources. */
+function DuplicateSection({ t, saving, duplicate }: { t: TranslateFn; saving: boolean; duplicate: (withSources: boolean) => void }) {
+    return (
+        <section className="flex flex-col gap-2" data-testid="kb-duplicate">
+            <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
+                {t('knowledge.settings.duplicate_title', 'Make a copy')}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => duplicate(false)}
+                    data-testid="kb-duplicate-shell"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
+                >
+                    {t('knowledge.settings.duplicate_shell', 'Empty copy')}
+                </button>
+                <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => duplicate(true)}
+                    data-testid="kb-duplicate-sources"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
+                >
+                    {t('knowledge.settings.duplicate_sources', 'Copy with its sources')}
+                </button>
+            </div>
+            <p className="text-[11px] text-[var(--text-tertiary)]">
+                {t('knowledge.settings.duplicate_hint', 'Documents are never copied. A copied source reads its own files and pages again on its first refresh, so the copy gets what is there now.')}
+            </p>
+        </section>
     );
 }
 

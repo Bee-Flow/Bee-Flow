@@ -47,8 +47,18 @@ export function normalise(code) {
         .split('\n').map((l) => l.trim()).filter(Boolean);
 }
 
+/**
+ * A JSDoc cast (`/** @type {T} *\/ (x)`) is a comment plus parentheses and changes nothing at
+ * run time, but esbuild keeps a JSDoc comment inside an expression and then breaks the
+ * call it sits in over several lines, so the line-by-line comparison below saw a cast as a
+ * difference. The comment goes before compiling; esbuild drops the redundant parentheses.
+ */
+export function stripJsDocCasts(source) {
+    return source.replace(/\/\*\*\s*@(?:type|satisfies)\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}\s*\*\/\s*(?=\()/g, '');
+}
+
 export async function compile(source) {
-    const { code } = await loadEsbuild().transform(source, { loader: 'tsx', jsx: 'preserve', legalComments: 'none', format: 'esm', target: 'esnext' });
+    const { code } = await loadEsbuild().transform(stripJsDocCasts(source), { loader: 'tsx', jsx: 'preserve', legalComments: 'none', format: 'esm', target: 'esnext' });
     return normalise(code);
 }
 

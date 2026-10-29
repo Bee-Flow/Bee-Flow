@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok, fail } from '@/test/http';
@@ -87,10 +87,12 @@ describe('ConnectorHealthPanel', () => {
     });
 
     it('narrows rows with the search box', async () => {
+        const user = userEvent.setup();
         mockFleet();
         render(<ConnectorHealthPanel />);
         await screen.findByText('Blokkade BV');
-        fireEvent.change(screen.getByPlaceholderText('Search by name or URL…'), { target: { value: 'acme' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or URL…'));
+        await user.type(screen.getByPlaceholderText('Search by name or URL…'), 'acme');
         expect(screen.queryByText('Blokkade BV')).toBeNull();
         expect(screen.getByText('Acme BV')).toBeTruthy();
     });

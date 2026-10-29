@@ -69,7 +69,7 @@ async function getProjectRole(userId, projectId) {
         const groupIds = await resolveUserGroups(userId);
         return await projectStore.getProjectRole(userId, projectId, groupIds);
     } catch (err) {
-        log.error('[ProjectAccess] role resolution failed:', err.message);
+        log.error('[ProjectAccess] role resolution failed:', /** @type {Error} */ (err).message);
         return null;
     }
 }
@@ -131,7 +131,7 @@ async function resolveRequestedProject(userId, requestedProjectId, minRole = 'vi
     try {
         project = await projectStore.getProject(requestedProjectId);
     } catch (err) {
-        log.error('[ProjectAccess] project fetch failed:', err.message);
+        log.error('[ProjectAccess] project fetch failed:', /** @type {Error} */ (err).message);
         return null;
     }
     if (!project) return null;

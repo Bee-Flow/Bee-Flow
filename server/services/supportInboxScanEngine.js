@@ -26,6 +26,7 @@ const MAX_SCAN_THREADS = parseInt(process.env.SUPPORT_SCAN_MAX_THREADS || '2000'
 const PAGE_SIZE = 100;
 const LEASE_MINUTES = 30;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _emitEvent = null;
 
@@ -39,12 +40,19 @@ function _emit(event, inboxId, data = {}) {
     } catch (err) { fallback('services/supportInboxScanEngine:_emit', err); /* never block the scan on the event bus */ }
 }
 
+/**
+ * @param {number[]} sorted
+ * @param {number} p
+ */
 function _percentile(sorted, p) {
     if (!sorted.length) return null;
     const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
     return sorted[idx];
 }
 
+/**
+ * @param {number[]} latencies
+ */
 function _summarize(latencies) {
     const sorted = latencies.slice().sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
@@ -70,6 +78,7 @@ async function scanGmail(inbox, onRefresh, onProgress) {
     const afterTs = inbox.scan_after ? new Date(inbox.scan_after) : new Date(Date.now() - DEFAULT_WINDOW_DAYS * 86400000);
     const afterStr = afterTs.toISOString().split('T')[0].replace(/-/g, '/');
 
+    /** @type {number[]} */
     const latencies = [];
     let threadsScanned = 0, threadsWithCustomer = 0, pairsFound = 0, noReply = 0, truncated = false;
     let pageToken = null;
@@ -103,7 +112,7 @@ async function scanGmail(inbox, onRefresh, onProgress) {
                 if (firstReply) { latencies.push(Math.round((firstReply.ts - firstInbound.ts) / 1000)); pairsFound++; }
                 else noReply++;
             } catch (e) {
-                log.warn(`[SupportScan] gmail thread ${th.id}:`, e.message);
+                log.warn(`[SupportScan] gmail thread ${th.id}:`, /** @type {Error} */ (e).message);
             }
             if (threadsScanned % 25 === 0) onProgress?.({ processedThreads: threadsScanned, pairsFound });
         }
@@ -141,6 +150,7 @@ async function scanOutlook(inbox, onRefresh, onProgress) {
         onProgress?.({ processedThreads: convos.size, pairsFound: 0 });
     }
 
+    /** @type {number[]} */
     const latencies = [];
     let threadsWithCustomer = 0, pairsFound = 0, noReply = 0;
     for (const msgs of convos.values()) {
@@ -192,9 +202,9 @@ async function runScanForInbox(inboxRow) {
         _emit('scan_done', inbox.id, { ok: true });
         return true;
     } catch (e) {
-        log.warn(`[SupportScan] inbox ${inboxRow.id}:`, e.message);
-        await supportInboxStore.setScanState(inboxRow.id, { status: 'error', progress: { error: String(e.message).slice(0, 300), finishedAt: new Date().toISOString() } }).catch((e) => bestEffort('services/supportInboxScanEngine:runScanForInbox', e));
-        _emit('scan_done', inboxRow.id, { ok: false, error: String(e.message).slice(0, 200) });
+        log.warn(`[SupportScan] inbox ${inboxRow.id}:`, /** @type {Error} */ (e).message);
+        await supportInboxStore.setScanState(inboxRow.id, { status: 'error', progress: { error: String(/** @type {Error} */ (e).message).slice(0, 300), finishedAt: new Date().toISOString() } }).catch((e) => bestEffort('services/supportInboxScanEngine:runScanForInbox', e));
+        _emit('scan_done', inboxRow.id, { ok: false, error: String(/** @type {Error} */ (e).message).slice(0, 200) });
         return false;
     } finally {
         await supportInboxStore.releaseScanLock(inboxRow.id).catch((e) => bestEffort('services/supportInboxScanEngine:runScanForInbox#2', e));

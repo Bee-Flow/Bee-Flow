@@ -136,7 +136,7 @@ function makeResources(deps = {}) {
                 return { written: true, versionId: r.versionId || null };
             }
         } catch (err) {
-            if (isRefusal(err)) return { written: false, refused: true, reason: /** @type {any} */ (err).errorClass || 'refused' };
+            if (isRefusal(err)) return { written: false, refused: true, reason: /** @type {{ errorClass?: string }} */ (err).errorClass || 'refused' };
             throw err;
         }
         return { written: false };
@@ -189,7 +189,7 @@ function makeResources(deps = {}) {
  * @param {unknown} err
  */
 function isRefusal(err) {
-    const e = /** @type {any} */ (err);
+    const e = /** @type {{ errorClass?: string, status?: unknown } | null | undefined} */ (err);
     if (!e) return false;
     const status = Number(e.status);
     return e.errorClass === 'document_too_large' || (status >= 400 && status < 500);

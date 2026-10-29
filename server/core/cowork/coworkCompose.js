@@ -124,19 +124,12 @@ function titleFromBrief(brief) {
  * support — is dropped.
  */
 /**
- * @typedef {object} ModelSpec  what the model replied; every field is untrusted
- * @property {string} [agentId]
- * @property {string} [agentQuote]
- * @property {string} [repeatInterval]
- * @property {unknown} [daysOfWeek]
- * @property {string} [timeOfDay]
- * @property {string} [title]
- * @property {string} [prompt]
+ * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
+ *   timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
+ *   what the model replied; every field is untrusted
  */
 /**
- * @typedef {object} ComposeOpts
- * @property {string} [brief]
- * @property {{ id: string, name?: string, description?: string }[]} [agents]
+ * @typedef {{ brief?: string, agents?: { id: string, name?: string, description?: string }[] }} ComposeOpts
  */
 
 /**
@@ -232,6 +225,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
     const text = String(brief || '').trim();
     if (!text) return { ...fallbackSpec(''), composed: false };
 
+    /** @type {string} */
     let nowLabel;
     try {
         nowLabel = new Date().toLocaleString('en-US', {
@@ -312,7 +306,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
         // Never block the user's work on the composer: fall back to their own
         // words as a one-off, which is exactly what they get without the
         // composer.
-        log.warn(`[CoworkCompose] falling back to the raw brief: ${err.message}`);
+        log.warn(`[CoworkCompose] falling back to the raw brief: ${/** @type {Error} */ (err).message}`);
         return { ...fallbackSpec(text), composed: false };
     }
 }

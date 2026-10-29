@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_inline_layer: fold a flowlet (definition.layers[<key>]) into the flow
  * that calls it, in place of the call_layer step.
@@ -27,8 +28,8 @@ const { findStepAnywhere } = require('./draftGraph');
 const { findDanglingRefs } = require('./stepEditing');
 
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
-const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-const escapeRegExp = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const isObject = (/** @type {object | null | undefined} */ v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const escapeRegExp = (/** @type {string} */ t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Thrown inside the walk; turned into a refusal by applyInlineLayer. */
 class Unmappable extends Error {}
@@ -40,13 +41,19 @@ class Unmappable extends Error {}
  */
 function seam(head, lookup, what) {
     const rx = new RegExp(`^(\\s*)${escapeRegExp(head)}\\.([A-Za-z_][A-Za-z0-9_]*)((?:[.\\[][\\s\\S]*)?)(\\s*)$`);
+    /**
+     * @param {RegExpExecArray} m
+     */
     const resolve = (m) => {
         const binding = lookup(m[2]);
         if (!binding) throw new Unmappable(`${what} "${m[2]}" has no binding to take its place`);
         return binding;
     };
     return {
-        /** A bare path or placeholder body → the new path text, or null when it is not this seam. */
+        /**
+         * A bare path or placeholder body → the new path text, or null when it is not this seam.
+         * @param {string} text
+         */
         path(text) {
             const m = rx.exec(text);
             if (!m) return null;
@@ -56,7 +63,10 @@ function seam(head, lookup, what) {
             }
             return `${m[1]}${binding.path}${m[3]}${m[4]}`;
         },
-        /** A whole {kind:'ref'} binding → the binding that replaces it, or null when it is not this seam. */
+        /**
+         * A whole {kind:'ref'} binding → the binding that replaces it, or null when it is not this seam.
+         * @param {{ path: string; }} ref
+         */
         binding(ref) {
             const m = rx.exec(ref.path);
             if (!m) return null;
@@ -110,11 +120,14 @@ function rewriteSeam(value, s) {
     return value;
 }
 
+/**
+ * @param {{ from: string; to: string; label?: string; caseName?: string; }} e
+ */
 const edgeKey = (e) => `${e.from}\u0000${e.to}\u0000${e.label || ''}`;
 
 /**
- * @param {object} graph  the flow the call_layer step lives in (the root, or the flowlet named by scope)
- * @param {object} draft  the root definition (it holds `layers`)
+ * @param {import('./draftGraph').DraftGraph} graph  the flow the call_layer step lives in (the root, or the flowlet named by scope)
+ * @param {import('./draftGraph').DraftGraph} draft  the root definition (it holds `layers`)
  * @param {{stepId: string}} args
  */
 function applyInlineLayer(graph, draft, args) {
@@ -128,6 +141,9 @@ function applyInlineLayer(graph, draft, args) {
     const layerKey = call.layerKey;
     const layer = draft.layers?.[layerKey];
     if (!isObject(layer)) return { error: `Cannot inline: flowlet "${layerKey}" does not exist.` };
+    /**
+     * @param {string} why
+     */
     const refuse = (why) => ({ error: `Cannot inline flowlet "${layerKey}" at "${stepId}": ${why}. Nothing changed; the flowlet and its call stay as they are.` });
 
     if (call.forEach) return refuse('the call runs once per item (forEach), and the moved steps would run only once');
@@ -149,10 +165,10 @@ function applyInlineLayer(graph, draft, args) {
     try {
         // What the caller passed: trigger.output.<param> → the call's binding.
         const inputs = isObject(call.inputs) ? call.inputs : {};
-        rewriteSeam([...moved, out], seam('trigger.output', (p) => (isObject(inputs[p]) ? inputs[p] : null), 'The flowlet input'));
+        rewriteSeam([...moved, out], seam('trigger.output', (/** @type {string | number} */ p) => (isObject(inputs[p]) ? inputs[p] : null), 'The flowlet input'));
         // What the flowlet returned: steps.<callId>.output.<field> → its Return binding.
         const returned = isObject(out.fields) ? out.fields : {};
-        const result = seam(`steps.${stepId}.output`, (f) => (isObject(returned[f]) ? returned[f] : null), 'The flowlet return field');
+        const result = seam(`steps.${stepId}.output`, (/** @type {string | number} */ f) => (isObject(returned[f]) ? returned[f] : null), 'The flowlet return field');
 
         // The moved steps may still read their own trigger in a form the seam
         // does not understand (an expression, a whole-object read, a bracket).
@@ -206,7 +222,7 @@ function applyInlineLayer(graph, draft, args) {
             ...(stillCalled ? { _note: `Flowlet "${layerKey}" is still called elsewhere, so it was kept.` } : { _note: `Flowlet "${layerKey}" is no longer used and was removed.` }),
         };
     } catch (e) {
-        if (e instanceof Unmappable) return refuse(e.message);
+        if (e instanceof Unmappable) return refuse(/** @type {Error} */ (e).message);
         throw e;
     }
 }

@@ -1,3 +1,4 @@
+/** @typedef {import('./documentRenderer').AiMarking} AiMarking */
 const { featureModule } = require('../../featureModules');
 const { escapeHtml } = require('../../../templates/exportTemplate');
 const log = require('../../../telemetry/log');
@@ -27,7 +28,7 @@ async function renderDeckPdf({ deck, theme = null, title = '', marking = null, d
     try {
         rendered = await renderPdfViaBrowser(html, { layout: 'slides', marking: mark });
     } catch (e) {
-        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${e.message}`);
+        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${/** @type {Error} */ (e).message}`);
         const buffer = await renderPdfViaPdfkit(deckToPlainText(deck), { title: title || deck.title, marking: mark });
         return {
             buffer, contentType: CONTENT_TYPES.pdf, format: 'pdf', extension: 'pdf', degraded: true,
@@ -51,6 +52,7 @@ async function renderDeckPdf({ deck, theme = null, title = '', marking = null, d
 /**
  * Chromium's per-page footer: the page counter on the right and, for a marked
  * document, the marking line on the left of the same 8px row.
+ * @param {AiMarking | null} marking
  */
 function browserFooterTemplate(marking) {
     const text = markingText(marking);
@@ -73,7 +75,7 @@ async function applyPdfMarkingMetadata(buffer, marking, { title = '' } = {}) {
     try {
         ({ PDFDocument } = require('pdf-lib'));
     } catch (e) {
-        log.warn(`[documentRenderer] pdf-lib unavailable, PDF metadata not written: ${e.message}`);
+        log.warn(`[documentRenderer] pdf-lib unavailable, PDF metadata not written: ${/** @type {Error} */ (e).message}`);
         return { buffer, metadata: false };
     }
     try {
@@ -91,11 +93,14 @@ async function applyPdfMarkingMetadata(buffer, marking, { title = '' } = {}) {
         const out = Buffer.from(await doc.save({ useObjectStreams: false }));
         return { buffer: out, metadata: true };
     } catch (e) {
-        log.warn(`[documentRenderer] PDF metadata pass failed, keeping the unmarked bytes: ${e.message}`);
+        log.warn(`[documentRenderer] PDF metadata pass failed, keeping the unmarked bytes: ${/** @type {Error} */ (e).message}`);
         return { buffer, metadata: false };
     }
 }
 
+/**
+ * @param {string} html
+ */
 async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'document', marking = null } = {}) {
     const browserProvider = featureModule('services/browserProvider');
     return browserProvider.withContext({}, async (context) => {
@@ -149,12 +154,10 @@ async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'documen
  * without the pwt-runner container still gets a (plainer) PDF. The caller is
  * told which one it got via `degraded`.
  *
- * @param {object} args
- * @param {string} args.html   a full <!DOCTYPE html> document (see services/documentCompose.js)
- * @param {string} [args.title]
- * @param {object} [args.marking]  AI Act Art. 50 marking, as resolveMarking returns it
- * @param {number} [args.timeoutMs]
- * @param {boolean} [args.allowFallback]  false = throw instead of degrading to the plain PDF
+ * @param {{ html: string, title?: string, marking?: import('./documentRenderer').AiMarking | null, timeoutMs?: number, allowFallback?: boolean }} args
+ *   `html`: a full <!DOCTYPE html> document (see services/documentCompose.js); `marking`: AI Act Art.
+ *   50 marking, as resolveMarking returns it; `allowFallback`: false = throw instead of degrading to
+ *   the plain PDF
  * @returns {Promise<{buffer: Buffer, contentType: string, extension: string, degraded: boolean, marking: object|null}>}
  */
 async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeoutMs = 60_000, allowFallback = true } = {}) {
@@ -191,7 +194,7 @@ async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeout
         if (!allowFallback) throw Object.assign(new Error('Styled PDF rendering is unavailable. Please retry when the renderer is available.'), {
             status:503, errorClass:'document_renderer_unavailable', cause:e,
         });
-        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${e.message}`);
+        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${/** @type {Error} */ (e).message}`);
         const buffer = await renderPdfViaPdfkit(htmlToPlainish(source), { title, marking: mark });
         return {
             buffer, contentType: CONTENT_TYPES.pdf, format: 'pdf', extension: 'pdf', degraded: true,
@@ -217,12 +220,14 @@ async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeout
  * Takes the ORIGINAL text rather than the HTML — pdfkit cannot lay out markup,
  * and stripping tags back out of generated HTML is a worse job than reading the
  * source lines.
+ * @param {string} text
  */
 function renderPdfViaPdfkit(text, { title = '', marking = null } = {}) {
     const PDFDocument = require('pdfkit');
     return new Promise((resolve, reject) => {
         // pdfkit writes the Info dictionary from `info` and accepts custom keys
         // on doc.info — AIGenerated rides along as its own entry.
+        /** @type {{ Title: string; Producer: string; Creator: string; Author?: string; Subject?: string; Keywords?: string }} */
         const info = { Title: String(title || 'Document'), Producer: AI_MARK_PRODUCER, Creator: AI_MARK_PRODUCER };
         if (marking) {
             info.Author = String(marking.org_name || '');
@@ -269,7 +274,10 @@ function renderPdfViaPdfkit(text, { title = '', marking = null } = {}) {
     });
 }
 
-/** Drop the markdown emphasis/link syntax pdfkit would otherwise print literally. */
+/**
+ * Drop the markdown emphasis/link syntax pdfkit would otherwise print literally.
+ * @param {string} s
+ */
 function stripInline(s) {
     return String(s)
         .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')     // images → alt text
@@ -279,7 +287,10 @@ function stripInline(s) {
         .replace(/`([^`]+)`/g, '$1');
 }
 
-/** Crude tags-out for the pdfkit fallback when the author supplied HTML. */
+/**
+ * Crude tags-out for the pdfkit fallback when the author supplied HTML.
+ * @param {string} html
+ */
 function htmlToPlainish(html) {
     return String(html)
         .replace(/<\s*(h[1-6])[^>]*>/gi, (m, tag) => `\n${'#'.repeat(Number(tag[1]))} `)

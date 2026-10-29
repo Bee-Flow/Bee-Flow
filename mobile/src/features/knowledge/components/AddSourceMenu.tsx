@@ -3,6 +3,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Divider, Icon, ListRow, Text, type IconName } from '@/shared/ui';
 
@@ -35,6 +36,7 @@ export function AddSourceMenu({
     /** Omitted when the target takes no pasted text. */
     onText?: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const icon = (name: IconName) => (
@@ -44,29 +46,29 @@ export function AddSourceMenu({
     return (
         <View>
             <ListRow
-                title="Choose a file"
+                title={t('mobile.knowledge.door_file', 'Choose a file')}
                 subtitle={accepts}
                 leading={icon('FilePlus')}
                 onPress={deliver(pickDocuments, onFiles)}
             />
             <Divider inset={theme.spacing.lg} />
             <ListRow
-                title="Scan with the camera"
-                subtitle="Photograph a page — several, if it has several"
+                title={t('mobile.knowledge.door_scan', 'Scan with the camera')}
+                subtitle={t('mobile.knowledge.door_scan_hint', 'Photograph a page — several, if it has several')}
                 leading={icon('Camera')}
                 onPress={onScan}
             />
             <Divider inset={theme.spacing.lg} />
             <ListRow
-                title="Pick a photo"
-                subtitle="From this device's gallery"
+                title={t('mobile.knowledge.door_photo', 'Pick a photo')}
+                subtitle={t('mobile.knowledge.door_photo_hint', "From this device's gallery")}
                 leading={icon('Image')}
                 onPress={deliver(pickImages, onFiles)}
             />
             <Divider inset={theme.spacing.lg} />
             <ListRow
-                title="Add a link"
-                subtitle="A web page, fetched and kept as text"
+                title={t('mobile.knowledge.door_link', 'Add a link')}
+                subtitle={t('mobile.knowledge.door_link_hint', 'A web page, fetched and kept as text')}
                 leading={icon('Link')}
                 onPress={onUrl}
             />
@@ -74,8 +76,8 @@ export function AddSourceMenu({
                 <>
                     <Divider inset={theme.spacing.lg} />
                     <ListRow
-                        title="Paste text"
-                        subtitle="When you have the words but not the file"
+                        title={t('knowledge.kind.text', 'Paste text')}
+                        subtitle={t('mobile.knowledge.door_text_hint', 'When you have the words but not the file')}
                         leading={icon('TextAlignStart')}
                         onPress={onText}
                     />
@@ -83,8 +85,10 @@ export function AddSourceMenu({
             ) : null}
 
             <Text variant="label" tone="tertiary" style={styles.footnote}>
-                Everything you add is processed on your own server. Text extraction and embedding
-                happen in the background, so a large file stays &ldquo;processing&rdquo; for a while.
+                {t(
+                    'mobile.knowledge.door_footnote',
+                    'Everything you add is processed on your own server. Text extraction and embedding happen in the background, so a large file stays “processing” for a while.',
+                )}
             </Text>
         </View>
     );

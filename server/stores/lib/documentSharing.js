@@ -1,3 +1,4 @@
+/** @typedef {import('pg').PoolClient} PoolClient */
 // @typecheck
 'use strict';
 
@@ -6,6 +7,9 @@ const { revokeGroupShares } = require('./groupShareRevoke');
 const { HttpError } = require('../../shared/httpErrors');
 
 // Null keeps the existing team-template audience until its owner changes it.
+/**
+ * @param {string} table
+ */
 function sharingDdl(table) {
     return `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS sharing_audience TEXT;
         ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS shared_groups JSONB NOT NULL DEFAULT '[]';
@@ -16,6 +20,10 @@ function sharingDdl(table) {
         EXCEPTION WHEN duplicate_object THEN NULL; END $$;`;
 }
 
+/**
+ * @param {string} alias
+ * @param {string} [user]
+ */
 function sharingSql(alias, user = '$2') {
     return `EXISTS (SELECT 1 FROM users reader WHERE reader.id = ${user}
         AND NULLIF(${alias}.organization_id, '') = reader."organizationId"
@@ -27,10 +35,17 @@ function sharingSql(alias, user = '$2') {
 }
 
 // The readers sharingSql admits who may also change the content.
+/**
+ * @param {string} alias
+ * @param {string} [user]
+ */
 function editSharingSql(alias, user = '$2') {
     return `(${alias}.sharing_access = 'edit' AND ${sharingSql(alias, user)})`;
 }
 
+/**
+ * @param {string} alias
+ */
 function visibilitySql(alias) {
     return `CASE WHEN ${alias}.sharing_audience IN ('organisation','restricted') THEN 'team'
         WHEN ${alias}.sharing_audience = 'private' THEN 'private' ELSE ${alias}.visibility END`;
@@ -44,12 +59,19 @@ function sharingOf(row) {
     };
 }
 
+/**
+ * @param {string} type
+ */
 function tableFor(type) {
     if (type === 'document') return 'studio_documents';
     if (type === 'notebook') return 'notebooks';
     throw new HttpError(400, 'document_type_invalid', 'Unknown document type.');
 }
 
+/**
+ * @param {PoolClient} client
+ * @param {string} type
+ */
 async function owned(client, type, id, userId) {
     const table = tableFor(type);
     const { rows } = await client.query(`SELECT d.* FROM ${table} d JOIN users u ON u.id = d.user_id
@@ -60,10 +82,16 @@ async function owned(client, type, id, userId) {
     return rows[0];
 }
 
+/**
+ * @param {string} type
+ */
 async function ready(type) {
     await require(type === 'notebook' ? '../notebookStore' : '../documentStore').initDB();
 }
 
+/**
+ * @param {string} type
+ */
 async function getSharing(type, id, userId) {
     await ready(type);
     return withTransaction(async (client) => {
@@ -72,9 +100,15 @@ async function getSharing(type, id, userId) {
     });
 }
 
+/**
+ * @param {string} type
+ */
 async function setSharing(type, id, userId, input) {
     await ready(type);
     const files = { created: [], replaced: [] };
+    /**
+     * @param {boolean} reencrypt
+     */
     const execute = (reencrypt) => withTransaction(async (client) => {
         const row = await owned(client, type, id, userId);
         const { audience } = input;
@@ -120,6 +154,9 @@ async function setSharing(type, id, userId, input) {
 }
 
 // Directory is scoped to the owned document's organisation, not session input.
+/**
+ * @param {string} type
+ */
 async function sharingDirectory(type, id, userId) {
     const { organizationId } = await getSharing(type, id, userId);
     if (!organizationId) return { users: [], groups: [] };

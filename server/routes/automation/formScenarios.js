@@ -80,10 +80,10 @@ function describeScenario(row) {
 /**
  * @param {object} [overrides]
  * @param {any} [overrides.store]            automationStore surface (getAutomation, getVersionDefinition, getRunStepsForChain, getRunSteps)
- * @param {any} [overrides.testingStore]     automationTestingStore surface (form scenario functions)
- * @param {any} [overrides.access]           the automation access (guard; roleFor and runGuard too when runDataAccess is not injected)
- * @param {any} [overrides.runDataAccess]    { readableRun, assertCapturable, assertTestDataAllowed }
- * @param {Function} [overrides.executeAutomation]
+ * @param {any} [overrides.testingStore]     automationTestingStore surface; typed, its scenario answers ({}) do not fit the handlers
+ * @param {ReturnType<typeof import('../../automation/access').makeAutomationAccess>} [overrides.access]  the automation access (guard; roleFor and runGuard too when runDataAccess is not injected)
+ * @param {ReturnType<typeof import('../../automation/testing/runDataAccess').makeRunDataAccess>} [overrides.runDataAccess]
+ * @param {typeof import('../../core/automationRunner').executeAutomation} [overrides.executeAutomation]
  * @param {import('express').RequestHandler} [overrides.limiter]     middleware for the dry-run route
  */
 function makeFormScenariosRouter(overrides = {}) {

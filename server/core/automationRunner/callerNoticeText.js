@@ -30,7 +30,7 @@ async function describeCallerNotice({ automation, userId, store, providerForTool
     const lookups = require('./callerLookups');
     const found = await collectRequirements(automation.definition, {
         providerForTool: providerForTool || require('../integrations/connectionResolution').providerForTool,
-        loadBlockDefinition: loadBlockDefinition || (store.getAutomation ? lookups.blockDefinitionLoader(/** @type {any} */ (store)) : undefined),
+        loadBlockDefinition: loadBlockDefinition || (store.getAutomation ? lookups.blockDefinitionLoader(/** @type {Parameters<typeof lookups.blockDefinitionLoader>[0]} */ (store)) : undefined),
         stepProviders: stepProviders || ((step) => lookups.stepProvidersLoader()(step, { orgId: automation.organizationId || null, userId: automation.userId })),
     });
     const items = itemsOf(found);

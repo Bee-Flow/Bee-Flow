@@ -42,7 +42,7 @@ export function useImportAudio(onQueued: (id: string) => void) {
         }
         const size = asset.size ?? 0;
         if (size > MAX_UPLOAD_BYTES) {
-            toast(`Too large — the limit is ${formatBytes(MAX_UPLOAD_BYTES)}`, 'error');
+            toast(t('mobile.recording.import_too_large', 'Too large — the limit is {limit}', { limit: formatBytes(MAX_UPLOAD_BYTES) }), 'error');
             return;
         }
         const stored = moveIntoOutbox(asset.uri, asset.name);

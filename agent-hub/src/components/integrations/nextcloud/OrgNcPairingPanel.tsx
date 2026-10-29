@@ -179,8 +179,7 @@ const OrgNcPairingPanel = () => {
                             </span>
                             <button
                                 onClick={() => copy(c.id, c.code)}
-                                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ color: justCopiedId === c.id ? '#10b981' : 'var(--text-muted)' }}
+                                className={`p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] ${justCopiedId === c.id ? '[color:#10b981]' : '[color:var(--text-muted)]'}`}
                                 title={justCopiedId === c.id ? 'Copied!' : 'Copy'}
                             >
                                 {justCopiedId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}

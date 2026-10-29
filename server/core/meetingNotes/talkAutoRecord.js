@@ -1,3 +1,4 @@
+/** @typedef {import('../entitlements/betaFeatures').SessionLike} SessionLike */
 // @typecheck
 /**
  * Talk auto-record engine.
@@ -93,6 +94,9 @@ async function disarmToken(userId, token) {
     await configStore.setConfig(ARMED_KEY(userId), next);
 }
 
+/**
+ * @param {string} userId
+ */
 async function resolveOrgIdForUser(userId) {
     return kit.resolveOrgIdForUser(userId, () => require('../../stores/userStore'));
 }
@@ -151,6 +155,9 @@ async function countParticipants({ room, meeting, userId, orgId, session, talk, 
     return inCall > 0 ? inCall : null;
 }
 
+/**
+ * @param {string} userId
+ */
 async function scanUser(userId) {
     const orgId = await resolveOrgIdForUser(userId);
     const settings = await resolveTalkNotesSettings({ orgId, userId });
@@ -248,11 +255,12 @@ async function scanUser(userId) {
  * one pod runs it per tick.
  */
 async function scanAndRecord() {
+    /** @type {string[]} */
     let users;
-    try { users = await listCandidateUsers(); } catch (e) { log.error('[TalkAutoRecord] candidate scan failed:', e.message); return; }
+    try { users = await listCandidateUsers(); } catch (e) { log.error('[TalkAutoRecord] candidate scan failed:', /** @type {Error} */ (e).message); return; }
     for (const userId of users) {
         try { await scanUser(userId); }
-        catch (e) { log.error(`[TalkAutoRecord] scan failed for user ${userId}: ${e.message}`); }
+        catch (e) { log.error(`[TalkAutoRecord] scan failed for user ${userId}: ${/** @type {Error} */ (e).message}`); }
     }
 }
 

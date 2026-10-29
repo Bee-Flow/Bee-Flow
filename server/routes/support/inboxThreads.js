@@ -16,7 +16,7 @@ const { runAiAutoResponder } = require('../../services/supportAiResponder');
 const { getUserId, emitInboxEvent, inboxToReplyConfig, loadThreadInScope } = require('./inboxScope');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
-async function listThreads(req, res) {
+async function listThreads(req, /** @type {import('express').Response} */ res) {
     const inboxes = await access.accessibleInboxes(req);
     let inboxIds = inboxes.map(i => i.id);
     const { inbox, status, q, assignee, limit, offset } = req.query;
@@ -48,7 +48,7 @@ async function listThreads(req, res) {
     res.json({ threads, counts });
 }
 
-async function getThread(req, res) {
+async function getThread(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: true });
@@ -57,7 +57,7 @@ async function getThread(req, res) {
 
 // Read-only customer context for the ticket sidebar (reuses the support read
 // tools so staff see the same lookup data the AI can).
-async function threadContext(req, res) {
+async function threadContext(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const { executeSupportTool } = require('../../integrations/supportTools');
@@ -74,7 +74,7 @@ async function threadContext(req, res) {
 // Per-ticket audit timeline — reads the unified audit log so AI / automation /
 // staff / system / requester events are distinguished precisely (the legacy
 // support_thread_events collapses ai/automation to 'system'). Newest-first.
-async function threadEvents(req, res) {
+async function threadEvents(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const { events } = await supportStore.listAuditEvents({ threadId: thread.id, limit: 200 });
@@ -82,7 +82,7 @@ async function threadEvents(req, res) {
 }
 
 // Staff reply — sends from the connected mailbox into the customer conversation.
-async function replyToThread(req, res) {
+async function replyToThread(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const { body, bodyHtml, internalNote } = req.body;
@@ -135,7 +135,7 @@ async function replyToThread(req, res) {
 }
 
 // AI draft — generate a KB-grounded draft (never sends), for the composer.
-async function draftReply(req, res) {
+async function draftReply(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const inbox = await supportInboxStore.getInbox(thread.inbox_id);
@@ -150,7 +150,7 @@ async function draftReply(req, res) {
 }
 
 // Update status / priority / assignee / category / tags.
-async function patchThread(req, res) {
+async function patchThread(req, /** @type {import('express').Response} */ res) {
     const thread = await loadThreadInScope(req, res, req.params.id);
     if (!thread) return;
     const userId = getUserId(req);

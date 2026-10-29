@@ -41,11 +41,9 @@ const EXTRACTION_CHAT_OPTIONS = Object.freeze({
 const EXTRACTION_MAX_CHARS = Object.freeze({ user: 8000, assistant: 4000 });
 
 /**
- * @param {object} [opts]
- * @param {string|null} [opts.agentModel] the extractor agent's own model
- *   setting (may be `tier:…`), used only when no dedicated model is configured
- * @param {string|null} [opts.userOrgId] for EU-aware tier resolution
- * @param {string|null} [opts.userId]
+ * @param {{ agentModel?: string|null, userOrgId?: string|null, userId?: string|null }} [opts]
+ *   `agentModel`: the extractor agent's own model setting (may be `tier:…`), used only when no dedicated
+ *   model is configured; `userOrgId`: for EU-aware tier resolution
  * @returns {Promise<string|null>} a concrete model id, or null when nothing
  *   at all is configured (the callers keep their own last-resort fallback)
  */

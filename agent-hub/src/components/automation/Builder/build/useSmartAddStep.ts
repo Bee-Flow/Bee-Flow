@@ -1,13 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { stepOutputIsArray } from '../flow/ribbon/fitsAfter';
 import { itemForKey } from '../flow/stepPalette';
+import type { FlowDefinition } from '../flow/types';
 import { recordStep, readUsage, readTransitions, topFrequentKeys, scoreSuggestions } from '../flow/stepUsage';
 
 
 export interface UseSmartAddStepOptions {
     palette: { open: boolean; edgeSource?: string | null };
-    scopedDef: any;
-    catalog: any;
+    scopedDef: FlowDefinition | null;
+    catalog: Record<string, unknown> | null;
     paletteLayers: { key: string }[];
 }
 
@@ -19,7 +20,7 @@ export default function useSmartAddStep({ palette, scopedDef, catalog, paletteLa
     // ── Smart Add-step: per-user frequency + context-aware suggestions ────────
     // `usageTick` bumps after each add so the memos below re-read scopedStorage.
     const [usageTick, setUsageTick] = useState(0);
-    const recordUsage = useCallback((payload: any, sourceStep?: any) => {
+    const recordUsage = useCallback((payload: Parameters<typeof recordStep>[0], sourceStep?: Parameters<typeof recordStep>[1]) => {
         recordStep(payload, sourceStep || null);
         setUsageTick(t => t + 1);
     }, []);

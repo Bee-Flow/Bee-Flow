@@ -171,7 +171,7 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
             ncAdminDisplayName: row.ncAdminDisplayName,
         });
     } catch (e) {
-        if (e.statusCode === 409) throw new HttpError(409, 'conflict', e.message);
+        if (e.statusCode === 409) throw new HttpError(409, 'conflict', /** @type {Error} */ (e).message);
         throw e;
     }
 
@@ -345,7 +345,7 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
     // can't keep authenticating with a still-valid (cached) JWT key.
     try {
         await configStore.deleteConfig(`connector_tenant_key_${orgId}`, { orgId, userId: freshUser.id });
-    } catch (e) { log.warn('[NcBindingRoutes] tenant key revoke failed:', e.message); }
+    } catch (e) { log.warn('[NcBindingRoutes] tenant key revoke failed:', /** @type {Error} */ (e).message); }
     invalidateTenantKeyCache(orgId);
 
     try {

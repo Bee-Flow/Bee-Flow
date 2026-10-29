@@ -83,7 +83,7 @@ const { redactRow, redactRows } = require('./usageCustomerView');
 /**
  * @param {string} kind
  */
-async function maybeRedact(req, payload, kind) {
+async function maybeRedact(/** @type {import('express').Request} */ req, payload, kind) {
     // Self-hosted: no Stripe markup/reselling exists, so there's nothing to
     // redact — the operator sees raw tokens/cost. Redaction is purely a cloud
     // billing concern (serverLicenseGovernsOrgs() === self-hosted). The license
@@ -141,7 +141,7 @@ function buildRequestFilters(req) {
 /**
  * @param {NextFunction} next
  */
-async function attachOrgFilter(req, res, next) {
+async function attachOrgFilter(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     const orgId = await getOrgFilter(req);
     req.usageFilters = buildRequestFilters(req);
@@ -778,18 +778,17 @@ router.get('/prompt-cache', async (req, res) => {
 });
 
 /**
- * @typedef {object} UsageFilters
- * @property {string} [startDate]
- * @property {string} [endDate]
- * @property {string} [userId]
- * @property {string} [agentId]
- * @property {string} [model]
- * @property {string} [source]
- * @property {string} [integrationType]
- * @property {string} [piiCategory]
- * @property {string} [organizationId]
- * @property {number} [beforeId]
- * @property {string} [violationType]
+ * @typedef {{ startDate?: string,
+ *   endDate?: string,
+ *   userId?: string,
+ *   agentId?: string,
+ *   model?: string,
+ *   source?: string,
+ *   integrationType?: string,
+ *   piiCategory?: string,
+ *   organizationId?: string,
+ *   beforeId?: number,
+ *   violationType?: string }} UsageFilters
  */
 
 /**

@@ -352,18 +352,16 @@ function withTimeout(promise, ms, label) {
 /**
  * The whole pass for one turn: gated, called, read.
  *
- * @param {object} p
- * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Anything
- *                                 that is not literally `true` is not a pass —
- *                                 see the header on why this flag lives here.
- * @param {object | null | undefined} p.persona       the DRAFT persona (`getAgent(id).persona`)
- * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, or the
- *                                 `versionInfo(views)` of routes/agents/tests.js
- * @param {string} p.answer        the agent's answer
- * @param {string} [p.question]    the question that preceded it
- * @param {string|null} [p.orgId]
- * @param {string|null} [p.userId]
- * @param {any} [deps]          injection points for the test
+ * @param {{ testChat: boolean, persona: object | null | undefined,
+ *   configInfo: { runsDraft?: boolean, source?: string, unpublishedChanges?: unknown } | null | undefined, answer: string,
+ *   question?: string, orgId?: string|null, userId?: string|null }} p `testChat`:
+ *   `testChat.isTestChat(messageMetadata)`. Anything that is not literally `true` is not a pass — see
+ *   the header on why this flag lives here; `persona`: the DRAFT persona (`getAgent(id).persona`);
+ *   `configInfo`: `testChat.testChatConfigInfo(agent)`, or the `versionInfo(views)` of
+ *   routes/agents/tests.js; `answer`: the agent's answer; `question`: the question that preceded it
+ * @param {{ llmClient?: Partial<typeof import('../llm/llmClient')>,
+ *   resolveModelForTierName?: typeof import('../llm/modelResolver').resolveModelForTierName,
+ *   logUsage?: typeof _logAttributionUsage }} [deps]          injection points for the test
  * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = no chip
  */
 async function attributeTurn({ testChat, persona, configInfo, answer, question, orgId = null, userId = null }, deps = {}) {
@@ -382,6 +380,7 @@ async function attributeTurn({ testChat, persona, configInfo, answer, question, 
         logUsage = _logAttributionUsage,
     } = deps;
 
+    /** @type {string | null} */
     let modelId = null;
     try {
         // No `fallback:` — just like the grader in routes/agents/tests.js: choosing a model
@@ -451,8 +450,5 @@ module.exports = {
 /** @typedef {import('./personaPrompt').Persona} Persona */
 
 /**
- * @typedef {Object} BuildAttributionMessagesArgs
- * @property {string[]} rules
- * @property {string | undefined} question
- * @property {string} answer
+ * @typedef {{ rules: string[], question: string | undefined, answer: string }} BuildAttributionMessagesArgs
  */

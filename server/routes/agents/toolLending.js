@@ -74,6 +74,7 @@ const UNREADABLE = Object.freeze({ apps: Object.freeze([]), readable: false });
  * `getForRuntime` is the same reading that both dispatch sites do: the
  * published config if the agent is published, otherwise the live one — and clamped, because that is also what is running. `null` means "cannot be checked";
  * that is not "not curated", and the card should then say nothing about it.
+ * @param {string} agentId
  */
 async function runtimeCuratedOf(agentId) {
     try {
@@ -82,7 +83,7 @@ async function runtimeCuratedOf(agentId) {
         const policy = require('../../core/agentRuntime/toolPolicy');
         return policy.hasCuratedGrants(policy.toolsConfigOf(runtime.config)) === true;
     } catch (e) {
-        log.warn('[agents/tool-lending] runtime config unreadable:', e.message);
+        log.warn('[agents/tool-lending] runtime config unreadable:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -98,7 +99,7 @@ async function lendableAppsFor(agent) {
     try {
         ({ isLendingEnabled } = require('../../core/integrations/connectionResolution'));
     } catch (e) {
-        log.warn('[agents/tool-lending] connection resolution unavailable:', e.message);
+        log.warn('[agents/tool-lending] connection resolution unavailable:', /** @type {Error} */ (e).message);
         return UNREADABLE;
     }
     let enabled = false;
@@ -107,7 +108,7 @@ async function lendableAppsFor(agent) {
     } catch (e) {
         // A flag nobody can read is not "on", but also not a read
         // "off": the card needs to know that this answer is not reliable.
-        log.warn('[agents/tool-lending] lending flag unreadable:', e.message);
+        log.warn('[agents/tool-lending] lending flag unreadable:', /** @type {Error} */ (e).message);
         return UNREADABLE;
     }
     // Lending is off: a read zero. No database work, no notice.

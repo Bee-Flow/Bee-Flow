@@ -70,6 +70,10 @@ function checkDates(start, end) {
     if (start && end && start > end) throw badRequest('invalid_date_range', 'The start date must be on or before the due date.');
 }
 
+/**
+ * @param {string} parentType
+ * @param {string} childType
+ */
 const canContain = (parentType, childType) => parentType === 'epic'
     ? ['story', 'user-story'].includes(childType)
     : ['story', 'user-story'].includes(parentType) && ['user-story', 'task'].includes(childType);

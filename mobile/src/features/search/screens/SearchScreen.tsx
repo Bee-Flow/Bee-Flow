@@ -11,6 +11,7 @@
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { openRoute } from '@/shared/navigation';
 import { EmptyState, ErrorState, ListSkeleton, Screen } from '@/shared/ui';
 
@@ -23,6 +24,7 @@ import { useSearch } from '../hooks/useSearch';
 import type { SearchHit } from '../model/types';
 
 export function SearchScreen() {
+    const t = useTranslation();
     const router = useRouter();
     const search = useSearch();
     const recent = useRecentSearches();
@@ -52,9 +54,9 @@ export function SearchScreen() {
         body = (
             <EmptyState
                 icon="Search"
-                title={`Nothing matched “${search.debounced}”`}
-                message="Try a shorter phrase, or a word you know appears in the text."
-                actionLabel="Start a chat about it"
+                title={t('mobile.search.nothing_matched', 'Nothing matched “{term}”', { term: search.debounced })}
+                message={t('mobile.search.nothing_matched_hint', 'Try a shorter phrase, or a word you know appears in the text.')}
+                actionLabel={t('mobile.search.start_chat', 'Start a chat about it')}
                 onAction={() => router.push('/chat/new')}
             />
         );

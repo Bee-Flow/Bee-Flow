@@ -375,9 +375,7 @@ async function refreshServerTools(serverId) {
 }
 
 /**
- * @typedef {Object} AddServerArgs
- * @property {string} [transport]
- * @property {string} [source]
+ * @typedef {{ transport?: string, source?: string }} AddServerArgs
  */
 /**
  * Add a new server definition, test it, and cache tools.
@@ -481,6 +479,7 @@ async function getServersForUser(userId) {
  * probed at admin-install time) get their tools_cache populated so agents can
  * use them.
  * @param {string} userId
+ * @param {string} serverId
  */
 async function discoverWithUserCreds(serverId, userId) {
     const server = await mcpStore.getServer(serverId);

@@ -76,10 +76,9 @@ function orgForScope(orgId, session) {
 
 /**
  * @param {Record<string, any>} source   the mirror's `source` block ({ provider, file:{id,path,…}, linkedByUserId, ncInstanceId })
- * @param {object} [opts]
- * @param {string|null} [opts.orgId]  the table's organisation (null for a personal mirror)
- * @param {boolean} [opts.fresh]      skip the memo (a re-link, a "try again")
- * @param {boolean} [opts.write]      also run the write gate (Nextcloud upload scope) — call this before every write
+ * @param {{ orgId?: string|null, fresh?: boolean, write?: boolean }} [opts] `orgId`: the table's
+ *   organisation (null for a personal mirror); `fresh`: skip the memo (a re-link, a "try again");
+ *   `write`: also run the write gate (Nextcloud upload scope) — call this before every write
  * @returns {Promise<{ api:object, userId:string, session:object|null, cred:object }>}
  */
 async function resolveLinker(source, { orgId = null, fresh = false, write = false } = {}) {

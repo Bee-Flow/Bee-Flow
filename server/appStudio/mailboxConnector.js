@@ -26,7 +26,7 @@ const {
     MAILBOX_ATTACHMENT_TABLE_TEMPLATE,
     MAILBOX_TABLE_TEMPLATES,
 } = require('./mailboxTableTemplates');
-const { fallback } = require('../utils/bestEffort');
+const { expandThreads, listAttachmentRows, dedupeAttachmentRows } = require('./mailboxThreadsAndFiles');
 // One wording for "no access", shared with the Outlook automation steps and trigger.
 const { sharedMailboxDeniedText } = require('../core/integrations/outlookMailbox.mts');
 
@@ -90,9 +90,9 @@ function classifyMailboxError(err, connector) {
 /**
  * Run one mailbox pull.
  *
- * @param {object} connector  the `mailbox` connector config
- * @param {object} ctx        { app, viewerId, systemArgs, deps }
- * @returns {Promise<{rows: object[], grains: Array<{level, rows}>}>}
+ * @param {MailboxConnectorConfig} connector  the `mailbox` connector config
+ * @param {Omit<import('./connectors/runners').ConnectorCtx, 'deps'> & { deps?: Partial<import('./connectors/session').ConnectorDeps> & { mailboxIdentity?: Partial<import('./mailboxIdentity').Deps> } }} [ctx]
+ * @returns {Promise<{rows: object[], grains: Array<{level: unknown, rows}>}>}
  */
 async function runMailboxConnector(connector, ctx = {}) {
     const { app, viewerId = null, systemArgs = {}, deps } = ctx;
@@ -151,147 +151,21 @@ async function runMailboxConnector(connector, ctx = {}) {
 
     let messages = (listed.messages || []).slice(0, max);
 
-    // Thread mode: pull in the rest of each conversation the search touched, so
-    // an unlabelled reply still lands on its ticket. Deduped by message id, and
-    // capped so one enormous thread cannot swallow a run.
-    // Threads we KNOW we are holding only a slice of. Their roll-up columns
-    // (message_count, has_unread, first_response_secs) must not be written: a
-    // count computed over a slice overwrites a correct 11 with a wrong 3, on
-    // every run, for as long as the thread stays busy.
-    //
-    // Tracked as "known partial" rather than "known complete" on purpose. A
-    // mailbox whose provider exposes no thread id has nothing to expand, and
-    // then the search result IS everything we can know — calling that partial
-    // would mean the count was never written at all.
-    const partialThreads = new Set();
+    // Thread mode: pull in the rest of each conversation the search touched
+    // (expandThreads), and know which threads we hold only a slice of.
+    let partialThreads = new Set();
     if (connector.groupIntoThreads) {
-        const seen = new Set(messages.map((m) => m.provider_message_id));
-        const allThreadIds = [...new Set(messages.map((m) => m.provider_thread_id).filter(Boolean))];
-        const threadIds = allThreadIds.slice(0, MAX_THREAD_EXPANSIONS);
-
-        // Over the expansion cap: everything past it stays as the search left it.
-        const threadKeyByProviderId = new Map();
-        for (const m of messages) {
-            if (m.provider_thread_id && m.thread_key && !threadKeyByProviderId.has(m.provider_thread_id)) {
-                threadKeyByProviderId.set(m.provider_thread_id, m.thread_key);
-            }
-        }
-        for (const id of allThreadIds.slice(MAX_THREAD_EXPANSIONS)) {
-            const key = threadKeyByProviderId.get(id);
-            if (key) partialThreads.add(key);
-        }
-
-        for (const threadId of threadIds) {
-            try {
-                const full = await emailFetch.listThreadMessages({
-                    provider: identity.provider,
-                    tokens: identity.tokens,
-                    onRefresh: identity.onRefresh,
-                    mailbox: identity.mailbox,
-                    threadId,
-                    includeBody: connector.includeBody !== false,
-                });
-                for (const m of full) {
-                    if (!m.provider_message_id || seen.has(m.provider_message_id)) continue;
-                    seen.add(m.provider_message_id);
-                    messages.push(m);
-                }
-            } catch {
-                // One unreadable thread must not lose the batch — the messages
-                // the search already returned are still worth writing. But we no
-                // longer hold it in full, so its counts stay untouched.
-                const key = threadKeyByProviderId.get(threadId);
-                if (key) partialThreads.add(key);
-            }
-        }
-        // Truncating the batch drops messages we DID fetch, so anything past the
-        // cut is a slice too.
-        if (messages.length > MAX_MAILBOX_ROWS) {
-            for (const m of messages.slice(MAX_MAILBOX_ROWS)) if (m.thread_key) partialThreads.add(m.thread_key);
-            messages = messages.slice(0, MAX_MAILBOX_ROWS);
-        }
+        ({ messages, partialThreads } = await expandThreads(messages, identity, connector, {
+            emailFetch, maxExpansions: MAX_THREAD_EXPANSIONS, maxRows: MAX_MAILBOX_ROWS,
+        }));
     }
 
-    // Attachment METADATA plus a PENDING descriptor — still no bytes here. The
-    // sync stays cheap and stores nothing a stranger sent; the descriptor is
-    // redeemed for real bytes the first time someone opens or parses the file
-    // (mailboxAttachments.materializeAttachment). `_parentIndex` relates a child
-    // row back to the message the sync engine just wrote.
-    const attachmentRows = [];
-    if (connector.includeAttachmentMeta !== false) {
-        for (let i = 0; i < messages.length; i++) {
-            if (!messages[i].has_attachments) continue;
-            try {
-                const metas = await emailFetch.listAttachmentMeta({
-                    provider: identity.provider,
-                    tokens: identity.tokens,
-                    onRefresh: identity.onRefresh,
-                    mailbox: identity.mailbox,
-                    messageId: messages[i].provider_message_id,
-                });
-                for (const meta of metas) {
-                    attachmentRows.push({
-                        ...meta,
-                        // The upsert key — SYNTHESISED, because Gmail's
-                        // attachment ids are ephemeral tokens that rotate on
-                        // every fetch. Keying rows on them meant the upsert
-                        // NEVER matched: every 2-minute sync inserted the same
-                        // eight attachments again, each older generation holding
-                        // an already-expired token. This key is stable across
-                        // runs; the live token rides inside the descriptor
-                        // below, refreshed on every sync so redemption always
-                        // has a usable one.
-                        provider_attachment_id: `${messages[i].provider_message_id}:${meta.filename || ''}:${meta.size ?? ''}`,
-                        provider_message_id: messages[i].provider_message_id,
-                        // Denormalised on purpose: an app filters attachments by
-                        // the conversation it is showing, and walking the
-                        // relation from a binding filter is not expressible.
-                        // Without it the filter matched nothing and the desk
-                        // reported "no attachments" on a ticket that had them.
-                        thread_key: messages[i].thread_key,
-                        // An OBJECT, not JSON text. Serialising a file column is
-                        // the query compiler's job (coerceValue): pre-stringifying
-                        // here got stringified AGAIN on write, so the stored
-                        // value was a JSON string containing a JSON string. One
-                        // parse yielded a string, `.kind` was undefined, and the
-                        // whole attachment chain — preview, materialize, AI read
-                        // — quietly found "no descriptor" on a row that had one.
-                        file: {
-                            kind: 'mailbox_attachment',
-                            connectorId: connector.id,
-                            messageId: messages[i].provider_message_id,
-                            attachmentId: meta.provider_attachment_id,
-                            name: meta.filename,
-                            mime: meta.mime_type,
-                            size: meta.size,
-                            isInline: meta.is_inline,
-                        },
-                        _parentIndex: i,
-                    });
-                }
-            } catch (err) { fallback('appStudio/mailboxConnector:runMailboxConnector', err); }
-        }
-    }
-
-    // ── Drop the same file seen twice in one conversation ────────────────
-    // A provider's attachment id is per (message, MIME part), so a customer who
-    // replies with their invoice still quoted underneath produces a NEW id for
-    // the same bytes — and the desk showed "factuur.pdf" three times, each of
-    // which downloads separately on first open. Identity here is what a person
-    // would use: same name, same size, same type, same conversation. Deliberately
-    // not a hash: hashing would mean downloading every attachment at sync time,
-    // which is the one thing this design exists to avoid.
-    const deduped = [];
-    const seenFiles = new Set();
-    for (const row of attachmentRows) {
-        const scope = row.thread_key || row.provider_message_id || '';
-        const key = `${scope}|${row.filename || ''}|${row.size ?? ''}|${row.mime_type || ''}`;
-        if (seenFiles.has(key)) continue;
-        seenFiles.add(key);
-        deduped.push(row);
-    }
-    attachmentRows.length = 0;
-    attachmentRows.push(...deduped);
+    // Attachment METADATA plus a pending descriptor, no bytes; the same file
+    // seen twice in one conversation counts once.
+    const listedAttachments = connector.includeAttachmentMeta !== false
+        ? await listAttachmentRows(messages, identity, connector, emailFetch)
+        : [];
+    const attachmentRows = dedupeAttachmentRows(listedAttachments);
 
     // ── Optional: roll the messages up into conversations ────────────────
     // With this on, grain 0 becomes one row per CONVERSATION and grain 1 the

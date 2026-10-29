@@ -97,19 +97,29 @@ const DEFINITIONS = Object.freeze({
 const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getProjectRole]   (userId, projectId) => role|null
- * @param {Function} [deps.getUser]          (id) => user row
- * @param {any}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
- * @param {any}   [deps.documents]        stores/documentStore surface: createDocument
- * @param {any}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
- * @param {any}   [deps.membership]       projects/membership surface: isAllowedIn
- * @param {Function} [deps.recordCreated]    ({ projectId, itemType, itemId, actorId }) => void, one "created" entry in the project feed
- * @param {Function} [deps.markdownToHtml]   (md) => html
- * @param {Function} [deps.searchDefinition]  () => the agent_search tool definition, as a normal chat offers it
- * @param {Function} [deps.searchAvailable]   () => whether a web search is configured on this installation
- * @param {Function} [deps.runSearch]         (name, args) => the search result text, through the configured provider
- * @param {Function} [deps.notebooksAllowed] ({ userId, orgId, session }) => boolean: the switch, the plan and the permission
+ * Every dependency is a test seam whose default is the real module.
+ * `recordCreated` writes one "created" entry in the project feed;
+ * `searchDefinition` is the agent_search tool definition as a normal chat
+ * offers it; `searchAvailable` says whether a web search is configured on this
+ * installation; `runSearch` returns the search result text, through the
+ * configured provider; `notebooksAllowed` is the switch, the plan and the
+ * permission.
+ *
+ * @param {{
+ *   getProjectRole?: (userId: string, projectId: string) => Promise<'owner'|'editor'|'viewer'|null>,
+ *   getUser?: (id: string) => Promise<Parameters<typeof import('./projectOrg').itemOrgFor>[1]>,
+ *   projectOrg?: Pick<typeof import('./projectOrg'), 'projectOrgOf'|'belongsToProjectOrg'|'itemOrgFor'>,
+ *   documents?: Pick<typeof import('../stores/documentStore'), 'createDocument'>,
+ *   notebooks?: {
+ *     createNotebook: (input: Parameters<typeof import('../stores/notebookStore').createNotebook>[0]) => Promise<{ id: string, name?: string }>,
+ *     updateNotebook: (id: string, userId: string, updates: { documentContent: string }) => Promise<unknown> },
+ *   membership?: Pick<typeof import('./membership'), 'isAllowedIn'>,
+ *   recordCreated?: (e: { projectId: string, itemType: string, itemId: string, actorId: string }) => Promise<unknown>,
+ *   markdownToHtml?: (md: string) => string,
+ *   searchDefinition?: () => import('../integrations/agentSearchTools').ToolDef,
+ *   searchAvailable?: () => Promise<boolean>,
+ *   runSearch?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+ *   notebooksAllowed?: (p: { userId: string, orgId?: string|null, session?: unknown }) => Promise<boolean> }} [deps]
  */
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
@@ -148,7 +158,7 @@ function makeProjectChatTools(deps = {}) {
             if (membership().isAllowedIn('notebook', project.kind ?? null) && await notebooksAllowed({ userId, orgId, session })) out.push(DEFINITIONS.create_notebook);
             if (await searchAvailable()) out.push(searchDefinition());
         } catch (err) {
-            log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && err.message}`);
+            log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && /** @type {Error} */ (err).message}`);
             return [];
         }
         return out;
@@ -162,8 +172,15 @@ function makeProjectChatTools(deps = {}) {
         /** @type {{ kind: 'document'|'notebook'|'template', id: string, name: string }[]} */
         const created = [];
         let searches = 0;
+        /**
+         * @param {string} error
+         */
         const refuse = (error) => JSON.stringify({ ok: false, error });
 
+        /**
+         * @param {string} kind
+         * @param {string} noun
+         */
         async function checked(kind, noun) {
             if (created.length >= MAX_ITEMS_PER_ANSWER) return { error: `At most ${MAX_ITEMS_PER_ANSWER} items can be made in one answer.` };
             const role = await getProjectRole(userId, project.id);
@@ -250,7 +267,7 @@ function makeProjectChatTools(deps = {}) {
             return text.length > SEARCH_RESULT_MAX ? `${text.slice(0, SEARCH_RESULT_MAX)}\n…` : text;
         }
 
-        /** @param {string} name @param {any} args */
+        /** @param {string} name @param {unknown} args */
         async function execute(name, args) {
             // The allow-list is enforced here, not only by what was offered: a model can name any tool.
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');
@@ -259,17 +276,17 @@ function makeProjectChatTools(deps = {}) {
                 try {
                     return await search(input);
                 } catch (err) {
-                    log.warn(`[ProjectChatTools] search failed in project ${project.id}: ${err && err.message}`);
+                    log.warn(`[ProjectChatTools] search failed in project ${project.id}: ${err && /** @type {Error} */ (err).message}`);
                     return refuse('The search could not be run.');
                 }
             }
             try {
                 return name === 'create_document' ? await createDocument(input) : await createNotebook(input);
             } catch (err) {
-                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${err && (err.errorClass || err.code || err.message)}`);
+                log.warn(`[ProjectChatTools] ${name} failed in project ${project.id}: ${err && (err.errorClass || err.code || /** @type {Error} */ (err).message)}`);
                 // A refusal the store states on purpose is a sentence; anything else stays generic.
                 const status = Number(err && err.status);
-                return refuse(status >= 400 && status < 500 && err.message ? String(err.message).slice(0, 200) : 'It could not be made.');
+                return refuse(status >= 400 && status < 500 && /** @type {Error} */ (err).message ? String(/** @type {Error} */ (err).message).slice(0, 200) : 'It could not be made.');
             }
         }
 

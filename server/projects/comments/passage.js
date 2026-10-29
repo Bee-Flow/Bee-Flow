@@ -204,13 +204,18 @@ function sectionHtmlOf(html, sectionId, domParser) {
 }
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getNotebook]     (id, userId) => notebook | null
- * @param {Function} [deps.getDocument]     (id, {userId}) => document | null
- * @param {Function} [deps.htmlToMarkdown]  (html) => markdown
- * @param {Function} [deps.collab]          () => the co-editing facade, or null when it is not there
- * @param {Function} [deps.readTask]        ({projectId, taskId}) => { title, description } | null, opened with the project key
- * @param {() => any} [deps.domParser]      () => a DOMParser constructor, asked for once per reader
+ * Every dependency is a test seam whose default is the real module, typed by
+ * what this file reads of it. `collab` gives the co-editing facade, or null
+ * when it is not there; `readTask` opens the task with the project key;
+ * `domParser` gives a DOMParser constructor, asked for once per reader.
+ *
+ * @param {{
+ *   getNotebook?: (id: string, userId: string) => Promise<{ name?: string, projectId?: string|null, documentMd?: unknown, documentContent?: string }|null>,
+ *   getDocument?: (id: string, ctx: { userId: string }) => Promise<{ name?: string, projectId?: string|null, bodyHtml?: string }|null>,
+ *   htmlToMarkdown?: (html: string) => string,
+ *   collab?: () => { isActive?: (kind: string, id: string) => Promise<boolean>, readMarkdown?: (kind: string, id: string) => Promise<unknown> }|null,
+ *   readTask?: (p: { projectId: string, taskId: string }) => Promise<{ title: string, description: string }|null>,
+ *   domParser?: () => any }} [deps]
  */
 function makeItemReader(deps = {}) {
     const getNotebook = deps.getNotebook || ((id, userId) => require('../../stores/notebookStore').getNotebook(id, userId));

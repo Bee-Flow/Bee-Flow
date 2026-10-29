@@ -16,9 +16,19 @@
 
 'use strict';
 
-const step = (id, type, extras) => ({ id, type, ...extras });
+const step = (/** @type {string} */ id, /** @type {string} */ type, /** @type {{ label: string; source?: { kind: string; path: string; }; sheets?: string; headerRow?: number; systemPrompt?: string; prompt?: string; inputs?: { [k: string]: { kind: string; path: string; }; }; outputSchema?: { type: string; properties: { text: { type: string; }; }; }; format?: string; contentFormat?: string; title?: string; fileName?: string; expiresInDays?: number; content?: string; mode?: string; form?: { title: string; description: string; fields: { name: string; type: string; label: string; fileId: string; }[]; }; name?: string; ops?: ({ id: string; op: string; rules: { column: string; test: string; }[]; note: string; } | { id: string; op: string; columns: string[]; } | { id: string; op: string; rows: string; columns: string; value: { fn: string; }; percent: string; totals: boolean; minN: number; decimals: number; columnOrder: string[]; note: string; })[] | ({ id: string; op: string; columns: { name: string; value: { kind: string; value: string; }; }[]; } | { id: string; op: string; by: string[]; aggregates: ({ fn: string; column: string; as: string; } | { fn: string; as: string; })[]; sort: { column: string; dir: string; }[]; } | { id: string; op: string; columns: { name: string; value: { kind: string; value: string; }; }[]; note: string; })[] | ({ id: string; op: string; rules: { column: string; test: string; }[]; } | { id: string; op: string; by: string[]; aggregates: ({ fn: string; as: string; } | { fn: string; column: string; as: string; })[]; sort: { column: string; dir: string; }[]; } | { id: string; op: string; columns: { name: string; value: { kind: string; value: string; }; }[]; note: string; })[] | ({ id: string; op: string; rules: { column: string; test: string; }[]; } | { id: string; op: string; column: string; output: string; mode: string; bands: ({ label: string; max: number; } | { label: string; min: number; max: number; } | { label: string; min: number; })[]; } | { id: string; op: string; rows: string; columns: string; value: { fn: string; }; percent: string; totals: boolean; columnOrder: string[]; })[] | ({ id: string; op: string; columns: string[]; saltVar: string; dropColumns: string[]; note: string; } | { id: string; op: string; splits: { column: string; label: string; }[]; includeTotal: boolean; totalLabel: string; minN: number; })[]; }} */ extras) => ({ id, type, ...extras });
+/**
+ * @param {string} path
+ */
 const ref = (path) => ({ kind: 'ref', path });
+/**
+ * @param {string} name
+ * @param {{ kind: string; value: string; }} value
+ */
 const col = (name, value) => ({ name, value });
+/**
+ * @param {string} value
+ */
 const expr = (value) => ({ kind: 'expr', value });
 
 const SAMPLE_DIR = '/automation-samples';
@@ -33,6 +43,10 @@ const SUMMARY_RULES = [
 
 const sampleOf = (filename) => ({ filename, url: `${SAMPLE_DIR}/${filename}` });
 
+/** @typedef {{ title: string, description: string, fileLabel: string, info: string }} FormTriggerArgs */
+/**
+ * @param {FormTriggerArgs} param0
+ */
 function formTrigger({ title, description, fileLabel, info }) {
     return {
         id: 'trg',
@@ -58,7 +72,11 @@ const readStep = () => step('read', 'read_table', {
     headerRow: 1,
 });
 
-/** The AI summary: given one or more table renderings, never the whole table. */
+/**
+ * The AI summary: given one or more table renderings, never the whole table.
+ * @param {string} what
+ * @param {string[][]} tables
+ */
 const summaryStep = (what, tables) => step('summary', 'ai_step', {
     label: 'Write the summary',
     systemPrompt: 'You write short, factual summaries of tables for a report. You never add information that is not in the table.',
@@ -67,6 +85,10 @@ const summaryStep = (what, tables) => step('summary', 'ai_step', {
     outputSchema: { type: 'object', properties: { text: { type: 'string' } } },
 });
 
+/**
+ * @param {string} title
+ * @param {string[][]} tables
+ */
 const documentStep = (title, tables) => step('doc', 'generate_document', {
     label: 'Make the PDF',
     format: 'pdf',

@@ -69,10 +69,4 @@ function renderCannedBody(body, thread, staff) {
 
 module.exports = { notifyStaff, renderCannedBody };
 
-/**
- * @typedef {Object} NotifyStaffArgs
- * @property {string} title
- * @property {string} message
- * @property {string} threadId
- * @property {string} [category]
- */
+/** @typedef {{ title: string, message: string, threadId: string, category?: string }} NotifyStaffArgs */

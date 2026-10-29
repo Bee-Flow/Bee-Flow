@@ -50,6 +50,9 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_board_approval_desc',
     remediationKey: 'compliance.check_nis2_board_approval_fix',
     remediationLink: 'admin/compliance/policies',
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {

@@ -5,7 +5,26 @@ This applies the same inference to `server/`, which stays JavaScript and CommonJ
 rename, no build step, types as JSDoc, a file checked once it carries `// @typecheck`
 (`server/jsconfig.json`, `cd server && npm run typecheck`, `npm run lint:checkjs-ratchet`).
 
-**Not run yet.** The scripts and their unit tests are in; the first real run is the next step.
+**Run on 2026-10-28** over every server directory, as `scripts/jsdoc-round.sh` (the loop below with
+every gate scripted): 431 files typed in 49 batches on four machines, floors 3644 / 2302 / 1929 to
+3668 / 2329 / 1954, no compiled line changed. What the first batches taught, now in the tooling:
+
+- an options typedef is written only when every destructured member is typed; a partial one
+  breaks the file at base level (TS2339) and typecheck-settle then reverts the whole file;
+- in a JS file, positional `@param` tags go in for all parameters without a default or for none:
+  one tag turns the undocumented parameters from optional into required for every caller;
+- the tests next to the batch are in the program (not as a source of types): a test calling a
+  store with fewer arguments or a wider value is where a wrong type shows first, and a caller's
+  TS2345/TS2554 maps to the callee's slot (`calleeSlotOfDiagnostic`) and bans every source of it;
+- TypeScript's inferFromUsage may not add a `require` for a type, nor write a `@param` for a
+  slot a caller contradicted (`quickFixRefuser`);
+- typedefs are written as `@typedef {{ a?: T }} Name` (the inline form the server uses; `{Object}`
+  counts against the loose-type ratchet), and the equivalence gate strips JSDoc casts before
+  compiling, because esbuild keeps them and lays the call out differently.
+
+Yield per batch of 40: 5 to 22 files kept; what goes back is a file whose new type a caller
+contradicts in a way the bans cannot repair (an `instanceof` on a narrowed catch variable, a
+spread into a parameter list), or one the added lines push over its line ceiling.
 
 ## Why not the agent-hub converter
 
@@ -88,6 +107,32 @@ hand-written `{Object}`), TS7053 (13: lookup tables).
 After a `--write` round, `node scripts/ts-behaviour-diff.mjs --base HEAD --paths server` must
 report 0 different compiled programs (JSDoc is comments only); it also covers the files an agent
 touched afterwards, which `--check` does not.
+
+## The loose-type round (2026-10-28, agents)
+
+After the tooling round, the `{Object}`, `{object}`, `{any}`, `{*}` and `{Function}` tags were
+named by hand, one Opus agent per area in its own worktree (`wt/loose-*`), comments only (the
+behaviour diff against the base is the gate before every commit, with typecheck, the tests next to
+each file and `check:fast`). The `jsdoc-loose-type` ratchet went from 2227 to 929 for the whole
+server: routes 355 to 48, automation 255 to 47, stores 247 to 83, core 750 to 174.
+
+What an agent can name from the code alone: an options bag with sub-tags (becomes the literal
+shape, the sub-tag descriptions move into the sentence), a callback (its real signature), a row
+(the store's own typedef or `import('../types/rows').DbRow.X`), a JSON body (`Record<string,
+unknown>`), a value only narrowed later (`unknown`). What stays loose, and why:
+
+- defensive inputs narrowed field by field (DLP shields, automation steps, deck inputs): `unknown`
+  does not compile there without code changes, and the stored shapes are untyped DSL JSON;
+- the shared `ctx` built in `core/index.js` and the collab rows: typing them ripples through every
+  lifecycle file;
+- casts around SDK enums (google, mistral) and library internals (JSZip, dns lookup);
+- lazy-require spreads typed `{Function}` whose callers read the result untyped;
+- self-mutating `result`/`state` objects and `any` returns from optional `require`s.
+
+Merging two such branches: both change comments only, so `git merge -X theirs` is safe; what to
+check afterwards is a typedef defined twice in one file, a helper one branch typed narrower than
+a caller the other branch typed (`assertRecordId`), a comment reflow that puts a history phrase
+on one line (`history-comments` ratchet), and the per-file line ceilings.
 
 ## Lessons from agent-hub that apply here
 

@@ -15,7 +15,7 @@ const { GAP_MARKER } = require('./transcriptExcerpt');
  * Per-ID: how long it speaks, and which names appear in its OWN turns. The
  * second part is the raw material for "this ID might be this person".
  * @param {Array<{id:string, speakingSeconds?:number, segments?:number}>} rows
- * @param {any} evidence
+ * @param {Awaited<ReturnType<typeof import('./speakerEvidence').extractSpeakerEvidence>>} evidence
  */
 function speakerListOf(rows, evidence) {
     return rows

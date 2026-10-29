@@ -35,10 +35,9 @@ function isNotebookWriteTool(toolName) {
 /**
  * Decide whether notebook writes are permitted for this turn.
  *
- * @param {object}  params
- * @param {string}  params.message              The user's message this turn.
- * @param {boolean} params.hasAttachment        Attachments present this turn.
- * @param {boolean} params.notebookPanelOpen    Panel currently open in the UI.
+ * @param {{ message: string, // The user's message this turn.
+ *   hasAttachment: boolean, // Attachments present this turn.
+ *   notebookPanelOpen: boolean }} params  notebookPanelOpen: Panel currently open in the UI.
  * @returns {{allowed: boolean, reason: string|null}}
  *          `reason` is written for the model to read back — it explains what
  *          the user would have to say to unlock the write.

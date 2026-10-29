@@ -80,7 +80,7 @@ async function open(value, type, id, field, json = false, resolvedKey = null) {
 
 /**
  * @param {any} value
- * @param {any} resource
+ * @param {DocumentResource} resource
  * @param {string} field
  * @param {{ json?: boolean, context?: any, key?: any }} [opts]
  */

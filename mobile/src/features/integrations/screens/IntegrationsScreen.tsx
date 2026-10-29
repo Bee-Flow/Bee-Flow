@@ -44,7 +44,9 @@ export function IntegrationsScreen() {
     const statuses = useConnectorStatuses();
     const settings = useUserSettings();
     const saveApps = useSaveEnabledApps();
-    const disconnect = useDisconnectIntegration({ onDone: () => toast('Disconnected', 'success') });
+    const disconnect = useDisconnectIntegration({
+        onDone: () => toast(t('mobile.integrations.disconnected_toast', 'Disconnected'), 'success'),
+    });
 
     // The org's allow-list narrows what is worth showing at all: a tool the
     // organisation forbids cannot be enabled, and a toggle that always fails
@@ -69,7 +71,9 @@ export function IntegrationsScreen() {
 
     const confirmDisconnect = async (connector: Connector) => {
         const ok = await confirm({
-            title: `Disconnect ${connector.label}?`,
+            title: t('mobile.integrations.disconnect_title', 'Disconnect {name}?', {
+                name: t(connector.label.i18nKey, connector.label.en),
+            }),
             message: t(
                 'mobile.integrations.disconnect_message',
                 'Your agents and automations lose access to it immediately. Anything already saved in Bee Flow stays.',
@@ -83,7 +87,7 @@ export function IntegrationsScreen() {
 
     return (
         <Screen edges={['top']} inset>
-            <ScreenHeader title={t('settings.connections', 'Connections')} subtitle="Accounts, and what your agents may use" />
+            <ScreenHeader title={t('settings.connections', 'Connections')} subtitle={t('mobile.integrations.subtitle', 'Accounts, and what your agents may use')} />
 
             <GroupedScroll refresh={refresh}>
                 {disconnect.isError ? (
@@ -101,8 +105,10 @@ export function IntegrationsScreen() {
 
                 {orgAllowed ? (
                     <Banner tone="info" icon="Info">
-                        Your organisation limits which tools may be used. Anything it has not
-                        allowed is not listed below.
+                        {t(
+                            'mobile.integrations.org_limits',
+                            'Your organisation limits which tools may be used. Anything it has not allowed is not listed below.',
+                        )}
                     </Banner>
                 ) : null}
 
@@ -125,7 +131,7 @@ export function IntegrationsScreen() {
                 onClose={() => setGithubSheet(false)}
                 onConnected={() => {
                     setGithubSheet(false);
-                    toast('GitHub connected', 'success');
+                    toast(t('mobile.integrations.github_connected_toast', 'GitHub connected'), 'success');
                 }}
             />
         </Screen>

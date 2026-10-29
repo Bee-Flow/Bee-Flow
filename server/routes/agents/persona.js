@@ -1,3 +1,4 @@
+/** @typedef {import('zod').ZodString} ZodString */
 /**
  * POST /agents/:id/persona/parse — "back to fields" (A1c).
  *
@@ -45,7 +46,10 @@ const { worded } = require('../../core/http/schemaParts');
 // edit in front of the person -- and came back 200 with cards that described
 // something else.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {{ text: import('zod').ZodOptional<import('zod').ZodNullable<ZodString>>; }} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ParseBody = bodyOf({ text: worded('text is the instruction to read.').nullish() });
@@ -138,7 +142,7 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
         // precisely what the comment above excludes.
         orgIds = await resolveUserOrgIds(req, { strict: true });
     } catch (e) {
-        log.error('[agents/persona/parse] could not resolve the workspace:', e.message);
+        log.error('[agents/persona/parse] could not resolve the workspace:', /** @type {Error} */ (e).message);
         throw new HttpError(503, 'org_check_failed', 'Could not check your workspace right now. Try again.');
     }
     const userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
@@ -148,11 +152,12 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
     // hardcoded default here sent it to Google for a workspace that never
     // chose Google, and past the EU override at that. Not configured and
     // not readable both refuse, and they say different things.
+    /** @type {string | null} */
     let modelId;
     try {
         modelId = await resolveModelForTierName('fast', { userOrgId, userId });
     } catch (e) {
-        log.error('[agents/persona/parse] model tier unreadable:', e.message);
+        log.error('[agents/persona/parse] model tier unreadable:', /** @type {Error} */ (e).message);
         throw new HttpError(503, 'persona_model_unavailable', 'Could not look up which model reads these instructions. Try again.');
     }
     if (!modelId) {
@@ -166,7 +171,7 @@ router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimit
             { role: 'user', content: `Agent instructions:\n\n${text}` },
         ], PERSONA_TOOL, { maxTokens: 1500, temperature: 0.1, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
-        log.error('[agents/persona/parse] inference failed:', e.message);
+        log.error('[agents/persona/parse] inference failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'persona_parse_failed', 'Could not read the instructions right now.');
     }
     if (!structured || typeof structured !== 'object') {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, Button, TextField, useToast } from '@/shared/ui';
 
@@ -18,11 +19,12 @@ const makeStyles = (theme: Theme) =>
 
 export function AddInstructionForm({ onClose }: { onClose: () => void }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const { toast } = useToast();
     const [draft, setDraft] = useState('');
     const add = useAddInstruction({
         onSuccess: () => {
-            toast('Saved', 'success');
+            toast(t('common.saved', 'Saved'), 'success');
             setDraft('');
             onClose();
         },
@@ -31,25 +33,25 @@ export function AddInstructionForm({ onClose }: { onClose: () => void }) {
     return (
         <View style={styles.form}>
             <TextField
-                label="Always remember"
+                label={t('mobile.memory.add_label', 'Always remember')}
                 value={draft}
                 onChangeText={setDraft}
                 multiline
                 maxLines={5}
                 autoFocus
-                placeholder="Answer in Dutch unless I write in English."
-                hint="Stored as an instruction. Every agent that reads your memory will see it."
+                placeholder={t('mobile.memory.add_placeholder', 'Answer in Dutch unless I write in English.')}
+                hint={t('mobile.memory.add_hint', 'Stored as an instruction. Every agent that reads your memory will see it.')}
             />
             <View style={styles.buttons}>
                 <Button
-                    label="Save"
+                    label={t('common.save', 'Save')}
                     onPress={() => add.mutate(draft.trim())}
                     loading={add.isPending}
                     disabled={draft.trim().length < 3}
                     style={styles.half}
                 />
                 <Button
-                    label="Cancel"
+                    label={t('common.cancel', 'Cancel')}
                     variant="ghost"
                     onPress={() => {
                         onClose();

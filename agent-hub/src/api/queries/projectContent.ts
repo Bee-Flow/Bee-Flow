@@ -246,7 +246,7 @@ export function useProjectFilesQuery(projectId: string | null | undefined) {
 
 /**
  * Multipart upload, so it goes through authFetch: apiClient only sends JSON.
- * The server scans and indexes the file with the same checks as any
+ * The server scans and indexes the file with the same checks as every
  * knowledge-base upload.
  */
 export function useUploadProjectFile(projectId: string) {

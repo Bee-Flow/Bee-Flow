@@ -15,7 +15,10 @@ function renderPicker(props = {}) {
     return { onChange };
 }
 
-const open = () => fireEvent.click(screen.getByRole('button', { name: /Choose a field|Subject|From email|Count/ }));
+const open = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: /Choose a field|Subject|From email|Count/ }));
+    };
 
 describe('FieldPicker', () => {
     beforeEach(cleanup);
@@ -38,16 +41,16 @@ describe('FieldPicker', () => {
         expect(screen.queryByText(/attachments/i)).toBeNull();
     });
 
-    it('emits a ref binding when a field is picked', () => {
+    it('emits a ref binding when a field is picked', async () => {
         const { onChange } = renderPicker();
-        open();
+        await open();
         fireEvent.mouseDown(screen.getByText('From email'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'item.from_email' });
     });
 
-    it('groups the options by where they come from', () => {
+    it('groups the options by where they come from', async () => {
         renderPicker();
-        open();
+        await open();
         expect(screen.getByText('Fields of each item')).toBeTruthy();
         expect(screen.getByText('gmail search')).toBeTruthy();
     });
@@ -55,7 +58,7 @@ describe('FieldPicker', () => {
     it('filters as you type', async () => {
         const user = userEvent.setup();
         renderPicker();
-        open();
+        await open();
         await user.clear(screen.getByPlaceholderText('Search fields…'));
         await user.type(screen.getByPlaceholderText('Search fields…'), 'from');
         expect(screen.getByText('From email')).toBeTruthy();
@@ -83,16 +86,16 @@ describe('FieldPicker', () => {
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'trigger.output.plan' });
     });
 
-    it('offers the expression escape hatch only when the caller supports it', () => {
+    it('offers the expression escape hatch only when the caller supports it', async () => {
         const onUseExpression = vi.fn();
         renderPicker({ onUseExpression });
-        open();
+        await open();
         fireEvent.mouseDown(screen.getByText('Use an expression instead'));
         expect(onUseExpression).toHaveBeenCalled();
 
         cleanup();
         renderPicker();
-        open();
+        await open();
         expect(screen.queryByText('Use an expression instead')).toBeNull();
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Privacy Shield status — one small, authenticated summary for the UI claims.
  *
@@ -127,7 +128,9 @@ const OFF = Object.freeze({
 });
 
 // ── Guard reachability, memoised ─────────────────────────────────────
+/** @type {{ reachable: boolean; at: number; } | null} */
 let _guardMemo = null;     // { reachable, at }
+/** @type {Promise<boolean> | null} */
 let _guardInflight = null; // concurrent polls share one probe
 
 async function _probeGuard() {
@@ -172,23 +175,21 @@ function isGuardReachable() {
  * Fold the resolved inputs into the response. Pure — exported so the test can
  * pin every configuration → claim mapping without a server.
  *
- * @param {object} p
- * @param {object|null} p.aiConfig     getAIConfig() — the global admin toggle
- * @param {object|null} p.orgShield    resolveOrgShield(orgId), null when off
- * @param {object|null} p.userShield   resolveUserShield(userId, …), null when off
- * @param {string|null} p.orgId        the caller's effective org
- * @param {boolean} p.coworkFlagOn     isCoworkShieldEnabled(orgId)
- * @param {boolean} p.guardReachable   isGuardReachable()
- * @param {boolean} p.euMode           isEUModeActive().isEU
- * @param {object|null} [p.chatMonitoring] resolveChatMonitoring(orgId || 'default');
- *                                     independent of the shield: a notice is
- *                                     owed whether or not the shield is on
+ * @param {{ aiConfig: ShieldSettings|null, // getAIConfig() — the global admin toggle
+ *   orgShield: ShieldSettings|null, // resolveOrgShield(orgId), null when off
+ *   userShield: ShieldSettings|null, // resolveUserShield(userId, …), null when off
+ *   orgId: string|null, // the caller's effective org
+ *   coworkFlagOn: boolean, // isCoworkShieldEnabled(orgId)
+ *   guardReachable: boolean, // isGuardReachable()
+ *   euMode: boolean, // isEUModeActive().isEU
+ *   chatMonitoring?: object|null }} p  chatMonitoring: resolveChatMonitoring(orgId || 'default'); independent of the shield: a notice is owed whether or not the shield is on
  */
 function summarizeShield({ aiConfig, orgShield, userShield, orgId, coworkFlagOn, guardReachable, euMode, chatMonitoring = null }) {
     const shield = orgShield || userShield || null;
     const platformOn = !!aiConfig?.piiDetectionEnabled;
     let enabled = platformOn || !!shield?.enabled;
 
+    /** @type {string | null} */
     let action = null;
     if (enabled) {
         if (shield?.enabled && shield?.dlpEnabled) {
@@ -279,7 +280,7 @@ router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {im
     } catch (err) {
         // Degrade, never 500: the detail stays server-side and the UI gets
         // the one answer that is safe to be wrong about — no claim.
-        log.warn('[PrivacyShieldStatus] status resolution failed:', err && err.message);
+        log.warn('[PrivacyShieldStatus] status resolution failed:', err && /** @type {Error} */ (err).message);
         status = OFF;
     }
     // A claim cached by a proxy is exactly the stale green lock this route
@@ -303,11 +304,10 @@ module.exports = Object.assign(router, {
 
 /**
  * The settings the fold reads: the global AI config, an org shield or a user shield.
- * @typedef {object} ShieldSettings
- * @property {boolean} [enabled]
- * @property {boolean} [piiDetectionEnabled]
- * @property {string} [piiDetectionAction]
- * @property {string} [piiFailureMode]
- * @property {boolean} [dlpEnabled]
- * @property {string} [dlpMode]
+ * @typedef {{ enabled?: boolean,
+ *   piiDetectionEnabled?: boolean,
+ *   piiDetectionAction?: string,
+ *   piiFailureMode?: string,
+ *   dlpEnabled?: boolean,
+ *   dlpMode?: string }} ShieldSettings
  */

@@ -25,34 +25,36 @@ const { makeProjectStreamHandler } = require('./collabStream');
 
 /**
  * @param {object} deps
- * @param {(minRole: string) => import('express').RequestHandler} deps.requireProjectRole        (minRole) => middleware named requireProjectRoleMw
- * @param {any}   deps.projectStore              stores/projectStore
- * @param {any}   deps.notificationPrefsStore    stores/notificationPrefsStore
- * @param {Function} deps.getUserId                 (req) => the caller's user id
- * @param {typeof import('../../utils/perUserRateLimit').perUserRateLimit} deps.perUserRateLimit         utils/perUserRateLimit perUserRateLimit
- * @param {Function} deps.projectFiles              () => projects/projectFiles (loaded on first use)
- * @param {Function} deps.projectEventBus           () => core/projectEventBus (loaded on first use)
+ * @param {(minRole: string) => import('express').RequestHandler} deps.requireProjectRole  middleware named requireProjectRoleMw
+ * @param {typeof import('../../stores/projectStore')} deps.projectStore
+ * @param {typeof import('../../stores/notificationPrefsStore')} deps.notificationPrefsStore
+ * @param {(req: import('express').Request) => string | undefined} deps.getUserId  the caller's user id
+ * @param {typeof import('../../utils/perUserRateLimit').perUserRateLimit} deps.perUserRateLimit
+ * @param {() => typeof import('../../projects/projectFiles')} deps.projectFiles  loaded on first use
+ * @param {() => typeof import('../../core/projectEventBus')} deps.projectEventBus  loaded on first use
  */
 function makeActivityRouter(deps) {
     const router = express.Router();
     const { projectStore, notificationPrefsStore, getUserId, perUserRateLimit, projectFiles, projectEventBus } = deps;
+    // Every route here runs behind the project role gate, which guarantees the session user.
+    const callerId = (/** @type {import('express').Request} */ req) => /** @type {string} */ (getUserId(req));
     const requireRole = deps.requireProjectRole;
 
     // ── Mute: stop the bell and the mail for this project (mine only) ─
 
-    router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        await notificationPrefsStore.setMuted(getUserId(req), req.params.id, true);
+    router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
+        await notificationPrefsStore.setMuted(callerId(req), req.params.id, true);
         res.json({ muted: true });
     });
 
-    router.delete('/:id/mute', requireRole('viewer'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        await notificationPrefsStore.setMuted(getUserId(req), req.params.id, false);
+    router.delete('/:id/mute', requireRole('viewer'), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
+        await notificationPrefsStore.setMuted(callerId(req), req.params.id, false);
         res.json({ muted: false });
     });
 
     // ── Activity feed ────────────────────────────────────────
 
-    router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, 200);
         const offset = parseInt(/** @type {string} */ (req.query.offset), 10) || 0;
         // Fetch one extra row to cheaply detect "more available" without a
@@ -86,12 +88,12 @@ function makeActivityRouter(deps) {
         windowMs: 10_000, max: 20, name: 'project-typing',
         keyFn: (/** @type {import('express').Request} */ req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
     });
-    router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const bus = projectEventBus();
             await bus.publishTransient(req.params.id, {
                 kind: 'presence.typing',
-                actorId: getUserId(req),
+                actorId: callerId(req),
                 conversationId: req.body?.conversationId || null,
             });
             res.json({ ok: true });

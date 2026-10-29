@@ -55,7 +55,7 @@ export function TaskRow({
                     ) : null}
                     <IconButton
                         icon={<Icon name="Play" size={16} color={theme.colors.textSecondary} />}
-                        accessibilityLabel={`Run ${task.title} now`}
+                        accessibilityLabel={t('mobile.tasks.run_now', 'Run {title} now', { title: task.title })}
                         onPress={onRun}
                         disabled={running}
                     />

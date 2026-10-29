@@ -153,7 +153,7 @@ export default function useBuildTabModel(p: BuildTabProps) {
     const ribbonRootRef = useRef<HTMLDivElement | null>(null);
     const { highlightedStepId, onFocusStep } = useStepFocus(diagramRef, p.openNdv, p.ndvStepId, p.ndvDensity || 'full');
 
-    const builderApi = useAutomationApi() as { getCatalog: () => Promise<unknown> };
+    const builderApi = useAutomationApi() as { getCatalog: () => Promise<unknown>; summariseLayer: (layer: unknown) => Promise<{ summary?: string } | null> };
     // A run parked on a form page: the canvas's run banner offers a way
     // straight to it (design 1d).
     const waitingFormUrl = useWaitingFormUrl(builderApi, p.automation?.id || null, (state?.steps || []).some(row => row?.status === 'awaiting_form'));

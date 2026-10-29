@@ -35,7 +35,7 @@ const { fallback } = require('../utils/bestEffort');
 function reject(status, body) { return { kind: 'reject', status, body }; }
 /** @param {Error} error @returns {Fail} */
 function fail(error) { return { kind: 'error', error }; }
-/** @param {any} [user] @returns {Ok} */
+/** @param {Record<string, unknown> | null} [user] @returns {Ok} */
 function ok(user = null) { return { kind: 'ok', user }; }
 
 // True iff the request's Nextcloud uid is THIS org's recorded NC admin. Used to

@@ -1,3 +1,4 @@
+/** @typedef {import('./index').TableRow} TableRow */
 // @typecheck noImplicitAny
 'use strict';
 /**
@@ -56,6 +57,7 @@ function apply(op, input, ctx) {
             return;
         }
         // Reservoir (algorithm R); the picked rows come out in their original order.
+        /** @type {{ i: number; row: TableRow; }[]} */
         const reservoir = [];
         let i = 0;
         for await (const row of input.rows()) {

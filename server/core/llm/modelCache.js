@@ -73,6 +73,9 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
     const isMistralRegional = isMistral && isMistralRegionalUrl(provider.url);
     const isOpenAILike = !!provider && (provider.type === 'openai' || provider.type === 'azure');
     const isEu = isOpenAILike && isEuResidencyUrl(provider.url);
+    /**
+     * @param {{ id: string; name: string; }[]} models
+     */
     const registerIfLocal = (models) => {
         if (isLocal) {
             for (const m of models) registerLocalModel(m?.id);
@@ -157,6 +160,7 @@ async function _discover(provider) {
     const baseUrl = (provider.url || '').replace(/\/+$/, '');
 
     log.info(`[ModelCache] Fetching models for ${provider.name}`);
+    /** @type {{ id: string; name: string; }[]} */
     let models;
     try {
         models = await adapter.listModels(provider.apiKey, baseUrl, {
@@ -187,6 +191,7 @@ async function _discover(provider) {
 /**
  * Invalidate model cache for a specific provider or all providers.
  * Call this when provider config changes (add/update/delete).
+ * @param {string} [providerId]
  */
 function invalidateModelCache(providerId) {
     const r = getRedis();
@@ -324,7 +329,7 @@ async function getProviderForModel(modelId) {
                 };
             }
         } catch (e) {
-            log.error(`[AIAgent] Failed to check models for ${provider.name}:`, e.message);
+            log.error(`[AIAgent] Failed to check models for ${provider.name}:`, /** @type {Error} */ (e).message);
         }
     }
 

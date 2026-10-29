@@ -326,7 +326,7 @@ async function resolveActiveFeaturesContext(req) {
         const caps = await getOrgCaps(orgId);
         planCappedInt = applyCap(allowedIntegrations, caps.integrations);
     } catch (e) {
-        log.warn('[ActiveFeatures] plan cap lookup failed:', e.message);
+        log.warn('[ActiveFeatures] plan cap lookup failed:', /** @type {Error} */ (e).message);
     }
     const allowedBetaFeatures = Array.from(new Set(grantedAllowList));
 
@@ -451,7 +451,7 @@ router.put('/me/active-features', requireAuth, validate({ body: ActiveFeaturesBo
                 ctx.orgId,
             );
         } catch (e) {
-            log.warn('[ActiveFeatures] audit log failed:', e.message);
+            log.warn('[ActiveFeatures] audit log failed:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -604,7 +604,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     await entitlements.invalidateForOrg(orgId);
     try {
         await userStore.logAccessAudit('org.access.update', 'organization', orgId, actorId || null, {}, { granted }, orgId);
-    } catch (e) { log.warn('[Entitlements] org-access audit failed:', e.message); }
+    } catch (e) { log.warn('[Entitlements] org-access audit failed:', /** @type {Error} */ (e).message); }
     return [...buckets.integration, ...buckets.beta, ...buckets.core];
 }
 
@@ -714,7 +714,7 @@ router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), v
     for (const k of Object.keys(req.session)) if (k.startsWith('_ent:')) delete req.session[k];
     try {
         await userStore.logAccessAudit('org.availability.update', 'organization', orgId, req.session.user?.id || null, {}, { available: unrestricted === true ? null : available }, orgId);
-    } catch (e) { log.warn('[Entitlements] org-availability audit failed:', e.message); }
+    } catch (e) { log.warn('[Entitlements] org-availability audit failed:', /** @type {Error} */ (e).message); }
     res.json(await buildOrgAvailabilityResponse(orgId));
 });
 
@@ -777,14 +777,14 @@ router.put('/groups/:id/access', requireAuth, validate({ body: GrantedBody }), a
     }
     try {
         await userStore.logAccessAudit('group.access.update', 'group', id, userId || null, { grantedCapabilities: prev }, { grantedCapabilities: clean }, group.organizationId || null);
-    } catch (e) { log.warn('[Entitlements] group-access audit failed:', e.message); }
+    } catch (e) { log.warn('[Entitlements] group-access audit failed:', /** @type {Error} */ (e).message); }
     await entitlements.invalidateForOrg(group.organizationId);
     // A grant such as meeting_notes carries a UI permission to the group's
     // members (getUserPermissions), so their cached permission sets are stale
     // the moment such a grant flips.
     const implied = Object.keys(GROUP_GRANT_IMPLIED_PERMISSIONS);
     if (implied.some(capId => prev.includes(capId) !== clean.includes(capId))) {
-        try { await invalidateAllPermissionCaches(); } catch (e) { log.warn('[Entitlements] permission cache invalidation failed:', e.message); }
+        try { await invalidateAllPermissionCaches(); } catch (e) { log.warn('[Entitlements] permission cache invalidation failed:', /** @type {Error} */ (e).message); }
     }
     res.json({ success: true, granted: clean });
 });

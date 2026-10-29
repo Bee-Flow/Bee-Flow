@@ -97,7 +97,7 @@ async function readReuse(plan) {
                 maxAgeSeconds: durable.ttlSeconds,
             });
         } catch (e) {
-            log.warn('[AutomationRunner] durable cache read failed:', e.message);
+            log.warn('[AutomationRunner] durable cache read failed:', /** @type {Error} */ (e).message);
         }
         if (row) {
             hit = row.value;

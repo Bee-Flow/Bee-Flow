@@ -20,35 +20,34 @@
 /** @typedef {{ id: string, text: string, startedAt: number, endedAt: number | null, signature?: string, redacted?: boolean, redactedData?: string, phase?: string }} ThinkingPart */
 
 /**
- * @typedef {object} TurnInput
- * @property {import('express').Request} req
- * @property {import('express').Response} res
- * @property {ReturnType<typeof import('../../../core/http/sseHelpers').openSse>['send']} send
- * @property {AbortController} clientAbort
- * @property {string} userId
- * @property {string | null} [message]
- * @property {string | null} [conversationId]
- * @property {string | null} [modelTier]
- * @property {Array<{ role?: string, content?: unknown, attachments?: unknown[], [key: string]: unknown }> | null} [history]
- * @property {Array<{ type?: string, [key: string]: unknown }> | null} [attachments]
- * @property {Record<string, unknown> | null} [imageGenSettings]
- * @property {Record<string, unknown> | null} [nanoBananaSettings]
- * @property {Record<string, unknown> | null} [disabledMedia]
- * @property {boolean | null} [webSearchEnabled]
- * @property {string | null} [notebookspaceContent]
- * @property {string | null} [notebookspaceSelection]
- * @property {boolean | null} [notebookspaceAvailable]
- * @property {unknown} [sidePanelWebpage]
- * @property {unknown} [sidePanelDocument]
- * @property {string | null} [projectId]
- * @property {string | null} [timezone]
- * @property {string | null} [requestSystemPrompt]
- * @property {string[] | null} [activeSkillIds]
- * @property {string | null} [requestReasoningEffort]
- * @property {unknown} [requestSessionSkills]
- * @property {string[] | null} [requestActivatedSessionSkillIds]
- * @property {string[] | null} [requestedKbIds]
- * @property {unknown} [webpagePlanExecution]
+ * @typedef {{ req: import('express').Request,
+ *   res: import('express').Response,
+ *   send: ReturnType<typeof import('../../../core/http/sseHelpers').openSse>['send'],
+ *   clientAbort: AbortController,
+ *   userId: string,
+ *   message?: string | null,
+ *   conversationId?: string | null,
+ *   modelTier?: string | null,
+ *   history?: Array<{ role?: string, content?: unknown, attachments?: unknown[], [key: string]: unknown }> | null,
+ *   attachments?: Array<{ type?: string, [key: string]: unknown }> | null,
+ *   imageGenSettings?: Record<string, unknown> | null,
+ *   nanoBananaSettings?: Record<string, unknown> | null,
+ *   disabledMedia?: Record<string, unknown> | null,
+ *   webSearchEnabled?: boolean | null,
+ *   notebookspaceContent?: string | null,
+ *   notebookspaceSelection?: string | null,
+ *   notebookspaceAvailable?: boolean | null,
+ *   sidePanelWebpage?: unknown,
+ *   sidePanelDocument?: unknown,
+ *   projectId?: string | null,
+ *   timezone?: string | null,
+ *   requestSystemPrompt?: string | null,
+ *   activeSkillIds?: string[] | null,
+ *   requestReasoningEffort?: string | null,
+ *   requestSessionSkills?: unknown,
+ *   requestActivatedSessionSkillIds?: string[] | null,
+ *   requestedKbIds?: string[] | null,
+ *   webpagePlanExecution?: unknown }} TurnInput
  */
 
 /**

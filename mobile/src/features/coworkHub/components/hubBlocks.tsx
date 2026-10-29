@@ -10,6 +10,7 @@
 
 import React from 'react';
 
+import { translate } from '@/core/i18n';
 import type { ActiveRun } from '@/features/automations';
 import { ScheduleRow } from '@/features/cowork';
 import { cardRows, type Block } from '@/shared/patterns';
@@ -56,8 +57,11 @@ function scheduleBlocks(hub: CoworkHub): Block[] {
     return [
         block('scheduled', 'section', () => (
             <Section
-                title="Scheduled"
-                subtitle="Work you handed over. It runs whether the app is open or not."
+                title={translate('mobile.cowork_hub.scheduled', 'Scheduled')}
+                subtitle={translate(
+                    'mobile.cowork_hub.scheduled_hint',
+                    'Work you handed over. It runs whether the app is open or not.',
+                )}
             >
                 {null}
             </Section>
@@ -75,7 +79,7 @@ function runningBlocks(hub: CoworkHub, onStop: (runId: string) => void): Block[]
         <RunningRow run={run} title={hub.titleFor(run.automationId)} onStop={() => onStop(run.runId)} />
     );
     return [
-        block('running', 'section', () => <Section title="Running now">{null}</Section>),
+        block('running', 'section', () => <Section title={translate('projects.running_now', 'Running now')}>{null}</Section>),
         ...cardRows({ key: 'running', rows: active, rowKey: (run) => run.runId, render: row }),
     ];
 }
@@ -89,8 +93,11 @@ export function hubBlocks(hub: CoworkHub, actions: HubActions): Block[] {
             ? [
                   block('needs-you', 'section', () => (
                       <RunCardSection
-                          title="Needs you"
-                          subtitle="Runs that stopped, or are waiting on a decision"
+                          title={translate('mobile.cowork_hub.needs_you', 'Needs you')}
+                          subtitle={translate(
+                              'mobile.cowork_hub.needs_you_hint',
+                              'Runs that stopped, or are waiting on a decision',
+                          )}
                           runs={hub.needsYou}
                           titleFor={hub.titleFor}
                       />
@@ -116,7 +123,7 @@ export function hubBlocks(hub: CoworkHub, actions: HubActions): Block[] {
         ...(recent.length > 0
             ? [
                   block('recent', 'section', () => (
-                      <RunCardSection title="Recent activity" runs={recent.slice(0, 6)} titleFor={hub.titleFor} />
+                      <RunCardSection title={translate('projects.recent_activity', 'Recent activity')} runs={recent.slice(0, 6)} titleFor={hub.titleFor} />
                   )),
               ]
             : []),

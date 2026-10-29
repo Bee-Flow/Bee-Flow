@@ -102,11 +102,12 @@ function graph() {
  * @returns {Promise<Response>}
  */
 async function call(g, path, options = {}, { what = 'file', file = null, okStatuses = null } = {}) {
+    /** @type {Response} */
     let res;
     try {
         res = await graph().graphRequest(path, g.cred, options);
     } catch (e) {
-        if (e && e.message === 'NOT_CONNECTED') throw fromHttp(provider, 401, '', what, { ref: g.refOf(file) });
+        if (e && /** @type {Error} */ (e).message === 'NOT_CONNECTED') throw fromHttp(provider, 401, '', what, { ref: g.refOf(file) });
         throw e;
     }
     const ok = okStatuses ? okStatuses.includes(res.status) : res.ok;
@@ -254,11 +255,12 @@ async function download(g, file,{ maxBytes = null } = {}) {
         throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', 'OneDrive gave no download link for this file.', { ref: g.refOf(file) });
     }
     // Pre-authenticated URL on a content host: a bare fetch, NO bearer.
+    /** @type {Response} */
     let res;
     try {
         res = await fetch(p.downloadUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
     } catch (e) {
-        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `OneDrive did not deliver the file (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: g.refOf(file) });
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `OneDrive did not deliver the file (${e && /** @type {Error} */ (e).name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: g.refOf(file) });
     }
     if (!res.ok) throw fromHttp(provider, res.status, '', 'file', { ref: g.refOf(file) });
     const buffer = Buffer.from(await res.arrayBuffer());
@@ -281,6 +283,7 @@ async function uploadChunks(g, file, uploadUrl, buffer) {
     for (let start = 0; start < buffer.length; start += UPLOAD_CHUNK) {
         const end = Math.min(start + UPLOAD_CHUNK, buffer.length);
         const chunk = buffer.subarray(start, end);
+        /** @type {Response} */
         let res;
         try {
             res = await fetch(uploadUrl, {
@@ -294,7 +297,7 @@ async function uploadChunks(g, file, uploadUrl, buffer) {
                 signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
             });
         } catch (e) {
-            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `OneDrive dropped the upload (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: g.refOf(file) });
+            throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `OneDrive dropped the upload (${e && /** @type {Error} */ (e).name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: g.refOf(file) });
         }
         if (!res.ok) {
             const { message } = await graphError(res);
@@ -341,8 +344,8 @@ async function upload(g, file, buffer, { ifMatch = null, contentType = null } = 
 }
 
 /**
- * @param {object} cred
- * @param {object} [ctx]
+ * @param {import('../../../../../integrations/msGraphClient').MsSession} cred
+ * @param {unknown} [ctx]  unused (the FileApi signature)
  */
 function makeApi(cred, ctx = {}) {
     void ctx;

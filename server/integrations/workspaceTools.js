@@ -346,7 +346,7 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
             // The live update it made: the revision a next whole write goes from.
             if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? live.seq : null; return true; }
         } catch (e) {
-            log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: e.message });
+            log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: /** @type {Error} */ (e).message });
             return false;
         }
         return notebookStore.updateNotebook(workspace.notebookId, workspace.user_id, {
@@ -389,7 +389,7 @@ async function notebookRead(args, c) {
         const result = readNotebookContent(content, args);
         return result.error ? result : { ...result, ...revision };
     } catch (err) {
-        log.error('[NotebookTool] Read failed:', err.message);
+        log.error('[NotebookTool] Read failed:', /** @type {Error} */ (err).message);
         return { error: 'Failed to read notebook content.' };
     }
 }
@@ -429,7 +429,7 @@ async function notebookWrite(args, c) {
             message: `Notebook updated: "${title}" (${words} words, ${content.split('\n').length} lines). Content is now visible in the notebook panel.`
         };
     } catch (err) {
-        log.error('[NotebookTool] Write failed:', err.message);
+        log.error('[NotebookTool] Write failed:', /** @type {Error} */ (err).message);
         return { error: 'Failed to write to notebook.' };
     }
 }
@@ -467,7 +467,7 @@ async function notebookInsert(args, c) {
             message: `Inserted ${words} words at ${position}${position === 'after' ? ` "${afterText.substring(0, 50)}"` : ''}. Notebook now has ${wordCount(newContent)} words total.`
         };
     } catch (err) {
-        log.error('[NotebookTool] Insert failed:', err.message);
+        log.error('[NotebookTool] Insert failed:', /** @type {Error} */ (err).message);
         return { error: 'Failed to insert into notebook.' };
     }
 }
@@ -510,7 +510,7 @@ async function notebookReplace(args, c) {
             message: `Text ${action} successfully. Notebook now has ${wordCount(newContent)} words.`
         };
     } catch (err) {
-        log.error('[NotebookTool] Replace failed:', err.message);
+        log.error('[NotebookTool] Replace failed:', /** @type {Error} */ (err).message);
         return { error: 'Failed to replace notebook content.' };
     }
 }
@@ -635,7 +635,7 @@ async function resolveWorkspaceContent({ notebookId, userId, fallbackContent }) 
         if (!nb) return fallbackContent || '';
         return (nb.documentMd != null ? nb.documentMd : nb.documentContent) || '';
     } catch (e) {
-        log.warn('[Workspace] linked-notebook read failed, falling back to stored column:', e.message);
+        log.warn('[Workspace] linked-notebook read failed, falling back to stored column:', /** @type {Error} */ (e).message);
         return fallbackContent || '';
     }
 }

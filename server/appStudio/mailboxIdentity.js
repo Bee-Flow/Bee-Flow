@@ -29,6 +29,7 @@ const INTEGRATION_BY_MAILBOX_PROVIDER = Object.freeze({ gmail: 'gmail', outlook:
  * How a "shared" mailbox is actually reached, per provider. Server-derived and
  * never authored: Gmail simply cannot delegate, so promising otherwise in the
  * model would be a lie the runtime then has to break.
+ * @param {string | undefined} provider
  */
 function sharedModeFor(provider) {
     return provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias';
@@ -193,7 +194,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
  *   userId: string, orgId: string|null,
  *   provider: 'gmail'|'outlook', integrationId: string, oauthProvider: 'google'|'microsoft',
  *   tokens: {accessToken, refreshToken, expiryDate, scope},
- *   onRefresh: Function,
+ *   onRefresh: (updated: import('../services/email/send').MailTokens) => Promise<void>,
  *   mailbox: { address, displayName, mode, sharedMode },
  *   viaGrantFrom: string|null,
  * }>}

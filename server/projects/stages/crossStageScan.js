@@ -121,11 +121,7 @@ async function otherStagesOf(solutionId, exceptProjectId, deps = {}) {
         .filter(p => p.projectId && p.projectId !== exceptProjectId);
 }
 
-/**
- * @typedef {Object} ForeignOwnersArgs
- * @property {string} solutionId
- * @property {string | null} [exceptProjectId]
- */
+/** @typedef {{ solutionId: string, exceptProjectId?: string | null }} ForeignOwnersArgs */
 /**
  * Map id → { projectId, stage } for every part filed in Dev or in a stage of
  * `solutionId` other than `exceptProjectId`. `deps.ownersOf(projects)` replaces

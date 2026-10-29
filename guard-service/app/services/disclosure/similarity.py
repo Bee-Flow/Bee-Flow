@@ -88,7 +88,7 @@ def cosine(a: Sequence[float], b: Sequence[float]) -> float:
         nb += y * y
     if na <= 0.0 or nb <= 0.0:
         return 0.0
-    return dot / ((na**0.5) * (nb**0.5))
+    return float(dot / ((na**0.5) * (nb**0.5)))
 
 
 def best_similarity(

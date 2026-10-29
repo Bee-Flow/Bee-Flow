@@ -33,6 +33,7 @@ const RESULT_MAX_CHARS = 24000;
 
 // What the model is told when the tools are not offered, so it never claims a
 // search it cannot run. Keys are the `reason` values the UI also receives.
+/** @type {Record<string, string>} */
 const REASON_TEXT = {
     off: 'the user switched Web search off in the composer',
     not_configured: 'no web search provider is set up on this installation',
@@ -64,6 +65,9 @@ const hasFiles = (list) => Array.isArray(list) && list.length > 0;
  * @returns {Promise<{ offered: boolean, reason: string|null, tools: object[], guard: { piiCategories: string[], block: boolean } }>}
  */
 async function resolveWebResearch({ requested, userId, orgId = null, session = null, isAdmin = false, attachments = [], history = [] }, deps = _deps) {
+    /**
+     * @param {string} reason
+     */
     const none = (reason) => ({ offered: false, reason, tools: [], guard: { piiCategories: [], block: false } });
     if (!requested) return none('off');
     try {
@@ -81,11 +85,14 @@ async function resolveWebResearch({ requested, userId, orgId = null, session = n
     } catch (e) {
         // Fail closed: a check that cannot run offers nothing, and the model is
         // told so instead of being handed a tool that may not be allowed.
-        log.warn('[AutomationBuilder] web research gate failed; tools not offered:', e.message);
+        log.warn('[AutomationBuilder] web research gate failed; tools not offered:', /** @type {Error} */ (e).message);
         return none('unavailable');
     }
 }
 
+/**
+ * @param {string} name
+ */
 function isWebResearchTool(name) {
     return WEB_RESEARCH_TOOL_NAMES.has(name);
 }
@@ -100,16 +107,18 @@ function outboundText(name, args) {
  * Run one web tool call for the builder model.
  *
  * @param {string} name   agent_search | read_url
- * @param {object} args
- * @param {object} ctx
- * @param {Awaited<ReturnType<typeof resolveWebResearch>>} ctx.research  resolveWebResearch's answer for this turn
- * @param {{ refuse: Function }} ctx.gate  the turn's Privacy Shield toolLoopGate
- * @param {{ userId: string, orgId: string|null, automationId: string|null, modelId: string|null }} ctx.ids
+ * @param {Record<string, unknown>} args  the model's tool arguments
+ * @param {{ research: Awaited<ReturnType<typeof resolveWebResearch>>, // resolveWebResearch's answer for this turn
+ *   gate: { refuse: Function }, // the turn's Privacy Shield toolLoopGate
+ *   ids: { userId: string, orgId: string|null, automationId: string|null, modelId: string|null } }} ctx
  * @returns {Promise<{ result: object, modelText: string|null }>}
  *   `result` is what the panel shows; `modelText` the text the model reads
  *   (null on a refusal, then the model reads `result`).
  */
 async function runWebResearchTool(name, args, { research, gate, ids }, deps = _deps) {
+    /**
+     * @param {string} error
+     */
     const refuse = (error) => ({ result: { error }, modelText: null });
     if (!research?.offered || !isWebResearchTool(name)) return refuse('Web search is not available in this chat.');
     const text = outboundText(name, args);
@@ -132,7 +141,7 @@ async function runWebResearchTool(name, args, { research, gate, ids }, deps = _d
         } catch (e) {
             // Fail open, as direct chat's Web Search Guard does: the guard is
             // monitoring first, and the shield's block lists below still apply.
-            log.warn('[AutomationBuilder WebSearchGuard] PII check failed (fail-open):', e.message);
+            log.warn('[AutomationBuilder WebSearchGuard] PII check failed (fail-open):', /** @type {Error} */ (e).message);
         }
     }
 
@@ -146,7 +155,7 @@ async function runWebResearchTool(name, args, { research, gate, ids }, deps = _d
             ids: { organization_id: ids.orgId || null, user_id: ids.userId || null, automation_id: ids.automationId || null },
         });
     } catch (e) {
-        return refuse(`Web search failed: ${e.message}`);
+        return refuse(`Web search failed: ${/** @type {Error} */ (e).message}`);
     }
     if (value && typeof value === 'object' && value.error) return refuse(String(value.error));
     let out = typeof value === 'string' ? value : JSON.stringify(value ?? '');

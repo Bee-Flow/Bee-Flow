@@ -1,3 +1,4 @@
+/** @typedef {import('./validate/helpers').GraphDoc} GraphDoc */
 // @typecheck
 /**
  * Human-readable diff between two automation definitions.
@@ -93,6 +94,8 @@ function summarizeDefinitionDiff(prevDef, nextDef) {
 /**
  * One-line summary, e.g. "2 steps added · 1 connection removed".
  * Falls back to a "formatting only" note when nothing structural changed.
+ * @param {GraphDoc} prevDef
+ * @param {GraphDoc} nextDef
  */
 function summarizeDefinitionDiffLine(prevDef, nextDef) {
     const phrases = summarizeDefinitionDiff(prevDef, nextDef);
@@ -111,7 +114,10 @@ const { fieldDiff, describeChange, describeVersion, describeText, isLayoutOnlyCh
 const { SETTINGS_KEYS } = require('../core/automationRunner/definitionForRun');
 const { fallback } = require('../utils/bestEffort');
 
-/** The definition without its SETTINGS keys (notificationSettings, runPolicy). */
+/**
+ * The definition without its SETTINGS keys (notificationSettings, runPolicy).
+ * @param {GraphDoc} def
+ */
 function withoutSettings(def) {
     if (!def || typeof def !== 'object' || Array.isArray(def)) return def;
     const out = { ...def };
@@ -123,6 +129,8 @@ function withoutSettings(def) {
  * True when prev → next differs in SETTINGS (and possibly layout), nothing
  * else. Settings apply to live runs without a publish (definitionForRun.js),
  * so such a save is not a pending change.
+ * @param {GraphDoc} prevDef
+ * @param {GraphDoc} nextDef
  */
 function isSettingsOnlyChange(prevDef, nextDef) {
     if (isLayoutOnlyChange(prevDef, nextDef)) return false;
@@ -151,8 +159,8 @@ const SETTINGS_CHANGED = Object.freeze([{ code: 'settings_changed', params: {} }
  * Never throws: a description that cannot be built leaves the row without
  * one, and a diff that cannot be computed counts as structural.
  *
- * @param {object} prevDef
- * @param {object} nextDef
+ * @param {import('./automationGraph').AutomationDefinition} prevDef
+ * @param {import('./automationGraph').AutomationDefinition} nextDef
  * @param {{ versionMeta?: { name?: string|null, description?: string|null, descriptionJson?: any, isLayoutOnly?: boolean }|null,
  *           forceVersion?: boolean }} [opts]
  * @returns {{ createVersion: boolean, isLayoutOnly: boolean, name: string|null, description: string|null,

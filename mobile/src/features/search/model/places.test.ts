@@ -102,21 +102,51 @@ describe('the places group in Dutch', () => {
         // to end it.
         setCatalogue('nl', { 'settings.appearance': 'Weergave' });
         const hits = places('weergave');
-        expect(hits.some((h) => h.title === 'Appearance')).toBe(true);
+        expect(hits.some((h) => h.title === 'Weergave')).toBe(true);
     });
 
     it('still finds it by its English name', () => {
         // Everybody says "dashboard". A Dutch user who learned the English
         // product noun must not be punished for it — both haystacks, always.
         setCatalogue('nl', { 'settings.appearance': 'Weergave' });
-        expect(places('appearance').some((h) => h.title === 'Appearance')).toBe(true);
+        expect(places('appearance').some((h) => h.title === 'Weergave')).toBe(true);
     });
 
-    it('renders the row in English, and matches in both', () => {
-        // The label shown is still the destination's own, because converting
-        // the RENDERED sitemap is a separate change from making it searchable.
+    it('shows the row under its Dutch label, as the sitemap does', () => {
+        // What is shown is what is matched: a Dutch reader who typed
+        // "weergave" must not be handed a row that says "Appearance".
         setCatalogue('nl', { 'settings.appearance': 'Weergave' });
-        const hit = places('weergave').find((h) => h.title === 'Appearance');
-        expect(hit).toBeDefined();
+        const hit = places('weergave').find((h) => h.href === '/settings/appearance');
+        expect(hit?.title).toBe('Weergave');
+    });
+
+    it('shows the hint in Dutch where the web has the sentence', () => {
+        const memory = DESTINATIONS.find((d) => d.id === 'memory');
+        expect(memory?.hintKey).toBeTruthy();
+        setCatalogue('nl', {
+            'settings.memory': 'Geheugen',
+            'settings.memory_desc': 'Opgeslagen feiten over jou en je projecten',
+        });
+        const hit = places('geheugen').find((h) => h.href === '/memory');
+        expect(hit?.title).toBe('Geheugen');
+        expect(hit?.subtitle).toBe('Opgeslagen feiten over jou en je projecten');
+    });
+
+    it('keeps the English hint where the catalogue has no entry for its key', () => {
+        // Every destination carries a hint key since the sitemap conversion; a
+        // catalogue that translates only the label leaves the hint in English.
+        const plain = DESTINATIONS.find((d) => d.i18nKey && d.hintKey && !d.external && !d.gate);
+        expect(plain).toBeDefined();
+        setCatalogue('nl', { [plain!.i18nKey as string]: 'Vertaald' });
+        const hit = places('vertaald').find((h) => h.href === plain!.href);
+        expect(hit?.title).toBe('Vertaald');
+        expect(hit?.subtitle).toBe(plain!.hint);
+    });
+
+    it('falls back to the destination’s own English with no catalogue', () => {
+        const memory = DESTINATIONS.find((d) => d.id === 'memory');
+        const hit = places('memory').find((h) => h.href === '/memory');
+        expect(hit?.title).toBe(memory?.label);
+        expect(hit?.subtitle).toBe(memory?.hint);
     });
 });

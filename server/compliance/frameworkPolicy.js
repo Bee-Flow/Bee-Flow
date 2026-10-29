@@ -51,6 +51,9 @@ const POLICY_EVENTS = Object.freeze({
 // ── errors (routes map status/body straight through) ─────────────────────
 
 class UnknownFrameworkError extends Error {
+    /**
+     * @param {string} id
+     */
     constructor(id) {
         super(`Unknown framework: ${id}`);
         this.name = 'UnknownFrameworkError';
@@ -134,17 +137,26 @@ function _requiredTier(capId) {
 
 // ── settings parsing ─────────────────────────────────────────────────────
 
+/**
+ * @param {string} v
+ */
 function _asArray(v) {
     if (Array.isArray(v)) return v;
     if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; } }
     return [];
 }
+/**
+ * @param {string} v
+ */
 function _asObject(v) {
     if (v && typeof v === 'object' && !Array.isArray(v)) return v;
     if (typeof v === 'string') { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; } catch { return {}; } }
     return {};
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _settings(orgId) {
     let s = null;
     try { s = await complianceStore.getSettings(orgId); } catch { s = null; }
@@ -212,6 +224,9 @@ function _lock(snap, capId, reason) {
 
 const _memo = new Map(); // orgId → { at, settings, snap }
 
+/**
+ * @param {string} orgId
+ */
 async function _orgState(orgId) {
     const hit = _memo.get(orgId);
     if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit;
@@ -250,6 +265,7 @@ function _entry(fw, settings, snap) {
  * (super-admins see their full ceiling); without it, the org-level answer.
  * Throws EntitlementsUnavailableError when the licence cannot be resolved —
  * a runner must then skip the org, not run with an empty set.
+ * @param {string} orgId
  */
 async function resolve(orgId, { req = null } = {}) {
     const org = orgId || 'default';
@@ -258,7 +274,10 @@ async function resolve(orgId, { req = null } = {}) {
     return frameworks.listBuiltin().map(fw => _entry(fw, state.settings, snap));
 }
 
-/** True iff the org holds the custom-frameworks capability (no per-framework toggle for those). */
+/**
+ * True iff the org holds the custom-frameworks capability (no per-framework toggle for those).
+ * @param {string} orgId
+ */
 async function customUnlocked(orgId, { req = null } = {}) {
     const org = orgId || 'default';
     const state = await _orgState(org);
@@ -269,6 +288,7 @@ async function customUnlocked(orgId, { req = null } = {}) {
 /**
  * The Set of regulation codes whose checks run for this org: enabled AND
  * unlocked, plus 'CUSTOM' when the org may define its own frameworks.
+ * @param {string} orgId
  */
 async function activeRegulations(orgId, opts = {}) {
     const entries = await resolve(orgId, opts);
@@ -282,10 +302,13 @@ function _emit(name, payload) {
         const events = require('./events');
         if (typeof events.emit === 'function') events.emit(name, payload);
     } catch (e) {
-        log.warn(`[FrameworkPolicy] emit ${name} failed:`, e.message);
+        log.warn(`[FrameworkPolicy] emit ${name} failed:`, /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @param {string | number | null} orgId
+ */
 function _bestEffortCountsInvalidate(orgId) {
     // The counts body caches the framework set for 60 s per org; bust it so the
     // rail and the header pick up an enable/disable on the very next poll.
@@ -307,7 +330,7 @@ async function setEnabled(orgId, id, on, actorId = null, { req = null } = {}) {
         return (await resolve(org, { req })).find(e => e.id === id);
     }
     const current = (await resolve(org, { req })).find(e => e.id === id);
-    if (on && current.locked) throw new FrameworkLockedError(id, /** @type {any} */ (current.locked), current.lock);
+    if (on && current.locked) throw new FrameworkLockedError(id, /** @type {'ceiling'|'not_granted'} */ (current.locked), current.lock);
 
     const { enabled } = await _settings(org); // fresh read — never write from a memo
     const next = new Set(enabled);

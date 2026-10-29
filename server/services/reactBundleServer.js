@@ -84,14 +84,14 @@ function buildStubBridgeScript(surface = 'headlessRender') {
  * Compose the full react-mui HTML document for a headless screenshot. Returns
  * { doc } on success, or { buildError } (esbuild diagnostics) on bundle failure.
  *
- * @param {object} opts
- * @param {Object<string,{isText:boolean,content?:string,dataUrl?:string}>} opts.files
- * @param {Object<string,string>} opts.assetMap  path → data: URL for binary assets
- * @param {string} [opts.surface] one of bfElements.BRIDGE_SURFACES (default 'headlessRender')
- * @param {string} [opts.headScripts] replaces the stub bridges — the draft
- *   document (webpageDraftDocument.js) passes the LIVE, token-carrying bridges
- * @param {Function} [opts.build] the bundler, buildReactBundle by default; the
- *   draft document passes a cached one
+ * `opts`: `assetMap` maps a path to a data: URL for binary assets; `surface` is
+ * one of bfElements.BRIDGE_SURFACES (default 'headlessRender'); `headScripts`
+ * replaces the stub bridges — the draft document (webpageDraftDocument.js)
+ * passes the LIVE, token-carrying bridges; `build` is the bundler,
+ * buildReactBundle by default; the draft document passes a cached one.
+ *
+ * @param {{ files: Record<string, { isText: boolean, content?: string, dataUrl?: string }>, assetMap?: Record<string, string>,
+ *   surface?: string, headScripts?: string, build?: typeof buildReactBundle }} opts
  */
 async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender', headScripts, build = buildReactBundle }) {
     if (!files[REACT_ENTRY]) {
@@ -102,7 +102,7 @@ async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender
         const r = await build({ entry: REACT_ENTRY, files });
         bundle = r.code;
     } catch (e) {
-        return { buildError: e.formatted || e.message || String(e) };
+        return { buildError: e.formatted || /** @type {Error} */ (e).message || String(e) };
     }
     const bodyHtml = reactBodyHtml({ bundle, assetMap, headless: true });
     const doc = shellDoc({

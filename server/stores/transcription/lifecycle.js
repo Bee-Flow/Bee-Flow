@@ -115,6 +115,6 @@ async function deleteTranscription(id, userId) {
 module.exports = { timeoutStuckTranscriptions, setPublished, deleteTranscription };
 
 /**
- * @typedef {Object} TimeoutStuckTranscriptionsArgs
+ * @typedef TimeoutStuckTranscriptionsArgs
  * @property {number} [stuckMinutes]
  */

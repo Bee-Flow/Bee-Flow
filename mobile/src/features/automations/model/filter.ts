@@ -4,11 +4,11 @@ import type { Automation } from './types';
 
 export type AutomationFilter = 'all' | 'active' | 'paused' | 'failing';
 
-export const AUTOMATION_FILTERS: { value: AutomationFilter; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'active', label: 'On' },
-    { value: 'paused', label: 'Paused' },
-    { value: 'failing', label: 'Last run failed' },
+export const AUTOMATION_FILTERS: { value: AutomationFilter; i18nKey: string; en: string }[] = [
+    { value: 'all', i18nKey: 'common.all', en: 'All' },
+    { value: 'active', i18nKey: 'common.on', en: 'On' },
+    { value: 'paused', i18nKey: 'automations.paused', en: 'Paused' },
+    { value: 'failing', i18nKey: 'studio_misc.overview.last_run_failed', en: 'Last run failed' },
 ];
 
 function matchesFilter(item: Automation, filter: AutomationFilter): boolean {

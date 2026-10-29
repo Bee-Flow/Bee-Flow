@@ -693,6 +693,30 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
 // that was wrong (a demand or a fixture is only a lower bound), and is redone
 // without that source.
 
+/** Whether a variable declaration carries a type: a TypeScript annotation, or a JSDoc type tag on it or on its statement. */
+export function varDeclared(ts, decl) {
+    const stmt = decl.parent && decl.parent.parent;
+    return !!(decl.type || ts.getJSDocType(decl) || (stmt && ts.isVariableStatement(stmt) && ts.getJSDocType(stmt)));
+}
+
+/** The slot of a variable the inference types from its uses (`var:<name>@<enclosing function>`). */
+export function varSlot(ts, decl, fkeys) {
+    return ts.isIdentifier(decl.name) ? `var:${decl.name.text}@${enclosingKey(ts, decl, fkeys)}` : null;
+}
+
+/**
+ * A `var` edit, recorded under its slot so a caller's diagnostic can reject it (a typed
+ * empty array `(string | number)[]` that a later push hands a boolean). Without ctx the
+ * edit is written as before. Returns false when the slot is banned.
+ */
+function pushVarEdit(ts, ctx, sf, d, type, edits) {
+    const slot = ctx ? varSlot(ts, d, ctx.fkeys) : null;
+    if (slot && !ctx.allowed(slot, 'var')) return false;
+    if (slot) ctx.chosen.push({ slot, source: 'var' });
+    edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${type}`, kind: 'var', type, host: d.parent.parent.getStart(sf) });
+    return true;
+}
+
 function enclosingKey(ts, node, fkeys) {
     for (let n = node.parent; n; n = n.parent) if (fkeys.has(n)) return fkeys.get(n);
     return '';
@@ -745,6 +769,58 @@ export function slotOfDiagnostic(ts, program, abs, d) {
         if (ts.isStatement(n)) break;
     }
     return null;
+}
+
+/**
+ * A diagnostic a CALLER raises against a function the inference typed: an argument that
+ * does not fit the parameter (TS2345) or a call with fewer arguments than the parameters
+ * made required (TS2554). `slotOfDiagnostic` sees the argument and lands on the caller's
+ * own variable; the slot to reject is the callee's parameter, which may sit in another
+ * file (a colocated test calls the store it tests). Returns { file, slot, declared } for a
+ * callee declared as a function (`declared`: its parameter carries a type in the current
+ * text), the variable's slot for a library method called on a variable, or null.
+ */
+export function calleeSlotOfDiagnostic(ts, program, abs, d) {
+    if (d.code !== 2345 && d.code !== 2554) return null;
+    const sf = program.getSourceFile(abs); if (!sf || d.start === undefined) return null;
+    const checker = program.getTypeChecker();
+    let n = ts.getTokenAtPosition(sf, d.start);
+    let call = null; let index = -1;
+    for (let up = 0; n && up < 8; up++, n = n.parent) {
+        if (ts.isCallExpression(n) || ts.isNewExpression(n)) {
+            call = n;
+            break;
+        }
+        if (n.parent && (ts.isCallExpression(n.parent) || ts.isNewExpression(n.parent)) && n.parent.arguments && n.parent.arguments.includes(n)) {
+            call = n.parent; index = n.parent.arguments.indexOf(n);
+            break;
+        }
+        if (ts.isStatement(n)) return null;
+    }
+    if (!call) return null;
+    if (index < 0) {
+        // TS2554 spans the call: the first parameter the call leaves out.
+        if (d.code !== 2554) return null;
+        index = call.arguments ? call.arguments.length : 0;
+    }
+    const sig = checker.getResolvedSignature(call);
+    let decl = sig && sig.declaration;
+    if (!decl) { const sym = checker.getSymbolAtLocation(call.expression); decl = sym && sym.valueDeclaration; }
+    if (!decl) return null;
+    // A method of the standard library on a variable the inference typed (`params.push(x)`
+    // with `params` typed from its earlier pushes): the variable's slot, in this file.
+    if (/\/typescript\/lib\/lib\.[^/]*\.d\.ts$/.test(decl.getSourceFile().fileName)) {
+        if (!ts.isPropertyAccessExpression(call.expression) || !ts.isIdentifier(call.expression.expression)) return null;
+        const sym = checker.getSymbolAtLocation(call.expression.expression); const vd = sym && sym.valueDeclaration;
+        if (!vd || !ts.isVariableDeclaration(vd) || vd.getSourceFile() !== sf) return null;
+        const slot = varSlot(ts, vd, functionKeys(ts, sf));
+        return slot ? { file: sf.fileName, slot, declared: varDeclared(ts, vd) } : null;
+    }
+    if (!(ts.isFunctionDeclaration(decl) || ts.isArrowFunction(decl) || ts.isFunctionExpression(decl) || ts.isMethodDeclaration(decl) || ts.isConstructorDeclaration(decl))) return null;
+    const dsf = decl.getSourceFile();
+    const key = functionKeys(ts, dsf).get(decl);
+    if (!key || index >= decl.parameters.length) return null;
+    return { file: dsf.fileName, slot: `${key}|#${index}`, declared: hasDeclaredType(ts, decl.parameters[index]) };
 }
 
 // ------------------------------------------------------------ observed types
@@ -828,7 +904,7 @@ function observedText(observed, key, slot, named) {
  * it gets the whole shape: the literal's members plus each later one as
  * optional, or Record<string, T> for an empty literal filled by key.
  */
-function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
+function inferExpandos(ts, checker, sf, abs, imports, edits, report, ctx = null) {
     const decls = [];
     const visit = (n) => {
         if (ts.isVariableDeclaration(n) && !hasDeclaredType(ts, n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) decls.push(n);
@@ -887,7 +963,7 @@ function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
             text = `{ ${members.join('; ')} }`;
         } else { report.push(`${label}: named and computed members mixed`); continue; }
         if (text.length > 2 * MAX_TYPE) { report.push(`${label}: shape too long`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}`, kind: 'var', type: text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of local) imports.set(l[0], l[1]);
         report.push(`${label}: ${text}`);
     }
@@ -902,7 +978,7 @@ const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
  *  - `let ro = null; ... ro = new ResizeObserver(...)`: the union of what is
  *    assigned, null included.
  */
-function inferLearned(ts, checker, sf, abs, imports, edits, report) {
+function inferLearned(ts, checker, sf, abs, imports, edits, report, ctx = null) {
     const consts = []; const lets = []; const catches = []; const arrays = [];
     const visit = (n) => {
         if (ts.isVariableDeclaration(n) && !hasDeclaredType(ts, n) && ts.isIdentifier(n.name) && n.initializer) {
@@ -934,7 +1010,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (!props.every((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))) continue;
         const t = unionText(ts, checker, props.map((p) => checker.getTypeAtLocation(ts.isPropertyAssignment(p) ? p.initializer : p.name)), d, abs, imports);
         if (!t) { report.push(`lookup ${d.name.text}: value type not writable`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: Record<string, ${t.text}>`, kind: 'var', type: `Record<string, ${t.text}>`, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, `Record<string, ${t.text}>`, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`lookup ${d.name.text}: Record<string, ${t.text}>`);
     }
@@ -961,7 +1037,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (d.initializer) useful.push(checker.getNullType());
         const t = unionText(ts, checker, useful, d, abs, imports);
         if (!t) continue;
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${t.text}`, kind: 'var', type: t.text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, t.text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`let ${d.name.text}: ${t.text}`);
     }
@@ -991,7 +1067,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         const t = unionText(ts, checker, types, d, abs, imports);
         if (!t) { report.push(`array ${d.name.text}: element type not writable [${unionText.why}]`); continue; }
         const text = /[|&]/.test(t.text) && !/^\(.*\)$/.test(t.text) ? `(${t.text})[]` : `${t.text}[]`;
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}`, kind: 'var', type: text, host: d.parent.parent.getStart(sf) });
+        if (!pushVarEdit(ts, ctx, sf, d, text, edits)) { report.push(`var ${d.name.text}: rejected by a caller`); continue; }
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`array ${d.name.text}: ${text}`);
     }
@@ -1046,8 +1122,8 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
     const fkeys = functionKeys(ts, sf);
     const allowed = (slot, source) => !banned.has(`${slot}|${source}`);
     inferHooks(ts, service, program, checker, sf, abs, report, edits, imports, observed, named, { fkeys, allowed, chosen });
-    inferExpandos(ts, checker, sf, abs, imports, edits, report);
-    inferLearned(ts, checker, sf, abs, imports, edits, report);
+    inferExpandos(ts, checker, sf, abs, imports, edits, report, { fkeys, allowed, chosen });
+    inferLearned(ts, checker, sf, abs, imports, edits, report, { fkeys, allowed, chosen });
     for (const fn of fns) {
         const nameNode = nameNodeOf(ts, fn);
         if (!nameNode) continue; // inline callbacks: contextually typed, or the codefix pass takes them
@@ -1146,7 +1222,7 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             // alias, whose implicit index signature lets it be passed where a
             // `Record<string, unknown>` or a looser shape is expected.
             const decl = isComponent ? `interface ${iname} {\n${lines.join('\n')}\n}\n\n` : `type ${iname} = {\n${lines.join('\n')}\n};\n\n`;
-            edits.push({ start: at, end: at, text: decl, kind: 'interface', name: iname, members: lines.map((l) => { const m = l.match(/^\s+([\w$]+)(\??): (.*);$/); return { key: m[1], optional: !!m[2], type: m[3] }; }) });
+            edits.push({ start: at, end: at, text: decl, kind: 'interface', name: iname, members: lines.map((l) => { const m = l.match(/^\s+([\w$]+)(\??): (.*);$/); return { key: m[1], optional: !!m[2], type: m[3] }; }), open: open.map((o) => o.replace(/ \[.*$/, '')) });
             edits.push({ start: first.name.getEnd(), end: first.name.getEnd(), text: `: ${iname}`, kind: 'param', name: null, index: 0, optional: !!first.initializer, type: iname, host: jsdocHost(ts, fn).getStart(sf) });
             if (lines.some((l) => l.includes('React.'))) local.push(['React', null]);
             for (const l of local) imports.set(l[0], l[1]);
@@ -1157,8 +1233,10 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
         const posEdits = [];
         fn.parameters.forEach((p, i) => {
             if (hasDeclaredType(ts, p) || p.dotDotDotToken || !ts.isIdentifier(p.name)) return;
-            const types = []; let missing = !!p.initializer || !!p.questionToken;
             const slot = `${fkeys.get(fn)}|#${i}`; let source = 'call';
+            // `<slot>|required` in the bans: a caller (a test, say) leaves this argument out, so
+            // whatever the sites say, the parameter is optional.
+            const types = []; let missing = !!p.initializer || !!p.questionToken || banned.has(`${slot}|required`);
             // A site that only hands the function on (onRowClick={fn}) gives the receiver's
             // expectation, a lower bound like any demand: it is checked as one.
             if (usable && sites.every((s) => s.kind === 'args') && sites.every((s) => s.contextual)) source = 'demand';
@@ -1191,6 +1269,15 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             posEdits.push({ start: p.name.getEnd(), end: p.name.getEnd(), text: `${opt}: ${t.text}`, kind: 'param', name: p.name.text, index: i, optional: !!(opt || p.initializer), type: t.text, host: jsdocHost(ts, fn).getStart(sf), arrowParen: ts.isArrowFunction(fn) && fn.parameters.length === 1 && !fn.getChildren(sf).some((c) => c.kind === ts.SyntaxKind.OpenParenToken) ? p : null });
         });
         if (!posEdits.length) continue;
+        // In a JavaScript file every untyped parameter is optional until the function's JSDoc
+        // documents one of them: from then on the undocumented ones are REQUIRED, and a caller
+        // that leaves one out (a test calling `makeBlock('hero')`) breaks. So the tags go in
+        // only when every parameter without a default is covered: typed here, or already.
+        if (/\.[cm]?js$/.test(abs)) {
+            const typedNow = new Set(posEdits.map((e) => e.index));
+            const uncovered = fn.parameters.filter((p, i) => !typedNow.has(i) && !p.initializer && !p.dotDotDotToken && !hasDeclaredType(ts, p));
+            if (uncovered.length) { report.push(`${fname}: ${uncovered.length} parameter(s) would become required (JSDoc covers only some): not typed`); continue; }
+        }
         for (const e of posEdits) {
             if (e.arrowParen) { // x => ... needs parentheses to take a type
                 edits.push({ start: e.arrowParen.getStart(sf), end: e.arrowParen.getStart(sf), text: '(', kind: 'arrowParen' });

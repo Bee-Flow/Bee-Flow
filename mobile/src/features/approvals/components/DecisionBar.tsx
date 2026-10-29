@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Icon } from '@/shared/ui';
 
@@ -24,13 +25,19 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function DecisionBar({ onChoose }: { onChoose: (decision: ApprovalDecision) => void }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.bar}>
-            <Button label="Reject" variant="secondary" style={styles.half} onPress={() => onChoose('reject')} />
             <Button
-                label="Approve"
+                label={t('approvals.reject', 'Reject')}
+                variant="secondary"
+                style={styles.half}
+                onPress={() => onChoose('reject')}
+            />
+            <Button
+                label={t('approvals.approve', 'Approve')}
                 style={styles.half}
                 onPress={() => onChoose('approve')}
                 icon={<Icon name="Check" size={16} color={theme.colors.accentPrimaryFg} />}

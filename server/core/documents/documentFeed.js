@@ -26,7 +26,7 @@ function loadOptional(path) {
     try {
         return require(path);
     } catch (err) {
-        if (/** @type {any} */ (err)?.code === 'MODULE_NOT_FOUND' && String(/** @type {any} */ (err).message || '').includes(path.replace(/^\.\.\/\.\.\//, ''))) return null;
+        if (/** @type {NodeJS.ErrnoException} */ (err)?.code === 'MODULE_NOT_FOUND' && String(/** @type {NodeJS.ErrnoException} */ (err).message || '').includes(path.replace(/^\.\.\/\.\.\//, ''))) return null;
         throw err;
     }
 }
@@ -55,7 +55,7 @@ async function recordContentChange(doc, change) {
             stats: change.stats || null, versionId: change.versionId || null, source: change.source,
         });
     } catch (err) {
-        log.warn('[Documents] change feed not told about an edit:', err && /** @type {any} */ (err).message);
+        log.warn('[Documents] change feed not told about an edit:', err && /** @type {Error} */ (err).message);
     }
 }
 
@@ -70,7 +70,7 @@ async function recordRenamed(doc, actorId) {
         if (typeof feed?.recordItemRenamed !== 'function') return;
         await feed.recordItemRenamed({ projectId: doc.projectId, itemType: 'document', itemId: doc.id, actorId });
     } catch (err) {
-        log.warn('[Documents] change feed not told about a rename:', err && /** @type {any} */ (err).message);
+        log.warn('[Documents] change feed not told about a rename:', err && /** @type {Error} */ (err).message);
     }
 }
 

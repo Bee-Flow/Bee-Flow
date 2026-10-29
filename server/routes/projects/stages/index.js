@@ -35,7 +35,7 @@ const { makeReleaseRouter } = require('./releaseRoutes');
 const { makeDeploymentRouter } = require('./deploymentRoutes');
 
 /**
- * @param {object} [deps]  see stageRoutes.resolveDeps
+ * @param {Record<string, unknown>} [deps]  see stageRoutes.resolveDeps
  * @returns {import('express').Router}
  */
 function makeStagesRouter(deps = {}) {

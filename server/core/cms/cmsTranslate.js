@@ -49,11 +49,17 @@ const DENY_KEYS = new Set([
 // Style-ish suffixes (fontSize, titleColor, headingAlign, labelFont, ...).
 const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;
 
+/**
+ * @param {string} k
+ */
 function isDeniedKey(k) {
     if (typeof k !== 'string') return false; // array index — inherits parent's allow
     return DENY_KEYS.has(k) || DENY_SUFFIX.test(k);
 }
 
+/**
+ * @param {string} s
+ */
 function isTranslatableValue(s) {
     const t = s.trim();
     if (!t) return false;
@@ -194,6 +200,9 @@ async function translateEntries(modelId, languageName, locale, entries) {
 // resolveModelForTierName so EU-mode and org custom tiers are honoured —
 // without them the admin's tier choice silently resolved against the global
 // (non-EU) tier map.
+/**
+ * @param {string} [modelTier]
+ */
 async function resolveModel(modelTier = 'fast', { userOrgId = null, userId = null } = {}) {
     try {
         return await resolveModelForTierName(modelTier || 'fast', {

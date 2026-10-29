@@ -77,7 +77,7 @@ function coSpeakingSeconds(a, b) {
  *        A label absent from this map is ignored: it is either pyannote's
  *        no-match sentinel or something we never submitted, and in neither
  *        case may it become a name.
- * @param {object} [opts] overrides for DEFAULTS
+ * @param {Partial<typeof DEFAULTS>} [opts] overrides for DEFAULTS
  * @returns {{
  *   mapping: Object<string, string>,          // diarizer speakerId → display name (confident)
  *   roster: string[],                         // plausible-but-unpinned names, for the LLM

@@ -33,6 +33,7 @@ const GEMINI_RAW_USAGE = Object.freeze({
 /**
  * The real ClaudeProvider whose SDK answers from `script`. An entry is
  * `{ text?, toolUse?: { name, input }, usage? }`; the last entry repeats.
+ * @param {{ text: string; }[]} [script]
  */
 function realClaudeAdapter(script = [{ text: 'ok' }]) {
     const p = new ClaudeProvider();
@@ -60,7 +61,10 @@ function realClaudeAdapter(script = [{ text: 'ok' }]) {
     return p;
 }
 
-/** The real ClaudeProvider whose SDK STREAMS one text block and reports `usage` on finalMessage(). */
+/**
+ * The real ClaudeProvider whose SDK STREAMS one text block and reports `usage` on finalMessage().
+ * @param {string} [text]
+ */
 function realClaudeStreamAdapter(text = 'hello', usage = CLAUDE_RAW_USAGE) {
     const p = new ClaudeProvider();
     p._resolveAuth = async (key) => ({ token: key, oauth: false });
@@ -77,7 +81,10 @@ function realClaudeStreamAdapter(text = 'hello', usage = CLAUDE_RAW_USAGE) {
     return p;
 }
 
-/** The real GoogleProvider (or Vertex) answering from `script`; same entry shape. */
+/**
+ * The real GoogleProvider (or Vertex) answering from `script`; same entry shape.
+ * @param {{ text: string; }[]} [script]
+ */
 function realGeminiAdapter(script = [{ text: 'ok' }], { vertex = false } = {}) {
     const p = vertex ? new GoogleVertexProvider() : new GoogleProvider();
     let i = 0;
@@ -102,7 +109,11 @@ function realGeminiAdapter(script = [{ text: 'ok' }], { vertex = false } = {}) {
     return p;
 }
 
-/** What a logged usage entry must carry after ONE call with CLAUDE_RAW_USAGE. */
+/**
+ * What a logged usage entry must carry after ONE call with CLAUDE_RAW_USAGE.
+ * @param {{ prompt_tokens: unknown; completion_tokens: unknown; cached_tokens: unknown; cache_creation_tokens: unknown; cache_creation_5m_tokens: unknown; cache_creation_1h_tokens: unknown; cache_ttl: unknown; service_tier: unknown; }} entry
+ * @param {number} [times]
+ */
 function assertClaudeEntry(entry, times = 1) {
     assert.strictEqual(entry.prompt_tokens, 120 * times, 'input_tokens stays the uncached remainder');
     assert.strictEqual(entry.completion_tokens, 80 * times);
@@ -114,7 +125,11 @@ function assertClaudeEntry(entry, times = 1) {
     assert.strictEqual(entry.service_tier, 'standard');
 }
 
-/** What a logged usage entry must carry after ONE call with GEMINI_RAW_USAGE. */
+/**
+ * What a logged usage entry must carry after ONE call with GEMINI_RAW_USAGE.
+ * @param {{ prompt_tokens: unknown; completion_tokens: unknown; cached_tokens: unknown; reasoning_tokens: unknown; }} entry
+ * @param {number} [times]
+ */
 function assertGeminiEntry(entry, times = 1) {
     assert.strictEqual(entry.prompt_tokens, 1000 * times);
     assert.strictEqual(entry.completion_tokens, 500 * times, 'thoughts are billed as output');

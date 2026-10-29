@@ -49,7 +49,7 @@ async function handleCustomerTaxIdChange(taxIdObj, eventType) {
         );
         log.info(`[Stripe Webhook] tax_id synced org=${orgId} type=${taxIdObj.type} value=${value || '(cleared)'}`);
     } catch (e) {
-        log.warn('[Stripe Webhook] handleCustomerTaxIdChange error:', e.message);
+        log.warn('[Stripe Webhook] handleCustomerTaxIdChange error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -95,7 +95,7 @@ async function handleCustomerUpdated(customer) {
             { customer: customer.id, fields: Object.keys(updates) }
         );
     } catch (e) {
-        log.warn('[Stripe Webhook] handleCustomerUpdated error:', e.message);
+        log.warn('[Stripe Webhook] handleCustomerUpdated error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -161,7 +161,7 @@ async function handleSetupIntentFailed(setupIntent) {
             attemptCount: 0,
         }).catch(e => log.warn('[Stripe Webhook] setup_intent_failed email failed:', e.message));
     } catch (e) {
-        log.warn('[Stripe Webhook] handleSetupIntentFailed error:', e.message);
+        log.warn('[Stripe Webhook] handleSetupIntentFailed error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -185,7 +185,7 @@ async function handleSetupIntentSucceeded(setupIntent) {
             { setup_intent_id: setupIntent.id, payment_method: setupIntent.payment_method || null },
         );
     } catch (e) {
-        log.warn('[Stripe Webhook] handleSetupIntentSucceeded error:', e.message);
+        log.warn('[Stripe Webhook] handleSetupIntentSucceeded error:', /** @type {Error} */ (e).message);
     }
 }
 

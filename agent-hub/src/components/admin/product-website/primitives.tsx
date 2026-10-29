@@ -78,8 +78,7 @@ export function CollapsibleCard({ title, defaultOpen = false, persistKey = null,
                 aria-expanded={open}
             >
                 <span
-                    className="shrink-0 inline-block transition-transform"
-                    style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                    className={`shrink-0 inline-block transition-transform ${open ? '[transform:rotate(0deg)]' : '[transform:rotate(-90deg)]'}`}
                     aria-hidden="true"
                 >▾</span>
                 <span className="truncate">{title}</span>

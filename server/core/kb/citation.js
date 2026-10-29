@@ -217,11 +217,10 @@ function occurredAtOf(row) {
  * normalising first, which is how the four shapes happened.
  *
  * @param {any} row
- * @param {object} [opts]
- * @param {number} [opts.index]        position, for the "Chunk N" fallback
- * @param {string} [opts.kind]         default kind when the row does not say
- * @param {any} [opts.source]       the kb_sources row, when the caller has it
- * @returns {any} a citation
+ * @param {{ index?: number, kind?: string, source?: { id?: string, name?: string } | null }} [opts]  `index` is the
+ *   position, for the "Chunk N" fallback; `kind` the default kind when the row does not say; `source` the
+ *   kb_sources row, when the caller has it
+ * @returns a citation
  */
 function toCitation(row, { index = 0, kind = 'kb_chunk', source = null } = {}) {
     const meta = row?.metadata || {};

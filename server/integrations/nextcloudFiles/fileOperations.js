@@ -5,8 +5,17 @@
  * file id: Office conversion, the folder tree and direct download links.
  */
 
-const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind, ensureParentFolders } = require('./webdav');
-const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
+const { PROPFIND_BODY, joinDavPath, parsePropfind } = require('./webdav');
+const { readNextcloudFile } = require('./readFile');
+const { uploadNextcloudFile } = require('./uploadFile');
+
+/**
+ * The arguments of the file tools, as the model sent them.
+ * @typedef {{ path?: string, fileId?: string | number, targetMimeType?: string, destination?: string, depth?: number,
+ *   withParents?: boolean, sourceHandle?: { kind: string, messageId?: string, attachmentId?: string, fileId?: string,
+ *   mimeType?: string }, content?: string, isBase64?: boolean, contentType?: string, source?: string,
+ *   overwrite?: boolean }} FileOpArgs
+ */
 
 /**
  * A node of the folder-tree OCS answer (bare JSON, keys vary by version).
@@ -38,11 +47,11 @@ function withFullPaths(nodes, parentPath) {
 // the facade can hand it to the next handler.
 /**
  * @param {string} toolName
- * @param {{ path?: string, fileId?: string | number, targetMimeType?: string, destination?: string, depth?: number, withParents?: boolean, sourceHandle?: { kind: string, messageId?: string, attachmentId?: string, fileId?: string, mimeType?: string }, content?: string, isBase64?: boolean, contentType?: string, source?: string, overwrite?: boolean }} args
+ * @param {FileOpArgs} args
  * @param {import('./webdav').FilesToolCtx} ctx
  */
 async function executeFileOperationTool(toolName, args, ctx) {
-    const { baseUrl, ncFetch, authError, uid, root, session } = ctx;
+    const { baseUrl, ncFetch, authError, uid, root } = ctx;
 
     switch (toolName) {
         case 'nextcloud_list_files': {
@@ -163,192 +172,11 @@ async function executeFileOperationTool(toolName, args, ctx) {
             return { fileId: Number(args.fileId), url, expiresInHours: 24 };
         }
 
-        case 'nextcloud_read_file': {
-            if (!args.path) return { error: 'path is required' };
-            const url = joinDavPath(root, args.path);
-            const res = await ncFetch(url, {});
-            if (res.status === 404) return { error: `File not found: ${args.path}` };
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Nextcloud read failed (${res.status})` };
-            const contentType = res.headers.get('content-type') || '';
-            const cap = toolFileMaxBytes();
-            const { buffer: buf, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
-            if (tooBig || !buf) return { error: fileTooLargeMessage(args.path, declaredBytes, cap) };
-            // A GET on a collection answers 200 with Sabre's HTML banner, which
-            // would otherwise come back as the "content" of the file.
-            const isWebdavBanner = /html/i.test(contentType)
-                && /This is the WebDAV interface/i.test(buf.slice(0, 2048).toString('utf-8'));
-            if (/\/$/.test(args.path) || isWebdavBanner) {
-                return { error: `path "${args.path}" is a folder, not a file. Use nextcloud_list_files to see what is in it.` };
-            }
-            const filename = args.path.split('/').pop() || args.path;
-            const att = { name: filename, type: contentType };
+        case 'nextcloud_read_file':
+            return readNextcloudFile(args, ctx);
 
-            // Rich-document extraction — PDF, DOCX, PPTX, XLSX/CSV go through
-            // the same pipeline used for chat uploads (pdfjs → Azure DI →
-            // Mistral OCR for PDFs; Azure DI → mammoth/pptxExtractor/xlsx for
-            // Office docs).
-            const { extractAttachment, isPdf, isDocx, isSpreadsheet, isPptx } = require('../../core/documents/attachmentExtractor');
-            if (isPdf(att) || isDocx(att) || isSpreadsheet(att) || isPptx(att)) {
-                /** @type {{ kind: string, text?: string, source?: string, meta?: any, reason?: string, images?: any }} */
-                const result = await extractAttachment({
-                    name: filename,
-                    type: contentType,
-                    content: buf.toString('base64'),
-                });
-                if (result.kind === 'text') {
-                    const truncated = result.text.length > MAX_TEXT_BYTES;
-                    const text = truncated
-                        ? result.text.slice(0, MAX_TEXT_BYTES) + '\n\n... [truncated — extracted text too large]'
-                        : result.text;
-                    return {
-                        path: args.path,
-                        size: buf.length,
-                        contentType,
-                        extractedVia: result.source,
-                        truncated,
-                        content: text,
-                        meta: result.meta,
-                    };
-                }
-                if (result.kind === 'images') {
-                    return {
-                        error: `${filename} appears to be an image-only document (${result.meta?.numPages || '?'} pages) with no extractable text. Configure Azure Document Intelligence or Mistral OCR to read scanned PDFs from Nextcloud.`,
-                        size: buf.length,
-                        contentType,
-                    };
-                }
-                return {
-                    error: `Could not extract text from ${filename}: ${result.reason}.`,
-                    size: buf.length,
-                    contentType,
-                };
-            }
-
-            // Plain text path — UTF-8 decode with binary-safety probe.
-            const isText = /^(text\/|application\/(json|xml|x-yaml|x-sh|javascript))/i.test(contentType) || buf.slice(0, 1024).every(b => b === 9 || b === 10 || b === 13 || (b >= 32 && b < 127));
-            if (!isText) {
-                return { error: `File appears to be binary (${contentType || 'unknown type'}). Reading binary files of this type is not supported.`, size: buf.length, contentType };
-            }
-            const truncated = buf.length > MAX_TEXT_BYTES;
-            // Cut on a character boundary: a continuation byte (10xxxxxx) at the
-            // cut means the last character is split, so drop its start too.
-            let end = Math.min(buf.length, MAX_TEXT_BYTES);
-            while (truncated && end > 0 && (buf[end] & 0xC0) === 0x80) end--;
-            const content = buf.slice(0, end).toString('utf-8');
-            return {
-                path: args.path,
-                size: buf.length,
-                contentType: contentType || 'text/plain',
-                truncated,
-                content: truncated ? content + '\n\n... [truncated — file too large]' : content,
-            };
-        }
-
-        case 'nextcloud_upload_file': {
-            if (!args.path) return { error: 'path is required' };
-            const hasHandle = args.sourceHandle && typeof args.sourceHandle === 'object';
-            const hasContent = typeof args.content === 'string';
-            if (hasHandle && hasContent) return { error: 'Pass either sourceHandle or content, not both.' };
-            if (!hasHandle && !hasContent) {
-                return { error: 'Either sourceHandle (preferred for binary) or content (for inline text) is required.' };
-            }
-
-            // A folder path is only fine for a generated file, which takes its own name.
-            if (/\/$/.test(String(args.path)) && !(hasHandle && args.sourceHandle.kind === 'generated_file')) {
-                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
-            }
-
-            // Resolve to bytes. Handles stay opaque to the model — this is what
-            // keeps a PDF attachment out of the conversation entirely, and it is
-            // why binding base64 into `content` was never a real option: the
-            // PUT below is byte-exact, so a base64 string would land as a
-            // base64 *text file* rather than the document.
-            /** @type {Buffer<ArrayBuffer> | Buffer<ArrayBufferLike> | string} */
-            let body;
-            let handleMime = null;
-            if (hasHandle) {
-                const kind = args.sourceHandle.kind;
-                if (kind === 'gmail_attachment') {
-                    const { fetchAttachmentBuffer } = require('../gmailTools');
-                    const fetched = await fetchAttachmentBuffer(session, {
-                        messageId: args.sourceHandle.messageId,
-                        attachmentId: args.sourceHandle.attachmentId,
-                    });
-                    body = fetched.buffer;
-                    handleMime = args.sourceHandle.mimeType || null;
-                } else if (kind === 'generated_file') {
-                    // A file a document/presentation step kept for THIS run —
-                    // resolved against the journey's run ids, never by id alone.
-                    const { readGeneratedFile } = require('../../core/automationRunner/generatedFileHandle');
-                    /** @type {{ buffer: Buffer; filename: string; mimeType: string; size: number; } | null} */
-                    let file;
-                    try {
-                        file = await readGeneratedFile(/** @type {{ kind: 'generated_file', fileId: string }} */ (args.sourceHandle), ctx.runScope || null);
-                    } catch (e) {
-                        return { error: /** @type {Error} */ (e).message };
-                    }
-                    if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
-                    body = file.buffer;
-                    handleMime = args.sourceHandle.mimeType || file.mimeType || null;
-                    // A folder path takes the file's own name.
-                    if (/\/$/.test(String(args.path || ''))) args = { ...args, path: `${args.path}${file.filename}` };
-                } else {
-                    return { error: `Unsupported sourceHandle.kind: ${kind}` };
-                }
-            } else if (args.isBase64) {
-                // Buffer.from(..., 'base64') never throws: it skips what it
-                // cannot read and stores the rest, so check the text first.
-                const b64 = args.content.replace(/\s+/g, '');
-                if (!/^[A-Za-z0-9+/_-]*={0,2}$/.test(b64) || b64.length % 4 === 1) {
-                    return { error: 'content is not valid base64. Send base64 text, or set isBase64 to false for plain text.' };
-                }
-                body = Buffer.from(b64, 'base64');
-            } else {
-                body = args.content;
-            }
-
-            // joinDavPath drops a trailing slash, so "/Docs/" would PUT a file
-            // named "Docs" and fail on its missing parent. A folder is not a file.
-            if (/\/$/.test(String(args.path))) {
-                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
-            }
-            const url = joinDavPath(root, args.path);
-            const put = () => ncFetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': args.contentType
-                        || handleMime
-                        || (Buffer.isBuffer(body) ? 'application/octet-stream' : 'text/plain; charset=utf-8'),
-                },
-                body,
-            });
-            let res = await put();
-            let retried = false;
-            // 409 or 404 = a parent folder is missing (Nextcloud answers 404 for
-            // a PUT into a missing folder, 409 on older servers). Create the chain once and retry,
-            // so an automation saving into "/Invoices/Vendor/" needs no create-folder
-            // steps (which fail with "already exists" on every later run). The
-            // happy path still costs a single PUT.
-            if (res.status === 409 || res.status === 404) {
-                await ensureParentFolders(ncFetch, root, args.path);
-                res = await put();
-                retried = true;
-            }
-            if (res.status === 401) return { error: authError };
-            if (res.status === 409 || (retried && res.status === 404)) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
-            if (!res.ok && res.status !== 201 && res.status !== 204) {
-                const text = await res.text().catch(() => '');
-                return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };
-            }
-            return {
-                success: true,
-                path: args.path,
-                bytes: Buffer.isBuffer(body) ? body.length : Buffer.byteLength(body),
-                created: res.status === 201,
-                updated: res.status === 204,
-            };
-        }
+        case 'nextcloud_upload_file':
+            return uploadNextcloudFile(args, ctx);
 
         case 'nextcloud_create_folder': {
             if (!args.path) return { error: 'path is required' };

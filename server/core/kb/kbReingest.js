@@ -20,10 +20,12 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * and that error lands in `errors` of purgeSourceDocuments, which yields `complete: false` and leaves
  * the source row in place.
  *
- * @param {object} [opts]
- * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
- *   instead of warning.
- * @param {Function} [opts.deleteLocal] test seam for localKBIngest.deleteChunksLocally
+ * @param {{ strict?: boolean, deleteLocal?: typeof import('./localKBIngest').deleteChunksLocally }} [opts]  `strict`
+ *   (default false): throw if the remote cleanup is not demonstrably done, instead of warning;
+ *   `deleteLocal` a test seam for localKBIngest.deleteChunksLocally
+ * @param {string} kbId
+ * @param {string} docId
+ * @param {string} tenantId
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -31,7 +33,7 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, dele
         await (deleteLocal || require('./localKBIngest').deleteChunksLocally)(tenantId, kbId, docId);
     } catch (err) {
         if (!isMissingTable(err)) {
-            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${err.message}`);
+            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${/** @type {Error} */ (err).message}`);
             bestEffort('kb/kbReingest:localChunks', err);
         }
     }
@@ -63,12 +65,16 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, dele
             }
         }
     } catch (e) {
-        if (strict) throw new Error(`chunk cleanup failed for document ${docId}: ${e.message}`);
-        log.warn('[KBHelpers] Search-service chunk cleanup failed:', e.message);
+        if (strict) throw new Error(`chunk cleanup failed for document ${docId}: ${/** @type {Error} */ (e).message}`);
+        log.warn('[KBHelpers] Search-service chunk cleanup failed:', /** @type {Error} */ (e).message);
     }
 }
 
-/** The documents of a base a Solution stage carries change by deploy only (managed_part otherwise). */
+/**
+ * The documents of a base a Solution stage carries change by deploy only (managed_part otherwise).
+ * @param {string} kbId
+ * @param {{ deploymentId?: string; } | null} managedWrite
+ */
 async function assertKbDocumentsWrite(kbId, managedWrite) {
     if (typeof kbStore.assertKbWrite !== 'function') return;
     await kbStore.assertKbWrite(kbId, ['documents'], managedWrite, { carryOnly: true });
@@ -88,9 +94,9 @@ async function assertKbDocumentsWrite(kbId, managedWrite) {
  * @param {string} kbId
  * @param {string} docId
  * @param {string} content
- * @param {object} [options] - same keys as ingestDocument: title, lang, metadata,
- *   externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount, status,
- *   piiStatus, piiCategories, extractSummary, onFailure ('throw' | 'record')
+ * @param {NonNullable<Parameters<typeof import('./kbIngestionHelpers').ingestDocument>[6]> & { title?: string,
+ *   managedWrite?: { deploymentId?: string } | null }} [options] - the keys of ingestDocument's options
+ *   (lang, metadata, externalId, …, onFailure), the title, and a deployment's write capability
  * @returns {Promise<{document: object, chunks: number, status: string, error?: string}>}
  */
 async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
@@ -151,7 +157,7 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
                 });
             } catch (err) { fallback('core/kb/kbReingest:reingestDocument', err); /* best-effort */ }
             await kbStore.bumpKBVersion(kbId);
-            return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: embedErr.message };
+            return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: /** @type {Error} */ (embedErr).message };
         }
         // Row stays (it is the caller's row), but its chunks are gone: say so.
         try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (err) { bestEffort('core/kb/kbReingest:reingestDocument#2', err); /* best-effort */ }
@@ -186,8 +192,8 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
  * @param {string} kbId     — knowledge base ID
  * @param {string} docId    — document ID
  * @param {string} tenantId — user ID
- * @param {object} opts     — optional flags
- * @param {boolean} opts.skipSnapshot — skip the kb_document_versions snapshot.
+ * @param {{ skipSnapshot?: boolean, managedWrite?: { deploymentId?: string } | null }} [opts]  `skipSnapshot`:
+ *   skip the kb_document_versions snapshot.
  *   Pass true when the caller has already snapshotted (route handlers do, to
  *   carry the user id) AND for every SOURCE-DRIVEN removal (a file vanished
  *   from the folder, a row from the table, a page from the crawl, a re-index):

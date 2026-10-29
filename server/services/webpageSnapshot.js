@@ -173,12 +173,10 @@ async function expandAndSanitizeExtra(content, mime, { webpageId, ownerId }) {
  *
  * Returns a small summary of what was captured.
  *
- * @param {object} args
- * @param {string} args.shareId
- * @param {string} args.webpageId
- * @param {string} args.ownerId — webpage owner (NOT the publisher; the bytes
- *                                live under the owner's RustFS prefix).
- * @param {boolean} [args.includeExtraFiles=true]
+ * `ownerId` is the webpage owner (NOT the publisher; the bytes live under the
+ * owner's RustFS prefix); `includeExtraFiles` defaults to true.
+ *
+ * @param {{ shareId: string, webpageId: string, ownerId: string, includeExtraFiles?: boolean }} args
  */
 async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = true }) {
     if (!storageStore.isAvailable()) {
@@ -317,7 +315,7 @@ async function readSnapshotSlot(shareId, slot) {
         for await (const chunk of stream) chunks.push(chunk);
         return Buffer.concat(chunks).toString('utf8');
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
         throw err;
     }
 }
@@ -334,7 +332,7 @@ async function readSnapshotExtra(shareId, path) {
         for await (const chunk of stream) chunks.push(chunk);
         return { bytes: Buffer.concat(chunks), contentType: contentType || 'application/octet-stream' };
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
         throw err;
     }
 }

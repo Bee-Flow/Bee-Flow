@@ -192,16 +192,11 @@ const KbSourcesStore = {
     mapRow,
 
     /**
-     * @param {object} p
-     * @param {string} p.knowledgeBaseId
-     * @param {string} p.kind - one of SOURCE_KINDS
-     * @param {string} [p.name='']
-     * @param {any} [p.config={}] - kind-specific; the route layer decides which part is public
-     * @param {string} [p.refreshMode='manual']
-     * @param {string|null} [p.refreshCron]
-     * @param {string|null} [p.refreshTz]
-     * @param {Date|string|null} [p.nextRefreshAt]
-     * @param {string|null} [p.createdBy] - user id
+     * @param {{
+     *   knowledgeBaseId: string, kind: string, name?: string, config?: Record<string, unknown>, refreshMode?: string,
+     *   refreshCron?: string|null, refreshTz?: string|null, nextRefreshAt?: Date|string|null, createdBy?: string|null,
+     * }} p  kind: one of SOURCE_KINDS; config: kind-specific, the route layer decides which part is
+     *   public; createdBy: user id
      */
     create: async ({ knowledgeBaseId, kind, name = '', config = {}, refreshMode = 'manual', refreshCron = null, refreshTz = null, nextRefreshAt = null, createdBy = null }) => {
         await initDB();
@@ -278,8 +273,7 @@ const KbSourcesStore = {
      * upload source of a KB or "the" webpage source for a URL.
      * @param {string} kbId
      * @param {string} kind
-     * @param {object} [opts]
-     * @param {any} [opts.configMatch] - JSON subset the config must contain
+     * @param {{ configMatch?: Record<string, unknown> | null }} [opts]  configMatch: JSON subset the config must contain
      */
     findOne: async (kbId, kind, { configMatch = null } = {}) => {
         await initDB();
@@ -378,8 +372,8 @@ const KbSourcesStore = {
      * split the backlog instead of both taking the same rows.
      *
      * @param {number} [limit=10]
-     * @param {object} [opts]
-     * @param {number} [opts.staleMinutes=15] - a claim older than this is reclaimable
+     * @param {{ staleMinutes?: number }} [opts]
+     *   staleMinutes: a claim older than this is reclaimable
      * @returns {Promise<any[]>} mapped rows, now in status 'refreshing'
      */
     claimDue: async (limit = 10, { staleMinutes = DEFAULT_STALE_MINUTES } = {}) => {
@@ -415,10 +409,10 @@ const KbSourcesStore = {
      * Release a claim, recording the outcome.
      *
      * @param {string} id
-     * @param {object} [p]
-     * @param {boolean} [p.ok] - true → status 'idle', streak reset, last_refresh_at = now()
-     * @param {string|Error|null} [p.error] - stored (truncated) when !ok
-     * @param {Date|string|null} [p.nextRefreshAt] - when the next pass is due; null for manual/live
+     * @param {{ ok?: boolean, error?: string|Error|null, nextRefreshAt?: Date|string|null }} [p]
+     *   ok: true → status 'idle', streak reset, last_refresh_at = now()
+     *   error: stored (truncated) when !ok
+     *   nextRefreshAt: when the next pass is due; null for manual/live
      */
     finish: async (id, { ok, error = null, nextRefreshAt = null } = {}) => {
         await initDB();
@@ -426,7 +420,7 @@ const KbSourcesStore = {
         const success = !!ok;
         const errText = success
             ? null
-            : String((error && /** @type {any} */ (error).message) || error || 'Refresh failed').slice(0, MAX_ERROR_LEN);
+            : String((error && /** @type {Error} */ (error).message) || error || 'Refresh failed').slice(0, MAX_ERROR_LEN);
         const row = await getOne(
             `UPDATE kb_sources
                 SET status = $2,

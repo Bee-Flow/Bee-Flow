@@ -267,7 +267,7 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
 /**
- * @typedef {Object} MakeRendererArgs
+ * @typedef MakeRendererArgs
  * @property {{ agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } | undefined} [names]
  */
 /**

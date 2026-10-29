@@ -110,12 +110,7 @@ export default function ComposerPill({
             {interactive && (
                 <ChevronDown
                     aria-hidden="true"
-                    className="w-3 h-3"
-                    style={{
-                        color: 'var(--text-tertiary)', flexShrink: 0,
-                        transform: open ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
-                    }}
+                    className={`w-3 h-3 [color:var(--text-tertiary)] [flex-shrink:0] [transition:transform_0.18s_cubic-bezier(0.22,_1,_0.36,_1)] ${open ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
                 />
             )}
         </>

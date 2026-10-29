@@ -96,7 +96,7 @@ async function refreshNow(req, res) {
         });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] mirror refresh failed:', e.message);
+        log.error('[datatables] mirror refresh failed:', /** @type {Error} */ (e).message);
         throw new HttpError(500, 'refresh_failed', `Could not refresh this table from ${sources.sourceLabel(req.datatable)}`);
     }
 }

@@ -17,7 +17,7 @@ const path = require('path');
 const PROMPTS_DIR = path.join(__dirname, 'prompts');
 
 /**
- * @typedef {Object} SystemAgentDef
+ * @typedef SystemAgentDef
  * @property {string}   id           - Stable DB primary key (e.g. 'system-title-generator')
  * @property {string}   name         - Human-readable display name
  * @property {string}   description  - Short one-liner description

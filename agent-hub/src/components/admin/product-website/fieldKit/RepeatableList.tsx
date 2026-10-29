@@ -85,8 +85,7 @@ function RowHeader({ idx, count, customLabel, collapsible, isCollapsed, onToggle
             >
                 {collapsible ? (
                     <span
-                        className="shrink-0 inline-block transition-transform"
-                        style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                        className={`shrink-0 inline-block transition-transform ${isCollapsed ? '[transform:rotate(-90deg)]' : '[transform:rotate(0deg)]'}`}
                         aria-hidden="true"
                     >▾</span>
                 ) : null}

@@ -38,14 +38,12 @@ const STUCK_MINUTES = 5;
 const PRUNE_EVERY_MS = 60 * 60_000;
 
 /**
- * @param {object} [deps]
- * @param {any}   [deps.store]        stores/projectAiParticipationStore surface
- * @param {any}   [deps.engine]       participation engine (processWatch, surfaceNames, breakerOpen)
- * @param {number}   [deps.concurrency]
- * @param {() => number} [deps.now]
- * @param {() => string} [deps.newId]
- * @param {Function} [deps.recordJobRun]
- * @param {(tick: Function) => Function} [deps.gate]  wraps the tick (default: the Projects module gate)
+ * `store` is the stores/projectAiParticipationStore surface and `engine` the participation
+ * engine (processWatch, surfaceNames, breakerOpen), both as loose as the tests' fakes; `gate`
+ * wraps the tick (default: the Projects module gate).
+ * @param {{ store?: any, engine?: any, concurrency?: number, now?: () => number, newId?: () => string,
+ *   recordJobRun?: typeof import('../telemetry/metrics').recordJobRun,
+ *   gate?: (tick: Function) => Function }} [deps]
  */
 function makeParticipationJob(deps = {}) {
     const store = () => deps.store || require('../stores/projectAiParticipationStore');

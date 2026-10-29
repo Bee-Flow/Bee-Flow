@@ -64,7 +64,10 @@ function _isIdentifierKey(key) {
     return _ID_KEY_RE.test(k);
 }
 
-/** An addressing handle, not prose: one token, no whitespace, bounded length. */
+/**
+ * An addressing handle, not prose: one token, no whitespace, bounded length.
+ * @param {string} v
+ */
 function _isHandleValue(v) {
     return typeof v === 'string' && v.length > 0 && v.length <= 256 && !/\s/.test(v);
 }

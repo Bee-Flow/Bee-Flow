@@ -71,89 +71,9 @@ const { walkAllSteps } = require('../automation/portability');
 // included. See the header on why this rather than the persisted usage index.
 const { collectDatatableUsage } = require('../automation/datatableUsage');
 
-/** Problem codes, so a caller can style or filter without matching prose. */
-const PROBLEM = {
-    UNWIRED: 'unwired',              // the reference was never filled in
-    MISSING: 'missing',              // the target does not exist at all
-    EXTERNAL: 'external',            // it exists, but outside this Solution
-    UNRESOLVED: 'unresolved',        // outside this Solution; existence unknown
-    CROSS_OWNER: 'cross_owner',      // it exists here, but will refuse to run
-};
-
-function nodeId(type, id) { return `${type}:${id}`; }
-
-function approvalNodeId(ownerType, ownerId, stepId) {
-    return `approval:${ownerType}:${ownerId}:${stepId}`;
-}
-
-/**
- * The synthetic node for an automation's own form.
- *
- * Keyed on the AUTOMATION, never on the form page: the page's id is its URL and
- * its credential. An automation has one form trigger, so the automation id is a
- * complete key anyway.
- */
-function formNodeId(automationId) { return `form:${automationId}`; }
-
-/** The synthetic node for "every meeting tagged X". The tag is author text. */
-function meetingNodeId(tag) { return `meeting:${tag}`; }
-
-/**
- * Classify one automation reference.
- *
- * `known` is the set of automation ids that exist beyond this project. When the
- * caller cannot supply it the verdict is UNRESOLVED rather than MISSING —
- * "I could not check" must not be reported as "it is gone".
- */
-function classify(targetId, byId, known) {
-    if (!targetId) return PROBLEM.UNWIRED;
-    if (byId.has(targetId)) return null;
-    if (!known) return PROBLEM.UNRESOLVED;
-    return known.has(targetId) ? PROBLEM.EXTERNAL : PROBLEM.MISSING;
-}
-
-/**
- * What each kind of target is CALLED in a sentence.
- *
- * The prose does not always say "an automation": an edge can point at a table,
- * a knowledge base or a skill too, so the noun is a parameter — an unknown kind falls back to the neutral
- * "thing" rather than claiming the wrong one.
- */
-const TARGET_NOUN = {
-    automation: 'automation',
-    datatable: 'table',
-    knowledge_base: 'knowledge base',
-    skill: 'skill',
-};
-
-/** "a table", "an automation": the article the noun takes. */
-const withArticle = (noun) => `${/^[aeiou]/i.test(noun) ? 'an' : 'a'} ${noun}`;
-
-const PROSE = {
-    [PROBLEM.UNWIRED]: (from, target, noun = 'automation') => `${from} has a step that never got ${withArticle(noun)} picked, so it does nothing when someone uses it.`,
-    [PROBLEM.MISSING]: (from, target, noun = 'automation') => `${from} points at ${withArticle(noun)} that no longer exists (${target}).`,
-    [PROBLEM.EXTERNAL]: (from, target, noun = 'automation') => `${from} depends on ${withArticle(noun)} outside this project (${target}), so packaging cannot carry it.`,
-    [PROBLEM.UNRESOLVED]: (from, target, noun = 'automation') => `${from} points at ${withArticle(noun)} that is not in this project (${target}).`,
-    // Deliberately NOT parameterised: cross-owner is the acts-as-owner refusal,
-    // and only an automation is ever executed that way.
-    [PROBLEM.CROSS_OWNER]: (from, target) => `${from} runs an automation owned by someone else (${target}). It will refuse at the moment someone presses the button — both must belong to the same person.`,
-};
-
-/**
- * The severity each problem carries on the shared Finding shape
- * (core/findings/finding.js). What is broken the moment someone clicks is an
- * error; what is a normal state while building (the "connect an automation" state
- * every template ships in), or a limit on packaging rather than on running,
- * is a warning. UNRESOLVED is "I could not check" and must never read as "it
- * is gone" — see classify().
- */
-const SEVERITY = {
-    [PROBLEM.UNWIRED]: 'warning',
-    [PROBLEM.MISSING]: 'error',
-    [PROBLEM.EXTERNAL]: 'warning',
-    [PROBLEM.UNRESOLVED]: 'warning',
-    [PROBLEM.CROSS_OWNER]: 'error',
-};
+const {
+    PROBLEM, PROSE, SEVERITY, TARGET_NOUN, nodeId, approvalNodeId, formNodeId, meetingNodeId, classify,
+} = require('./graphVocabulary');
 
 /**
  * Which datatables an APP is bound to.
@@ -172,20 +92,15 @@ const SEVERITY = {
 function appDatatableIds(_app) { return []; }
 
 /**
- * @param {object} [input]
- * @param {Record<string, any>} [input.project]
- * @param {Array}  [input.automations]  every kind — blocks and layers included
- * @param {Array}  [input.apps]         WITH their definitions, not meta only
- * @param {Array}  [input.webpages]
- * @param {Array}  [input.datatables] the tables filed into this project
- * @param {Array}  [input.agents]     WITH their parsed `config`
- * @param {Array}  [input.knowledgeBases] the bases this project links
- * @param {Array}  [input.meetingSources] `{ knowledgeBaseId, tag }` per
- *                 `meeting_tag` knowledge source — READ by the caller, so this
- *                 module keeps doing no I/O of its own
- * @param {Set}    [input.knownAutomationIds]  ids that exist outside the project
- * @param {Set}    [input.knownDatatableIds]
- * @param {Set}    [input.knownKnowledgeBaseIds]
+ * `automations` are every kind (blocks and layers included); `apps` come WITH
+ * their definitions, not meta only; `datatables` are the tables filed into
+ * this project; `agents` come WITH their parsed `config`; `knowledgeBases`
+ * are the bases this project links; `meetingSources` holds `{ knowledgeBaseId,
+ * tag }` per `meeting_tag` knowledge source, READ by the caller, so this module
+ * keeps doing no I/O of its own; the `known*Ids` sets hold ids that exist
+ * outside the project.
+ *
+ * @param {GraphInput} [input]
  * @returns {{projectId?: string|null, nodes: Array, edges: Array, externals: Array, problems: Array}}
  */
 function buildProjectGraph({
@@ -214,26 +129,8 @@ function buildProjectGraph({
         skill: { byId: skillById, known: null },
     };
 
-    for (const a of automations.filter(Boolean)) {
-        nodes.push({ id: nodeId('automation', a.id), type: 'automation', entityId: a.id, name: a.title || 'Untitled automation', ownerId: a.userId || null, kind: a.kind || 'automation' });
-    }
-    for (const app of apps.filter(Boolean)) {
-        nodes.push({ id: nodeId('app', app.id), type: 'app', entityId: app.id, name: app.name || 'Untitled app', ownerId: app.userId || null });
-    }
-    for (const w of webpages.filter(Boolean)) {
-        nodes.push({ id: nodeId('webpage', w.id), type: 'webpage', entityId: w.id, name: w.name || 'Untitled page', ownerId: w.userId || null });
-    }
-    for (const d of datatables.filter(Boolean)) {
-        nodes.push({ id: nodeId('datatable', d.id), type: 'datatable', entityId: d.id, name: d.name || 'Untitled table', ownerId: d.ownerUserId || null });
-    }
-    for (const ag of agents.filter(Boolean)) {
-        nodes.push({ id: nodeId('agent', ag.id), type: 'agent', entityId: ag.id, name: ag.name || 'Untitled agent', ownerId: ag.ownerId || ag.owner_id || null });
-    }
-    for (const kb of knowledgeBases.filter(Boolean)) {
-        // A base has no owner in this picture: what matters here is that it is
-        // IN the project, and who may read it is the Knowledge screens' answer.
-        nodes.push({ id: nodeId('knowledge_base', kb.id), type: 'knowledge_base', entityId: kb.id, name: kb.name || 'Untitled knowledge base', ownerId: null });
-    }
+    addBuildNodes(nodes, { automations, apps, webpages });
+    addDataNodes(nodes, { datatables, agents, knowledgeBases });
 
     /**
      * One problem, in the shared Finding shape plus the graph's own fields.
@@ -299,7 +196,62 @@ function buildProjectGraph({
         edges.push(edge);
     };
 
-    // ── Apps: run_automation and request_approval ───────────────────────
+    const g = { nodes, edges, linkTo };
+    linkApps(apps, g);
+    linkAutomationSteps(automations, g);
+    linkWebpages(webpages, g);
+    linkAutomationTables(automations, g);
+    linkAppTables(apps, g);
+    linkAgents(agents, g);
+    linkMeetings(meetingSources, g);
+    addForms(automations, g);
+
+    return { projectId: project?.id || null, nodes, edges, externals, problems };
+}
+
+/**
+ * One node per automation, app and page of the project, in that order.
+ * @param {Array<Record<string, unknown>>} nodes
+ * @param {Pick<GraphInput, 'automations'|'apps'|'webpages'>} members
+ */
+function addBuildNodes(nodes, { automations, apps, webpages }) {
+    for (const a of automations.filter(Boolean)) {
+        nodes.push({ id: nodeId('automation', a.id), type: 'automation', entityId: a.id, name: a.title || 'Untitled automation', ownerId: a.userId || null, kind: a.kind || 'automation' });
+    }
+    for (const app of apps.filter(Boolean)) {
+        nodes.push({ id: nodeId('app', app.id), type: 'app', entityId: app.id, name: app.name || 'Untitled app', ownerId: app.userId || null });
+    }
+    for (const w of webpages.filter(Boolean)) {
+        nodes.push({ id: nodeId('webpage', w.id), type: 'webpage', entityId: w.id, name: w.name || 'Untitled page', ownerId: w.userId || null });
+    }
+}
+
+/**
+ * One node per table, agent and knowledge base of the project, in that order,
+ * after addBuildNodes.
+ * @param {Array<Record<string, unknown>>} nodes
+ * @param {Pick<GraphInput, 'datatables'|'agents'|'knowledgeBases'>} members
+ */
+function addDataNodes(nodes, { datatables, agents, knowledgeBases }) {
+    for (const d of datatables.filter(Boolean)) {
+        nodes.push({ id: nodeId('datatable', d.id), type: 'datatable', entityId: d.id, name: d.name || 'Untitled table', ownerId: d.ownerUserId || null });
+    }
+    for (const ag of agents.filter(Boolean)) {
+        nodes.push({ id: nodeId('agent', ag.id), type: 'agent', entityId: ag.id, name: ag.name || 'Untitled agent', ownerId: ag.ownerId || ag.owner_id || null });
+    }
+    for (const kb of knowledgeBases.filter(Boolean)) {
+        // A base has no owner in this picture: what matters here is that it is
+        // IN the project, and who may read it is the Knowledge screens' answer.
+        nodes.push({ id: nodeId('knowledge_base', kb.id), type: 'knowledge_base', entityId: kb.id, name: kb.name || 'Untitled knowledge base', ownerId: null });
+    }
+}
+
+/**
+ * Apps: run_automation actions (runs) and request_approval actions (a synthetic approval node).
+ * @param {GraphInput['apps']} apps
+ * @param {GraphWalk} g
+ */
+function linkApps(apps, { nodes, edges, linkTo }) {
     for (const app of apps.filter(Boolean)) {
         const from = nodeId('app', app.id);
         const name = app.name || 'An app';
@@ -320,8 +272,14 @@ function buildProjectGraph({
             }
         });
     }
+}
 
-    // ── Automations: approval steps and call_block ──────────────────────
+/**
+ * Automations: approval steps (a synthetic approval node) and call_block steps (calls).
+ * @param {GraphInput['automations']} automations
+ * @param {GraphWalk} g
+ */
+function linkAutomationSteps(automations, { nodes, edges, linkTo }) {
     for (const a of automations.filter(Boolean)) {
         const from = nodeId('automation', a.id);
         const name = a.title || 'An automation';
@@ -343,8 +301,14 @@ function buildProjectGraph({
             }
         });
     }
+}
 
-    // ── Webpages: the bridge allowlist ──────────────────────────────────
+/**
+ * Webpages: the bridge allowlist (runs).
+ * @param {GraphInput['webpages']} webpages
+ * @param {GraphWalk} g
+ */
+function linkWebpages(webpages, { linkTo }) {
     for (const w of webpages.filter(Boolean)) {
         const from = nodeId('webpage', w.id);
         const name = w.name || 'A page';
@@ -361,8 +325,14 @@ function buildProjectGraph({
             });
         }
     }
+}
 
-    // ── Automations: the tables their steps read and write ──────────────
+/**
+ * Automations: the tables their steps read and write.
+ * @param {GraphInput['automations']} automations
+ * @param {GraphWalk} g
+ */
+function linkAutomationTables(automations, { linkTo }) {
     for (const a of automations.filter(Boolean)) {
         const from = nodeId('automation', a.id);
         const name = a.title || 'An automation';
@@ -380,8 +350,14 @@ function buildProjectGraph({
             });
         }
     }
+}
 
-    // ── Apps: the tables they are bound to (none yet — see appDatatableIds) ─
+/**
+ * Apps: the tables they are bound to (none yet — see appDatatableIds).
+ * @param {GraphInput['apps']} apps
+ * @param {GraphWalk} g
+ */
+function linkAppTables(apps, { linkTo }) {
     for (const app of apps.filter(Boolean)) {
         const from = nodeId('app', app.id);
         const name = app.name || 'An app';
@@ -394,9 +370,14 @@ function buildProjectGraph({
             });
         }
     }
+}
 
-    // ── Agents: what they are grounded on, and what they can do ─────────
-    //
+/**
+ * Agents: what they are grounded on, and what they can do.
+ * @param {GraphInput['agents']} agents
+ * @param {GraphWalk} g
+ */
+function linkAgents(agents, { linkTo }) {
     // The two config keys are spelled differently and that is not a typo here:
     // `knowledge_base_ids` is snake_case and `attachedSkillIds` is camelCase in
     // the stored config, so both spellings are read exactly as written.
@@ -425,9 +406,14 @@ function buildProjectGraph({
             });
         }
     }
+}
 
-    // ── Meetings: "every meeting tagged X" feeding a knowledge base ──────
-    //
+/**
+ * Meetings: "every meeting tagged X" feeding a knowledge base.
+ * @param {GraphInput['meetingSources']} meetingSources
+ * @param {GraphWalk} g
+ */
+function linkMeetings(meetingSources, { nodes, linkTo }) {
     // The sources are READ by the caller and passed in, so this module still
     // touches no database. The tag is author-chosen text ("sales"), never a
     // person and never an identifier of one.
@@ -447,9 +433,14 @@ function buildProjectGraph({
             targetId: kbId, targetKind: 'knowledge_base', edgeKind: 'feeds', actsAsOwner: false,
         });
     }
+}
 
-    // ── Forms: an automation whose TRIGGER is a public form ──────────────────
-    //
+/**
+ * Forms: an automation whose TRIGGER is a public form.
+ * @param {GraphInput['automations']} automations
+ * @param {GraphWalk} g
+ */
+function addForms(automations, { nodes, edges }) {
     // Derived from the trigger, never from `automation_form_pages`: that row's
     // id is the public URL AND the only credential guarding it, so it is not
     // read here and can never reach a graph payload or a Blueprint.
@@ -462,10 +453,19 @@ function buildProjectGraph({
         nodes.push({ id, type: 'form', entityId: null, name: title, triggers: to });
         edges.push({ from: id, to, kind: 'triggers', targetId: a.id, problem: null });
     }
-
-    return { projectId: project?.id || null, nodes, edges, externals, problems };
 }
+
 module.exports = { buildProjectGraph, PROBLEM, PROSE, SEVERITY };
+/**
+ * @typedef {{ project?: Record<string, any>|null, automations?: Array, apps?: Array, webpages?: Array, datatables?: Array,
+ *           agents?: Array, knowledgeBases?: Array, meetingSources?: Array, knownAutomationIds?: Set<string>|null,
+ *           knownDatatableIds?: Set<string>|null, knownKnowledgeBaseIds?: Set<string>|null }} GraphInput
+ * @typedef {{ fromNode: string, fromName: string, fromOwnerId: string|null, fromRef: GraphTargetRef, targetId: string|null,
+ *   edgeKind: string, actsAsOwner: boolean, targetKind?: string }} GraphLink  one reference, with what the ownership rule needs
+ * @typedef {{ nodes: Array<Record<string, unknown>>, edges: Array<Record<string, unknown>>, linkTo: (link: GraphLink) => void }} GraphWalk
+ *   what a phase of the walk adds to
+ */
+
 
 /**
  * @typedef {{ kind: string, id: string|null, title?: string|null, stepId?: string|null }} GraphTargetRef

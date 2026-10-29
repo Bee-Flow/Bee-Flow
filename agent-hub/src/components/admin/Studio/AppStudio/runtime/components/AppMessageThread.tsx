@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type JSX } from 'react';
-import useTranslation from '@/hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import EmailHtmlBody from '@/components/support/EmailHtmlBody';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
@@ -58,6 +58,34 @@ const EVENT_FLAG = '__appThreadEvent';
 /** Stand-in binding so the optional sources still resolve on every render. */
 const EMPTY_BINDING: StaticBinding = { kind: 'static', value: [] };
 
+/** Attachment rows grouped by their match key, once per source rather than per message. */
+function groupAttachments(attSource: unknown, attachmentMatchKey: string | null) {
+    const map = new Map();
+    if (!attachmentMatchKey) return map;
+    for (const a of Array.isArray(attSource) ? attSource : []) {
+        if (!a || typeof a !== 'object') continue;
+        const raw = walkPath(a, attachmentMatchKey);
+        if (raw == null || raw === '') continue;
+        const key = String(raw);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(a);
+    }
+    return map;
+}
+
+/** The white sheet an HTML mail sits on, with the side's accent edge in the tone's colour. */
+function paperStyle(side: string, tone: string) {
+    return {
+        background: '#ffffff',
+        color: '#1a1a1a',
+        padding: 0,
+        overflow: 'hidden',
+        border: '1px solid var(--border-default)',
+        [side === 'right' ? 'borderRightWidth' : 'borderLeftWidth']: '3px',
+        [side === 'right' ? 'borderRightColor' : 'borderLeftColor']: ROLE_COLORS[tone] || ROLE_COLORS.primary,
+    };
+}
+
 export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
@@ -90,19 +118,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
     // Attachments are grouped ONCE, not re-scanned per message: a thread of 100
     // mails against a few hundred attachment rows is otherwise a quadratic
     // sweep on every render.
-    const attByKey = useMemo(() => {
-        const map = new Map();
-        if (!attachmentMatchKey) return map;
-        for (const a of Array.isArray(attSource) ? attSource : []) {
-            if (!a || typeof a !== 'object') continue;
-            const raw = walkPath(a, attachmentMatchKey);
-            if (raw == null || raw === '') continue;
-            const key = String(raw);
-            if (!map.has(key)) map.set(key, []);
-            map.get(key).push(a);
-        }
-        return map;
-    }, [attSource, attachmentMatchKey]);
+    const attByKey = useMemo(() => groupAttachments(attSource, attachmentMatchKey), [attSource, attachmentMatchKey]);
     const listRef = useRef<HTMLDivElement>(null);
     const limit = Number.isInteger(rowLimit) && rowLimit > 0 ? rowLimit : 100;
     const all = useMemo(() => {
@@ -184,69 +200,9 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                 let meta: JSX.Element | null = null;
                 if (side !== 'center') {
                     if (mailHead) {
-                        const emailStr = email != null && email !== '' ? String(email) : null;
-                        const toStr = to != null && to !== '' ? String(to) : null;
-                        const subjStr = subject != null && subject !== '' ? String(subject) : null;
-                        const secondLine = [
-                            toStr ? t('studio_apps_runtime.thread.to', 'To: {value}', { value: toStr }) : null,
-                            subjStr ? t('studio_apps_runtime.thread.subject', 'Subject: {value}', { value: subjStr }) : null,
-                        ].filter(Boolean).join(' · ');
-                        // On a sheet the header goes INSIDE, above a rule —
-                        // where every mail client puts it, and where artboard 2
-                        // puts it. Floated outside and to one side it reads as a
-                        // chat nameplate and drifts away from its own body. The
-                        // sheet is always white, so its text cannot use the
-                        // theme's tokens: in dark mode those are near-white and
-                        // would vanish.
-                        const ink = headerInside ? '#16191f' : 'var(--text-secondary)';
-                        const inkMuted = headerInside ? '#67707b' : 'var(--text-muted)';
-                        meta = (
-                            <div
-                                className={headerInside ? 'flex items-start gap-2 px-3 py-2' : 'flex items-start gap-2 mb-1 px-1'}
-                                style={headerInside ? { borderBottom: '1px solid #e0e3e8' } : undefined}
-                                data-app-thread-meta={side}
-                                data-app-thread-mailhead="true"
-                            >
-                                {showAvatar ? (
-                                    <span
-                                        className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold w-[28px] h-[28px] [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
-                                        data-app-thread-avatar="true"
-                                    >
-                                        {initials(rawAuthor)}
-                                    </span>
-                                ) : null}
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-baseline gap-1.5">
-                                        {author ? (
-                                            <span className="text-xs font-semibold truncate" {...hoverable(author)} style={{ color: ink }}>{author}</span>
-                                        ) : null}
-                                        {emailStr ? (
-                                            <span className="text-[11px] truncate" {...hoverable(emailStr)} style={{ color: inkMuted }}>{`<${emailStr}>`}</span>
-                                        ) : null}
-                                        {stamp ? (
-                                            <span className="ml-auto shrink-0 text-[11px]" style={{ color: inkMuted }}>{stamp}</span>
-                                        ) : null}
-                                    </div>
-                                    {secondLine ? (
-                                        <div className="truncate" {...hoverable(secondLine)} style={{ fontSize: '11.5px', color: inkMuted }}>{secondLine}</div>
-                                    ) : null}
-                                </div>
-                            </div>
-                        );
+                        meta = <MailHeadMeta t={t} side={side} headerInside={headerInside} showAvatar={showAvatar} rawAuthor={rawAuthor} author={author} email={email} to={to} subject={subject} stamp={stamp} />;
                     } else if (author || stamp) {
-                        meta = (
-                            <div
-                                className={`flex items-baseline gap-2 mb-1 px-1 ${side === 'right' ? 'flex-row-reverse' : ''}`}
-                                data-app-thread-meta={side}
-                            >
-                                {author ? (
-                                    <span className="text-xs font-medium text-[var(--text-secondary)]">{author}</span>
-                                ) : null}
-                                {stamp ? (
-                                    <span className="text-[11px] text-[var(--text-muted)]">{stamp}</span>
-                                ) : null}
-                            </div>
-                        );
+                        meta = <PlainMeta side={side} author={author} stamp={stamp} />;
                     }
                 }
 
@@ -258,15 +214,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                 // REPLACES the filled bubble with a white card. Side and tone
                 // survive as the alignment plus an accent edge, so you can still
                 // tell the two parties apart at a glance.
-                const paper = showHtml ? {
-                    background: '#ffffff',
-                    color: '#1a1a1a',
-                    padding: 0,
-                    overflow: 'hidden',
-                    border: '1px solid var(--border-default)',
-                    [side === 'right' ? 'borderRightWidth' : 'borderLeftWidth']: '3px',
-                    [side === 'right' ? 'borderRightColor' : 'borderLeftColor']: ROLE_COLORS[tone] || ROLE_COLORS.primary,
-                } : null;
+                const paper = showHtml ? paperStyle(side, tone) : null;
 
                 const bubble = (
                     <div
@@ -327,5 +275,93 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                 );
             })}
         </div>
+    );
+}
+
+/** A field value as text, or null when it is missing or empty. */
+function presentString(value: unknown) {
+    return value != null && value !== '' ? String(value) : null;
+}
+
+interface MailHeadMetaProps {
+    t: TranslateFn;
+    side: string;
+    headerInside: boolean;
+    showAvatar: boolean;
+    rawAuthor: unknown;
+    author: string | null;
+    email: unknown;
+    to: unknown;
+    subject: unknown;
+    stamp: string | null;
+}
+
+/** The mail-header meta: avatar, name and <email>, time, and a To/Subject line; inside the sheet when the body is HTML. */
+function MailHeadMeta({ t, side, headerInside, showAvatar, rawAuthor, author, email, to, subject, stamp }: MailHeadMetaProps) {
+    const emailStr = presentString(email);
+    const toStr = presentString(to);
+    const subjStr = presentString(subject);
+    const secondLine = [
+        toStr ? t('studio_apps_runtime.thread.to', 'To: {value}', { value: toStr }) : null,
+        subjStr ? t('studio_apps_runtime.thread.subject', 'Subject: {value}', { value: subjStr }) : null,
+    ].filter(Boolean).join(' · ');
+    // On a sheet the header goes INSIDE, above a rule —
+    // where every mail client puts it, and where artboard 2
+    // puts it. Floated outside and to one side it reads as a
+    // chat nameplate and drifts away from its own body. The
+    // sheet is always white, so its text cannot use the
+    // theme's tokens: in dark mode those are near-white and
+    // would vanish.
+    const ink = headerInside ? '#16191f' : 'var(--text-secondary)';
+    const inkMuted = headerInside ? '#67707b' : 'var(--text-muted)';
+    return (
+        <div
+            className={headerInside ? 'flex items-start gap-2 px-3 py-2' : 'flex items-start gap-2 mb-1 px-1'}
+            style={headerInside ? { borderBottom: '1px solid #e0e3e8' } : undefined}
+            data-app-thread-meta={side}
+            data-app-thread-mailhead="true"
+        >
+            {showAvatar ? (
+                <span
+                    className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold w-[28px] h-[28px] [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
+                    data-app-thread-avatar="true"
+                >
+                    {initials(rawAuthor)}
+                </span>
+            ) : null}
+            <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-1.5">
+                    {author ? (
+                        <span className="text-xs font-semibold truncate" {...hoverable(author)} style={{ color: ink }}>{author}</span>
+                    ) : null}
+                    {emailStr ? (
+                        <span className="text-[11px] truncate" {...hoverable(emailStr)} style={{ color: inkMuted }}>{`<${emailStr}>`}</span>
+                    ) : null}
+                    {stamp ? (
+                        <span className="ml-auto shrink-0 text-[11px]" style={{ color: inkMuted }}>{stamp}</span>
+                    ) : null}
+                </div>
+                {secondLine ? (
+                    <div className="truncate" {...hoverable(secondLine)} style={{ fontSize: '11.5px', color: inkMuted }}>{secondLine}</div>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+/** The chat meta line above a bubble: author and time, mirrored on the right side. */
+function PlainMeta({ side, author, stamp }: { side: string; author: string | null; stamp: string | null }) {
+    return (
+            <div
+                className={`flex items-baseline gap-2 mb-1 px-1 ${side === 'right' ? 'flex-row-reverse' : ''}`}
+                data-app-thread-meta={side}
+            >
+                {author ? (
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{author}</span>
+                ) : null}
+                {stamp ? (
+                    <span className="text-[11px] text-[var(--text-muted)]">{stamp}</span>
+                ) : null}
+            </div>
     );
 }

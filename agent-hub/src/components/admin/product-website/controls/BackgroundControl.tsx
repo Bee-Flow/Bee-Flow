@@ -64,8 +64,7 @@ export default function BackgroundControl({ image, overlay, onChangeImage, onCha
                             className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] flex items-center gap-1"
                         >
                             <span
-                                className="inline-block transition-transform"
-                                style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                                className={`inline-block transition-transform ${showAdvanced ? '[transform:rotate(90deg)]' : '[transform:rotate(0deg)]'}`}
                                 aria-hidden="true"
                             >▸</span>
                             {t('cms_site.site.controls.bg_advanced', 'Advanced')}

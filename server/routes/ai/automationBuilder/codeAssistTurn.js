@@ -63,9 +63,8 @@ function sanitizeConversation(messages) {
 }
 
 /**
- * @typedef {Object} ComposeMessagesArgs
- * @property {{ role: string; content: string; }[]} messages
- * @property {string} context
+ * @typedef {{ messages: { role: string; content: string; }[],
+ *   context: string }} ComposeMessagesArgs
  */
 /**
  * The model's messages: the constant system prompt, the earlier turns, the
@@ -121,22 +120,19 @@ function thinkingToReplay(response, surfacesRawReasoning) {
 const PASS_GATE = { refuse: async () => null, forModel: async (content) => content };
 
 /**
- * @param {object} p
- * @param {Array<{role: string, content: string}>} p.messages  the conversation, last = the person's new message
- * @param {string} p.code
- * @param {string[]} [p.allowedTools]
- * @param {string[]} [p.allowedHosts]
- * @param {Array<{ path: string, label?: string, type?: string }>} [p.upstreamFields]
- * @param {Array<{ name?: string, description?: string, parameters?: object, output?: object }>} [p.toolDocs]
- * @param {(messages: import('../../../utils/messageUtils').WireMessage[], opts: { tools: typeof CODE_TOOLS, onText: (text: string) => void }) => ReturnType<typeof import('../builderShared').streamWithRetry>} p.streamRound
- *   one model call; resolves to builderShared.streamWithRetry's shape
- *   ({ content, toolCalls, invalidToolCalls, thinkingParts, usage, finishReason })
- * @param {((code: string, opts: object) => object)|null} [p.analyse]  analyzeCode, or null when unavailable
- * @param {{ refuse: Function, forModel: Function }} [p.gate]  the Privacy Shield tool gate
- * @param {(event: string, data: object) => void} p.send
- * @param {() => boolean} [p.isGone]   true once the client closed the stream
- * @param {boolean} [p.surfacesRawReasoning]
- * @param {{ warn: Function }} [p.log]
+ * @param {{ messages: Array<{role: string, content: string}>, // the conversation, last = the person's new message
+ *   code: string,
+ *   allowedTools?: string[],
+ *   allowedHosts?: string[],
+ *   upstreamFields?: Array<{ path: string, label?: string, type?: string }>,
+ *   toolDocs?: Array<{ name?: string, description?: string, parameters?: object, output?: object }>,
+ *   streamRound: (messages: import('../../../utils/messageUtils').WireMessage[], opts: { tools: typeof CODE_TOOLS, onText: (text: string) => void }) => ReturnType<typeof import('../builderShared').streamWithRetry>, // one model call; resolves to builderShared.streamWithRetry's shape ({ content, toolCalls, invalidToolCalls, thinkingParts, usage, finishReason })
+ *   analyse?: ((code: string, opts: object) => object)|null, // analyzeCode, or null when unavailable
+ *   gate?: { refuse: Function, forModel: Function }, // the Privacy Shield tool gate
+ *   send: (event: string, data: object) => void,
+ *   isGone?: () => boolean, // true once the client closed the stream
+ *   surfacesRawReasoning?: boolean,
+ *   log?: { warn: Function } }} p
  * @returns {Promise<{ code: string, analysis: object|null, changed: boolean, repairRounds: number, usage: ReturnType<typeof toolLoop.emptyUsageTotals>, error: object|null }>}
  */
 async function runCodeAssistTurn({

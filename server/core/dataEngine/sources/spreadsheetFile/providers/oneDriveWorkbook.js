@@ -22,6 +22,9 @@ const {
 } = require('./oneDriveFormat');
 const { bestEffort, fallback } = require('../../../../../utils/bestEffort');
 
+/**
+ * @param {{ persistChanges: boolean; }} body
+ */
 const jsonBody = (body) => ({ headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const wbPath = async (g, file) => `${await g.itemPath(file)}/workbook`;
 const wsPath = (wb, sheet) => `${wb}/worksheets/${encodeURIComponent(typeof sheet === 'string' ? sheet : (sheet.id || sheet.name))}`;
@@ -41,7 +44,7 @@ async function detectWorkbook(g, file) {
     try {
         res = await g.graph().graphRequest(`${await wbPath(g, file)}/worksheets?$select=id,name,position,visibility`, g.cred, {});
     } catch (e) {
-        if (e && e.message === 'NOT_CONNECTED') throw fromHttp(provider, 401, '', 'file', { ref: g.refOf(file) });
+        if (e && /** @type {Error} */ (e).message === 'NOT_CONNECTED') throw fromHttp(provider, 401, '', 'file', { ref: g.refOf(file) });
         throw e;
     }
     let answer = false;
@@ -252,7 +255,10 @@ async function deleteRow(g, file, sheet, rowNumber, { ifMatch = null } = {}) {
     return { marker: (await g.probe(file)).marker };
 }
 
-/** The FileApi's `cells` member, bound to one api context. */
+/**
+ * The FileApi's `cells` member, bound to one api context.
+ * @param {GraphCtx} g
+ */
 function makeWorkbookCells(g) {
     const detect = (file) => detectWorkbook(g, file);
     return {

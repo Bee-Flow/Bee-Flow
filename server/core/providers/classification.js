@@ -70,6 +70,9 @@ const PRIVATE_HOST_PATTERNS = [
     /\.lan(:|$|\/)/i,
 ];
 
+/**
+ * @param {string} url
+ */
 function extractHost(url) {
     if (!url) return '';
     try {
@@ -84,6 +87,7 @@ function extractHost(url) {
 
 /**
  * Is this URL pointing at an internal / private-network host?
+ * @param {string} url
  */
 function isPrivateHost(url, allowlistedHosts = []) {
     const host = extractHost(url);
@@ -95,11 +99,10 @@ function isPrivateHost(url, allowlistedHosts = []) {
 /**
  * Classify a chat-provider config.
  *
- * @param {object} config
- * @param {string} [config.providerType]  e.g. 'openai', 'ollama', 'azure'
- * @param {string} [config.url]           Endpoint URL (may be absent for some types)
- * @param {string} [config.type]          Legacy spelling of providerType
- * @param {string} [config.displayName]   Admin-chosen label, preferred over the type
+ * @param {{ providerType?: string, url?: string, type?: string, displayName?: string }} config
+ *   `providerType`: e.g. 'openai', 'ollama', 'azure'; `url`: Endpoint URL (may be absent for some
+ *   types); `type`: Legacy spelling of providerType; `displayName`: Admin-chosen label, preferred over
+ *   the type
  * @param {string[]} [allowlistedHosts]   Admin-declared private hostnames (e.g. 'models.corp.local')
  * @returns {{ isExternal: boolean, reason: string, displayName: string }}
  */
@@ -129,6 +132,7 @@ function classifyProvider(config = {}, allowlistedHosts = []) {
 
 /**
  * Convenience boolean variant for call-sites that don't care about the reason.
+ * @param {{ providerType?: string | undefined; url?: string | undefined; type?: string | undefined; displayName?: string | undefined; } | undefined} config
  */
 function isExternalProvider(config, allowlistedHosts = []) {
     return classifyProvider(config, allowlistedHosts).isExternal;

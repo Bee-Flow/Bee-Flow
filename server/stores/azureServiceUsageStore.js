@@ -55,17 +55,15 @@ log.info('[AzureServiceUsageStore] Initialized (PostgreSQL)');
 
 /**
  * Log an Azure service usage event.
- * @param {object} entry
- * @param {string} entry.service_type - 'doc_intelligence' | 'content_safety' | 'pii_detection' | 'embedding'
- * @param {string} [entry.user_id]
- * @param {string} [entry.organization_id]
- * @param {string} [entry.source]           - 'kb_upload' | 'direct_chat' | 'agent_chat' | 'notebook'
- * @param {number} [entry.input_chars]      - characters processed (safety/PII)
- * @param {number} [entry.pages]            - pages processed (doc intelligence)
- * @param {number} [entry.tokens]           - tokens consumed (embeddings)
- * @param {number} [entry.estimated_cost]   - pre-calculated cost in USD
- * @param {string} [entry.timestamp]         - ISO time of the event; defaults to now
- * @param {any} [entry.metadata]         - additional info (filename, mime_type, etc.)
+ * @param {{
+ *   service_type: string, user_id?: string, organization_id?: string, source?: string, input_chars?: number,
+ *   pages?: number, tokens?: number, estimated_cost?: number, timestamp?: string, metadata?: Record<string, unknown>,
+ * }} entry
+ *   service_type: 'doc_intelligence' | 'content_safety' | 'pii_detection' | 'embedding';
+ *   source: 'kb_upload' | 'direct_chat' | 'agent_chat' | 'notebook'; input_chars: characters processed
+ *   (safety/PII); pages: pages processed (doc intelligence); tokens: tokens consumed (embeddings);
+ *   estimated_cost: pre-calculated cost in USD; timestamp: ISO time of the event, defaults to now;
+ *   metadata: additional info (filename, mime_type, etc.)
  */
 async function logAzureServiceUsage(entry) {
     await initDB();

@@ -5,6 +5,9 @@ const { _scanText, _degradationIsRelevant, _regexHits, _scanFailedMessage } = re
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 class GuardrailBlockError extends Error {
+    /**
+     * @param {string} message
+     */
     constructor(message, { violationType = 'pii', categories = [], scope = 'input' } = {}) {
         super(message);
         this.name = 'GuardrailBlockError';
@@ -39,6 +42,9 @@ function _logGuardrail(auditBase, { violation_type, categories, direction, actio
     } catch (err) { fallback('core/automationRunner/safetyGuard:_logGuardrail#2', err); /* never fail the run on logging */ }
 }
 
+/**
+ * @param {string} s
+ */
 function _hash(s) {
     return require('crypto').createHash('sha1').update(String(s)).digest('hex').slice(0, 16); // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a short non-security fingerprint for a log line, not a password or signature hash
 }
@@ -67,6 +73,9 @@ async function _guardValue(value, policy, auditBase, { direction, scopeOn, mode,
     // Identifier arguments keep their PII findings out of the redact/block
     // decision (see _isIdentifierKey) — regex rules below are unaffected.
     const leafKeys = exemptIdentifiers ? collectStringLeafKeys(value) : null;
+    /**
+     * @param {number} i
+     */
     const isExempt = (i) => !!leafKeys && _isIdentifierKey(leafKeys[i]) && _isHandleValue(leaves[i]);
 
     // ── pass 1: scan (no transformation yet — a block decision must be made

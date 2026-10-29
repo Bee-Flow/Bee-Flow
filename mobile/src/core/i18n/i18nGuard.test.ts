@@ -24,11 +24,14 @@
  *      Alert.alert('Delete?', '…')    a system dialog
  *      toast('Task deleted')          the in-app toast
  *
- *    Areas that still carry hard-coded text are on the UNCONVERTED ledger with
- *    their exact count, so an unconverted screen cannot gain strings and a
- *    converted one cannot lose its translation. An area that is on NO ledger
- *    line must be clean — so a new directory starts translated rather than
- *    starting as debt somebody has to notice.
+ *    The UNCONVERTED ledger is empty: every area renders its strings through
+ *    t(), so a new string anywhere fails. The ledger is kept, with its exact
+ *    counts and its "does not rot" test, for the day a screen has to land
+ *    before its translation does: a line is a debt with a number on it, so an
+ *    unconverted screen cannot gain strings and a converted one cannot lose its
+ *    translation. An area that is on NO ledger line must be clean — so a new
+ *    directory starts translated rather than starting as debt somebody has to
+ *    notice.
  *
  * 2. EVERY BORROWED KEY EXISTS IN BOTH ENGLISH DICTIONARIES, or is on the
  *    PENDING_KEYS ledger with a reason. The phone reads the SERVER's
@@ -225,73 +228,6 @@ const UNCONVERTED = new Map<string, number>([
     // any. The total went 1669 -> 1655 only where a duplicated string is now
     // drawn once (shared toasts, QueryScreen headers, content duplicates),
     // and 1655 -> 1649 where dead code went (cowork's unused WHEN_PRESETS).
-    ['app/(root)', 1],
-    // 24 -> 22: the avatar picker's "Photos not allowed" dialog, gone with the
-    // media-library permission the Photo Picker never needed.
-    ['src/features/account', 22],
-    // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
-    // through t() when the long-press menu became the kit's ActionMenu.
-    ['src/features/agents', 33],
-    // 15 -> 8: the decision's status word, its clock line and its facts went
-    // through t() when a deadline stopped reading "Expires: now".
-    ['src/features/approvals', 8],
-    // 12 -> 5: the form card, its date field and the action's result went
-    // through t() with the decimal-comma and run-polling fixes.
-    ['src/features/apps', 5],
-    // 68 -> 64: the run timeline's empty state and Sent/Received labels and
-    // the live card's Stop went through t() with the step names.
-    // 64 -> 52: the run facts, the failure cards and the outcome banners went
-    // through t() when the trigger and error-class tokens got their words.
-    // 52 -> 50: the run-access hint (automations.run.viewOnlyHint) and the
-    // Run now / Run again accessibility hints go through t(), so the viewer
-    // copy added no strings and two older literals went with the rewrite.
-    ['src/features/automations', 50],
-    // 25 -> 17: the schedule screen's labels and toasts went through t() when
-    // its Delete learned to ask first.
-    ['src/features/cowork', 17],
-    ['src/features/coworkHub', 20],
-    ['src/features/documents', 10],
-    ['src/features/integrations', 134],
-    // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when
-    // it learned to add https:// itself.
-    // 49 -> 45: the scanner's camera-off screen went through t() when it
-    // learned to open Android's settings.
-    // 45 -> 44: the preview's "Open with…", now "Share or save…", which is
-    // what the share sheet it opens does.
-    ['src/features/knowledge', 44],
-    ['src/features/library', 27],
-    ['src/features/mcp', 33],
-    ['src/features/memory', 24],
-    // 34 -> 33: the row body's "Tap to read the full result", with the reauth
-    // note that now names the connector.
-    ['src/features/notifications', 33],
-    ['src/features/org', 73],
-    ['src/features/recording', 98],
-    ['src/features/search', 9],
-    ['src/features/security', 30],
-    ['src/features/settings', 21],
-    // Not new debt: the sitemap's destination labels and hints, moved out of
-    // features/shell (98) when the drawer replaced the More tab. The shell
-    // itself is now clean, and the move left 16 fewer strings than it took.
-    // +16, two literals (label and hint) per new row: src/meta/routes.test.ts
-    // requires a sitemap row for every screen, and a row has no other
-    // spelling. PR4b added eight: Datatables, Studio Documents, Playbooks,
-    // Runs & log and the four Meeting Notes tools. The same PR took 110
-    // strings off other lines (webpages and projects cleared, recording
-    // 125 -> 100, documents 16 -> 10), so the ledger as a whole fell.
-    // +2: the App Studio coming-soon row (label and hint; the web has no key
-    // for either).
-    ['src/features/sitemap', 100],
-
-    // 33 -> 30: the self-help group (its heading and two rows) went through t()
-    // when "What changed recently" moved to the native release notes.
-    ['src/features/support', 30],
-    // 40 -> 38: the task sheet's actions and toasts went through t() when its
-    // Delete learned to ask first.
-    ['src/features/tasks', 38],
-    // 16 -> 13: the template chat's words, when it learned to avoid the keyboard.
-    ['src/features/templates', 13],
-    ['src/features/voice', 8],
 ]);
 
 /**
@@ -559,16 +495,20 @@ describe('no hard-coded user-facing text outside the ledger', () => {
         },
     );
 
-    it.each([...UNCONVERTED.keys()].sort())(
-        '%s is still on the ledger, at exactly the recorded count',
-        (area) => {
-            const actual = (byArea.get(area) ?? []).length;
-            const recorded = UNCONVERTED.get(area) as number;
-            // Equality, not "<=": the number is the debt, and a number that is
-            // allowed to be stale stops being a measurement.
-            expect({ area, actual }).toEqual({ area, actual: recorded });
-        },
-    );
+    // jest-each refuses an empty table, and an empty ledger is the goal.
+    const ledgered = [...UNCONVERTED.keys()].sort();
+    if (ledgered.length > 0) {
+        it.each(ledgered)(
+            '%s is still on the ledger, at exactly the recorded count',
+            (area) => {
+                const actual = (byArea.get(area) ?? []).length;
+                const recorded = UNCONVERTED.get(area) as number;
+                // Equality, not "<=": the number is the debt, and a number that is
+                // allowed to be stale stops being a measurement.
+                expect({ area, actual }).toEqual({ area, actual: recorded });
+            },
+        );
+    }
 
     it('the ledger does not rot', () => {
         const done = [...UNCONVERTED.keys()].filter((a) => (byArea.get(a) ?? []).length === 0);

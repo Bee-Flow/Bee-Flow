@@ -42,7 +42,7 @@ const arr = (v) => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : []
 /**
  * A DATE column as 'YYYY-MM-DD'. node-postgres builds a DATE as local
  * midnight, a TIMESTAMPTZ as an instant; strings pass through.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function dayString(v) {
@@ -71,7 +71,7 @@ function dayString(v) {
 
 /**
  * A TIMESTAMPTZ as its exact ISO string (the notice version), or null.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function isoInstant(v) {
@@ -90,7 +90,7 @@ function setAndNotFuture(v, now) {
 
 /**
  * An https URL of at most 500 characters, else null.
- * @param {any} v
+ * @param {unknown} v
  * @returns {string|null}
  */
 function httpsUrl(v) {
@@ -107,7 +107,7 @@ function httpsUrl(v) {
 /**
  * The stored retention, null read as the default. A stored value outside the
  * range is returned as is, so evaluate() can name it.
- * @param {any} settings
+ * @param {{ chat_monitoring_retention_days?: unknown }} settings
  */
 function retentionOf(settings) {
     const v = settings?.chat_monitoring_retention_days;
@@ -116,7 +116,7 @@ function retentionOf(settings) {
     return Number.isInteger(n) ? n : NaN;
 }
 
-/** The retention clamped into range, for readers that must not fail. @param {any} settings */
+/** The retention clamped into range, for readers that must not fail. @param {{ chat_monitoring_retention_days?: unknown }} settings */
 function clampedRetention(settings) {
     const n = retentionOf(settings);
     if (!Number.isFinite(n)) return V.RETENTION.default;
@@ -125,11 +125,11 @@ function clampedRetention(settings) {
 
 /**
  * The works-council scope in one shape.
- * @param {any} scope
+ * @param {unknown} scope
  * @returns {{ surfaces: string[], signals: string[], max_retention_days: number|null }}
  */
 function normScope(scope) {
-    const s = scope && typeof scope === 'object' && !Array.isArray(scope) ? scope : {};
+    const s = /** @type {Record<string, unknown>} */ (scope && typeof scope === 'object' && !Array.isArray(scope) ? scope : {});
     const max = Number(s.max_retention_days);
     return {
         surfaces: [...new Set(arr(s.surfaces))].sort(),
@@ -140,7 +140,7 @@ function normScope(scope) {
 
 /**
  * Does the consent's scope cover what is (or would be) counted?
- * @param {any} scope
+ * @param {unknown} scope
  * @param {{ surfaces: string[], signals: string[], retentionDays: number }} wanted
  */
 function scopeCovers(scope, { surfaces, signals, retentionDays }) {
@@ -174,8 +174,8 @@ function sameScope(a, b) {
  *             level): current for 365 days from its date, never from a date
  *             in the future.
  *
- * @param {any} settings
- * @param {any} dpiaRow
+ * @param {{ chat_monitoring_dpia_ref?: unknown, chat_monitoring_dpia_at?: unknown, chat_monitoring_dpia_risk_level?: unknown }} settings
+ * @param {{ approved_at?: Date | string | null, expires_at?: Date | string | null, risk_level?: unknown }} dpiaRow
  * @param {Date} [now]
  * @returns {{ kind: 'internal'|'external'|'none', current: boolean, expiresAt: Date|null, riskLevel: 'low'|'medium'|'high'|null, approvedAt: Date|null }}
  */
@@ -317,8 +317,8 @@ function _shape(row) {
  *   employeeWidened  a widen that touches an employee surface or signal.
  *   visitorOnly      a widen that touches website visitors only.
  *
- * @param {any} before settings row
- * @param {any} after settings row a save would write
+ * @param {unknown} before settings row
+ * @param {unknown} after settings row a save would write
  */
 function classifyChange(before, after) {
     const b = _shape(before);

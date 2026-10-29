@@ -16,6 +16,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 // `locale` stays loose text: the handlers already fall back to English for
 // anything that is not a plain language tag, and a learner must not be
 // refused over their browser's spelling of it.
+/**
+ * @param {string} name
+ * @param {number} max
+ */
 const lText = (name, max) => worded(`${name} is text.`).max(max, `${name} is at most ${max} characters.`);
 
 const modelTier = lText('modelTier', 100).optional();
@@ -79,10 +83,19 @@ const VERDICT_CACHE_MAX = 500;
 
 const verdictCache = new Map();
 
+/**
+ * @param {string} userId
+ * @param {string} exerciseId
+ * @param {string} mode
+ * @param {string} submission
+ */
 function verdictCacheKey(userId, exerciseId, mode, submission) {
     return crypto.createHash('sha256').update(`${userId}|${exerciseId}|${mode}|${submission}`).digest('hex');
 }
 
+/**
+ * @param {string} key
+ */
 function verdictCacheGet(key) {
     const hit = verdictCache.get(key);
     if (!hit) return null;
@@ -115,12 +128,15 @@ async function logCoachUsage({ userId, userOrgId, modelId, usage, startMs, sourc
             organization_id: userOrgId || null,
         });
     } catch (e) {
-        log.warn('[learning/coach] failed to log usage:', e.message);
+        log.warn('[learning/coach] failed to log usage:', /** @type {Error} */ (e).message);
     }
 }
 
 // Resolve a concrete model id for the requested tier, falling back to the global
 // default so a missing tier config never breaks grading.
+/**
+ * @param {string} modelTier
+ */
 async function resolveModel(modelTier, { userId, userOrgId }) {
     const tier = ALLOWED_TIERS.has(modelTier) ? modelTier : 'fast';
     try {
@@ -150,11 +166,14 @@ async function recordExerciseAttempt(userId, exerciseId, passed, score) {
         };
         await configStore.setConfig(key, ledger);
     } catch (e) {
-        log.warn('[learning/coach] exercise ledger write failed:', e.message);
+        log.warn('[learning/coach] exercise ledger write failed:', /** @type {Error} */ (e).message);
     }
 }
 
 // Tolerant JSON extraction — models sometimes wrap JSON in prose or code fences.
+/**
+ * @param {string} text
+ */
 function parseJsonLoose(text) {
     if (!text || typeof text !== 'string') return null;
     try { return JSON.parse(text); } catch (err) { bestEffort('routes/ai/learningSupport:parseJsonLoose', err); /* try to extract */ }

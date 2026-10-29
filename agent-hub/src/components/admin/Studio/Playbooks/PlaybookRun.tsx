@@ -1,9 +1,8 @@
-import { AlertTriangle, ArrowLeft, Clapperboard, Loader2, PanelLeftClose, PanelLeftOpen, Presentation, Square, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import HandoffCard from './HandoffCard';
 import { canSkip, isComplete, kindOf, nextActionable, nextPending, type Phase, type PlaybookEvent } from './phaseMachine';
 import PhaseInspector from './PhaseInspector';
-import PhaseRail from './PhaseRail';
+import { AutopilotCountdown, PhaseRailAside, PlaybookBar, PlaybookLoadFailed, PlaybookLoading } from './PlaybookRunParts';
 import { AUTOPILOT_KEY, autopilotLingerSeconds, readAutopilot } from './playbookView';
 import './playbooks.css';
 import { phaseLabel } from './recipes';
@@ -21,7 +20,6 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import useTranslation from '@/hooks/useTranslation';
 import { setItem } from '@/utils/scopedStorage';
 import { formatElapsed } from '@/components/shared/builder/formatElapsed';
-import { kindTileStyle } from '@/components/shared/kindColors';
 import useConfirm from '@/components/shared/useConfirm';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppUserLike } from '@/components/projects/workspace/types';
@@ -46,6 +44,60 @@ const PINNABLE_TIERS = new Set<string | undefined>(['fast', 'auto', 'standard', 
 // Phases autopilot never continues on its own: what landed IS the thing to
 // read, and `done` is a one-way door (lifecycle.js — nothing leaves `done`).
 const AUTOPILOT_NEVER = new Set<string | null>(['access', 'compliance']);
+
+interface AutopilotArgs {
+    autopilot: boolean;
+    playbook: ServerPlaybook | null;
+    active: Phase | null;
+    busy: boolean;
+    onContinue: (brief: string | undefined) => Promise<ServerPlaybook | null | undefined>;
+    phases: Phase[];
+}
+
+function useAutopilot({ autopilot, playbook, active, busy, onContinue, phases }: AutopilotArgs) {
+    // Autopilot: continue once per (phase, version) — never twice for one
+    // landing — but not at once: the landing stays on screen for a moment
+    // (the rows that arrived, the wireframes), with a countdown and a
+    // "Continue now". The moment is longer when there is something to read.
+    const autoRef = useRef<string>(null);
+    const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
+    // Access and compliance are decisions, not landings: their whole content
+    // is what the person is being asked to read. Autopilot never walks past
+    // one, and it never closes the film on the closing phase either.
+    const autopilotWontAct = !!active && (AUTOPILOT_NEVER.has(kindOf(active)) || !nextPending(phases, active.key));
+    useEffect(() => {
+        const timers: NodeJS.Timeout[] = [];
+        const later = (fn: (() => void) | (() => Promise<void>), ms: number) => { timers.push(setTimeout(fn, ms)); };
+        if (!autopilot || !playbook || !active || active.status !== 'awaiting' || busy || autopilotWontAct) {
+            later(() => setAutoCountdown(null), 0);
+            return () => timers.forEach(clearTimeout);
+        }
+        const stamp = `${active.key}:${playbook.version}`;
+        if (autoRef.current === stamp) return () => timers.forEach(clearTimeout);
+        const secs = autopilotLingerSeconds(active);
+        for (let left = secs; left >= 1; left--) later(() => setAutoCountdown(left), (secs - left) * 1000);
+        later(async () => {
+            if (autoRef.current === stamp) return;
+            autoRef.current = stamp;
+            setAutoCountdown(null);
+            // A refused Continue does not bump the version, so a stamp written
+            // BEFORE the call meant this effect returned early for ever after:
+            // no countdown, no card, nothing to press. Release the stamp when
+            // the server did not accept it, and the manual card comes back.
+            const ok = await onContinue(undefined);
+            if (!ok && autoRef.current === stamp) autoRef.current = null;
+        }, secs * 1000);
+        return () => timers.forEach(clearTimeout);
+    }, [autopilot, playbook, active, busy, onContinue, phases]);
+    // "Continue now" (or a manual Continue) during the countdown: stamp it, so the timer never fires a second Continue.
+    const continueNow = useCallback((brief: string | undefined) => {
+        if (active && playbook) autoRef.current = `${active.key}:${playbook.version}`;
+        setAutoCountdown(null);
+        onContinue(brief);
+    }, [active, playbook, onContinue]);
+
+    return { autoCountdown, autopilotWontAct, continueNow };
+}
 
 export default function PlaybookRun({ playbookId, user = null, onBack, onNavigate = null }: PlaybookRunProps) {
     const { t } = useTranslation();
@@ -135,46 +187,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
         await act({ type: 'stop' });
     }, [playbook, confirm, act, t]);
 
-    // Autopilot: continue once per (phase, version) — never twice for one
-    // landing — but not at once: the landing stays on screen for a moment
-    // (the rows that arrived, the wireframes), with a countdown and a
-    // "Continue now". The moment is longer when there is something to read.
-    const autoRef = useRef<string>(null);
-    const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
-    // Access and compliance are decisions, not landings: their whole content
-    // is what the person is being asked to read. Autopilot never walks past
-    // one, and it never closes the film on the closing phase either.
-    const autopilotWontAct = !!active && (AUTOPILOT_NEVER.has(kindOf(active)) || !nextPending(phases, active.key));
-    useEffect(() => {
-        const timers: NodeJS.Timeout[] = [];
-        const later = (fn: (() => void) | (() => Promise<void>), ms: number) => { timers.push(setTimeout(fn, ms)); };
-        if (!autopilot || !playbook || !active || active.status !== 'awaiting' || busy || autopilotWontAct) {
-            later(() => setAutoCountdown(null), 0);
-            return () => timers.forEach(clearTimeout);
-        }
-        const stamp = `${active.key}:${playbook.version}`;
-        if (autoRef.current === stamp) return () => timers.forEach(clearTimeout);
-        const secs = autopilotLingerSeconds(active);
-        for (let left = secs; left >= 1; left--) later(() => setAutoCountdown(left), (secs - left) * 1000);
-        later(async () => {
-            if (autoRef.current === stamp) return;
-            autoRef.current = stamp;
-            setAutoCountdown(null);
-            // A refused Continue does not bump the version, so a stamp written
-            // BEFORE the call meant this effect returned early for ever after:
-            // no countdown, no card, nothing to press. Release the stamp when
-            // the server did not accept it, and the manual card comes back.
-            const ok = await onContinue(undefined);
-            if (!ok && autoRef.current === stamp) autoRef.current = null;
-        }, secs * 1000);
-        return () => timers.forEach(clearTimeout);
-    }, [autopilot, playbook, active, busy, onContinue, phases]);
-    // "Continue now" (or a manual Continue) during the countdown: stamp it, so the timer never fires a second Continue.
-    const continueNow = useCallback((brief: string | undefined) => {
-        if (active && playbook) autoRef.current = `${active.key}:${playbook.version}`;
-        setAutoCountdown(null);
-        onContinue(brief);
-    }, [active, playbook, onContinue]);
+    const { autoCountdown, autopilotWontAct, continueNow } = useAutopilot({ autopilot, playbook, active, busy, onContinue, phases });
 
     const toggleAutopilot = () => {
         const on = !autopilot;
@@ -182,27 +195,13 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
         try { setItem(AUTOPILOT_KEY, on ? '1' : '0'); } catch (err) { logger.debug('storage is a convenience', err); }
     };
 
-    if (loading && !playbook) {
-        return (
-            <div className="h-full flex items-center justify-center gap-2 text-sm text-[var(--text-secondary)]">
-                <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />{t('playbooks.loading', 'Loading…')}
-            </div>
-        );
-    }
-    if (!playbook) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-sm text-[var(--text-secondary)]">
-                <span className="inline-flex items-center gap-2 text-[var(--warning)]"><AlertTriangle className="w-4 h-4" aria-hidden="true" />{error?.message || t('playbooks.err_load', 'Could not load this playbook')}</span>
-                <button type="button" onClick={onBack} className="text-xs underline">{t('playbooks.done.back', 'Back to playbooks')}</button>
-            </div>
-        );
-    }
+    if (loading && !playbook) return <PlaybookLoading t={t} />;
+    if (!playbook) return <PlaybookLoadFailed t={t} message={error?.message} onBack={onBack} />;
 
     const inspected = inspectKey ? phases.find((p) => p.key === inspectKey) || null : null;
     const liveFill = !!active && kindOf(active) === 'fill' && active.status === 'running';
     const railCollapsed = railOpen === null ? liveFill : !railOpen;
 
-    const { tile, glyph } = kindTileStyle('playbook', { size: 32, pct: 16 });
     const activeLabel = onStage ? phaseLabel(onStage, t) : null;
     const elapsed = running ? formatElapsed(active.startedAt, now) : null;
     // An error means the person has to act, so the card comes back even with
@@ -215,77 +214,19 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
 
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]" data-testid="playbook-run" data-presenter={presenter ? '1' : undefined}>
-            <header className="flex items-center gap-3 px-4 shrink-0 h-[52px] [border-bottom:1px_solid_var(--border-default)] [background:var(--bg-card)]">
-                <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs font-medium h-8 px-2 rounded-lg text-[var(--text-secondary)]" aria-label={t('playbooks.bar.back', 'Back to playbooks')}>
-                    <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                </button>
-                <span style={tile}><Clapperboard style={glyph} aria-hidden="true" /></span>
-                <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold" style={{ fontSize: presenter ? 18 : 14, color: 'var(--text-primary)' }}>{playbook.title as string}</div>
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-                        {complete
-                            ? <span>{playbook.status === 'stopped' ? t('playbooks.status.stopped', 'Stopped') : t('playbooks.state.done', 'Done')}</span>
-                            : (
-                                <>
-                                    <span data-testid="playbook-bar-phase">{t('playbooks.bar.phase', 'Phase {n} of {total}: {phase}', { n: activeIndex + 1, total: phases.length, phase: activeLabel || '' })}</span>
-                                    {elapsed && (<><span aria-hidden="true">·</span><span className="tabular-nums">{elapsed}</span></>)}
-                                    {running && !autopilot && (<><span aria-hidden="true">·</span><span>{t('playbooks.bar.pauses', 'Pauses after this phase')}</span></>)}
-                                </>
-                            )}
-                    </div>
-                </div>
-                {presenter && (
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full [background:color-mix(in_srgb,var(--type-ai)_12%,transparent)] [color:var(--type-ai)]!">
-                        <Presentation className="w-3 h-3" aria-hidden="true" />{t('playbooks.bar.presenter', 'Presenter')}
-                    </span>
-                )}
-                {!complete && (
-                    <button
-                        type="button"
-                        role="switch"
-                        aria-checked={autopilot}
-                        onClick={toggleAutopilot}
-                        data-testid="playbook-autopilot"
-                        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] text-xs font-medium"
-                        style={{ color: autopilot ? 'var(--type-ai)' : 'var(--text-secondary)', border: `1px solid ${autopilot ? 'var(--type-ai)' : 'var(--border-default)'}`, background: autopilot ? 'color-mix(in srgb, var(--type-ai) 10%, transparent)' : 'transparent' }}
-                    >
-                        <Zap className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.bar.autopilot', 'Autopilot')}
-                    </button>
-                )}
-                {!complete && (
-                    <button type="button" onClick={onStop} disabled={busy} data-testid="playbook-bar-stop" className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] text-xs font-medium disabled:opacity-50 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]">
-                        <Square className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.bar.stop', 'Stop')}
-                    </button>
-                )}
-            </header>
+            <PlaybookBar
+                t={t} title={playbook.title as string} status={playbook.status} complete={!!complete} presenter={presenter} onBack={onBack}
+                phaseLine={t('playbooks.bar.phase', 'Phase {n} of {total}: {phase}', { n: activeIndex + 1, total: phases.length, phase: activeLabel || '' })}
+                elapsed={elapsed} running={running} autopilot={autopilot} onToggleAutopilot={toggleAutopilot} busy={busy} onStop={onStop}
+            />
 
             {notice && (
                 <div role="status" className="text-xs px-4 py-1.5 [background:color-mix(in_srgb,var(--warning)_12%,transparent)] [color:var(--text-primary)]! [border-bottom:1px_solid_var(--border-default)]">{notice}</div>
             )}
 
             <div className="flex-1 min-h-0 flex">
-                <aside className="shrink-0 overflow-y-auto" style={{ width: railCollapsed ? 56 : (presenter ? 280 : 236), padding: railCollapsed ? '16px 0' : (presenter ? '24px 20px' : '20px 16px'), borderRight: '1px solid var(--border-default)', background: 'var(--bg-card)' }} data-testid="playbook-rail-aside" data-collapsed={railCollapsed ? '1' : undefined}>
-                    <div className={railCollapsed ? 'flex justify-center mb-3' : 'flex justify-end mb-2'}>
-                        <button
-                            type="button"
-                            onClick={() => setRailOpen(railCollapsed)}
-                            className="inline-flex items-center justify-center rounded-lg w-[24px] h-[24px] [color:var(--text-tertiary)]"
-                            aria-label={railCollapsed ? t('playbooks.rail.expand', 'Show the phases') : t('playbooks.rail.collapse', 'Hide the phases')}
-                            data-testid="playbook-rail-toggle"
-                        >
-                            {railCollapsed ? <PanelLeftOpen className="w-4 h-4" aria-hidden="true" /> : <PanelLeftClose className="w-4 h-4" aria-hidden="true" />}
-                        </button>
-                    </div>
-                    <PhaseRail
-                        phases={phases}
-                        activeKey={active ? active.key : null}
-                        t={t}
-                        presenter={presenter}
-                        collapsed={railCollapsed}
-                        selectedKey={inspectKey}
-                        onSelect={(key) => setInspectKey((cur) => (cur === key ? null : key))}
-                    />
-                </aside>
+                <PhaseRailAside t={t} phases={phases} activeKey={active ? active.key : null} presenter={presenter} collapsed={railCollapsed}
+                    onToggle={() => setRailOpen(railCollapsed)} selectedKey={inspectKey} onSelect={(key) => setInspectKey((cur) => (cur === key ? null : key))} />
                 <main className="relative flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
                     <div className="flex-1 min-h-0 relative">
                         {complete ? (
@@ -305,13 +246,7 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                                 onClose={() => setInspectKey(null)}
                             />
                         )}
-                        {autoCountdown !== null && (
-                            <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs [background:var(--bg-card)] [border:1px_solid_var(--type-ai)] [color:var(--text-primary)]! [box-shadow:var(--shadow-md)]" role="status" data-testid="playbook-autopilot-countdown">
-                                <Zap className="w-3.5 h-3.5 [color:var(--type-ai)]" aria-hidden="true" />
-                                {t('playbooks.bar.autopilot_in', 'Autopilot continues in {n} s', { n: autoCountdown })}
-                                <button type="button" onClick={() => continueNow(undefined)} className="font-semibold text-[var(--type-ai)]" data-testid="playbook-autopilot-now">{t('playbooks.bar.autopilot_now', 'Continue now')}</button>
-                            </div>
-                        )}
+                        {autoCountdown !== null && <AutopilotCountdown t={t} seconds={autoCountdown} onNow={() => continueNow(undefined)} />}
                     </div>
                     {/* Docked UNDER the stage, never over it: the rows the fill phase
                         shows and the wireframes of the design phase stay visible while

@@ -51,7 +51,11 @@ const ROLES = Object.freeze(['run', 'view', 'edit']);
 const RANK = Object.freeze({ run: 1, view: 2, edit: 3, owner: 4 });
 const NEEDS = Object.freeze(['run', 'view', 'edit', 'owner']);
 
-/** Does `role` include what `need` asks for? Unknown either way is no. */
+/**
+ * Does `role` include what `need` asks for? Unknown either way is no.
+ * @param {string | null | undefined} role
+ * @param {string} need
+ */
 function roleSatisfies(role, need) {
     if (!role || !need) return false;
     const have = RANK[role];
@@ -79,8 +83,12 @@ function runStartForbidden() {
         'You can view this automation but not start it. Ask its owner for the run or edit role.');
 }
 
-/** The strongest of a list of share roles, or null. */
+/**
+ * The strongest of a list of share roles, or null.
+ * @param {string[]} roles
+ */
 function strongestRole(roles) {
+    /** @type {string | null} */
     let best = null;
     for (const r of roles || []) {
         if (!RANK[r]) continue;
@@ -157,7 +165,7 @@ function makeAutomationAccess(overrides = {}) {
             // share beside it keeps that right (mayStartRun).
             return role === 'view' && mine.includes('run') ? { role, via: 'share', runShare: true } : { role, via: 'share' };
         } catch (e) {
-            log.warn(`[automation access] role lookup failed for ${automation.id} / ${userId}: ${e.message}`);
+            log.warn(`[automation access] role lookup failed for ${automation.id} / ${userId}: ${/** @type {Error} */ (e).message}`);
             return NONE;
         }
     }
@@ -299,7 +307,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} AutomationRow  the parts of a store row this module reads
+ * @typedef AutomationRow  the parts of a store row this module reads
  * @property {string} id
  * @property {string} [userId]
  * @property {string|null} [organizationId]  the automation's own organisation; falls back to its owner's

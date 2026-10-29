@@ -1,3 +1,4 @@
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
 // @typecheck
 'use strict';
 /**
@@ -45,6 +46,7 @@ function toToolParameters(schema) {
     if (SCHEMA_KEYWORDS.some((k) => k in schema)) return null;
     const keys = Object.keys(schema);
     if (!keys.length) return null;
+    /** @type {Record<string, { type: string; format: string; } | { type: string; }>} */
     const properties = {};
     for (const k of keys) {
         const v = schema[k];
@@ -75,6 +77,8 @@ function valueOfItem(item, valuePath) {
 /**
  * The allowed values of one list spec `{ ref, value? }`, from RAW run data.
  * @returns {{ ok: boolean, values: string[] }} ok is false when the ref is not a list
+ * @param {{ field: string; ref: string; value?: string; ignoreCase?: boolean; allowEmpty?: boolean; }} spec
+ * @param {BindRunState} runState
  */
 function listValuesOf(spec, runState) {
     const list = walkList(spec.ref, { ...runState, secrets: {} });
@@ -90,13 +94,14 @@ function listValuesOf(spec, runState) {
 /**
  * Resolve the `enumFrom` entries of a step.
  * @param {Array<{ field: string, ref: string, value?: string, ignoreCase?: boolean, allowEmpty?: boolean }>} entries
- * @param {any} runState
+ * @param {import('../automationModel/bind').BindRunState} runState
  * @param {{ mode: string, ctx: any }} env
  * @returns {Array<{ field: string, ignoreCase: boolean, allowEmpty: boolean, ok: boolean, values: string[], sendable: boolean }>}
  *   `sendable` is false for a list over the cap: it is still checked, never sent.
  */
 function resolveLists(entries, runState, { mode, ctx }) {
     const cap = enumCap();
+    /** @type {{ field: string; ignoreCase: boolean; allowEmpty: boolean; ok: boolean; values: string[]; sendable: boolean; }[]} */
     const out = [];
     for (const e of entries || []) {
         if (mode === 'dry_run' && refIsSynthetic(e.ref, runState, ctx || {})) continue;
@@ -154,8 +159,8 @@ function schemaNodeAt(parameters, field) {
  * value is still checked after the answer). A field with `allowEmpty` also
  * accepts the empty text: a strict native schema makes every property required,
  * so without it the model could not leave the field empty.
- * @param {any} parameters
- * @param {any} guardedLists
+ * @param {ReturnType<typeof toToolParameters>} parameters
+ * @param {Record<string, unknown> | null} guardedLists  what guardedListsOf read back
  * @param {Iterable<string>} [allowEmptyFields] fields whose entry has allowEmpty: true
  * @returns {number} how many fields got an enum
  */

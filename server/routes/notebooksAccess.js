@@ -47,7 +47,7 @@ function hasNotebookRole(role, min) {
  */
 function requireNotebookRole(min, deps = {}) {
     if (!ROLE_RANK[min]) throw new Error(`requireNotebookRole: unknown role "${min}"`);
-    return async function requireNotebookRoleMw(/** @type {any} */ req, /** @type {any} */ _res, /** @type {Function} */ next) {
+    return async function requireNotebookRoleMw(/** @type {any} */ req, /** @type {import('express').Response} */ _res, /** @type {import('express').NextFunction} */ next) {
         const store = deps.store || notebookStore;
         const userId = req.session?.user?.id;
         if (!userId) throw new HttpError(401, 'unauthorized', 'Not authenticated');

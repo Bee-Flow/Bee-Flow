@@ -15,12 +15,18 @@ const { bestEffort } = require('../utils/bestEffort');
 function bridgeCore(B) {
     var timers = {};
     var lastCaret;
+    /** @type {string | null} */
     var lastSelection = null;
     var MM = 96 / 25.4;
     var PAGE_PX = 297 * MM;
 
     // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- runs in the editor's sandboxed srcdoc frame (opaque origin, frame-ancestors 'self'); the editor checks event.source
     function post(message) { try { parent.postMessage(message, '*'); } catch (err) { bestEffort('services/documentEditBridgeParts:post', err); /* parent gone */ } }
+    /**
+     * @param {string} name
+     * @param {number | undefined} ms
+     * @param {{ (): void; (): void; }} fn
+     */
     function later(name, ms, fn) { clearTimeout(timers[name]); timers[name] = setTimeout(fn, ms); }
 
     function style() {
@@ -36,18 +42,23 @@ function bridgeCore(B) {
 
     function bodyContent() {
         var copy = document.body.cloneNode(true);
-        copy.querySelectorAll('[data-doc-token]').forEach(function (el) { el.replaceWith(document.createTextNode(el.textContent)); });
+        copy.querySelectorAll('[data-doc-token]').forEach(function (/** @type {{ replaceWith: (arg0: Text) => void; textContent: string; }} */ el) { el.replaceWith(document.createTextNode(el.textContent)); });
         return copy.innerHTML.replace(/<!--bf-template:([A-Za-z0-9+/=]+)-->/g, function (_m, encoded) { return window.atob(encoded); });
     }
 
+    /**
+     * @param {Node} root
+     */
     function protectTokens(root) {
         var walker = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT);
+        /** @type {Node[]} */
         var nodes = [];
         while (walker.nextNode()) nodes.push(walker.currentNode);
         nodes.forEach(function (node) {
             if (!node.parentElement || node.parentElement.closest('[data-doc-token]')) return;
             var re = /\{\{[^{}]+\}\}/g;
             var text = node.textContent;
+            /** @type {RegExpExecArray | null} */
             var match;
             var last = 0;
             var fragment = document.createDocumentFragment();
@@ -64,6 +75,9 @@ function bridgeCore(B) {
         });
     }
 
+    /**
+     * @param {Node | null} node
+     */
     function sectionOf(node) {
         var el = node && (node.nodeType === 1 ? node : node.parentElement);
         var section = el && el.closest ? el.closest('[data-doc-section]') : null;
@@ -103,6 +117,9 @@ function bridgeCore(B) {
         if (id !== lastCaret) { lastCaret = id; post({ __beeflowDocCaret: true, sectionId: id }); }
     }
 
+    /**
+     * @param {Node} node
+     */
     function blockIndexOf(node) {
         var el = node && (node.nodeType === 1 ? node : node.parentElement);
         while (el && el.parentElement && el.parentElement !== document.body) el = el.parentElement;
@@ -165,15 +182,20 @@ function bridgeDraw(B) {
 
     // ── Text ranges (find and comment passages) ──────────────────────
     function textRanges(query, scope) {
+        /** @type {Range[]} */
         var out = [];
         if (!query) return out;
         var needle = query.toLowerCase();
         var walker = document.createTreeWalker(scope || document.body, NodeFilter.SHOW_TEXT);
+        /** @type {{ node: Node; start: number; }[]} */
         var nodes = [];
         var text = '';
         while (walker.nextNode()) { nodes.push({ node: walker.currentNode, start: text.length }); text += walker.currentNode.textContent; }
         var hay = text.toLowerCase();
         var at = hay.indexOf(needle);
+        /**
+         * @param {number} offset
+         */
         function locate(offset) {
             for (var i = nodes.length - 1; i >= 0; i--) if (nodes[i].start <= offset) return { node: nodes[i].node, offset: offset - nodes[i].start };
             return null;
@@ -247,7 +269,9 @@ function bridgeDraw(B) {
         return !!(sel && sel.rangeCount && el.contains(sel.anchorNode));
     }
     function patch(sections) {
+        /** @type {string[]} */
         var applied = [];
+        /** @type {string[]} */
         var missing = [];
         Object.keys(sections || {}).forEach(function (id) {
             var el = sectionEl(id);

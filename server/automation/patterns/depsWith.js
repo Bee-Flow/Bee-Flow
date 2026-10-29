@@ -26,7 +26,7 @@ const { lazyDeps } = require('../../core/meetingNotes/lazyDeps');
  */
 function depsWith(loaders, overrides) {
     const { deps, init } = lazyDeps(loaders);
-    init(/** @type {any} */ (Object.fromEntries(Object.entries(overrides || {}).filter(([, v]) => v !== undefined))));
+    init(/** @type {Partial<{ [K in keyof L]: ReturnType<L[K]> }>} */ (Object.fromEntries(Object.entries(overrides || {}).filter(([, v]) => v !== undefined))));
     return deps;
 }
 

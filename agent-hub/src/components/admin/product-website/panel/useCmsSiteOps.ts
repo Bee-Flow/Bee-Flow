@@ -30,6 +30,146 @@ interface SiteOpsInput extends Pick<PanelState,
     reloadPayload: () => Promise<unknown>;
 }
 
+interface SiteIoInput extends Pick<PanelState, 'activeSiteIdRef' | 'builderRunningRef'> {
+    refreshSites: () => Promise<CmsSiteListEntry[]>;
+    handleSwitchSite: (newSiteId: string) => Promise<void>;
+}
+
+/**
+ * Site export / import, and the transient status line under the site menu.
+ * Export streams the server's response into a Blob and uses a temporary
+ * <a download> to trigger a file save dialog. We rely on the
+ * Content-Disposition filename the server sets — falling back to a generic
+ * name if the browser strips it.
+ */
+function useSiteIo({ activeSiteIdRef, builderRunningRef, refreshSites, handleSwitchSite }: SiteIoInput) {
+    const [siteIoStatus, setSiteIoStatus] = useState<SiteIoStatus | null>(null);   // { kind: 'success'|'error'|'busy', text }
+
+    const handleExportSite = useCallback(async (format = 'zip') => {
+        const siteId = activeSiteIdRef.current;
+        if (!siteId) return;
+        setSiteIoStatus({ kind: 'busy', text: 'Exporting…' });
+        try {
+            const res = await authFetch(cmsApi.siteExport(siteId, format));
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || `Export failed (${res.status})`);
+            }
+            await downloadExport(res, format);
+            setSiteIoStatus({ kind: 'success', text: 'Exported' });
+            setTimeout(() => setSiteIoStatus(null), 2400);
+        } catch (err) {
+            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Export failed') });
+        }
+    }, [activeSiteIdRef]);
+
+    // Two wire formats share one picker:
+    //   .zip   the complete backup — bundle + image bytes. Posted as
+    //          multipart; the server unpacks and validates it (we can't
+    //          usefully pre-check a zip in the browser, and doing so would
+    //          just duplicate the server's guards).
+    //   .json  the bundle alone. Kept because every export downloaded
+    //          before the zip existed is one of these — and the cheap
+    //          client-side marker check gives a far better error than a
+    //          round-trip for the common "wrong file" mistake.
+    const handleImportFileChosen = useCallback(async (file: File | null | undefined) => {
+        if (!file) return;
+        if (builderRunningRef.current) { toast.error('The AI assistant is editing — press Stop in the assistant to take over.'); return; }
+        const isZip = /\.zip$/i.test(file.name || '') || file.type === 'application/zip';
+        setSiteIoStatus({ kind: 'busy', text: 'Importing…' });
+
+        const request = await importRequestFor(file, isZip);
+        if (typeof request === 'string') { setSiteIoStatus({ kind: 'error', text: request }); return; }
+
+        try {
+            const res = await authFetch(cmsApi.importSite(), request);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `Import failed (${res.status})`);
+            // Refresh the sidebar list and switch to the newly-created site.
+            await refreshSites();
+            if (data.siteId) await handleSwitchSite(data.siteId);
+
+            const { status, warnings, bad } = importOutcome(data);
+            setSiteIoStatus(status);
+            for (const w of warnings.slice(0, 3)) toast.error(w);
+            setTimeout(() => setSiteIoStatus(null), bad ? 6000 : 2400);
+        } catch (err) {
+            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Import failed') });
+        }
+    }, [handleSwitchSite, refreshSites, builderRunningRef]);
+
+    return { siteIoStatus, handleExportSite, handleImportFileChosen };
+}
+
+/** Save an export response as a file, under the server's Content-Disposition name when it sends one. */
+async function downloadExport(res: Response, format: string) {
+    const blob = await res.blob();
+    // Prefer the server-provided filename from Content-Disposition.
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename = match?.[1] || `site-export-${Date.now()}.${format === 'json' ? 'json' : 'zip'}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Revoke the blob URL after a tick — Chrome occasionally
+    // discards the download if revoked synchronously.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** The import request for a chosen file, or the sentence that says why the file is not one. */
+async function importRequestFor(file: File, isZip: boolean): Promise<AuthFetchOptions | string> {
+    if (isZip) {
+        const form = new FormData();
+        form.append('file', file, file.name || 'site.zip');
+        return { method: 'POST', body: form };   // no Content-Type — the browser sets the boundary
+    }
+    let payload;
+    try {
+        payload = JSON.parse(await file.text());
+    } catch {
+        return 'Selected file is not a .zip or valid JSON';
+    }
+    if (!payload || payload._beeflow_export !== true) return 'Not a Bee Flow site export file';
+    return {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    };
+}
+
+/** An import's answer, as the status line and the warnings to toast. */
+interface ImportAnswer {
+    name?: string;
+    locales?: unknown[];
+    assetsWritten?: number;
+    dropped?: number;
+    warnings?: unknown;
+}
+
+/**
+ * Report what actually came across. A silent "Imported" hides the
+ * two things an operator most needs to know: which languages
+ * arrived, and whether any images did not.
+ */
+function importOutcome(data: ImportAnswer) {
+    const parts = [];
+    if (data.locales?.length) parts.push(`${data.locales.length + 1} language(s)`);
+    if (data.assetsWritten) parts.push(`${data.assetsWritten} file(s)`);
+    if ((data.dropped ?? 0) > 0) parts.push(`${data.dropped} block(s) skipped (unrecognized type)`);
+    const warnings: string[] = Array.isArray(data.warnings) ? data.warnings : [];
+    const detail = parts.length ? ` — ${parts.join(', ')}` : '';
+    const bad = (data.dropped ?? 0) > 0 || warnings.length > 0;
+    const status: SiteIoStatus = {
+        kind: bad ? 'error' : 'success',
+        text: `Imported "${data.name || 'site'}"${detail}`,
+    };
+    return { status, warnings, bad };
+}
+
 export default function useCmsSiteOps({
     activeSiteIdRef, setActiveSiteId, setSites, setLiveSiteId, liveSiteId, sites,
     confirm, builderRunningRef, saveTimerRef, inFlightSaveRef, flushSaves, reloadPayload,
@@ -102,112 +242,7 @@ export default function useCmsSiteOps({
         } catch (err) { toast.error(`Rename failed: ${errorMessage(err)}`); }
     }, [refreshSites, reloadPayload, activeSiteIdRef]);
 
-    // ── Site export / import ────────────────────────────────────────
-    // Export streams the server's JSON response into a Blob and uses
-    // a temporary <a download> to trigger a file save dialog. We rely
-    // on the Content-Disposition filename the server sets — falling
-    // back to a generic name if the browser strips it.
-    const [siteIoStatus, setSiteIoStatus] = useState<SiteIoStatus | null>(null);   // { kind: 'success'|'error'|'busy', text }
-
-    const handleExportSite = useCallback(async (format = 'zip') => {
-        const siteId = activeSiteIdRef.current;
-        if (!siteId) return;
-        setSiteIoStatus({ kind: 'busy', text: 'Exporting…' });
-        try {
-            const res = await authFetch(cmsApi.siteExport(siteId, format));
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `Export failed (${res.status})`);
-            }
-            const blob = await res.blob();
-            // Prefer the server-provided filename from Content-Disposition.
-            const disposition = res.headers.get('Content-Disposition') || '';
-            const match = disposition.match(/filename="?([^";]+)"?/i);
-            const filename = match?.[1] || `site-export-${Date.now()}.${format === 'json' ? 'json' : 'zip'}`;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            // Revoke the blob URL after a tick — Chrome occasionally
-            // discards the download if revoked synchronously.
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            setSiteIoStatus({ kind: 'success', text: 'Exported' });
-            setTimeout(() => setSiteIoStatus(null), 2400);
-        } catch (err) {
-            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Export failed') });
-        }
-    }, [activeSiteIdRef]);
-
-    // Two wire formats share one picker:
-    //   .zip   the complete backup — bundle + image bytes. Posted as
-    //          multipart; the server unpacks and validates it (we can't
-    //          usefully pre-check a zip in the browser, and doing so would
-    //          just duplicate the server's guards).
-    //   .json  the bundle alone. Kept because every export downloaded
-    //          before the zip existed is one of these — and the cheap
-    //          client-side marker check gives a far better error than a
-    //          round-trip for the common "wrong file" mistake.
-    const handleImportFileChosen = useCallback(async (file: File | null | undefined) => {
-        if (!file) return;
-        if (builderRunningRef.current) { toast.error('The AI assistant is editing — press Stop in the assistant to take over.'); return; }
-        const isZip = /\.zip$/i.test(file.name || '') || file.type === 'application/zip';
-        setSiteIoStatus({ kind: 'busy', text: 'Importing…' });
-
-        let request: AuthFetchOptions;
-        if (isZip) {
-            const form = new FormData();
-            form.append('file', file, file.name || 'site.zip');
-            request = { method: 'POST', body: form };   // no Content-Type — the browser sets the boundary
-        } else {
-            let payload;
-            try {
-                payload = JSON.parse(await file.text());
-            } catch {
-                setSiteIoStatus({ kind: 'error', text: 'Selected file is not a .zip or valid JSON' });
-                return;
-            }
-            if (!payload || payload._beeflow_export !== true) {
-                setSiteIoStatus({ kind: 'error', text: 'Not a Bee Flow site export file' });
-                return;
-            }
-            request = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            };
-        }
-
-        try {
-            const res = await authFetch(cmsApi.importSite(), request);
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Import failed (${res.status})`);
-            // Refresh the sidebar list and switch to the newly-created site.
-            await refreshSites();
-            if (data.siteId) await handleSwitchSite(data.siteId);
-
-            // Report what actually came across. A silent "Imported" hides the
-            // two things an operator most needs to know: which languages
-            // arrived, and whether any images did not.
-            const parts = [];
-            if (data.locales?.length) parts.push(`${data.locales.length + 1} language(s)`);
-            if (data.assetsWritten) parts.push(`${data.assetsWritten} file(s)`);
-            if (data.dropped > 0) parts.push(`${data.dropped} block(s) skipped (unrecognized type)`);
-            const warnings = Array.isArray(data.warnings) ? data.warnings : [];
-            const detail = parts.length ? ` — ${parts.join(', ')}` : '';
-            const bad = data.dropped > 0 || warnings.length > 0;
-            setSiteIoStatus({
-                kind: bad ? 'error' : 'success',
-                text: `Imported "${data.name || 'site'}"${detail}`,
-            });
-            for (const w of warnings.slice(0, 3)) toast.error(w);
-            setTimeout(() => setSiteIoStatus(null), bad ? 6000 : 2400);
-        } catch (err) {
-            setSiteIoStatus({ kind: 'error', text: messageOf(err, 'Import failed') });
-        }
-    }, [handleSwitchSite, refreshSites, builderRunningRef]);
+    const { siteIoStatus, handleExportSite, handleImportFileChosen } = useSiteIo({ activeSiteIdRef, builderRunningRef, refreshSites, handleSwitchSite });
 
     // Receives the full site object from SiteSwitcher (which no longer
     // confirms itself) — the shared ConfirmDialog names what's deleted.

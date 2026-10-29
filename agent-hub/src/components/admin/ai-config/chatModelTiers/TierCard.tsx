@@ -6,7 +6,7 @@ import { CLAUDE_RECOMMENDED, type TierDef, type TierDefaults } from './constants
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
 import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { TierSettings, CatalogModel } from './tierTypes';
 
 interface TierCardProps {
@@ -52,26 +52,9 @@ export default function TierCard({
                 {defaults && isExpanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-[var(--border-default)]">
                         {/* Bee Flow recommended-defaults banner — only when a Claude model is selected */}
-                        {isClaudeModel(tierConfig.modelId) && CLAUDE_RECOMMENDED[tier.key] && (() => {
-                            const rec = CLAUDE_RECOMMENDED[tier.key];
-                            return (
-                                <div className="mb-3 mt-2 p-2.5 rounded-lg border flex items-center gap-3 [background:rgba(217,119,6,0.08)] [border-color:rgba(217,119,6,0.3)]">
-                                    <span className="text-base">💡</span>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-[11px] font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_rec_title', 'Bee Flow recommends')}</div>
-                                        <div className="text-[10px] text-[var(--text-muted)]">
-                                            {t('admin_ai_config.tier_rec_line', '{model} · {tokens} tokens · {effort} effort · {mode}', { model: getModelMeta(rec.modelId)?.name || rec.modelId, tokens: rec.maxTokens.toLocaleString(), effort: rec.reasoningEffort || t('admin_ai_config.tier_rec_no_effort', 'no'), mode: rec.budgetTokens ? t('admin_ai_config.tier_rec_extended', 'extended ({n})', { n: rec.budgetTokens.toLocaleString() }) : t('admin_ai_config.claude_adaptive', 'adaptive') })}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => applyClaudeRecommendedForTier(tier.key)}
-                                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-white/5 transition-colors shrink-0 border-[var(--border-default)] text-[var(--text-primary)]"
-                                    >
-                                        {t('admin_ai_config.claude_apply', 'Apply')}
-                                    </button>
-                                </div>
-                            );
-                        })()}
+                        {isClaudeModel(tierConfig.modelId) && CLAUDE_RECOMMENDED[tier.key] && (
+                            <ClaudeRecommendedBanner t={t} tierKey={tier.key} onApply={applyClaudeRecommendedForTier} />
+                        )}
 
                         <div className="flex gap-4 flex-wrap">
                             <div className="flex-1 min-w-[180px]">
@@ -209,68 +192,9 @@ export default function TierCard({
                             Only Sonnet 4.6 / Opus 4.6 honour budget_tokens — the
                             adaptive-only family (Opus 4.7/4.8, Sonnet 5, Fable 5)
                             rejects manual budget and Haiku has no thinking at all. */}
-                        {isClaudeReasoning(tierConfig.modelId) && !isClaudeAdaptiveOnly(tierConfig.modelId) && (() => {
-                            const mode = (tierConfig.budgetTokens && tierConfig.budgetTokens > 0) ? 'extended' : 'adaptive';
-                            return (
-                                <div className="mt-4 pt-4 border-t flex gap-4 flex-wrap border-[var(--border-default)]">
-                                    <div className="flex-1 min-w-[260px]">
-                                        <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_mode', 'Thinking Mode')}</label>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => updateFn(tier.key, 'budgetTokens', undefined)}
-                                                className="flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
-                                                style={{
-                                                    background: mode === 'adaptive' ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                                    borderColor: mode === 'adaptive' ? 'var(--accent-primary)' : 'var(--border-default)',
-                                                    color: mode === 'adaptive' ? '#fff' : 'var(--text-primary)',
-                                                }}
-                                            >
-                                                {t('admin_ai_config.tier_adaptive', 'Adaptive')}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    const rec = CLAUDE_RECOMMENDED[tier.key];
-                                                    const fallback = rec?.budgetTokens || 10000;
-                                                    updateFn(tier.key, 'budgetTokens', fallback);
-                                                }}
-                                                className="flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
-                                                style={{
-                                                    background: mode === 'extended' ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                                    borderColor: mode === 'extended' ? 'var(--accent-primary)' : 'var(--border-default)',
-                                                    color: mode === 'extended' ? '#fff' : 'var(--text-primary)',
-                                                }}
-                                            >
-                                                {t('admin_ai_config.tier_extended', 'Extended (fixed budget)')}
-                                            </button>
-                                        </div>
-                                        <p className="text-[10px] mt-1 text-[var(--text-muted)]">
-                                            {mode === 'adaptive'
-                                                ? t('admin_ai_config.tier_adaptive_hint2', 'Claude decides the thinking depth based on Effort. Shares the output budget: heavy turns can leave no room for the answer.')
-                                                : t('admin_ai_config.tier_extended_hint2', 'Fixed thinking budget. Output is guaranteed (max tokens − budget). Safer for long answers.')}
-                                        </p>
-                                    </div>
-                                    {mode === 'extended' && (
-                                        <div className="flex-1 min-w-[180px]">
-                                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_budget', 'Thinking Budget')}</label>
-                                            <input
-                                                type="number"
-                                                value={tierConfig.budgetTokens || ''}
-                                                onChange={e => {
-                                                    const v = parseInt(e.target.value, 10);
-                                                    updateFn(tier.key, 'budgetTokens', isNaN(v) || v <= 0 ? undefined : v);
-                                                }}
-                                                min={1024} max={64000} step={1024}
-                                                placeholder="10000"
-                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                            />
-                                            <p className="text-[10px] mt-1 text-[var(--text-muted)]">
-                                                {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
+                        {isClaudeReasoning(tierConfig.modelId) && !isClaudeAdaptiveOnly(tierConfig.modelId) && (
+                            <ClaudeThinkingRow t={t} tierKey={tier.key} tierConfig={tierConfig} updateFn={updateFn} />
+                        )}
 
                         {/* Adaptive-only explainer — manual budgets are not supported */}
                         {isClaudeAdaptiveOnly(tierConfig.modelId) && (
@@ -284,6 +208,103 @@ export default function TierCard({
                 )}
             </div>
         );
+}
+
+/** "Bee Flow recommends" for a Claude model on this tier, with Apply. */
+function ClaudeRecommendedBanner({ t, tierKey, onApply }: { t: TranslateFn; tierKey: string; onApply: (tierKey: string) => void }) {
+    const rec = CLAUDE_RECOMMENDED[tierKey];
+    return (
+                <div className="mb-3 mt-2 p-2.5 rounded-lg border flex items-center gap-3 [background:rgba(217,119,6,0.08)] [border-color:rgba(217,119,6,0.3)]">
+                    <span className="text-base">💡</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_rec_title', 'Bee Flow recommends')}</div>
+                        <div className="text-[10px] text-[var(--text-muted)]">
+                            {t('admin_ai_config.tier_rec_line', '{model} · {tokens} tokens · {effort} effort · {mode}', { model: getModelMeta(rec.modelId)?.name || rec.modelId, tokens: rec.maxTokens.toLocaleString(), effort: rec.reasoningEffort || t('admin_ai_config.tier_rec_no_effort', 'no'), mode: rec.budgetTokens ? t('admin_ai_config.tier_rec_extended', 'extended ({n})', { n: rec.budgetTokens.toLocaleString() }) : t('admin_ai_config.claude_adaptive', 'adaptive') })}
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => onApply(tierKey)}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium border hover:bg-white/5 transition-colors shrink-0 border-[var(--border-default)] text-[var(--text-primary)]"
+                    >
+                        {t('admin_ai_config.claude_apply', 'Apply')}
+                    </button>
+                </div>
+    );
+}
+
+interface ClaudeThinkingRowProps {
+    t: TranslateFn;
+    tierKey: string;
+    tierConfig: TierSettings;
+    updateFn: TierCardProps['updateFn'];
+}
+
+/**
+ * Claude-specific row: thinking mode + budget tokens. Only Sonnet 4.6 /
+ * Opus 4.6 honour budget_tokens — the adaptive-only family (Opus 4.7/4.8,
+ * Sonnet 5, Fable 5) rejects manual budget and Haiku has no thinking at all.
+ */
+function ClaudeThinkingRow({ t, tierKey, tierConfig, updateFn }: ClaudeThinkingRowProps) {
+    const mode = (tierConfig.budgetTokens && tierConfig.budgetTokens > 0) ? 'extended' : 'adaptive';
+    return (
+                <div className="mt-4 pt-4 border-t flex gap-4 flex-wrap border-[var(--border-default)]">
+                    <div className="flex-1 min-w-[260px]">
+                        <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_mode', 'Thinking Mode')}</label>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => updateFn(tierKey, 'budgetTokens', undefined)}
+                                className="flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+                                style={{
+                                    background: mode === 'adaptive' ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                    borderColor: mode === 'adaptive' ? 'var(--accent-primary)' : 'var(--border-default)',
+                                    color: mode === 'adaptive' ? '#fff' : 'var(--text-primary)',
+                                }}
+                            >
+                                {t('admin_ai_config.tier_adaptive', 'Adaptive')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const rec = CLAUDE_RECOMMENDED[tierKey];
+                                    const fallback = rec?.budgetTokens || 10000;
+                                    updateFn(tierKey, 'budgetTokens', fallback);
+                                }}
+                                className="flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+                                style={{
+                                    background: mode === 'extended' ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                                    borderColor: mode === 'extended' ? 'var(--accent-primary)' : 'var(--border-default)',
+                                    color: mode === 'extended' ? '#fff' : 'var(--text-primary)',
+                                }}
+                            >
+                                {t('admin_ai_config.tier_extended', 'Extended (fixed budget)')}
+                            </button>
+                        </div>
+                        <p className="text-[10px] mt-1 text-[var(--text-muted)]">
+                            {mode === 'adaptive'
+                                ? t('admin_ai_config.tier_adaptive_hint2', 'Claude decides the thinking depth based on Effort. Shares the output budget: heavy turns can leave no room for the answer.')
+                                : t('admin_ai_config.tier_extended_hint2', 'Fixed thinking budget. Output is guaranteed (max tokens − budget). Safer for long answers.')}
+                        </p>
+                    </div>
+                    {mode === 'extended' && (
+                        <div className="flex-1 min-w-[180px]">
+                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('admin_ai_config.tier_thinking_budget', 'Thinking Budget')}</label>
+                            <input
+                                type="number"
+                                value={tierConfig.budgetTokens || ''}
+                                onChange={e => {
+                                    const v = parseInt(e.target.value, 10);
+                                    updateFn(tierKey, 'budgetTokens', isNaN(v) || v <= 0 ? undefined : v);
+                                }}
+                                min={1024} max={64000} step={1024}
+                                placeholder="10000"
+                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
+                            />
+                            <p className="text-[10px] mt-1 text-[var(--text-muted)]">
+                                {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}
+                            </p>
+                        </div>
+                    )}
+                </div>
+    );
 }
 
 function TierCardSection({ tier, defaults, setExpandedTier, isExpanded, t, tierConfig, selectedLabel, byProvider, updateFn, hiddenModelIds, toggleHiddenModel, chatModels }: { tier: TierDef; defaults: TierDefaults | null; setExpandedTier: React.Dispatch<React.SetStateAction<string | null>>; isExpanded: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; tierConfig: TierSettings; selectedLabel: string | null; byProvider: Record<string, CatalogModel[]>; updateFn: (tierKey: string, field: string, value: unknown) => void; hiddenModelIds: string[]; toggleHiddenModel: (modelId: string) => Promise<void>; chatModels: CatalogModel[]; }) {

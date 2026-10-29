@@ -95,11 +95,9 @@ async function resolveOrgIntegrations(organizationId) {
  *
  * @param {string} userId
  * @param {string|null} organizationId
- * @param {object} [opts]
- * @param {string[]} [opts.include]  Integration ids to force into the result —
- *        pass the integration you are ABOUT TO DISPATCH. Config can then never
- *        leave the list empty for the one call that needs it, which is what
- *        triggerBus and supportAiResponder already do by other means.
+ * @param {{ include?: string[] }} [opts] `include`: Integration ids to force into the result — pass the
+ *   integration you are ABOUT TO DISPATCH. Config can then never leave the list empty for the one call
+ *   that needs it, which is what triggerBus and supportAiResponder already do by other means
  * @returns {Promise<string[]>}
  */
 async function resolveEnabledIntegrations(userId, organizationId, { include = [] } = {}) {
@@ -152,10 +150,8 @@ function parseLenient(raw) {
 
 /**
  * @param {Record<string, any>|null|undefined} org  an organizations row (getOrganization)
- * @param {object} [opts]
- * @param {'truthy'|'present'} [opts.overrideWhen='truthy']
- * @param {'strict'|'lenient'} [opts.parse='strict']
- * @param {string[]|null} [opts.whenUnset=null]
+ * @param {{ overrideWhen?: 'truthy'|'present', parse?: 'strict'|'lenient', whenUnset?: string[]|null }} [opts]
+ *   `overrideWhen`: defaults to 'truthy'; `parse`: defaults to 'strict'; `whenUnset`: defaults to null
  * @returns {Promise<{ list: any, source: 'org_override'|'global_default'|'all_enabled' }>}
  */
 async function resolveOrgAllowListWithSource(org, { overrideWhen = 'truthy', parse = 'strict', whenUnset = null } = {}) {

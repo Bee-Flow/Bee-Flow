@@ -48,10 +48,9 @@
 const { planSourcesForKb, truncate } = require('../stores/kb/sourcePlan');
 
 /**
- * @param {object} [opts]
- * @param {boolean} [opts.dryRun=false] report what would happen, write nothing
- * @param {Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>} [opts.db] { getOne, getAll, run } (injectable for tests)
- * @param {(msg: string) => void} [opts.log=console.log]
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>,
+ *   log?: (msg: string) => void }} [opts]  `dryRun` (default false) reports what would happen and
+ *   writes nothing; `db` is injectable for tests; `log` is console.log by default
  */
 async function up({ dryRun = false, db = require('../db'), log = console.log } = {}) {
     const tag = `[Migration] kb-sources-backfill${dryRun ? ' (dry-run)' : ''}`;

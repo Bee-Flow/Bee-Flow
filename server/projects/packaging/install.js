@@ -160,33 +160,36 @@ async function installOne(kind, entity, ctx, report) {
 /**
  * Install a Blueprint as a new Solution.
  *
- * @param {object}   [input]
- * @param {Record<string, any>} [input.manifest]
- * @param {string}   [input.ownerId]          every entity is created under this person
- * @param {string}   [input.organizationId]
- * @param {string}   [input.name]           override the Blueprint's own name
- * @param {string}   [input.blueprintId]    the gallery Blueprint this came
- *   from, when the SERVER resolved one. Recorded on the project so the overview
- *   can show it under "Installed" and tell the installer a newer version
- *   exists. A file install has none here and falls back to what the file claims
- *   about itself — see provenanceOf for the difference between the two, which
- *   is the difference between established and asserted.
- * @param {string}   [input.blueprintOrgId] the organisation of that resolved
- *   Blueprint, read off the gallery row by the route. Never taken from the
- *   file when this is set, and never a grant either way.
- * @param {Function} [input.can]            capability predicate; defaults to permissive
- * @param {object}   [input.req]            the installing request. Only the
- *   knowledge-base kind needs it, and only to answer "may this person read this
- *   base" — see projects/knowledgeBaseMembership.js. Without it a base is still
- *   created and the report says it could not be filed into the project.
- * @param {object}   [input.resolutions]    what the INSTALLER supplies for the
- *   holes scrub.js left: `{ tables, connections, approvers }`. Normalised
- *   before anything reads it, so an unrecognised key contributes nothing —
- *   see projects/packaging/resolutions.js. What was used is kept as
- *   `solution_bindings` rows on the new project, so an upgrade fills the same
- *   holes the same way (F3).
- * @param {object}   [input.deps]           `{ bindings }`: the store the
- *   resolutions are kept in (default stores/solutionStageStore).
+ * Every entity is created under `ownerId`; `name` overrides the Blueprint's
+ * own name.
+ *
+ * `blueprintId` is the gallery Blueprint this came from, when the SERVER
+ * resolved one. Recorded on the project so the overview can show it under
+ * "Installed" and tell the installer a newer version exists. A file install
+ * has none here and falls back to what the file claims about itself — see
+ * provenanceOf for the difference between the two, which is the difference
+ * between established and asserted. `blueprintOrgId` is the organisation of
+ * that resolved Blueprint, read off the gallery row by the route. Never taken
+ * from the file when this is set, and never a grant either way.
+ *
+ * `can` is the capability predicate; it defaults to permissive. `req` is the
+ * installing request. Only the knowledge-base kind needs it, and only to
+ * answer "may this person read this base" — see
+ * projects/knowledgeBaseMembership.js. Without it a base is still created and
+ * the report says it could not be filed into the project.
+ *
+ * `resolutions` is what the INSTALLER supplies for the holes scrub.js left:
+ * `{ tables, connections, approvers }`, handed over raw. Normalised before
+ * anything reads it, so an unrecognised key contributes nothing — see
+ * projects/packaging/resolutions.js. What was used is kept as
+ * `solution_bindings` rows on the new project, so an upgrade fills the same
+ * holes the same way (F3). `deps.bindings` is the store the resolutions are
+ * kept in (default stores/solutionStageStore).
+ *
+ * @param {{ manifest?: Record<string, any>, ownerId?: string, organizationId?: string|null, name?: string|null,
+ *           blueprintId?: string|null, blueprintOrgId?: string|null, can?: (feature: string) => boolean,
+ *           req?: import('express').Request|null, resolutions?: unknown,
+ *           deps?: { bindings?: Pick<typeof import('../../stores/solutionStageStore'), 'upsertBindings'> } }} [input]
  */
 async function installBlueprint({
     manifest, ownerId, organizationId = null, name = null, blueprintId = null,
@@ -231,7 +234,7 @@ async function installBlueprint({
     let project;
     try {
         // createProject's optional fields are not declared optional.
-        project = await projectStore.createProject(/** @type {any} */ ({
+        project = await projectStore.createProject(/** @type {Parameters<typeof projectStore.createProject>[0]} */ ({
             name: name || solution.name || 'Installed Solution',
             description: solution.description || '',
             customInstructions: solution.customInstructions || '',
@@ -245,7 +248,7 @@ async function installBlueprint({
             ...provenance,
         }));
     } catch (err) {
-        return { ok: false, errors: [`The Solution could not be created: ${err.message}`] };
+        return { ok: false, errors: [`The Solution could not be created: ${/** @type {Error} */ (err).message}`] };
     }
 
     const ctx = makeInstallCtx({

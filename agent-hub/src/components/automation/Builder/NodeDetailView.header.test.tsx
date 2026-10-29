@@ -25,7 +25,11 @@ const NodeDetailView = (await import('./NodeDetailView')).default;
 const gmailStep = (over = {}) => ({ id: 's1', type: 'integration_action', tool: 'gmail_search', inputs: {}, ...over });
 const title = () => screen.getByTestId('ndv-title').textContent.trim();
 /** Type into the step-name field so the form is dirty and Save is live. */
-const makeDirty = (value: unknown) => fireEvent.change(screen.getByLabelText('Step name'), { target: { value } });
+const makeDirty = async (value: string) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText('Step name'));
+        await user.paste(value);
+    };
 const saveButton = () => screen.getByRole('button', { name: 'Save' });
 
 beforeEach(() => { cleanup(); api.getCatalog.mockResolvedValue(CATALOG); try { localStorage.clear(); } catch { /* ignore */ } });
@@ -147,7 +151,7 @@ describe('NodeDetailView — save status', () => {
         // Nothing saved yet in this session — no claim is made.
         expect(screen.queryByRole('status')).toBeNull();
 
-        await act(async () => { makeDirty('Find the invoice'); });
+        await act(async () => { await makeDirty('Find the invoice'); });
         await act(async () => { await user.click(saveButton()); });
         expect(onSaveStep).toHaveBeenCalled();
         // …and unlike the old chip, it does not vanish a second and a half later.
@@ -160,7 +164,7 @@ describe('NodeDetailView — save status', () => {
         await act(async () => {
             render(<NodeDetailView {...omitted<ComponentProps<typeof NodeDetailView>>()} {...props(gmailStep({ label: 'Find it' }), { onSaveStep })} />);
         });
-        await act(async () => { makeDirty('Find the invoice'); });
+        await act(async () => { await makeDirty('Find the invoice'); });
         await act(async () => { await user.click(saveButton()); });
 
         const retry = screen.getByRole('button', { name: /save failed/i });

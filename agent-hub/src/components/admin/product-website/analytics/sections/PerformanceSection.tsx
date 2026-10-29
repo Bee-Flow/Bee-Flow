@@ -306,10 +306,7 @@ function PerPage({ payload, onDrill }: { payload: PerformancePayload | null; onD
                         const b = band(v, [2500, 4000]);
                         return (
                             <button key={p.name || i} onClick={() => p.name && onDrill?.('path', p.name)}
-                                style={{
-                                    display: 'block', width: '100%', textAlign: 'left', padding: 0,
-                                    background: 'transparent', border: 'none', cursor: p.name ? 'pointer' : 'default',
-                                }}>
+                                className={`[display:block] [width:100%] [text-align:left] [padding:0] [background:transparent] [border:none] ${p.name ? '[cursor:pointer]' : '[cursor:default]'}`}>
                                 <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
                                     <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{p.name || t('cms_site.analytics.common.unknown', 'Unknown')}</span>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: b.color, flexShrink: 0 }}>

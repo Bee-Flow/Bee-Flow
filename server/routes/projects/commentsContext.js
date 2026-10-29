@@ -36,7 +36,7 @@ function resolveCommentsDeps(deps) {
             notify: (/** @type {{ threadId: string; commentId: string; authorUserId: string; orgId: string | null; limitOrgId: string | null; projectId: string; explicit?: boolean; }} */ p) => require('../../projects/comments/surface').notifyHumanComment(p),
             cancel: (/** @type {string} */ threadId) => require('../../projects/comments/surface').cancelCommentThread(threadId),
         },
-        resolveOrgs: deps.resolveOrgs || (async (req) => {
+        resolveOrgs: deps.resolveOrgs || (async (/** @type {import("../../auth/orgScope").OrgScopeRequest | null} */ req) => {
             const userId = req.session.user.id;
             const orgId = await require('../../core/llm/modelResolver').resolveEffectiveOrgId(req, { userId });
             const limitOrgId = await require('../../core/entitlements/limits').resolveOrgId(req);

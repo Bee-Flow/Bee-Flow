@@ -18,6 +18,7 @@ import { agentKeys } from '../api/keys';
  * nothing but a stale star until the next refetch.
  */
 export function useToggleFavorite() {
+    const t = useTranslation();
     const queryClient = useQueryClient();
     const { toast } = useToast();
     return useMutation({
@@ -33,7 +34,7 @@ export function useToggleFavorite() {
         },
         onError: (_err, _vars, context) => {
             if (context?.previous) queryClient.setQueryData(agentKeys.favorites, context.previous);
-            toast('That favourite did not save', 'error');
+            toast(t('mobile.agents.favorite_failed', 'That favourite did not save'), 'error');
         },
         onSettled: () => {
             void queryClient.invalidateQueries({ queryKey: agentKeys.favorites });

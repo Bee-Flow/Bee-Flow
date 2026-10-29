@@ -20,7 +20,7 @@ const MAX_SCALAR_CHARS = 32768;
  * @param {{ opId?: string, field?: string }} [where]
  */
 function tableError(errorClass, message, where = {}) {
-    /** @type {any} */
+    /** @type {Error & { errorClass?: string, opId?: string, field?: string }} */
     const err = new Error(message);
     err.errorClass = errorClass;
     if (where.opId) err.opId = where.opId;

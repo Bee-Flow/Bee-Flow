@@ -123,7 +123,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     bootstrapModelId = tier.bootstrapModelId;
                     log.info(`[DirectChat] Bootstrap using cheap model: ${bootstrapModelId} (main tier: ${modelId})`);
                 } catch (bErr) {
-                    log.warn(`[DirectChat] Bootstrap model "${tier.bootstrapModelId}" unavailable, falling back to "${modelId}":`, bErr.message);
+                    log.warn(`[DirectChat] Bootstrap model "${tier.bootstrapModelId}" unavailable, falling back to "${modelId}":`, /** @type {Error} */ (bErr).message);
                 }
             }
 
@@ -148,7 +148,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     }
                 }
             } catch (ctxErr) {
-                log.warn('[DirectChat] Bootstrap userContext lookup failed:', ctxErr.message);
+                log.warn('[DirectChat] Bootstrap userContext lookup failed:', /** @type {Error} */ (ctxErr).message);
             }
 
             try {
@@ -173,7 +173,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                 });
                 log.info(`[DirectChat] Session skills bootstrapped: ${sessionSkills.length} (step-1 auto-activated: ${activatedSessionSkillIds.length})`);
             } catch (bootstrapErr) {
-                log.warn('[DirectChat] Session skill bootstrap failed:', bootstrapErr.message);
+                log.warn('[DirectChat] Session skill bootstrap failed:', /** @type {Error} */ (bootstrapErr).message);
                 // Hard fallback so Standard tier always has at least one
                 // chat-local skill even if provider bootstrap fails.
                 sessionSkills = [{

@@ -111,7 +111,7 @@ function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeti
             {showLogo && split && <Logo theme={theme} style={{ position: 'absolute', left: '6%', top: '40%', width: '24%', height: '18%' }} />}
             {showLogo && light && <Logo theme={theme} style={{ position: 'absolute', left: '6%', top: '9%', width: '22%', height: '16%' }} />}
             {showLogo && accent && <Logo theme={theme} style={{ position: 'absolute', left: '6%', bottom: '9%', width: '14%', height: '10%' }} />}
-            <div style={{ position: 'absolute', left: split ? '42%' : '6%', right: '6%', top: light ? '38%' : '30%' }}>
+            <div className={`[position:absolute] [right:6%] ${split ? '[left:42%]' : '[left:6%]'} ${light ? '[top:38%]' : '[top:30%]'}`}>
                 <div style={{ fontFamily: theme.titleFontStack, fontWeight: 700, fontSize: '1.05em', lineHeight: 1.15, color: titleColor }}>{title}</div>
                 <div style={{ marginTop: '0.35em', fontSize: '0.5em', color: subColor, opacity: accent ? 0.9 : 1 }}>{subtitle}</div>
             </div>
@@ -165,7 +165,7 @@ function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTh
                 )}
             </div>
             {cornerLogo && <Logo theme={theme} style={{ position: 'absolute', right: '4%', top: band ? '17%' : '4%', width: '12%', height: '8%' }} />}
-            <div style={{ position: 'absolute', left: '5%', right: '5%', top: band ? '22%' : '26%', bottom: '18%', display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '5%' }}>
+            <div className={`[position:absolute] [left:5%] [right:5%] [bottom:18%] [display:grid] [grid-template-columns:1fr_1.25fr] [gap:5%] ${band ? '[top:22%]' : '[top:26%]'}`}>
                 <div className="min-w-[0]">
                     <ul style={{ margin: 0, paddingLeft: '1em', color: theme.text, fontSize: '0.42em', lineHeight: 1.5 }}>
                         <li>{t('documents.deck.sample_revenue', 'Revenue up 12%')}</li>
@@ -199,7 +199,7 @@ export default function DeckPreview({ theme, loading = false }: { theme: DeckThe
         );
     }
     return (
-        <div className="grid grid-cols-2 gap-3" style={{ fontSize: 'clamp(9px, 1.6vw, 15px)', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }} data-testid="deck-preview">
+        <div className={`grid grid-cols-2 gap-3 [font-size:clamp(9px,_1.6vw,_15px)] [transition:opacity_.15s] ${loading ? '[opacity:0.6]' : '[opacity:1]'}`} data-testid="deck-preview">
             <CoverSlide theme={theme} />
             <ContentSlide theme={theme} />
         </div>

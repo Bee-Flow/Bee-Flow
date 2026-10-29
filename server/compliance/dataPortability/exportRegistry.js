@@ -53,20 +53,18 @@ const viaUsers = (table, alias) =>
     `SELECT COUNT(*)::int AS c FROM ${table} ${alias} JOIN users u ON u.id = ${alias}.user_id WHERE u."organizationId" = $1`;
 
 /**
- * @typedef {object} ExportKind
- * @property {string} kind            stable id, also the `subject_id` of export stamps
- * @property {string} labelKey        i18n key (compliance.pf_kind_<kind>)
- * @property {{method:string,path:string}|null} route  the export route as served, or null when none exists
- * @property {Array<{method:string,path:string}>} [extraRoutes] further routes of the same kind (other formats)
- * @property {{method:string,path:string,formats:string[]}|null} [renderOnly]
- *           a route that renders (PDF) but is not a portable export — listed so the probe keeps it honest
- * @property {string[]} formats       formats the portable route(s) produce
- * @property {'per-item'|'bulk'} scope
- * @property {{prefix:string,module:string,via?:string}|null} mount
- *           where the leaf router lives (module relative to server/) and the prefix index.js mounts its parent at
- * @property {string} heldCountSql    `SELECT COUNT(*)::int AS c …` — org-scoped with $1 unless heldScope is 'platform'
- * @property {'org'|'platform'} heldScope
- * @property {string|null} gapKey     i18n key describing the product gap when route is null
+ * One kind of exportable data. `kind` is a stable id, also the `subject_id` of export
+ * stamps; `labelKey` its i18n key (compliance.pf_kind_<kind>); `route` the export route as
+ * served, or null when none exists; `extraRoutes` further routes of the same kind (other
+ * formats); `renderOnly` a route that renders (PDF) but is not a portable export, listed so
+ * the probe keeps it honest; `formats` the formats the portable route(s) produce; `mount`
+ * where the leaf router lives (module relative to server/) and the prefix index.js mounts
+ * its parent at; `heldCountSql` a `SELECT COUNT(*)::int AS c …`, org-scoped with $1 unless
+ * heldScope is 'platform'; `gapKey` the i18n key describing the product gap when route is null.
+ * @typedef {{ kind: string, labelKey: string, route: {method:string,path:string}|null,
+ *   extraRoutes?: Array<{method:string,path:string}>, renderOnly?: {method:string,path:string,formats:string[]}|null,
+ *   formats: string[], scope: 'per-item'|'bulk', mount: {prefix:string,module:string,via?:string}|null,
+ *   heldCountSql: string, heldScope: 'org'|'platform', gapKey: string|null }} ExportKind
  */
 
 /** @type {ReadonlyArray<ExportKind>} */

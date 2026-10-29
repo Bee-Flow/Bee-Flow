@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CoworkEditForm from './CoworkEditForm';
@@ -154,9 +155,10 @@ describe('CoworkEditForm — an item with no next run', () => {
         expect(screen.getByTestId('cowork-edit-time')).toHaveValue('13:45');
     });
 
-    it('wrat: saving an untouched form therefore MOVES a run-less item to right now', () => {
+    it('wrat: saving an untouched form therefore MOVES a run-less item to right now', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         const { props } = setup({ itemOver: { nextRunAt: null } });
-        fireEvent.click(save());
+        await user.click(save());
         const at = new Date(savedPayload(props).nextRunAt);
         expect(at.getFullYear()).toBe(2026);
         expect(at.getHours()).toBe(13);
@@ -165,34 +167,39 @@ describe('CoworkEditForm — an item with no next run', () => {
 });
 
 describe('CoworkEditForm — what a save sends', () => {
-    it('trims the name and the instruction', () => {
+    it('trims the name and the instruction', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.change(screen.getByTestId('cowork-edit-title'), { target: { value: '  Monthly digest  ' } });
+        await user.clear(screen.getByTestId('cowork-edit-title'));
+        await user.type(screen.getByTestId('cowork-edit-title'), '  Monthly digest  ');
         fireEvent.change(screen.getByTestId('cowork-edit-prompt'), { target: { value: '\n Summarise the month \n' } });
-        fireEvent.click(save());
+        await user.click(save());
 
         expect(savedPayload(props).title).toBe('Monthly digest');
         expect(savedPayload(props).prompt).toBe('Summarise the month');
     });
 
-    it('turns "Once" into a null repeat, not an empty string', () => {
+    it('turns "Once" into a null repeat, not an empty string', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.change(screen.getByTestId('cowork-edit-repeat'), { target: { value: '' } });
-        fireEvent.click(save());
+        await user.selectOptions(screen.getByTestId('cowork-edit-repeat'), '');
+        await user.click(save());
         expect(savedPayload(props).repeatInterval).toBeNull();
     });
 
-    it('sends no day restriction as null — [] would read as "never runs"', () => {
+    it('sends no day restriction as null — [] would read as "never runs"', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).daysOfWeek).toBeNull();
     });
 
-    it('sends the picked days, and the wall-clock time beside the moment', () => {
+    it('sends the picked days, and the wall-clock time beside the moment', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
         fireEvent.change(screen.getByTestId('cowork-edit-time'), { target: { value: '07:05' } });
-        fireEvent.click(screen.getByTestId('cowork-edit-day-mon'));
-        fireEvent.click(save());
+        await user.click(screen.getByTestId('cowork-edit-day-mon'));
+        await user.click(save());
 
         const payload = savedPayload(props);
         expect(payload.daysOfWeek).toEqual(['mon']);
@@ -203,22 +210,25 @@ describe('CoworkEditForm — what a save sends', () => {
         expect(at.getDate()).toBe(14);
     });
 
-    it('turns "no agent" into null', () => {
+    it('turns "no agent" into null', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ agents: [{ id: 'a1', name: 'Research bee' }] });
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).agentId).toBeNull();
     });
 
-    it('sends the picked agent', () => {
+    it('sends the picked agent', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ agents: [{ id: 'a1', name: 'Research bee' }] });
-        fireEvent.change(screen.getByTestId('cowork-edit-agent'), { target: { value: 'a1' } });
-        fireEvent.click(save());
+        await user.selectOptions(screen.getByTestId('cowork-edit-agent'), 'a1');
+        await user.click(save());
         expect(savedPayload(props).agentId).toBe('a1');
     });
 
-    it('leaves enabledApps null while the picker is untouched', () => {
+    it('leaves enabledApps null while the picker is untouched', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).enabledApps).toBeNull();
     });
 
@@ -237,9 +247,10 @@ describe('CoworkEditForm — the days row', () => {
         expect(screen.queryByTestId('cowork-edit-day-mon')).not.toBeInTheDocument();
     });
 
-    it('appears the moment a repeat is chosen', () => {
+    it('appears the moment a repeat is chosen', async () => {
+        const user = userEvent.setup();
         setup({ itemOver: { repeatInterval: '' } });
-        fireEvent.change(screen.getByTestId('cowork-edit-repeat'), { target: { value: 'daily' } });
+        await user.selectOptions(screen.getByTestId('cowork-edit-repeat'), 'daily');
         expect(screen.getByTestId('cowork-edit-day-mon')).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Only on' })).toBeInTheDocument();
     });
@@ -252,61 +263,66 @@ describe('CoworkEditForm — the days row', () => {
         expect(screen.getByText('Leave all off to use the repeat as-is.')).toBeInTheDocument();
     });
 
-    it('toggles a day on and off again', () => {
+    it('toggles a day on and off again', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
         const mon = screen.getByTestId('cowork-edit-day-mon');
         expect(mon).toHaveAttribute('aria-pressed', 'false');
 
-        fireEvent.click(mon);
+        await user.click(mon);
         expect(mon).toHaveAttribute('aria-pressed', 'true');
-        fireEvent.click(mon);
+        await user.click(mon);
         expect(mon).toHaveAttribute('aria-pressed', 'false');
 
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).daysOfWeek).toBeNull();
     });
 
-    it('wrat: the days are stored in click order, not in week order', () => {
+    it('wrat: the days are stored in click order, not in week order', async () => {
+        const user = userEvent.setup();
         // "Fri, Mon" goes to the server as ['fri','mon'] — anything that
         // renders the list back reads the week starting on Friday.
         const { props } = setup();
-        fireEvent.click(screen.getByTestId('cowork-edit-day-fri'));
-        fireEvent.click(screen.getByTestId('cowork-edit-day-mon'));
-        fireEvent.click(save());
+        await user.click(screen.getByTestId('cowork-edit-day-fri'));
+        await user.click(screen.getByTestId('cowork-edit-day-mon'));
+        await user.click(save());
         expect(savedPayload(props).daysOfWeek).toEqual(['fri', 'mon']);
     });
 
-    it('wrat: switching back to Once hides the days but still saves them', () => {
+    it('wrat: switching back to Once hides the days but still saves them', async () => {
+        const user = userEvent.setup();
         // The row disappears, so the user cannot see or clear what is about
         // to be sent with a non-repeating item.
         const { props } = setup();
-        fireEvent.click(screen.getByTestId('cowork-edit-day-mon'));
-        fireEvent.change(screen.getByTestId('cowork-edit-repeat'), { target: { value: '' } });
+        await user.click(screen.getByTestId('cowork-edit-day-mon'));
+        await user.selectOptions(screen.getByTestId('cowork-edit-repeat'), '');
         expect(screen.queryByTestId('cowork-edit-day-mon')).not.toBeInTheDocument();
 
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).repeatInterval).toBeNull();
         expect(savedPayload(props).daysOfWeek).toEqual(['mon']);
     });
 });
 
 describe('CoworkEditForm — a cleared or unreadable moment', () => {
-    it('wrat: clearing the date saves a run in the year 1900 instead of keeping the old one', () => {
+    it('wrat: clearing the date saves a run in the year 1900 instead of keeping the old one', async () => {
+        const user = userEvent.setup();
         // `new Date(0, 0, 1, …)` — years 0-99 map to 1900-1999, so the date is
         // never NaN and the `item.nextRunAt` fallback below it is unreachable.
         const { props } = setup();
         fireEvent.change(screen.getByTestId('cowork-edit-date'), { target: { value: '' } });
-        fireEvent.click(save());
+        await user.click(save());
 
         const payload = savedPayload(props);
         expect(payload.nextRunAt).not.toBe(item().nextRunAt);
         expect(new Date(payload.nextRunAt).getFullYear()).toBe(1900);
     });
 
-    it('wrat: clearing the time silently means midnight, and drops timeOfDay', () => {
+    it('wrat: clearing the time silently means midnight, and drops timeOfDay', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
         fireEvent.change(screen.getByTestId('cowork-edit-time'), { target: { value: '' } });
-        fireEvent.click(save());
+        await user.click(save());
 
         const payload = savedPayload(props);
         const at = new Date(payload.nextRunAt);
@@ -321,14 +337,15 @@ describe('CoworkEditForm — a cleared or unreadable moment', () => {
         expect(screen.getByTestId('cowork-edit-time')).toHaveValue('');
     });
 
-    it('wrat: a repeat the <select> has no option for shows as blank while the draft keeps it', () => {
+    it('wrat: a repeat the <select> has no option for shows as blank while the draft keeps it', async () => {
+        const user = userEvent.setup();
         // The row still says "repeating" (the days appear) but the control
         // shows nothing, and an untouched save sends the unknown value on.
         const { props } = setup({ itemOver: { repeatInterval: 'fortnightly' } });
         expect(screen.getByTestId('cowork-edit-repeat')).toHaveValue('');
         expect(screen.getByTestId('cowork-edit-day-mon')).toBeInTheDocument();
 
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).repeatInterval).toBe('fortnightly');
     });
 });
@@ -407,20 +424,22 @@ describe('CoworkEditForm — the apps this cowork may use', () => {
         expect(screen.getByText('2 of 3 enabled')).toBeInTheDocument();
     });
 
-    it('hands the item back to the workspace list, and the wording follows', () => {
+    it('hands the item back to the workspace list, and the wording follows', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ itemOver: { enabledApps: ['google-drive'] } });
-        fireEvent.click(screen.getByTestId('cowork-apps-reset'));
+        await user.click(screen.getByTestId('cowork-apps-reset'));
 
         expect(screen.getByText(/Following your workspace-wide list/)).toBeInTheDocument();
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).enabledApps).toBeNull();
     });
 
-    it('materialises the inherited set on the first toggle', () => {
+    it('materialises the inherited set on the first toggle', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.click(screen.getByLabelText('Enable Google Drive'));
-        fireEvent.click(save());
+        await user.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByLabelText('Enable Google Drive'));
+        await user.click(save());
 
         // gmail was globally on and stays on; the step is never stored.
         expect(savedPayload(props).enabledApps.sort()).toEqual(['gmail', 'google-drive']);
@@ -455,13 +474,14 @@ describe('CoworkEditForm — the agent picker', () => {
         expect(screen.getByTestId('cowork-edit-agent').options[1].textContent).toBe('Untitled agent');
     });
 
-    it('wrat: an agentId whose agent is not in the list hides the choice and the value both', () => {
+    it('wrat: an agentId whose agent is not in the list hides the choice and the value both', async () => {
+        const user = userEvent.setup();
         // Exactly what an in-flight agents fetch looks like. The item is
         // pinned to an agent, nothing on screen says so, and an untouched
         // save keeps it.
         const { props } = setup({ agents: [], itemOver: { agentId: 'a1' } });
         expect(screen.queryByTestId('cowork-edit-agent')).not.toBeInTheDocument();
-        fireEvent.click(save());
+        await user.click(save());
         expect(savedPayload(props).agentId).toBe('a1');
     });
 });
@@ -489,10 +509,12 @@ describe('CoworkEditForm — saving, cancelling and failing', () => {
         expect(save()).toHaveTextContent('Save');
     });
 
-    it('cancels without saving', () => {
+    it('cancels without saving', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.change(screen.getByTestId('cowork-edit-title'), { target: { value: 'Changed my mind' } });
-        fireEvent.click(screen.getByTestId('cowork-edit-cancel'));
+        await user.clear(screen.getByTestId('cowork-edit-title'));
+        await user.type(screen.getByTestId('cowork-edit-title'), 'Changed my mind');
+        await user.click(screen.getByTestId('cowork-edit-cancel'));
 
         expect(props.onCancel).toHaveBeenCalledTimes(1);
         expect(props.onSave).not.toHaveBeenCalled();
@@ -504,10 +526,13 @@ describe('CoworkEditForm — saving, cancelling and failing', () => {
         expect(screen.getByTestId('cowork-edit-form')).toBeInTheDocument();
     });
 
-    it('keeps the draft local — nothing is saved while typing', () => {
+    it('keeps the draft local — nothing is saved while typing', async () => {
+        const user = userEvent.setup();
         const { props } = setup();
-        fireEvent.change(screen.getByTestId('cowork-edit-title'), { target: { value: 'M' } });
-        fireEvent.change(screen.getByTestId('cowork-edit-title'), { target: { value: 'Mo' } });
+        await user.clear(screen.getByTestId('cowork-edit-title'));
+        await user.type(screen.getByTestId('cowork-edit-title'), 'M');
+        await user.clear(screen.getByTestId('cowork-edit-title'));
+        await user.type(screen.getByTestId('cowork-edit-title'), 'Mo');
         fireEvent.change(screen.getByTestId('cowork-edit-time'), { target: { value: '07:00' } });
         expect(props.onSave).not.toHaveBeenCalled();
     });

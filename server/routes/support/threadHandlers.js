@@ -31,7 +31,7 @@ const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** GET /threads — the staff inbox. */
-async function listInbox(req, res) {
+async function listInbox(req, /** @type {import('express').Response} */ res) {
     const { status, q, assignee, limit, offset, followup } = req.query;
     const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
     // Isolation: this is Bee Flow's OWN company inbox. Tenant Support-studio
@@ -152,7 +152,7 @@ async function afterRequesterReply(thread, body) {
  * the reply of `userId` (`staff` or the requester) and what follows it.
  * @param {SupportThread} thread
  */
-async function appendReply(req, res, thread, { userId, staff }) {
+async function appendReply(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, thread, { userId, staff }) {
     const body = req.body.body;
     // Only a real boolean makes a reply internal, and only for staff.
     const internalNote = req.body.internalNote === true && staff;
@@ -256,7 +256,7 @@ function announceResolved(thread) {
 }
 
 /** PATCH /threads/:id — staff status/priority/assignee + resolve. */
-async function patchThread(req, res) {
+async function patchThread(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const thread = await supportStore.getThread(req.params.id);
     if (!thread) return res.status(404).json({ error: 'thread not found' });
     const { tags } = req.body;
@@ -283,7 +283,7 @@ async function patchThread(req, res) {
 }
 
 /** GET /threads/:id/events — staff-only audit log for a thread. */
-async function threadEvents(req, res) {
+async function threadEvents(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const events = await supportStore.listThreadEvents(req.params.id, { limit: 200 });
     res.json({ events });
 }
@@ -324,7 +324,7 @@ async function bulkOne(id, thread, action, params, userId) {
  * POST /threads/bulk — apply an action to multiple threads (staff).
  * Per-thread partial success; never an all-or-nothing transaction.
  */
-async function bulk(req, res) {
+async function bulk(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { ids, action } = req.body;
     const params = req.body.params || {};
     const userId = getUserId(req);

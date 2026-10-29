@@ -23,7 +23,7 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
     const [expanded, setExpanded] = useState(false);
 
     return (
-        <div data-tour="integration-card" style={{ borderBottom: last ? 'none' : '1px solid var(--border-subtle)' }}>
+        <div data-tour="integration-card" className={`${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-subtle)]'}`}>
             <button
                 type="button"
                 aria-expanded={expanded}
@@ -42,8 +42,7 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
                         needed" when a connected integration needs re-consent). */}
                     {connected ? <>{badge || null}<ConnectedBadge /></> : badge || null}
                     <svg
-                        className="transition-transform"
-                        style={{ color: 'var(--text-muted)', width: '13px', height: '13px', transform: expanded ? 'rotate(90deg)' : 'none' }}
+                        className={`transition-transform [color:var(--text-muted)] [width:13px] [height:13px] ${expanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`}
                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

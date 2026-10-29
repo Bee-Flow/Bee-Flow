@@ -140,6 +140,7 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
     if (policy === 'mail') {
         const spec = MAIL_ARG_POLICIES[toolName] || {};
         const memoKey = _mailMemoKey({ userId, orgId, agentId }, entry);
+        /** @type {Record<string, string>} */
         const HOW = {
             mailbox: 'List the mailboxes of one of the shared accounts first (nextcloud_mail_list_mailboxes).',
             message: 'Search a mailbox of one of the shared accounts first (nextcloud_mail_search) — a message can only be opened once it has come back from a search Bee Flow is allowed to run.',
@@ -201,7 +202,8 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
  * caller usually holds a session and not an org id, and dropping the org
  * ceiling would quietly enforce only half the scope.
  *
- * @param {Function} run  invoked only if the call is allowed
+ * @template T
+ * @param {() => Promise<T>} run  invoked only if the call is allowed
  * @returns the executor's result, filtered — or the structured denial
  */
 async function guardedNcCall(toolName, toolArgs, /** @type {{ userId: string, session?: import('../entitlements/entitlementTypes').SessionLike | null, orgId?: string | null, agentId?: string | null }} */ { userId, session = null, orgId = null, agentId = null }, run) {

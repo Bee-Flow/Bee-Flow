@@ -33,7 +33,7 @@ const { scanTemplate, parsePath, walkTokens } = require('./expr');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
- * @typedef {object} HookApproval  the parts of an approval row the on_decided hook reads
+ * @typedef HookApproval  the parts of an approval row the on_decided hook reads
  * @property {string} id
  * @property {string} [status]
  * @property {string|null} [ownerId]
@@ -132,10 +132,10 @@ async function runOnDecidedHook(approval) {
         }).catch((e) => bestEffort('automation/approvalHooks:runOnDecidedHook', e));
         return { ran: true };
     } catch (e) {
-        log.warn(`[ApprovalHooks] on_decided failed for ${approval.id}: ${e.message}`);
+        log.warn(`[ApprovalHooks] on_decided failed for ${approval.id}: ${/** @type {Error} */ (e).message}`);
         await automationStore.appendApprovalAudit({
             approvalId: approval.id, decidedBy: null,
-            decision: 'hook_failed', comment: e.message, source: 'hook',
+            decision: 'hook_failed', comment: /** @type {Error} */ (e).message, source: 'hook',
         }).catch((e) => bestEffort('automation/approvalHooks:runOnDecidedHook#2', e));
         // The decision stands; the OWNER hears their app did not react.
         try {
@@ -144,11 +144,11 @@ async function runOnDecidedHook(approval) {
                 userId: approval.ownerId,
                 category: 'urgent',
                 title: `⚠️ App update failed after a decision`,
-                message: `The decision on "${approval.prompt || 'an approval'}" was recorded, but the app's record could not be updated: ${e.message}`,
+                message: `The decision on "${approval.prompt || 'an approval'}" was recorded, but the app's record could not be updated: ${/** @type {Error} */ (e).message}`,
                 link: require('../utils/appPaths').approvalPath(approval.id),
             });
         } catch (err) { bestEffort('automation/approvalHooks:runOnDecidedHook#3', err); /* the audit row still tells the story */ }
-        return { ran: false, error: e.message };
+        return { ran: false, error: /** @type {Error} */ (e).message };
     }
 }
 

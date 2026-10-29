@@ -161,7 +161,7 @@ router.post('/iso/docs/:slug/publish', requireAuth, requirePermission('admin_com
         });
         res.json(doc);
     } catch (e) {
-        if (e.message === 'Cannot publish an empty document') throw new HttpError(400, 'empty_document', e.message);
+        if (/** @type {Error} */ (e).message === 'Cannot publish an empty document') throw new HttpError(400, 'empty_document', /** @type {Error} */ (e).message);
         throw e;
     }
 });

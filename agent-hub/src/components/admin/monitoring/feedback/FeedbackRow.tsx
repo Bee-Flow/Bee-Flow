@@ -119,12 +119,7 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
                         <FeedbackChips item={item} snapshot={snapshot} />
                     </div>
                     {item.comment && (
-                        <div style={{
-                            fontSize: '12px', color: 'var(--text-secondary, #aaa)', marginTop: '3px',
-                            overflow: 'hidden', textOverflow: 'ellipsis',
-                            whiteSpace: expanded ? 'pre-wrap' : 'nowrap',
-                            maxWidth: expanded ? 'none' : '500px',
-                        }}>
+                        <div className={`[font-size:12px] [color:var(--text-secondary,_#aaa)] [margin-top:3px] [overflow:hidden] [text-overflow:ellipsis] ${expanded ? '[white-space:pre-wrap] [max-width:none]' : '[white-space:nowrap] [max-width:500px]'}`}>
                             "{item.comment}"
                         </div>
                     )}
@@ -133,11 +128,7 @@ export default function FeedbackRow({ item, expanded, onToggle }: FeedbackRowPro
                 <span className="[font-size:11px] [color:var(--text-muted,#888)] [flex-shrink:0]">
                     {fmtTime(item.created_at)}
                 </span>
-                <ChevronRight style={{
-                    width: 14, height: 14, color: 'var(--text-muted, #888)',
-                    transform: expanded ? 'rotate(90deg)' : 'none',
-                    transition: 'transform 0.2s', flexShrink: 0,
-                }} />
+                <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted,_#888)] [transition:transform_0.2s] [flex-shrink:0] ${expanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
             </div>
 
             {expanded && <FeedbackDetail item={item} snapshot={snapshot} />}

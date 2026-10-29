@@ -37,14 +37,14 @@ const Beat = bodyOf({
 
 /**
  * @param {object} [deps]
- * @param {any} [deps.documents]       stores/documentStore surface ({ getDocument })
+ * @param {any} [deps.documents]       stores/documentStore surface ({ getDocument }); typed, one of its rows has no projectRole
  * @param {typeof import('../../core/documents/sectionPresence')} [deps.presence]        core/documents/sectionPresence surface
- * @param {Function} [deps.publishTransient]
- * @param {Function} [deps.publishChannel]   the `doc:<id>` channel
+ * @param {typeof import('../../core/projectEventBus').publishTransient} [deps.publishTransient]
+ * @param {typeof import('../../core/projectEventBus').publishChannel} [deps.publishChannel]   the `doc:<id>` channel
  * @param {import('express').RequestHandler} [deps.requireAuth]
  * @param {import('express').RequestHandler} [deps.limiter]       rate limit for the beats
- * @param {Function} [deps.describePeople]
- * @param {any} [deps.log]
+ * @param {typeof import('../../core/documents/documentPeople').describePeople} [deps.describePeople]
+ * @param {Pick<typeof import('../../telemetry/log'), 'warn'>} [deps.log]
  */
 function makeDocumentPresenceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

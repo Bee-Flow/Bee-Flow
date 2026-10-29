@@ -67,12 +67,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }: { keys: string[]; va
                             <TierIcon tierKey={key} meta={meta} className="w-3 h-3" />
                             <span>{t(`tier.${key}`, meta.label)}</span>
                             {meta.beta && (
-                                <span style={{
-                                    fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em',
-                                    padding: '1px 5px', borderRadius: '9999px',
-                                    background: selected ? 'rgba(255,255,255,0.25)' : 'var(--bg-secondary)',
-                                    color: selected ? '#fff' : 'var(--text-tertiary)',
-                                }}>
+                                <span className={`[font-size:9px] [text-transform:uppercase] [letter-spacing:0.04em] [padding:1px_5px] [border-radius:9999px] ${selected ? '[background:rgba(255,255,255,0.25)] [color:#fff]' : '[background:var(--bg-secondary)] [color:var(--text-tertiary)]'}`}>
                                     {t('chat.composer.beta_badge', 'beta')}
                                 </span>
                             )}

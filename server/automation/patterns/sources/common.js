@@ -37,9 +37,10 @@ const AUTH_RE = /\b(?:401|403|unauthori[sz]ed|forbidden|not connected|log ?in|re
 /**
  * Connectors report trouble two ways: they throw, or they return
  * `{ error: '…' }`. Either way the source stops with a code.
- * @param {any} result
+ * @template {{ error?: unknown }} T
+ * @param {T} result
  * @param {string} tool
- * @returns {any} the result, when it is usable
+ * @returns {T} the result, when it is usable
  */
 function checkToolResult(result, tool) {
     if (!result || typeof result !== 'object') throw sourceError('error', `${tool}: empty result`);
@@ -52,7 +53,7 @@ function checkToolResult(result, tool) {
 
 /**
  * Epoch ms from a Date, an ISO/RFC 2822 string, or unix seconds/ms.
- * @param {any} v
+ * @param {unknown} v
  * @returns {number} NaN when unparseable
  */
 function toMs(v) {
@@ -116,11 +117,24 @@ async function queryRows(db, sql, params) {
         const { rows } = await db.query(sql, params);
         return rows || [];
     } catch (err) {
-        if (MISSING_SCHEMA.has(/** @type {any} */ (err)?.code)) return [];
+        const code = errorCode(err);
+        if (code !== undefined && MISSING_SCHEMA.has(code)) return [];
         throw err;
     }
 }
 
+/**
+ * The string `code` of a thrown value (an Error, a pg error, a sourceError), or
+ * undefined. Every code set it is checked against holds strings only, so a
+ * non-string code reads the same as none.
+ * @param {unknown} err
+ * @returns {string | undefined}
+ */
+function errorCode(err) {
+    const code = err !== null && (typeof err === 'object' || typeof err === 'function') ? /** @type {{ code?: unknown }} */ (err).code : undefined;
+    return typeof code === 'string' ? code : undefined;
+}
+
 module.exports = {
-    DAY, sourceError, throwIfAborted, checkToolResult, toMs, inWindow, opaqueKey, defaultDb, queryRows,
+    DAY, sourceError, errorCode, throwIfAborted, checkToolResult, toMs, inWindow, opaqueKey, defaultDb, queryRows,
 };

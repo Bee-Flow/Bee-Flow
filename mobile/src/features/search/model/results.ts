@@ -62,11 +62,13 @@ function placeHits(term: string, access: SearchAccess): SearchHit[] {
         .map<SearchHit>((d) => ({
             key: `place:${d.id}`,
             group: 'places',
-            title: d.label,
-            subtitle: d.hint,
+            // The reader's words, as the sitemap draws the same row: the web's
+            // key when the destination has one, else its own English.
+            title: d.i18nKey ? translate(d.i18nKey, d.label) : d.label,
+            subtitle: d.hintKey ? translate(d.hintKey, d.hint) : d.hint,
             // External destinations open a browser; the row still says where it
             // goes rather than pretending to be an in-app screen.
-            meta: d.external ? 'Opens in browser' : undefined,
+            meta: d.external ? translate('mobile.search.opens_in_browser', 'Opens in browser') : undefined,
             href: d.href,
         }));
 }

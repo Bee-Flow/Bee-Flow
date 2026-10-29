@@ -34,6 +34,10 @@ const KNOWN_SOURCE_KINDS = new Set(['poller', 'push', 'poll_diff']);
 
 const KNOWN_SCOPES = new Set(['user', 'org']);
 
+/**
+ * @param decl  the declaration, read field by field below
+ * @param {{ existingIds?: Iterable<string> }} [opts]  ids already registered (spread once below)
+ */
 function validateTriggerSource(decl, { existingIds = [] } = {}) {
     const out = [];
     /**

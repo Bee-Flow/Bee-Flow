@@ -251,8 +251,10 @@ function register(router) {
 
         // Determine which slots actually changed (by sha256). Skip RustFS round-trip
         // for unchanged slots so a metadata-only PUT doesn't re-upload all three files.
+        /** @type {Record<string, string | undefined>} */
         const incoming = { html, css, js };
         const current = { html: wp.htmlSha, css: wp.cssSha, js: wp.jsSha };
+        /** @type {Record<string, { content: string; sha: string; }>} */
         const slotUpdates = {};
         for (const slot of webpageStore.SLOTS) {
             if (incoming[slot] === undefined) continue;

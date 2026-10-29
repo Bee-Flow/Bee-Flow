@@ -51,12 +51,10 @@ async function youtrackRequest(baseUrl, token, method, path, body = null) {
  * Service connection first, the caller's own second. `source` says which won,
  * so a caller can tell an admin why a call behaved the way it did.
  *
- * @param {object}  [opts]
- * @param {?string} [opts.userId]       fall back to this user's own token
- * @param {boolean} [opts.serviceOnly]  never fall back (background jobs: there
- *                                    is no user, and silently borrowing one
- *                                    person's token for a shared poller would
- *                                    make the whole hub depend on them)
+ * @param {{ userId?: string | null, serviceOnly?: boolean }} [opts]  `userId` falls back to
+ *   this user's own token; `serviceOnly` never falls back (background jobs: there is no
+ *   user, and silently borrowing one person's token for a shared poller would make the
+ *   whole hub depend on them)
  */
 async function resolveCredentials({ userId = null, serviceOnly = false } = {}) {
     const baseUrl = await configStore.getSecret(SERVICE_URL_KEY);

@@ -251,8 +251,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
 
     return (
         <div
-            className="grid gap-3 items-center px-3.5 py-2.5"
-            style={{ gridTemplateColumns: '1fr 1.2fr 130px 130px 32px', borderBottom: last ? 'none' : '1px solid var(--border-default)' }}
+            className={`grid gap-3 items-center px-3.5 py-2.5 [grid-template-columns:1fr_1.2fr_130px_130px_32px] ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}
             data-testid="kb-doc-row"
             data-doc-id={doc.id}
             data-status={doc.status || 'processed'}
@@ -265,7 +264,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
                 </span>
             </span>
 
-            <span className="truncate" style={{ color: doc.extract_summary ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>
+            <span className={`truncate ${doc.extract_summary ? '[color:var(--text-secondary)]' : '[color:var(--text-tertiary)]'}`}>
                 {/* The summary when there is one; otherwise the reason a file
                     was skipped, which is more useful than an empty cell. */}
                 {doc.extract_summary || doc.status_reason || ''}

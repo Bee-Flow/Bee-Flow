@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, TextField } from '@/shared/ui';
 
@@ -29,26 +30,27 @@ export function AddTextForm({
     onText: (text: string, name: string) => void;
     onBack: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
 
     return (
         <View style={styles.form}>
             <TextField
-                label="Title"
+                label={t('automations.knowledge_write_editors.title', 'Title')}
                 value={draft.name}
                 onChangeText={(name) => onChange({ ...draft, name })}
-                placeholder="Meeting notes"
+                placeholder={t('mobile.knowledge.text_title_placeholder', 'Meeting notes')}
             />
             <TextField
-                label="Text"
+                label={t('automations.knowledge_write_editors.text', 'Text')}
                 value={draft.text}
                 onChangeText={(text) => onChange({ ...draft, text })}
                 multiline
                 maxLines={10}
-                placeholder="Paste anything you want this to know about."
+                placeholder={t('mobile.knowledge.text_placeholder', 'Paste anything you want this to know about.')}
             />
             <Button
-                label="Add text"
+                label={t('automations.builder.add_text', 'Add text')}
                 fullWidth
                 loading={busy}
                 disabled={draft.text.trim().length < 3}
@@ -57,7 +59,7 @@ export function AddTextForm({
                     onChange({ text: '', name: '' });
                 }}
             />
-            <Button label="Back" variant="ghost" onPress={onBack} />
+            <Button label={t('common.back', 'Back')} variant="ghost" onPress={onBack} />
         </View>
     );
 }

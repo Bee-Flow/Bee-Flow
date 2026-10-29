@@ -431,8 +431,7 @@ async function processClaimedJob(job) {
 }
 
 /**
- * @typedef {Object} ProcessDueArgs
- * @property {number} [limit]
+ * @typedef {{ limit?: number }} ProcessDueArgs
  */
 /**
  * Phase B — claim + process due jobs. Runs OUTSIDE the discovery lock (claims

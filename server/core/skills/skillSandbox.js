@@ -90,8 +90,8 @@ async function runKbSearch(args, ctx) {
     let chunks = [];
     try {
         const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
-        // quickKBSearch's typedef has no `session`; it is passed along unchanged.
-        chunks = await quickKBSearch(ctx.userId, kbIds, query, /** @type {any} */ ({
+        // ctx.session is only an `object` here; it is passed along unchanged.
+        chunks = await quickKBSearch(ctx.userId, kbIds, query, /** @type {Parameters<typeof quickKBSearch>[3]} */ ({
             topK: SANDBOX_KB_TOPK,
             session: ctx.session || null,
         })) || [];
@@ -178,7 +178,7 @@ function buildSandboxTools() {
  * that the tool does not exist here.
  *
  * @param {string} name
- * @param {object} args   the model's arguments — untrusted
+ * @param {Record<string, unknown>} args   the model's arguments — untrusted
  * @param {{ userId?:string, kbIds?:string[], session?:object }} [ctx]
  * @returns {Promise<string>}
  */

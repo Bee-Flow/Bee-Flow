@@ -2,7 +2,10 @@ import { pointerWithin, rectIntersection, type DroppableContainer, type ClientRe
 import { walkPath } from '../resolveBinding';
 import { RectMap } from '@dnd-kit/core/dist/store';
 import { Coordinates } from '@dnd-kit/utilities';
-import type { KanbanRow, ResolveCardDropArgs } from './AppKanban.types';
+import { ROLE_COLORS } from '../styleResolver.constants';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { CARD_PREFIX } from './KanbanCard';
+import type { KanbanCellEntry, KanbanRow, ResolveCardDropArgs, ToneMapEntry } from './AppKanban.types';
 
 const COL_PREFIX = 'appkanban-col:';
 
@@ -195,4 +198,122 @@ export function rankForSlot(beforeRank: number | null, afterRank: number | null)
     // Expressing "between two equal ranks" would mean renumbering the
     // neighbours, and there is no atomic multi-row write to do it with.
     return (mid > b && mid < a) ? mid : b + 1;
+}
+
+/** Every card bucketed once, keyed by lane+column, in source order — which is the order the binding's sort produced, i.e. the board's rank. */
+export function bucketCells(rows: KanbanRow[], laneOf: (row: KanbanRow) => string, groupOf: (row: KanbanRow) => string) {
+    const map = new Map<string, KanbanCellEntry[]>();
+    rows.forEach((row, index) => {
+        const key = `${laneOf(row)}${LANE_SEP}${groupOf(row)}`;
+        const bucket = map.get(key);
+        if (bucket) bucket.push({ row, index });
+        else map.set(key, [{ row, index }]);
+    });
+    return map;
+}
+
+/** A card's accent colour from colorKey + cardColorMap, or null. */
+export function accentFor(row: KanbanRow, colorKey: string | null, cardColorMap: ToneMapEntry[]) {
+    if (!colorKey) return null;
+    const v = walkPath(row, colorKey);
+    if (v == null || v === '') return null;
+    const hit = (Array.isArray(cardColorMap) ? cardColorMap : [])
+        .find((m) => m && String(m.value) === String(v));
+    return hit ? (ROLE_COLORS[hit.tone] || ROLE_COLORS.neutral) : null;
+}
+
+/** Column widths are shared by every lane, so the board reads as a grid rather than N independently-sized rows. */
+export function gridStyleFor(columnCount: number) {
+    return {
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columnCount}, minmax(220px, 1fr))`,
+        alignItems: 'start',
+        gap: '0.75rem',
+    };
+}
+
+type RowAxis = (row: KanbanRow) => string;
+
+/** Which cell a drop lands in: a column droppable, or another card's slot. Null when it lands nowhere, or on the card itself. */
+function dropTarget(overId: string, activeIndex: number, rows: KanbanRow[], laneOf: RowAxis, groupOf: RowAxis) {
+    const asColumn = parseColumnDroppableId(overId);
+    if (asColumn) return { lane: asColumn.lane, value: asColumn.value, overIndex: null };
+    if (!overId.startsWith(CARD_PREFIX)) return null;
+    const overIndex = Number(overId.slice(CARD_PREFIX.length));
+    if (overIndex === activeIndex) return null;           // dropped on itself
+    const target = rows[overIndex];
+    if (!target) return null;
+    return { lane: laneOf(target), value: groupOf(target), overIndex };
+}
+
+/** The rank a row carries in rankKey, or null. */
+function rankOfId(rows: KanbanRow[], rankKey: string | null, id: string | null) {
+    if (!rankKey || !id) return null;
+    const hit = rows.find((r) => r.id === id);
+    const v = hit ? Number(walkPath(hit, rankKey)) : NaN;
+    return Number.isFinite(v) ? v : null;
+}
+
+/** The card being dropped (its row and index) and what it was dropped on; null when either is missing. */
+function draggedCard(active: CardMoveArgs['active'], over: CardMoveArgs['over']) {
+    if (!over || typeof over.id !== 'string') return null;
+    const row: KanbanRow | undefined = active?.data?.current?.row;
+    if (!active || !row) return null;
+    const activeIndex = typeof active.id === 'string' && active.id.startsWith(CARD_PREFIX)
+        ? Number(active.id.slice(CARD_PREFIX.length))
+        : -1;
+    return { row, activeIndex, overId: over.id };
+}
+
+interface CardMoveArgs {
+    active: DragEndEvent['active'] | undefined;
+    over: DragEndEvent['over'] | undefined;
+    rows: KanbanRow[];
+    laneOf: RowAxis;
+    groupOf: RowAxis;
+    cellOf: (lane: string, col: string) => KanbanCellEntry[];
+    rankKey: string | null;
+    laned: boolean;
+}
+
+/**
+ * What a drop means, as the payload onCardMove gets: the column (and lane)
+ * the card lands in, its slot, its neighbours, and a rank between them
+ * (null when the board declares no rankKey, so a board that does not order
+ * its cards never writes a column it does not have). Null when the drop
+ * changes neither the column nor the position — firing the action anyway
+ * would write a record for a gesture that did nothing, and on a shared board
+ * that is a spurious "moved by" event.
+ */
+export function cardMovePayload({ active, over, rows, laneOf, groupOf, cellOf, rankKey, laned }: CardMoveArgs) {
+    const dragged = draggedCard(active, over);
+    if (!dragged) return null;
+    const { row, activeIndex } = dragged;
+    const target = dropTarget(dragged.overId, activeIndex, rows, laneOf, groupOf);
+    if (!target) return null;
+    const { lane, value, overIndex } = target;
+
+    const sameCell = groupOf(row) === value && laneOf(row) === lane;
+    const { index, beforeId, afterId } = resolveCardDrop({ cell: cellOf(lane, value), activeIndex, overIndex });
+    if (sameCell && beforeId === null && afterId === null) return null;
+    const currentPos = cellOf(lane, value).findIndex((c: { index: number; }) => c.index === activeIndex);
+    if (sameCell && currentPos === index) return null;
+
+    return {
+        item: row,
+        value,
+        lane: laned ? lane : null,
+        index,
+        beforeId,
+        afterId,
+        rank: rankKey ? rankForSlot(rankOfId(rows, rankKey, beforeId), rankOfId(rows, rankKey, afterId)) : null,
+    };
+}
+
+/** A copy of the set with `value` toggled in or out. */
+export function toggledInSet<T>(prev: Set<T>, value: T) {
+    const next = new Set(prev);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    return next;
 }

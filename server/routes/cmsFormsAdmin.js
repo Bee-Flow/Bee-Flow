@@ -28,19 +28,18 @@ const EnableBody = bodyOf({ enabled: z.boolean({ error: 'enabled is true or fals
 const ApproveBody = bodyOf({ approved: z.boolean({ error: 'approved is true or false.' }) }, 'Approving a form block');
 
 /**
- * @typedef {object} AdminDeps
- * @property {(userId: string) => Promise<string | null>} userOrg the caller's organisation, read fresh (the session may be stale)
- * @property {(organizationId: string | null) => Promise<(Record<string, any> & { id: string })[]>} listActiveAutomationsOfOrg
- * @property {(id: string) => Promise<(Record<string, any> & { id: string }) | null>} getAutomation
- * @property {(automation: Record<string, any>) => Promise<string | null>} organisationOf
- * @property {(automation: Record<string, any> & { id: string }, userId: string, session: unknown) => Promise<boolean>} canEdit owner, edit share, or manage_automations
- * @property {() => Promise<Map<string, { organizationId: string | null, blockIds: string[] }>>} listFormAutomations
- * @property {(id: string, meta: { organizationId: string | null, enabledBy: string | null }) => Promise<void>} enableFormAutomation
- * @property {(id: string) => Promise<void>} disableFormAutomation
- * @property {(id: string, blockId: string, approved: boolean) => Promise<void>} setBlockApproved
- * @property {() => Promise<{ blockId: string, pageId: string, pageTitle: string, automationId: string }[]>} listDraftFormBlocks
- * @property {(blockIds: string[]) => Promise<Record<string, { honeypot: number, tooFast: number }>>} getDrops
- * @property {(action: string, targetType: string, targetId: string, actorId: string | null, before: Record<string, unknown> | null, after: Record<string, unknown> | null, orgId: string | null) => Promise<unknown>} audit
+ * @typedef {{ userOrg: (userId: string) => Promise<string | null>, // the caller's organisation, read fresh (the session may be stale)
+ *   listActiveAutomationsOfOrg: (organizationId: string | null) => Promise<(Record<string, any> & { id: string })[]>,
+ *   getAutomation: (id: string) => Promise<(Record<string, any> & { id: string }) | null>,
+ *   organisationOf: (automation: Record<string, any>) => Promise<string | null>,
+ *   canEdit: (automation: Record<string, any> & { id: string }, userId: string, session: unknown) => Promise<boolean>, // owner, edit share, or manage_automations
+ *   listFormAutomations: () => Promise<Map<string, { organizationId: string | null, blockIds: string[] }>>,
+ *   enableFormAutomation: (id: string, meta: { organizationId: string | null, enabledBy: string | null }) => Promise<void>,
+ *   disableFormAutomation: (id: string) => Promise<void>,
+ *   setBlockApproved: (id: string, blockId: string, approved: boolean) => Promise<void>,
+ *   listDraftFormBlocks: () => Promise<{ blockId: string, pageId: string, pageTitle: string, automationId: string }[]>,
+ *   getDrops: (blockIds: string[]) => Promise<Record<string, { honeypot: number, tooFast: number }>>,
+ *   audit: (action: string, targetType: string, targetId: string, actorId: string | null, before: Record<string, unknown> | null, after: Record<string, unknown> | null, orgId: string | null) => Promise<unknown> }} AdminDeps
  */
 
 /**

@@ -115,6 +115,9 @@ function verdict({ projectId, signal, registration, reviewDays, now }) {
     return { status: 'pass', evidence, details: `${ref} holds ${what} under a current processing record (${registration.lawful_basis}).` };
 }
 
+/**
+ * @param {string} orgId
+ */
 async function listCoverage(orgId, deps = defaultDeps()) {
     const projects = await pd.countWorkspaceProjects(orgId, deps.query);
     const unexamined = new Set();

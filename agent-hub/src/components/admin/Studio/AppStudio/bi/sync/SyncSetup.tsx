@@ -37,7 +37,7 @@ function TableSetProposal({ set }: { set: ProposedSetTable[] }) {
                 {t('studio_apps_bi.sync.steps_return', 'Your steps return {n} different things, so they get {n} linked tables:', { n: set.length })}
             </p>
             {set.map((tb, i) => (
-                <div key={tb.table.id} className="flex flex-col gap-0.5" style={{ paddingLeft: i ? '1rem' : 0 }}>
+                <div key={tb.table.id} className={`flex flex-col gap-0.5 ${i ? '[padding-left:1rem]' : '[padding-left:0]'}`}>
                     <div className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
                         {i ? <CornerDownRight className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                             : <Table2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />}

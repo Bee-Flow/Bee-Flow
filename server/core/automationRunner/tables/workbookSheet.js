@@ -75,7 +75,7 @@ function finishTable(headerCells, width, valueRows, masks) {
     const columns = C.buildColumns(keep.map(c => keys[c]), keep.map(c => labels[c]), keep.map(c => masks[c]));
     const rows = valueRows;
     for (let i = 0; i < rows.length; i += 1) {
-        const vals = /** @type {any} */ (rows[i]);
+        const vals = /** @type {unknown[]} */ (rows[i]);
         /** @type {Record<string, unknown>} */
         const obj = {};
         for (let j = 0; j < keep.length; j += 1) {
@@ -90,7 +90,7 @@ function finishTable(headerCells, width, valueRows, masks) {
 /**
  * A SheetJS worksheet as a table, or null when it has no header and no data.
  *
- * @param {any} ws  a SheetJS worksheet
+ * @param {import('@e965/xlsx').WorkSheet} ws  a SheetJS worksheet
  * @param {{ XLSX: any, cellValue: (cell: any) => any, name: string, headerRow: number, limits: any }} o
  * @returns {Promise<{ columns: any[], rows: any[] } | null>}
  */
@@ -146,7 +146,7 @@ async function readGridSheet(ws, { XLSX, cellValue, name, headerRow, limits }) {
  * The key/value pairs of a provenance sheet: its first two columns, all rows.
  * At most 200 pairs, keys cut to 100 characters, values to 500.
  *
- * @param {any} ws
+ * @param {import('@e965/xlsx').WorkSheet} ws
  * @param {{ XLSX: any, cellValue: (cell: any) => any }} o
  * @returns {Record<string, string> | null}
  */
@@ -227,7 +227,7 @@ async function readCsvTable(buffer, { csv, name, headerRow, delimiter, limits })
     }
     if (limits.maxRows > 0 && valueRows.length > limits.maxRows) throw tooManyRows(where, limits.maxRows);
     const decimal = csv.sniffDecimal(dataRecords.slice(0, C.SNIFF_RECORDS));
-    const masks = C.convertCsvColumns(/** @type {any} */ (valueRows), width, decimal);
+    const masks = C.convertCsvColumns(/** @type {Array<Array<string|null>>} */ (valueRows), width, decimal);
     return finishTable(headerFields, width, valueRows, masks);
 }
 

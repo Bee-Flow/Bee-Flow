@@ -66,8 +66,7 @@ export const Toggle = ({ checked, onChange, label, description }: ToggleProps) =
     <div className="flex items-start gap-3">
         <button
             onClick={() => onChange(!checked)}
-            className="mt-0.5 relative flex-shrink-0 rounded-full transition-colors"
-            style={{ width: '36px', height: '20px', background: checked ? '#0078D4' : 'var(--bg-tertiary)' }}
+            className={`mt-0.5 relative flex-shrink-0 rounded-full transition-colors [width:36px] [height:20px] ${checked ? '[background:#0078D4]' : '[background:var(--bg-tertiary)]'}`}
         >
             <span
                 className="absolute top-[2px] rounded-full bg-white transition-transform shadow-sm"
@@ -260,11 +259,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                                         <button
                                             key={id}
                                             onClick={() => { onChange(id); setOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"
-                                            style={{
-                                                background: isSelected ? 'rgba(0,120,212,0.08)' : 'transparent',
-                                                borderLeft: isSelected ? '3px solid #0078D4' : '3px solid transparent',
-                                            }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${isSelected ? '[background:rgba(0,120,212,0.08)] [border-left:3px_solid_#0078D4]' : '[background:transparent] [border-left:3px_solid_transparent]'}`}
                                             onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                                             onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                                         >

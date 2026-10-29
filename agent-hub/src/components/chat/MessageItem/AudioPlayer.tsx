@@ -148,11 +148,7 @@ export default function AudioPlayerInline({ src, albumArt, title, subtitle }: Au
                     <button onClick={togglePlay}
                         aria-label={t(playing ? 'chat.media.pause' : 'chat.media.play', playing ? 'Pause' : 'Play')}
                         title={t(playing ? 'chat.media.pause' : 'chat.media.play', playing ? 'Pause' : 'Play')}
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
-                        style={{
-                            background: 'linear-gradient(135deg, #e94560, #c23616)',
-                            boxShadow: playing ? '0 0 20px rgba(233,69,96,0.4)' : '0 2px 8px rgba(233,69,96,0.3)',
-                        }}>
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 [background:linear-gradient(135deg,_#e94560,_#c23616)] ${playing ? '[box-shadow:0_0_20px_rgba(233,69,96,0.4)]' : '[box-shadow:0_2px_8px_rgba(233,69,96,0.3)]'}`}>
                         {playing ? (
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
                         ) : (

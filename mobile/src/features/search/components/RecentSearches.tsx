@@ -7,6 +7,7 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { EmptyState, Icon, IconButton, ListRow, Text } from '@/shared/ui';
 
@@ -32,6 +33,7 @@ export function RecentSearches({
     onClear: () => void;
     tooShort: boolean;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
 
@@ -39,11 +41,14 @@ export function RecentSearches({
         return (
             <EmptyState
                 icon="Search"
-                title={tooShort ? 'Keep typing' : 'Search everything'}
+                title={tooShort ? t('mobile.search.keep_typing', 'Keep typing') : t('mobile.search.everything', 'Search everything')}
                 message={
                     tooShort
-                        ? `Two characters or more, and Bee Flow starts looking.`
-                        : 'Chats, notebooks, documents, knowledge bases, automations and meeting notes — all at once.'
+                        ? t('mobile.search.keep_typing_hint', 'Two characters or more, and Bee Flow starts looking.')
+                        : t(
+                              'mobile.search.everything_hint',
+                              'Chats, notebooks, documents, knowledge bases, automations and meeting notes — all at once.',
+                          )
                 }
             />
         );
@@ -58,11 +63,11 @@ export function RecentSearches({
             ListHeaderComponent={
                 <View style={styles.header}>
                     <Text variant="label" tone="tertiary" accessibilityRole="header" style={styles.heading}>
-                        RECENT SEARCHES
+                        {t('sidebar.search_recent', 'Recent searches').toUpperCase()}
                     </Text>
                     <IconButton
                         icon={<Icon name="Trash2" size={16} color={theme.colors.textMuted} />}
-                        accessibilityLabel="Clear all recent searches"
+                        accessibilityLabel={t('mobile.search.clear_recent', 'Clear all recent searches')}
                         onPress={onClear}
                     />
                 </View>
@@ -75,7 +80,7 @@ export function RecentSearches({
                     trailing={
                         <IconButton
                             icon={<Icon name="X" size={16} color={theme.colors.textMuted} />}
-                            accessibilityLabel={`Forget the search ${item}`}
+                            accessibilityLabel={t('mobile.search.forget', 'Forget the search {term}', { term: item })}
                             onPress={() => onRemove(item)}
                         />
                     }
@@ -83,8 +88,10 @@ export function RecentSearches({
             )}
             ListFooterComponent={
                 <Text variant="caption" tone="tertiary" style={styles.footer}>
-                    Recent searches are kept on this phone only — they are never sent to your
-                    server.
+                    {t(
+                        'mobile.search.recent_privacy',
+                        'Recent searches are kept on this phone only — they are never sent to your server.',
+                    )}
                 </Text>
             }
         />

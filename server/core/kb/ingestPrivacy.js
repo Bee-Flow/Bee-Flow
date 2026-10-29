@@ -129,20 +129,14 @@ function isLegacyWarn(shield) {
  * hashing first and redacting second would give two rows with the same hash
  * and different content.
  *
- * @param {object} p
- * @param {string|null} p.orgId
- * @param {string|null} p.userId
- * @param {string}      p.text
- * @param {string}      [p.filename]  for the scanner's logs only
- * @param {Array}       [p.pages]     `[{pageNumber,text}]` when the extractor
- *                                    produced them — enables per-page budgets
- *                                    and a truncation boundary on a page edge
- * @param {any}      [p.deps]      injection seam for the tests
+ * @param {ShieldArgs} p  `filename` is for the scanner's logs only; `pages` (`[{pageNumber,text}]`) when the
+ *   extractor produced them — enables per-page budgets and a truncation boundary on a page edge; `deps`
+ *   an injection seam for the tests
  * @returns {Promise<{outcome, text, piiStatus, piiCategories, reason}>}
  *          Never throws. A privacy check that crashes must not take the
  *          ingest with it — it returns `unscanned`, which is visible.
  */
-async function applyShield({ orgId, userId, text, filename = 'document', pages = null, deps = {} } = /** @type {any} */ ({})) {
+async function applyShield({ orgId, userId, text, filename = 'document', pages = null, deps = {} } = /** @type {ShieldArgs} */ ({})) {
     /**
      * @param {string} t
      * @param {string} status
@@ -314,3 +308,9 @@ module.exports = {
     OUTCOME,
     CONFIG_KEY,
 };
+
+/**
+ * @typedef {{ orgId: string|null, userId: string|null, text: string, filename?: string,
+ *   pages?: import('./kbIngestionHelpers').ExtractedPage[] | null, deps?: { resolveShieldFor?: typeof resolveShieldFor,
+ *   scanAttachmentText?: typeof scanAttachmentText, guardInstalled?: typeof guardInstalled } }} ShieldArgs
+ */

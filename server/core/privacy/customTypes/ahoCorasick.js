@@ -72,7 +72,7 @@ class AhoCorasick {
 
     /**
      * @param {string} word  already folded when the automaton is case-insensitive
-     * @param {object} payload  reported with every match; must carry `len`
+     * @param {{ len: number, [key: string]: unknown }} payload  reported with every match
      */
     add(word, payload) {
         if (!word) return;

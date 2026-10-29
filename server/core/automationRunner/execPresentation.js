@@ -137,6 +137,7 @@ async function execPresentation(step, ctx, runState, mode) {
     // Collect and normalise FIRST, in every mode: a dry run that reports the
     // wiring works must have proven the slides actually resolve to a deck.
     const slidesRaw = resolveSlidesInput(step.slides, runState);
+    /** @type {{ title: string; subtitle: string | null; author: string | null; date: string | null; slides: object[]; warnings: string[]; }} */
     let deck;
     try {
         const { deckInput, warnings } = collectDeck(slidesRaw, { title, subtitle });
@@ -145,7 +146,7 @@ async function execPresentation(step, ctx, runState, mode) {
     } catch (e) {
         const cls = e && e.errorClass;
         throw Object.assign(
-            new Error(`presentation: ${e.message}`),
+            new Error(`presentation: ${/** @type {Error} */ (e).message}`),
             { errorClass: cls === 'deck_empty' || cls === 'presentation_empty' ? 'presentation_empty' : (cls || 'presentation_invalid'), cause: e },
         );
     }
@@ -222,6 +223,7 @@ async function execPresentation(step, ctx, runState, mode) {
     // person can open it in Bee Flow, fix a slide and rebuild it. Off by
     // default — a nightly automation would otherwise mint a document a day — and
     // a failure never fails the step: the file already exists.
+    /** @type {{ documentId: string; url: string; name: string; } | null} */
     let savedCopy = null;
     if (step.saveCopy === true) {
         const copyName = interpolateTemplate(step.copyName || '', runState).trim() || `${title || deck.title || 'Presentation'} — ${new Date().toISOString().slice(0, 10)}`;

@@ -9,6 +9,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
 import { shareServerFile } from '@/core/api/shareFile';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Divider, Icon, Sheet, Text, useToast } from '@/shared/ui';
 
@@ -55,18 +56,19 @@ export function TemplateDetailSheet({
 }) {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const { downloading, download } = useDownload();
 
     const footer = (
         <View style={styles.footer}>
             <Button
-                label="Start a chat from this"
+                label={t('mobile.templates.start_chat', 'Start a chat from this')}
                 fullWidth
                 onPress={() => template && onChat(template)}
                 icon={<Icon name="MessageCircle" size={16} color={theme.colors.accentPrimaryFg} />}
             />
             <Button
-                label="Download the blank template"
+                label={t('mobile.templates.download_blank', 'Download the blank template')}
                 variant="secondary"
                 fullWidth
                 loading={downloading}
@@ -96,7 +98,7 @@ export function TemplateDetailSheet({
                     <Divider />
                     <View style={styles.instructions}>
                         <Text variant="label" tone="tertiary">
-                            HOW IT SHOULD BE FILLED
+                            {t('mobile.templates.how_filled', 'How it should be filled').toUpperCase()}
                         </Text>
                         <Text variant="caption" tone="secondary">
                             {template.instructions}
@@ -108,11 +110,15 @@ export function TemplateDetailSheet({
             <Pressable
                 onPress={() => template && onDelete(template)}
                 accessibilityRole="button"
-                accessibilityLabel={`Delete ${template?.name ?? 'this template'}`}
+                accessibilityLabel={
+                    template
+                        ? t('mobile.templates.delete_named', 'Delete {name}', { name: template.name })
+                        : t('mobile.templates.delete_this', 'Delete this template')
+                }
                 style={styles.delete}
             >
                 <Text variant="body" tone="error">
-                    Delete this template
+                    {t('mobile.templates.delete_this', 'Delete this template')}
                 </Text>
             </Pressable>
         </Sheet>

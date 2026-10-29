@@ -213,7 +213,7 @@ router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('e
         res.json(result);
     } catch (e) {
         log.error('[Admin License] grant error:', e);
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -292,7 +292,7 @@ router.post('/import', validate({ body: ImportBody }), async (/** @type {import(
         res.json(result);
     } catch (e) {
         log.error('[Admin License] import error:', e);
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 

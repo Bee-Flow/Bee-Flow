@@ -17,14 +17,11 @@ const MAX_GMAIL_HISTORY_PAGES = 10;
 
 /**
  * @param {any} gmail  googleapis gmail client (users.history.list)
- * @param {object} opts
- * @param {string} opts.startHistoryId  the subscription's cursor
- * @param {string[]} opts.historyTypes  e.g. ['messageAdded'] or ['labelAdded']
- * @param {(record: any) => number} opts.onRecord  called once per history
- *        record in order; returns how many distinct events the caller holds
- *        so far (checked against maxEvents after each record).
- * @param {number} opts.maxEvents  stop once onRecord reports this many
- * @param {number} [opts.maxPages]
+ * @param {{ startHistoryId: string, historyTypes: string[], onRecord: (record: any) => number, maxEvents: number, maxPages?: number }} opts
+ *        startHistoryId: the subscription's cursor; historyTypes: e.g. ['messageAdded'] or ['labelAdded'];
+ *        onRecord: called once per history record in order, returns how many distinct events the
+ *        caller holds so far (checked against maxEvents after each record);
+ *        maxEvents: stop once onRecord reports this many
  * @returns {Promise<{ nextCursor: string|null, capped: boolean, latestHistoryId: string|null, lastProcessedHistoryId: string|null }>}
  */
 async function walkGmailHistory(gmail, { startHistoryId, historyTypes, onRecord, maxEvents, maxPages = MAX_GMAIL_HISTORY_PAGES }) {

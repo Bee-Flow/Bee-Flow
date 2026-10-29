@@ -15,7 +15,10 @@ const { walkGmailHistory } = require('./gmailHistory');
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
-/** @param {any} ctx */
+/** What the Google pollers (gmail, googleCalendar, googleDrive) call on the trigger bus's `ctx`; each Picks the members it uses, so a test hands in only those.
+ * @typedef {{ store: () => { updateSubscription: (id: string, patch: Record<string, unknown>) => Promise<unknown> }, googleClient: () => Pick<typeof import('../../../integrations/googleClient'), 'createGoogleApiClient'>, gmailTools: () => Pick<typeof import('../../../integrations/gmailTools'), 'extractAttachments'> }} PollerCtx */
+
+/** @param {PollerCtx} ctx */
 function createGmailPollers(ctx) {
     return {
         'mail.new': async (sub, session) => {

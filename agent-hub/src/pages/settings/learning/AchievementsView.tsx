@@ -200,7 +200,7 @@ function LevelLine({ t, xp, current }: LevelLineProps) {
                 return (
                     <div key={lv.key} className="flex flex-col gap-1.5 min-w-0">
                         <div className="flex items-center h-[10px]">
-                            <span className="rounded-full flex-shrink-0" style={{ width: 10, height: 10, background: reached ? 'var(--accent-primary)' : 'var(--bg-tertiary)', boxShadow: isCurrent ? '0 0 0 3px color-mix(in srgb, var(--accent-primary) 25%, transparent)' : 'none' }} />
+                            <span className={`rounded-full flex-shrink-0 [width:10px] [height:10px] ${reached ? '[background:var(--accent-primary)]' : '[background:var(--bg-tertiary)]'} ${isCurrent ? '[box-shadow:0_0_0_3px_color-mix(in_srgb,_var(--accent-primary)_25%,_transparent)]' : '[box-shadow:none]'}`} />
                             {!last && (
                                 <span className="flex-1 flex overflow-hidden h-[4px] [background:var(--bg-tertiary)]">
                                     <span style={{ width: `${Math.round(fillPct * 100)}%`, height: '100%', background: 'var(--accent-primary)' }} />
@@ -283,8 +283,8 @@ function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpe
     // What is still missing: the courses of the certificate's track that are not complete.
     const missing = (cert.courseIds || []).map(getCourse).filter((c) => c && !isComplete(c)) as Course[];
     return (
-        <div className="grid items-center gap-3" style={{ gridTemplateColumns: '32px minmax(0,1fr) auto', padding: last ? '10px 0 4px' : '10px 0', borderTop: '1px solid var(--border-default)' }} data-testid="certificate-row">
-            <div className="grid place-items-center" aria-hidden="true" style={{ width: 32, height: 32, borderRadius: 8, background: earned ? 'color-mix(in srgb, var(--accent-primary) 18%, transparent)' : 'var(--bg-tertiary)', color: earned ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>
+        <div className={`grid items-center gap-3 [grid-template-columns:32px_minmax(0,1fr)_auto] [border-top:1px_solid_var(--border-default)] ${last ? '[padding:10px_0_4px]' : '[padding:10px_0]'}`} data-testid="certificate-row">
+            <div className={`grid place-items-center [width:32px] [height:32px] [border-radius:8px] ${earned ? '[background:color-mix(in_srgb,_var(--accent-primary)_18%,_transparent)] [color:var(--accent-primary)]' : '[background:var(--bg-tertiary)] [color:var(--text-tertiary)]'}`} aria-hidden="true">
                 <Award className="w-[15px] h-[15px]" />
             </div>
             <div className="min-w-0 flex flex-col gap-[5px]">

@@ -265,12 +265,11 @@ function AppCalendarSection({ fill, days, buckets, isWeek, anchor, todayKey, exp
                 <div
                     key={key}
                     data-app-calendar-day={key}
-                    className="min-h-[72px] p-1 flex flex-col gap-0.5"
+                    className={`min-h-[72px] p-1 flex flex-col gap-0.5 ${inMonth ? '[background:var(--bg-card)]' : '[background:var(--bg-secondary)]'}`}
                     // The whole cell used to fade to 0.45, on top of
                     // tokens that are already low-contrast — the day
                     // numbers and the still-clickable chips went well
                     // past unreadable. Only the day number dims now.
-                    style={{ background: inMonth ? 'var(--bg-card)' : 'var(--bg-secondary)' }}
                 >
                     <span
                         className={`text-[11px] tabular-nums self-end ${key === todayKey ? 'font-bold' : ''}`}

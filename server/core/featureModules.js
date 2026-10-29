@@ -36,7 +36,10 @@ function registerFeatureModules(map) {
     }
 }
 
-/** The module, or a thrown Error naming what was not loaded. */
+/**
+ * The module, or a thrown Error naming what was not loaded.
+ * @param {string} name
+ */
 function featureModule(name) {
     const get = getters.get(name);
     if (!get) {
@@ -45,7 +48,10 @@ function featureModule(name) {
     return get();
 }
 
-/** The registered getter (a test seam: testUtils/stubRequire.js swaps it and puts it back). */
+/**
+ * The registered getter (a test seam: testUtils/stubRequire.js swaps it and puts it back).
+ * @param {string} name
+ */
 function _featureModuleGetter(name) {
     return getters.get(name);
 }

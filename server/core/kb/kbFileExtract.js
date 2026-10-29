@@ -7,6 +7,10 @@ const XLSX_MIMES = new Set([
     'application/vnd.ms-excel',
 ]);
 
+/**
+ * @param {string} mime
+ * @param {string} filename
+ */
 function isSpreadsheetFile(mime, filename) {
     return XLSX_MIMES.has(mime) || /\.(xlsx|xls)$/i.test(filename || '');
 }
@@ -14,6 +18,7 @@ function isSpreadsheetFile(mime, filename) {
 /**
  * Sheet names of a workbook, cheaply (`bookSheets` reads the directory only,
  * not the cells). Best-effort: null when the buffer is not a workbook.
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function readSheetNames(buffer) {
     try {
@@ -80,6 +85,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
 
     if (mime === 'application/pdf') {
         let content = '';
+        /** @type {{ pageNumber: number; text: string; }[]} */
         let pages;
 
         // Primary: pdfjs-dist for text-based PDFs. The stats variant yields the
@@ -94,7 +100,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
                 log.info(`[KBHelpers] Extraction: pdfjs-dist (text-based PDF, ${meta.pageCount ?? '?'} pages)`);
             }
         } catch (e) {
-            log.warn('[KBHelpers] pdfExtractor failed:', e.message);
+            log.warn('[KBHelpers] pdfExtractor failed:', /** @type {Error} */ (e).message);
         }
 
         if (!content || content.trim().length < 10) {
@@ -127,7 +133,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
             return { text: await parseDocument(buffer, mime, filename), meta };
         }
     } catch (e) {
-        log.warn('[KBHelpers] documentParser fallback failed:', e.message);
+        log.warn('[KBHelpers] documentParser fallback failed:', /** @type {Error} */ (e).message);
     }
 
     throw new Error(`Unsupported file type: ${mime}`);
@@ -137,6 +143,9 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
  * Text-only wrapper around extractFileContentWithMeta — the signature every
  * existing call site (ingest.js, notebook/webpage sourceIngestion) uses.
  * @returns {Promise<string>} extracted text/markdown content
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} mime
+ * @param {string} filename
  */
 async function extractFileContent(buffer, mime, filename) {
     const { text } = await extractFileContentWithMeta(buffer, mime, filename);

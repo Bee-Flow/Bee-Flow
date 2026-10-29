@@ -18,6 +18,7 @@ const { isObject } = require('../helpers');
  * Findings of a spec onto the validator's two sinks.
  * @param {Finding[]} findings
  * @param {string} at
+ * @param {{ pushE: (arg0: { hint?: string | undefined; code: string; severity: "error" | "warning"; path: string; message: string; }) => void; pushW: (arg0: { hint?: string | undefined; code: string; severity: "error" | "warning"; path: string; message: string; }) => void; }} ctx
  */
 function report(ctx, findings, at) {
     for (const f of findings) {
@@ -96,7 +97,7 @@ function checkSaltDeclared(ctx, step, at) {
  */
 function checkTable(ctx, step, at) {
     if (step.type !== 'table') return;
-    const { validateTableStep } = /** @type {any} */ (require('../../../core/automationModel/tableOps/spec'));
+    const { validateTableStep } = /** @type {typeof import('../../../core/automationModel/tableOps/spec')} */ (require('../../../core/automationModel/tableOps/spec'));
     const { tableLimits } = require('../../../core/automationRunner/tables/limits');
     report(ctx, validateTableStep(step, { maxOps: tableLimits().maxOps }), at);
     checkSaltPlacement(ctx, step, at);

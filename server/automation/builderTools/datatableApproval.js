@@ -40,12 +40,16 @@ const oneLine = (text) => String(text ?? '').replace(/\s*\n\s*/g, ' ').trim();
  * What the USER said in a message. In a Q/A message the "Q:" lines are the
  * model's own questions: a table named only there is not a table the user
  * named, so only the answers count.
+ * @param {string} text
  */
 function answerTextOf(text) {
     const parsed = parseAnswersText(text);
     return parsed ? parsed.map((p) => p.answer).join('\n') : String(text ?? '');
 }
 
+/**
+ * @param {string} t
+ */
 const escapeRegExp = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Same lookarounds as namesPhrase in workMode.js: "log" is not inside "catalog".
 // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the phrase is escaped literal text (no quantifiers), so the pattern is linear
@@ -62,6 +66,7 @@ const namesPhrase = (text, phrase) => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRe
  */
 function namedTableIds(texts, catalog) {
     const haystack = (Array.isArray(texts) ? texts : []).map(fold).join('\n');
+    /** @type {string[]} */
     const out = [];
     if (!haystack.trim()) return out;
     for (const t of Array.isArray(catalog) ? catalog : []) {
@@ -123,7 +128,7 @@ function resolveTableChoice({ questions, message, catalog } = {}) {
 // ── the approved set ───────────────────────────────────────────────────────
 
 /**
- * @typedef {object} BuildApprovedSetArgs
+ * @typedef BuildApprovedSetArgs
  * @property {CatalogTable[] | null} [catalog]  the tables the caller can see; anything but a list turns the gate off
  * @property {unknown[]} [defs]  the definitions whose bound tables are already approved
  * @property {string[]} [userTexts]  what the user wrote (their own words only)

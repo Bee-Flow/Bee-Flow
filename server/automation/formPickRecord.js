@@ -51,7 +51,7 @@ const { MAX_TEXT_CHARS } = pickSources;
  */
 async function resolveCallerTools(caller) {
     const { getIntegrationTools } = require('../core/integrations/integrationTools');
-    const r = await getIntegrationTools(/** @type {any} */ ({
+    const r = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({
         userId: caller.userId,
         session: caller.session,
         isAdmin: !!caller.isAdmin,
@@ -141,6 +141,7 @@ async function runTool(toolName, args, caller) {
  * person may see before a single word is matched.
  * @param {string} query
  * @param {number} limit
+ * @param {Caller} caller
  */
 async function searchMeetingNotes(query, limit, caller) {
     const store = require('../stores/transcriptionStore');
@@ -217,7 +218,7 @@ async function readMeetingNote(recordId, caller) {
  *
  * @param {string} sourceId  the field's DECLARED source — never the browser's
  * @param {string} rawQuery  what the person typed
- * @param {object} caller    { userId, session, orgId, orgIds, userGroupIds, … }
+ * @param {Caller} caller    { userId, session, orgId, orgIds, userGroupIds, … }
  */
 async function searchRecords(sourceId, rawQuery, caller, /** @type {{limit?: number}} */ { limit } = {}) {
     const authorized = await authorizeSource(sourceId, caller);

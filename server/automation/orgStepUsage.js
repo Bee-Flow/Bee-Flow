@@ -313,8 +313,4 @@ module.exports = {
     MAX_VALUE_ROWS,
 };
 
-/**
- * @typedef {Object} LoadDefinitionsFromDbArgs
- * @property {string | null} [orgId]
- * @property {string} userId
- */
+/** @typedef {{ orgId?: string | null, userId: string }} LoadDefinitionsFromDbArgs */

@@ -122,7 +122,7 @@ async function resolveDestinations(toolName, args, ctx, fileName) {
  * storage behind a download link.
  *
  * @param {string} toolName  create_word_document | create_spreadsheet
- * @param {object} args      tool arguments
+ * @param {Record<string, unknown>} args      tool arguments
  * @param {{ userId?: string, orgId?: string|null, session?: object, provider?: string,
  *   nextcloudPath?: string, nextcloudError?: string, oneDrivePath?: string }} [ctx]
  */

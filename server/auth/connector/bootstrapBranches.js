@@ -51,18 +51,12 @@ const NC_SUBJECT_PROBLEM_CODES = [
 /** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRow */
 
 /**
- * @typedef {object} BootstrapContext
- * @property {import('express').Request} req
- * @property {import('express').Response} res
- * @property {{ themingName: string, ncVersion: string }} nc  what the capabilities round-trip reported
- * @property {string} provisioningMode  'open' | 'pairing_only'
- * @property {string} ncInstanceId
- * @property {string} ncBaseUrl
- * @property {string} ncAdminUid
- * @property {string} ncAdminEmail
- * @property {string} ncAdminDisplayName
- * @property {string} connectorCallbackUrl
- * @property {string} pairingCode
+ * @typedef {{
+ *   req: import('express').Request, res: import('express').Response, nc: { themingName: string, ncVersion: string },
+ *   provisioningMode: string, ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, ncAdminEmail: string,
+ *   ncAdminDisplayName: string, connectorCallbackUrl: string, pairingCode: string,
+ * }} BootstrapContext
+ *   `nc`: what the capabilities round-trip reported; `provisioningMode`: 'open' | 'pairing_only'.
  */
 
 // 0. Pairing-code branch — wins over auto-detect when present. The org
@@ -140,7 +134,7 @@ async function redeemPairingCode(ctx) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'pairing_code_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
             });
         }
@@ -180,7 +174,7 @@ async function returningBind(ctx, org) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'returning_bind_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
                 remediation: 'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.',
             });
@@ -350,7 +344,7 @@ async function createFreshOrg(ctx) {
                         meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_race_branch' },
                     });
                     return res.status(409).json({
-                        error: e.message,
+                        error: /** @type {Error} */ (e).message,
                         code: 'admin_email_conflict',
                     });
                 }
@@ -401,7 +395,7 @@ async function createFreshOrg(ctx) {
                 meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_branch' },
             });
             return res.status(409).json({
-                error: e.message,
+                error: /** @type {Error} */ (e).message,
                 code: 'admin_email_conflict',
                 remediation: 'The Nextcloud admin email is already used by a user in another Bee Flow organization. Use a different admin user on Nextcloud, or contact support.',
             });

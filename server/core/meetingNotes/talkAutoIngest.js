@@ -63,10 +63,10 @@ async function resolveUserFromNcUid(orgId, ncUid) {
 }
 
 /**
- * @param {object} args
- * @param {any} args.payload  normalized file.new payload ({ path, name, extension, actor, ... })
- * @param {string|null} args.userId  Bee Flow user mapped from the event actor (may be null)
- * @param {string|null} args.orgId   org the event belongs to (from the connector instance)
+ * @param {{ payload: { path?: string, name?: string, extension?: string, actor?: unknown, owner?: string } | null | undefined,
+ *   userId?: string|null, orgId?: string|null }} args `payload`: normalized
+ *   file.new payload ({ path, name, extension, actor, ... }); `userId`: Bee Flow user mapped from the
+ *   event actor (may be null); `orgId`: org the event belongs to (from the connector instance)
  */
 async function maybeIngest({ payload, userId = null, orgId = null }) {
     const ncPath = payload?.path;

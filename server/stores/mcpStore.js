@@ -84,7 +84,8 @@ const initDB = makeStoreInit('MCPStore', initTable);
 
 /**
  * Create a new MCP server definition.
- * @param {Object} server - { id, name, command, args, required_credentials }
+ * @param {{ id: string, name: string, command?: string, args?: string[], required_credentials?: Array<{ key: string, label?: string, description?: string }>,
+ *   transport?: string, url?: string, category?: string, description?: string, icon?: string, source?: string }} server
  * required_credentials: [{ key: 'GITHUB_TOKEN', label: 'GitHub Token', description: '...' }]
  */
 async function createServer({ id, name, command, args = [], required_credentials = [], transport = 'stdio', url, category, description, icon, source = 'manual' }) {
@@ -108,6 +109,9 @@ async function createServer({ id, name, command, args = [], required_credentials
     );
 }
 
+/**
+ * @param {string} id
+ */
 async function getServer(id) {
     await initDB();
     const row = await db.getOne(`SELECT * FROM ${TABLE} WHERE id = $1`, [id]);
@@ -144,6 +148,9 @@ const MCP_UPDATE_COLS = {
     source: 'source',
 };
 
+/**
+ * @param {string} id
+ */
 async function updateServer(id, updates) {
     await initDB();
     const { buildUpdate } = require('./lib/sqlBuilder');
@@ -158,6 +165,9 @@ async function updateServer(id, updates) {
     await db.run(built.sql, built.params);
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteServer(id) {
     await initDB();
     await db.run(`DELETE FROM ${TABLE} WHERE id = $1`, [id]);

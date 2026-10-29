@@ -66,6 +66,9 @@ const MAX_REPAIR_ATTEMPTS = 3;
 // an author-supplied bill (one model call and one V8 isolate per turn).
 const ATTEMPT_CEILING = 5;
 
+/**
+ * @param {{ code?: string; } | null} v
+ */
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -156,7 +159,10 @@ function notRepaired(reason, message, attempts, extra = {}) {
     };
 }
 
-/** A model's answer, in whichever of the two shapes it comes back as. */
+/**
+ * A model's answer, in whichever of the two shapes it comes back as.
+ * @param {string | { code?: string; } | null} answer
+ */
 function proposedCode(answer) {
     if (typeof answer === 'string') return answer.trim() ? answer : null;
     if (isObject(answer) && typeof answer.code === 'string' && answer.code.trim()) return answer.code;
@@ -166,22 +172,21 @@ function proposedCode(answer) {
 /**
  * Test a code body, and repair it while it is broken — at most a few times.
  *
- * @param {string}   code            the body as written.
- * @param {object}   [inputs]        sample inputs for the rehearsal.
- * @param {string[]} [allowedTools]  the tools the body may reach — the same
- *                                   list codeSandbox gates through
- *                                   bridges.allowedTools.
- * @param {object}   [limits]        the body's resource ceilings.
- * @param {string[]} [expectOutputs] the node's declared outputs. A run is
- *                                   green only when the returned object
- *                                   carries every one of them.
- * @param {number}   [maxAttempts]   clamped to 1..ATTEMPT_CEILING.
- * @param {string}   [goal]          what the body is for, passed to the fixer.
- * @param {function} [onProgress]    ({ type, detail }) per turn, like
- *                                   _chatLoop's `emit`.
+ * @param {{ code: string, inputs?: Record<string, unknown>, allowedTools?: string[], limits?: Record<string, unknown>,
+ *   expectOutputs?: string[], maxAttempts?: number, goal?: string,
+ *   onProgress?: ((e: { type: string, detail: unknown }) => void) | null }} [p]
+ *   code: the body as written. inputs: sample inputs for the rehearsal.
+ *   allowedTools: the tools the body may reach — the same list codeSandbox
+ *                 gates through bridges.allowedTools.
+ *   limits: the body's resource ceilings.
+ *   expectOutputs: the node's declared outputs. A run is green only when the
+ *                  returned object carries every one of them.
+ *   maxAttempts: clamped to 1..ATTEMPT_CEILING. goal: what the body is for, passed to the fixer.
+ *   onProgress: called per turn, like _chatLoop's `emit`.
+ * @param {RepairDeps} [deps]
  *
- * @returns {Promise<{ ok: true, code, repaired, attempts, attemptsUsed, result }
- *                 | { ok: false, reason, message, code: null, lastCandidate, lastError, attempts, attemptsUsed }>}
+ * @returns {Promise<{ ok: true, code: unknown, repaired: unknown, attempts: unknown, attemptsUsed: unknown, result: unknown }
+ *                 | { ok: false, reason: unknown, message: string, code: null, lastCandidate: unknown, lastError: string, attempts: unknown, attemptsUsed: unknown }>}
  */
 async function repairCodeBody({
     code,
@@ -251,6 +256,7 @@ async function repairCodeBody({
         if (n === bound) break;
 
         emit('repairing', { attempt: n, error: evidence.error });
+        /** @type {string | { code?: string; } | null} */
         let answer;
         try {
             answer = await proposeFix({
@@ -324,7 +330,7 @@ function replaceStep(graph, target, next) {
 }
 
 /**
- * @typedef {Object} RepairCustomNodeArgs
+ * @typedef RepairCustomNodeArgs
  * @property {string} [goal]
  * @property {unknown} [definition]
  * @property {unknown} [inputs]
@@ -341,6 +347,7 @@ function replaceStep(graph, target, next) {
  * the node comes back with the repaired body in place; on failure the node is
  * NOT returned changed, for the reason in the header.
  * @param {RepairCustomNodeArgs} [param0]
+ * @param {RepairDeps} [deps]
  */
 async function repairCustomNode({ definition, inputs = {}, maxAttempts, goal = '', onProgress = null } = {}, deps = defaultDeps()) {
     const { customNodeBody, customNodeContract, sandboxAllowedTools } = require('./customNode');
@@ -375,7 +382,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} RepairDeps
+ * @typedef RepairDeps
  * @property {(p: { code: string, inputs: object, limits: object, allowedTools: string[] }) => Promise<{ result?: unknown, logs?: unknown[], calls?: unknown[] }|undefined>} runTest
  * @property {((ctx: object) => Promise<string|{ code?: string }|null>)|null} [proposeFix]
  */

@@ -70,7 +70,7 @@ function loadTs() {
     return createRequire(path.join(HUB, 'package.json'))('typescript');
 }
 
-export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = false } = {}) {
+export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = /** @type {boolean | ((f: string) => boolean)} */ (false) } = {}) {
     const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
     const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, baseDir);
     Object.assign(parsed.options, extra);
@@ -78,7 +78,10 @@ export function createService(ts, overrides, { configPath = path.join(HUB, 'tsco
     // Tests are never a source of types here (their values are mocks), and they
     // are a third of the program: leaving them out makes the first build and
     // every reference search cheaper. A converted file is never a test.
-    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => includeTests || !/\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f)));
+    // includeTests: true keeps every test file, a function keeps the test files it says yes to
+    // (the server driver wants the tests next to its batch, not the thousands of others).
+    const keepTest = (f) => includeTests === true || (typeof includeTests === 'function' && includeTests(f));
+    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => keepTest(f) || !/\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f)));
     for (const f of overrides.keys()) files.add(f);
     const host = {
         getScriptFileNames: () => [...files],
@@ -119,7 +122,7 @@ const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'rel
  * current program. `refuse(newText)` lets a caller ban more than forbiddenInsert
  * does (the JSDoc driver refuses casts and `{null}`).
  */
-export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** @type {string} */ _t) => /** @type {boolean} */ (false) } = {}) {
+export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** @type {string} */ _t, /** @type {{ span: { start: number, length: number } }} */ _c) => /** @type {boolean} */ (false) } = {}) {
     const taken = [];
     for (const d of svc.service.getSemanticDiagnostics(abs)) {
         if (d.start === undefined) continue;
@@ -130,7 +133,7 @@ export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** 
         const fix = fixes.find((f) => fixIds.includes(f.fixId));
         if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { state.refused.add(key); continue; }
         let changes = fix.changes.flatMap((c) => c.textChanges);
-        if (!changes.length || changes.some((c) => forbiddenInsert(c.newText) || refuse(c.newText))) { state.refused.add(key); continue; }
+        if (!changes.length || changes.some((c) => forbiddenInsert(c.newText) || refuse(c.newText, c))) { state.refused.add(key); continue; }
         if (fix.fixId === 'fixMissingMember') {
             // `this.host = host` in a JS class: the member goes in as `declare host: T;`,
             // which emits nothing (a plain field would, with useDefineForClassFields).

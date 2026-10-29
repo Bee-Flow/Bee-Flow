@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -40,16 +40,16 @@ describe('CanvasZoomStack — Fit re-arms following', () => {
         expect(rf.fitView).not.toHaveBeenCalled();
     });
 
-    it('Fit without onFit still fits — the prop is optional', () => {
+    it('Fit without onFit still fits — the prop is optional', async () => {
         render(<CanvasZoomStack />);
-        expect(() => fireEvent.click(screen.getByRole('button', { name: /fit the whole flow/i }))).not.toThrow();
+        await userEvent.setup().click(screen.getByRole('button', { name: /fit the whole flow/i }));
         expect(rf.fitView).toHaveBeenCalledTimes(1);
     });
 
-    it('a canvas that is gone does not throw out of the stack\'s own fit', () => {
+    it('a canvas that is gone does not throw out of the stack\'s own fit', async () => {
         rf.fitView.mockImplementation(() => { throw new Error('no flow'); });
         render(<CanvasZoomStack />);
-        expect(() => fireEvent.click(screen.getByRole('button', { name: /fit the whole flow/i }))).not.toThrow();
+        await userEvent.setup().click(screen.getByRole('button', { name: /fit the whole flow/i }));
     });
 });
 

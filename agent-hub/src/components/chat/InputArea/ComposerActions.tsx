@@ -87,11 +87,7 @@ const ComposerActions = ({
                     data-testid="composer-shield-line"
                     data-shield-tone={shieldClaim.tone}
                     title={t(shieldClaim.key, shieldClaim.en)}
-                    className="hidden sm:flex flex-1 justify-end items-center gap-1 min-w-0"
-                    style={{
-                        fontSize: '11px', lineHeight: 1.2,
-                        color: shieldClaim.tone === 'warn' ? 'var(--warning)' : 'var(--text-tertiary)',
-                    }}
+                    className={`hidden sm:flex flex-1 justify-end items-center gap-1 min-w-0 [font-size:11px] [line-height:1.2] ${shieldClaim.tone === 'warn' ? '[color:var(--warning)]' : '[color:var(--text-tertiary)]'}`}
                 >
                     <ShieldIcon
                         aria-hidden="true"

@@ -85,29 +85,29 @@ const M = require('./chatMessageHandlers');
  * chatMessageHandlers.js (messages), posting in chatsPost.js, the shared
  * context in chatsContext.js and the presentation in chatsPresent.js.
  *
- * @param {object} [deps]
- * @param {ChatsDeps['requireProjectRole']} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
- * @param {ChatsDeps['getProjectRole']} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
- * @param {ChatsDeps['getProject']} [deps.getProject]          (id) => project row
- * @param {ChatsDeps['store']}   [deps.store]               stores/projectChatStore surface
- * @param {ChatsDeps['chatCrypto']}   [deps.chatCrypto]          { forProject(project) }
- * @param {ChatsDeps['assistant']}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
- * @param {ChatsDeps['isChatAgentAllowed']} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
- * @param {ChatsDeps['listChatAgents']} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
- * @param {ChatsDeps['taskStore']}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
- * @param {ChatsDeps['filedIds']} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
- * @param {ChatsDeps['resolveAgent']} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
- * @param {ChatsDeps['resolveOrgs']} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
- * @param {ChatsDeps['emit']} [deps.emit]                (projectId, event) => durable event
- * @param {ChatsDeps['logActivity']} [deps.logActivity]         (projectId, actorId, action, details) => activity row
- * @param {ChatsDeps['postLimiter']} [deps.postLimiter]         Express middleware on posting
- * @param {ChatsDeps['participation']}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
- * @param {ChatsDeps['policy']}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
- * @param {ChatsDeps['participationStore']}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
- * @param {ChatsDeps['collabNotifier']}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
- * @param {ChatsDeps['signalProjectChanged']} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {ChatsDeps['now']} [deps.now]
- * @param {ChatsDeps['newId']} [deps.newId]
+ * @param {ChatsDeps} [deps]  each defaulting to the real one:
+ *   requireProjectRole  (minRole) => Express middleware (auth/projectAccess)
+ *   getProjectRole  (userId, projectId) => role|null, for mentions
+ *   getProject  (id) => project row
+ *   store  stores/projectChatStore surface
+ *   chatCrypto  { forProject(project) }
+ *   assistant  { requestReply(...) } (projects/chatAssistant)
+ *   isChatAgentAllowed  (project, {agentId, userId}) => boolean: an agent every member may use
+ *   listChatAgents  (project, {userId}) => the agents a chat here may answer as
+ *   taskStore  stores/projectTaskStore surface (drops task links to a deleted chat or thread)
+ *   filedIds  (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
+ *   resolveAgent  ({agentId, userId}) => { agentId, name } | null
+ *   resolveOrgs  (req) => { orgId, limitOrgId }
+ *   emit  (projectId, event) => durable event
+ *   logActivity  (projectId, actorId, action, details) => activity row
+ *   postLimiter  Express middleware on posting
+ *   participation  { onHumanMessage, cancelContainer } (projects/participation)
+ *   policy  { resolveOrgPolicy } (projects/participation/policy)
+ *   participationStore  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
+ *   collabNotifier  { chatMentioned } (projects/collabNotify): the bell for a mention
+ *   signalProjectChanged  (project, reason) => void (routes/projects/complianceSignal)
+ *   now
+ *   newId
  */
 function makeProjectChatsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

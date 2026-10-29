@@ -13,6 +13,9 @@ const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
 const { fallback } = require('../utils/bestEffort');
 
+/**
+ * @param {unknown} value  an array, a JSON string, or anything else (no groups)
+ */
 function _parseSharedGroups(value) {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string') {
@@ -24,13 +27,15 @@ function _parseSharedGroups(value) {
 /**
  * Decide whether a user is allowed to read/use a published entity.
  *
- * @param {any} entity - Row with the publish/audience columns. Either
- *   `owner_id` or `tenant_id` is treated as "owner". `organization_id`,
- *   `is_published`, and `shared_groups` (array or JSON string) are read.
- * @param {object} ctx
- * @param {string|null} ctx.userId
- * @param {Set|null} ctx.orgIds - From resolveUserOrgIds(req). null = super admin.
- * @param {string[]} ctx.userGroups - Group IDs from a fresh DB read.
+ * `entity` is a row with the publish/audience columns: either `owner_id` or
+ * `tenant_id` is treated as "owner"; `organization_id`, `is_published`, and
+ * `shared_groups` (array or JSON string) are read. `ctx.orgIds` comes from
+ * resolveUserOrgIds(req) (null = super admin), `ctx.userGroups` holds the
+ * group IDs from a fresh DB read.
+ *
+ * @param {{ owner_id?: string | null, tenant_id?: string | null, organization_id?: string | null,
+ *   is_published?: boolean | null, shared_groups?: unknown } | null | undefined} entity
+ * @param {{ userId: string | null, orgIds: Set<string> | null, userGroups: string[] }} ctx
  * @returns {boolean}
  */
 function canSeePublished(entity, { userId, orgIds, userGroups }) {
@@ -59,6 +64,7 @@ function canSeePublished(entity, { userId, orgIds, userGroups }) {
  * Fresh-from-DB resolution of a user's group IDs. Routes that gate by
  * audience must use this rather than `req.session.user.groups`, which is
  * stale until the user re-logs in.
+ * @param {string} userId
  */
 async function resolveUserGroups(userId) {
     if (!userId) return [];

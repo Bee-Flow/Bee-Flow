@@ -4,7 +4,7 @@ import React from 'react';
 
 import { timeAgo, useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
-import { plural } from '@/shared/lib/format';
+import { nOf } from '@/shared/lib/plural';
 import { Badge, Icon, ListRow } from '@/shared/ui';
 
 import type { Template } from '../model/types';
@@ -18,7 +18,7 @@ export function TemplateRow({
     onPress: () => void;
     onLongPress: () => void;
 }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const fields = template.parameters.length;
     return (
@@ -28,7 +28,7 @@ export function TemplateRow({
             meta={timeAgo(template.updatedAt ?? template.createdAt)}
             wrapTitle
             leading={<Icon name="PanelsTopLeft" size={18} color={theme.colors.textMuted} />}
-            trailing={<Badge label={plural(fields, 'field')} tone={fields > 0 ? 'accent' : 'neutral'} />}
+            trailing={<Badge label={nOf(t, 'mobile.templates.n_fields', fields, ['{count} field', '{count} fields'])} tone={fields > 0 ? 'accent' : 'neutral'} />}
             onPress={onPress}
             onLongPress={onLongPress}
         />

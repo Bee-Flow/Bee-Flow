@@ -26,6 +26,7 @@ const { classifyNextcloudError } = require('../integrations/nextcloudErrorClassi
 
 
 /** Tool name -> the argument naming the path it would have created. */
+/** @type {Record<string, string>} */
 const WRITTEN_PATH_ARG = {
     nextcloud_upload_file: 'path',
     nextcloud_create_folder: 'path',
@@ -41,6 +42,7 @@ const WRITTEN_PATH_ARG = {
 };
 
 /** Office creators append their extension when it is missing: cover that name too. */
+/** @type {Record<string, string>} */
 const DEFAULT_EXT = {
     nextcloud_create_presentation: 'pptx',
     nextcloud_create_spreadsheet: 'xlsx',

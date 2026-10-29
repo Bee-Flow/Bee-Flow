@@ -137,7 +137,7 @@ function makeThreadReads(db, ready, { maxCommentsListed }) {
  * Writes: start a thread (with its first comment), its AI mode, pause and status. `getThread` comes from makeThreadReads.
  * @param {Queryable & { tx: <T>(fn: (q: Queryable) => Promise<T>) => Promise<T> }} db
  * @param {() => Promise<void>} ready
- * @param {Function} getThread
+ * @param {ReturnType<typeof makeThreadReads>['getThread']} getThread
  */
 function makeThreadState(db, ready, getThread) {
     /**

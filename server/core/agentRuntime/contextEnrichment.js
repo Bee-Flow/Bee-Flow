@@ -1,3 +1,8 @@
+/** @typedef {import('./chatStream/turnState').AgentRow} AgentRow */
+/** @typedef {import('./chatStream/turnState').UserAuth} UserAuth */
+/** @typedef {import('./chatStream/turnState').KbSource} KbSource */
+/** @typedef {import('../providers/base').OnEvent} OnEvent */
+/** @typedef {import('./chatStream/turnState').ToolDef} ToolDef */
 /**
  * Streaming agent chat — project / memory / knowledge context.
  *
@@ -16,6 +21,7 @@ const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 async function resolveProjectContext({ userId, messageMetadata, conversation, isEphemeral }) {
     // Assign new conversation to project if projectId provided
     let extractMemoriesEnabled = false;
+    /** @type {string | null} */
     let validProjectId = null;
     let validProject = null;
     if (messageMetadata.projectId) {
@@ -40,7 +46,7 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
             const projectStore = require('../../stores/projectStore');
             await projectStore.assignConversation(conversation.id, validProjectId, userId, 'agent_conversations');
         } catch (e) {
-            log.warn('[AgentRuntime] Failed to assign conversation to project:', e.message);
+            log.warn('[AgentRuntime] Failed to assign conversation to project:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -48,10 +54,9 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
 }
 
 /**
- * @param {object} p
- * @param {{ items?: Array<{id: string, type: string, preview: string}> }} [p.usedOut]
- *   optional: receives the memories injected this turn (also sent to the client
- *   as the `memory_used` event), so the turn can persist them on the message.
+ * @param {{ usedOut?: { items?: Array<{id: string, type: string, preview: string}> } }} p
+ *   `usedOut`: optional: receives the memories injected this turn (also sent to the client as the
+ *   `memory_used` event), so the turn can persist them on the message
  */
 async function resolveMemoryContext({ agent, agentId, userId, userMessage, validProjectId, onEvent, memoryPolicy, usedOut, conversationId = null }) {
     // ============ MEMORY INTEGRATION ============
@@ -125,12 +130,12 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                         }
                     }
                 } catch (scrubErr) {
-                    log.warn('[AgentRuntime] Memory scrub failed (fail-open):', scrubErr.message);
+                    log.warn('[AgentRuntime] Memory scrub failed (fail-open):', /** @type {Error} */ (scrubErr).message);
                 }
                 log.info(`[AgentRuntime] Memory context: ${memoryContext.length} chars`);
             }
         } catch (memErr) {
-            log.error('[AgentRuntime] Memory retrieval failed:', memErr.message);
+            log.error('[AgentRuntime] Memory retrieval failed:', /** @type {Error} */ (memErr).message);
         }
         emitPhaseEnd(onEvent, 'memory_lookup', Date.now() - _memT);
     }
@@ -205,7 +210,7 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
                     log.info(`[AgentRuntime] Injected ${kbResults.length} KB chunks from project "${validProject.name}"`);
                 }
             } catch (kbErr) {
-                log.warn('[AgentRuntime] Project KB search failed:', kbErr.message);
+                log.warn('[AgentRuntime] Project KB search failed:', /** @type {Error} */ (kbErr).message);
             }
         }
     }
@@ -214,7 +219,7 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
     // When the kb_search TOOL is available, skip auto-injection — let the LLM
     // decide when and what to search.  This avoids double-searching (once here,
     // once via the tool) and gives the LLM control over query formulation.
-    const hasKbSearchTool = tools.some(t => t.function?.name === 'kb_search');
+    const hasKbSearchTool = tools.some((/** @type {{ function: { name: string; }; }} */ t) => t.function?.name === 'kb_search');
 
     if (!moderationViolation && !guardrailViolation && !hasKbSearchTool) {
         emitPhase(onEvent, 'kb_search');
@@ -232,7 +237,7 @@ async function injectProjectAndKnowledgeContext({ agent, userId, userMessage, us
                 volatileSystemPrompt += kbExtension;
             }
         } catch (kErr) {
-            log.error('[AgentRuntime] Knowledge retrieval failed:', kErr.message);
+            log.error('[AgentRuntime] Knowledge retrieval failed:', /** @type {Error} */ (kErr).message);
         }
         emitPhaseEnd(onEvent, 'kb_search', Date.now() - _kbT);
     } else if (hasKbSearchTool) {

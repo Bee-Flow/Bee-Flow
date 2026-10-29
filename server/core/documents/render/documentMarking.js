@@ -1,3 +1,4 @@
+/** @typedef {import('./documentRenderer').AiMarking} AiMarking */
 // @typecheck
 const { escapeHtml } = require('../../../templates/exportTemplate');
 
@@ -26,7 +27,10 @@ const AI_MARK_PRODUCER = 'Bee Flow';
  * running off the right edge — all things that only show up once someone
  * prints a real twelve-page report.
  */
-/** The footer text of a marking object, or '' — the one place the line is read out of it. */
+/**
+ * The footer text of a marking object, or '' — the one place the line is read out of it.
+ * @param {AiMarking | null} marking
+ */
 function markingText(marking) {
     if (!marking || marking.enabled === false) return '';
     return String(marking.footer_text || '').trim();
@@ -36,6 +40,7 @@ function markingText(marking) {
  * The visible marking line as body HTML: a trailing footer the browser prints
  * on the last page, Word keeps as the closing paragraph, and the reader of a
  * plain-text dump still sees. Empty when the document is not marked.
+ * @param {AiMarking | null} marking
  */
 function markingFooterHtml(marking) {
     const text = markingText(marking);

@@ -406,10 +406,7 @@ async function fetchEntitlements() {
     };
 }
 
-/**
- * @typedef {Object} CreatePurchaseArgs
- * @property {string} [moduleId]
- */
+/** @typedef {{ moduleId?: string }} CreatePurchaseArgs */
 /**
  * @param {CreatePurchaseArgs} [param0]
  */
@@ -588,32 +585,10 @@ module.exports = {
  * @typedef {{ body?: unknown, auth?: boolean, timeoutMs?: number, forceToken?: boolean }} HubRequestOpts
  */
 
-/**
- * @typedef {Object} _catalogQueryArgs
- * @property {string} [q]
- * @property {string} [category]
- * @property {string | undefined} [cursor]
- * @property {number | undefined} [limit]
- */
+/** @typedef {{ q?: string, category?: string, cursor?: string | undefined, limit?: number | undefined }} _catalogQueryArgs */
 
-/**
- * @typedef {Object} FetchCatalogArgs
- * @property {string} [q]
- * @property {string} [category]
- * @property {string} [cursor]
- * @property {number} [limit]
- */
+/** @typedef {{ q?: string, category?: string, cursor?: string, limit?: number }} FetchCatalogArgs */
 
-/**
- * @typedef {Object} FetchCatalogCachedArgs
- * @property {string} [q]
- * @property {string} [category]
- * @property {string} [cursor]
- * @property {number} [limit]
- */
+/** @typedef {{ q?: string, category?: string, cursor?: string, limit?: number }} FetchCatalogCachedArgs */
 
-/**
- * @typedef {Object} FetchRevocationListArgs
- * @property {number} [since]
- * @property {number} [limit]
- */
+/** @typedef {{ since?: number, limit?: number }} FetchRevocationListArgs */

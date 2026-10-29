@@ -49,7 +49,7 @@ async function resolveOwnerOrgId(userId, userStore) {
 
 /**
  * @param {number} status
- * @param {object} body
+ * @param {Record<string, unknown>} body
  */
 const refuse = (status, body) => ({ ok: false, status, body });
 
@@ -84,12 +84,13 @@ async function firstPublishOrg(app, sharedGroups, userStore) {
 }
 
 /**
- * @typedef {object} AudienceDeps
- * @property {{ setStudioAppPublished: Function, setStudioAppAudience: Function, managedInfoOfApp?: Function }} store
- * @property {{ getUser: Function, getAllGroups: Function }} userStore
- * @property {(orgId: string|null, groups: any) => Promise<string[]|undefined>} validateSharedGroupsForOrg
- * @property {{ auditPublishChange: Function }} audit
- * @property {(orgId: string, meta: object) => void} [notifyMenuChange]
+ * @typedef {{
+ *   store: { setStudioAppPublished: Function, setStudioAppAudience: Function, managedInfoOfApp?: Function },
+ *   userStore: { getUser: Function, getAllGroups: Function },
+ *   validateSharedGroupsForOrg: (orgId: string|null, groups: any) => Promise<string[]|undefined>,
+ *   audit: { auditPublishChange: Function },
+ *   notifyMenuChange?: (orgId: string, meta: object) => void,
+ * }} AudienceDeps
  */
 
 /**

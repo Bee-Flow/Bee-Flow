@@ -25,13 +25,15 @@
 'use strict';
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.getProjectRole]    (userId, projectId) => 'owner'|'editor'|'viewer'|null
- * @param {Function} [deps.getProject]        (id) => project | null
- * @param {typeof import('./membership')} [deps.membership]        projects/membership surface ({ isAllowedIn })
- * @param {Function} [deps.logActivity]       projectStore.logActivity
- * @param {Function} [deps.emitProjectEvent]  core/projectFeed.emitProjectEvent
- * @param {typeof import('../telemetry/log')} [deps.log]
+ * Every dependency is a test seam whose default is the real module.
+ *
+ * @param {{
+ *   getProjectRole?: typeof import('../auth/projectAccess').getProjectRole,
+ *   getProject?: typeof import('../stores/projectStore').getProject,
+ *   membership?: typeof import('./membership'),
+ *   logActivity?: typeof import('../stores/projectStore').logActivity,
+ *   emitProjectEvent?: typeof import('../core/projectFeed').emitProjectEvent,
+ *   log?: typeof import('../telemetry/log') }} [deps]
  */
 function makeMeetingFiling(deps = {}) {
     const getProjectRole = (/** @type {Parameters<typeof import('../auth/projectAccess').getProjectRole>} */ ...a) => (deps.getProjectRole || require('../auth/projectAccess').getProjectRole)(...a);

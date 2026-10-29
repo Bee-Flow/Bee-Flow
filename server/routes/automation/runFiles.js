@@ -1,3 +1,4 @@
+/** @typedef {import('stream').Readable} Readable */
 // @typecheck noImplicitAny
 /**
  * The files a run produced, as the run page shows them:
@@ -118,10 +119,10 @@ async function readCapped(stream, maxBytes) {
 /**
  * @param {object} [overrides]
  * @param {any}   [overrides.store]         automationStore surface (getRun, getRunsInChain, getAutomation, list/getGeneratedFile...)
- * @param {any}   [overrides.storage]       storageStore surface (streamFile)
+ * @param {{ streamFile: (key: string) => Promise<{ stream: import('stream').Readable, contentLength?: number }> }} [overrides.storage]  storageStore surface
  * @param {(id: string) => Promise<any>} [overrides.getUser]  user row
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]
- * @param {Function} [overrides.renderPdfPages] (buffer, opts) => { images, totalPages, truncated } | null
+ * @param {typeof import('../../core/documents/pdfToImages').renderPdfPagesToImages} [overrides.renderPdfPages]
  */
 function makeRunFilesRouter(overrides = {}) {
     const router = express.Router();
@@ -151,11 +152,12 @@ function makeRunFilesRouter(overrides = {}) {
         if (!file || file.automationId !== journey.run.automationId) {
             throw new HttpError(404, 'run_file_not_found', 'Not found');
         }
+        /** @type {{ stream: Readable; contentLength?: number; }} */
         let streamed;
         try {
             streamed = await storage().streamFile(file.storageKey);
         } catch (e) {
-            log.warn(`[automation/runFiles] generated file ${file.id} has no bytes: ${e.message}`);
+            log.warn(`[automation/runFiles] generated file ${file.id} has no bytes: ${/** @type {Error} */ (e).message}`);
             throw new HttpError(404, 'run_file_not_found', 'Not found');
         }
         return { file, streamed };

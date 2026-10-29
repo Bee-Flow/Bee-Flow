@@ -77,6 +77,7 @@ const hasUtf16Bom = /** @param {Buffer} b */ (b) => b.length >= 2 && ((b[0] === 
 async function detectFormat(buffer, requested, limits) {
     if (!buffer.length) throw unsupported('The file is empty.');
     const sheetjs = lazy.sheetjs();
+    /** @type {string} */
     let detected;
     if (sheetjs.isZipPackage(buffer)) {
         detected = (await assertSafePackage(buffer, limits)).kind;
@@ -101,7 +102,7 @@ async function detectFormat(buffer, requested, limits) {
  */
 function parseOptions(headerRow, limits) {
     const options = { cellNF: true, cellDates: false, raw: true, cellFormula: false, cellHTML: false, cellText: false };
-    if (limits.maxRows > 0) /** @type {any} */ (options).sheetRows = headerRow + limits.maxRows + 1;
+    if (limits.maxRows > 0) /** @type {typeof options & { sheetRows?: number }} */ (options).sheetRows = headerRow + limits.maxRows + 1;
     return options;
 }
 
@@ -152,6 +153,7 @@ function findProvenance(infos, provenanceSheet, warnings) {
  */
 function namedSheets(infos, wanted) {
     const picked = new Set();
+    /** @type {string[]} */
     const missing = [];
     for (const raw of wanted) {
         const name = String(raw);
@@ -176,6 +178,7 @@ function namedSheets(infos, wanted) {
 function selectCandidates(infos, { sheets, skipHiddenSheets, provenanceIndex }) {
     const named = Array.isArray(sheets) ? namedSheets(infos, sheets) : null;
     const skipped = new Map();
+    /** @type {number[]} */
     const candidates = [];
     for (const s of infos) {
         if (s.index === provenanceIndex) skipped.set(s.index, 'provenance');

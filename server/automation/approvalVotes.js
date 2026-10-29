@@ -43,6 +43,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
     const { nextStageKey, stageByKey, stagePosition } = require('./approvalStages');
 
     let voterName = null;
+    /** @type {string[]} */
     let groupIds = [];
     try {
         const userStore = require('../stores/userStore');
@@ -181,6 +182,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
     // The voter's groups decide which seats they can fill; one lookup serves
     // the name on the vote row too.
     let voterName = null;
+    /** @type {string[]} */
     let groupIds = [];
     try {
         const userStore = require('../stores/userStore');
@@ -291,7 +293,10 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
     });
 }
 
-/** The final approver's "it is your turn" bell — person, or group capped. */
+/**
+ * The final approver's "it is your turn" bell — person, or group capped.
+ * @param {Approval} approval
+ */
 async function notifyFinalApprover(approval) {
     const recipients = new Set();
     if (approval.finalApproverUserId) recipients.add(approval.finalApproverUserId);

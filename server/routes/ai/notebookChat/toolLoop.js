@@ -225,7 +225,7 @@ async function runToolLoop({
     // The tool block lists, with this turn's attribution on their audit rows.
     const shieldGate = toolPiiGate.toolLoopGate({
         shield: orgShieldConfig, tag: 'NotebookChat',
-        audit: (/** @type {object} */ fields) => guardrailEventStore.logGuardrailEvent({
+        audit: (/** @type {Record<string, unknown>} */ fields) => guardrailEventStore.logGuardrailEvent({
             organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null,
             ...fields, source: 'notebook', model: modelId || null,
         }),

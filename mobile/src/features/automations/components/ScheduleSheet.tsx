@@ -3,6 +3,7 @@
 import React from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { Banner, Sheet, useToast } from '@/shared/ui';
 
 import { SchedulePicker } from './SchedulePicker';
@@ -22,10 +23,11 @@ export function ScheduleSheet({
     onClose: () => void;
 }) {
     const { toast } = useToast();
+    const t = useTranslation();
     const mutation = useSaveSchedule(id, automation, {
         onSuccess: () => {
             onClose();
-            toast('Schedule saved', 'success');
+            toast(t('mobile.automations.schedule.saved', 'Schedule saved'), 'success');
         },
     });
 
@@ -33,7 +35,7 @@ export function ScheduleSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title="Schedule"
+            title={t('automations.versions.setting.schedule', 'Schedule')}
             subtitle={automation.title || undefined}
         >
             <SchedulePicker

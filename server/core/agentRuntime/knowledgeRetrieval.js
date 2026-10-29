@@ -88,7 +88,7 @@ async function fetchKnowledgeResults({ userId, kbIds, userMessage }, kb) {
             }
         }
     } catch (searchErr) {
-        log.warn('[KnowledgeSearch] KB search failed:', searchErr.message);
+        log.warn('[KnowledgeSearch] KB search failed:', /** @type {Error} */ (searchErr).message);
     }
     return results;
 }
@@ -126,7 +126,7 @@ async function enrichResultsWithDocMetadata(results, kbIds) {
             if (row.metadata?.hasAttachments) r.metadata.hasAttachments = true;
         }
     } catch (err) {
-        log.warn('[KnowledgeSearch] Metadata enrichment failed:', err.message);
+        log.warn('[KnowledgeSearch] Metadata enrichment failed:', /** @type {Error} */ (err).message);
     }
 }
 

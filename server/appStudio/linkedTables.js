@@ -61,6 +61,9 @@ async function listOwnerDatatables(principal, { datatableStore, access }) {
     return out;
 }
 
+/**
+ * @param {string} s
+ */
 const lc = (s) => String(s || '').trim().toLowerCase();
 
 /**
@@ -165,6 +168,8 @@ function projectLinkedTable({ model, datatable, tableMeta, mode, tableKey, acces
  * keyed by MODEL table id. Never throws; a table whose datatable is gone is
  * reported `missing`, a store that cannot be read yields an empty Map (the
  * data block then prints the table like its own, exactly as before).
+ * @param {DataModel | null | undefined} model
+ * @param {string} ownerId
  */
 async function describeLinkedTables(model, ownerId, deps = {}) {
     const out = new Map();

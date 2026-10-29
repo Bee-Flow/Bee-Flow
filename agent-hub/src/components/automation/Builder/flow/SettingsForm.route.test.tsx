@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FormDensityContext } from './settings/formDensity';
@@ -39,7 +39,10 @@ function renderForm(step: ComponentProps<typeof SettingsForm>['step'], { onPatch
     return { onPatch };
 }
 
-const save = () => fireEvent.click(screen.getByText('Save'));
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save'));
+    };
 // Advanced is a mode now (the header's switch), not a button: its settings show in the full view.
 const openAdvanced = () => {};
 
@@ -101,7 +104,7 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         expect(screen.queryByText('Items that match no rule')).toBeNull();
 
         await user.click(screen.getByText('Add output'));
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('switch');
@@ -112,7 +115,7 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         const user = userEvent.setup();
         const { onPatch } = renderForm(IF_STEP);
         await user.click(screen.getByText('Add output'));
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('switch');
@@ -126,7 +129,7 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         const { onPatch } = renderForm(IF_STEP);
         openAdvanced();
         await user.selectOptions(screen.getByDisplayValue('The whole run'), 'items');
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('filter');
@@ -142,7 +145,7 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
         };
         const { onPatch } = renderForm(step);
         await user.click(screen.getAllByTitle(/Remove output/)[1]);
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('condition');
@@ -213,7 +216,7 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         await user.click(screen.getByText('Add output'));
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].cases).toHaveLength(3);
     });
@@ -254,7 +257,7 @@ describe('SettingsForm — Filter: how many outputs (BFSF-356)', () => {
         await userEvent.click(screen.getByRole('radio', { name: 'One output' }));
         await user.click(screen.getByText('Remove them anyway'));
         expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('condition');
@@ -293,7 +296,7 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
     it('a router BUILT here fans out — that is the semantic the ticket describes', async () => {
         const { onPatch } = renderForm(IF_STEP);
         await userEvent.click(screen.getByRole('radio', { name: 'Several outputs' }));
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].matchMode).toBe('all');
     });
@@ -302,7 +305,7 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
         const user = userEvent.setup();
         const { onPatch } = renderForm(STORED_ROUTER);
         await user.click(screen.getByText('Add output'));
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.cases).toHaveLength(3);
@@ -315,7 +318,7 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
         openAdvanced();
         expect(screen.getByDisplayValue('Send it to every matching output')).toBeTruthy();
         await user.selectOptions(screen.getByDisplayValue('Send it to every matching output'), 'first');
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         // Turning it off CLEARS the key rather than pinning 'first' forever.
         expect(onPatch.mock.calls[0][0].matchMode).toBeUndefined();
@@ -327,7 +330,7 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
         openAdvanced();
         const select = screen.getByDisplayValue('Send it to the first matching output only');
         await user.selectOptions(select, 'all');
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].matchMode).toBe('all');
     });

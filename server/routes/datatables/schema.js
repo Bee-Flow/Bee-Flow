@@ -55,7 +55,7 @@ const SchemaBody = bodyOf({
 const SchemaQuery = z.object({ confirmBreaking: flag(CONFIRM_TEXT) }).strict();
 
 function register(router) {
-    router.get('/:id/schema', requireDatatableGrade('viewer'), async (req, res) => {
+    router.get('/:id/schema', requireDatatableGrade('viewer'), async (/** @type {{ datatableScope: { kind: string; id: string; }; datatable: { id: string; }; }} */ req, /** @type {import('express').Response} */ res) => {
         const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
         const { modelVersion } = await datatableStore.getModel(req.datatableScope);
         res.json({ fields: meta?.fields || [], modelVersion });
@@ -65,7 +65,7 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: SchemaBody, query: SchemaQuery }),
-        async (req, res) => {
+        async (/** @type {import("./grade").DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
             try {
                 // A table whose WHOLE column list is somebody else's (a Nextcloud
                 // mirror) is refused before anything is parsed: normalizeFields

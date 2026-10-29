@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
+import type { BuilderHeaderProps } from './BuilderHeader';
+import type { GoLiveAction } from './settings/AiActQuestionsDialog';
+import type { SettingsPageProps } from './settings/SettingsPage';
+import type { BuilderConfirmFn } from './BuilderConfirmContext';
 import type { BuilderTab } from './useBuilderTabUrl';
 import { readinessStamp } from '@/api/queries/automation/readiness';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
@@ -16,29 +20,29 @@ import TriggerDiagnosePanel from './TriggerDiagnosePanel';
  */
 export interface BuilderShellLayoutProps {
     /** useConfirm's ask; published to every panel through BuilderConfirmContext. */
-    confirm: any;
+    confirm: BuilderConfirmFn;
     confirmDialog: ReactNode;
-    aiActGate: { action: any } | null;
-    setAiActGate: (gate: { action: any } | null) => void;
+    aiActGate: { action: GoLiveAction } | null;
+    setAiActGate: (gate: { action: GoLiveAction } | null) => void;
     retryAfterAiAct: () => void;
     serverAutomation: any;
     state: any;
     tab: BuilderTab;
     setTab: (tab: BuilderTab) => void;
-    headerProps: any;
+    headerProps: BuilderHeaderProps;
     diagnoseOpen: boolean;
     diagnoseResult: any;
     diagnoseLoading: boolean;
-    diagnoseError: any;
+    diagnoseError: ComponentProps<typeof TriggerDiagnosePanel>['error'];
     setDiagnoseOpen: (open: boolean) => void;
-    diagnoseAnchorRef: any;
-    onSaveAutomation: (patch: any) => Promise<void>;
+    diagnoseAnchorRef: ComponentProps<typeof TriggerDiagnosePanel>['anchorRef'];
+    onSaveAutomation: SettingsPageProps['onSave'];
     settingsSection: string | null;
     workMode: string;
     setWorkMode: (mode: string) => void;
     isStep: boolean;
-    setServerAutomation: (row: any) => void;
-    onDryRun: (fromTrigger?: any) => Promise<void>;
+    setServerAutomation: NonNullable<SettingsPageProps['onAutomationChange']>;
+    onDryRun: (fromTrigger?: string | null) => Promise<void>;
     t: (key: string, fallback?: string, vars?: Record<string, unknown>) => string;
     /** The Editor view (BuildTab) while `tab === 'build'`, else false. */
     editor: ReactNode;

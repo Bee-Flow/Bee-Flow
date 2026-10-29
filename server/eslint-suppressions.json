@@ -498,10 +498,10 @@
       "count": 4
     },
     "max-depth": {
-      "count": 13
+      "count": 7
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     },
     "max-params": {
       "count": 1
@@ -614,12 +614,6 @@
   "appStudio/mailboxConnector.js": {
     "complexity": {
       "count": 3
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "appStudio/mailboxIdentity.js": {
@@ -2056,14 +2050,6 @@
       "count": 1
     }
   },
-  "cms/mcp/analytics.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "cms/mcp/blog.js": {
     "complexity": {
       "count": 3
@@ -2157,7 +2143,7 @@
       "count": 3
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "compliance/__tests__/smoke/gdpr-data-lifecycle.js": {
@@ -2171,16 +2157,6 @@
     }
   },
   "compliance/__tests__/smoke/iso-cloud-infrastructure.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "compliance/__tests__/smoke/iso-github-repos.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "compliance/__tests__/smoke/iso-governance.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -5619,9 +5595,6 @@
     "complexity": {
       "count": 1
     },
-    "max-depth": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -6572,7 +6545,7 @@
       "count": 4
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "projects/comments/passage.js": {
@@ -6595,9 +6568,6 @@
   },
   "projects/graph.js": {
     "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     },
     "max-params": {
@@ -6701,7 +6671,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "projects/participation/preGate.js": {

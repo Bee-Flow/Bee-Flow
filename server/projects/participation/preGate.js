@@ -22,6 +22,13 @@
 
 'use strict';
 
+/**
+ * The trigger, as the header describes it. Loose: the rules compare its
+ * optional `seq` after a Number.isFinite check, which does not narrow it, and
+ * the engine's messages carry `seq` as optional.
+ * @typedef {any} GateMessage
+ */
+
 const { autoAllowedOn } = require('./policy');
 
 const MINUTE = 60_000;
@@ -138,20 +145,17 @@ function capReached(caps, policy, now) {
 /**
  * The rules. Returns `{ ok: true }` or `{ ok: false, reason }`.
  *
- * @param {object} p
- * @param {'post'|'job'} p.stage
- * @param {'quiet'|'unanswered'} [p.triggerKind]  'quiet' at the post stage
- * @param {number} p.now
- * @param {string} [p.surface]                    'chat' | 'comment'
- * @param {string} p.mode                         the conversation's AI mode
- * @param {boolean} [p.closed]                    archived chat, resolved thread
- * @param {string|null} [p.pausedUntil]           the "not helpful" back-off
- * @param {any} p.policy                          the org policy (policy.js)
- * @param {boolean} p.authorOptedOut
- * @param {any} p.message                         the trigger, as the header describes
- * @param {any[]} p.recent
- * @param {any} [p.caps]                          capsFor() from the store
- * @param {boolean} [p.lockHeld]                  an answer is being written now
+ * `triggerKind` is 'quiet' at the post stage; `surface` is 'chat' or
+ * 'comment'; `mode` is the conversation's AI mode; `closed` means an archived
+ * chat or a resolved thread; `pausedUntil` is the "not helpful" back-off;
+ * `policy` is the org policy (policy.js); `message` is the trigger, as the
+ * header describes; `caps` is capsFor() from the store; `lockHeld` means an
+ * answer is being written now.
+ *
+ * @param {{ stage: 'post'|'job', triggerKind?: 'quiet'|'unanswered', now: number, surface?: string, mode: string,
+ *           closed?: boolean, pausedUntil?: string|null, policy: ReturnType<typeof import('./policy').normalizeOrgPolicy>,
+ *           authorOptedOut: boolean, message: GateMessage|null, recent?: any[], caps?: Parameters<typeof capReached>[0],
+ *           lockHeld?: boolean }} p
  * @returns {{ ok: boolean, reason?: string }}  `reason` is set whenever `ok` is false
  */
 function preGate(p) {

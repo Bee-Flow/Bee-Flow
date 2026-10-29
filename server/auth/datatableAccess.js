@@ -87,14 +87,14 @@ function parseSharedGroups(v) {
 /**
  * The grade a principal holds on a table.
  *
- * @param {any} table    a `datatables` row
+ * `principal.orgId` is the RUN's organisation (ctx.orgId), or the session's;
+ * `groupIds` come fresh from the DB, never req.session.user.groups; `orgRole`
+ * is users."orgRole"; `organizationId` the user's HOME organisation.
+ *
+ * @param {{ [column: string]: unknown, scope_kind?: string, scope_id?: string, organization_id?: string | null,
+ *   owner_user_id?: string, is_published?: boolean, shared_groups?: unknown, write_mode?: string }} table    a `datatables` row
  * @param {Array}  grants   the `datatable_grants` rows for THAT table
- * @param {object} principal
- *   @param {string}   principal.userId
- *   @param {string}   principal.orgId          the RUN's organisation (ctx.orgId), or the session's
- *   @param {string[]} principal.groupIds       fresh from the DB, never req.session.user.groups
- *   @param {string}   principal.orgRole        users."orgRole"
- *   @param {string}   principal.organizationId the user's HOME organisation
+ * @param {Pick<DatatablePrincipal, 'userId' | 'orgId' | 'groupIds' | 'orgRole' | 'organizationId'>} principal
  * @returns {'owner'|'editor'|'viewer'|null}
  */
 function gradeForPrincipal(table, grants, principal) {

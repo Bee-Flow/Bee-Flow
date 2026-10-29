@@ -18,11 +18,11 @@ export function OwnedDocumentRow({
     onPress: () => void;
     onLongPress: () => void;
 }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     return (
         <ListRow
-            title={doc.title || 'Untitled document'}
+            title={doc.title || t('documents.untitled', 'Untitled document')}
             subtitle={doc.kbName}
             meta={timeAgo(doc.created_at)}
             wrapTitle
@@ -31,7 +31,7 @@ export function OwnedDocumentRow({
                 doc.chunk_count > 0 ? (
                     <Badge label={`${doc.chunk_count}`} />
                 ) : (
-                    <Badge label="Not indexed" tone="warning" />
+                    <Badge label={t('mobile.documents.not_indexed', 'Not indexed')} tone="warning" />
                 )
             }
             onPress={onPress}

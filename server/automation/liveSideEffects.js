@@ -1,3 +1,5 @@
+/** @typedef {import('./formAnswers/provision').AutomationRef} AutomationRef */
+/** @typedef {import('./formAnswers/derive').Def} Def */
 /**
  * The helpers an automation's save, activation and publish share — moved out of
  * routes/automation/crud.js so that code below routes/ (the go-live cores in
@@ -22,14 +24,15 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 /**
- * @param {object} [deps]
- * @param {object} [deps.automationStore]   ensureFormPage
- * @param {object} [deps.userStore]         getUser
- * @param {object} [deps.subjectReview]     reviewAutomation
- * @param {object} [deps.formAnswers]       ensureAnswersTable
- * @param {Function} [deps.agentCatalogForOwner]
- * @param {Function} [deps.kbStepFindings]
- * @param {object} [deps.stageVars]         runVarsFor
+ * @param {{
+ *   automationStore?: Pick<typeof import('../stores/automationStore'), 'ensureFormPage'>,
+ *   userStore?: Pick<typeof import('../stores/userStore'), 'getUser'>,
+ *   subjectReview?: Pick<typeof import('../compliance/subjectReview'), 'reviewAutomation'>,
+ *   formAnswers?: Pick<typeof import('./formAnswers'), 'ensureAnswersTable'>,
+ *   agentCatalogForOwner?: typeof import('../core/automationModel/agentCatalog').agentCatalogForOwner,
+ *   kbStepFindings?: typeof import('../core/kb/automationKbCheck').kbStepFindings,
+ *   stageVars?: Pick<typeof import('../core/automationRunner/stageVars'), 'runVarsFor'>,
+ * }} [deps]
  */
 function makeLiveSideEffects(deps = {}) {
     const automationStore = () => deps.automationStore || require('../stores/automationStore');
@@ -170,6 +173,8 @@ function makeLiveSideEffects(deps = {}) {
      * rides back as `answers`, a failure never fails the save. Returns the
      * usage entry the dependents index needs, so the table's "used by" names
      * the automation and a DELETE of the table warns.
+     * @param {AutomationRef} automation
+     * @param {Def} definition
      */
     async function ensureAnswersTable(automation, definition) {
         try {

@@ -277,7 +277,7 @@ async function maxSourcesFor(kb, userId) {
         const max = Number(limits.max_kb_sources);
         return Number.isFinite(max) ? max : -1;
     } catch (e) {
-        log.warn('[KB] Source limit unresolved, applying the community cap:', e.message);
+        log.warn('[KB] Source limit unresolved, applying the community cap:', /** @type {Error} */ (e).message);
         try {
             const max = Number((license.tiers.getLimitsForTier('community') || {}).max_kb_sources);
             return Number.isFinite(max) ? max : -1;

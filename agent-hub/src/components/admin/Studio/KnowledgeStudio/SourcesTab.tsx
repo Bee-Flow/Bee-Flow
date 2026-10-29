@@ -173,8 +173,7 @@ function SourceRow({ t, rel, source, last, canManage, onOpen, onRefresh, onRenam
 
     return (
         <div
-            className="grid gap-3 items-center px-3.5 py-2.5"
-            style={{ gridTemplateColumns: '1fr 150px 160px 32px', borderBottom: last ? 'none' : '1px solid var(--border-default)' }}
+            className={`grid gap-3 items-center px-3.5 py-2.5 [grid-template-columns:1fr_150px_160px_32px] ${last ? '[border-bottom:none]' : '[border-bottom:1px_solid_var(--border-default)]'}`}
             data-testid="kb-source-row"
             data-source-id={source.id}
             data-kind={source.kind}

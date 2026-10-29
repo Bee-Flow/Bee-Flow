@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
+import type { FlowDefinition } from '../flow/types';
 import { addedStepsOf, describeToolCall } from '../chat/toolCallDisplay';
 import { chapterOf } from '../flow/buildChoreography';
 
 
 export interface UseBuildCueOptions {
     state: any;
-    flatDef: any;
+    flatDef: FlowDefinition | null | undefined;
     t: (key: string, fallback?: string, vars?: Record<string, unknown>) => string;
 }
 

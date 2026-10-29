@@ -345,21 +345,18 @@ function _summarizeAction(name, input) {
 /**
  * Run the interactive browse loop.
  *
- * @param {object} args
- * @param {string} args.task            — what the assistant wants read/found/done
- * @param {string|null} [args.startUrl] - optional URL to open first
- * @param {string} args.userId
- * @param {string|null} [args.orgId]
- * @param {(b64:string)=>void} [args.onFrame]
- * @param {(a:{tool,summary,step})=>void} [args.onAction]
- * @param {()=>boolean} [args.isCancelled]
- * @param {string[]|null} [args.allowedHosts] - when set, NAVIGATION is confined
- *   to these hosts (case-insensitive exact or dot-suffix match: "example.com"
- *   also allows "www.example.com"). Enforced in the route hook AND as a
- *   pw_navigate pre-check so the model gets a readable refusal instead of a
- *   net error. Subresources (a page's own CDN assets) stay unconstrained —
- *   the allowlist scopes where the AGENT may go, not how a page renders.
- * @param {number|null} [args.maxSteps] - per-call step cap, clamped to the ceiling.
+ * `args`: `task` is what the assistant wants read/found/done, `startUrl` an
+ * optional URL to open first. `allowedHosts`, when set, confines NAVIGATION to
+ * these hosts (case-insensitive exact or dot-suffix match: "example.com" also
+ * allows "www.example.com"). Enforced in the route hook AND as a pw_navigate
+ * pre-check so the model gets a readable refusal instead of a net error.
+ * Subresources (a page's own CDN assets) stay unconstrained — the allowlist
+ * scopes where the AGENT may go, not how a page renders. `maxSteps` is a
+ * per-call step cap, clamped to the ceiling.
+ *
+ * @param {{ task: string, startUrl?: string|null, userId: string, orgId?: string|null,
+ *   onFrame?: ((b64: string) => void) | null, onAction?: ((a: { tool: string, summary: string, step: number }) => void) | null,
+ *   isCancelled?: (() => boolean) | null, allowedHosts?: string[]|null, maxSteps?: number|null }} args
  * @returns {Promise<{status, answer, visitedUrls, steps, error?}>}
  */
 async function runBrowseTask({ task, startUrl = null, userId = null, orgId = null, onFrame = null, onAction = null, isCancelled = null, allowedHosts = null, maxSteps = null }) {

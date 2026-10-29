@@ -471,10 +471,10 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
 /**
  * Run one connector and write its rows into its table.
  *
- * @param {object} app        { id, userId, organizationId }
- * @param {object} model      the app's data model (source of tables + connectors)
- * @param {object} connector  the connector, from model.connectors
- * @param {object} [opts]     { reason, force, _deps }
+ * @param {SyncApp} app
+ * @param {{ tables?: SyncTable[], connectors?: SyncConnector[] }} model  the app's data model (source of tables + connectors)
+ * @param {SyncConnector} connector  the connector, from model.connectors
+ * @param {{ reason?: string, force?: boolean, _deps?: Partial<SyncDeps> }} [opts]
  * @returns {Promise<{ inserted, updated, skipped, rows, watermark, nextRunAt, partial }>}
  */
 async function syncConnector(app, model, connector, { reason = 'manual', force = false, _deps } = {}) {

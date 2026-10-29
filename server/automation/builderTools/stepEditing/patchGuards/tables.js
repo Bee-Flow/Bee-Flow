@@ -19,7 +19,7 @@ const TABLE_KEYS = ['source', 'ops', 'name', 'expiresInDays'];
 /**
  * @param {string[]} keys
  */
-const underPatched = (f, keys) => keys.some(k => f.path === k || f.path.startsWith(`${k}[`) || f.path.startsWith(`${k}.`));
+const underPatched = (/** @type {{ path: string; }} */ f, keys) => keys.some(k => f.path === k || f.path.startsWith(`${k}[`) || f.path.startsWith(`${k}.`));
 
 /**
  * A refusal, or null. Mutates `next` (source and ops).
@@ -48,9 +48,9 @@ function patchTableStep(graph, step, patch, next, draftWrap, patchNotes) {
     }
 
     const candidate = { ...step, ...patch, source: next.source, ...(next.ops ? { ops: next.ops } : {}) };
-    const tableSpec = () => /** @type {any} */ (require('../../../../core/automationModel/tableOps/spec'));
+    const tableSpec = () => /** @type {typeof import('../../../../core/automationModel/tableOps/spec')} */ (require('../../../../core/automationModel/tableOps/spec'));
     const findings = (isRead ? validateReadTableStep(candidate) : tableSpec().validateTableStep(candidate))
-        .filter(f => underPatched(f, keys));
+        .filter((/** @type {{ path: string; }} */ f) => underPatched(f, keys));
     const refusal = findingsRefusal(step.type, findings);
     if (refusal) return refusal;
     // The operation list is stored in its normalised form, like a freshly added step's.

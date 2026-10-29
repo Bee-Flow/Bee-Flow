@@ -132,7 +132,7 @@ async function recordShape({ userId, toolName, output }) {
             _mem.set(key, { shape, ts: Date.now() });
         }
     } catch (e) {
-        log.warn('[shapeCache] recordShape failed:', e.message);
+        log.warn('[shapeCache] recordShape failed:', /** @type {Error} */ (e).message);
     }
 }
 

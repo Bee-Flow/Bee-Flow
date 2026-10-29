@@ -176,7 +176,9 @@ function extractKeyParams(node) {
 /**
  * Convert an n8n workflow JSON object into a structured Markdown document.
  * 
- * @param {Object} workflow - The n8n workflow JSON (from API or export file)
+ * @param {{ id?: string | number, name?: string, active?: boolean, nodes?: Array<Record<string, any>>,
+ *   connections?: Record<string, any>, tags?: Array<string | { name?: string }> }} workflow
+ *   The n8n workflow JSON (from API or export file)
  * @returns {string} Markdown string
  */
 function convertN8nWorkflowToMarkdown(workflow) {

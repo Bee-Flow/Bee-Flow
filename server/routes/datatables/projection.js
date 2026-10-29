@@ -78,7 +78,10 @@ function publicSource(source, managedKind = null) {
     };
 }
 
-/** The `scope` descriptor the list returns — what a NEW table would be. */
+/**
+ * The `scope` descriptor the list returns — what a NEW table would be.
+ * @param {{ kind: 'org'; id: string; } | { kind: 'user'; id: string; } | null} scope
+ */
 function scopeDescriptor(scope) {
     if (!scope) return null;
     return {

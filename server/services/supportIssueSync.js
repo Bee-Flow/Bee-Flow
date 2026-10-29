@@ -183,10 +183,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
     return flagged;
 }
 
-/**
- * @typedef {Object} SyncTickArgs
- * @property {number} [chunkSize]
- */
+/** @typedef {{ chunkSize?: number }} SyncTickArgs */
 /**
  * One pass over every linked issue.
  *
@@ -258,9 +255,10 @@ async function syncThread(threadId, { userId = null } = {}) {
 }
 
 /**
- * @typedef {Object} StartArgs
- * @property {number} [intervalMs]
- * @property {typeof import('../modules').moduleGatedTick} [gate]  test seam
+ * @typedef {{
+ *   intervalMs?: number, gate?: typeof import('../modules').moduleGatedTick,
+ * }} StartArgs
+ *   `gate`: test seam.
  */
 /**
  * Mount the issue-sync tick behind the runtime module gate, so removing

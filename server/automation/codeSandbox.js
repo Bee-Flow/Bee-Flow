@@ -104,6 +104,7 @@ const SECRETS_NOT_CONFIGURED_MESSAGE =
  * @param {number} def
  * @param {number} min
  * @param {number} max
+ * @param {number | undefined} value
  */
 function clampLimit(value, def, min, max) {
     if (value == null) return def; // missing/null → default (Number(null) is 0, not NaN)
@@ -112,6 +113,9 @@ function clampLimit(value, def, min, max) {
     return Math.max(min, Math.min(n, max));
 }
 
+/**
+ * @param {{ memoryMb?: number; cpuMs?: number; wallMs?: number; httpBudget?: number; }} [limits]
+ */
 function clampLimits(limits = {}) {
     return {
         memoryMb: clampLimit(limits.memoryMb, DEFAULT_LIMITS.memoryMb, 8, MAX_LIMITS.memoryMb),
@@ -202,26 +206,22 @@ function testBridges(bridges = {}) {
 /**
  * Run user-provided JS in the sandbox.
  *
- * @param {object} options
- * @param {string} options.code        Source. May be a single expression,
- *                                     a top-level await block, or a function
- *                                     definition `function main(inputs, ctx)`.
- * @param {object} options.inputs      Resolved inputs (already free of secrets unless declared).
- * @param {object} options.limits      Optional resource limits.
- * @param {object} options.bridges
+ * @param {{ code: string, inputs?: Record<string, unknown>, limits?: { memoryMb?: number, cpuMs?: number, wallMs?: number, httpBudget?: number },
+ *   bridges?: SandboxBridges & { secrets?: unknown }, mode?: string, concurrencyKey?: string|null }} options
+ *   code: source. May be a single expression, a top-level await block, or a
+ *         function definition `function main(inputs, ctx)`.
+ *   inputs: resolved inputs (already free of secrets unless declared).
+ *   limits: optional resource limits.
  *   bridges.executeTool(toolName, args)  → resolves a tool call (host-side toolDispatcher).
  *   bridges.allowedTools                 Set<string> of tool names the step may call.
  *   bridges.fetchHttp(url, opts)         HTTPS fetch helper (host-side).
  *   bridges.secrets                      ACCEPTED AND IGNORED — no secret store is
  *                                        wired; ctx.secrets() throws. See the header.
- * @param {string} options.mode       'live' (default) runs for real. 'test' runs the
- *                                    author's code with every outward bridge stubbed
- *                                    and records what it would have called — see
- *                                    testBridges for why a rehearsal must not mail
- *                                    the customer and must not merely skip either.
- *
- * @param {string|null} options.concurrencyKey  The fairness unit for the
- *                                    concurrency cap (codeSandboxSlots.js): the org.
+ *   mode: 'live' (default) runs for real. 'test' runs the author's code with every
+ *         outward bridge stubbed and records what it would have called — see
+ *         testBridges for why a rehearsal must not mail the customer and must
+ *         not merely skip either.
+ *   concurrencyKey: the fairness unit for the concurrency cap (codeSandboxSlots.js): the org.
  *
  * @returns {Promise<{ result, logs, http: { calls }, calls? }>}
  *          `calls` is present only for a test run.
@@ -566,7 +566,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} SandboxBridges  the host-side callbacks a code step may reach
+ * @typedef SandboxBridges  the host-side callbacks a code step may reach
  * @property {(toolName: string, args: object) => Promise<object>} [executeTool]
  * @property {Set<string>} [allowedTools]
  * @property {(url: string, opts: object, limits?: { responseCap?: number, timeoutMs?: number }) => Promise<object>} [fetchHttp]

@@ -148,7 +148,7 @@ function fixOpBindings(ops, draft, draftWrap) {
  * Default label 'Edit table'.
  */
 function applyAddTable(draft, args, draftWrap) {
-    const { normalizeTableStep, validateTableStep } = /** @type {any} */ (require('../../../core/automationModel/tableOps/spec'));
+    const { normalizeTableStep, validateTableStep } = /** @type {typeof import('../../../core/automationModel/tableOps/spec')} */ (require('../../../core/automationModel/tableOps/spec'));
     const src = fixSource(args.source, draft, draftWrap, SOURCE_HINT_TABLE);
     if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
     const fe = fixForEach(args, draft, draftWrap);

@@ -364,7 +364,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                         title={docked
                             ? t('learn.player.undock_title', 'Expand — focus on the lesson')
                             : t('learn.player.dock_title', 'Dock to the side — use the app while you learn')}
-                        className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
+                        className={`${iconBtn} [color:var(--text-secondary)]`}>
                         {docked ? <AppWindow className="w-[14px] h-[14px]" /> : <PanelRight className="w-[14px] h-[14px]" />}
                     </button>
                 )}
@@ -372,12 +372,12 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                     <button type="button" onClick={() => setMinimized(true)}
                         aria-label={t('learn.player.minimize', 'Minimize')}
                         title={t('learn.player.minimize_title', 'Collapse the lesson while you work — it keeps checking')}
-                        className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
+                        className={`${iconBtn} [color:var(--text-secondary)]`}>
                         <Minus className="w-[14px] h-[14px]" />
                     </button>
                 )}
                 <button type="button" onClick={() => onClose?.()} aria-label={t('common.close', 'Close')}
-                    className={iconBtn} style={{ color: 'var(--text-secondary)' }}>
+                    className={`${iconBtn} [color:var(--text-secondary)]`}>
                     <X className="w-[14px] h-[14px]" />
                 </button>
             </div>

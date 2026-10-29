@@ -144,6 +144,7 @@ async function getAllConfiguredRates() {
  * ISO code; `rate` is a positive Number. Caller is responsible for audit
  * logging and PAYG-cache invalidation.
  * @param {string} currencyCode
+ * @param {number} rate
  */
 async function setUsdToCurrencyRate(currencyCode, rate) {
     const c = String(currencyCode || '').toUpperCase();

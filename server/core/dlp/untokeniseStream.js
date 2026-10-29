@@ -21,6 +21,9 @@ const MAX_TOKEN_LEN = 48;
 // letters+digits only. Collapses LLM drift (`[person_2]`, `[person2]`,
 // `[Person 2]`, `[email]2`) onto one key. Mirrors `_normToken` in
 // server/core/piiDetection.js — kept local to avoid a cross-module dependency.
+/**
+ * @param {string} s
+ */
 function normTok(s) {
     return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -50,6 +53,9 @@ function createUntokeniser(tokenMapInput) {
     // Used by push() to hold such a bracket across the chunk boundary; returns
     // false for complete tokens (`[person_2]`) and ordinary brackets (`[note]`)
     // so normal streaming isn't delayed.
+    /**
+     * @param {string} bracket
+     */
     function couldGainCounter(bracket) {
         const stem = normTok(bracket);
         if (!stem) return false;
@@ -92,6 +98,9 @@ function createUntokeniser(tokenMapInput) {
         return { re, byNorm };
     }
 
+    /**
+     * @param {string} text
+     */
     function replaceAll(text) {
         if (!text) return text;
         const map = currentMap();

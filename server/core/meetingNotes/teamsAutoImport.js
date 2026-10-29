@@ -98,6 +98,9 @@ async function listCandidateUsers() {
     return Array.from(users);
 }
 
+/**
+ * @param {string} userId
+ */
 async function discoverUser(userId) {
     let user = null;
     try { user = await d.userStore.getUser(userId); } catch (err) {
@@ -321,6 +324,5 @@ module.exports = { init, discover, processDue, processJobInline, findArtifact, N
  */
 
 /**
- * @typedef {Object} ProcessDueArgs
- * @property {number} [limit]
+ * @typedef {{ limit?: number }} ProcessDueArgs
  */

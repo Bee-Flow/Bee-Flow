@@ -107,6 +107,12 @@ and `npm run lint:secrets`.
   directives are errors.
 - `npm run lint:ts-ratchet`: the number of `.js`/`.jsx` files under `agent-hub/src` may only
   go down. Write new files in TypeScript.
+- `scripts/jsdoc-round.sh`: JSDoc types for server JavaScript by tooling, one local commit per
+  batch that passes every gate (behaviour diff, typecheck with settle, promote, line ceilings, the
+  tests next to the files, ratchets, check:fast). `chunks <dir>` writes the batch files of a server
+  directory, `run <label> <batch.txt>...` runs them; the header explains the gates. Comments only:
+  a batch that would change the compiled program, or that a caller contradicts, is reverted, never
+  repaired by hand inside the round.
 - `npm run lint:i18n-ratchet`: the number of user-facing strings WITHOUT a key under
   `agent-hub/src` may only go down.
   **Serialisation rule:** the English dictionary is `server/i18n/defaults/en/<namespace>.js`,
@@ -151,6 +157,10 @@ and `npm run lint:secrets`.
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.
+- `/quality-round` (`.claude/skills/quality-round/SKILL.md`): the next round of the quality programme
+  (server strictness and loose JSDoc types, agent-hub TypeScript and i18n, the count ratchets) with
+  agents in worktrees, each task on the model that fits it, every batch behind the gates above, one
+  push at the end. The handoffs under `.claude/handoff/ts-conversion/` hold the detail.
 
 ## Pull requests and CI
 
@@ -235,6 +245,9 @@ and `npm run lint:secrets`.
   its local socket. An attachment from a sync folder goes to the server as a WebDAV reference
   (read via `server/integrations/nextcloudFiles/`), not as a second copy.
 - **Tests live next to the source** (`x.js` next to `x.test.js`), not in a central `tests/` folder.
+- **Decision records**: `docs/docs/contributing/decisions/` holds the architecture decisions above as
+  retrospective ADRs (one record per decision, with the check that enforces it). A decision that
+  changes gets a new record that supersedes the old one.
 - **Anthropic SDK**: `@anthropic-ai/sdk`.
 
 ## Security and privacy (this is a privacy product)

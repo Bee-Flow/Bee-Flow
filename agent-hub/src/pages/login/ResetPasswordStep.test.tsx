@@ -25,10 +25,13 @@ function renderStep(overrides = {}) {
     return { ...render(<ResetPasswordStep {...p} />), p };
 }
 
-const fill = (pw: string, confirm: string) => {
-    fireEvent.change(screen.getByTestId('reset-new-password'), { target: { value: pw } });
+const fill = async (pw: string, confirm: string) => {
+    const user = userEvent.setup();
+    await user.clear(screen.getByTestId('reset-new-password'));
+    await user.paste(pw);
     const [, second] = screen.getAllByPlaceholderText('••••••••');
-    fireEvent.change(second, { target: { value: confirm } });
+    await user.clear(second);
+    await user.paste(confirm);
 };
 
 describe('choosing a new password', () => {
@@ -38,34 +41,34 @@ describe('choosing a new password', () => {
         expect(screen.getAllByPlaceholderText('••••••••')).toHaveLength(2);
     });
 
-    it('accepts a matching pair of at least eight characters', () => {
+    it('accepts a matching pair of at least eight characters', async () => {
         const { container, p } = renderStep();
-        fill('correct-horse', 'correct-horse');
+        await fill('correct-horse', 'correct-horse');
         fireEvent.submit(container.querySelector('form')!);
         expect(p.onSubmit).toHaveBeenCalledWith('correct-horse');
     });
 
-    it('refuses a password under eight characters and says so in place', () => {
+    it('refuses a password under eight characters and says so in place', async () => {
         const { container, p } = renderStep();
-        fill('short', 'short');
+        await fill('short', 'short');
         fireEvent.submit(container.querySelector('form')!);
         expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument();
         expect(p.onSubmit).not.toHaveBeenCalled();
     });
 
-    it('refuses two passwords that do not match', () => {
+    it('refuses two passwords that do not match', async () => {
         const { container, p } = renderStep();
-        fill('correct-horse', 'correct-hors');
+        await fill('correct-horse', 'correct-hors');
         fireEvent.submit(container.querySelector('form')!);
         expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
         expect(p.onSubmit).not.toHaveBeenCalled();
     });
 
-    it('clears the local complaint on the next attempt', () => {
+    it('clears the local complaint on the next attempt', async () => {
         const { container } = renderStep();
-        fill('short', 'short');
+        await fill('short', 'short');
         fireEvent.submit(container.querySelector('form')!);
-        fill('correct-horse', 'correct-horse');
+        await fill('correct-horse', 'correct-horse');
         fireEvent.submit(container.querySelector('form')!);
         expect(screen.queryByText('Password must be at least 8 characters')).toBeNull();
     });
@@ -75,9 +78,9 @@ describe('choosing a new password', () => {
     // (login.password_requirements) and signup runs signupValidation, so the
     // same account can be reset to a weaker password than it could be created
     // with. Hoort in stage L16 te veranderen.
-    it('accepts eight lowercase letters with no digit or capital', () => {
+    it('accepts eight lowercase letters with no digit or capital', async () => {
         const { container, p } = renderStep();
-        fill('aaaaaaaa', 'aaaaaaaa');
+        await fill('aaaaaaaa', 'aaaaaaaa');
         fireEvent.submit(container.querySelector('form')!);
         expect(p.onSubmit).toHaveBeenCalledWith('aaaaaaaa');
     });

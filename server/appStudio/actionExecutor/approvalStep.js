@@ -65,66 +65,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         } catch (err) { fallback('appStudio/actionExecutor/approvalStep:requestApprovalStep', err); /* consumer account */ }
     }
 
-    // Assignee / panel: runtime org-membership checks, invalid → dropped (the
-    // same defence-in-depth fallback createApprovalOnPause applies). Panel
-    // seats are the named users first, then the groups.
-    const { validateAssignee, validatePanel, validateStages } = require('../../core/automationRunner/approvalLifecycle');
-    const rawSeats = [
-        ...(Array.isArray(step.approverUserIds) ? step.approverUserIds.map(id => ({ userId: id })) : []),
-        ...(Array.isArray(step.approverGroupIds) ? step.approverGroupIds.map(id => ({ groupId: id })) : []),
-    ];
-
-    // ── The stage chain ──────────────────────────────────────────────────
-    // Apps author exactly the shape automations do, and desugar through exactly
-    // the same rulebook — an invoice app's "team lead → finance → director"
-    // is the same object an automation's is, decided by the same code. Stage
-    // names and descriptions are rendered against the action scope (an
-    // approver must see the supplier the stage is about), and each stage's
-    // `when` is evaluated ONCE here, at request time, so the chain shown to
-    // the first approver is the chain that will actually run.
-    const { desugarApprovalStages, firstStageKey, stageByKey, collectParticipants } = require('../../core/automationModel/approvalStages');
-    // App Studio has no `{{…}}` templating — every dynamic value is an explicit
-    // binding object — so a stage's name and description are resolved through
-    // resolveBinding first and reach the rulebook as the plain strings it
-    // expects. A plain string passes straight through, which is what a stage
-    // called "Finance" wants.
-    const renderStageText = (v) => (v && typeof v === 'object')
-        ? coerceText(resolveBinding(v, ctx, scope))
-        : (typeof v === 'string' ? v : null);
-    const authoredStages = Array.isArray(step.stages)
-        ? step.stages.map(st => (st && typeof st === 'object')
-            ? { ...st, name: renderStageText(st.name), description: renderStageText(st.description) }
-            : st)
-        : step.stages;
-    const resolvedStages = await validateStages(
-        desugarApprovalStages(
-            { stages: authoredStages, approvers: rawSeats, rule: step.rule, quorum: step.quorum,
-              assignee: step.assigneeUserId ? { userId: step.assigneeUserId }
-                  : (step.assigneeGroupId ? { groupId: step.assigneeGroupId } : null),
-              finalApprover: step.finalApproverUserId ? { userId: step.finalApproverUserId }
-                  : (step.finalApproverGroupId ? { groupId: step.finalApproverGroupId } : null) },
-            { evaluateWhen: (expr) => !!tryEvaluate(expr, scope).value },
-        ),
-        orgId, app.userId,
-    );
-    const firstKey = resolvedStages ? firstStageKey(resolvedStages) : null;
-    const firstStage = firstKey ? stageByKey(resolvedStages, firstKey) : null;
-
-    let approvers = resolvedStages
-        ? firstStage.approvers
-        : (rawSeats.length ? await validatePanel(rawSeats, orgId) : null);
-    const rawAssignee = step.assigneeUserId ? { userId: step.assigneeUserId }
-        : (step.assigneeGroupId ? { groupId: step.assigneeGroupId } : null);
-    let assignee = (!approvers && rawAssignee) ? await validateAssignee(rawAssignee, orgId) : null;
-    const rawFinal = step.finalApproverUserId ? { userId: step.finalApproverUserId }
-        : (step.finalApproverGroupId ? { groupId: step.finalApproverGroupId } : null);
-    const finalApprover = resolvedStages ? null : (rawFinal ? await validateAssignee(rawFinal, orgId) : null);
-    // Pre-chain definitions only — desugarApprovalStages now expresses
-    // "one approver then a final sign-off" as two real stages.
-    if (finalApprover && !approvers) {
-        approvers = [assignee || { userId: app.userId }];
-        assignee = null;
-    }
+    const { resolvedStages, firstKey, firstStage, approvers, assignee, finalApprover } = await resolveApprovalSeats(app, step, ctx, scope, orgId);
 
     // Deadline: absent or 0 = no deadline (an app approval often waits on a
     // weekly review); 1..720h otherwise. The reaper sweeps overdue rows.
@@ -134,42 +75,17 @@ async function requestApprovalStep(app, model, step, ctx) {
     // Reminder + escalation clocks — same rules as the run path (a clock at
     // or past the deadline is dropped; the escalation target passes the org
     // gate or the escalation is dropped whole).
-    const { approvalClocks } = require('../../core/automationRunner/approvalLifecycle');
+    const { approvalClocks, validateAssignee } = require('../../core/automationRunner/approvalLifecycle');
     const clocks = approvalClocks({
         remindAfterHours: step.remindAfterHours,
         escalateAfterHours: step.escalateAfterHours,
         expiresAt,
     });
-    const rawEscalate = step.escalateToUserId ? { userId: step.escalateToUserId }
-        : (step.escalateToGroupId ? { groupId: step.escalateToGroupId } : null);
+    const rawEscalate = seatOf(step.escalateToUserId, step.escalateToGroupId);
     const escalateTo = (rawEscalate && clocks.escalateAt) ? await validateAssignee(rawEscalate, orgId) : null;
 
-    // Attachments: studio_attachment descriptors only, each re-verified in the
-    // app's OWN owner-scoped ledger (an id is never a capability) and clean.
-    let attachments = null;
-    if (step.attachments !== undefined && step.attachments !== null) {
-        const resolved = resolveBinding(step.attachments, ctx, scope);
-        const list = (Array.isArray(resolved) ? resolved : [resolved]).filter(Boolean);
-        const studioAppDataStore = require('../../stores/studioAppDataStore');
-        const out = [];
-        for (const d of list.slice(0, APP_APPROVAL_MAX_ATTACHMENTS)) {
-            if (!d || typeof d !== 'object' || d.kind !== 'studio_attachment' || typeof d.fileId !== 'string') continue;
-            const row = await studioAppDataStore.getAttachment(d.fileId, app.id, app.userId).catch((e) => fallback('appStudio/actionExecutor/approvalStep:requestApprovalStep#2', e, null));
-            if (!row || row.quarantined || !row.scanned) {
-                log.warn(`[ActionExecutor] request_approval attachment ${d.fileId} is not a clean file of app ${app.id} — dropped`);
-                continue;
-            }
-            out.push({
-                fileId: row.id,
-                filename: coerceText(d.name) || 'document',
-                mimeType: row.mimeType || 'application/octet-stream',
-                size: row.size || 0,
-                label: coerceText(d.label) || null,
-                store: 'app',           // tells the download route which ledger to ask
-            });
-        }
-        attachments = out.length ? out : null;
-    }
+    const attachments = await collectApprovalAttachments(app, step, ctx, scope);
+
 
     // Questions: canonicalize already enforced shape/caps; keep the defensive
     // filter so a raw-API definition cannot smuggle an object in.
@@ -197,6 +113,7 @@ async function requestApprovalStep(app, model, step, ctx) {
     // Frozen at INSERT: which Solution this decision was made inside. An
     // app-sourced approval takes it from the app, there being no run.
     const project = await require('../../core/automationModel/approvalProject').projectStamp(app.projectId);
+    const { collectParticipants } = require('../../core/automationModel/approvalStages');
 
     const approval = await automationStore.createApproval({
         organizationId: orgId,
@@ -250,6 +167,159 @@ async function requestApprovalStep(app, model, step, ctx) {
     }).catch((e) => bestEffort('appStudio/actionExecutor/approvalStep:requestApprovalStep#3', e));
     require('../../automation/approvalEvents').dispatchApprovalRequested(approval);
 
+    await notifyApprovalDeciders(app, approval, prompt);
+
+
+    return { ok: true, result: { approvalId: approval.id, status: 'pending', expiresAt } };
+}
+
+/**
+ * The seats of the request: the stage chain (desugared through the same
+ * rulebook as an automation's, each stage's `when` evaluated once, now) and
+ * the approvers of its first stage, or, without stages, the panel, the single
+ * assignee and the final approver. Every seat passes the runtime
+ * org-membership checks; an invalid one is dropped.
+ * @param {AppRef} app
+ * @param {ApprovalStepDef} step
+ * @param {import('./shared').ExecCtx} ctx
+ * @param {import('./shared').ServerScope} scope
+ * @param {string|null} orgId
+ */
+async function resolveApprovalSeats(app, step, ctx, scope, orgId) {
+    // Assignee / panel: runtime org-membership checks, invalid → dropped (the
+    // same defence-in-depth fallback createApprovalOnPause applies). Panel
+    // seats are the named users first, then the groups.
+    const { validateAssignee, validatePanel, validateStages } = require('../../core/automationRunner/approvalLifecycle');
+    const rawSeats = panelSeats(step);
+
+    // ── The stage chain ──────────────────────────────────────────────────
+    // Apps author exactly the shape automations do, and desugar through exactly
+    // the same rulebook — an invoice app's "team lead → finance → director"
+    // is the same object an automation's is, decided by the same code. Stage
+    // names and descriptions are rendered against the action scope (an
+    // approver must see the supplier the stage is about), and each stage's
+    // `when` is evaluated ONCE here, at request time, so the chain shown to
+    // the first approver is the chain that will actually run.
+    const { desugarApprovalStages, firstStageKey, stageByKey } = require('../../core/automationModel/approvalStages');
+    // App Studio has no `{{…}}` templating — every dynamic value is an explicit
+    // binding object — so a stage's name and description are resolved through
+    // resolveBinding first and reach the rulebook as the plain strings it
+    // expects. A plain string passes straight through, which is what a stage
+    // called "Finance" wants.
+    const renderStageText = (v) => (v && typeof v === 'object')
+        ? coerceText(resolveBinding(v, ctx, scope))
+        : (typeof v === 'string' ? v : null);
+    const authoredStages = Array.isArray(step.stages)
+        ? step.stages.map(st => (st && typeof st === 'object')
+            ? { ...st, name: renderStageText(st.name), description: renderStageText(st.description) }
+            : st)
+        : step.stages;
+    const resolvedStages = await validateStages(
+        desugarApprovalStages(
+            { stages: authoredStages, approvers: rawSeats, rule: step.rule, quorum: step.quorum,
+              assignee: seatOf(step.assigneeUserId, step.assigneeGroupId),
+              finalApprover: seatOf(step.finalApproverUserId, step.finalApproverGroupId) },
+            { evaluateWhen: (expr) => !!tryEvaluate(expr, scope).value },
+        ),
+        orgId, app.userId,
+    );
+    const firstKey = resolvedStages ? firstStageKey(resolvedStages) : null;
+    const firstStage = firstKey ? stageByKey(resolvedStages, firstKey) : null;
+
+    let approvers = resolvedStages
+        ? firstStage.approvers
+        : (rawSeats.length ? await validatePanel(rawSeats, orgId) : null);
+    const rawAssignee = seatOf(step.assigneeUserId, step.assigneeGroupId);
+    let assignee = (!approvers && rawAssignee) ? await validateAssignee(rawAssignee, orgId) : null;
+    const rawFinal = seatOf(step.finalApproverUserId, step.finalApproverGroupId);
+    const finalApprover = resolvedStages ? null : (rawFinal ? await validateAssignee(rawFinal, orgId) : null);
+    // Pre-chain definitions only — desugarApprovalStages now expresses
+    // "one approver then a final sign-off" as two real stages.
+    if (finalApprover && !approvers) {
+        approvers = [assignee || { userId: app.userId }];
+        assignee = null;
+    }
+    return { resolvedStages, firstKey, firstStage, approvers, assignee, finalApprover };
+}
+
+/**
+ * The clean studio_attachment files of the request, at most
+ * APP_APPROVAL_MAX_ATTACHMENTS, or null when there are none.
+ * @param {AppRef} app
+ * @param {ApprovalStepDef} step
+ * @param {import('./shared').ExecCtx} ctx
+ * @param {import('./shared').ServerScope} scope
+ */
+async function collectApprovalAttachments(app, step, ctx, scope) {
+    // Attachments: studio_attachment descriptors only, each re-verified in the
+    // app's OWN owner-scoped ledger (an id is never a capability) and clean.
+    if (step.attachments !== undefined && step.attachments !== null) {
+        const resolved = resolveBinding(step.attachments, ctx, scope);
+        const list = (Array.isArray(resolved) ? resolved : [resolved]).filter(Boolean);
+        const studioAppDataStore = require('../../stores/studioAppDataStore');
+        const out = [];
+        for (const d of list.slice(0, APP_APPROVAL_MAX_ATTACHMENTS)) {
+            const entry = await verifyAttachment(app, studioAppDataStore, d);
+            if (entry) out.push(entry);
+        }
+        return out.length ? out : null;
+    }
+    return null;
+}
+
+/**
+ * One seat from a user id or, without one, a group id; null with neither.
+ * @param {unknown} userId
+ * @param {unknown} groupId
+ */
+function seatOf(userId, groupId) {
+    return userId ? { userId } : (groupId ? { groupId } : null);
+}
+
+/**
+ * The panel seats a definition names: the users first, then the groups.
+ * @param {ApprovalStepDef} step
+ * @returns {Array<{ userId?: unknown, groupId?: unknown }>}
+ */
+function panelSeats(step) {
+    return [
+        ...(Array.isArray(step.approverUserIds) ? step.approverUserIds.map(id => ({ userId: id })) : []),
+        ...(Array.isArray(step.approverGroupIds) ? step.approverGroupIds.map(id => ({ groupId: id })) : []),
+    ];
+}
+
+/**
+ * One attachment descriptor checked against the app's own ledger: the file
+ * entry of a clean studio_attachment, or null (logged when the file is not clean).
+ * @param {AppRef} app
+ * @param {typeof import('../../stores/studioAppDataStore')} studioAppDataStore
+ * @param {{ kind?: unknown, fileId?: unknown, name?: unknown, label?: unknown } | null | undefined} d  one resolved descriptor
+ */
+async function verifyAttachment(app, studioAppDataStore, d) {
+    if (!d || typeof d !== 'object' || d.kind !== 'studio_attachment' || typeof d.fileId !== 'string') return null;
+    const row = await studioAppDataStore.getAttachment(d.fileId, app.id, app.userId).catch((e) => fallback('appStudio/actionExecutor/approvalStep:requestApprovalStep#2', e, null));
+    if (!row || row.quarantined || !row.scanned) {
+        log.warn(`[ActionExecutor] request_approval attachment ${d.fileId} is not a clean file of app ${app.id} — dropped`);
+        return null;
+    }
+    return {
+        fileId: row.id,
+        filename: coerceText(d.name) || 'document',
+        mimeType: row.mimeType || 'application/octet-stream',
+        size: row.size || 0,
+        label: coerceText(d.label) || null,
+        store: 'app',           // tells the download route which ledger to ask
+    };
+}
+
+/**
+ * Bell the deciders of a new request: the assignee or group, else the owner.
+ * A failure is logged and never fails the request.
+ * @param {AppRef} app
+ * @param {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').createApproval>>>} approval
+ * @param {string} prompt
+ */
+async function notifyApprovalDeciders(app, approval, prompt) {
     // Bell the deciders — assignee/group, else the owner (same fan-out shape
     // as a paused run's request).
     try {
@@ -266,10 +336,17 @@ async function requestApprovalStep(app, model, step, ctx) {
             }).catch((e) => bestEffort('appStudio/actionExecutor/approvalStep:requestApprovalStep#4', e));
         }
     } catch (e) {
-        log.warn(`[ActionExecutor] request_approval notify failed: ${e.message}`);
+        log.warn(`[ActionExecutor] request_approval notify failed: ${/** @type {Error} */ (e).message}`);
     }
-
-    return { ok: true, result: { approvalId: approval.id, status: 'pending', expiresAt } };
 }
+
+/**
+ * @typedef {{ id: string, userId: string, organizationId?: string|null, name?: string|null, projectId?: string|null }} AppRef
+ * @typedef {{
+ *   approverUserIds?: unknown, approverGroupIds?: unknown, stages?: unknown, rule?: string, quorum?: unknown,
+ *   assigneeUserId?: string, assigneeGroupId?: string, finalApproverUserId?: string, finalApproverGroupId?: string,
+ *   attachments?: import('./shared').Binding,
+ * }} ApprovalStepDef  the request_approval fields the seat and attachment helpers read
+ */
 
 module.exports = { requestApprovalStep };

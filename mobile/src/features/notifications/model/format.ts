@@ -6,17 +6,18 @@
  * not hoisted into a shared utils module.
  */
 
-import type { TranslateFn } from '@/core/i18n';
+import { translate, type TranslateFn } from '@/core/i18n';
 import { nOf } from '@/shared/lib/plural';
 
 import type { AppNotification } from './types';
 
 export type TimeBucket = 'today' | 'this_week' | 'older';
 
+/** Getters: the sentence is looked up when the section is built, not when the module loads. */
 export const BUCKET_LABELS: Record<TimeBucket, string> = {
-    today: 'Today',
-    this_week: 'Earlier this week',
-    older: 'Older',
+    get today() { return translate('sidebar.today', 'Today'); },
+    get this_week() { return translate('mobile.notifications.bucket_this_week', 'Earlier this week'); },
+    get older() { return translate('sidebar.older', 'Older'); },
 };
 
 /** Same three buckets the web inbox uses, so both clients group identically. */

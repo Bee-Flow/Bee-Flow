@@ -17,6 +17,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 /**
  * Get the cache READ discount multiplier for a model's provider.
  * Cached input tokens are billed at this fraction of the normal input rate.
+ * @param {string} model
  */
 function getCacheDiscount(model) {
     if (!model) return 1;
@@ -129,6 +130,10 @@ const TIER_ALIASES = Object.freeze({
     priority: 'priority', on_demand_priority: 'priority',
 });
 
+/**
+ * @param {string | null | undefined} serviceTier
+ * @param {string | null | undefined} trafficType
+ */
 function _billingTier(serviceTier, trafficType) {
     // The tier the provider billed wins; a Vertex traffic type is consulted only
     // when there is no service tier (Vertex has none).

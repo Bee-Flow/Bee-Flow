@@ -64,7 +64,7 @@ function libraryVersion() {
  * failed at "serverSetup"'), not the input, but that is its choice and not a
  * contract: drop the message entirely if it ever contains the value.
  *
- * @param {any} err
+ * @param {Error | null | undefined} err
  * @param {string} serverSetup
  * @returns {string}
  */
@@ -81,7 +81,9 @@ function _safeReason(err, serverSetup) {
  * One registration round trip against `serverSetup`. Synchronous; the caller
  * must have awaited `opaqueLib.ready`. Never throws.
  *
- * @param {any} opaqueLib the loaded @serenity-kit/opaque module
+ * @param {{ client: { startRegistration: (args: { password: string }) => { registrationRequest: string } },
+ *   server: { createRegistrationResponse: (args: { serverSetup: string, userIdentifier: string, registrationRequest: string }) => unknown } }} opaqueLib
+ *   the loaded @serenity-kit/opaque module (the two calls the probe makes)
  * @param {string} serverSetup
  * @returns {SetupStatus}
  */

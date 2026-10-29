@@ -47,6 +47,9 @@ function makeAccess(overrides = {}) {
     const audit = overrides.audit
         || ((...args) => require('../stores/userStore').logAccessAudit(...args));
 
+    /**
+     * @param {string} what
+     */
     const notFound = (what) => new HttpError(404, 'not_found', `${what} not found, or this token's user does not have it. Call automations_list for the automations you own.`);
 
     /**
@@ -86,7 +89,7 @@ function makeAccess(overrides = {}) {
             const doc = typeof v === 'string' ? JSON.parse(v) : v;
             return !!doc && doc.rawReadsAllowed === true;
         } catch (e) {
-            log.warn(`[automations-mcp] raw run data setting for org ${orgId} unreadable: ${e.message}`);
+            log.warn(`[automations-mcp] raw run data setting for org ${orgId} unreadable: ${/** @type {Error} */ (e).message}`);
             return false;
         }
     }
@@ -116,7 +119,7 @@ function makeAccess(overrides = {}) {
         try {
             await audit(RAW_READ_AUDIT_ACTION, targetType, targetId, userId, null, { ...details, via: 'mcp' }, orgId);
         } catch (e) {
-            log.error(`[automations-mcp] audit row for a raw run read could not be written: ${e.message}`);
+            log.error(`[automations-mcp] audit row for a raw run read could not be written: ${/** @type {Error} */ (e).message}`);
             throw new HttpError(503, 'audit_unavailable', 'The audit log is not available, so raw run data is not returned.');
         }
     }

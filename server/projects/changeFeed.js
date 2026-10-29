@@ -150,10 +150,9 @@ function sessionPayload(details, activityId, versionId) {
 }
 
 /**
- * @param {object} [deps]
- * @param {any} [deps.store]    projectStore surface (recordContentSession, recordActivityEvent)
- * @param {(projectId: string, event: any) => Promise<void>} [deps.publish]  the doorbell
- * @param {any} [deps.log]
+ * @param {{ store?: Pick<typeof import('../stores/projectStore'), 'recordContentSession'|'recordActivityEvent'>,
+ *   publish?: (projectId: string, event: any) => Promise<void>, log?: { warn: (...args: unknown[]) => void } }} [deps]
+ *   test seams, the real modules by default; `publish` is the doorbell
  */
 function makeChangeFeed(deps = {}) {
     const store = () => deps.store || require('../stores/projectStore');
@@ -183,7 +182,7 @@ function makeChangeFeed(deps = {}) {
      * @returns {Promise<{ recorded: number }>}
      */
     async function recordContentChange(change) {
-        const c = change || /** @type {any} */ ({});
+        const c = change || /** @type {Partial<typeof change>} */ ({});
         const projectId = idOf(c.projectId);
         const itemId = idOf(c.itemId);
         const source = typeof c.source === 'string' ? c.source : 'checkpoint';
@@ -242,7 +241,7 @@ function makeChangeFeed(deps = {}) {
     }
 
     /** A one-off item event (created, renamed, moved) — never folded. */
-    async function recordItemEvent(action, { projectId, itemType, itemId, actorId = null, actorKind, agentId } = /** @type {any} */ ({})) {
+    async function recordItemEvent(action, { projectId, itemType, itemId, actorId = null, actorKind, agentId } = /** @type {{ projectId?: string|null, itemType?: string, itemId?: string, actorId?: string|null, actorKind?: string, agentId?: string|null }} */ ({})) {
         const pid = idOf(projectId);
         const id = idOf(itemId);
         if (!pid || !id || !isItemType(itemType)) return { recorded: 0 };

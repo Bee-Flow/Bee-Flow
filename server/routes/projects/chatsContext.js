@@ -39,11 +39,11 @@ function resolveChatsDeps(deps) {
         assistant: () => deps.assistant
             || (defaultAssistant || (defaultAssistant = require('../../projects/chatAssistant').makeChatAssistant())),
         resolveAgent: deps.resolveAgent
-            || ((args) => require('../../projects/chatAssistant').resolveUsableAgent(args)),
+            || ((/** @type {{ agentId: string; userId: string; }} */ args) => require('../../projects/chatAssistant').resolveUsableAgent(args)),
         isChatAgentAllowed: deps.isChatAgentAllowed
-            || ((project, args) => require('../../projects/chatAssistant').isChatAgentAllowed(project, args)),
+            || ((/** @type {{ id: string; }} */ project, /** @type {{ agentId: string; userId: string; }} */ args) => require('../../projects/chatAssistant').isChatAgentAllowed(project, args)),
         listChatAgents: deps.listChatAgents
-            || ((project, args) => require('../../projects/chatAssistant').listChatAgents(project, args)),
+            || ((/** @type {{ id: string; }} */ project, /** @type {{ userId: string; }} */ args) => require('../../projects/chatAssistant').listChatAgents(project, args)),
         // The ids of what is filed in the project, per kind, for validating `refs`.
         filedIds: deps.filedIds || (async (projectId, kind) => {
             const entry = require('../../projects/membership').getKind(kind);
@@ -57,7 +57,7 @@ function resolveChatsDeps(deps) {
             return { orgId: orgId || null, limitOrgId: limitOrgId || null };
         }),
         emit: deps.emit
-            || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectChat' })),
+            || ((/** @type {string} */ projectId, /** @type {{ kind?: string; actorId?: string | null; targetType?: string | null; targetId?: string | null; payload?: object; }} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectChat' })),
         logActivity: deps.logActivity
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
         // One budget for starting chats and posting, per member: generous for
@@ -87,7 +87,7 @@ function makeChatsContext(deps = {}) {
         try {
             await taskStore().dropLinksTo(projectId, kind, id);
         } catch (err) {
-            log.warn(`[ProjectChat] task links to ${kind} ${id} not dropped: ${err && err.message}`);
+            log.warn(`[ProjectChat] task links to ${kind} ${id} not dropped: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -122,7 +122,7 @@ function makeChatsContext(deps = {}) {
                 await emit(project.id, chatEvent('chat.message.created', userId, chat.id, { messageId: saved.message.id, seq: saved.message.seq, authorKind: 'system' }));
             }
         } catch (err) {
-            log.warn(`[ProjectChat] auto notice not posted in chat ${chat.id}: ${err && err.message}`);
+            log.warn(`[ProjectChat] auto notice not posted in chat ${chat.id}: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -134,7 +134,7 @@ function makeChatsContext(deps = {}) {
             if (chat.aiMode === 'auto') await participation().cancelContainer('chat', chat.id);
             if (chat.aiMode === 'auto' || chat.aiMode === 'always') ctx.aiModeChanged(project);
         } catch (err) {
-            log.warn(`[ProjectChat] chat ${chat.id} could not be rolled back after its first message failed: ${err && err.message}`);
+            log.warn(`[ProjectChat] chat ${chat.id} could not be rolled back after its first message failed: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -163,7 +163,7 @@ function makeChatsContext(deps = {}) {
         try {
             await ctx.logActivity(projectId, actorId, action, { targetType: 'project_chat', targetId: chatId });
         } catch (err) {
-            log.warn(`[ProjectChat] activity not recorded (${action}): ${err && err.message}`);
+            log.warn(`[ProjectChat] activity not recorded (${action}): ${err && /** @type {Error} */ (err).message}`);
         }
     }
 

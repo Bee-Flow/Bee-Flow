@@ -186,7 +186,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     const scopeAccent = isEveryoneScope ? BLUE : EMERALD;
 
     const Toggle = ({ checked, readOnly, accent, onToggle }: { checked: boolean; readOnly?: boolean; accent: string; onToggle: () => void }) => (
-        <label className="relative inline-flex items-center flex-shrink-0" style={{ cursor: readOnly ? 'default' : 'pointer' }} onClick={e => e.stopPropagation()}>
+        <label className={`relative inline-flex items-center flex-shrink-0 ${readOnly ? '[cursor:default]' : '[cursor:pointer]'}`} onClick={e => e.stopPropagation()}>
             <input type="checkbox" checked={checked} disabled={readOnly} onChange={onToggle} className="sr-only peer" />
             <div className="w-9 h-5 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"
                 style={{ background: checked ? accent : 'var(--border-default, #d1d5db)', opacity: readOnly ? 0.55 : 1 }} />

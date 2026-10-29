@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — how one turn's request is composed:
  *
@@ -46,13 +47,12 @@ function foldUserTurn(notes, userTurnContent) {
 }
 
 /**
- * @param {object} p
- * @param {object} p.profile           getProfileForModel(...) result
- * @param {string} p.modelId
- * @param {string} p.sys               buildSystemPrompt(...) — byte-stable per session
- * @param {Array}  p.history           the persisted snapshot's messages (unsanitised)
- * @param {string[]} p.notes           machine notes, each already carrying its prefix
- * @param {string|Array} p.userTurnContent  the human's text, or multimodal parts
+ * @param {{ profile: ReturnType<typeof import('../../../appStudio/builderModelProfiles').getProfileForModel>,
+ *   modelId: string,
+ *   sys: string, // buildSystemPrompt(...) — byte-stable per session
+ *   history: Array, // the persisted snapshot's messages (unsanitised)
+ *   notes: string[], // machine notes, each already carrying its prefix
+ *   userTurnContent: string|Array }} p  userTurnContent: the human's text, or multimodal parts
  * @returns {{ messages: Array, fewShotMessages: Array, windowedHistory: Array, userMessage: object }}
  */
 function composeAppTurnMessages({ profile, modelId, sys, history, notes, userTurnContent }) {

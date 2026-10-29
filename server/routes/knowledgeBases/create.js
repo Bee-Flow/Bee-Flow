@@ -183,13 +183,13 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
                     });
                     sourcesCopied += 1;
                 } catch (e) {
-                    log.warn(`[KB] Duplicate: source "${src.name || src.kind}" did not copy: ${e.message}`);
+                    log.warn(`[KB] Duplicate: source "${src.name || src.kind}" did not copy: ${/** @type {Error} */ (e).message}`);
                 }
             }
         } catch (e) {
             // No kb_sources table on this install, or the list failed. The
             // shell copy stands.
-            log.warn('[KB] Duplicate: sources unavailable:', e.message);
+            log.warn('[KB] Duplicate: sources unavailable:', /** @type {Error} */ (e).message);
         }
     }
 

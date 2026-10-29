@@ -1,5 +1,7 @@
 /** Presentation helpers for memory rows and the type histogram. */
 
+import { translate } from '@/core/i18n';
+
 import { MEMORY_TYPES, memoryTypeLabel, type Memory, type MemoryStats } from './types';
 
 /** A row can carry a shorter restatement; show whichever exists. */
@@ -10,6 +12,31 @@ export function memoryLine(memory: Memory): string {
 /** The sheet's type label: the server id with its first letter raised. */
 export function capitalise(value: string): string {
     return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/**
+ * One memory's type, singular ("Instruction"): the chat's own keys carry the
+ * same seven words, so the badge of a row is translated wherever the web's is.
+ */
+export function memoryTypeSingular(type: string): string {
+    switch (type) {
+        case 'instruction':
+            return translate('chat.memory.type_instruction', 'Instruction');
+        case 'person':
+            return translate('chat.memory.type_person', 'Person');
+        case 'project':
+            return translate('chat.memory.type_project', 'Project');
+        case 'preference':
+            return translate('chat.memory.type_preference', 'Preference');
+        case 'workflow':
+            return translate('chat.memory.type_workflow', 'Workflow');
+        case 'fact':
+            return translate('chat.memory.type_fact', 'Fact');
+        case 'context':
+            return translate('chat.memory.type_context', 'Context');
+        default:
+            return capitalise(type);
+    }
 }
 
 /** Enough of the sentence to recognise it, without a wall of text in a sheet. */

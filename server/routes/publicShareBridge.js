@@ -82,7 +82,7 @@ const PUBLIC_MAX_SCHEMA_CHARS = PUBLIC_MAX_PROMPT_CHARS * 2;
  * Request after requireShareBridgeToken, which stashes the verified claims on it.
  * @typedef {import('express').Request & { shareBridgeClaims: { shareId: string, webpageId: string } }} ShareBridgeReq
  */
-function requireShareBridgeToken(req, res, next) {
+function requireShareBridgeToken(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     const auth = req.headers['authorization'] || req.headers['Authorization'];
     const m = (typeof auth === 'string' ? auth : '').match(/^Bearer\s+(.+)$/i);
     if (!m) return res.status(401).json({ error: 'Missing bearer token' });
@@ -97,6 +97,10 @@ function requireShareBridgeToken(req, res, next) {
 // Returns { ctx, grants } on success, or { error, status } to short-circuit.
 // Re-checks the share on EVERY call so revoking a share kills public AI
 // immediately — the 30-min token TTL is only a backstop.
+/** @typedef {{ shareId: string, webpageId: string }} ResolveContextArgs */
+/**
+ * @param {ResolveContextArgs} param0
+ */
 async function resolveContext({ shareId, webpageId }) {
     const share = await publicShareStore.getShareById(shareId);
     if (!share || share.webpageId !== webpageId) return { status: 401, error: 'Share not found' };
@@ -275,8 +279,8 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
         stopHeartbeat();
         res.end();
     } catch (err) {
-        log.error(`[PublicShareBridge/ai/stream] ${err.message}`);
-        send('error', { error: err.message });
+        log.error(`[PublicShareBridge/ai/stream] ${/** @type {Error} */ (err).message}`);
+        send('error', { error: /** @type {Error} */ (err).message });
         stopHeartbeat();
         res.end();
     }

@@ -41,6 +41,9 @@ async function getDefaultLocale({ fresh = false } = {}) {
     const v = await read(KEY_DEFAULT_LOCALE);
     return isValidLocale(v) ? v : 'en';
 }
+/**
+ * @param {string} locale
+ */
 async function setDefaultLocale(locale) {
     if (!locale || typeof locale !== 'string') throw new Error('Locale required');
     const code = locale.trim().toLowerCase();
@@ -139,6 +142,7 @@ async function deletePageLocaleOverride(siteId, pageId, locale) {
  * told apart by the `_page_` infix. Shared by getAdminPayload (editor
  * state), exportSite and duplicateProject so the three can never disagree
  * about what "all translations" means.
+ * @param {string} siteId
  */
 async function collectLocaleOverrides(siteId, { fresh = false } = {}) {
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
@@ -181,6 +185,7 @@ async function pruneBlockLocaleOverrides(siteId, pageId, blockId) {
     const prefix = `${pageKey(siteId, pageId)}${KEY_LOCALE_INFIX}`;
     // One transaction locked on the page key, so a concurrent content save cannot interleave.
     return withConfigGroup(pageKey(siteId, pageId), async (io) => {
+        /** @type {string[]} */
         const pruned = [];
         for (const key of (await io.keysLike(`${prefix}%`)).filter((k) => k.startsWith(prefix))) {
             const override = await io.get(key);

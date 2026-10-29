@@ -26,6 +26,8 @@
 /**
  * What to pass as `createdBy` to publicShareStore.listSharesForWebpage.
  * null = every share on the page (read-visibility for non-owners).
+ * @param {boolean} isOwner
+ * @param {string} userId
  */
 function listingCreatorScope(isOwner, userId) {
     return isOwner ? userId : null;

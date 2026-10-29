@@ -122,8 +122,8 @@ export function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: Translate
                 ))}
                 <div className="pl-4 text-[11px] leading-none text-[var(--text-tertiary)]">↓</div>
                 {node(
-                    (<><Flag className="w-3.5 h-3.5 flex-shrink-0" style={{ color: solvedCurrent ? '#15803d' : 'var(--text-tertiary)' }} />
-                        <span style={{ color: solvedCurrent ? '#15803d' : 'var(--text-tertiary)' }}>
+                    (<><Flag className={`w-3.5 h-3.5 flex-shrink-0 ${solvedCurrent ? '[color:#15803d]' : '[color:var(--text-tertiary)]'}`} />
+                        <span className={`${solvedCurrent ? '[color:#15803d]' : '[color:var(--text-tertiary)]'}`}>
                             {solvedCurrent ? t('learn.sim.flow_runs', 'This flow runs — nice build.') : t('learn.sim.flow_result', 'Result')}
                         </span></>),
                     'result',

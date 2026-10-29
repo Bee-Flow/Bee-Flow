@@ -1,13 +1,9 @@
-import { useMemo, type JSX } from 'react';
-import {
-    Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart,
-    Pie, PieChart, ReferenceArea, ReferenceLine, Tooltip, XAxis, YAxis,
-    type MouseHandlerDataParam,
-} from 'recharts';
+import { useMemo } from 'react';
+import { CartesianGrid, Legend, Tooltip, XAxis, YAxis, type MouseHandlerDataParam } from 'recharts';
 import {
     CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE,
     PLACEHOLDER_DATA, PLACEHOLDER_SERIES_KEY, PLACEHOLDER_XKEY,
-    makeValueFormatter, resolveSeriesColor,
+    makeValueFormatter,
 } from '../chartPalette';
 import useMeasuredBox from '@/components/shared/charts/useMeasuredBox';
 import { brandPalette } from '../appDesign';
@@ -15,8 +11,8 @@ import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
+import { chartPlot, chartReferences, type ValueDomain } from './AppChartPlots';
 import type { NodeProps } from './appNode.types';
-import type { BindingInput } from '../resolveBinding.types';
 import type { ChartRow, SeriesSpec, ReferenceLineSpec, ReferenceBandSpec, ChartProps } from './AppChart.types';
 export type { ReferenceLineSpec, ReferenceBandSpec } from './AppChart.types';
 
@@ -26,9 +22,6 @@ const MAX_SERIES = 12;
 // Mirrors LIMITS.MAX_CHART_REFERENCES in server/appStudio/componentSpecs.js.
 const MAX_REFERENCES = 8;
 const MAX_SCAN_ROWS = 200; // enough to type a column without walking a full page
-// A band drawn at full strength swallows the line in front of it.
-const BAND_OPACITY = 0.12;
-const DEFAULT_REFERENCE_COLOR = '#94a3b8';
 // Mirrors styleResolver.HEIGHT_PX — a height the inspector can pick must
 // resolve here too, or the canvas silently falls back to md inside a cell the
 // resolver already sized to the requested value.
@@ -167,6 +160,34 @@ export function usableReferenceBands(list: (ReferenceBandSpec | null)[]) {
     return out;
 }
 
+/*
+ * A height preset sizes the grid CELL, and the chart has to fit INSIDE it —
+ * title included. It used to give the plot the full preset height and then
+ * put the title ABOVE that, so an `md` chart was 200px of plot plus ~28px of
+ * heading inside a 200px cell. The cell scrolls (styleResolver pairs every
+ * explicit height with overflow:auto), so every titled chart on the
+ * dashboard grew a scrollbar and lost its bottom axis behind it. A chart you
+ * have to scroll is a chart you cannot read: it must fit.
+ *
+ * So a sized chart lays out exactly like a filling one — column flex, title
+ * takes what it needs, plot takes the rest. Only a chart with NO height at
+ * all keeps a fixed box, because there is nothing to fit into.
+ *
+ * 'fill' used to fall through `HEIGHT_MAP[h] || HEIGHT_MAP.md` and silently
+ * render 200px — a chart asked to fill a dashboard tile quietly ignored the
+ * request. Exported for tests.
+ */
+export function chartFitOf(fill: boolean, heightToken: string | number, title: unknown, measuredHeight: number) {
+    const fitted = fill || Boolean(heightToken && heightToken !== 'auto' && HEIGHT_MAP[heightToken]);
+    // Before the first measurement, subtract the title rather than overshooting
+    // and clipping the axis for a frame.
+    const fallback = Math.max(40, (HEIGHT_MAP[heightToken] || HEIGHT_MAP.md) - (title ? 28 : 0));
+    const height = fitted
+        ? (measuredHeight > 0 ? measuredHeight : fallback)
+        : (HEIGHT_MAP[heightToken] || HEIGHT_MAP.md);
+    return { fitted, height };
+}
+
 function isNumericColumn(rows: ChartRow[], key: string) {
     let numeric = false;
     for (const row of rows) {
@@ -251,32 +272,9 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
     }
 
     // recharts is driven by explicit pixels here (not ResponsiveContainer), so
-    // 'fill' has to become a measured number. It used to fall through
-    // `HEIGHT_MAP[h] || HEIGHT_MAP.md` and silently render 200px — a chart asked
-    // to fill a dashboard tile quietly ignored the request.
+    // 'fill' has to become a measured number: see chartFitOf.
     const fill = isFill(node);
-    const heightToken = node.style?.height ?? '';
-
-    /*
-     * A height preset sizes the grid CELL, and the chart has to fit INSIDE it —
-     * title included. It used to give the plot the full preset height and then
-     * put the title ABOVE that, so an `md` chart was 200px of plot plus ~28px of
-     * heading inside a 200px cell. The cell scrolls (styleResolver pairs every
-     * explicit height with overflow:auto), so every titled chart on the
-     * dashboard grew a scrollbar and lost its bottom axis behind it. A chart you
-     * have to scroll is a chart you cannot read: it must fit.
-     *
-     * So a sized chart lays out exactly like a filling one — column flex, title
-     * takes what it needs, plot takes the rest. Only a chart with NO height at
-     * all keeps a fixed box, because there is nothing to fit into.
-     */
-    const fitted = fill || Boolean(heightToken && heightToken !== 'auto' && HEIGHT_MAP[heightToken]);
-    // Before the first measurement, subtract the title rather than overshooting
-    // and clipping the axis for a frame.
-    const fallback = Math.max(40, (HEIGHT_MAP[heightToken] || HEIGHT_MAP.md) - (title ? 28 : 0));
-    const height = fitted
-        ? (measuredHeight > 0 ? measuredHeight : fallback)
-        : (HEIGHT_MAP[heightToken] || HEIGHT_MAP.md);
+    const { fitted, height } = chartFitOf(fill, node.style?.height ?? '', title, measuredHeight);
     const baseFmt = makeValueFormatter(valueFormat);
     // A bare number on a health axis is unreadable — 72 what? The unit rides on
     // both the tick and the tooltip so the two never disagree.
@@ -315,10 +313,11 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
 
     const hasYMin = Number.isFinite(Number(yMin));
     const hasYMax = Number.isFinite(Number(yMax));
+    const valueDomain: ValueDomain = [hasYMin ? Number(yMin) : 'auto', hasYMax ? Number(yMax) : 'auto'];
     const yAxis = (
         <YAxis
             tickFormatter={fmt}
-            domain={[hasYMin ? Number(yMin) : 'auto', hasYMax ? Number(yMax) : 'auto']}
+            domain={valueDomain}
             // recharts reserves 60px for the y-axis, which a unit suffix
             // overruns: "132 mmHg" wrapped onto two lines and collided with the
             // plot. Widen by roughly the suffix, capped so a long unit cannot
@@ -328,36 +327,12 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
         />
     );
 
-    // An author who pinned BOTH ends of the axis meant it, so a reference that
-    // falls outside is clipped. With a free axis the opposite is right: grow the
-    // domain so a target line is never silently missing from the plot.
-    const overflow = (hasYMin && hasYMax) ? 'hidden' : 'extendDomain';
-    // On a horizontal bar chart the VALUE axis is X, so a target line or a
-    // healthy band flips with it — a reference is a statement about values,
-    // never about categories.
-    const bands = usableReferenceBands(referenceBands).map((b, i) => (
-        <ReferenceArea
-            key={`band-${i}`}
-            {...(horizontal ? { x1: b.from, x2: b.to } : { y1: b.from, y2: b.to })}
-            ifOverflow={overflow}
-            fill={b.color || DEFAULT_REFERENCE_COLOR}
-            fillOpacity={BAND_OPACITY}
-            strokeOpacity={0}
-            label={b.label ? { value: b.label, position: 'insideTopLeft', fontSize: 10, fill: 'var(--text-muted)' } : undefined}
-        />
-    ));
-    const lines = usableReferenceLines(referenceLines).map((r, i) => (
-        <ReferenceLine
-            key={`refline-${i}`}
-            {...(horizontal ? { x: Number(r.value) } : { y: Number(r.value) })}
-            ifOverflow={overflow}
-            stroke={r.color || DEFAULT_REFERENCE_COLOR}
-            strokeDasharray="4 4"
-            label={r.label ? { value: r.label, position: 'right', fontSize: 10, fill: 'var(--text-muted)' } : undefined}
-        />
-    ));
-    // Bands first so they sit BEHIND the series; recharts paints in child order.
-    const references = bands.length || lines.length ? [...bands, ...lines] : null;
+    const references = chartReferences({
+        bands: usableReferenceBands(referenceBands),
+        lines: usableReferenceLines(referenceLines),
+        horizontal,
+        pinned: hasYMin && hasYMax,
+    });
 
     const tooltip = (
         <Tooltip
@@ -380,154 +355,15 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
         ? (state: MouseHandlerDataParam & { activePayload?: { payload?: unknown }[] }) => emitRow(state?.activePayload?.[0]?.payload)
         : undefined;
 
-    // Bar width on a time axis (see the Bar below). Undefined on a category
+    // Bar width on a time axis (see the Bar in barPlot). Undefined on a category
     // axis, where recharts' own band sizing is right.
     const barSize = isTime ? timeBarSize(width, data.length, activeSeries.length, stacked) : undefined;
 
-    let chart: JSX.Element | null = null;
-    if (isPie) {
-        const valueKey = activeSeries[0]?.key;
-        const outer = Math.max(40, Math.min(width, height) / 2 - 28);
-        const inner = chartType === 'donut' ? Math.max(24, outer * 0.58) : 0;
-        chart = (
-            <PieChart width={width} height={height}>
-                {tooltip}
-                {legend}
-                <Pie
-                    data={data}
-                    dataKey={valueKey}
-                    nameKey={effectiveXKey}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={outer}
-                    innerRadius={inner}
-                    isAnimationActive={animate}
-                    onClick={clickable ? ((entry) => emitRow(entry?.payload || entry)) : undefined}
-                    style={clickable ? { cursor: 'pointer' } : undefined}
-                >
-                    {data.map((_, i) => (
-                        <Cell key={i} fill={resolveSeriesColor(activeSeries[0]?.color, i, palette)} />
-                    ))}
-                </Pie>
-            </PieChart>
-        );
-    } else if (chartType === 'line') {
-        chart = (
-            <LineChart width={width} height={height} data={data} onClick={chartClick} style={clickable ? { cursor: 'pointer' } : undefined}>
-                {xAxis}
-                {yAxis}
-                {grid}{references}{tooltip}{legend}
-                {activeSeries.map((s, i) => (
-                    <Line
-                        key={s.key}
-                        type="monotone"
-                        dataKey={s.key}
-                        name={s.label || s.key}
-                        stroke={resolveSeriesColor(s.color, i, palette)}
-                        strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={animate}
-                    />
-                ))}
-            </LineChart>
-        );
-    } else if (chartType === 'area') {
-        chart = (
-            <AreaChart width={width} height={height} data={data} onClick={chartClick} style={clickable ? { cursor: 'pointer' } : undefined}>
-                {xAxis}
-                {yAxis}
-                {grid}{references}{tooltip}{legend}
-                {activeSeries.map((s, i) => {
-                    const color = resolveSeriesColor(s.color, i, palette);
-                    return (
-                        <Area
-                            key={s.key}
-                            type="monotone"
-                            dataKey={s.key}
-                            name={s.label || s.key}
-                            stackId={stacked ? 'stack' : undefined}
-                            stroke={color}
-                            fill={color}
-                            fillOpacity={0.2}
-                            strokeWidth={2}
-                            isAnimationActive={animate}
-                        />
-                    );
-                })}
-            </AreaChart>
-        );
-    } else if (horizontal) {
-        // Lying-down bars: categories on the Y, values on the X, and the value
-        // written right of each bar (LabelList) — the shape "requests per
-        // kind" wants when the labels are words. Stacked bars skip the labels:
-        // a per-segment number at the segment's end reads as the bar's total.
-        const longest = data.reduce((m, r) => Math.max(m, String(r?.[effectiveXKey] ?? '').length), 0);
-        const catAxisWidth = Math.max(60, Math.min(160, 16 + 7 * longest));
-        chart = (
-            <BarChart
-                width={width}
-                height={height}
-                data={data}
-                layout="vertical"
-                margin={{ right: 32 }}
-                onClick={chartClick}
-                style={clickable ? { cursor: 'pointer' } : undefined}
-            >
-                <XAxis
-                    type="number"
-                    tickFormatter={fmt}
-                    domain={[hasYMin ? Number(yMin) : 'auto', hasYMax ? Number(yMax) : 'auto']}
-                    {...CHART_AXIS}
-                />
-                <YAxis type="category" dataKey={effectiveXKey} width={catAxisWidth} {...CHART_AXIS} />
-                {grid}{references}{tooltip}{legend}
-                {activeSeries.map((s, i) => (
-                    <Bar
-                        key={s.key}
-                        dataKey={s.key}
-                        name={s.label || s.key}
-                        stackId={stacked ? 'stack' : undefined}
-                        fill={resolveSeriesColor(s.color, i, palette)}
-                        radius={[0, 3, 3, 0]}
-                        isAnimationActive={animate}
-                    >
-                        {stacked ? null : (
-                            <LabelList
-                                dataKey={s.key}
-                                position="right"
-                                formatter={fmt}
-                                style={{ fontSize: 11, fill: 'var(--text-secondary)' }}
-                            />
-                        )}
-                    </Bar>
-                ))}
-            </BarChart>
-        );
-    } else {
-        chart = (
-            <BarChart width={width} height={height} data={data} onClick={chartClick} style={clickable ? { cursor: 'pointer' } : undefined}>
-                {xAxis}
-                {yAxis}
-                {grid}{references}{tooltip}{legend}
-                {activeSeries.map((s, i) => (
-                    <Bar
-                        key={s.key}
-                        dataKey={s.key}
-                        name={s.label || s.key}
-                        stackId={stacked ? 'stack' : undefined}
-                        fill={resolveSeriesColor(s.color, i, palette)}
-                        radius={[3, 3, 0, 0]}
-                        // A category axis gives recharts bands to size bars
-                        // from; a TIME axis is numeric and has none, so three
-                        // points produced 200px-wide bars that hung off both
-                        // ends of the plot and buried the y-axis labels.
-                        barSize={barSize}
-                        isAnimationActive={animate}
-                    />
-                ))}
-            </BarChart>
-        );
-    }
+    const chart = chartPlot({
+        chartType, horizontal, width, height, data, xKey: effectiveXKey, series: activeSeries, palette, animate, stacked,
+        clickable, chartClick, emitRow, fmt, valueDomain, barSize,
+        parts: { xAxis, yAxis, grid, references, tooltip, legend },
+    });
 
     return (
         <div

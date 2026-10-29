@@ -45,18 +45,17 @@ const { fallback } = require('../../utils/bestEffort');
 const RUNS_FOR_LAST_TEST = 100;
 
 /**
- * @param {object} [overrides]
- * @param {typeof import('../../stores/automationStore')} [overrides.store]          automationStore surface (getAutomation, getRunsForAutomation, listSharesForAutomation)
- * @param {(id: string) => Promise<any>} [overrides.getUser]        (id) => user row
- * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]  (userId, perm, session) => bool
- * @param {typeof import('../../stores/aiActAssessmentStore')} [overrides.assessments]    aiActAssessmentStore surface (getLatest)
- * @param {(automation: { userId?: string|null }, orgId: string|null) => Promise<boolean>} [overrides.isRequired]     async (automation, orgId) => bool (the licence)
- * @param {typeof import('../../compliance/aiAct/signals').signalsForAutomation} [overrides.liveSignals]    async (orgId, automationId) => signals|null
- * @param {typeof import('../../compliance/aiAct/attest').attest} [overrides.attest]         compliance/aiAct/attest.attest
- * @param {typeof import('../../automation/validate').validateDefinition} [overrides.validateDefinition]
- * @param {Parameters<typeof makeAiActAuto>[0]['classify']} [overrides.classify]       aiActClassify.makeClassifier result (the fast-model verdict)
- * @param {Parameters<typeof makeAiActAuto>[0]['loadBlocks']} [overrides.loadBlocks]     async (definition) => { blockId: definition|null }
- * @param {() => number} [overrides.now]            () => ms
+ * @param {{ store?: typeof import('../../stores/automationStore'), // automationStore surface (getAutomation, getRunsForAutomation, listSharesForAutomation)
+ *   getUser?: (id: string) => Promise<any>, // (id) => user row
+ *   hasPermission?: (userId: string, permission: string, session?: any) => Promise<boolean>, // (userId, perm, session) => bool
+ *   assessments?: typeof import('../../stores/aiActAssessmentStore'), // aiActAssessmentStore surface (getLatest)
+ *   isRequired?: (automation: { userId?: string|null }, orgId: string|null) => Promise<boolean>, // async (automation, orgId) => bool (the licence)
+ *   liveSignals?: typeof import('../../compliance/aiAct/signals').signalsForAutomation, // async (orgId, automationId) => signals|null
+ *   attest?: typeof import('../../compliance/aiAct/attest').attest, // compliance/aiAct/attest.attest
+ *   validateDefinition?: typeof import('../../automation/validate').validateDefinition,
+ *   classify?: Parameters<typeof makeAiActAuto>[0]['classify'], // aiActClassify.makeClassifier result (the fast-model verdict)
+ *   loadBlocks?: Parameters<typeof makeAiActAuto>[0]['loadBlocks'], // async (definition) => { blockId: definition|null }
+ *   now?: () => number }} [overrides]  now: () => ms
  */
 function makeAiActRouter(overrides = {}) {
     const router = express.Router();
@@ -237,9 +236,10 @@ function makeAiActRouter(overrides = {}) {
         if (!loaded) return;
         const { a } = loaded;
         const def = a.definition || {};
+        /** @type {{ ok: boolean; errors: object[]; warnings: object[]; } | { ok: boolean; errors: { code: string; path: string; message: string; }[]; }} */
         let validation;
         try { validation = validateDefinition(def); }
-        catch (e) { validation = { ok: false, errors: [{ code: 'shape.unreadable', path: '', message: e.message }] }; }
+        catch (e) { validation = { ok: false, errors: [{ code: 'shape.unreadable', path: '', message: /** @type {Error} */ (e).message }] }; }
         const runs = await Promise.resolve(store().getRunsForAutomation(a.id, { limit: RUNS_FOR_LAST_TEST })).catch((e) => fallback('routes/automation/aiAct:makeAiActRouter', e, []));
         const state = await aiActState(a, def);
         res.json(computeReadiness({ automation: a, validation, runs, aiAct: aiActCheck.publicState(state) }));

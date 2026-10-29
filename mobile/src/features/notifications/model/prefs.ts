@@ -29,6 +29,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { translate } from '@/core/i18n';
+
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from './types';
 
 export { NOTIFICATION_CATEGORIES, type NotificationCategory };
@@ -63,41 +65,63 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
     pollSeconds: 60,
 };
 
-/** The intervals worth offering. Anything under a minute is a battery bill
- *  with no perceptible benefit; anything over an hour is not a notification. */
+/**
+ * The intervals worth offering. Anything under a minute is a battery bill
+ * with no perceptible benefit; anything over an hour is not a notification.
+ *
+ * The words are getters, so the shape other areas read stays `{ seconds,
+ * label, hint }` while the sentence is looked up when it is shown.
+ */
 export const POLL_INTERVALS: { seconds: number; label: string; hint: string }[] = [
-    { seconds: 60, label: 'Every minute', hint: 'Most responsive. Slightly more battery.' },
-    { seconds: 300, label: 'Every 5 minutes', hint: 'The balanced default for most people.' },
-    { seconds: 900, label: 'Every 15 minutes', hint: 'Quiet. Good on a slow day.' },
-    { seconds: 3600, label: 'Every hour', hint: 'Barely there. You will check manually.' },
+    {
+        seconds: 60,
+        get label() { return translate('automations.schedule.every_minute', 'Every minute'); },
+        get hint() { return translate('mobile.notifications.poll_1_hint', 'Most responsive. Slightly more battery.'); },
+    },
+    {
+        seconds: 300,
+        get label() { return translate('mobile.notifications.poll_5', 'Every 5 minutes'); },
+        get hint() { return translate('mobile.notifications.poll_5_hint', 'The balanced default for most people.'); },
+    },
+    {
+        seconds: 900,
+        get label() { return translate('mobile.notifications.poll_15', 'Every 15 minutes'); },
+        get hint() { return translate('mobile.notifications.poll_15_hint', 'Quiet. Good on a slow day.'); },
+    },
+    {
+        seconds: 3600,
+        get label() { return translate('cowork.repeat.hourly', 'Every hour'); },
+        get hint() { return translate('mobile.notifications.poll_60_hint', 'Barely there. You will check manually.'); },
+    },
 ];
 
+/** Getters for the same reason as POLL_INTERVALS: the shape is read elsewhere. */
 export const CATEGORY_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
     urgent: {
-        label: 'Urgent',
-        description: 'A run failed, or a connection needs re-authorising.',
+        get label() { return translate('automations.notify.urgency_urgent', 'Urgent'); },
+        get description() { return translate('mobile.notifications.cat_urgent_desc', 'A run failed, or a connection needs re-authorising.'); },
     },
     heads_up: {
-        label: 'Needs you',
-        description: 'An approval is waiting, or something looked unusual.',
+        get label() { return translate('mobile.notifications.cat_heads_up', 'Needs you'); },
+        get description() { return translate('mobile.notifications.cat_heads_up_desc', 'An approval is waiting, or something looked unusual.'); },
     },
     info: {
-        label: 'Finished work',
-        description: 'A task completed and its answer is ready.',
+        get label() { return translate('mobile.notifications.cat_info', 'Finished work'); },
+        get description() { return translate('mobile.notifications.cat_info_desc', 'A task completed and its answer is ready.'); },
     },
     ai_task: {
-        label: 'Automations',
-        description: 'A scheduled automation ran and has something for you.',
+        get label() { return translate('automations.title', 'Automations'); },
+        get description() { return translate('mobile.notifications.cat_ai_task_desc', 'A scheduled automation ran and has something for you.'); },
     },
     cowork: {
-        label: 'Cowork results',
+        get label() { return translate('mobile.notifications.cat_cowork', 'Cowork results'); },
         // Its own category: a cowork result should not announce itself under
         // the automations' name.
-        description: 'A cowork run finished and its result is ready.',
+        get description() { return translate('mobile.notifications.cat_cowork_desc', 'A cowork run finished and its result is ready.'); },
     },
     learning: {
-        label: 'Learning Center',
-        description: 'A nudge to review something you asked to be reminded of.',
+        get label() { return translate('settings.learning_center', 'Learning Center'); },
+        get description() { return translate('mobile.notifications.cat_learning_desc', 'A nudge to review something you asked to be reminded of.'); },
     },
 };
 

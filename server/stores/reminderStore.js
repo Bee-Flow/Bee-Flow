@@ -121,6 +121,9 @@ async function markCompleted(id) {
 
 // ── Background Checker ───────────────────────────────────
 
+/**
+ * @param {string | number | Date} remindAt
+ */
 function advanceRemindAt(remindAt, interval) {
     const d = new Date(remindAt);
     switch (interval) {
@@ -171,7 +174,7 @@ async function processDueReminders() {
             log.info(`[ReminderStore] Fired ${rows.length} reminder(s)`);
         }
     } catch (err) {
-        log.error('[ReminderStore] Background checker error:', err.message);
+        log.error('[ReminderStore] Background checker error:', /** @type {Error} */ (err).message);
     }
 }
 

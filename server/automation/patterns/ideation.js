@@ -52,9 +52,9 @@ const LOADERS = {
     llmClient: () => require('../../core/llm/llmClient'),
     isSideEffect: () => require('../sideEffectMap').isSideEffect,
     resolveIntegration: () => require('../../core/integrations/integrationToolMap').resolveIntegration,
-    getIntegrationByTool: () => (/** @type {any} */ f) => require('../../stores/integrationActivityStore').getIntegrationByTool(f),
+    getIntegrationByTool: () => (/** @type {Parameters<typeof import('../../stores/integrationActivityStore').getIntegrationByTool>[0]} */ f) => require('../../stores/integrationActivityStore').getIntegrationByTool(f),
     getAutomations: () => (/** @type {string} */ userId) => require('../../stores/automationStore').getAutomationsForUser(userId),
-    getRecentSuppressedTitles: () => (/** @type {any} */ p) => require('../../stores/suggestionFeedbackStore').getRecentSuppressedTitles(p),
+    getRecentSuppressedTitles: () => (/** @type {Parameters<typeof import('../../stores/suggestionFeedbackStore').getRecentSuppressedTitles>[0]} */ p) => require('../../stores/suggestionFeedbackStore').getRecentSuppressedTitles(p),
     guardToolOutput: () => require('../../core/automationRunner/safety').guardToolOutput,
     guardAiInput: () => require('../../core/automationRunner/safety').guardAiInput,
 };
@@ -73,7 +73,7 @@ function integrationOf(resolveIntegration, toolName) {
  * The user's titles to keep out of the ideas: their automations and the
  * ideas they dismissed, built or asked about.
  * @param {string} userId
- * @param {any} d deps
+ * @param {ReturnType<typeof depsFor>} d deps
  */
 async function existingTitlesFor(userId, d) {
     const [automations, suppressed] = await Promise.all([
@@ -89,9 +89,12 @@ async function existingTitlesFor(userId, d) {
  * the user's mail and files and is asked for concrete specifics; the result
  * is streamed, cached and handed to the builder, so an address it quoted is
  * replaced by words ("an email address") here, once, for all three.
- * @param {any} s a normalised suggestion
+ * @param {ReturnType<typeof lib.normaliseSuggestions>[number]} s a normalised suggestion
  */
 function withoutContacts(s) {
+    /**
+     * @param {string} v
+     */
     const clean = (v) => (typeof v === 'string' ? maskContacts(v, { words: true }) : v);
     return { ...s, title: clean(s.title), description: clean(s.description), buildPrompt: clean(s.buildPrompt) };
 }
@@ -170,7 +173,7 @@ async function runIdeasScan(input, overrides = null) {
         for (const c of g?.categories || []) allCategories.add(c);
         if (g?.blocked) messages = promptFor('', []);
     } catch (err) {
-        log.warn('[RepeatingWork] ideas prompt guard failed, scanning without focus and titles:', /** @type {any} */ (err)?.message);
+        log.warn('[RepeatingWork] ideas prompt guard failed, scanning without focus and titles:', /** @type {Error} */ (err)?.message);
         messages = promptFor('', []);
     }
 
@@ -206,7 +209,9 @@ async function runIdeasScan(input, overrides = null) {
             send('scan_step', { tool: name, integration, phase: 'done', ok: false });
             return r.refusal ? JSON.stringify({ error: r.refusal.modelError }) : `Error: ${r.error && r.error.message}`;
         }
+        /** @type {string} */
         let guardedText;
+        /** @type {string[]} */
         let categories = [];
         let blocked = false;
         try {
@@ -217,7 +222,7 @@ async function runIdeasScan(input, overrides = null) {
             categories = g.categories || [];
         } catch (e) {
             blocked = true;
-            categories = /** @type {any} */ (e)?.categories || [];
+            categories = /** @type {{ categories?: string[] }} */ (e)?.categories || [];
             guardedText = `[withheld: contains sensitive data${categories.length ? ` (${categories.join(', ')})` : ''}]`;
         }
         scannedIntegrations.add(integration);
@@ -230,6 +235,7 @@ async function runIdeasScan(input, overrides = null) {
     const callOpts = signal ? { ...CALL_OPTIONS, signal } : { ...CALL_OPTIONS };
     let rounds = 0;
     let structured = null;
+    /** @type {string | null} */
     let content = null;
     let usage = null;
     send('phase', { phase: 'scanning' });
@@ -249,7 +255,7 @@ async function runIdeasScan(input, overrides = null) {
     send('phase', { phase: 'synthesising' });
 
     const raw = structured ? lib.extractSuggestionsFromToolCall(structured) : lib.parseSuggestionsJson(content);
-    const suggestions = lib.normaliseSuggestions(raw, /** @type {any} */ ({
+    const suggestions = lib.normaliseSuggestions(raw, /** @type {Parameters<typeof lib.normaliseSuggestions>[1]} */ ({
         availableIntegrationIds: input.availableIntegrationIds, existingTitles, max: SUGGEST_MAX_SUGGESTIONS, activityIndex,
     })).map(withoutContacts);
     log.info('[RepeatingWork] ideas user=%s model=%s rounds=%s reads=%s raw=%s structured=%s final=%s',

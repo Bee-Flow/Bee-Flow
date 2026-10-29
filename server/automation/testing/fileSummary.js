@@ -54,7 +54,7 @@ async function readCapped(stream, maxBytes) {
     for await (const chunk of stream) {
         total += chunk.length;
         if (maxBytes > 0 && total > maxBytes) {
-            /** @type {any} */ (stream).destroy?.();
+            /** @type {AsyncIterable<Buffer> & { destroy?: () => void }} */ (stream).destroy?.();
             throw Object.assign(new Error('file is over the compare size cap'), { tooLarge: true });
         }
         chunks.push(chunk);
@@ -95,7 +95,7 @@ function formatOf(name, mime) {
 /**
  * Inflate one archive part into a string, stopping as soon as it has produced
  * more than `limit` bytes. Counts what the inflater really outputs.
- * @param {any} entry  a JSZip file entry
+ * @param {import('jszip').JSZipObject} entry  a JSZip file entry
  * @param {number} limit
  * @returns {Promise<string>}
  */
@@ -143,7 +143,7 @@ async function slideParts(buffer) {
     const parts = [];
     let budget = MAX_TOTAL_PART_BYTES;
     for (const [i, name] of slideNames.entries()) {
-        const entry = /** @type {any} */ (zip.file(name));
+        const entry = /** @type {import('jszip').JSZipObject | null} */ (zip.file(name));
         const xml = entry ? await readPartCapped(entry, Math.min(MAX_PART_BYTES, budget)) : '';
         budget -= Buffer.byteLength(xml, 'utf8');
         const { title, paragraphs } = readSlidePart(xml);
@@ -185,7 +185,7 @@ async function summarizeFile({ file, readBytes }, caps = {}) {
     try {
         buffer = await readBytes(max);
     } catch (e) {
-        return /** @type {any} */ (e)?.tooLarge ? { ...meta, tooLarge: true } : { ...meta, unreadable: true };
+        return /** @type {{ tooLarge?: boolean }} */ (e)?.tooLarge ? { ...meta, tooLarge: true } : { ...meta, unreadable: true };
     }
     if (!Buffer.isBuffer(buffer)) return { ...meta, unreadable: true };
     meta.size = buffer.length;

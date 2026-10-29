@@ -8,6 +8,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { absoluteUrl } from '@/features/webpages';
 import { Card, Section, Text } from '@/shared/ui';
@@ -33,6 +34,7 @@ function safeAbsolute(url: string): string | null {
 }
 
 export function TokenSection({ token, flow }: { token: ReturnType<typeof useMcpToken>; flow: TokenFlow }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const endpoint = token.data ? safeAbsolute(token.data.url) : null;
 
@@ -40,7 +42,7 @@ export function TokenSection({ token, flow }: { token: ReturnType<typeof useMcpT
     if (token.isLoading) {
         body = (
             <Text variant="body" tone="tertiary">
-                Checking…
+                {t('automations.ready.loading', 'Checking…')}
             </Text>
         );
     } else if (token.isError) {
@@ -50,7 +52,10 @@ export function TokenSection({ token, flow }: { token: ReturnType<typeof useMcpT
     }
 
     return (
-        <Section title="Your access token" subtitle="Lets an MCP client call Bee Flow as you">
+        <Section
+            title={t('mobile.mcp.token_title', 'Your access token')}
+            subtitle={t('mobile.mcp.token_subtitle', 'Lets an MCP client call Bee Flow as you')}
+        >
             <Card>
                 <View style={styles.body}>{body}</View>
             </Card>

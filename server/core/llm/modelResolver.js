@@ -102,9 +102,8 @@ const TIER_DEFAULTS = {
  * Org-level takes priority. If org has shield enabled + euModeEnabled, that wins.
  * If no org OR org has no EU enforcement, check personal user setting.
  *
- * @param {Object}      [opts]
- * @param {string|null}  [opts.userOrgId]  - Org ID to check org-level shield
- * @param {string|null}  [opts.userId]     - User ID to check personal EU preference
+ * @param {{ userOrgId?: string|null, userId?: string|null }} [opts] `userOrgId`: Org ID to check
+ *   org-level shield; `userId`: User ID to check personal EU preference
  * @returns {Promise<{isEU: boolean, source: 'org'|'user'|'user_shield'|'user_legacy'|'none'}>}
  */
 async function isEUModeActive({ userOrgId = null, userId = null } = {}) {
@@ -200,10 +199,9 @@ async function getCustomTierById(id, { userOrgId = null, userId = null } = {}) {
  *   - 'gpt-4o'       → returned as-is (already a concrete model ID)
  *
  * @param {string|null} rawModel     - The raw model string from the agent config
- * @param {Object}      [opts]
- * @param {string|null}  [opts.userOrgId]    - Org ID for EU-mode tier overrides
- * @param {string|null}  [opts.userId]       - User ID for personal EU-mode preference
- * @param {string}       [opts.fallbackTier] - Tier to use when rawModel is null (default: 'fast')
+ * @param {{ userOrgId?: string|null, userId?: string|null, fallbackTier?: string }} [opts] `userOrgId`:
+ *   Org ID for EU-mode tier overrides; `userId`: User ID for personal EU-mode preference;
+ *   `fallbackTier`: Tier to use when rawModel is null (default: 'fast')
  * @returns {Promise<string|null>} Resolved model ID, or null if nothing could be resolved
  */
 async function resolveModelForTier(rawModel, { userOrgId = null, userId = null, fallbackTier = 'fast' } = {}) {
@@ -237,6 +235,7 @@ async function resolveModelForTier(rawModel, { userOrgId = null, userId = null, 
 /**
  * Resolve a model and fall back to the global default if tier resolution fails.
  * A convenience wrapper that guarantees a non-null return (if global config has a model).
+ * @param {string | null} rawModel
  */
 async function resolveModelWithGlobalFallback(rawModel, opts = {}) {
     const resolved = await resolveModelForTier(rawModel, opts);
@@ -255,6 +254,7 @@ async function resolveModelWithGlobalFallback(rawModel, opts = {}) {
 // an agent saved with `tier:smart` is rejected by PUT /agents/:id with a 403.
 // `pro` is deliberately NOT normalized here — it is a first-class key across the
 // allow-list and the UI, so rewriting it would change existing agents' display.
+/** @type {Record<string, string>} */
 const LEGACY_TIER_ALIASES = { smart: 'thinking' };
 
 /**
@@ -262,7 +262,7 @@ const LEGACY_TIER_ALIASES = { smart: 'thinking' };
  * values to their canonical tier (e.g. `tier:smart` → `tier:thinking`).
  * Non-tier strings and unknown tiers pass through unchanged.
  * @param {string} model
- * @returns {*} the normalized model (same value/type as the input when no alias applies)
+ * @returns {string} the normalized model (the input itself when no alias applies)
  */
 function normalizeTierModel(model) {
     if (typeof model !== 'string' || !model.startsWith('tier:')) return model;
@@ -317,7 +317,7 @@ const TIER_MATCH_PRIORITY = ['fast', 'standard', 'swarm', 'thinking', 'writer', 
  * — the ladder cannot tell `tier:thinking` from `tier:fast` when both point at
  * one model, and guessing there would override an explicit choice.
  *
- * @param {object} tiers - tier map, keyed by bare tier name
+ * @param {Record<string, { modelId?: string, [key: string]: unknown } | null | undefined> | null | undefined} tiers - tier map, keyed by bare tier name
  * @param {string} modelId
  * @returns {string|null} the matching tier key, or null when the model is attached to none
  */
@@ -350,6 +350,7 @@ const MISTRAL_API_ID = /^(mistral|ministral|magistral|codestral|devstral|pixtral
  * Detection goes through the shared family table in providers/localModels so
  * `qwen3:30b`, `Qwen/Qwen3-30B-A3B` and `Qwen3-30B-Q4_K_M.gguf` all resolve to
  * the same answer.
+ * @param {string} modelId
  */
 function isReasoningModel(modelId) {
     if (!modelId || typeof modelId !== 'string') return false;
@@ -394,6 +395,7 @@ function isReasoningModel(modelId) {
  * Returns null for other models, which keep the generic 'medium' default.
  * OpenAI and Mistral answer from their catalogs; for Mistral that answer is
  * `none` (see mistralModels.cheapestMistralEffort).
+ * @param {string} modelId
  */
 function _cheapestEffort(modelId) {
     modelId = require('../providers/azureDeployments').azureModelFor(modelId);
@@ -447,6 +449,7 @@ function applyReasoningDefaults(merged, userConfig, tierName) {
  * Reasoning-capable models auto-enable `reasoningSummary` + a `medium`
  * reasoningEffort so users see the model's thought process stream before
  * the final answer (parallel to the typing-dots/phase indicator).
+ * @param {string} tierName
  */
 async function getTierConfig(tierName, /** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
     // Custom tiers carry their own full config — no TIER_DEFAULTS fallback needed.
@@ -493,11 +496,9 @@ async function getTierConfig(tierName, /** @type {{ userOrgId?: string | null, u
  * be read. Both should refuse; neither should fall back.
  *
  * @param {string} tierName      - Plain tier name (e.g. 'fast', 'smart', 'thinking')
- * @param {Object} [opts]
- * @param {string|null} [opts.userOrgId] - Org ID for EU-mode overrides
- * @param {string|null} [opts.userId]    - User ID for personal EU-mode preference
- * @param {string|null} [opts.fallback]  - OPT-IN fallback model ID; null (default) means
- *                                       "no model configured" is a real answer
+ * @param {{ userOrgId?: string|null, userId?: string|null, fallback?: string|null }} [opts]
+ *   `userOrgId`: Org ID for EU-mode overrides; `userId`: User ID for personal EU-mode preference;
+ *   `fallback`: OPT-IN fallback model ID; null (default) means "no model configured" is a real answer
  * @returns {Promise<string|null>} Resolved model ID, or null when nothing is configured
  */
 async function resolveModelForTierName(tierName, { userOrgId = null, userId = null, fallback = null } = {}) {
@@ -509,9 +510,8 @@ async function resolveModelForTierName(tierName, { userOrgId = null, userId = nu
  * Get the full EU-aware tiers map (merged with EU overrides if applicable).
  * Useful for consumers that need to iterate available tiers (e.g. promptClassifier).
  *
- * @param {Object} [opts]
- * @param {string|null} [opts.userOrgId] - Org ID for EU-mode overrides
- * @param {string|null} [opts.userId]    - User ID for personal EU-mode preference
+ * @param {{ userOrgId?: string|null, userId?: string|null }} [opts] `userOrgId`: Org ID for EU-mode
+ *   overrides; `userId`: User ID for personal EU-mode preference
  * @returns {Promise<Object>} Merged tiers config
  */
 async function getEUAwareTiers({ userOrgId = null, userId = null } = {}) {

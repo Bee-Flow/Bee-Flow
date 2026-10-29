@@ -185,18 +185,18 @@ function makeLifecycle({ getClient, schemaIdent, assertOwnership, clearMetaFn, s
 /**
  * Build one engine instance.
  *
- * @param {object} config
- * @param {Function} config.runQuery    async (sql, params) => result — pooled,
- *                                      OUTSIDE any app transaction (metadata
- *                                      mirrors like db_size). Wrapper passes db.run.
- * @param {Function} config.getClient   async () => pg client with query() +
- *                                      release() — one checkout per app call.
- * @param {string}   config.logPrefix   Console tag, e.g. 'StudioAppDB'.
- * @param {string}   config.entityLabel Error noun, e.g. 'Studio App DB'.
- * @param {Function} config.schemaFor   (appId) => Postgres schema name
- *                                      ('app_' + appId, dashes kept — always
- *                                      quoted, and at 4+36 chars safely under
- *                                      the 63-char identifier limit).
+ * @param {{
+ *   runQuery: DbQueryable['query'], getClient: () => Promise<DbQueryable & { release: () => void }>,
+ *   logPrefix: string, entityLabel: string, schemaFor: (entityId: string) => string,
+ *   assertAccess?: (client: DbQueryable, ownerId: string, entityId: string) => Promise<unknown>,
+ *   mirrorSize?: (entityId: string, ownerId: string, bytes: number) => void,
+ *   clearMeta?: (client: DbQueryable, entityId: string, ownerId: string) => Promise<unknown>,
+ * }} config
+ *   runQuery: pooled, OUTSIDE any app transaction (metadata mirrors like db_size); the wrapper
+ *   passes db.run. getClient: a pg client with query() + release(), one checkout per app call.
+ *   logPrefix: console tag, e.g. 'StudioAppDB'. entityLabel: error noun, e.g. 'Studio App DB'.
+ *   schemaFor: the Postgres schema name ('app_' + appId, dashes kept — always quoted, and at 4+36
+ *   chars safely under the 63-char identifier limit).
  *
  * The three below decouple the engine from `studio_apps`. They default to the
  * App Studio behaviour, so the existing wiring and its tests construct the
@@ -204,23 +204,18 @@ function makeLifecycle({ getClient, schemaIdent, assertOwnership, clearMetaFn, s
  * its own. schemaFor was already injected, but these three SQL statements were
  * not, which is what made the engine App-Studio-only in practice.
  *
- * @param {Function} [config.assertAccess]  async (client, ownerId, entityId) — runs
- *                                      INSIDE the transaction, BEFORE search_path
- *                                      is narrowed, so a metadata table in the
- *                                      public schema still resolves. Must throw
- *                                      404 when absent, refuse a different owner,
- *                                      and enforce any engine interlock.
- * @param {Function} [config.mirrorSize]   (entityId, ownerId, bytes) — fire-and-forget
- *                                      metadata mirror so list reads stay join-free.
- * @param {Function} [config.clearMeta]    async (client, entityId, ownerId) — zero that
- *                                      metadata when the schema is dropped.
+ *   assertAccess: runs INSIDE the transaction, BEFORE search_path is narrowed, so a
+ *     metadata table in the public schema still resolves. Must throw 404 when absent,
+ *     refuse a different owner, and enforce any engine interlock.
+ *   mirrorSize: fire-and-forget metadata mirror so list reads stay join-free.
+ *   clearMeta: zero that metadata when the schema is dropped.
  */
 function createPgAppEngine({
     runQuery, getClient, logPrefix, entityLabel, schemaFor,
     assertAccess: assertAccessFn,
     mirrorSize: mirrorSizeFn,
     clearMeta: clearMetaFn,
-} = /** @type {any} */ ({})) {
+} = /** @type {NonNullable<Parameters<typeof createPgAppEngine>[0]>} */ ({})) {
     if (typeof runQuery !== 'function' || typeof getClient !== 'function'
         || !logPrefix || !entityLabel || typeof schemaFor !== 'function') {
         throw new Error('createPgAppEngine requires runQuery, getClient, logPrefix, entityLabel, schemaFor');

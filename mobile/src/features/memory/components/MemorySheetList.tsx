@@ -3,6 +3,7 @@
 import React from 'react';
 import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { useUserRefresh } from '@/shared/patterns';
 import { EmptyState, ErrorState, ListSkeleton } from '@/shared/ui';
@@ -23,6 +24,7 @@ export function MemorySheetList({
     onDelete: (memory: Memory) => void;
 }) {
     const theme = useTheme();
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const memories = query.data?.memories ?? [];
     const refresh = useUserRefresh(() => query.refetch());
@@ -33,11 +35,18 @@ export function MemorySheetList({
         return (
             <EmptyState
                 icon="Cpu"
-                title={searching ? 'Nothing matches that' : 'Nothing remembered yet'}
+                title={
+                    searching
+                        ? t('mobile.memory.no_match', 'Nothing matches that')
+                        : t('mobile.memory.nothing_yet', 'Nothing remembered yet')
+                }
                 message={
                     searching
-                        ? 'Try a different word.'
-                        : 'Bee Flow saves things you tell it to remember, and things it works out from your chats.'
+                        ? t('mobile.memory.try_other_word', 'Try a different word.')
+                        : t(
+                              'mobile.memory.sheet_empty',
+                              'Bee Flow saves things you tell it to remember, and things it works out from your chats.',
+                          )
                 }
             />
         );

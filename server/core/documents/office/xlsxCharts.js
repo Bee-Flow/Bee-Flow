@@ -65,7 +65,7 @@ const CURRENCY_SYMBOLS = { EUR: '€ ', USD: '$ ', GBP: '£ ' };
  * what the editor shows (sheetChartFormat.ts: up to 2 decimals). Excel has no
  * "up to 2 decimals" without a dangling separator ("12."), so the decimals
  * follow the data: none when every value is whole, else 2.
- * @param {any} chart
+ * @param {import('../sheetChartFields').ChartFields} chart
  * @param {boolean} [whole]  every charted value is an integer
  */
 function formatCode(chart, whole = false) {
@@ -188,7 +188,7 @@ function plotXml(chart, sers, whole) {
 
 /**
  * One chart's XML (c:chartSpace), or null when its ranges are not readable.
- * @param {any} chart  { type, title?, dataRange, categoriesRange? }
+ * @param {import('../sheetChartFields').ChartFields} chart  { type, title?, dataRange, categoriesRange? }
  * @param {string} sheet  the worksheet it reads
  * @param {Record<string, { value: any, display?: string }>} [values]  computed cells
  */

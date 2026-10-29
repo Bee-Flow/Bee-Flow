@@ -121,7 +121,7 @@ export default function AppsPicker({
                 type="button"
                 onClick={() => { setOpen((v: boolean) => !v); setSearch(''); }}
                 className={`p-2 rounded-lg transition-colors flex items-center gap-1 ${open ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`}
-                title="Apps"
+                title={t('apps.title', 'Apps')}
                 data-testid="apps-picker-button"
             >
                 <LayoutGrid className="w-5 h-5" />
@@ -137,7 +137,7 @@ export default function AppsPicker({
                     {/* Header */}
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                         <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Apps</h3>
+                            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('apps.title', 'Apps')}</h3>
                             <span className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                 {t('apps.picker_active', '{active}/{total} active', { active: activeCount, total: apps.length })}
                             </span>

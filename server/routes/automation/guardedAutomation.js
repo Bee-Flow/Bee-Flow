@@ -10,7 +10,7 @@ const { HttpError } = require('../../core/http/errors');
  * @param {{ store: () => any, access: { guard: Function } }} deps
  */
 function makeGuarded({ store, access }) {
-    return async function guarded(/** @type {any} */ req, /** @type {any} */ res, /** @type {string} */ need) {
+    return async function guarded(/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {string} */ need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) throw new HttpError(404, 'automation_not_found', 'Not found');
         if (!await access.guard(req, res, a, need)) return null;

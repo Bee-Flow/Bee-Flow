@@ -12,13 +12,8 @@
 
 
 /**
- * @typedef {object} FilesProject  a projectStore.getProject() result, as far as this file reads it
- * @property {string} id
- * @property {string} [name]
- * @property {string} [ownerId]
- * @property {string|null} [organizationId]
- * @property {string[]} [knowledgeBaseIds]
- * @property {string | null} [filesKbId]
+ * A projectStore.getProject() result, as far as this file reads it.
+ * @typedef {{ id: string, name?: string, ownerId?: string, organizationId?: string|null, knowledgeBaseIds?: string[], filesKbId?: string|null }} FilesProject
  */
 
 /** Where the project's chats may use the base. Not an access rule (see core/kb/usageContexts.js). */
@@ -42,16 +37,16 @@ function storedIds(project) {
 }
 
 /**
- * @param {object} ctx
- * @param {() => typeof import('../stores/knowledgeBases')} ctx.kbStore
- * @param {() => typeof import('../stores/projectStore')} ctx.projectStore
- * @param {() => typeof import('../core/kb/kbIngestionHelpers')} ctx.helpers
- * @param {() => number} ctx.maxKbIds
- * @param {typeof import('../core/projectEventBus').publishTransient} ctx.publishTransient
- * @param {typeof import('../telemetry/log')} ctx.log
- * @param {() => typeof import('../core/kb/resolveProvider').resolveKbProvider} ctx.resolveKbProvider
- * @param {() => typeof import('../core/kb/localKBIngest').deleteChunksLocally} ctx.deleteChunksLocally
- * @param {{ HttpError: typeof import('../core/http/errors').HttpError, notFound: typeof import('../core/http/errors').notFound, PROJECT_FILES_SOURCE_KIND: string, filesKbIdOf: typeof import('../core/kb/projectFilesKb').filesKbIdOf, isProjectFilesKb: typeof import('../core/kb/projectFilesKb').isProjectFilesKb }} ctx.kit
+ * @param {{
+ *   kbStore: () => typeof import('../stores/knowledgeBases'),
+ *   projectStore: () => typeof import('../stores/projectStore'),
+ *   helpers: () => typeof import('../core/kb/kbIngestionHelpers'),
+ *   maxKbIds: () => number,
+ *   publishTransient: typeof import('../core/projectEventBus').publishTransient,
+ *   log: typeof import('../telemetry/log'),
+ *   resolveKbProvider: () => typeof import('../core/kb/resolveProvider').resolveKbProvider,
+ *   deleteChunksLocally: () => typeof import('../core/kb/localKBIngest').deleteChunksLocally,
+ *   kit: { HttpError: typeof import('../core/http/errors').HttpError, notFound: typeof import('../core/http/errors').notFound, PROJECT_FILES_SOURCE_KIND: string, filesKbIdOf: typeof import('../core/kb/projectFilesKb').filesKbIdOf, isProjectFilesKb: typeof import('../core/kb/projectFilesKb').isProjectFilesKb } }} ctx
  */
 function makeFilesKbAccess(ctx) {
     const { kbStore, projectStore, helpers, maxKbIds, publishTransient, log } = ctx;

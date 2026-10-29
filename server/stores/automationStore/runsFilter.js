@@ -85,10 +85,17 @@ const ORG_SCOPE_WHERE = 'COALESCE(a.organization_id, u."organizationId") = $$';
 // journey's EFFECTIVE status. Filtering on `r.status` instead would hide a
 // finished journey behind its head's stale 'success' handoff row, and make the
 // chips disagree with the rows they filter.
+/**
+ * @param {number} [startIdx]
+ */
 function buildRunFilterWhere(scope, filters = {}, startIdx = 1) {
     const params = [];
+    /** @type {string[]} */
     const clauses = [];
     let i = startIdx;
+    /**
+     * @param {string} sql
+     */
     const add = (sql, val) => { clauses.push(sql.replace('$$', `$${i}`)); params.push(val); i++; };
 
     const userId = scope && scope.user ? scope.user.userId : null;

@@ -18,7 +18,7 @@
 
 import { humanizeToolName } from '@/shared/lib/humanizeKey';
 
-import { STEP_TYPE_NAMES } from './stepNames';
+import { stepWord } from './stepNames';
 
 export type NameTranslate = (key: string, fallback: string) => string;
 
@@ -49,9 +49,9 @@ const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.i
 const typeWords = (type: string | undefined) => (type || 'step').replace(/_/g, ' ');
 
 /** The web builder's own word for a type, else the web's last resort. */
-function kindName(type: string | null | undefined): string {
-    if (type && Object.prototype.hasOwnProperty.call(STEP_TYPE_NAMES, type)) return STEP_TYPE_NAMES[type] as string;
-    return typeWords(type ?? undefined);
+function kindName(type: string | null | undefined, t: NameTranslate): string {
+    const word = type ? stepWord(type) : undefined;
+    return word ? t(word.i18nKey, word.en) : typeWords(type ?? undefined);
 }
 
 /** The title of the flowlet a call_layer step calls, when it has one. */
@@ -118,7 +118,7 @@ export function runStepNames(definition: NamedDefinitionInput, t: NameTranslate)
     const add = (node: unknown, type?: string) => {
         if (!isObj(node) || typeof node.id !== 'string' || map.has(node.id)) return;
         const step = (type && !node.type ? { ...node, type } : node) as NamedStep;
-        const name = nameStep(step, definition, t, kindName);
+        const name = nameStep(step, definition, t, (kind) => kindName(kind, t));
         if (name) map.set(node.id, name);
     };
     const walk = (nodes: unknown) => {
@@ -152,5 +152,5 @@ export function runStepTitle(
 ): string {
     const name = step.stepId ? known(step.stepId, names) : undefined;
     if (name) return name;
-    return step.stepType ? kindName(step.stepType) : t('automations.builder.node_generic', 'Step');
+    return step.stepType ? kindName(step.stepType, t) : t('automations.builder.node_generic', 'Step');
 }

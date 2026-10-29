@@ -49,31 +49,16 @@ const MULTI_LABEL_SUFFIXES = new Set([
 ]);
 
 /**
- * @typedef {object} PeerLocation
- * @property {'local'|'eu'|'outside'|'via_network'|'unknown'} state
- * @property {string} basis
- * @property {string|null} ip
- * @property {string|null} host
- * @property {string|null} country_code
- * @property {string|null} country_name
- * @property {string|null} region
- * @property {string|null} city
- * @property {number|null} lat
- * @property {number|null} lon
- * @property {number|null} asn
- * @property {string|null} as_org
- * @property {string|null} operator
- * @property {string|null} network
- * @property {string|null} edge_pop
+ * @typedef {{ state: 'local'|'eu'|'outside'|'via_network'|'unknown', basis: string, ip: string|null,
+ *   host: string|null, country_code: string|null, country_name: string|null, region: string|null,
+ *   city: string|null, lat: number|null, lon: number|null, asn: number|null, as_org: string|null,
+ *   operator: string|null, network: string|null, edge_pop: string|null }} PeerLocation
  */
 
 /**
- * @typedef {object} Peer  One peer of the probe snapshot.
- * @property {string|null} [host]
- * @property {string|null} [ip]
- * @property {Record<string, string|null|undefined>|null} [edge]
- * @property {string} [basis]
- * @property {boolean} [sentBody]
+ * One peer of the probe snapshot.
+ * @typedef {{ host?: string|null, ip?: string|null, edge?: Record<string, string|null|undefined>|null,
+ *   basis?: string, sentBody?: boolean }} Peer
  */
 
 /** @typedef {{ lookupIp: (ip: string) => ReturnType<typeof geoDb.lookupIp>, status: () => { available: boolean } }} GeoSource */

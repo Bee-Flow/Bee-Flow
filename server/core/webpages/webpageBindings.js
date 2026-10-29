@@ -210,10 +210,9 @@ function emptyTargets() {
  *               the automation id is built on the spot is not a page without automations.
  *
  * @param {object|null} scan          the result of `scanBfElements`
- * @param {object} args
- * @param {Object<string,string|null>} args.fallbackIds  answer per fallback from
- *   the registry (`bridge_grants.agent` → the agent of the page). A fallback
- *   that is missing here is `unknown-fallback` — never a silent omission.
+ * @param {{ fallbackIds: Object<string,string|null> }} args
+ *   `fallbackIds`: answer per fallback from the registry (`bridge_grants.agent` → the agent of the page). A
+ *   fallback that is missing here is `unknown-fallback` — never a silent omission
  */
 /**
  * "This field could not be read" — as value, not as absence.
@@ -290,10 +289,8 @@ function usesSection(scan, opts) {
 /**
  * The model behind the column "Lets happen".
  *
- * @param {object} args
- * @param {string} args.webpageId
- * @param {string} args.userId  the OWNER (the route is owner-only, just like
- *                              the grants beside it: this shows code content)
+ * @param {{ webpageId: string, userId: string }} args
+ *   `userId`: the OWNER (the route is owner-only, just like the grants beside it: this shows code content)
  */
 async function describePageActions({ webpageId, userId }) {
     const code = await readPageCode(userId, webpageId);

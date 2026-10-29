@@ -190,7 +190,7 @@ function SendForSigningModalSection({ result, t, signers, updateSigner, removeSi
                 {(result.signers?.length as number) > 0 && (
                     <div className="w-full mt-2 rounded-xl border overflow-hidden border-[var(--border-subtle)]">
                         {(result.signers as NonNullable<SignResult['signers']>).map((s, i) => (
-                            <div key={i} className="flex items-center gap-2 px-4 py-2 text-sm" style={{ borderBottom: i < (result.signers as NonNullable<SignResult['signers']>).length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                            <div key={i} className={`flex items-center gap-2 px-4 py-2 text-sm ${i < (result.signers as NonNullable<SignResult['signers']>).length - 1 ? '[border-bottom:1px_solid_var(--border-subtle)]' : '[border-bottom:none]'}`}>
                                 <span className="flex-1 truncate text-[var(--text-primary)]">
                                     {s.name ? `${s.name} (${s.email})` : s.email}
                                 </span>

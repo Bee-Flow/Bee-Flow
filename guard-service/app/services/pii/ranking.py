@@ -9,6 +9,8 @@ replaces iteration order.
 
 from __future__ import annotations
 
+from typing import Any
+
 from .thresholds import _PER_CATEGORY_THRESHOLD, _UI_DEFAULT_THRESHOLD
 
 # general category -> categories that are STRICTLY MORE SPECIFIC than it.
@@ -108,7 +110,7 @@ _CATEGORY_PRECEDENCE: tuple[str, ...] = (
 )
 
 
-def _label_margin(ent: dict) -> float:
+def _label_margin(ent: dict[str, Any]) -> float:
     """Confidence expressed as distance above the category's OWN floor.
 
     Raw confidence is not comparable across categories here, and the reason is
@@ -130,7 +132,7 @@ def _label_margin(ent: dict) -> float:
     in any comparison between two spans and is deliberately not applied here.
     """
     floor = _PER_CATEGORY_THRESHOLD.get(ent["category"], _UI_DEFAULT_THRESHOLD)
-    return ent["confidence"] - floor
+    return float(ent["confidence"] - floor)
 
 
 # Category pairs that are arithmetically INDISTINGUISHABLE — same shape, same
@@ -146,7 +148,7 @@ _CONTEXT_SEPARABLE_SIBLINGS: tuple[frozenset[str], ...] = (
 )
 
 
-def _by_sibling_context(contenders: list[dict]) -> list[dict]:
+def _by_sibling_context(contenders: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Between DECLARED siblings only: keep the contenders the surrounding words
     named (``context_hit``), when some but not all were. A set filter, so it is
     order-independent; it never changes the extent, only who names it."""
@@ -158,7 +160,7 @@ def _by_sibling_context(contenders: list[dict]) -> list[dict]:
     return contenders
 
 
-def _pick_label(contenders: list[dict]) -> dict:
+def _pick_label(contenders: list[dict[str, Any]]) -> dict[str, Any]:
     """Choose which category names an overlap cluster. Deterministic.
 
     Five stages, most authoritative first:
@@ -206,7 +208,7 @@ def _pick_label(contenders: list[dict]) -> dict:
     # `union(kept) == union(input)` still holds and nothing stops being redacted.
     contenders = _by_sibling_context(contenders)
 
-    def _rank(ent: dict) -> int:
+    def _rank(ent: dict[str, Any]) -> int:
         try:
             return _CATEGORY_PRECEDENCE.index(ent["category"])
         except ValueError:

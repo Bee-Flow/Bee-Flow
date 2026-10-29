@@ -1,8 +1,8 @@
-import { ArrowLeft, FileSpreadsheet, Loader2 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { FileSpreadsheet } from 'lucide-react';
+import React, { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { KEY_RE, providerLogoId, ssErrorMessage } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import { AudienceLine, BTN, CARD, RelationsStep, ReviewRelations, StepStrip, messageFor, relKeyOf, suggestRelations, type RelColumn, type RelTable, type Relation } from './linkWizardShared';
+import { AudienceLine, CARD, LinkWizardFooter, RelationsStep, ReviewRelations, StepStrip, messageFor, relKeyOf, suggestRelations, type RelColumn, type RelTable, type Relation } from './linkWizardShared';
 import { TitleRow } from './NewDatatableDialog';
 import FileBrowser from './spreadsheet/FileBrowser';
 import NamesStep from './spreadsheet/NamesStep';
@@ -21,7 +21,6 @@ import {
 import useTranslation from '@/hooks/useTranslation';
 import { getIntegrationLogo } from '@/utils/integrationLogos';
 import Modal from '@/components/shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { StorageProbe } from './newDatatable/useLinkSources';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceError } from './sourceMirrors';
@@ -91,6 +90,79 @@ interface LinkSpreadsheetDialogProps {
     onLinked(body: unknown): void;
 }
 
+interface DescribesArgs {
+    step: string;
+    files: Map<string, WizardFile>;
+    describes: Map<string, Describe<FileDescribe>>;
+    setDescribes: Dispatch<SetStateAction<Map<string, Describe<FileDescribe>>>>;
+    sheetDescribes: Map<string, Describe<SheetDescribeFull>>;
+    setSheetDescribes: Dispatch<SetStateAction<Map<string, Describe<SheetDescribeFull>>>>;
+    selected: Sel[];
+    setSelection: Dispatch<SetStateAction<Map<string, Sel>>>;
+    scope: string;
+}
+
+/** The two reads behind steps 2 and 3: each ticked file once, and each selected sheet at its header row (the dialog's setters are stable). */
+function useSpreadsheetDescribes({ step, files, describes, setDescribes, sheetDescribes, setSheetDescribes, selected, setSelection, scope }: DescribesArgs) {
+    // Read each ticked file once, on entering the step: its sheets, how it
+    // can be written back, and its first sheet at header row 1 — which is
+    // seeded into the sheet cache so the common case costs one call. A file
+    // with one sheet is selected on the spot: there is nothing to tick.
+    // A csv's only sheet is named `null` on the wire; that null is its
+    // identity here too (the keys, the second read, the body), so the seed
+    // lands under the same key the selection will ask for.
+    useEffect(() => {
+        if (step !== 'sheets') return;
+        for (const f of files.values()) {
+            const fk = fileKeyOf(f.provider, f.id);
+            if (describes.has(fk)) continue;
+            setDescribes(d => new Map(d).set(fk, { loading: true, error: null, data: null }));
+            datatablesApi.describeSpreadsheet({ provider: f.provider, fileId: f.id, scope })
+                .then((b) => {
+                    const first = b && b.sheet;
+                    if (first) {
+                        setSheetDescribes(m => new Map(m).set(describeKeyOf(fk, first.name ?? null, first.headerRow || 1), { loading: false, error: null, data: b }));
+                    }
+                    setDescribes(d => new Map(d).set(fk, { loading: false, error: null, data: b }));
+                    const sheets = (b && b.sheets) || [];
+                    if (sheets.length === 1 && !(Array.isArray(sheets[0].linkedAs) && sheets[0].linkedAs.length)) {
+                        const only = sheets[0].name ?? null;
+                        const sk = sheetKeyOf(fk, only);
+                        setSelection(prev => (prev.has(sk) ? prev
+                            : applyDefaults(new Map(prev).set(sk, { ...newSelection(f, only), sharedWriteOptIn: !!f.sharedWriteOptIn }))));
+                    }
+                })
+                .catch(e => setDescribes(d => new Map(d).set(fk, { loading: false, error: e, data: null })));
+        }
+    }, [step, files, describes, scope, setDescribes, setSheetDescribes, setSelection]);
+
+    // Every selected sheet needs its describe at ITS header row: read it
+    // when missing, and when it has arrived, hand the columns to the
+    // selection (keeping the person's type choices where the column is
+    // still the same) — once, which `describeKey` on the entry records.
+    useEffect(() => {
+        for (const s of selected) {
+            const key = describeKeyOf(s.fileKey, s.sheet, s.headerRow);
+            const d = sheetDescribes.get(key);
+            if (!d) {
+                setSheetDescribes(m => new Map(m).set(key, { loading: true, error: null, data: null }));
+                datatablesApi.describeSpreadsheet({ provider: s.provider, fileId: s.fileId, sheet: s.sheet, headerRow: s.headerRow, scope })
+                    .then(b => setSheetDescribes(m => new Map(m).set(key, { loading: false, error: null, data: b })))
+                    .catch(e => setSheetDescribes(m => new Map(m).set(key, { loading: false, error: e, data: null })));
+            } else if (!d.loading && !d.error && d.data && s.describeKey !== key) {
+                setSelection((prev) => {
+                    const cur = prev.get(s.sheetKey);
+                    if (!cur || cur.describeKey === key || describeKeyOf(cur.fileKey, cur.sheet, cur.headerRow) !== key) return prev;
+                    const columns = mergeColumns(cur.columns, (d.data?.sheet && d.data.sheet.columns) || []);
+                    const keyCol = columns.find(c => c.col === cur.keyColumn);
+                    const keyColumn = keyCol && keyColumnEligible(keyCol, d.data?.keyCandidates || []).ok ? cur.keyColumn : null;
+                    return new Map(prev).set(s.sheetKey, { ...cur, columns, keyColumn, describeKey: key });
+                });
+            }
+        }
+    }, [selected, sheetDescribes, scope, setSheetDescribes, setSelection]);
+}
+
 export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClose, onLinked }: LinkSpreadsheetDialogProps) {
     const { t } = useTranslation();
     const [step, setStep] = useState('files');
@@ -146,63 +218,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
     };
     const retryFile = (fileKey: string) => setDescribes((prev) => { const next = new Map(prev); next.delete(fileKey); return next; });
 
-    // Read each ticked file once, on entering the step: its sheets, how it
-    // can be written back, and its first sheet at header row 1 — which is
-    // seeded into the sheet cache so the common case costs one call. A file
-    // with one sheet is selected on the spot: there is nothing to tick.
-    // A csv's only sheet is named `null` on the wire; that null is its
-    // identity here too (the keys, the second read, the body), so the seed
-    // lands under the same key the selection will ask for.
-    useEffect(() => {
-        if (step !== 'sheets') return;
-        for (const f of files.values()) {
-            const fk = fileKeyOf(f.provider, f.id);
-            if (describes.has(fk)) continue;
-            setDescribes(d => new Map(d).set(fk, { loading: true, error: null, data: null }));
-            datatablesApi.describeSpreadsheet({ provider: f.provider, fileId: f.id, scope })
-                .then((b) => {
-                    const first = b && b.sheet;
-                    if (first) {
-                        setSheetDescribes(m => new Map(m).set(describeKeyOf(fk, first.name ?? null, first.headerRow || 1), { loading: false, error: null, data: b }));
-                    }
-                    setDescribes(d => new Map(d).set(fk, { loading: false, error: null, data: b }));
-                    const sheets = (b && b.sheets) || [];
-                    if (sheets.length === 1 && !(Array.isArray(sheets[0].linkedAs) && sheets[0].linkedAs.length)) {
-                        const only = sheets[0].name ?? null;
-                        const sk = sheetKeyOf(fk, only);
-                        setSelection(prev => (prev.has(sk) ? prev
-                            : applyDefaults(new Map(prev).set(sk, { ...newSelection(f, only), sharedWriteOptIn: !!f.sharedWriteOptIn }))));
-                    }
-                })
-                .catch(e => setDescribes(d => new Map(d).set(fk, { loading: false, error: e, data: null })));
-        }
-    }, [step, files, describes, scope]);
-
-    // Every selected sheet needs its describe at ITS header row: read it
-    // when missing, and when it has arrived, hand the columns to the
-    // selection (keeping the person's type choices where the column is
-    // still the same) — once, which `describeKey` on the entry records.
-    useEffect(() => {
-        for (const s of selected) {
-            const key = describeKeyOf(s.fileKey, s.sheet, s.headerRow);
-            const d = sheetDescribes.get(key);
-            if (!d) {
-                setSheetDescribes(m => new Map(m).set(key, { loading: true, error: null, data: null }));
-                datatablesApi.describeSpreadsheet({ provider: s.provider, fileId: s.fileId, sheet: s.sheet, headerRow: s.headerRow, scope })
-                    .then(b => setSheetDescribes(m => new Map(m).set(key, { loading: false, error: null, data: b })))
-                    .catch(e => setSheetDescribes(m => new Map(m).set(key, { loading: false, error: e, data: null })));
-            } else if (!d.loading && !d.error && d.data && s.describeKey !== key) {
-                setSelection((prev) => {
-                    const cur = prev.get(s.sheetKey);
-                    if (!cur || cur.describeKey === key || describeKeyOf(cur.fileKey, cur.sheet, cur.headerRow) !== key) return prev;
-                    const columns = mergeColumns(cur.columns, (d.data?.sheet && d.data.sheet.columns) || []);
-                    const keyCol = columns.find(c => c.col === cur.keyColumn);
-                    const keyColumn = keyCol && keyColumnEligible(keyCol, d.data?.keyCandidates || []).ok ? cur.keyColumn : null;
-                    return new Map(prev).set(s.sheetKey, { ...cur, columns, keyColumn, describeKey: key });
-                });
-            }
-        }
-    }, [selected, sheetDescribes, scope]);
+    useSpreadsheetDescribes({ step, files, describes, setDescribes, sheetDescribes, setSheetDescribes, selected, setSelection, scope });
 
     const described = (s: Sel) => s.describeKey === describeKeyOf(s.fileKey, s.sheet, s.headerRow) && s.columns.length > 0;
     const sheetsOk = selected.length > 0 && selected.length <= MAX_TABLES_PER_LINK && selected.every(described);
@@ -277,34 +293,14 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
             title={<TitleRow kind="datatable" icon={FileSpreadsheet} text={t('datatables.ss_link_title', 'Link spreadsheets from your files')} />}
             headerActions={<StepStrip t={t} at={at} labels={labels} />}
             footer={(
-                <>
-                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
-                        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                        {t('datatables.nc_back', 'Back')}
-                    </button>
-                    <span className="mr-auto text-[11px] pl-2 text-[var(--text-tertiary)]">
-                        {step === 'sheets' && selected.length > MAX_TABLES_PER_LINK
-                            ? t('datatables.ss_max_tables', 'At most {n} sheets can be linked in one go.', { n: MAX_TABLES_PER_LINK })
-                            : null}
-                    </span>
-                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
-                        {t('datatables.cancel', 'Cancel')}
-                    </button>
-                    {step !== 'review' ? (
-                        <button type="button" onClick={next} disabled={!canNext} className={`${BTN} font-medium disabled:opacity-50`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {t('datatables.nc_next', 'Next')}
-                        </button>
-                    ) : (
-                        <button type="button" onClick={submit} disabled={busy || !selected.length} className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
-                            {selected.length === 1
-                                ? t('datatables.ss_link_submit_one', 'Link the sheet')
-                                : t('datatables.ss_link_submit', 'Link {n} sheets', { n: selected.length })}
-                        </button>
-                    )}
-                </>
+                <LinkWizardFooter t={t} busy={busy} isReview={step === 'review'} canNext={canNext} selectedCount={selected.length}
+                    note={step === 'sheets' && selected.length > MAX_TABLES_PER_LINK
+                        ? t('datatables.ss_max_tables', 'At most {n} sheets can be linked in one go.', { n: MAX_TABLES_PER_LINK })
+                        : null}
+                    submitLabel={selected.length === 1
+                        ? t('datatables.ss_link_submit_one', 'Link the sheet')
+                        : t('datatables.ss_link_submit', 'Link {n} sheets', { n: selected.length })}
+                    onBack={back} onClose={onClose} onNext={next} onSubmit={submit} />
             )}
         >
             <div className="space-y-4">

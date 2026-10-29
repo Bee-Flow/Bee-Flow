@@ -276,7 +276,7 @@ describe('OnboardingTour: spotlight and placement', () => {
         startTour();
         const dialog = await screen.findByRole('dialog');
         expect(dialog).toHaveStyle({ top: '279px', left: '342px', width: '340px' });
-        expect(document.body.querySelector('[aria-hidden="true"][style*="inset"]')).not.toBeNull();
+        expect(document.body.querySelector('[aria-hidden="true"][class*="inset"]')).not.toBeNull();
     });
 
     it('cuts a spotlight around the target and puts the card to its right', async () => {

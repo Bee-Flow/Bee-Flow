@@ -257,8 +257,8 @@ function makeAiActAuto(deps) {
     }
 
     /**
-     * @param {object} automation
-     * @param {object} definition  the copy that is checked (the one about to run for the gate)
+     * @param {AutomationLike} automation
+     * @param {AutomationDefinition | null} definition  the copy that is checked (the one about to run for the gate)
      * @param {{ record?: boolean, actorId?: string|null, answers?: object|null, manual?: boolean }} [opts]
      *   answers: a person's answers (PUT), laid over Bee's; manual: from the full editor
      */
@@ -411,7 +411,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AutomationLike  the parts of an automation row this module reads
+ * @typedef AutomationLike  the parts of an automation row this module reads
  * @property {string} id  a uuid
  * @property {string} [userId]
  * @property {string} [title]
@@ -420,7 +420,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} CheckResult
+ * @typedef CheckResult
  * @property {AiActStateResult} state
  * @property {ReturnType<typeof publicFinding>[]} findings
  * @property {ReturnType<typeof publicQuestion>[]} pending
@@ -429,7 +429,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AiActStateResult  what aiActCheck.makeAiActState returns
+ * @typedef AiActStateResult  what aiActCheck.makeAiActState returns
  * @property {boolean} required
  * @property {string} status
  * @property {string|null} [orgId]
@@ -437,7 +437,7 @@ module.exports = {
  */
 
 /**
- * @typedef {object} AnswerRecord  one question's answer in the per-question record
+ * @typedef AnswerRecord  one question's answer in the per-question record
  * @property {string} [answer]
  * @property {string} [by]
  * @property {string} [sig]

@@ -1944,4 +1944,6 @@ module.exports = {
     "cms_site.blocks.product_mockup.tilt_none": "Flat",
     "cms_site.blocks.product_mockup.tilt_right": "Tilted to the right",
     "cms_site.blocks.product_mockup.window_title": "Window title",
+    'cms_site.blocks.footer.kvk_placeholder': 'KvK 12345678',
+    'cms_site.blocks.footer.vat_placeholder': 'NL123456789B01',
 };

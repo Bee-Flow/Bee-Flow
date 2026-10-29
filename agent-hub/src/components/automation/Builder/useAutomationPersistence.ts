@@ -82,7 +82,7 @@ export default function useAutomationPersistence({
     // We block accidental tab-close while the SSE turn is mid-flight or
     // the local draft diverges from the last server snapshot.
     useEffect(() => {
-        const handler = (e: any) => {
+        const handler = (e: BeforeUnloadEvent) => {
             // Block if a chat turn is mid-flight or the local draft hasn't
             // been confirmed by the server yet. We prefer `state.lastServerDraft`
             // (set by markServerConfirmed after each PUT) over the HTTP-side
@@ -204,7 +204,7 @@ export default function useAutomationPersistence({
      * with two stub automations from a flurry of clicks.
      */
     const createInflightRef = useRef<Promise<string | undefined> | null>(null);
-    const ensureAutomationCreated = useCallback(async (defForCreate?: any) => {
+    const ensureAutomationCreated = useCallback(async (defForCreate?: FlowDefinition | null) => {
         const existing = state.automationId || serverAutomation?.id;
         if (existing) return existing;
         if (createInflightRef.current) return createInflightRef.current;

@@ -42,6 +42,10 @@ const MAX_STEPS = 8;
 const STEP_MAX = 200;
 const DEFAULT_TIMEOUT_MS = 90_000;
 
+/**
+ * @param {string} s
+ * @param {number} n
+ */
 const clip = (s, n) => (typeof s === 'string' ? s.trim().slice(0, n) : '');
 
 const RULES = [
@@ -58,6 +62,7 @@ const RULES = [
 /** Segments of the recording around a point in time, as one short text. */
 function contextAround(segments, at) {
     if (!Array.isArray(segments) || !Number.isFinite(at)) return '';
+    /** @type {string[]} */
     const lines = [];
     for (const s of segments) {
         const start = Number(s && s.start);
@@ -111,14 +116,24 @@ function cleanSuggestion(raw, memberIds, fallbackTitle = '') {
 }
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.resolveModel]  ({ userId, orgId, modelTier }) => { modelId, options, providerConfig, tier } | null
- * @param {any}   [deps.shield]        projects/chatShield surface (resolve, protect, restore, release)
- * @param {Function} [deps.llmChat]       (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.checkLimits]   (limitOrgId, userId) => error text | null
- * @param {Function} [deps.logUsage]      (entry) => usage row
- * @param {number}   [deps.timeoutMs]
- * @param {Function} [deps.newId]
+ * The projects/chatShield surface this file uses (resolve, protect, restore,
+ * release). Loose: a test's double resolves a partial shield config, which
+ * the real config type (a union from core/privacy/orgShield) does not accept.
+ * @typedef {any} TaskShield
+ */
+
+/**
+ * Every dependency is a test seam whose default is the real module.
+ * `checkLimits` answers an error text or null.
+ *
+ * @param {{
+ *   resolveModel?: (p: { userId: string, orgId: string|null, modelTier?: string|null }) => Promise<{ modelId: string, options?: Record<string, unknown>, providerConfig?: Record<string, unknown>, tier?: string }|null>,
+ *   shield?: TaskShield,
+ *   llmChat?: (modelId: string, messages: Array<{ role: string, content: string }>, options: Record<string, unknown>) => Promise<{ content?: unknown, usage?: Record<string, unknown> }>,
+ *   checkLimits?: (limitOrgId: string|null, userId: string) => Promise<string|null>,
+ *   logUsage?: (entry: Record<string, unknown>) => Promise<unknown>,
+ *   timeoutMs?: number,
+ *   newId?: () => string }} [deps]
  */
 function makeTaskAssistant(deps = {}) {
     const resolveModel = deps.resolveModel || ((a) => resolveChatModel(a));
@@ -150,6 +165,7 @@ function makeTaskAssistant(deps = {}) {
                 throw err;
             }
             const started = Date.now();
+            /** @type {NodeJS.Timeout} */
             let timer;
             const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new HttpError(504, 'ai_timeout', 'The AI took too long.')), timeoutMs); });
             let result;
@@ -169,7 +185,7 @@ function makeTaskAssistant(deps = {}) {
                     ...usageLogFields(u), source: `project_task_ai_${kind}`, duration_ms: Date.now() - started,
                     conversation_id: project.id,
                 });
-            } catch (err) { log.warn(`[ProjectTaskAI] usage not logged: ${err && err.message}`); }
+            } catch (err) { log.warn(`[ProjectTaskAI] usage not logged: ${err && /** @type {Error} */ (err).message}`); }
             const text = shield.restore(typeof (result && result.content) === 'string' ? result.content : '', outbound.tokenMap);
             const parsed = parseJsonObject(text);
             if (!parsed || parsed.salvaged) throw new HttpError(502, 'ai_bad_answer', 'The AI did not answer in a usable way.');

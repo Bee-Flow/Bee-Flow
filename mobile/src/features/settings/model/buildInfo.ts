@@ -8,6 +8,7 @@ import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 
 import { MIN_SERVER_BUILD, type ServerSupport } from '@/core/api/server';
+import { translate } from '@/core/i18n';
 
 interface BuildExtra {
     buildProfile?: string;
@@ -41,12 +42,19 @@ export function buildInfo(): BuildInfo {
 
 /** The capability probe's verdict, in words. */
 export function supportLabel(support: ServerSupport | null | undefined): string {
-    if (support?.level === 'ok') return `Compatible (needs ${MIN_SERVER_BUILD} or later)`;
-    if (support?.level === 'outdated') return `Older than ${MIN_SERVER_BUILD}`;
-    return 'Not determined';
+    if (support?.level === 'ok') {
+        return translate('mobile.settings.compat_ok', 'Compatible (needs {min} or later)', { min: MIN_SERVER_BUILD });
+    }
+    if (support?.level === 'outdated') {
+        return translate('mobile.settings.compat_outdated', 'Older than {min}', { min: MIN_SERVER_BUILD });
+    }
+    return translate('mobile.settings.compat_unknown', 'Not determined');
 }
 
-/** One block, formatted for pasting into a support thread. */
+/**
+ * One block, formatted for pasting into a support thread. It stays English on
+ * purpose: whoever reads it is a support engineer, not the person who copied it.
+ */
 export function versionDetails(
     info: BuildInfo,
     server: string | null,

@@ -20,7 +20,7 @@ const { getEffectiveUserId } = require('../../utils/routeHelpers');
  * is 404 and unreadable-but-not-editable is 403, in that order — the reverse
  * would confirm that an agent exists to someone who may not know it does.
  */
-async function requireEditableAgent(req, res) {
+async function requireEditableAgent(req, /** @type {import('express').Response} */ res) {
     const userId = getEffectiveUserId(req);
     const views = await agentStore.getAgentViews(req.params.id);
     if (!views || !views.draft) {
@@ -127,9 +127,8 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
 }
 
 /**
- * @typedef {Object} ResolveFastTierOrRefuseArgs
- * @property {string | null} orgId
- * @property {string} userId
+ * @typedef {{ orgId: string | null,
+ *   userId: string }} ResolveFastTierOrRefuseArgs
  */
 /**
  * The fast tier that reads an agent's answers — for grading, or for proposing

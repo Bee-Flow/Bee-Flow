@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { pickDocuments, useUploadQueue } from '@/features/knowledge';
 import { useToast } from '@/shared/ui';
 
@@ -33,6 +34,7 @@ export function useDeleteTemplate(handlers: { onSuccess?: () => void } = {}) {
  * it runs in the background after the 200.
  */
 export function useTemplateUploads() {
+    const t = useTranslation();
     const { toast } = useToast();
     const refresh = useRefreshTemplates();
     const uploads = useUploadQueue(templateUploadTarget(), { onUploaded: refresh });
@@ -43,10 +45,10 @@ export function useTemplateUploads() {
         // byte, so refusing here saves a pointless upload and says it better.
         const accepted = files.filter((f) => /\.docx$/i.test(f.name));
         if (accepted.length !== files.length) {
-            toast('Templates have to be Word .docx files', 'error');
+            toast(t('mobile.templates.docx_only', 'Templates have to be Word .docx files'), 'error');
         }
         if (accepted.length) uploads.add(accepted);
-    }, [uploads, toast]);
+    }, [uploads, toast, t]);
 
     return { uploads, pick };
 }

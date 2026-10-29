@@ -16,11 +16,12 @@
  */
 
 /**
- * @typedef {object} RehashDeps
- * @property {typeof import('../passwordHash')} passwords
- * @property {{ replacePasswordHash: (userId: string, expectedHash: string, newHash: string) => Promise<boolean> }} userStore
- * @property {{ replaceAdminPasswordHash: (expectedHash: string, newHash: string) => Promise<boolean> }} authConfigStore
- * @property {{ info: Function, warn: Function }} log
+ * @typedef {{
+ *   passwords: typeof import('../passwordHash'),
+ *   userStore: { replacePasswordHash: (userId: string, expectedHash: string, newHash: string) => Promise<boolean> },
+ *   authConfigStore: { replaceAdminPasswordHash: (expectedHash: string, newHash: string) => Promise<boolean> },
+ *   log: { info: Function, warn: Function },
+ * }} RehashDeps
  */
 
 /**
@@ -39,11 +40,11 @@ function createPasswordRehash(deps = {}) {
     });
 
     /**
-     * @param {object} args
-     * @param {string} args.userId         'admin' for the built-in operator
-     * @param {string} args.storedHash     the hash `password` was just verified against
-     * @param {string} args.password       the password that verified
-     * @param {boolean} [args.isConfigAdmin] the hash came from the auth config (built-in admin)
+     * `userId` is 'admin' for the built-in operator, `storedHash` the hash
+     * `password` was just verified against, `isConfigAdmin` set when the hash
+     * came from the auth config (built-in admin).
+     *
+     * @param {{ userId: string, storedHash: string, password: string, isConfigAdmin?: boolean }} args
      * @returns {Promise<boolean>} whether a new hash was stored
      */
     async function upgradeStoredHash({ userId, storedHash, password, isConfigAdmin = false }) {

@@ -83,7 +83,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (/*
                     sendStream(stream, res, next);
                     return;
                 } catch (e) {
-                    log.error('[Transcriptions] Object-storage audio fetch failed:', e.message);
+                    log.error('[Transcriptions] Object-storage audio fetch failed:', /** @type {Error} */ (e).message);
                 }
             }
         }

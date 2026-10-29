@@ -718,12 +718,12 @@ function surfaceEnabled(policy, surface) {
  * Encrypt one organisation's existing plaintext rows.
  *
  * @param {string} orgId
- * @param {object} [opts]
- * @param {boolean} [opts.dryRun=false]
- * @param {string[]|null} [opts.surfaces=null]   null = every surface in BACKFILL_SURFACES
- * @param {number} [opts.limit=Infinity]         rows examined per surface
- * @param {((surface: string, stats: object) => void)|null} [opts.onProgress=null]
- * @param {BackfillOverrides} [opts.deps]        test seam (db fns, resolvers, batch size)
+ * @param {{
+ *   dryRun?: boolean, surfaces?: string[]|null, limit?: number,
+ *   onProgress?: ((surface: string, stats: object) => void)|null, deps?: BackfillOverrides,
+ * }} [opts]
+ *   surfaces: null = every surface in BACKFILL_SURFACES; limit: rows examined per surface; deps: test seam (db fns,
+ *   resolvers, batch size)
  * @returns {Promise<{ orgId: string, tier: string, notFound?: boolean,
  *   surfaces: Record<string, {encrypted: number, skipped: number, noKey: number, failed: number,
  *   migrated?: number, reasons?: Record<string, number>, blocked?: string}> }>}

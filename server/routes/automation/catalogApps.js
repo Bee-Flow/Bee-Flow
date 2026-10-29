@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/agentRuntime/chatStream/turnState').ToolDef} ToolDef */
 // @typecheck
 'use strict';
 
@@ -37,7 +38,7 @@ function actionLabel(name, appLabels) {
  * @returns {Promise<{ userToolNames: Set<string>, userToolDefs: any[] }>}
  * @param {string} userId
  */
-async function loadUserTools(req, userId) {
+async function loadUserTools(/** @type {import('express').Request} */ req, userId) {
     const session = req.session;
     const { getIntegrationTools } = require('../../core/integrations/integrationTools');
     // `available` is computed STRICTLY from getIntegrationTools — the same
@@ -52,6 +53,7 @@ async function loadUserTools(req, userId) {
     let userToolNames = new Set();
     // Kept alongside the names so app_event can auto-derive watchable
     // sources for integrations that ship no trigger declaration.
+    /** @type {ToolDef[]} */
     let userToolDefs = [];
     try {
         const result = await getIntegrationTools({ userId, session, isAdmin: !!req.session?.isAdmin, automationStep: true });
@@ -67,7 +69,7 @@ async function loadUserTools(req, userId) {
  * Is the webpages beta on for this user?
  * @param {string} userId
  */
-async function isWebpagesAvailable(req, userId) {
+async function isWebpagesAvailable(/** @type {import('express').Request} */ req, userId) {
     // Webpages availability is gated on the beta feature — the same gate
     // getIntegrationTools now uses to actually provision the tools (so the
     // "available" flag here matches what the running agent/automation receives),
@@ -143,7 +145,7 @@ function buildApps({ userToolNames, webpagesAvailable }) {
  * integration it touches is available.
  * @param {string} userId
  */
-async function buildSteps(req, userId, apps) {
+async function buildSteps(/** @type {import('express').Request} */ req, userId, apps) {
     // Reusable Steps (kind='block') the user may add to this automation.
     // A Step is available only when every integration it touches is
     // available to the user — otherwise the call_block would fail at run
@@ -199,7 +201,5 @@ function buildFormPickSources(userToolNames) {
 module.exports = { actionLabel, loadUserTools, isWebpagesAvailable, buildApps, buildSteps, buildFormPickSources };
 
 /**
- * @typedef {Object} BuildAppsArgs
- * @property {Set<string>} userToolNames
- * @property {boolean} [webpagesAvailable]
+ * @typedef {{ userToolNames: Set<string>, webpagesAvailable?: boolean }} BuildAppsArgs
  */

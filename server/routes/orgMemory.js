@@ -105,7 +105,7 @@ function createOrgMemoryRouter(deps = null) {
             }
             return ids.length;
         } catch (err) {
-            log.warn(`[OrgMemory] org ${orgId}: clearing the sensitive opt-ins failed: ${err.message}`);
+            log.warn(`[OrgMemory] org ${orgId}: clearing the sensitive opt-ins failed: ${/** @type {Error} */ (err).message}`);
             return 0;
         }
     }

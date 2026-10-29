@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { addMark, forbiddenJsDoc, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
+import { addMark, addsRequire, completeOptionsEdits, forbiddenJsDoc, quickFixRefuser, safeInferenceEdits, uselessQuickFix } from './jsdoc-convert-server.mjs';
 import { lowerToJsDoc } from './jsdoc-lower.mjs';
 import { applyEdits, inferFile, resetCaches, setSiteFilter } from './ts-callsite-types.mjs';
 
@@ -34,6 +34,25 @@ test('an inference edit with a forbidden type goes together with the edit that n
     const { edits: kept, dropped } = safeInferenceEdits(edits);
     assert.deepEqual(kept, [edits[2]]);
     assert.equal(dropped.length, 2);
+});
+
+test('a typedef that leaves a destructured name untyped is dropped with its @param; a complete one stays', () => {
+    const edits = [
+        { kind: 'interface', name: 'BuildArgs', members: [{ key: 'id', type: 'string' }], open: ['extra'] },
+        { kind: 'param', name: null, index: 0, type: 'BuildArgs', host: 0 },
+        { kind: 'interface', name: 'RunArgs', members: [{ key: 'a', type: 'number' }], open: [] },
+        { kind: 'param', name: null, index: 0, type: 'RunArgs', host: 40 },
+        { kind: 'param', name: 'n', index: 1, type: 'number', host: 40 },
+    ];
+    const { edits: kept, dropped } = completeOptionsEdits(edits);
+    assert.deepEqual(kept, edits.slice(2));
+    assert.deepEqual(dropped, ['interface BuildArgs (typedef leaves extra untyped)', 'param BuildArgs (typedef leaves members untyped)']);
+});
+
+test('a quick fix that adds a require (a type import written as a module load) is refused', () => {
+    const before = "const { run } = require('./run');\n/** @returns {Promise<{ ctx }>} */\nasync function f() {}\n";
+    assert.equal(addsRequire(before, "const { run } = require('./run');\nconst { Ctx }=require('./ctx');\n/** @returns {Promise<{ ctx: Ctx }>} */\nasync function f() {}\n"), true);
+    assert.equal(addsRequire(before, before.replace('{ ctx }', '{ ctx: string }')), false);
 });
 
 test('the @typecheck mark goes on top, after a shebang, and only once', () => {
@@ -68,4 +87,51 @@ test('end to end on CommonJS: a JavaScript caller types the parameter, as JSDoc'
     const out = applyEdits(files.get(f), edits);
     assert.match(out, /\/\*\*\n \* @param \{string\} name\n \* @param \{number\} times\n \*\/\nfunction greet\(name, times\)/);
     assert.doesNotMatch(out, /: string|: number/); // no TypeScript syntax in a .js file
+});
+
+test('end to end on CommonJS: an options object with an untyped member gets no typedef (the file would otherwise stop passing the typecheck)', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const dir = '/virtual/server2';
+    const files = new Map([
+        [`${dir}/build.js`, "'use strict';\n/** @param {string} name */\nfunction greet(name) { return name; }\nfunction build({ id, extra }) { greet(id); return extra.x; }\nmodule.exports = { build };\n"],
+    ]);
+    const options = { allowJs: true, checkJs: true, noImplicitAny: true, module: ts.ModuleKind.Node16, moduleResolution: ts.ModuleResolutionKind.Node16, target: ts.ScriptTarget.ES2022, noEmit: true, types: [] };
+    const host = {
+        getScriptFileNames: () => [...files.keys()], getScriptVersion: () => '1',
+        getScriptSnapshot: (f) => (files.has(f) ? ts.ScriptSnapshot.fromString(files.get(f)) : ts.sys.fileExists(f) ? ts.ScriptSnapshot.fromString(ts.sys.readFile(f)) : undefined),
+        getCurrentDirectory: () => dir, getCompilationSettings: () => options, getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
+        fileExists: (f) => files.has(f) || ts.sys.fileExists(f), readFile: (f) => files.get(f) ?? ts.sys.readFile(f),
+    };
+    const service = ts.createLanguageService(host);
+    setSiteFilter((f) => !/\.test\.[cm]?js$/.test(f));
+    resetCaches();
+    const f = `${dir}/build.js`;
+    const inf = inferFile(ts, service, f);
+    const typedef = inf.edits.find((e) => e.kind === 'interface' && e.name === 'BuildArgs');
+    assert.ok(typedef, 'the inference proposes a typedef for the options object');
+    assert.deepEqual(typedef.open, ['extra']);
+    assert.deepEqual(typedef.members.map((m) => m.key), ['id']);
+    // Unfiltered, the typedef lands and the destructure reads a member it lacks (TS2339).
+    const raw = applyEdits(files.get(f), lowerToJsDoc(files.get(f), inf.edits).edits);
+    assert.match(raw, /@typedef \{\{ id: string \}\} BuildArgs/);
+    // Filtered, the slot stays open and the file is left as it was.
+    const { edits: kept } = completeOptionsEdits(inf.edits);
+    const out = applyEdits(files.get(f), lowerToJsDoc(files.get(f), kept).edits);
+    assert.doesNotMatch(out, /BuildArgs/);
+});
+
+test('the quick-fix refuser: a banned parameter, a @type at a banned variable, and @param tags that leave a JS parameter undocumented', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const text = 'function add(col, val) { return [col, val]; }\nconst two = (a, b) => a + b;\nfunction g() {\n    let params = [];\n    params.push(1);\n    return params;\n}\nfunction opts({ columns }) { return columns; }\n';
+    const sf = ts.createSourceFile('a.js', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const refuse = quickFixRefuser(ts, sf, new Set(['add#0|#1|quickfix', 'two#0|#0|required', 'var:params@g#0|quickfix', 'opts#0|.columns|quickfix']));
+    const at = (needle) => ({ span: { start: text.indexOf(needle), length: 0 } });
+    assert.equal(refuse('/**\n * @param {string} col\n * @param {string | number} val\n */\n', at('function add')), true); // banned val
+    assert.equal(refuse('/**\n * @param {number} a\n * @param {number} b\n */\n', at('const two')), true); // required a
+    assert.equal(refuse('/** @type {number[]} */\n    ', at('let params')), true); // banned variable
+    assert.equal(refuse('/** @param {{ columns: string[] }} param0 */\n', at('function opts')), false); // param0 is not a banned name
+    assert.equal(refuse('/**\n * @param {string[]} columns\n */\n', at('function opts')), true); // banned key
+    // coverage: only col documented while val has no default -> val would become required
+    const open = quickFixRefuser(ts, sf, new Set());
+    assert.equal(open('/**\n * @param {string} col\n */\n', at('function add')), true);
+    assert.equal(open('/**\n * @param {string} col\n * @param {string} val\n */\n', at('function add')), false);
+    assert.equal(open('/** @type {number[]} */\n    ', at('let params')), false);
 });

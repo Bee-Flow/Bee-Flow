@@ -76,7 +76,7 @@ const OP_LIST = Array.from(DATATABLE_OPS).join(', ');
 const OP_ALIAS_SUMMARY = 'append/insert → add_row, upsert → save_row, list/query → find_rows, count → count_rows, edit → update_rows, remove → delete_rows';
 
 /**
- * @param {*} raw  what the model sent as `op`
+ * @param {unknown} raw  what the model sent as `op`
  * @param {{hasValues?: boolean}} opts  whether the step carries a column map —
  *   an absent op on a step WITH values is a write whose kind we cannot guess
  *   (insert vs upsert vs update differ in what they do to existing rows), an

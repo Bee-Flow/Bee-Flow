@@ -28,11 +28,10 @@ function seedFor(seedMetadata) {
 }
 
 /**
- * @typedef {Object} LoadOrCreateDraftArgs
- * @property {string} userId
- * @property {string | null} [builderSessionId]
- * @property {string | null} [automationId]
- * @property {{ title?: string; description?: string; } | null} [seedMetadata]
+ * @typedef {{ userId: string,
+ *   builderSessionId?: string | null,
+ *   automationId?: string | null,
+ *   seedMetadata?: { title?: string; description?: string; } | null }} LoadOrCreateDraftArgs
  */
 /**
  * @param {LoadOrCreateDraftArgs} param0

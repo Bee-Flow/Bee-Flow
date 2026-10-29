@@ -27,7 +27,7 @@ export interface HubNavigationDeps {
     selectedAgent: AgentLike | null;
     directChatMode: boolean;
     isMobile: boolean;
-    setActiveProject: (project: any) => void;
+    setActiveProject: (project: Project | null) => void;
     setSelectedAgent: (agent: AgentLike | null) => void;
     setDirectChatMode: (on: boolean) => void;
     setSidebarOpen: (open: boolean) => void;

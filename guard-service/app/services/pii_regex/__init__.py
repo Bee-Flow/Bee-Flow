@@ -9,6 +9,11 @@ Every name the single-file module exported is re-exported here unchanged.
 
 from __future__ import annotations
 
+from app.services.pii_validators import (
+    REFUTED_CONFIDENCE_FACTOR,
+    is_valid_iban as _is_valid_iban,
+)
+
 from .anchors import (
     _ANCHOR_GAP,
     _HEALTH_INS_ANCHOR_WORDS,
@@ -91,7 +96,6 @@ from .generic import (
     _PHONE_RE,
     _SECRET_RES,
     _URL_RE,
-    _is_valid_iban,
     _is_valid_ipv4,
     _is_valid_ipv6,
     _is_valid_luhn,
@@ -159,7 +163,6 @@ from .spec import (
     _SE,
     _US,
     ANY_REGION,
-    REFUTED_CONFIDENCE_FACTOR,
     SHIPPED_REGIONS,
     PatternSpec,
     _count_digits,

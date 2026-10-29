@@ -106,7 +106,7 @@ export default function PhaseRail({ phases = [], activeKey = null, t, presenter 
                         <div className="flex flex-col items-center w-[28px]">
                             <Circle status={p.status} />
                             {i < list.length - 1 && (
-                                <span aria-hidden="true" style={{ width: 2, flex: 1, minHeight: 22, margin: '4px 0', background: p.status === 'done' || p.status === 'skipped' ? 'var(--kind-playbook)' : 'var(--border-default)', opacity: p.status === 'done' ? 1 : 0.7 }} />
+                                <span aria-hidden="true" className={`[width:2px] [flex:1] [min-height:22px] [margin:4px_0] ${p.status === 'done' || p.status === 'skipped' ? '[background:var(--kind-playbook)]' : '[background:var(--border-default)]'} ${p.status === 'done' ? '[opacity:1]' : '[opacity:0.7]'}`} />
                             )}
                         </div>
                         <div className="min-w-0 pb-4 flex-1 [padding-top:4px]!">
@@ -143,8 +143,7 @@ function Body({ onSelect, phaseKey, selected, label, t, children }: BodyProps) {
         <button
             type="button"
             onClick={() => onSelect(phaseKey)}
-            className="block w-full text-left rounded-lg -mx-1.5 px-1.5 py-0.5"
-            style={{ background: selected ? 'color-mix(in srgb, var(--type-ai) 10%, transparent)' : 'transparent' }}
+            className={`block w-full text-left rounded-lg -mx-1.5 px-1.5 py-0.5 ${selected ? '[background:color-mix(in_srgb,_var(--type-ai)_10%,_transparent)]' : '[background:transparent]'}`}
             aria-pressed={selected}
             aria-label={`${label} — ${t('playbooks.rail.open_phase', 'Show what this phase did')}`}
             data-testid={`playbook-phase-open-${phaseKey}`}

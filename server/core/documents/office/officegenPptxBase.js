@@ -15,7 +15,11 @@ const BODY_BOTTOM = 5.0;
 
 const DATA_IMAGE_RE = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
 
-/** pptxgenjs wants `RRGGBB`; the theme carries CSS `#rgb`/`#rrggbb`. */
+/**
+ * pptxgenjs wants `RRGGBB`; the theme carries CSS `#rgb`/`#rrggbb`.
+ * @param {string} value
+ * @param {string} fallback
+ */
 function pptxHex(value, fallback) {
     const raw = String(value ?? '').trim().replace(/^#/, '');
     if (/^[0-9a-fA-F]{6}$/.test(raw)) return raw.toUpperCase();
@@ -59,6 +63,9 @@ function deckTheme(theme) {
     const measuredAspect = theme && Number(theme.logoAspect) > 0 ? Number(theme.logoAspect) : null;
     theme = ensureResolvedTheme(theme);
     const t = { ...NEUTRAL_DECK_THEME, ...(theme && typeof theme === 'object' ? theme : {}) };
+    /**
+     * @param {string} k
+     */
     const hex = (k) => pptxHex(t[k], pptxHex(NEUTRAL_DECK_THEME[k], '1A1D21'));
     return {
         preset: t.preset,
@@ -91,7 +98,7 @@ function deckTheme(theme) {
         logoAspect: measuredAspect || (Number(t.logoAspect) > 0 ? Number(t.logoAspect) : 2.5),
         slideNumbers: t.slideNumbers !== false,
         brandOnSlides: t.brandOnSlides !== false,
-        chartColors: (Array.isArray(t.chartColors) && t.chartColors.length ? t.chartColors : NEUTRAL_DECK_THEME.chartColors || []).map((c) => pptxHex(c, hex('accent'))),
+        chartColors: (Array.isArray(t.chartColors) && t.chartColors.length ? t.chartColors : NEUTRAL_DECK_THEME.chartColors || []).map((/** @type {string} */ c) => pptxHex(c, hex('accent'))),
         statFill: pptxHex(t.statFill, hex('tableBand')),
         // A template deck's pictures (already validated by the theme model).
         template: t.template && typeof t.template === 'object' && t.template.cover && t.template.content ? t.template : null,

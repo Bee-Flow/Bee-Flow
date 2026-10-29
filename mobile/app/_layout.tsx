@@ -50,7 +50,8 @@ export default function RootLayout() {
         // Outside every provider on purpose. A boundary below ThemeProvider
         // cannot catch ThemeProvider failing, and the providers are exactly the
         // code whose failure takes the whole app to a blank window.
-        <ErrorBoundary label="root">
+        // Its `label` (a diagnostics tag, not copy) defaults to "root".
+        <ErrorBoundary>
             <RootProviders>
                 <ToastProvider>
                     <ConfirmProvider>

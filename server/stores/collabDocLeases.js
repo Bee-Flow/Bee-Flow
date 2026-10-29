@@ -26,7 +26,7 @@ const FENCE_TTL_MS = 2 * 60_000;
 // pool's 30 s statement timeout.
 const MIRROR_LEASE_MS = 60_000;
 
-const toInt = (/** @type {any} */ v) => (v === null || v === undefined ? 0 : Number(v));
+const toInt = (/** @type {unknown} */ v) => (v === null || v === undefined ? 0 : Number(v));
 
 /**
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} db

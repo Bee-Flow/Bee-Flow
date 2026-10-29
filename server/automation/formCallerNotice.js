@@ -21,7 +21,7 @@ const { describeNoticeFor } = require('../core/automationRunner/callerNotice');
  */
 async function assertFormStartAllowed({ automation, submitterId, store }) {
     if (!submitterId) return;
-    const notice = await describeNoticeFor({ automation: /** @type {any} */ (automation), userId: submitterId, store });
+    const notice = await describeNoticeFor({ automation, userId: submitterId, store });
     if (notice.applies && !notice.seen) {
         throw new HttpError(409, 'caller_notice_required',
             'This form runs with your own connections, and you have not confirmed which ones yet. Ask the owner to give you the Run right on the automation, open it once and confirm, then fill in the form again.');

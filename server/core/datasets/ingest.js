@@ -48,12 +48,12 @@ class IngestError extends Error {
 }
 
 /**
- * @param {object} opts
- * @param {import('stream').Readable} opts.input the raw upload bytes
- * @param {boolean} opts.gzip input is gzip-compressed (.vcf.gz; bgzf included)
- * @param {{ write: (buf: Buffer) => Promise<number>, writeRsid: (shard: number, record: { rsNum: number, contigIdx: number, pos: number }) => void|Promise<void> }} opts.sink see module header
- * @param {number} [opts.totalBytes] declared raw size, for progress pct
- * @param {(p: { pct: number, variantCount: number, bytesRead: number }) => void} [opts.onProgress] at most once per 2 s
+ * @param {{ input: import('stream').Readable, gzip: boolean,
+ *   sink: { write: (buf: Buffer) => Promise<number>, writeRsid: (shard: number, record: { rsNum: number, contigIdx: number, pos: number }) => void|Promise<void> },
+ *   totalBytes?: number,
+ *   onProgress?: (p: { pct: number, variantCount: number, bytesRead: number }) => void }} opts
+ *   `input`: the raw upload bytes; `gzip`: input is gzip-compressed (.vcf.gz; bgzf included); `sink`: see
+ *   module header; `totalBytes`: declared raw size, for progress pct; `onProgress`: at most once per 2 s
  * @returns {Promise<{ stats: {variantCount:number, blockCount:number, samples:string[],
  *   build:string|null, contigs:Array<{name:string,count:number,minPos:number,maxPos:number}>},
  *   headerText: string, perContig: Parameters<typeof import('./blockIndex').serialize>[0], contentEnd: number }>}

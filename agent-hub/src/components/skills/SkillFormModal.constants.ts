@@ -25,7 +25,7 @@ import type { TextTab } from './SkillFormModal.types';
  * disappear without anyone noticing.
  *
  * ── AND THE COMPARISON IS THIS FILE'S JOB, NOT THE SERVER'S ─────────
- * `resolveBodyWrite` compares nothing with what is stored: any `workflow`
+ * `resolveBodyWrite` compares nothing with what is stored, so any `workflow`
  * that ARRIVES is re-parsed, and `parseWorkflowToSteps` mints a fresh id
  * per line with `refs: []`. So "unchanged text leaves the structure alone"
  * is only true if the unchanged text is never sent — which is what

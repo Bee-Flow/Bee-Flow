@@ -123,7 +123,7 @@ async function classifyGraphFailure(response, context) {
 
 /**
  * @param {string} path
- * @param {object} session
+ * @param {MsSession} session
  * @param {string} context
  * @param {{ method?: string, body?: string, headers?: Record<string, string> }} [options]
  * @returns {Promise<any>}
@@ -142,7 +142,7 @@ async function graphJson(path, session, context, options = {}) {
  * The onlineMeeting behind a calendar join URL, or null when this account
  * cannot see one (Graph returns an empty list for meetings the user does not
  * organize).
- * @param {object} session
+ * @param {MsSession} session
  * @param {string | null | undefined} joinUrl
  */
 async function getOnlineMeetingByJoinUrl(session, joinUrl) {
@@ -154,7 +154,7 @@ async function getOnlineMeetingByJoinUrl(session, joinUrl) {
 }
 
 /**
- * @param {object} session
+ * @param {MsSession} session
  * @param {string} meetingId
  * @param {string} collection
  */
@@ -172,14 +172,14 @@ async function listCollection(session, meetingId, collection) {
 
 /**
  * All recordings of an onlineMeeting (every occurrence of a series).
- * @param {object} session
+ * @param {MsSession} session
  * @param {string} meetingId
  */
 function listRecordings(session, meetingId) { return listCollection(session, meetingId, 'recordings'); }
 
 /**
  * All transcripts of an onlineMeeting (every occurrence of a series).
- * @param {object} session
+ * @param {MsSession} session
  * @param {string} meetingId
  */
 function listTranscripts(session, meetingId) { return listCollection(session, meetingId, 'transcripts'); }
@@ -219,7 +219,7 @@ function pickArtifactForSlot(items, { meetingStart, meetingEnd } = {}) {
 /**
  * Stream a recording MP4 to `destPath`. Refuses (code `recording_too_large`)
  * when Content-Length or the running byte count passes `maxBytes`.
- * @param {object} session
+ * @param {MsSession} session
  * @param {{ meetingId: string, recordingId: string, destPath: string, maxBytes?: number }} opts
  */
 async function downloadRecordingToFile(session, { meetingId, recordingId, destPath, maxBytes = DEFAULT_MAX_VIDEO_BYTES }) {
@@ -242,7 +242,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
         },
     });
     try {
-        await pipeline(Readable.fromWeb(/** @type {any} */ (response.body)), limiter, fs.createWriteStream(destPath));
+        await pipeline(Readable.fromWeb(/** @type {import('stream/web').ReadableStream} */ (response.body)), limiter, fs.createWriteStream(destPath));
     } catch (err) {
         try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
         if (err?.code === 'recording_too_large') throw err;
@@ -253,7 +253,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
 
 /**
  * The transcript of one occurrence as WebVTT text (with `<v Name>` voice tags).
- * @param {object} session
+ * @param {MsSession} session
  * @param {{ meetingId: string, transcriptId: string }} opts
  */
 async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
@@ -267,7 +267,7 @@ async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
  * Turn Teams' own "record automatically" on or off for a meeting the user
  * organizes (needs OnlineMeetings.ReadWrite). Never throws.
  * → { ok: true } | { error: 'not_organizer'|'needs_teams_scopes'|'not_found'|'error' }
- * @param {object} session
+ * @param {MsSession} session
  * @param {{ joinUrl: string, enabled: boolean }} opts
  */
 async function setRecordAutomatically(session, { joinUrl, enabled }) {
@@ -298,3 +298,5 @@ module.exports = {
     setRecordAutomatically,
     extractAudioTrack,
 };
+
+/** @typedef {import('../../integrations/msGraphClient').MsSession} MsSession */

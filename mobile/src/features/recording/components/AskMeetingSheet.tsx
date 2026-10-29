@@ -3,6 +3,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles } from '@/core/theme/ThemeProvider';
 import { Sheet } from '@/shared/ui';
 
@@ -19,9 +20,10 @@ export function AskMeetingSheet({
     meeting: Transcription;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeMeetingStyles);
     return (
-        <Sheet visible={visible} onClose={onClose} title="Ask about this meeting" scroll={false}>
+        <Sheet visible={visible} onClose={onClose} title={t('meeting_notes.assistant_title', 'Ask about this meeting')} scroll={false}>
             <View style={styles.askBody}>
                 <MeetingChatSheetBody meeting={meeting} />
             </View>

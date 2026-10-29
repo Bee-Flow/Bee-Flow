@@ -88,9 +88,12 @@ async function renderLogin() {
     return { ...utils, onLogin };
 }
 
-function signIn(username = 'ada@example.com', password = 'hunter2') {
-    fireEvent.change(screen.getByTestId('username'), { target: { value: username } });
-    fireEvent.change(screen.getByTestId('password'), { target: { value: password } });
+async function signIn(username = 'ada@example.com', password = 'hunter2') {
+    const user = userEvent.setup();
+    await user.clear(screen.getByTestId('username'));
+    await user.paste(username);
+    await user.clear(screen.getByTestId('password'));
+    await user.paste(password);
     fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
 }
 
@@ -190,7 +193,7 @@ describe('signing in with a password', () => {
     it('posts the typed credentials to /auth/admin-login as JSON', async () => {
         route('/auth/admin-login', () => ok({ success: true, user: { id: 'u1' } }));
         await renderLogin();
-        signIn('ada@example.com', 'hunter2');
+        await signIn('ada@example.com', 'hunter2');
         await waitFor(() => expect(callTo('/auth/admin-login')).toBeTruthy());
         const [, options] = callTo('/auth/admin-login');
         expect(options.method).toBe('POST');
@@ -201,14 +204,14 @@ describe('signing in with a password', () => {
     it('hands the user and any recovery key straight to the app', async () => {
         route('/auth/admin-login', () => ok({ success: true, user: { id: 'u1' }, recoveryKey: 'RK-1234' }));
         const { onLogin } = await renderLogin();
-        signIn();
+        await signIn();
         await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ id: 'u1' }, 'RK-1234'));
     });
 
     it('shows the server\'s refusal for a wrong password', async () => {
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
     });
 
@@ -219,7 +222,7 @@ describe('signing in with a password', () => {
     it('treats an unknown account exactly like a wrong password', async () => {
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         await renderLogin();
-        signIn('nobody@example.com', 'whatever');
+        await signIn('nobody@example.com', 'whatever');
         expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
         expect(screen.getByTestId('username')).toBeInTheDocument();
     });
@@ -235,7 +238,7 @@ describe('signing in with a password', () => {
             retryAfter: 42,
         }));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText(/Too many failed sign-in attempts/)).toBeInTheDocument();
         expect(screen.queryByText(/42/)).toBeNull();
         expect(screen.queryByText(/too_many_attempts/)).toBeNull();
@@ -244,21 +247,21 @@ describe('signing in with a password', () => {
     it('shows the SSO-only refusal on a server with password login disabled', async () => {
         route('/auth/admin-login', () => fail(403, { error: 'Password login is disabled on this server.' }));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('Password login is disabled on this server.')).toBeInTheDocument();
     });
 
     it('falls back to a generic message when the refusal carries no text', async () => {
         route('/auth/admin-login', () => fail(401, {}));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('login.login_failed')).toBeInTheDocument();
     });
 
     it('reports a connection error when the request never lands', async () => {
         route('/auth/admin-login', () => Promise.reject(new Error('offline')));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('login.connection_error')).toBeInTheDocument();
     });
 
@@ -266,9 +269,9 @@ describe('signing in with a password', () => {
         let n = 0;
         route('/auth/admin-login', () => fail(401, { error: n++ === 0 ? 'First refusal' : 'Second refusal' }));
         await renderLogin();
-        signIn();
+        await signIn();
         await screen.findByText('First refusal');
-        signIn();
+        await signIn();
         expect(await screen.findByText('Second refusal')).toBeInTheDocument();
         expect(screen.queryByText('First refusal')).toBeNull();
     });
@@ -276,7 +279,7 @@ describe('signing in with a password', () => {
     it('lets you try again with the form still filled in', async () => {
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         await renderLogin();
-        signIn('ada@example.com', 'hunter2');
+        await signIn('ada@example.com', 'hunter2');
         await screen.findByText('Invalid credentials');
         expect(screen.getByTestId('username')).toHaveValue('ada@example.com');
         expect(screen.getByTestId('password')).toHaveValue('hunter2');
@@ -289,7 +292,7 @@ describe('signing in with a password', () => {
     it('announces a failed sign-in to nobody using a screen reader', async () => {
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         const { container } = await renderLogin();
-        signIn();
+        await signIn();
         await screen.findByText('Invalid credentials');
         expect(container.querySelector('[role="alert"]')).toBeNull();
         expect(container.querySelector('[aria-live]')).toBeNull();
@@ -301,7 +304,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockResolvedValue({ success: true, user: { id: 'u1' } });
         const { onLogin } = await renderLogin();
-        signIn('ada@example.com', 'hunter2');
+        await signIn('ada@example.com', 'hunter2');
         await waitFor(() => expect(opaqueLogin).toHaveBeenCalledWith('ada@example.com', 'hunter2'));
         expect(onLogin).toHaveBeenCalledWith({ id: 'u1' });
     });
@@ -314,7 +317,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockResolvedValue({ success: true, user: { id: 'u1' }, recoveryKey: 'RK-1234' });
         const { onLogin } = await renderLogin();
-        signIn();
+        await signIn();
         await waitFor(() => expect(onLogin).toHaveBeenCalled());
         expect(onLogin.mock.calls[0]).toHaveLength(1);
     });
@@ -323,7 +326,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockResolvedValue({ useLegacy: true });
         const { onLogin } = await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('login.auth_error_contact_admin')).toBeInTheDocument();
         expect(onLogin).not.toHaveBeenCalled();
     });
@@ -332,7 +335,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockResolvedValue({ success: false });
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('login.login_failed')).toBeInTheDocument();
     });
 
@@ -343,7 +346,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockRejectedValue(new Error('Login start failed: envelope corrupt'));
         await renderLogin();
-        signIn();
+        await signIn();
         expect(await screen.findByText('Login start failed: envelope corrupt')).toBeInTheDocument();
     });
 
@@ -354,7 +357,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => fail(401, { useOpaque: true, error: 'Invalid credentials' }));
         opaqueLogin.mockResolvedValue({ success: false });
         await renderLogin();
-        signIn();
+        await signIn();
         await waitFor(() => expect(opaqueLogin).toHaveBeenCalled());
         expect(screen.queryByText('Invalid credentials')).toBeNull();
     });
@@ -367,7 +370,7 @@ describe('the transparent hand-off to OPAQUE', () => {
         route('/auth/admin-login', () => ok({ useOpaque: true, mfaRequired: true }));
         opaqueLogin.mockResolvedValue({ success: true, user: { id: 'u1' } });
         const { onLogin } = await renderLogin();
-        signIn();
+        await signIn();
         await waitFor(() => expect(onLogin).toHaveBeenCalled());
         expect(screen.queryByTestId('mfa-code-input')).toBeNull();
     });
@@ -377,7 +380,7 @@ describe('the second factor', () => {
     const arriveAtMfa = async () => {
         route('/auth/admin-login', () => ok({ mfaRequired: true }));
         const rendered = await renderLogin();
-        signIn();
+        await signIn();
         await screen.findByTestId('mfa-code-input');
         return rendered;
     };
@@ -464,7 +467,7 @@ describe('the second factor with a security key', () => {
         route('/auth/admin-login', () => ok({ mfaRequired: true, mfaMethods: ['totp', 'security_key'] }));
         route('/auth/mfa/security-key/options', () => jsonOk({ options: { challenge: 'abc', rpId: 'localhost' } }));
         const rendered = await renderLogin();
-        signIn();
+        await signIn();
         await screen.findByTestId('mfa-security-key-button');
         return rendered;
     };
@@ -491,7 +494,7 @@ describe('the second factor with a security key', () => {
             error: 'Too many incorrect codes. Sign in again with your password.', code: 'mfa_attempts_exhausted',
         }));
         await renderLogin();
-        signIn();
+        await signIn();
         await userEvent.type(await screen.findByTestId('mfa-code-input'), '000000');
         await userEvent.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('Too many incorrect codes. Sign in again with your password.')).toBeInTheDocument();

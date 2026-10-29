@@ -42,7 +42,7 @@ import {
     registerEphemeralLesson,
     getLesson,
 } from '../../components/onboarding/lessons';
-import { generatePractice } from '../../components/onboarding/practiceClient';
+import { generatePractice } from '../../api/practiceClient';
 import {
     countReviewDue,
     buildReviewSession,

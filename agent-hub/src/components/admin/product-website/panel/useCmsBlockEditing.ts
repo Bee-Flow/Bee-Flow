@@ -38,6 +38,123 @@ interface UseCmsBlockEditingArgs {
     setInspectorOpen: (open: boolean) => void;
 }
 
+/**
+ * The page's per-locale overrides with one block's entry removed. `onPruned`
+ * runs for each locale that held one, in order, with its new override.
+ */
+function withoutBlockOverrides(
+    perLocale: Record<string, Record<string, unknown> | null | undefined>,
+    blockId: string,
+    onPruned: (locale: string, nextOv: PageOverride) => void,
+) {
+    let changed = false;
+    const nextPerLocale: Record<string, Record<string, unknown> | null | undefined> = {};
+    for (const [locale, ov] of Object.entries(perLocale)) {
+        const ovPage = ov as PageOverride | null | undefined;
+        if (ovPage?.blocks && Object.prototype.hasOwnProperty.call(ovPage.blocks, blockId)) {
+            const nextBlocks = { ...ovPage.blocks };
+            delete nextBlocks[blockId];
+            const nextOv = { ...ovPage, blocks: nextBlocks };
+            nextPerLocale[locale] = nextOv;
+            onPruned(locale, nextOv);
+            changed = true;
+        } else {
+            nextPerLocale[locale] = ov;
+        }
+    }
+    return { nextPerLocale, changed };
+}
+
+type BlockCrudArgs = Pick<UseCmsBlockEditingArgs,
+    'activePage' | 'activeBlockId' | 'setActiveBlockId' | 'updatePage' | 'localeOverridesRef' | 'setLocaleOverrides' | 'scheduleSave'>;
+
+/** Block CRUD on the active page: add, show/hide, duplicate, delete (with its translation overrides), reorder. */
+function useBlockCrud({ activePage, activeBlockId, setActiveBlockId, updatePage, localeOverridesRef, setLocaleOverrides, scheduleSave }: BlockCrudArgs) {
+    // `atIndex` (optional) = explicit splice position from the canvas
+    // insert-between "+" zones; when omitted/null the block lands AFTER the
+    // active block (fall back to append) — adding a section next to what
+    // you're looking at instead of at the page end.
+    // `contentOverrides` (optional) is spread over the type's defaults —
+    // used by the AddBlockDialog's variant strip to add a block with a
+    // specific layout variant pre-selected ({ variant: 'bento' } etc.).
+    const addBlock = useCallback((type: string, atIndex: number | null = null, contentOverrides: Record<string, unknown> | null = null) => {
+        if (!activePage) return;
+        const block = {
+            id: newBlockId(),
+            type,
+            enabled: true,
+            content: {
+                ...JSON.parse(JSON.stringify(DEFAULTS_BY_TYPE[type] || {})),
+                ...(contentOverrides || {}),
+            },
+            style: {},
+        };
+        updatePage(activePage.id, (p: PageWithBlocks) => {
+            const blocks = [...p.blocks];
+            const idx = typeof atIndex === 'number' && Number.isInteger(atIndex)
+                ? Math.max(0, Math.min(atIndex, blocks.length))
+                : (() => {
+                    const activeIdx = activeBlockId ? p.blocks.findIndex((b: CmsBlock) => b.id === activeBlockId) : -1;
+                    return activeIdx >= 0 ? activeIdx + 1 : blocks.length;
+                })();
+            blocks.splice(idx, 0, block);
+            return { ...p, blocks };
+        });
+        setActiveBlockId(block.id);
+    }, [activePage, activeBlockId, updatePage, setActiveBlockId]);
+
+    const toggleBlock = useCallback((blockId: string) => {
+        if (!activePage) return;
+        updatePage(activePage.id, (p: PageWithBlocks) => ({
+            ...p,
+            blocks: p.blocks.map((b: CmsBlock) => b.id === blockId ? { ...b, enabled: !b.enabled } : b),
+        }));
+    }, [activePage, updatePage]);
+
+    const duplicateBlock = useCallback((blockId: string) => {
+        if (!activePage) return;
+        updatePage(activePage.id, (p: PageWithBlocks) => {
+            const idx = p.blocks.findIndex((b: CmsBlock) => b.id === blockId);
+            if (idx < 0) return p;
+            const copy = cloneBlock(p.blocks[idx]);
+            const blocks = [...p.blocks];
+            blocks.splice(idx + 1, 0, copy);
+            setActiveBlockId(copy.id);
+            return { ...p, blocks };
+        });
+    }, [activePage, updatePage, setActiveBlockId]);
+
+    const deleteBlock = useCallback((blockId: string) => {
+        if (!activePage) return;
+        const pageId = activePage.id;
+        updatePage(pageId, (p: PageWithBlocks) => {
+            const blocks = p.blocks.filter((b: CmsBlock) => b.id !== blockId);
+            if (activeBlockId === blockId) setActiveBlockId(blocks[0]?.id || null);
+            return { ...p, blocks };
+        });
+        // Prune this block's per-locale translation overrides too — they're
+        // keyed by block id, so without this they linger as orphaned cruft
+        // (and resurface in exports) after the block is gone.
+        const prev = localeOverridesRef.current;
+        const perLocale = prev.pagesByLocale?.[pageId];
+        if (perLocale) {
+            const { nextPerLocale, changed } = withoutBlockOverrides(perLocale, blockId, (locale, nextOv) => scheduleSave(`locale:page:${pageId}:${locale}`, nextOv));
+            if (changed) {
+                const updated = { ...prev, pagesByLocale: { ...prev.pagesByLocale, [pageId]: nextPerLocale } };
+                localeOverridesRef.current = updated;
+                setLocaleOverrides(updated);
+            }
+        }
+    }, [activePage, activeBlockId, updatePage, scheduleSave, localeOverridesRef, setActiveBlockId, setLocaleOverrides]);
+
+    const reorderBlocks = useCallback((nextBlocks: CmsBlock[]) => {
+        if (!activePage) return;
+        updatePage(activePage.id, (p: PageWithBlocks) => ({ ...p, blocks: nextBlocks }));
+    }, [activePage, updatePage]);
+
+    return { addBlock, toggleBlock, duplicateBlock, deleteBlock, reorderBlocks };
+}
+
 export default function useCmsBlockEditing({
     site, activePage, activeBlockId, setActiveBlockId, activeLocale, translationMode,
     history, pagesStateRef, updatePage, updateSiteOverride, updatePageOverride,
@@ -156,103 +273,9 @@ export default function useCmsBlockEditing({
         });
     }, [activePage, updatePage, site, commitHistory, pagesStateRef, translationMode, activeLocale, updateSiteOverride, updatePageOverride]);
 
-    // ── block CRUD ───────────────────────────────────────────────────
-
-    // `atIndex` (optional) = explicit splice position from the canvas
-    // insert-between "+" zones; when omitted/null the block lands AFTER the
-    // active block (fall back to append) — adding a section next to what
-    // you're looking at instead of at the page end.
-    // `contentOverrides` (optional) is spread over the type's defaults —
-    // used by the AddBlockDialog's variant strip to add a block with a
-    // specific layout variant pre-selected ({ variant: 'bento' } etc.).
-    const addBlock = useCallback((type: string, atIndex: number | null = null, contentOverrides: Record<string, unknown> | null = null) => {
-        if (!activePage) return;
-        const block = {
-            id: newBlockId(),
-            type,
-            enabled: true,
-            content: {
-                ...JSON.parse(JSON.stringify(DEFAULTS_BY_TYPE[type] || {})),
-                ...(contentOverrides || {}),
-            },
-            style: {},
-        };
-        updatePage(activePage.id, (p: PageWithBlocks) => {
-            const blocks = [...p.blocks];
-            const idx = typeof atIndex === 'number' && Number.isInteger(atIndex)
-                ? Math.max(0, Math.min(atIndex, blocks.length))
-                : (() => {
-                    const activeIdx = activeBlockId ? p.blocks.findIndex((b: CmsBlock) => b.id === activeBlockId) : -1;
-                    return activeIdx >= 0 ? activeIdx + 1 : blocks.length;
-                })();
-            blocks.splice(idx, 0, block);
-            return { ...p, blocks };
-        });
-        setActiveBlockId(block.id);
-    }, [activePage, activeBlockId, updatePage, setActiveBlockId]);
-
-    const toggleBlock = useCallback((blockId: string) => {
-        if (!activePage) return;
-        updatePage(activePage.id, (p: PageWithBlocks) => ({
-            ...p,
-            blocks: p.blocks.map((b: CmsBlock) => b.id === blockId ? { ...b, enabled: !b.enabled } : b),
-        }));
-    }, [activePage, updatePage]);
-
-    const duplicateBlock = useCallback((blockId: string) => {
-        if (!activePage) return;
-        updatePage(activePage.id, (p: PageWithBlocks) => {
-            const idx = p.blocks.findIndex((b: CmsBlock) => b.id === blockId);
-            if (idx < 0) return p;
-            const copy = cloneBlock(p.blocks[idx]);
-            const blocks = [...p.blocks];
-            blocks.splice(idx + 1, 0, copy);
-            setActiveBlockId(copy.id);
-            return { ...p, blocks };
-        });
-    }, [activePage, updatePage, setActiveBlockId]);
-
-    const deleteBlock = useCallback((blockId: string) => {
-        if (!activePage) return;
-        const pageId = activePage.id;
-        updatePage(pageId, (p: PageWithBlocks) => {
-            const blocks = p.blocks.filter((b: CmsBlock) => b.id !== blockId);
-            if (activeBlockId === blockId) setActiveBlockId(blocks[0]?.id || null);
-            return { ...p, blocks };
-        });
-        // Prune this block's per-locale translation overrides too — they're
-        // keyed by block id, so without this they linger as orphaned cruft
-        // (and resurface in exports) after the block is gone.
-        const prev = localeOverridesRef.current;
-        const perLocale = prev.pagesByLocale?.[pageId];
-        if (perLocale) {
-            let changed = false;
-            const nextPerLocale: Record<string, Record<string, unknown> | null | undefined> = {};
-            for (const [locale, ov] of Object.entries(perLocale)) {
-                const ovPage = ov as PageOverride | null | undefined;
-                if (ovPage?.blocks && Object.prototype.hasOwnProperty.call(ovPage.blocks, blockId)) {
-                    const nextBlocks = { ...ovPage.blocks };
-                    delete nextBlocks[blockId];
-                    const nextOv = { ...ovPage, blocks: nextBlocks };
-                    nextPerLocale[locale] = nextOv;
-                    scheduleSave(`locale:page:${pageId}:${locale}`, nextOv);
-                    changed = true;
-                } else {
-                    nextPerLocale[locale] = ov;
-                }
-            }
-            if (changed) {
-                const updated = { ...prev, pagesByLocale: { ...prev.pagesByLocale, [pageId]: nextPerLocale } };
-                localeOverridesRef.current = updated;
-                setLocaleOverrides(updated);
-            }
-        }
-    }, [activePage, activeBlockId, updatePage, scheduleSave, localeOverridesRef, setActiveBlockId, setLocaleOverrides]);
-
-    const reorderBlocks = useCallback((nextBlocks: CmsBlock[]) => {
-        if (!activePage) return;
-        updatePage(activePage.id, (p: PageWithBlocks) => ({ ...p, blocks: nextBlocks }));
-    }, [activePage, updatePage]);
+    const { addBlock, toggleBlock, duplicateBlock, deleteBlock, reorderBlocks } = useBlockCrud({
+        activePage, activeBlockId, setActiveBlockId, updatePage, localeOverridesRef, setLocaleOverrides, scheduleSave,
+    });
 
     // Canvas block-toolbar actions (iframe → cms-block-action). Every
     // mutation REUSES the existing block mutators above, so history +

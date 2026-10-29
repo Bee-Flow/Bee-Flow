@@ -103,21 +103,18 @@ async function _insertVersionRow(params) {
  * @param {string} userId
  * @param {string} webpageId
  * @param {string} summary
- * @param {any} [hashes] - optional pre-computed { htmlSha, cssSha, jsSha, contentLength }
+ * @param {{ htmlSha?: string | null, cssSha?: string | null, jsSha?: string | null, contentLength?: number | null } | null} [hashes] - optional pre-computed hashes and length
  *                          taken from the webpage row to avoid re-hashing
  * @param {string} [source] - 'manual' (default) | 'ai' | 'published' | 'restore'.
  *                          Last positional argument on purpose: the four pre-W2
  *                          call sites keep their exact behaviour without being
  *                          touched.
- * @param {object} [opts] - W4, after `source` for the same reason.
- * @param {string|null} [opts.actorUserId] - WHO made this version. Defaults to
- *                          `userId`: every write path to a webpage goes via the
- *                          owner, so that is the honest default. An explicit `null`
- *                          means "not determinable" and comes back in the UI as an
- *                          unknown maker.
- * @param {number|null} [opts.lineDelta] - the net line difference of the edit this
- *                          snapshot belongs to, or nothing if it was not measured.
- *                          NOT 0 when in doubt: 0 is the statement "nothing changed".
+ * @param {{ actorUserId?: string|null, lineDelta?: number|null }} [opts]  - W4, after `source` for the same reason.
+ *   actorUserId: WHO made this version. Defaults to `userId`: every write path to a webpage goes via the owner, so
+ *     that is the honest default. An explicit `null` means "not determinable" and comes back in the UI as an
+ *     unknown maker.
+ *   lineDelta: the net line difference of the edit this snapshot belongs to, or nothing if it was not measured. NOT
+ *     0 when in doubt: 0 is the statement "nothing changed".
  */
 async function createVersion(userId, webpageId, summary = 'Auto-save', hashes = null, source = DEFAULT_VERSION_SOURCE, opts = {}) {
     await initDB();

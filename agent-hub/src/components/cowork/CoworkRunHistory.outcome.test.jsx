@@ -1,4 +1,5 @@
-import { act, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkRunHistory from './CoworkRunHistory';
@@ -48,8 +49,9 @@ async function renderHistory(runs = [], total = null, props = {}) {
 }
 
 /** Open a collapsed row. The disclosure is the row's only collapsed button. */
-function expand(row) {
-    fireEvent.click(within(row).getByRole('button', { expanded: false }));
+async function expand(row) {
+    const user = userEvent.setup();
+    await user.click(within(row).getByRole('button', { expanded: false }));
 }
 
 /** The body a row reveals when opened — everything after the summary button. */
@@ -77,8 +79,8 @@ describe('CoworkRunHistory — what came out of the run (CW-13)', () => {
             run({ id: 'bad', status: 'failed', result: null, error: null }),
         ]);
         const [ok, bad] = screen.getAllByTestId('cowork-run');
-        expand(ok);
-        expand(bad);
+        await expand(ok);
+        await expand(bad);
         expect(body(ok)).toHaveTextContent('This run finished and had nothing to report.');
         expect(body(bad)).toHaveTextContent('This run failed without recording a reason.');
         expect(body(ok).textContent).not.toBe(body(bad).textContent);
@@ -96,7 +98,7 @@ describe('CoworkRunHistory — what came out of the run (CW-13)', () => {
         expect(withText).not.toHaveTextContent('Nothing to report');
 
         expect(within(without).getByRole('button')).toHaveTextContent('No output recorded');
-        expand(without);
+        await expand(without);
         expect(body(without)).toHaveTextContent('No output was recorded for this run.');
         expect(body(without)).not.toHaveTextContent('nothing to report');
     });
@@ -141,7 +143,7 @@ describe('CoworkRunHistory — how the outcome line is worded', () => {
         expect(summary).toContain('Rate limited (429)');
         expect(summary).not.toContain('quotes.js:31');
         // The whole thing is still there once you open it.
-        expand(screen.getByTestId('cowork-run'));
+        await expand(screen.getByTestId('cowork-run'));
         expect(body(screen.getByTestId('cowork-run'))).toHaveTextContent('quotes.js:31');
     });
 
@@ -165,7 +167,7 @@ describe('CoworkRunHistory — how the outcome line is worded', () => {
     it('wrat: an empty-string error falls through to the result branch', async () => {
         await renderHistory([run({ status: 'failed', error: '', result: '# It says it worked' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         expect(within(row).getByRole('heading', { name: 'It says it worked' })).toBeInTheDocument();
     });
 
@@ -174,7 +176,7 @@ describe('CoworkRunHistory — how the outcome line is worded', () => {
         // to deliver it — still hides the work it did do.
         await renderHistory([run({ status: 'failed', result: '# The digest it did produce', error: 'Delivery failed' })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         expect(row).toHaveTextContent('Delivery failed');
         expect(row).not.toHaveTextContent('The digest it did produce');
     });
@@ -230,7 +232,7 @@ describe('CoworkRunHistory — a failure as the server actually records it', () 
             producedOutput: false,
         })]);
         const row = screen.getByTestId('cowork-run');
-        expand(row);
+        await expand(row);
         expect(body(row)).toHaveTextContent('Rate limited (429)');
         expect(body(row)).not.toHaveTextContent('nothing to report');
     });
@@ -244,7 +246,7 @@ describe('CoworkRunHistory — a failure as the server actually records it', () 
         expect(row).toHaveTextContent('It failed without saying why');
         expect(row).not.toHaveTextContent('No output recorded');
 
-        expand(row);
+        await expand(row);
         expect(body(row)).toHaveTextContent('This run failed without recording a reason.');
         expect(body(row)).not.toHaveTextContent('nothing to report');
     });

@@ -30,8 +30,8 @@
 
 /**
  * @param {string} userId
- * @param {object} [opts]
- * @param {any} [opts.principal]  an already-resolved datatable principal
+ * @param {{ principal?: import('../auth/datatableAccess').DatatablePrincipal | null }} [opts]
+ *        principal: an already-resolved datatable principal
  *        (the route has one from `resolveDatatablePrincipal(req)`); absent,
  *        it is resolved from the user row — the sessionless resolver the
  *        webpage bridge uses, since neither the chat route's turn nor an
@@ -46,6 +46,7 @@ async function buildDatatableCatalogForUser(userId, { principal = null } = {}) {
     const {
         gradeForPrincipal, gradeAtLeast, datatableScopesFor, resolveDatatablePrincipalForUser,
     } = require('../auth/datatableAccess');
+    /** @type {import('../auth/datatableAccess').DatatablePrincipal} */
     const who = principal || await resolveDatatablePrincipalForUser(userId);
     // A FAILED identity read is not "no organisation". The resolver tolerates
     // a failing user read by degrading to a tenantless principal (orgId null)

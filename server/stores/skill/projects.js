@@ -19,6 +19,7 @@ const { resolveBodyWrite, validateOutputSchema, validateIdList } = require('../.
  * Refuse filing into or out of a Solution stage project without a
  * deployment's capability. `projectIds` are the source and the target; a
  * null (no project) is skipped.
+ * @param {{ deploymentId?: string; } | null | undefined} managedWrite
  */
 async function _assertStageFiling(projectIds, managedWrite) {
     for (const projectId of new Set(projectIds.filter(Boolean))) {
@@ -169,6 +170,9 @@ async function writeManagedSkill(client, { id = null, ownerId, orgId, projectId,
         row = (await client.query(/** @type {{sql: string}} */ (built).sql, /** @type {{params: any[]}} */ (built).params)).rows[0];
     } else {
         const newId = id || crypto.randomUUID();
+        /**
+         * @param {string} k
+         */
         const v = (k, dflt) => (write[k] !== undefined ? write[k] : dflt);
         const kbIds = v('knowledgeBaseIds', []);
         const autoIds = v('allowedAutomationIds', []);

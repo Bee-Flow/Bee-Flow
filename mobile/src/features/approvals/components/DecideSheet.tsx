@@ -6,6 +6,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, Sheet, TextField } from '@/shared/ui';
 
@@ -33,23 +34,27 @@ export function DecideSheet({
     onConfirm: (decision: ApprovalDecision) => void;
     onClose: () => void;
 }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const rejecting = confirming === 'reject';
     return (
         <Sheet
             visible={confirming !== null}
             onClose={onClose}
-            title={rejecting ? 'Reject this?' : 'Approve this?'}
+            title={rejecting ? t('mobile.approvals.reject_title', 'Reject this?') : t('mobile.approvals.approve_title', 'Approve this?')}
             subtitle={
                 rejecting
-                    ? 'The automation stops here. Say why, so the next person reading this knows.'
-                    : 'The automation carries on from where it paused.'
+                    ? t(
+                          'mobile.approvals.reject_hint',
+                          'The automation stops here. Say why, so the next person reading this knows.',
+                      )
+                    : t('mobile.approvals.approve_hint', 'The automation carries on from where it paused.')
             }
             footer={
                 <View style={styles.footer}>
-                    <Button label="Cancel" variant="ghost" style={styles.half} onPress={onClose} />
+                    <Button label={t('common.cancel', 'Cancel')} variant="ghost" style={styles.half} onPress={onClose} />
                     <Button
-                        label={rejecting ? 'Reject' : 'Approve'}
+                        label={rejecting ? t('approvals.reject', 'Reject') : t('approvals.approve', 'Approve')}
                         // Destructive only inside the confirmation sheet: the
                         // row behind it is a choice, and painting one half red
                         // there would make rejecting look like the dangerous answer.
@@ -62,11 +67,15 @@ export function DecideSheet({
             }
         >
             <TextField
-                label={rejecting ? 'Reason' : 'Note (optional)'}
+                label={rejecting ? t('mobile.approvals.reason', 'Reason') : t('mobile.approvals.note_optional', 'Note (optional)')}
                 value={reason}
                 onChangeText={onReasonChange}
                 multiline
-                placeholder={rejecting ? 'What needs to change before this can go ahead?' : ''}
+                placeholder={
+                    rejecting
+                        ? t('mobile.approvals.reason_placeholder', 'What needs to change before this can go ahead?')
+                        : ''
+                }
             />
         </Sheet>
     );

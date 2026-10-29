@@ -1,18 +1,104 @@
-import { Loader2, Lock, Plus } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AiTablePanel from '../AiTablePanel';
 import { columnLabel, destructiveChanges, isManagedColumn, isSchemaLocked, sourceErrorMessage, sourceNameOf, managedColumnProblem, validateColumns, formColumnHint, isFormAnswers, isRetiredFormColumn } from '../datatableDisplay';
 import { datatablesApi } from '../datatablesApi';
-import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useTranslation, { TranslateParams, type TranslateFn } from '@/hooks/useTranslation';
 import useConfirm from '@/components/shared/useConfirm';
 import type { FormSource } from '../formAnswers';
 import type { MirrorSource, SourceError } from '../sourceMirrors';
 import type { DtColumn, DtTable } from '../rowBrowser/rowBrowserModel';
 import type { Field, DesignerTable, SaveError, ManagedSaveError, ColumnDesignerProps } from '../ColumnDesigner.types';
 import { managedProblemText, sourceColumnInfo, managedHint } from './ColumnDesigner.helpers';
-import { GRID, ColumnRow } from './ColumnRow';
-import { BTN, DestructiveConfirm } from './DestructiveConfirm';
+import { ColumnRow } from './ColumnRow';
+import { DestructiveConfirm } from './DestructiveConfirm';
+import { AddColumn, ColumnHead, ColumnNotices, ColumnSaveBar, ColumnsLoading } from './ColumnDesignerParts';
+
+/** The AI draft's columns, keeping the id of every column that already existed under that key. */
+function revisedFields(saved: Field[], draftFields: unknown): Field[] {
+    const byKey = new Map<string, Field>((saved || []).map(f => [f.key, f]));
+    return ((Array.isArray(draftFields) ? draftFields : []) as Field[]).map(f => {
+        const prev = byKey.get(f.key);
+        return {
+            ...(prev?.id ? { id: prev.id } : {}),
+            key: f.key, name: f.name, type: f.type,
+            ...(f.options ? { options: f.options } : {}),
+            ...(f.required ? { required: true } : {}),
+            ...(f.unique ? { unique: true } : {}),
+        };
+    });
+}
+
+interface RemoveRetiredArgs {
+    t: TranslateFn;
+    confirm: ReturnType<typeof useConfirm>['confirm'];
+    table: DesignerTable;
+    f: Field;
+    load: () => Promise<void>;
+    onChanged: ColumnDesignerProps['onChanged'];
+    setError: (message: string | null) => void;
+}
+
+/** Drop the column of a question that is no longer on the form, after asking. */
+async function removeRetiredColumn({ t, confirm, table, f, load, onChanged, setError }: RemoveRetiredArgs) {
+    const ok = await confirm({
+        title: t('datatables.frm_remove_retired_title', 'Remove the column “{name}”?', { name: columnLabel(f) }),
+        description: t('datatables.frm_remove_retired_body', 'Its answers in {n} rows are deleted for good. The form is not affected — the question is already gone from it.', { n: table.rowCount ?? 0 }),
+        confirmLabel: t('datatables.frm_remove_retired_confirm', 'Remove the column'),
+        cancelLabel: t('datatables.cancel', 'Cancel'),
+        destructive: true,
+    });
+    if (!ok) return;
+    try {
+        await datatablesApi.removeAnswersColumn(table.id, f.id as string, { confirmBreaking: true });
+        await load();
+        if (onChanged) onChanged();
+    } catch (e) {
+        setError((e as Error)?.message || t('datatables.frm_err_remove', 'Could not remove the column.'));
+    }
+}
+
+/** The table's columns as last saved and as being edited, the schema version, one sample row, and the save state. */
+function useColumnSchema(tableId: string, t: TranslateFn) {
+    const [fields, setFields] = useState<Field[] | null>(null);
+    const [saved, setSaved] = useState<Field[]>([]);
+    const [version, setVersion] = useState<number | null>(null);
+    const [sample, setSample] = useState<Record<string, unknown> | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+    const [confirming, setConfirming] = useState<ReturnType<typeof destructiveChanges> | null>(null);
+    const [note, setNote] = useState<string | null>(null);
+
+    const load = useCallback(async () => {
+        setError(null);
+        try {
+            // The first row alongside the schema, for the "Example" column —
+            // the RowBrowser's own pattern. `allSettled`, because a person
+            // who may see the columns and not the rows (or a table that is
+            // simply empty) must still get the designer: a sample is a nicety,
+            // the column list is the point.
+            const [schemaOut, rowsOut] = await Promise.allSettled([
+                datatablesApi.getSchema(tableId),
+                datatablesApi.listRows(tableId, { limit: 1 }),
+            ]);
+            if (schemaOut.status === 'rejected') throw schemaOut.reason;
+            const schema = schemaOut.value;
+            setFields(schema.fields || []);
+            setSaved(schema.fields || []);
+            setVersion(schema.modelVersion ?? null);
+            setSample(rowsOut.status === 'fulfilled' ? (rowsOut.value?.rows?.[0] || null) : null);
+        } catch (e) {
+            setError((e as Error).message || t('datatables.err_columns_load', 'Could not load the columns'));
+            setFields([]);
+        }
+    }, [tableId, t]);
+
+    useEffect(() => { load(); }, [load]);
+
+    return {
+        fields, setFields, saved, setSaved, version, setVersion, sample, error, setError,
+        busy, setBusy, confirming, setConfirming, note, setNote, load,
+    };
+}
 
 export default function ColumnDesigner({ table, canEdit: canEditProp, usage = [], onChanged, mirror = null, onOpenUsage = null }: ColumnDesignerProps) {
     const { t } = useTranslation();
@@ -29,42 +115,13 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
     // NO LONGER on the form — the only DROP the kind allows.
     const answers = isFormAnswers(table);
     const { confirm, confirmDialog } = useConfirm();
-    const [fields, setFields] = useState<Field[] | null>(null);
-    const [saved, setSaved] = useState<Field[]>([]);
-    const [version, setVersion] = useState<number | null>(null);
-    const [sample, setSample] = useState<Record<string, unknown> | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
-    const [confirming, setConfirming] = useState<ReturnType<typeof destructiveChanges> | null>(null);
-    const [note, setNote] = useState<string | null>(null);
+    const {
+        fields, setFields, saved, setSaved, version, setVersion, sample, error, setError,
+        busy, setBusy, confirming, setConfirming, note, setNote, load,
+    } = useColumnSchema(table.id, t);
 
     const managedKind = table.managedKind || null;
 
-    const load = useCallback(async () => {
-        setError(null);
-        try {
-            // The first row alongside the schema, for the "Example" column —
-            // the RowBrowser's own pattern. `allSettled`, because a person
-            // who may see the columns and not the rows (or a table that is
-            // simply empty) must still get the designer: a sample is a nicety,
-            // the column list is the point.
-            const [schemaOut, rowsOut] = await Promise.allSettled([
-                datatablesApi.getSchema(table.id),
-                datatablesApi.listRows(table.id, { limit: 1 }),
-            ]);
-            if (schemaOut.status === 'rejected') throw schemaOut.reason;
-            const schema = schemaOut.value;
-            setFields(schema.fields || []);
-            setSaved(schema.fields || []);
-            setVersion(schema.modelVersion ?? null);
-            setSample(rowsOut.status === 'fulfilled' ? (rowsOut.value?.rows?.[0] || null) : null);
-        } catch (e) {
-            setError((e as Error).message || t('datatables.err_columns_load', 'Could not load the columns'));
-            setFields([]);
-        }
-    }, [table.id, t]);
-
-    useEffect(() => { load(); }, [load]);
 
     const set = (i: number, patch: Partial<Field>) => setFields(fs => (fs as Field[]).map((f, j) => (j === i ? { ...f, ...patch } : f)));
     const add = () => setFields(fs => [...(fs as Field[]), { key: '', name: '', type: 'text' }]);
@@ -143,7 +200,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
         } finally {
             setBusy(false);
         }
-    }, [table, fields, version, onChanged, load, t]);
+    }, [table, fields, version, onChanged, load, t, setBusy, setConfirming, setError, setNote, setSaved, setVersion]);
 
     const attemptSave = () => {
         const changes = destructiveChanges(saved, fields);
@@ -151,43 +208,12 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
         else doSave();
     };
 
-    if (fields === null) {
-        return (
-            <div className="py-8 flex justify-center text-[var(--text-tertiary)]">
-                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                <span className="sr-only">{t('datatables.loading', 'Loading…')}</span>
-            </div>
-        );
-    }
+    if (fields === null) return <ColumnsLoading t={t} />;
 
     return (
         <div className="space-y-3.5">
             {confirmDialog}
-            {answers ? (
-                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
-                    <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
-                    <span>{t('datatables.frm_columns_locked', 'These columns are the questions on the form. Add, rename or remove questions on the form — the table follows. A column whose question was removed stays here, marked “no longer on the form”, and can be removed from this tab.')}</span>
-                </p>
-            ) : schemaLocked ? (
-                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
-                    <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
-                    <span>{t('datatables.src_columns_locked', 'These columns come from {source} and cannot be added to, removed, renamed or retyped here. Change them in {source} — the next refresh brings them here.', { source: sourceName })}</span>
-                </p>
-            ) : !canEdit && (
-                <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                    {/* Two different reasons land here — not the owner, or no
-                        manage permission — and neither is the person's mistake,
-                        so the sentence names the fix rather than the refusal. */}
-                    {t('datatables.columns_readonly', 'You can see the columns but not change them. The table’s owner, or an administrator, can.')}
-                </p>
-            )}
-
-            {managedKind && canEdit && (
-                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
-                    <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
-                    <span>{t('datatables.columns_managed', 'The locked columns are filled in automatically and cannot be removed, renamed or retyped. Columns of your own can be added alongside them.')}</span>
-                </p>
-            )}
+            <ColumnNotices t={t} answers={answers} schemaLocked={schemaLocked} canEdit={canEdit} sourceName={sourceName} managedKind={managedKind} />
 
             {/* "Build it with AI" — only on a table whose columns are the
                 person's own: a cache, a mirror or a form's answers has a
@@ -198,19 +224,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                 <AiTablePanel
                     mode="revise"
                     current={{ name: table.name, description: table.description, rowCount: table.rowCount, managedKind: table.managedKind || null, fields }}
-                    onApply={(d) => {
-                        const byKey = new Map<string, Field>((saved || []).map(f => [f.key, f]));
-                        setFields(((Array.isArray(d.fields) ? d.fields : []) as Field[]).map(f => {
-                            const prev = byKey.get(f.key);
-                            return {
-                                ...(prev?.id ? { id: prev.id } : {}),
-                                key: f.key, name: f.name, type: f.type,
-                                ...(f.options ? { options: f.options } : {}),
-                                ...(f.required ? { required: true } : {}),
-                                ...(f.unique ? { unique: true } : {}),
-                            };
-                        }));
-                    }}
+                    onApply={(d) => setFields(revisedFields(saved, d.fields))}
                     testId="columns-ai"
                 />
             )}
@@ -221,13 +235,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                 </p>
             ) : (
                 <div className="overflow-hidden" style={CARD_STYLE}>
-                    <div className="grid items-center" style={{ ...GRID, ...HEAD_STYLE }} role="presentation">
-                        <span />
-                        <span>{t('datatables.col_head_column', 'Column')}</span>
-                        <span>{t('datatables.col_head_kind', 'Kind')}</span>
-                        <span>{t('datatables.col_head_example', 'Example')}</span>
-                        <span />
-                    </div>
+                    <ColumnHead t={t} />
                     <ul>
                         {fields.map((f, i) => (
                             <ColumnRow
@@ -238,23 +246,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                                 managedKind={managedKind}
                                 locked={isManagedColumn(managedKind, f.key)}
                                 ncColumn={answers ? (formColumnHint(t, table.source as FormSource | null | undefined, f) || managedHint(t, 'form_answers', f.key)) : (mirror?.source?.relations || schemaLocked ? sourceColumnInfo(t, f, mirror, sourceName) : null)}
-                                onRemoveRetired={answers && canEditProp && isRetiredFormColumn(table.source as FormSource | null | undefined, f) ? async () => {
-                                    const ok = await confirm({
-                                        title: t('datatables.frm_remove_retired_title', 'Remove the column “{name}”?', { name: columnLabel(f) }),
-                                        description: t('datatables.frm_remove_retired_body', 'Its answers in {n} rows are deleted for good. The form is not affected — the question is already gone from it.', { n: table.rowCount ?? 0 }),
-                                        confirmLabel: t('datatables.frm_remove_retired_confirm', 'Remove the column'),
-                                        cancelLabel: t('datatables.cancel', 'Cancel'),
-                                        destructive: true,
-                                    });
-                                    if (!ok) return;
-                                    try {
-                                        await datatablesApi.removeAnswersColumn(table.id, f.id as string, { confirmBreaking: true });
-                                        await load();
-                                        if (onChanged) onChanged();
-                                    } catch (e) {
-                                        setError((e as Error)?.message || t('datatables.frm_err_remove', 'Could not remove the column.'));
-                                    }
-                                } : null}
+                                onRemoveRetired={answers && canEditProp && isRetiredFormColumn(table.source as FormSource | null | undefined, f) ? () => removeRetiredColumn({ t, confirm, table, f, load, onChanged, setError }) : null}
                                 first={i === 0}
                                 last={i === fields.length - 1}
                                 sample={sample}
@@ -275,43 +267,14 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                 </div>
             )}
 
-            {canEdit && (
-                <button type="button" onClick={add}
-                    className="text-xs inline-flex items-center gap-1.5 rounded px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
-                    <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.column_add', 'Add a column')}
-                </button>
-            )}
-            {canEdit && fields.length > 1 && (
-                <p className="text-xs m-0 [color:var(--text-tertiary)]! [line-height:18px]" data-testid="columns-hint">
-                    {t('datatables.columns_hint', 'Drag the handle to reorder. Columns an automation writes to are marked; removing one breaks that step until you fix it there.')}
-                </p>
-            )}
+            {canEdit && <AddColumn t={t} onAdd={add} showHint={fields.length > 1} />}
 
             {/* aria-live, because every one of these appears WITHOUT the focus
                 moving — a screen-reader user pressing Save otherwise hears
                 nothing at all, whether it worked or not. */}
             <ColumnDesignerSection problems={problems} managedProblem={managedProblem} t={t} error={error} note={note} />
 
-            {canEdit && dirty && (
-                <div className="sticky bottom-0 flex items-center gap-2 py-3 -mx-1 px-1 [background:var(--bg-primary)] [border-top:1px_solid_var(--border-default)]">
-                    <span className="text-xs mr-auto text-[var(--text-tertiary)]">
-                        {t('datatables.columns_unsaved', 'Unsaved column changes')}
-                    </span>
-                    <button type="button" onClick={() => setFields(saved)} className={`${BTN} border [border-color:var(--border-default)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
-                        {t('datatables.discard', 'Discard')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={attemptSave}
-                        disabled={busy || problems.length > 0 || !!managedProblem}
-                        className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
-                        style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
-                    >
-                        {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
-                        {t('datatables.columns_save', 'Save columns')}
-                    </button>
-                </div>
-            )}
+            {canEdit && dirty && <ColumnSaveBar t={t} busy={busy} disabled={busy || problems.length > 0 || !!managedProblem} onDiscard={() => setFields(saved)} onSave={attemptSave} />}
 
             <DestructiveConfirm
                 t={t}
@@ -335,15 +298,6 @@ const CARD_STYLE = {
     boxShadow: 'var(--shadow-sm)',
 };
 
-const HEAD_STYLE = {
-    padding: '8px 14px',
-    borderBottom: '1px solid var(--border-default)',
-    fontSize: 10,
-    letterSpacing: '.08em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    color: 'var(--text-tertiary)',
-};
 
 
 function ColumnDesignerSection({ problems, managedProblem, t, error, note }: { problems: string[]; managedProblem: { reason: string; key?: undefined; type?: undefined; } | { reason: string; key: string; type?: undefined; } | { reason: string; key: string; type: string; } | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; error: string | null; note: string | null; }) {

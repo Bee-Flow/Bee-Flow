@@ -90,7 +90,7 @@ async function provisionAnalyticsForSite(siteId, { name, domain } = {}) {
         await setAnalyticsWebsiteId(siteId, websiteId);
         return websiteId;
     } catch (err) {
-        log.warn('[CMS] analytics provisioning skipped:', err.message);
+        log.warn('[CMS] analytics provisioning skipped:', /** @type {Error} */ (err).message);
         return null;
     }
 }
@@ -99,7 +99,7 @@ const _cache = new Map();
 
 function invalidateCache() { _cache.clear(); }
 
-async function getAnalyticsSettingsHandler(req, res) {
+async function getAnalyticsSettingsHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const [settings, configured, tracker, recorder] = await Promise.all([
         getAnalyticsSettings(),
         umamiClient.isConfigured(),
@@ -124,7 +124,7 @@ async function getAnalyticsSettingsHandler(req, res) {
     });
 }
 
-async function putAnalyticsSettingsHandler(req, res) {
+async function putAnalyticsSettingsHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { enabled, consentMode, url, username, password, apiToken, tracker, recorder } = req.body || {};
     if (tracker && typeof tracker === 'object') {
         const cur = await getTrackerOptions();
@@ -191,7 +191,7 @@ async function putAnalyticsSettingsHandler(req, res) {
 // Stored in config rather than on the site doc so the toggle takes effect
 // immediately, like every other setting on this dashboard — a site-doc flag
 // would only apply on the next publish.
-async function putRecorderHandler(req, res) {
+async function putRecorderHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const { siteId, enabled } = req.body || {};
     if (!siteId || !SITE_ID_RE.test(String(siteId))) {
         return res.status(400).json({ error: 'Invalid siteId' });
@@ -212,6 +212,7 @@ async function putRecorderHandler(req, res) {
     // rejected: the public site would then load recorder.js, every
     // /api/record would be discarded, and this dashboard would confidently
     // report "Recording on" while capturing nothing.
+    /** @type {string | null} */
     let upstream = null;
     try {
         const opts = await getRecorderOptions();
@@ -222,7 +223,7 @@ async function putRecorderHandler(req, res) {
             upstream = `Umami did not apply the recorder setting (recorderEnabled=${site?.recorderEnabled}).`;
         }
     } catch (err) {
-        upstream = err.message;
+        upstream = /** @type {Error} */ (err).message;
     }
 
     if (upstream) {

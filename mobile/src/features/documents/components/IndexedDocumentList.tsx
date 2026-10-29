@@ -7,6 +7,7 @@
 import React from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { UploadQueue, type IngestFlow } from '@/features/knowledge';
 import { useUserRefresh } from '@/shared/patterns';
@@ -23,6 +24,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 function ListHeader({ data, uploads }: { data: ReturnType<typeof useIndexedDocuments>; uploads: IngestFlow['uploads'] }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.header}>
@@ -36,8 +38,7 @@ function ListHeader({ data, uploads }: { data: ReturnType<typeof useIndexedDocum
             ) : null}
             {(data.indexed.data?.skipped ?? 0) > 0 ? (
                 <Text variant="label" tone="tertiary">
-                    Showing documents from your {data.scopedBases.length} most recent
-                    knowledge bases. Open a specific one to see the rest.
+                    {t('mobile.documents.scoped_notice', 'Showing documents from your {count} most recent knowledge bases. Open a specific one to see the rest.', { count: data.scopedBases.length })}
                 </Text>
             ) : null}
         </View>

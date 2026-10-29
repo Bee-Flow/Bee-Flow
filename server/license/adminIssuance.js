@@ -86,19 +86,16 @@ function normalizeExpiresAt(expiresAt) {
 /**
  * Mint a new admin-issued license.
  *
- * @param {object} args
- * @param {'organization'|'server'} args.scope         — 'server' = unbound license blob
- *                                                        that the receiver binds to
- *                                                        its own org on import/activate
- * @param {string}  [args.organizationId]              — required when scope='organization'
- * @param {string}  args.tier                          — community|pro|enterprise|full
- * @param {string|Date} args.expiresAt                 — ISO date or Date
- * @param {string}  [args.billingInterval='yearly']    — 'monthly' | 'yearly'
- * @param {string[]} [args.featuresOverride]           — optional, replaces tier defaults
- * @param {object}  [args.limitsOverride]              — optional, merged over tier defaults
- * @param {number|null} [args.maxSeats]
- * @param {string}  [args.notes]                       — free-text, audit only
- * @param {string}  [args.activatedBy]                 — admin user id
+ * `scope` 'server' is an unbound license blob that the receiver binds to its own org on
+ * import/activate; `organizationId` is required when scope is 'organization'; `tier` is
+ * community|pro|enterprise|full; `expiresAt` an ISO date or a Date; `billingInterval`
+ * 'monthly' or 'yearly' (the default); `featuresOverride` replaces the tier defaults and
+ * `limitsOverride` is merged over them; `notes` is free text, audit only; `activatedBy` the
+ * admin user id.
+ *
+ * @param {{ scope?: 'organization'|'server', organizationId?: string, tier: string, expiresAt: string|Date,
+ *   billingInterval?: string, featuresOverride?: string[] | null, limitsOverride?: Record<string, unknown> | null,
+ *   maxSeats?: number|null, notes?: string | null, activatedBy?: string | null }} args
  */
 async function issueAdminLicense({
     scope = 'organization',

@@ -33,7 +33,7 @@
 
 const log = require('../../../telemetry/log');
 const { isSideEffect } = require('../../sideEffectMap');
-const { sourceError, DAY } = require('./common');
+const { sourceError, errorCode, DAY } = require('./common');
 const mailLive = require('./mailLive');
 const filesLive = require('./filesLive');
 const meetings = require('./meetings');
@@ -152,14 +152,14 @@ function selectUnits(sources, names) {
 /**
  * The executeTool a collector gets: only this registry's read-only tools,
  * only when the user has them, and never after the source was stopped.
- * @param {(name: string, args: object, opts?: object) => Promise<any>} executeTool
+ * @param {((name: string, args: object, opts?: object) => Promise<any>) | undefined} executeTool
  * @param {Set<string>} names
  * @param {AbortSignal} signal
  */
 function guardExecutor(executeTool, names, signal) {
     /**
      * @param {string} name
-     * @param {object} args
+     * @param {Record<string, unknown>} args
      */
     return async (name, args) => {
         if (signal.aborted) throw sourceError('aborted', 'source stopped');
@@ -187,7 +187,7 @@ function runWithin(run, limit, controller, parentSignal) {
         let timer;
         /**
          * @param {(value?: any) => void} fn resolve or reject of the promise
-         * @param {any} value the events, or the rejection reason
+         * @param {unknown} value the events, or the rejection reason
          */
         const finish = (fn, value) => {
             if (settled) return;
@@ -213,11 +213,7 @@ function runWithin(run, limit, controller, parentSignal) {
 
 const REASONS = new Set(['auth', 'error', 'timeout', 'budget', 'aborted', 'not_connected', 'shield']);
 
-/**
- * @typedef {Object} RunUnitArgs
- * @property {SourceGroup} group
- * @property {SourceApp} app
- */
+/** @typedef {{ group: SourceGroup, app: SourceApp }} RunUnitArgs */
 /**
  * @param {{
  *   userId: string,
@@ -276,17 +272,17 @@ async function collectAll(ctx, opts = {}) {
             const collectorCtx = {
                 userId: ctx.userId, now, since, windowDays, signal: controller.signal, pseudoDomain,
                 nextcloudUid: ctx.nextcloudUid || null, deps: ctx.deps || {},
-                executeTool: guardExecutor(/** @type {any} */ (ctx.executeTool), names, controller.signal),
+                executeTool: guardExecutor(/** @type {Parameters<typeof guardExecutor>[0]} */ (ctx.executeTool), names, controller.signal),
             };
             try {
                 const collect = ctx.collectors?.[app.id] || app.collect;
                 const result = await runWithin(() => collect(collectorCtx), limit, controller, signal);
                 found = Array.isArray(result) ? result : [];
             } catch (err) {
-                const code = /** @type {any} */ (err)?.code;
-                reason = REASONS.has(code) ? code : 'error';
+                const code = errorCode(err);
+                reason = code !== undefined && REASONS.has(code) ? code : 'error';
                 if (reason !== 'aborted') {
-                    const msg = String(/** @type {any} */ (err)?.message || '').slice(0, 200);
+                    const msg = String(/** @type {Error} */ (err)?.message || '').slice(0, 200);
                     log.warn(`[RepeatingWork] source ${group.id}/${app.id} skipped (${reason}): ${msg}`);
                 }
             }

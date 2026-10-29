@@ -281,7 +281,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                 className={`${isMobile ? 'flex-1' : 'w-80 flex-shrink-0 border-r'} flex flex-col min-h-0 [border-color:var(--border-subtle)]!`}
             >
                 <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-subtle)]">
-                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">Cowork</span>
+                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">{t('sidebar.cowork', 'Cowork')}</span>
                     {/* The tally, and only when there is one to tell. A
                         permanent "0 running" is a fact nobody asked for; the
                         pill exists to be noticed. */}

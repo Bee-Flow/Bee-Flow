@@ -72,7 +72,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
                 ? { name: 'integration_enabled', status: 'ok', message: `${appId} is enabled.` }
                 : { name: 'integration_enabled', status: 'error', message: `${appId} is not enabled for your account.`, detail: { remediation: 'Ask your org admin to enable this Nextcloud app.' } });
         } catch (e) {
-            checks.push({ name: 'integration_enabled', status: 'warn', message: `Could not resolve permitted apps: ${e.message}` });
+            checks.push({ name: 'integration_enabled', status: 'warn', message: `Could not resolve permitted apps: ${/** @type {Error} */ (e).message}` });
         }
 
         // 2) Auth mode (observational — reports how NC tools authenticate)
@@ -178,7 +178,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         const triggerBus = require('../../automation/triggerBus');
         session = await triggerBus.loadSession(userId);
     } catch (e) {
-        checks.push({ name: 'credentials', status: 'error', message: `Credential lookup threw: ${e.message}` });
+        checks.push({ name: 'credentials', status: 'error', message: `Credential lookup threw: ${/** @type {Error} */ (e).message}` });
         return finish(false);
     }
     if (!session?.accessToken) {
@@ -217,13 +217,13 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
                     detail: { newCount: count, currentHistoryId: r.data.historyId || null },
                 });
             } catch (err) {
-                const stale = err.code === 404 || /not found|invalid history id/i.test(err.message || '');
+                const stale = err.code === 404 || /not found|invalid history id/i.test(/** @type {Error} */ (err).message || '');
                 checks.push({
                     name: 'gmail_history',
                     status: stale ? 'warn' : 'error',
                     message: stale
-                        ? `Cursor ${sub.lastCursor} is stale (Gmail returned: ${err.message}). The poller will reset it on the next tick.`
-                        : `gmail.users.history.list failed: ${err.message}`,
+                        ? `Cursor ${sub.lastCursor} is stale (Gmail returned: ${/** @type {Error} */ (err).message}). The poller will reset it on the next tick.`
+                        : `gmail.users.history.list failed: ${/** @type {Error} */ (err).message}`,
                 });
             }
         } else {
@@ -236,7 +236,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
             });
         }
     } catch (e) {
-        checks.push({ name: 'gmail_history', status: 'error', message: `Gmail API not reachable: ${e.message}` });
+        checks.push({ name: 'gmail_history', status: 'error', message: `Gmail API not reachable: ${/** @type {Error} */ (e).message}` });
         return finish(false);
     }
 
@@ -259,7 +259,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
             });
         }
     } catch (e) {
-        checks.push({ name: 'recent_match', status: 'error', message: `Filter probe failed: ${e.message}` });
+        checks.push({ name: 'recent_match', status: 'error', message: `Filter probe failed: ${/** @type {Error} */ (e).message}` });
     }
 
     return finish(checks.every(c => c.status !== 'error'));

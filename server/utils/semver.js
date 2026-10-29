@@ -13,7 +13,7 @@
  * Parse a version string into its numeric core + prerelease tag.
  * Tolerant: leading `v`/`=`/whitespace is stripped, `+build` metadata is
  * discarded, and any non-numeric core segment coerces to 0.
- * @param {*} v
+ * @param {unknown} v
  * @returns {{major:number, minor:number, patch:number, prerelease:string}}
  */
 function parse(v) {

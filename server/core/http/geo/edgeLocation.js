@@ -29,12 +29,10 @@ const AMAZON = [16509, 14618];
 const MICROSOFT = [8075, 8068];
 
 /**
- * @typedef {object} EdgeRule
- * @property {string} header
- * @property {string} network
- * @property {number[]} asns
- * @property {(value: string) => string|null} pop  POP code from the header value, or null
- * @property {RegExp} [server]                    required `server` header, when the header alone is too generic
+ * `pop`: POP code from the header value, or null. `server`: required `server` header, when the header
+ * alone is too generic.
+ * @typedef {{ header: string, network: string, asns: number[], pop: (value: string) => string|null,
+ *   server?: RegExp }} EdgeRule
  */
 
 /** @type {EdgeRule[]} */

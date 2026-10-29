@@ -1,3 +1,6 @@
+/** @typedef {import('../swarms/swarmWorkerRound').WorkerMessage} WorkerMessage */
+/** @typedef {import('../agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
+/** @typedef {import('../../utils/messageUtils').WireMessage} WireMessage */
 // @typecheck
 /**
  * Outbound-prompt safety guard.
@@ -98,11 +101,10 @@ function _applyToContent(content, replace, role) {
 /**
  * Re-tokenise every string about to be handed to the LLM.
  *
- * @param {object} params
- * @param {string|null} params.conversationId   Used to look up the conv token map. null/empty → no-op.
- * @param {string|null} params.systemPrompt     Outbound system prompt (re-tokenised in place).
- * @param {Array}       params.messages         Outbound `messages` array. Each entry's `content`
- *                                              (string or content-block array) is re-tokenised.
+ * @param {{ conversationId: string|null, systemPrompt: string|null, messages: Array }} params
+ *   `conversationId`: Used to look up the conv token map. null/empty → no-op; `systemPrompt`: Outbound
+ *   system prompt (re-tokenised in place); `messages`: Outbound `messages` array. Each entry's
+ *   `content` (string or content-block array) is re-tokenised
  * @returns {{ systemPrompt: string|null, messages: Array }}
  */
 function applyTokenMapToOutbound({ conversationId, systemPrompt, messages }) {
@@ -119,10 +121,12 @@ function applyTokenMapToOutbound({ conversationId, systemPrompt, messages }) {
     };
 }
 
+/** @typedef {{ conversationId?: string | null | undefined, messages?: WorkerMessage[] | ChatMessage[] | WireMessage[] }} ApplyTokenMapToMessagesArgs */
 /**
  * Convenience for call sites that already have a single OpenAI-shape messages
  * array (system at index 0, then user/assistant/tool). Returns a new array;
  * does not mutate the input.
+ * @param {ApplyTokenMapToMessagesArgs} param0
  */
 function applyTokenMapToMessages({ conversationId, messages }) {
     const map = conversationId ? (getConversationTokenMap(conversationId) || {}) : {};

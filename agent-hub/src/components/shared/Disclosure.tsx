@@ -63,8 +63,7 @@ export default function Disclosure({
                 style={{ color: 'var(--text-secondary)' }}
             >
                 <ChevronDown
-                    className="w-3.5 h-3.5 transition-transform shrink-0"
-                    style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                    className={`w-3.5 h-3.5 transition-transform shrink-0 ${open ? '[transform:rotate(0deg)]' : '[transform:rotate(-90deg)]'}`}
                 />
                 <span className="text-xs font-semibold uppercase tracking-wider flex-1 min-w-0 truncate">
                     {title}

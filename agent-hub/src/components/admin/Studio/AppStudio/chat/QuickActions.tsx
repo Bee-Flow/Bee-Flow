@@ -73,7 +73,7 @@ export default function QuickActions({ onAction, disabled = false, hasErrors = f
             }}
             title={hasErrors ? t('app_studio.builder.quick.fix_errors_title', 'Ask the AI to fix the current issues') : t('app_studio.builder.quick.fix_errors_none', 'No issues to fix')}
         >
-            <Wrench className="h-3.5 w-3.5" style={{ color: hasErrors ? '#f59e0b' : 'var(--text-tertiary)' }} aria-hidden="true" />
+            <Wrench className={`h-3.5 w-3.5 ${hasErrors ? '[color:#f59e0b]' : '[color:var(--text-tertiary)]'}`} aria-hidden="true" />
             {t('app_studio.builder.quick.fix_errors', 'Fix errors')}
         </button>
     );

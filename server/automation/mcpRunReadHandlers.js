@@ -155,6 +155,7 @@ async function getStepOutput(acc, userId, args) {
     }
 
     let body = shown;
+    /** @type {{ originalBytes: number; previewCut: {} | undefined; note: string; } | null} */
     let truncated = null;
     let bytes = 0;
     try { bytes = Buffer.byteLength(JSON.stringify(shown) ?? 'null', 'utf8'); } catch { bytes = 0; }

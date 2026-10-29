@@ -18,10 +18,7 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
         : content;
 
     return (
-        <div style={{
-            display: 'flex',
-            justifyContent: isUserMsg ? 'flex-end' : 'flex-start',
-        }}>
+        <div className={`[display:flex] ${isUserMsg ? '[justify-content:flex-end]' : '[justify-content:flex-start]'}`}>
             <div style={{
                 maxWidth: '85%',
                 padding: '8px 12px', borderRadius: '12px',

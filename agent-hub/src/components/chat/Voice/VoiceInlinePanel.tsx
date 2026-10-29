@@ -81,7 +81,7 @@ function LevelIndicator({ level, state, STATES, isMobile }: { level: number; sta
     const size = isMobile ? 'w-12 h-12' : 'w-14 h-14';
 
     return (
-        <div className="relative flex items-center justify-center shrink-0" style={{ width: isMobile ? 56 : 72, height: isMobile ? 56 : 72 }}>
+        <div className={`relative flex items-center justify-center shrink-0 ${isMobile ? '[width:56px] [height:56px]' : '[width:72px] [height:72px]'}`}>
             {/* Outer pulsing ring — energy-driven */}
             <span
                 className={`absolute inset-0 rounded-full transition-transform duration-75 ease-out ${

@@ -54,9 +54,8 @@ function deps() {
 
 /**
  * @param {Record<string, any>} source   the mirror's `source` block
- * @param {object} [opts]
- * @param {string|null} [opts.orgId]  the table's organisation (null for a personal mirror)
- * @param {boolean} [opts.fresh]      skip the memo (a re-link, a "try again")
+ * @param {{ orgId?: string|null, fresh?: boolean }} [opts] `orgId`: the table's organisation (null for
+ *   a personal mirror); `fresh`: skip the memo (a re-link, a "try again")
  * @returns {Promise<{ auth:{ baseUrl:string, fetch:Function, authError?:string }, userId:string, session:object }>}
  */
 async function resolveLinker(source, { orgId = null, fresh = false } = {}) {

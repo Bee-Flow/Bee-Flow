@@ -188,7 +188,7 @@ const SignupWizard = ({
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-[var(--border-subtle)] flex items-center justify-center bg-[var(--bg-primary)] shrink-0">
-                            <img src={logoSrc} alt="Bee Flow" className="w-full h-full object-cover" />
+                            <img src={logoSrc} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{titleFor(step)}</h1>
@@ -204,7 +204,7 @@ const SignupWizard = ({
                     {!isInvite && (
                         <div className="flex gap-1 mb-8">
                             {steps.map((s, i) => (
-                                <div key={s} className="flex-1 h-1.5 rounded-full" style={{ background: i <= idx ? 'var(--accent-primary)' : 'var(--border-subtle)' }} />
+                                <div key={s} className={`flex-1 h-1.5 rounded-full ${i <= idx ? '[background:var(--accent-primary)]' : '[background:var(--border-subtle)]'}`} />
                             ))}
                         </div>
                     )}

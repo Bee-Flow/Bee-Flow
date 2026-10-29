@@ -13,7 +13,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { nOf } from '@/shared/lib/plural';
 import { Button, ConfirmSheet, Icon, SearchField, Sheet, useToast } from '@/shared/ui';
 
 import { AddInstructionForm } from './AddInstructionForm';
@@ -32,6 +34,7 @@ const makeStyles = (theme: Theme) =>
 
 export function MemorySheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
     const theme = useTheme();
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const { toast } = useToast();
     const [search, setSearch] = useState('');
@@ -42,7 +45,7 @@ export function MemorySheet({ visible, onClose }: { visible: boolean; onClose: (
     const query = useMemorySheetList(search, type, visible);
     const remove = useForgetMemory({
         onSuccess: () => {
-            toast('Forgotten', 'success');
+            toast(t('chat.memory.forgotten', 'Forgotten'), 'success');
             setPendingDelete(null);
         },
     });
@@ -53,18 +56,21 @@ export function MemorySheet({ visible, onClose }: { visible: boolean; onClose: (
             <Sheet
                 visible={visible}
                 onClose={onClose}
-                title="Memory"
+                title={t('settings.memory_title', 'Memory')}
                 subtitle={
                     total !== undefined
-                        ? `${total} thing${total === 1 ? '' : 's'} remembered`
-                        : 'What Bee Flow carries between conversations'
+                        ? nOf(t, 'mobile.memory.sheet_remembered', total, [
+                              '{count} thing remembered',
+                              '{count} things remembered',
+                          ])
+                        : t('mobile.memory.sheet_subtitle', 'What Bee Flow carries between conversations')
                 }
                 scroll={false}
                 tall
                 footer={
                     adding ? undefined : (
                         <Button
-                            label="Add an instruction"
+                            label={t('mobile.memory.add_instruction', 'Add an instruction')}
                             variant="secondary"
                             fullWidth
                             onPress={() => setAdding(true)}
@@ -76,7 +82,7 @@ export function MemorySheet({ visible, onClose }: { visible: boolean; onClose: (
                 <View style={styles.body}>
                     {adding ? <AddInstructionForm onClose={() => setAdding(false)} /> : null}
                     <View style={styles.search}>
-                        <SearchField value={search} onChangeText={setSearch} placeholder="Search memory" />
+                        <SearchField value={search} onChangeText={setSearch} placeholder={t('mobile.memory.search_sheet', 'Search memory')} />
                     </View>
                     <SheetTypeChips type={type} onChange={setType} />
                     <MemorySheetList query={query} searching={Boolean(search)} onDelete={setPendingDelete} />
@@ -85,9 +91,9 @@ export function MemorySheet({ visible, onClose }: { visible: boolean; onClose: (
 
             <ConfirmSheet
                 visible={Boolean(pendingDelete)}
-                title="Forget this?"
+                title={t('mobile.memory.forget_title', 'Forget this?')}
                 message={pendingDelete ? memoryLine(pendingDelete) : ''}
-                confirmLabel="Forget"
+                confirmLabel={t('mobile.memory.forget', 'Forget')}
                 busy={remove.isPending}
                 onCancel={() => setPendingDelete(null)}
                 onConfirm={() => pendingDelete && remove.mutate(pendingDelete.id)}

@@ -12,6 +12,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { formatBytes } from '@/shared/lib/bytes';
 import { Badge, Card, Icon, Text, type BadgeTone } from '@/shared/ui';
@@ -38,11 +39,16 @@ const makeStyles = (theme: Theme) =>
     });
 
 /** The row's state in a word, never by colour alone. */
-const BADGES: Record<PendingRecording['status'], [string, BadgeTone]> = {
-    uploading: ['Uploading', 'accent'],
-    failed: ['Not uploaded', 'warning'],
-    queued: ['On this phone', 'neutral'],
-};
+function badgeFor(status: PendingRecording['status'], t: TranslateFn): [string, BadgeTone] {
+    switch (status) {
+        case 'uploading':
+            return [t('mobile.recording.badge_uploading', 'Uploading'), 'accent'];
+        case 'failed':
+            return [t('mobile.recording.badge_not_uploaded', 'Not uploaded'), 'warning'];
+        case 'queued':
+            return [t('mobile.recording.outbox_title', 'On this phone'), 'neutral'];
+    }
+}
 
 export interface OutboxRowProps {
     item: PendingRecording;
@@ -53,10 +59,11 @@ export interface OutboxRowProps {
 }
 
 export function OutboxRow({ item, onUpload, onCancel, onEdit, onDiscard }: OutboxRowProps) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const failed = item.status === 'failed';
-    const [badgeLabel, badgeTone] = BADGES[item.status];
+    const [badgeLabel, badgeTone] = badgeFor(item.status, t);
 
     return (
         <Card style={failed ? styles.failed : undefined}>

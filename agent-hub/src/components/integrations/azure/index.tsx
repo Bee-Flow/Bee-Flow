@@ -272,12 +272,7 @@ function OrgAzureConfigPanelSection({ activeSection, setActiveSection, t, azureE
                 <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
-                    style={{
-                        background: isActive ? 'rgba(0,120,212,0.06)' : 'var(--bg-secondary)',
-                        borderBottom: !isLast ? '1px solid var(--border-subtle)' : 'none',
-                        borderLeft: isActive ? '3px solid #0078D4' : '3px solid transparent',
-                    }}
+                    className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${isActive ? '[background:rgba(0,120,212,0.06)] [border-left:3px_solid_#0078D4]' : '[background:var(--bg-secondary)] [border-left:3px_solid_transparent]'} ${!isLast ? '[border-bottom:1px_solid_var(--border-subtle)]' : '[border-bottom:none]'}`}
                     onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-tertiary)'; } }
                     onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)'; } }
                 >
@@ -296,7 +291,7 @@ function OrgAzureConfigPanelSection({ activeSection, setActiveSection, t, azureE
                     })()}
                     {section.id === 'sso' && <StatusBadge configured={ssoConfigured} />}
                     {section.id === 'docProcessing' && (hasAzureDocEndpoint && hasAzureDocKey) && <StatusBadge configured={true} />}
-                    <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, transform: isActive ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }} />
+                    <ChevronRight size={14} className={`[color:var(--text-muted)] [flex-shrink:0] [transition:transform_150ms] ${isActive ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                 </button>
             );
         })}

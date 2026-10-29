@@ -28,12 +28,45 @@ const { WRITE_WINDOW_MS, WRITE_MAX_PER_WINDOW, LIST_MAX, BODY_EDITS_MAX, FIND_MA
  * @typedef {import('./handlerKit').ToolArgs} ToolArgs
  * @typedef {import('./handlerKit').McpCtx} McpCtx
  * @typedef {Record<string, any>} Post  one blog post as the store holds it
+ * @typedef {{ cmsStore: any, resolveSite: Function, audit: Function, now?: () => number }} BlogDeps
+ * @typedef {ReturnType<typeof createBlogKit>} BlogKit  the clock, write budget and post lookups every handler shares
  */
 
+const CREATE_FIELDS = new Set(['siteId', ...Object.keys(POST_PROPS)]);
+const UPDATE_FIELDS = new Set(['siteId', 'postId', ...Object.keys(POST_PROPS), 'bodyEdits', 'appendBody']);
+
 /**
- * @param {{ cmsStore: any, resolveSite: Function, audit: Function, now?: () => number }} deps
+ * Copy only the post fields an agent may set; reject anything else by name.
+ * @param {ToolArgs} args
+ * @param {Set<string>} allowed
  */
-function createBlogHandlers(deps) {
+function pickFields(args, allowed) {
+    const unknown = Object.keys(args).filter(k => !allowed.has(k));
+    if (unknown.length) {
+        return { error: err(`Unknown field${unknown.length > 1 ? 's' : ''}: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: `Valid fields: ${[...allowed].join(', ')}.` }) };
+    }
+    /** @type {Record<string, any>} */
+    const out = {};
+    for (const k of Object.keys(POST_PROPS)) if (args[k] !== undefined) out[k] = args[k];
+    if (out.seo !== undefined && !isPlainObject(out.seo)) return { error: err('seo must be an object.') };
+    if (out.tags !== undefined && (!Array.isArray(out.tags) || out.tags.length > 10 || out.tags.some((/** @type {unknown} */ t) => typeof t !== 'string'))) {
+        return { error: err('tags must be a list of at most 10 short words.') };
+    }
+    for (const k of ['title', 'slug', 'excerpt', 'body', 'coverImage', 'coverAlt', 'authorName', 'status', 'publishedAt']) {
+        if (out[k] !== undefined && typeof out[k] !== 'string') return { error: err(`${k} must be text.`) };
+    }
+    if (out.coverImage && !sanitizeMediaRef(out.coverImage)) {
+        return { error: err(`coverImage "${out.coverImage.slice(0, 80)}" is not an asset url or https URL.`, { _fixHint: 'Use the url from cms_list_assets or from the cms_request_upload curl answer (/api/cms/asset/cms/…), or an https:// URL.' }) };
+    }
+    return { fields: out };
+}
+
+/**
+ * The pieces every blog handler shares: the clock, the per-user write budget,
+ * the post lookups and the post shape a result carries.
+ * @param {BlogDeps} deps
+ */
+function createBlogKit(deps) {
     const { cmsStore, resolveSite } = deps;
     const now = deps.now || Date.now;
     const budget = new Map();
@@ -49,7 +82,7 @@ function createBlogHandlers(deps) {
     }
     const budgetSpent = () => err(`Blog write budget spent (${WRITE_MAX_PER_WINDOW} changes per ${WRITE_WINDOW_MS / 60000} minutes). Wait a few minutes, and batch edits (bodyEdits takes up to ${BODY_EDITS_MAX} at once).`);
 
-    const storeError = (/** @type {any} */ e) => {
+    const storeError = (/** @type {Error & { code?: string }} */ e) => {
         if (e && e.name === 'PostError') return err(e.message, { code: e.code });
         throw e;
     };
@@ -79,32 +112,6 @@ function createBlogHandlers(deps) {
     }
 
     /**
-     * Copy only the post fields an agent may set; reject anything else by name.
-     * @param {ToolArgs} args
-     * @param {Set<string>} allowed
-     */
-    function pickFields(args, allowed) {
-        const unknown = Object.keys(args).filter(k => !allowed.has(k));
-        if (unknown.length) {
-            return { error: err(`Unknown field${unknown.length > 1 ? 's' : ''}: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: `Valid fields: ${[...allowed].join(', ')}.` }) };
-        }
-        /** @type {Record<string, any>} */
-        const out = {};
-        for (const k of Object.keys(POST_PROPS)) if (args[k] !== undefined) out[k] = args[k];
-        if (out.seo !== undefined && !isPlainObject(out.seo)) return { error: err('seo must be an object.') };
-        if (out.tags !== undefined && (!Array.isArray(out.tags) || out.tags.length > 10 || out.tags.some((/** @type {unknown} */ t) => typeof t !== 'string'))) {
-            return { error: err('tags must be a list of at most 10 short words.') };
-        }
-        for (const k of ['title', 'slug', 'excerpt', 'body', 'coverImage', 'coverAlt', 'authorName', 'status', 'publishedAt']) {
-            if (out[k] !== undefined && typeof out[k] !== 'string') return { error: err(`${k} must be text.`) };
-        }
-        if (out.coverImage && !sanitizeMediaRef(out.coverImage)) {
-            return { error: err(`coverImage "${out.coverImage.slice(0, 80)}" is not an asset url or https URL.`, { _fixHint: 'Use the url from cms_list_assets or from the cms_request_upload curl answer (/api/cms/asset/cms/…), or an https:// URL.' }) };
-        }
-        return { fields: out };
-    }
-
-    /**
      * @param {Post} post
      * @param {Record<string, unknown>} [translations]
      */
@@ -118,6 +125,16 @@ function createBlogHandlers(deps) {
             ...(translations ? { translatedLocales: Object.keys(translations) } : {}),
         };
     }
+
+    return { deps, cmsStore, resolveSite, budget, takeWriteBudget, budgetSpent, storeError, findPost, notFoundHint, shape };
+}
+
+/**
+ * cms_list_posts and cms_get_post.
+ * @param {BlogKit} kit
+ */
+function createPostReadHandlers(kit) {
+    const { cmsStore, resolveSite, findPost, notFoundHint, shape } = kit;
 
     /** @param {ToolArgs} args */
     async function listPosts(args) {
@@ -166,7 +183,16 @@ function createBlogHandlers(deps) {
         };
     }
 
-    const CREATE_FIELDS = new Set(['siteId', ...Object.keys(POST_PROPS)]);
+    return { listPosts, getPost };
+}
+
+/**
+ * cms_create_post, cms_update_post and cms_delete_post.
+ * @param {BlogKit} kit
+ */
+function createPostWriteHandlers(kit) {
+    const { deps, cmsStore, resolveSite, takeWriteBudget, budgetSpent, storeError, findPost, notFoundHint, shape } = kit;
+
     /**
      * @param {ToolArgs} args
      * @param {McpCtx} ctx
@@ -185,7 +211,6 @@ function createBlogHandlers(deps) {
         return { result: { siteId: site.siteId, created: shape(post), ...(warnings.length ? { warnings } : {}), next: 'Look at it with cms_screenshot {postSlug}. It goes live with the next cms_publish (if its status is published or scheduled).' } };
     }
 
-    const UPDATE_FIELDS = new Set(['siteId', 'postId', ...Object.keys(POST_PROPS), 'bodyEdits', 'appendBody']);
     /**
      * @param {ToolArgs} args
      * @param {McpCtx} ctx
@@ -265,6 +290,16 @@ function createBlogHandlers(deps) {
         return { result: { siteId: site.siteId, deleted: { id: post.id, slug: post.slug }, note: 'Removed from the draft; the live site drops it at the next cms_publish.' } };
     }
 
+    return { createPost, updatePost, deletePost };
+}
+
+/**
+ * cms_set_post_translation and cms_update_blog_settings.
+ * @param {BlogKit} kit
+ */
+function createBlogLocaleHandlers(kit) {
+    const { cmsStore, resolveSite, takeWriteBudget, budgetSpent, storeError, findPost, notFoundHint } = kit;
+
     /**
      * @param {ToolArgs} args
      * @param {McpCtx} ctx
@@ -332,6 +367,18 @@ function createBlogHandlers(deps) {
         return { result: { siteId: site.siteId, blogSettings: saved.blog } };
     }
 
+    return { setPostTranslation, updateBlogSettings };
+}
+
+/**
+ * @param {BlogDeps} deps
+ */
+function createBlogHandlers(deps) {
+    const kit = createBlogKit(deps);
+    const { listPosts, getPost } = createPostReadHandlers(kit);
+    const { createPost, updatePost, deletePost } = createPostWriteHandlers(kit);
+    const { setPostTranslation, updateBlogSettings } = createBlogLocaleHandlers(kit);
+
     return {
         handlers: {
             cms_list_posts: listPosts,
@@ -342,7 +389,7 @@ function createBlogHandlers(deps) {
             cms_set_post_translation: setPostTranslation,
             cms_update_blog_settings: updateBlogSettings,
         },
-        _budget: budget,
+        _budget: kit.budget,
     };
 }
 

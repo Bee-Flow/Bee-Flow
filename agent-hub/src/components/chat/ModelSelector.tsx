@@ -226,11 +226,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                                                 {CAT_ICONS[meta?.cat as string] || '⚙️'}
                                             </div>
                                             <div className="[flex:1] min-w-[0]">
-                                                <div style={{
-                                                    fontSize: '13px', fontWeight: 600,
-                                                    color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>
+                                                <div className={`[font-size:13px] [font-weight:600] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis] ${isSelected ? '[color:var(--accent-primary)]' : '[color:var(--text-primary)]'}`}>
                                                     {m.displayName || m.name || m.id}
                                                 </div>
                                                 {meta?.desc && (
@@ -333,7 +329,7 @@ function ModelSelectorSection({ setOpen, open, compact, selectedModel, selectedM
                 </div>
             </>
         )}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`[color:var(--text-muted)] [flex-shrink:0] [transition:transform_0.2s] ${open ? '[transform:rotate(180deg)]' : '[transform:none]'}`}>
             <polyline points="6 9 12 15 18 9" />
         </svg>
     </button>;

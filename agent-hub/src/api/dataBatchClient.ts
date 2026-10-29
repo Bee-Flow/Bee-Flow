@@ -22,7 +22,7 @@ import { logger } from '../utils/logger';
  * It has to be spelled out because the single-request path deliberately fails
  * soft: `fetchBinding` turns a 404 into `[]`, so a screen bound to a table that
  * does not exist shows an empty grid instead of an error. Two other things in
- * this codebase answer 404 by design — publicAppTransport (fail-closed: any
+ * this codebase answer 404 by design — publicAppTransport (fail-closed, so any
  * suffix the anonymous router does not serve) and the demo transport (no
  * fixture) — and an older server answers 404 for a route it has never heard of.
  * Had this module reused that fail-soft rule at the batch level, the first

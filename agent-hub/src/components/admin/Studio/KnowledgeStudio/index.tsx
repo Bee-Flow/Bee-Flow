@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { knowledgeApi, type KbSource, type KbSuggestion, type KbUsageSummary } from './knowledgeApi';
 import KnowledgeDetail, { TABS } from './KnowledgeDetail';
 import KnowledgeOverview from './KnowledgeOverview';
@@ -53,6 +53,118 @@ function firstVisibleSuggestion(t: TranslateFn, suggestions: KbSuggestion[], hid
     };
 }
 
+interface DeepLinkArgs {
+    initialKbId: string | null;
+    initialKbTab: string | null;
+    initialSourceId: string | null;
+    setKbId: (id: string | null) => void;
+    setCreating: (creating: boolean) => void;
+    setTab: (tab: string) => void;
+    setSourceId: (id: string | null) => void;
+}
+
+/**
+ * Adopt deep-link changes, INCLUDING the change to null — otherwise Back
+ * from a knowledge base leaves the detail on screen (the Approvals /
+ * Datatables rule). The setters are the studio's useState setters.
+ */
+function useAdoptDeepLink({ initialKbId, initialKbTab, initialSourceId, setKbId, setCreating, setTab, setSourceId }: DeepLinkArgs) {
+    const last = React.useRef({ initialKbId, initialKbTab, initialSourceId });
+    useEffect(() => {
+        const prev = last.current;
+        if (prev.initialKbId !== initialKbId) {
+            setKbId(initialKbId && initialKbId !== 'new' ? initialKbId : null);
+            setCreating(initialKbId === 'new');
+        }
+        if (prev.initialKbTab !== initialKbTab) setTab(initialKbTab && TABS.includes(initialKbTab) ? initialKbTab : 'sources');
+        if (prev.initialSourceId !== initialSourceId) setSourceId(initialSourceId || null);
+        last.current = { initialKbId, initialKbTab, initialSourceId };
+    }, [initialKbId, initialKbTab, initialSourceId, setKbId, setCreating, setTab, setSourceId]);
+}
+
+/**
+ * The overview's pills and its nudge, loaded while no knowledge base is open.
+ *
+ * Both are chrome: a failure costs the pills, never the list. `usageByKb`
+ * stays NULL until it has actually loaded, which is what
+ * `KnowledgeOverview` reads to draw nothing rather than "used by nothing"
+ * — the two are opposite claims and only one of them is safe to guess.
+ */
+function useOverviewExtras(
+    kbId: string | null,
+    setUsageByKb: (summary: Record<string, KbUsageSummary> | null) => void,
+    setSuggestions: (suggestions: KbSuggestion[]) => void,
+) {
+    const loadOverviewExtras = useCallback(() => {
+        knowledgeApi.usageSummary()
+            .then(body => setUsageByKb(body?.summary || {}))
+            .catch(() => setUsageByKb(null));
+        knowledgeApi.suggestions()
+            .then(body => setSuggestions(Array.isArray(body?.suggestions) ? body.suggestions : []))
+            .catch(() => setSuggestions([]));
+    }, [setUsageByKb, setSuggestions]);
+
+    useEffect(() => {
+        if (kbId) return;      // only the overview needs them
+        loadOverviewExtras();
+    }, [kbId, loadOverviewExtras]);
+    return loadOverviewExtras;
+}
+
+/**
+ * `/app/studio/knowledge/new` is where the Studio "New" menu sends
+ * someone (studioApps.jsx `create`), and it means "make one and open
+ * it" — there is no create FORM to land on. Without this the route
+ * rendered the overview with its create button disabled, which is the
+ * one screen where the button had to work.
+ *
+ * Guarded by a ref rather than by `creating`, so a failed create does
+ * not immediately retry itself in a loop.
+ */
+function useCreateOnNewRoute(initialKbId: string | null, canManage: boolean, create: () => Promise<void>) {
+    const createRequested = useRef(false);
+    useEffect(() => {
+        if (initialKbId !== 'new') { createRequested.current = false; return; }
+        if (createRequested.current || !canManage) return;
+        createRequested.current = true;
+        create();
+    }, [initialKbId, canManage, create]);
+}
+
+
+interface KbSourceScreenProps {
+    kbId: string;
+    kbName: string | null;
+    source: KbSource;
+    canManage: boolean;
+    onBack: () => void;
+    setSource: Dispatch<SetStateAction<KbSource | null>>;
+}
+
+/** One source of a knowledge base, with the studio's copy of the row kept in step on rename and reschedule. */
+function KbSourceScreen({ kbId, kbName, source, canManage, onBack, setSource }: KbSourceScreenProps) {
+    return (
+        <SourceDetail
+            kbId={kbId}
+            kbName={kbName}
+            source={source}
+            canManage={canManage}
+            onBack={onBack}
+            onChanged={() => { /* the detail reloads itself; nothing above it caches counts */ }}
+            // The name lives in this component's copy of the source row,
+            // so a rename has to land here too or the header reverts to
+            // the old name on the next render.
+            onRenamed={(sid, name) => setSource(prev => (prev && prev.id === sid ? { ...prev, name } : prev))}
+            onSchedule={async (sid, refresh) => {
+                const body = await knowledgeApi.updateSource(kbId, sid, { refresh });
+                // Re-read from the answer rather than assuming: the server
+                // decides the armed `nextRefreshAt`, and the header shows it.
+                setSource(body?.source || null);
+            }}
+        />
+    );
+}
+
 interface KnowledgeStudioProps {
     user?: { id?: string; organizationId?: string } | null;
     initialKbId?: string | null;
@@ -84,20 +196,7 @@ export default function KnowledgeStudio({
 
     const canManage = hasPermission('manage_knowledge');
 
-    // Adopt deep-link changes, INCLUDING the change to null — otherwise Back
-    // from a knowledge base leaves the detail on screen (the Approvals /
-    // Datatables rule).
-    const last = React.useRef({ initialKbId, initialKbTab, initialSourceId });
-    useEffect(() => {
-        const prev = last.current;
-        if (prev.initialKbId !== initialKbId) {
-            setKbId(initialKbId && initialKbId !== 'new' ? initialKbId : null);
-            setCreating(initialKbId === 'new');
-        }
-        if (prev.initialKbTab !== initialKbTab) setTab(initialKbTab && TABS.includes(initialKbTab) ? initialKbTab : 'sources');
-        if (prev.initialSourceId !== initialSourceId) setSourceId(initialSourceId || null);
-        last.current = { initialKbId, initialKbTab, initialSourceId };
-    }, [initialKbId, initialKbTab, initialSourceId]);
+    useAdoptDeepLink({ initialKbId, initialKbTab, initialSourceId, setKbId, setCreating, setTab, setSourceId });
 
     // The audience capsule needs the org's groups to offer any. A failure
     // here costs the group list and nothing else — the capsule still offers
@@ -110,27 +209,7 @@ export default function KnowledgeStudio({
         return () => { alive = false; };
     }, []);
 
-    /**
-     * The overview's pills and its nudge.
-     *
-     * Both are chrome: a failure costs the pills, never the list. `usageByKb`
-     * stays NULL until it has actually loaded, which is what
-     * `KnowledgeOverview` reads to draw nothing rather than "used by nothing"
-     * — the two are opposite claims and only one of them is safe to guess.
-     */
-    const loadOverviewExtras = useCallback(() => {
-        knowledgeApi.usageSummary()
-            .then(body => setUsageByKb(body?.summary || {}))
-            .catch(() => setUsageByKb(null));
-        knowledgeApi.suggestions()
-            .then(body => setSuggestions(Array.isArray(body?.suggestions) ? body.suggestions : []))
-            .catch(() => setSuggestions([]));
-    }, []);
-
-    useEffect(() => {
-        if (kbId) return;      // only the overview needs them
-        loadOverviewExtras();
-    }, [kbId, loadOverviewExtras]);
+    const loadOverviewExtras = useOverviewExtras(kbId, setUsageByKb, setSuggestions);
 
     /** "Not this one." Per person, per browser — never a shared decision. */
     const hideSuggestion = useCallback((suggestion: KbSuggestion & { text: string }) => {
@@ -231,23 +310,7 @@ export default function KnowledgeStudio({
         setCreating(false);
     }, [go, t]);
 
-    /**
-     * `/app/studio/knowledge/new` is where the Studio "New" menu sends
-     * someone (studioApps.jsx `create`), and it means "make one and open
-     * it" — there is no create FORM to land on. Without this the route
-     * rendered the overview with its create button disabled, which is the
-     * one screen where the button had to work.
-     *
-     * Guarded by a ref rather than by `creating`, so a failed create does
-     * not immediately retry itself in a loop.
-     */
-    const createRequested = useRef(false);
-    useEffect(() => {
-        if (initialKbId !== 'new') { createRequested.current = false; return; }
-        if (createRequested.current || !canManage) return;
-        createRequested.current = true;
-        create();
-    }, [initialKbId, canManage, create]);
+    useCreateOnNewRoute(initialKbId, canManage, create);
 
     // The breadcrumb on the source screen names the knowledge base it sits
     // in. That name lives on the KB, not on the source row, so a hard
@@ -263,26 +326,7 @@ export default function KnowledgeStudio({
     }, [kbId]);
 
     if (kbId && sourceId && source) {
-        return (
-            <SourceDetail
-                kbId={kbId}
-                kbName={kbName}
-                source={source}
-                canManage={canManage}
-                onBack={() => go(kbId, tab, null)}
-                onChanged={() => { /* the detail reloads itself; nothing above it caches counts */ }}
-                // The name lives in this component's copy of the source row,
-                // so a rename has to land here too or the header reverts to
-                // the old name on the next render.
-                onRenamed={(sid, name) => setSource(prev => (prev && prev.id === sid ? { ...prev, name } : prev))}
-                onSchedule={async (sid, refresh) => {
-                    const body = await knowledgeApi.updateSource(kbId, sid, { refresh });
-                    // Re-read from the answer rather than assuming: the server
-                    // decides the armed `nextRefreshAt`, and the header shows it.
-                    setSource(body?.source || null);
-                }}
-            />
-        );
+        return <KbSourceScreen kbId={kbId} kbName={kbName} source={source} canManage={canManage} onBack={() => go(kbId, tab, null)} setSource={setSource} />;
     }
 
     if (kbId) {

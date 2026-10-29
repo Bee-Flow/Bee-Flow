@@ -38,6 +38,9 @@ const systemHelperLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const text = (name) => worded(`${name} must be text.`).nullish();
 const PROMPT_TEXT = 'System prompt is required to generate identity';
 
@@ -59,12 +62,11 @@ const IdentityBody = bodyOf({
 const DesignerBody = bodyOf({ message: worded('Message is required').min(1, 'Message is required') });
 
 /**
- * @param {Object} opts
- * @param {string}   opts.agentId       - System agent ID
- * @param {string}   opts.tier          - Model tier to use (e.g. 'smart', 'thinking')
- * @param {number}   opts.maxTokens     - Max tokens for the LLM call
- * @param {Function} opts.buildPrompt   - (body) => user message string
- * @param {Function} opts.parseResult   - (content, body) => response JSON
+ * @param {{ agentId: string, // - System agent ID
+ *   tier: string, // - Model tier to use (e.g. 'smart', 'thinking')
+ *   maxTokens: number, // - Max tokens for the LLM call
+ *   buildPrompt: (body: Record<string, string | null | undefined>) => string, // - the user message, from the validated body
+ *   parseResult: (content: string, body: Record<string, string | null | undefined>) => unknown }} opts  parseResult: - the response JSON
  *
  * The per-endpoint body check is a zod schema on the
  * route (`validate({ body: … })`), so a refusal names the field.
@@ -183,7 +185,7 @@ router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, 
     } catch (error) {
         log.error('[PromptDesigner] Error:', error);
         if (res.headersSent) {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (error).message })}\n\n`);
             res.end();
         } else {
             next(error);

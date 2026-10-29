@@ -6,6 +6,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip } from '@/shared/ui';
 
@@ -26,11 +27,12 @@ export function MemoryTypeChips({
     onChange: (type: string | null) => void;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     if (chips.length === 0) return null;
 
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
-            <Chip label="Everything" selected={type === null} onPress={() => onChange(null)} />
+            <Chip label={t('mobile.memory.everything', 'Everything')} selected={type === null} onPress={() => onChange(null)} />
             {chips.map((chip) => (
                 <Chip
                     key={chip.id}

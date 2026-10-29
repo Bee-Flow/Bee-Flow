@@ -30,11 +30,11 @@ function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }) {
             const snapshot = await cmsStore.getPublishedSnapshot(siteId);
             if (!snapshot) return next();
 
-            const pages = (snapshot.site?.pages || []).map((/** @type {any} */ entry) => ({
+            const pages = (snapshot.site?.pages || []).map((/** @type {import('../stores/cms/shared').PageIndexEntry} */ entry) => ({
                 ...entry,
                 seo: (snapshot.pages?.[entry.id] || {}).seo || {},
             }));
-            const home = pages.find((/** @type {any} */ p) => p.isHomepage);
+            const home = pages.find((/** @type {{ isHomepage?: boolean }} */ p) => p.isHomepage);
 
             res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
             return res.send(buildLlmsTxt(pages, {

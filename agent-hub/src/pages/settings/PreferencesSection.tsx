@@ -23,10 +23,7 @@ const NO_LOCALES: UiLocale[] = [];
 // ── Generic list row used in the General container ───────────────────────────
 const Row = ({ label, description, right, first }: RowProps) => (
     <div
-        className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5"
-        style={{
-            borderTop: first ? 'none' : '1px solid var(--border-subtle)',
-        }}
+        className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 ${first ? '[border-top:none]' : '[border-top:1px_solid_var(--border-subtle)]'}`}
     >
         <div className="flex-1 min-w-0">
             <p className="text-[13px] font-medium text-[var(--text-primary)]">{label}</p>
@@ -107,11 +104,7 @@ const Toggle = ({ on, onClick, disabled, ariaLabel }: ToggleProps) => (
         disabled={disabled}
         aria-pressed={on}
         aria-label={ariaLabel}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-        style={{
-            background: on ? 'var(--accent-primary)' : 'var(--border-default)',
-            opacity: disabled ? 0.6 : 1,
-        }}
+        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? '[background:var(--accent-primary)]' : '[background:var(--border-default)]'} ${disabled ? '[opacity:0.6]' : '[opacity:1]'}`}
     >
         <div
             className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"

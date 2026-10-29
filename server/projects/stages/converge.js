@@ -138,7 +138,8 @@ async function feedEvent({ deployment, stage }, report, deps) {
  * or `succeeded_with_warnings` when a task still failed after MAX_ATTEMPTS.
  *
  * @param {{ deployment: object, stage: object }} input  the row is `converging`
- * @param {object} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`,
+ * @param {Record<string, unknown> & { sleep?: (ms: number) => Promise<void>, maxAttempts?: number, tasks?: unknown[] }} [deps]
+ *   stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`,
  *   `revokeRemoteSubscriptions`, `emitProjectEvent`, `sleep(ms)`, `maxAttempts`, `tasks` (a test's own list)
  * @returns {Promise<{ deployment: object|null, report: { warnings: object[], attempts: number } }>}
  */
@@ -181,14 +182,6 @@ module.exports = { converge, tasksFor, MAX_ATTEMPTS, BACKOFF_MS };
 
 /** @typedef {import('./model').StageRow} StageRow */
 
-/**
- * @typedef {Object} TasksForArgs
- * @property {DeploymentRow} deployment
- * @property {StageRow} stage
- */
+/** @typedef {{ deployment: DeploymentRow, stage: StageRow }} TasksForArgs */
 
-/**
- * @typedef {Object} FeedEventArgs
- * @property {DeploymentRow} deployment
- * @property {StageRow} stage
- */
+/** @typedef {{ deployment: DeploymentRow, stage: StageRow }} FeedEventArgs */

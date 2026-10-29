@@ -208,6 +208,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/*
         if (userToolNames === null) return null;
         if (availableOf.has(app)) return availableOf.get(app);
         const deferrers = deferrersOf.get(app) || [];
+        /** @type {boolean} */
         let value;
         if (deferrers.length) {
             const shared = new Set();

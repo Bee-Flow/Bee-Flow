@@ -65,7 +65,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
                 const meta = await agentStore.getConversationMeta(messageMetadata.conversationId, { userId, encryptionKey: userAuth?.encryptionKey });
                 if (Array.isArray(meta?.activatedSkillIds)) activatedSkillIds = [...meta.activatedSkillIds];
             } catch (metaErr) {
-                log.warn('[AgentRuntime] Conversation meta read failed (skill apps):', metaErr.message);
+                log.warn('[AgentRuntime] Conversation meta read failed (skill apps):', /** @type {Error} */ (metaErr).message);
             }
         }
         try {
@@ -79,12 +79,13 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
                 forceDynamicSkills: isStandardTier,
             });
         } catch (skillErr) {
-            log.warn('[AgentRuntime] Skill app allowlist resolution failed:', skillErr.message);
+            log.warn('[AgentRuntime] Skill app allowlist resolution failed:', /** @type {Error} */ (skillErr).message);
         }
     }
 
     // ── Inject integration tools (Gmail, Calendar, etc.) ──────
     // These require OAuth tokens from the user session
+    /** @type {string | null} */
     let n8nOrgId = null;
     // Names of the integration tools offered on the FIRST pass. The mid-loop
     // skill-activation refresh diffs against this so tools that were
@@ -95,7 +96,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
             const session = userAuth?.session;
-            const integrationResult = await getIntegrationTools(/** @type {any} */ ({
+            const integrationResult = await getIntegrationTools(/** @type {Parameters<typeof getIntegrationTools>[0]} */ ({
                 userId,
                 session,
                 isAdmin: session?.user?.isAdmin || false,
@@ -124,7 +125,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
             }
             n8nOrgId = integrationResult.n8nOrgId;
         } catch (intErr) {
-            log.warn('[AgentRuntime] Integration tools injection failed:', intErr.message);
+            log.warn('[AgentRuntime] Integration tools injection failed:', /** @type {Error} */ (intErr).message);
         }
     } else {
         // Also strip web search when external tools are disabled
@@ -247,7 +248,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
         } catch (e) {
             // Never take a headless run down over the policy. The per-round
             // gate still refuses anything outside the stack.
-            log.warn('[AgentRuntime] Unattended tool policy failed:', e.message);
+            log.warn('[AgentRuntime] Unattended tool policy failed:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -277,7 +278,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
             // a failure here empties the stack rather than serving the whole
             // of it. A test with no tools grades badly; a test that mails a
             // customer is not recoverable.
-            log.error('[AgentRuntime] Test sandbox failed — withholding every tool:', e.message);
+            log.error('[AgentRuntime] Test sandbox failed — withholding every tool:', /** @type {Error} */ (e).message);
             sandboxWithheld = (out || []).map(t => ({ name: (t && t.function && t.function.name) || null, reason: 'confirm' }));
             out = [];
         }

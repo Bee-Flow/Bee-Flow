@@ -4,6 +4,7 @@
 /** @typedef {import('stream').Readable} Readable */
 /** @typedef {import('nodemailer/lib/mail-composer').MailComposerAlternative} MailComposerAlternative */
 /** @typedef {import('nodemailer/lib/mail-composer').MailComposerAttachment} MailComposerAttachment */
+/** @typedef {{ accessToken?: string, refreshToken?: string, scope?: string, expiryDate?: number | string | null }} MailTokens */
 /**
  * Outbound e-mail — the shared send layer.
  *
@@ -206,18 +207,7 @@ function htmlToText(html) {
         .trim();
 }
 
-/**
- * @typedef {Object} BuildRawMimeArgs
- * @property {string | MimeNodeAddress | MimeNodeAddressInput[]} fromEmail
- * @property {string} to
- * @property {string | undefined} [cc]
- * @property {string} subject
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [text]
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [html]
- * @property {string} [inReplyTo]
- * @property {string | undefined} [references]
- * @property {MailComposerAttachment[]} [attachments]
- */
+/** @typedef {{ fromEmail: string | MimeNodeAddress | MimeNodeAddressInput[], to: string, cc?: string | undefined, subject: string, text?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, html?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, inReplyTo?: string, references?: string | undefined, attachments?: MailComposerAttachment[] }} BuildRawMimeArgs */
 /**
  * @param {BuildRawMimeArgs} param0
  */
@@ -283,13 +273,7 @@ function mintMessageId(seed, fromEmail) {
 
 // ── Provider senders ─────────────────────────────────────────────────────────
 
-/**
- * @typedef {Object} SendViaGmailArgs
- * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} textBody
- * @property {string} htmlBody
- * @property {string} [inReplyTo]
- * @property {MailComposerAttachment[]} attachments
- */
+/** @typedef {{ textBody: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, htmlBody: string, inReplyTo?: string, attachments: MailComposerAttachment[] }} SendViaGmailArgs */
 /**
  * @param {SendViaGmailArgs} param0
  */
@@ -325,10 +309,7 @@ async function sendViaGmail({
     };
 }
 
-/**
- * @typedef {Object} SendViaOutlookArgs
- * @property {string | number | boolean} [sourceProviderMessageId]
- */
+/** @typedef {{ sourceProviderMessageId?: string | number | boolean }} SendViaOutlookArgs */
 /**
  * @param {SendViaOutlookArgs} param0
  */
@@ -390,24 +371,21 @@ const PROVIDER_SENDERS = { gmail: sendViaGmail, outlook: sendViaOutlook };
  * Send one message from a mailbox, optionally threaded into an existing
  * conversation.
  *
- * @param {object}   p
- * @param {'gmail'|'outlook'} p.provider
- * @param {object}   p.tokens         { accessToken, refreshToken, scope?, expiryDate? }
- * @param {Function} p.onRefresh      called with the refreshed blob — MUST persist it
- * @param {object}   p.mailbox        { address, displayName?, mode: 'personal'|'shared' }
- * @param {string|string[]} p.to
- * @param {string|string[]} [p.cc]
- * @param {string}   p.subject
- * @param {string}   [p.textBody]
- * @param {string}   [p.htmlBody]
- * @param {string}   [p.inReplyTo]                 parent Message-ID
- * @param {string}   [p.references]                parent's References chain
- * @param {string}   [p.providerThreadId]          Gmail threadId / Graph conversationId
- * @param {string}   [p.sourceProviderMessageId]   the message being replied to
- * @param {string}   [p.messageId]                 override the minted Message-ID
- * @param {string}   [p.messageIdSeed]             used when minting one
- * @param {Array}    [p.attachments]               MailComposer attachments (Gmail only)
- * @param {'reply'|'createReply'} [p.replyStrategy='reply']
+ * `p`: `onRefresh` is called with the refreshed token blob — it MUST persist
+ * it; `inReplyTo` is the parent Message-ID, `references` the parent's
+ * References chain, `providerThreadId` the Gmail threadId / Graph
+ * conversationId, `sourceProviderMessageId` the message being replied to,
+ * `messageId` overrides the minted Message-ID, `messageIdSeed` is used when
+ * minting one, `attachments` are MailComposer attachments (Gmail only),
+ * `replyStrategy` defaults to 'reply'.
+ *
+ * @param {{
+ *   provider: 'gmail'|'outlook', tokens: MailTokens, onRefresh: (tokens: MailTokens) => unknown,
+ *   mailbox: { address: string, displayName?: string, mode?: 'personal'|'shared' | string },
+ *   to: string|string[], cc?: string|string[], subject: string, textBody?: string, htmlBody?: string,
+ *   inReplyTo?: string, references?: string, providerThreadId?: string, sourceProviderMessageId?: string,
+ *   messageId?: string, messageIdSeed?: string, attachments?: MailComposerAttachment[], replyStrategy?: 'reply'|'createReply',
+ * }} p
  * @returns {Promise<{providerMessageId, providerThreadId, rfc822MessageId}>}
  */
 async function sendMailMessage(p) {

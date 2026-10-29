@@ -116,7 +116,7 @@ function makeVersionApi(deps, cleanName) {
      */
     /**
      * @param {string} documentId
-     * @param {any} context
+     * @param {import('./documentStore').DocContext} context
      * @param {string} ref
      * @param {{ expectedVersionId?: string }} [options]
      */
@@ -244,7 +244,7 @@ function makeCollabApi(deps, cleanName) {
      * from, never the current revision and never the stored body. Answers its
      * id; null when the caller may not write the document.
      *
-     * @param {string} documentId @param {any} context @param {string} html
+     * @param {string} documentId @param {import('./documentStore').DocContext} context @param {string} html
      */
     async function keepConflictCopy(documentId, context, html) {
         await initDB();
@@ -364,21 +364,17 @@ function makeCollabApi(deps, cleanName) {
 }
 
 /**
- * @param {object} deps
- * @param {Function} deps.initDB
- * @param {Function} deps.withTransaction
- * @param {(sql: string, params: any[]) => Promise<any[]>} deps.getAll
- * @param {Function} deps.getOne
- * @param {Function} deps.run
- * @param {Function} deps.getDocument          (id, context) => document | null (read access)
- * @param {Function} deps.getDocumentVersion   (id, context, versionId) => document at that revision | null
- * @param {Function} deps.updateDocument       (id, context, updates) => document | null (write access)
- * @param {Function} deps.lockForWrite         (client, id, actor) => { row, asMember } | null
- * @param {Function} deps.mapRow
- * @param {Function} deps.sanitizePageBody
- * @param {Function} deps.assertWithinCaps
- * @param {Function} deps.failure              (message, status, errorClass) => Error
- * @param {string}   deps.PAGE_DOC_TYPE
+ * @param {{
+ *   initDB: () => Promise<unknown>, withTransaction: ReadingDb['withTransaction'],
+ *   getAll: (sql: string, params: any[]) => Promise<any[]>, getOne: ReadingDb['getOne'], run: ReadingDb['run'],
+ *   getDocument: (id: string, context: DocContext) => Promise<DocumentView | null>,
+ *   getDocumentVersion: (id: string, context: DocContext, versionId: string) => Promise<DocumentView | null>,
+ *   updateDocument: (id: string, context: DocContext, updates: import('./documentStore').DocumentUpdates) => Promise<DocumentView | null>,
+ *   lockForWrite: (client: import('pg').PoolClient, id: string, actor: import('./documentStore').DocActor) => Promise<{ row: any, asMember: boolean } | null>,
+ *   mapRow: typeof import('./document/rowMappers').mapRow, sanitizePageBody: (html: string) => string,
+ *   assertWithinCaps: (parts: { bodyHtml?: string, css?: string }) => void,
+ *   failure: (message: string, status?: number, errorClass?: string) => Error, PAGE_DOC_TYPE: string,
+ * }} deps  getDocument: read access; getDocumentVersion: the document at that revision; updateDocument: write access
  */
 function makeDocumentHistory(deps) {
     const { failure } = deps;
@@ -397,5 +393,7 @@ function makeDocumentHistory(deps) {
 }
 
 module.exports = { makeDocumentHistory };
+
+/** @typedef {ReturnType<typeof import('./lib/documentCrypto').readingDb>} ReadingDb @typedef {import('./documentStore').DocContext} DocContext @typedef {import('./documentStore').DocumentView} DocumentView */
 
 /** @typedef {Parameters<typeof makeDocumentHistory>[0]} HistoryDeps */

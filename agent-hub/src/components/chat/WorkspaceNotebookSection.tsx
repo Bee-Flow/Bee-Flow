@@ -26,8 +26,7 @@ export function WorkspaceNotebookSection({ t, saving, user, exportMenuRef, setEx
                     <button
                         onClick={() => setExportMenuOpen(p => !p)}
                         disabled={!!exporting}
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] flex items-center gap-0.5"
-                        style={{ color: exporting ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
+                        className={`p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] flex items-center gap-0.5 ${exporting ? '[color:var(--accent-primary)]' : '[color:var(--text-tertiary)]'}`}
                         title={t('notebooks.export_title')}
                     >
                         {exporting

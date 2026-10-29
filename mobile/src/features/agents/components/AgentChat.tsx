@@ -131,8 +131,11 @@ export function AgentChat({ agent, conversationId, onConversationId, initialText
         <>
             {accessDenied ? (
                 <Banner tone="error" icon="Lock">
-                    You no longer have access to {agent.name}. Your permissions changed while this
-                    chat was open — ask an administrator if you still need it.
+                    {t(
+                        'mobile.agents.access_revoked',
+                        'You no longer have access to {name}. Your permissions changed while this chat was open — ask an administrator if you still need it.',
+                        { name: agent.name },
+                    )}
                 </Banner>
             ) : null}
 
@@ -158,7 +161,7 @@ export function AgentChat({ agent, conversationId, onConversationId, initialText
                 // decision, and offering it here invites breaking a tuned agent.
                 tiers={NO_TIERS}
                 sources={false}
-                disabledReason={accessDenied ? 'You no longer have access to this agent.' : undefined}
+                disabledReason={accessDenied ? t('mobile.agents.access_revoked_short', 'You no longer have access to this agent.') : undefined}
                 placeholder={t('chat.composer.placeholder_agent', 'Message {name}...', { name: agent.name || t('chat.composer.agent_fallback', 'Agent') })}
                 initialText={initialText}
             />

@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip, Section } from '@/shared/ui';
 
@@ -15,11 +16,15 @@ const makeStyles = (theme: Theme) => ({
 });
 
 export function ProfileStarters({ agent, onPick }: { agent: Agent; onPick: (prompt: string) => void }) {
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const starters = useMemo(() => parseStarterPrompts(agent.starter_prompts), [agent.starter_prompts]);
     if (starters.length === 0) return null;
     return (
-        <Section title="Try asking" subtitle="Written by whoever built this agent">
+        <Section
+            title={t('mobile.agents.try_asking', 'Try asking')}
+            subtitle={t('mobile.agents.try_asking_hint', 'Written by whoever built this agent')}
+        >
             <View style={styles.list}>
                 {starters.map((prompt) => (
                     <Chip key={prompt} label={prompt} onPress={() => onPick(prompt)} style={styles.starter} />

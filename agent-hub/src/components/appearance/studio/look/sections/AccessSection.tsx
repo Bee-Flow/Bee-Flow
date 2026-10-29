@@ -31,13 +31,7 @@ export default function AccessSection({ form, setForm, saving }: LookSectionProp
                 className="rounded-xl border p-4 flex items-center gap-3 border-[var(--border-subtle)] bg-[var(--bg-card)]"
             >
                 <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                    style={{
-                        background: allow
-                            ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)'
-                            : 'var(--bg-tertiary)',
-                        color: allow ? 'var(--accent-primary)' : 'var(--text-muted)',
-                    }}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${allow ? '[background:color-mix(in_srgb,_var(--accent-primary)_14%,_transparent)] [color:var(--accent-primary)]' : '[background:var(--bg-tertiary)] [color:var(--text-muted)]'}`}
                 >
                     {allow ? <Users className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                 </div>

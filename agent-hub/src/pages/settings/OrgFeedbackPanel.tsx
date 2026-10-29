@@ -112,7 +112,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
 
     const refreshBtn = (
         <button onClick={fetchData} title={t('org.feedback_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
-            <RefreshCw style={{ width: 13, height: 13, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw className={`[width:13px] [height:13px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
         </button>
     );
 
@@ -178,13 +178,13 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                         )}
                                     </div>
                                     {item.comment && (
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isExpanded ? 'pre-wrap' : 'nowrap', maxWidth: isExpanded ? 'none' : 500 }}>
+                                        <div className={`[font-size:12px] [color:var(--text-secondary)] [margin-top:3px] [overflow:hidden] [text-overflow:ellipsis] ${isExpanded ? '[white-space:pre-wrap] [max-width:none]' : '[white-space:nowrap] [max-width:500px]'}`}>
                                             "{item.comment}"
                                         </div>
                                     )}
                                 </div>
                                 <span className="[font-size:11px] [color:var(--text-muted)] [flex-shrink:0]">{fmtTime(item.created_at)}</span>
-                                <ChevronRight style={{ width: 14, height: 14, color: 'var(--text-muted)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+                                <ChevronRight className={`[width:14px] [height:14px] [color:var(--text-muted)] [transition:transform_0.2s] [flex-shrink:0] ${isExpanded ? '[transform:rotate(90deg)]' : '[transform:none]'}`} />
                             </div>
 
                             {isExpanded && (
@@ -217,7 +217,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                                                         const switched = !isUserMsg && turnModel && prevAssistantModel && turnModel !== prevAssistantModel;
                                                         if (!isUserMsg) prevAssistantModel = turnModel || prevAssistantModel;
                                                         return (
-                                                            <div key={mi} style={{ display: 'flex', justifyContent: isUserMsg ? 'flex-end' : 'flex-start' }}>
+                                                            <div key={mi} className={`[display:flex] ${isUserMsg ? '[justify-content:flex-end]' : '[justify-content:flex-start]'}`}>
                                                                 <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: 12, background: isUserMsg ? 'var(--bg-secondary)' : 'var(--bg-primary)', border: `1px solid ${isUserMsg ? 'var(--border-subtle)' : `${C.blue}25`}` }}>
                                                                     <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px] [flex-wrap:wrap]">
                                                                         {isUserMsg ? <User className="w-[10px] h-[10px] [color:var(--text-muted)]" /> : <Bot style={{ width: 10, height: 10, color: C.blue }} />}

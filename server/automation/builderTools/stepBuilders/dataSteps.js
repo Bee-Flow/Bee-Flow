@@ -23,7 +23,15 @@ const MAX_SET_OPERATIONS = 20;
 function sanitizeSetOperations(raw) {
     if (!Array.isArray(raw)) return { error: 'operations must be an array of operation objects, e.g. [{ op: "rowId", target: "id" }].' };
     if (raw.length > MAX_SET_OPERATIONS) return { error: `operations: max ${MAX_SET_OPERATIONS} entries.` };
+    /**
+     * @param {string} v
+     */
     const col = (v) => typeof v === 'string' && v.trim().length > 0;
+    /**
+     * @param {string} v
+     * @param {string} where
+     * @param {number} i
+     */
     const colOk = (v, where, i) => {
         if (!col(v)) return `operations[${i}]: ${where} needs a non-empty column name.`;
         if (SET_RESERVED_KEYS.has(v)) return `operations[${i}]: column name "${v}" is reserved (__proto__/constructor/prototype).`;
@@ -35,6 +43,7 @@ function sanitizeSetOperations(raw) {
         const o = raw[i];
         if (!o || typeof o !== 'object' || Array.isArray(o)) return { error: `operations[${i}]: must be an object with an "op" field.` };
         if (!SET_OPS.has(o.op)) return { error: `operations[${i}]: unknown op "${o.op}". Use one of: ${Array.from(SET_OPS).join(', ')}.` };
+        /** @type {string | null} */
         let err = null;
         if (o.op === 'rowId') {
             err = colOk(o.target, 'target', i);
@@ -203,6 +212,7 @@ function sanitizeCodeLimits(raw) {
     // slideVisualFields/deckLookFields. require() is cached, so this costs one
     // lookup per call.
     const { CODE_LIMIT_BOUNDS, describeCodeLimit, isCodeLimitKey } = require('../../validate/stepRules/dataShapingRules');
+    /** @type {Record<string, number>} */
     const limits = {};
     for (const [key, b] of Object.entries(CODE_LIMIT_BOUNDS)) limits[key] = b.def;
     if (raw === undefined || raw === null) return { limits };

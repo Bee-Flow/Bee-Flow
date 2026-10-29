@@ -192,7 +192,7 @@ async function backfillDeadlines() {
         // Never fail the boot over a correction: an unbackfilled row is wrong
         // in the same way it was yesterday, while a rejected initDB promise
         // would take every read of the register down with it.
-        log.error('[IncidentStore] deadline backfill failed:', err.message);
+        log.error('[IncidentStore] deadline backfill failed:', /** @type {Error} */ (err).message);
     }
     return { scanned, moved };
 }
@@ -310,25 +310,17 @@ function _products(v) {
 }
 
 /**
- * @param {object} input
- * @param {string} input.organization_id
- * @param {string} input.title
- * @param {'breach'|'security_incident'|'vulnerability'} [input.kind='breach']
- * @param {string[]} [input.regimes] e.g. ['GDPR','NIS2'] — default GDPR (CRA for a vulnerability)
- * @param {number} [input.customerNoticeHours] the org's DORA notice window (compliance_settings.dora_customer_notice_hours)
- * @param {number} [input.customer_notice_hours] snake_case alias of customerNoticeHours
- * @param {string[]} [input.cve_ids]
- * @param {Array<{name,version_range}>} [input.affected_products]
- * @param {boolean} [input.exploited_in_wild]
- * @param {boolean} [input.actively_exploited] alias of exploited_in_wild
- * @param {string} [input.reported_via]
- * @param {string} [input.severity]
- * @param {string|Date} [input.detected_at] defaults to now
- * @param {string|Date} [input.occurred_at]
- * @param {string} [input.description]
- * @param {string} [input.source] defaults to 'manual'
- * @param {boolean} [input.high_risk]
- * @param {string} [input.created_by]
+ * @param {{
+ *   organization_id: string, title: string, kind?: 'breach'|'security_incident'|'vulnerability',
+ *   regimes?: string[], customerNoticeHours?: number, customer_notice_hours?: number, cve_ids?: string[],
+ *   affected_products?: Array<{name,version_range}>, exploited_in_wild?: boolean, actively_exploited?: boolean,
+ *   reported_via?: string, severity?: string, detected_at?: string|Date, occurred_at?: string|Date,
+ *   description?: string, source?: string, high_risk?: boolean, created_by?: string,
+ * }} input
+ *   regimes: e.g. ['GDPR','NIS2'] — default GDPR (CRA for a vulnerability)
+ *   customerNoticeHours: the org's DORA notice window (compliance_settings.dora_customer_notice_hours)
+ *   customer_notice_hours: snake_case alias of customerNoticeHours
+ *   actively_exploited: alias of exploited_in_wild; detected_at: defaults to now; source: defaults to 'manual'
  */
 async function createIncident(input) {
     await initDB();
@@ -560,6 +552,9 @@ async function listOpenClocks(orgId) {
  * the roll-up, which is what they mean.
  */
 const GDPR_NOTIFICATION_HOURS = REGIME_CLOCKS.GDPR.notificationHours;
+/**
+ * @param {string} orgId
+ */
 async function getDeadlineStats(orgId) {
     await initDB();
     const gdprDue = `detected_at + INTERVAL '${GDPR_NOTIFICATION_HOURS} hours'`;
@@ -590,7 +585,10 @@ async function getDeadlineStats(orgId) {
     };
 }
 
-/** Open incidents whose deadline is near or past — for the daily notifier. */
+/**
+ * Open incidents whose deadline is near or past — for the daily notifier.
+ * @param {string} orgId
+ */
 async function listNeedingAttention(orgId) {
     await initDB();
     return getAll(`

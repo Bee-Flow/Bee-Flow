@@ -12,7 +12,7 @@ import { timeAgo, useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Badge, Icon, IconButton, Text } from '@/shared/ui';
 
-import { capitalise, memoryLine } from '../model/format';
+import { memoryLine, memoryTypeSingular } from '../model/format';
 import type { Memory } from '../model/types';
 
 const makeStyles = (theme: Theme) =>
@@ -31,7 +31,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function MemorySheetRow({ memory, onDelete }: { memory: Memory; onDelete: () => void }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     return (
@@ -41,7 +41,7 @@ export function MemorySheetRow({ memory, onDelete }: { memory: Memory; onDelete:
                     {memoryLine(memory)}
                 </Text>
                 <View style={styles.meta}>
-                    <Badge label={capitalise(memory.type)} tone={memory.importance >= 0.8 ? 'accent' : 'neutral'} />
+                    <Badge label={memoryTypeSingular(memory.type)} tone={memory.importance >= 0.8 ? 'accent' : 'neutral'} />
                     <Text variant="label" tone="tertiary">
                         {timeAgo(memory.updated_at)}
                     </Text>
@@ -49,7 +49,7 @@ export function MemorySheetRow({ memory, onDelete }: { memory: Memory; onDelete:
             </View>
             <IconButton
                 icon={<Icon name="Trash2" size={16} color={theme.colors.textMuted} />}
-                accessibilityLabel={`Forget: ${memoryLine(memory).slice(0, 60)}`}
+                accessibilityLabel={t('mobile.memory.forget_line', 'Forget: {line}', { line: memoryLine(memory).slice(0, 60) })}
                 onPress={onDelete}
             />
         </View>

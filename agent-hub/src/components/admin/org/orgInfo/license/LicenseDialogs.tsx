@@ -74,7 +74,7 @@ export function ChangePlanDialog({ target, preview, labelId, setChangeTarget, se
                     <button onClick={close} disabled={changeBusy} className={SECONDARY_BUTTON}>
                         {t('org.cancel', 'Cancel')}
                     </button>
-                    <button onClick={handleConfirmChange} disabled={changeBusy} className="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50" style={{ background: isDown ? '#64748b' : '#3b82f6' }}>
+                    <button onClick={handleConfirmChange} disabled={changeBusy} className={`px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 ${isDown ? '[background:#64748b]' : '[background:#3b82f6]'}`}>
                         {changeBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : t('org.confirm', 'Confirm')}
                     </button>
                 </div>

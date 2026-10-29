@@ -24,7 +24,7 @@ function defaultDeps() {
     return {
         resolveDatatablePrincipalForUser: (userId) => require('../../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         defaultCreateScope: (principal) => require('../../auth/datatableAccess').defaultCreateScope(principal),
-        hasPermission: async (userId, perm, session) => {
+        hasPermission: async (/** @type {string} */ userId, /** @type {string} */ perm, /** @type {import("../../core/entitlements/betaFeatures").SessionLike | null | undefined} */ session) => {
             const { hasPermission } = require('../../auth/permissions');
             return hasPermission(userId, perm, session);
         },

@@ -109,7 +109,7 @@ async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs, sourc
             organization_id: userOrgId || null,
         });
     } catch (e) {
-        log.warn('[Skills/ai] failed to log usage:', e.message);
+        log.warn('[Skills/ai] failed to log usage:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -216,7 +216,7 @@ async function improve(req, res) {
         const fresh = await skillStore.getSkill(skill.id, orgId, userId, { canManage: canManage === true });
         return res.json({ skill: fresh || { ...skill, ...parsed } });
     } catch (err) {
-        if (err instanceof SkillStructureError || err?.name === 'SkillStructureError') {
+        if (err instanceof SkillStructureError || /** @type {Error} */ (err)?.name === 'SkillStructureError') {
             // Our own validators refused the model's shape after the clamps —
             // a model failure, not the caller's malformed request.
             throw unusable();

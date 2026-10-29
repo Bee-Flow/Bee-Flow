@@ -44,6 +44,7 @@ const SOLUTION_HOLDS_NO_CHATS = Object.freeze({
     code: 'SOLUTION_HOLDS_NO_CHATS',
     error: 'This is a Studio Solution. Chats belong in a project, not in a Solution.',
 });
+/** @typedef {import('express').Request<{ id: string, convId: string }> & { threadFiling?: Awaited<ReturnType<typeof import('../../stores/projectStore').getOwnConversationFiling>> }} ThreadFilingRequest  set by requireOwnThreadMw */
 const solutionHoldsNoChats = () => conflict(SOLUTION_HOLDS_NO_CHATS.code, SOLUTION_HOLDS_NO_CHATS.error);
 
 const tableOf = (/** @type {unknown} */ type) => (type === 'agent' ? 'agent_conversations' : 'direct_conversations');
@@ -52,9 +53,9 @@ const typeOf = (/** @type {unknown} */ type) => (type === 'agent' ? 'agent' : 'd
 /**
  * The refusals the shared-conversation store states on purpose, as answers.
  * Anything else stays an error (a generic 500, detail in the log).
- * @param {any} err
+ * @param {Error & { code?: string }} err
  */
-function asHttpError(err, /** @type {any} */ log) {
+function asHttpError(err, /** @type {Pick<typeof import('../../telemetry/log'), 'error'>} */ log) {
     if (err?.code === 'NOT_FOUND') return notFound('not_found', 'Conversation not found');
     if (err?.code === 'OWNER_KEY_REQUIRED') return new HttpError(409, 'OWNER_KEY_REQUIRED', err.message);
     if (err?.code === 'PROJECT_KEY_UNAVAILABLE') {
@@ -68,11 +69,11 @@ function asHttpError(err, /** @type {any} */ log) {
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]   (minRole) => middleware named requireProjectRoleMw
- * @param {any}   [deps.store]                stores/projectStore
- * @param {any}   [deps.shared]               stores/agent/sharedConversations
- * @param {Function} [deps.recordProjectChange]  projects/changeFeed recordProjectChange
- * @param {any}   [deps.log]
+ * @param {import('./roleGate').ProjectRoleGate} [deps.requireProjectRole]  middleware named requireProjectRoleMw
+ * @param {any} [deps.store]  stores/projectStore; typed, unshareOwn's project?.organizationId (undefined) would not fit orgId
+ * @param {typeof import('../../stores/agent/sharedConversations')} [deps.shared]
+ * @param {typeof import('../../projects/changeFeed').recordProjectChange} [deps.recordProjectChange]
+ * @param {Pick<typeof import('../../telemetry/log'), 'error'>} [deps.log]
  */
 function makeThreadsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -83,10 +84,11 @@ function makeThreadsRouter(deps = {}) {
         (deps.recordProjectChange || require('../../projects/changeFeed').recordProjectChange)(...a);
     const log = deps.log || require('../../telemetry/log');
 
-    const userIdOf = (/** @type {any} */ req) => req.session?.user?.id;
+    // Every route here runs behind the project role gate, which guarantees the session user.
+    const userIdOf = (/** @type {import('express').Request} */ req) => /** @type {string} */ (req.session?.user?.id);
 
     /** Unshare the caller's own chat, re-encrypting it under their key; then say so in the project. */
-    async function unshareOwn(/** @type {any} */ req, /** @type {string} */ projectId, /** @type {string} */ conversationId, /** @type {unknown} */ type) {
+    async function unshareOwn(/** @type {import('express').Request} */ req, /** @type {string} */ projectId, /** @type {string} */ conversationId, /** @type {unknown} */ type) {
         const userId = userIdOf(req);
         const project = await store().getProject(projectId);
         let result;
@@ -113,7 +115,7 @@ function makeThreadsRouter(deps = {}) {
      * The gate of the unshare route: the caller owns this chat and it is
      * filed in THIS project. No project role needed (see the header).
      */
-    async function requireOwnThreadMw(/** @type {any} */ req, /** @type {any} */ res, /** @type {Function} */ next) {
+    async function requireOwnThreadMw(/** @type {ThreadFilingRequest} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         const userId = userIdOf(req);
         if (!userId) throw unauthorized('not_authenticated', 'Not authenticated');
         const filing = await store().getOwnConversationFiling(req.params.convId, userId, tableOf(req.query?.type));
@@ -149,7 +151,7 @@ function makeThreadsRouter(deps = {}) {
         const limit = Math.min(parseInt(String(req.query.limit), 10) || 50, 200);
         const offset = parseInt(String(req.query.offset), 10) || 0;
         const threads = await shared().listProjectThreads(req.params.id, { limit, offset });
-        res.json({ threads, role: /** @type {any} */ (req).projectRole });
+        res.json({ threads, role: /** @type {import('express').Request} */ (req).projectRole });
     });
 
     // Editor on the project AND owner of the conversation (the store matches
@@ -185,7 +187,7 @@ function makeThreadsRouter(deps = {}) {
     });
 
     router.delete('/:id/threads/:convId', requireOwnThreadMw, validate({ query: S.TypeQuery }), async (/** @type {import('express').Request<{ id: string, convId: string }, any, any, import('zod').infer<typeof S.TypeQuery>>} */ req, res) => {
-        if (!(/** @type {any} */ (req).threadFiling?.shared)) {
+        if (!(/** @type {ThreadFilingRequest} */ (req).threadFiling?.shared)) {
             // Filed here but not shared: nothing to re-encrypt, nothing to announce.
             return res.json({ shared: false, rekeyed: 0 });
         }

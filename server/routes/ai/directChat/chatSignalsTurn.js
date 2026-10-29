@@ -48,7 +48,7 @@ function _providerOf(config) {
 /**
  * Resolve the org key (the same lookup /api/privacy/shield-status uses, so the
  * turn counts under exactly the org whose notice the person saw), then count.
- * @param {any} req
+ * @param {import('express').Request} req
  * @param {string} userId
  * @param {Omit<Parameters<typeof import('../../../core/privacy/chatSignals').countTurn>[0], 'orgKey' | 'userId'>} turn everything countTurn needs except the org key
  */

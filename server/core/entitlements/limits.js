@@ -1,3 +1,4 @@
+/** @typedef {import('../../auth/orgScope').OrgScopeRequest} OrgScopeRequest */
 // @typecheck
 /**
  * Subscription Limit Enforcement
@@ -380,6 +381,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
  * The HOME org, never the one a group grants: a quota belongs to the tenant
  * that pays for the account, and charging a group's org would bill whoever
  * happened to share a group with the caller. `auth/orgScope.js` does the read.
+ * @param {OrgScopeRequest | null} req
  */
 async function resolveOrgId(req) {
     const scope = await orgScope(req);

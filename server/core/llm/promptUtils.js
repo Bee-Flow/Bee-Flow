@@ -13,14 +13,11 @@ const CLOCK_TAG_PLACEHOLDER = 'the current date/time given in the "Now:" line be
  * Process dynamic tags in a system prompt.
  *
  * @param {string} prompt
- * @param {object} [options]
- * @param {boolean} [options.deferClockTags=false]
- *        When true, `{Time}` and `{DateTime}` are NOT expanded to a live clock
- *        reading — they are replaced with a fixed pointer to the caller's
- *        separate "Now:" line. Callers that put this prompt inside a
- *        prompt-cached block must set this: a second-resolution timestamp in
- *        the cached prefix makes every request a cache miss. `{Date}` is still
- *        expanded inline (it only rotates daily).
+ * @param {{ deferClockTags?: boolean }} [options] `deferClockTags`: When true, `{Time}` and
+ *   `{DateTime}` are NOT expanded to a live clock reading — they are replaced with a fixed pointer to
+ *   the caller's separate "Now:" line. Callers that put this prompt inside a prompt-cached block must
+ *   set this: a second-resolution timestamp in the cached prefix makes every request a cache miss.
+ *   `{Date}` is still expanded inline (it only rotates daily) (default false)
  */
 function processSystemPrompt(prompt, options = {}) {
     if (!prompt) return prompt;

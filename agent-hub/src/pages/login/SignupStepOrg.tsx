@@ -64,12 +64,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                                 : 'border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/40'}`}
                         >
                             <div className="p-4 flex items-start gap-3.5">
-                                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{
-                                        background: isSelected ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                                        color: isSelected ? '#fff' : 'var(--text-muted)',
-                                        transition: 'all 0.2s ease',
-                                    }}>
+                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 [transition:all_0.2s_ease] ${isSelected ? '[background:var(--accent-primary)] [color:#fff]' : '[background:var(--bg-tertiary)] [color:var(--text-muted)]'}`}>
                                     {type.icon}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -110,7 +105,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                         <label className={labelClass}>{t('signup.company_name')} *</label>
                         <div className="relative">
                             <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
-                            <input type="text" value={signupData.newOrgName} onChange={e => setSignupData(p => ({ ...p, newOrgName: e.target.value }))} className={inputClass} placeholder="Jansen B.V." required />
+                            <input type="text" value={signupData.newOrgName} onChange={e => setSignupData(p => ({ ...p, newOrgName: e.target.value }))} className={inputClass} placeholder={t('signup.org_name_placeholder', 'Jansen B.V.')} required />
                         </div>
                     </div>
                     <div>
@@ -125,7 +120,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                         <label className={labelClass}>{t('signup.address')}</label>
                         <div className="relative">
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
-                            <input type="text" value={signupData.orgAddress} onChange={e => setSignupData(p => ({ ...p, orgAddress: e.target.value }))} className={inputClass} placeholder="Keizersgracht 123, Amsterdam" />
+                            <input type="text" value={signupData.orgAddress} onChange={e => setSignupData(p => ({ ...p, orgAddress: e.target.value }))} className={inputClass} placeholder={t('signup.org_address_placeholder', 'Keizersgracht 123, Amsterdam')} />
                         </div>
                     </div>
                     <div>
@@ -147,7 +142,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                             <label className={labelClass}>{t('signup.vat')} *</label>
                             <div className="relative">
                                 <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
-                                <input type="text" value={signupData.orgVat} onChange={e => setSignupData(p => ({ ...p, orgVat: e.target.value }))} className={inputClass} placeholder="NL123456789B01" required />
+                                <input type="text" value={signupData.orgVat} onChange={e => setSignupData(p => ({ ...p, orgVat: e.target.value }))} className={inputClass} placeholder={t('signup.org_vat_placeholder', 'NL123456789B01')} required />
                             </div>
                         </div>
                     </div>

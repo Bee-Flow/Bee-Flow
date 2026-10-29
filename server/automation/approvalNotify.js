@@ -1,3 +1,4 @@
+/** @typedef {import('./approvalDelivery').ApprovalAutomation} ApprovalAutomation */
 /**
  * approvalNotify — one place every "an approval needs you" announcement goes.
  *
@@ -46,6 +47,7 @@ const CARD_CHANNELS = ['talk', 'nc_talk'];
  * automation to ask (an App Studio request_approval has no automation behind it).
  * The default is `channels: ['bell']`, so an app-sourced row behaves exactly
  * as it does today.
+ * @param {ApprovalAutomation | null} automation
  */
 function approvalPolicy(automation) {
     if (!automation) {
@@ -64,19 +66,14 @@ function approvalPolicy(automation) {
 /**
  * Announce something about an approval to the people it concerns.
  *
- * @param {object}   p
- * @param {object}   p.approval      the durable approval row
- * @param {object}   [p.automation]  the automation behind it, when there is one
- * @param {string[]} p.recipientIds  who hears about it (already resolved by
- *                                   the caller — seats, group members, owner)
- * @param {string}   p.title         the bell title, verbatim
- * @param {string}   [p.message]     the bell body, verbatim
- * @param {string}   [p.category]    'info' | 'heads_up' | 'urgent' | 'ai_task'
- * @param {string}   [p.link]        SPA path; defaults to the approval page
- * @param {boolean}  [p.card]        post the Nextcloud card too (default true).
- *                                   Pass false for announcements that are NOT
- *                                   a request for a decision — a withdrawal or
- *                                   an outcome notice has nothing to react to.
+ * @param {{ approval: import('./approvalRulebook').Approval, automation?: import('./approvalDelivery').ApprovalAutomation | null,
+ *   recipientIds: string[], title: string, message?: string, category?: string, link?: string | null, card?: boolean }} p
+ *   approval: the durable approval row; automation: the automation behind it, when there is one;
+ *   recipientIds: who hears about it (already resolved by the caller — seats, group members, owner);
+ *   title / message: the bell title and body, verbatim; category: 'info' | 'heads_up' | 'urgent' | 'ai_task';
+ *   link: SPA path, defaults to the approval page; card: post the Nextcloud card too (default true).
+ *   Pass false for announcements that are NOT a request for a decision — a
+ *   withdrawal or an outcome notice has nothing to react to.
  */
 async function notifyApproval({
     approval, automation = null, recipientIds = [],

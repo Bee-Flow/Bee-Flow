@@ -55,7 +55,7 @@ const DEFAULT_IDENTIFY_THRESHOLD = 50;
  * merges consecutive same-speaker rows) and finally to diarization-only
  * (no text) so a transcription-less result still yields speaker lanes.
  *
- * @param {object} output
+ * @param {import('./pyannoteApi').PyannoteOutput | null | undefined} output
  * @returns {Array<{speakerId: string, start: number, end: number, text: string}>}
  */
 function mapPyannoteOutput(output) {

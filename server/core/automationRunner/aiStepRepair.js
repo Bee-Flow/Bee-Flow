@@ -1,3 +1,4 @@
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
 // @typecheck
 'use strict';
 /**
@@ -57,7 +58,7 @@ function makeCheckReport({ passed, repaired, fallbackUsed, errors }) {
 /**
  * The step's fallback once the repair round has failed too: the configured
  * values (read from run data, never from secrets), or a failed step.
- * @returns {any} the output to use
+ * @returns {Record<string, unknown>} the output to use
  */
 function applyFallback({ step, rel, runState, errors }) {
     if (rel.fallback && rel.fallback.kind === 'value') {
@@ -65,7 +66,7 @@ function applyFallback({ step, rel, runState, errors }) {
         return resolveInputs(rel.fallback.fields, runState, { allowSecrets: false });
     }
     const err = new Error(`This AI step's answer did not pass its checks after one repair round: ${errorSummary(errors)}`);
-    /** @type {any} */ (err).errorClass = 'ai_check_failed';
+    /** @type {Error & { errorClass?: string }} */ (err).errorClass = 'ai_check_failed';
     throw err;
 }
 

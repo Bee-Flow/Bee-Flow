@@ -157,8 +157,7 @@ function KnowledgePanelSection({ onStrictKnowledgeChange, t, strictKnowledge, on
                                     data-testid={`kb-item-${item.id}`}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-                                                style={{ background: isLinked ? 'rgba(59,130,246,0.15)' : 'var(--bg-secondary)' }}>
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${isLinked ? '[background:rgba(59,130,246,0.15)]' : '[background:var(--bg-secondary)]'}`}>
                                                 📚
                                             </div>
                                             <div>

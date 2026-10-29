@@ -106,7 +106,7 @@ async function dispatchToolRound({
             automationConfirms: _automationConfirms,
         });
     } catch (policyErr) {
-        log.warn('[AgentRuntime] Tool policy build failed — falling back to a fail-closed policy:', policyErr.message);
+        log.warn('[AgentRuntime] Tool policy build failed — falling back to a fail-closed policy:', /** @type {Error} */ (policyErr).message);
         _roundPolicy = fallbackToolPolicy({
             agentConfig: agent.config, tools, unattended,
             automationConfirms: _automationConfirms,

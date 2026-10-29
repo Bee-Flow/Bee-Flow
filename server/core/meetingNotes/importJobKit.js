@@ -45,7 +45,7 @@ function backoffMsFor(attempts) {
 }
 
 /** The meeting's end, else the job's creation, else now (ms). */
-function meetingEndMs(/** @type {any} */ job) {
+function meetingEndMs(/** @type {{ meetingEnd?: string | Date | null, createdAt?: string | Date | null }} */ job) {
     const end = job.meetingEnd ? new Date(job.meetingEnd).getTime() : NaN;
     if (Number.isFinite(end)) return end;
     const created = job.createdAt ? new Date(job.createdAt).getTime() : NaN;
@@ -55,7 +55,7 @@ function meetingEndMs(/** @type {any} */ job) {
 // `lastError` carries an "attempt N/M:" marker so ingest retries are counted
 // across claims — job.attempts also counts artifact waits, which must not eat
 // into the ingest retry budget.
-function ingestAttempt(/** @type {any} */ job) {
+function ingestAttempt(/** @type {{ errorCode?: string | null, lastError?: string | null }} */ job) {
     if (job.errorCode !== 'failed') return 0;
     const m = /^attempt (\d+)\//.exec(job.lastError || '');
     return m ? Number(m[1]) : 1;
@@ -135,7 +135,7 @@ function makeDiscovery({ label, maxUsersPerTick, jitterMs, listCandidateUsers: l
         /** @type {string[]} */
         let users;
         try { users = await listUsers(); }
-        catch (e) { log.error(`[${label}] candidate scan failed:`, /** @type {any} */ (e).message); return; }
+        catch (e) { log.error(`[${label}] candidate scan failed:`, /** @type {Error} */ (e).message); return; }
         if (!users.length) return;
 
         const count = Math.min(users.length, maxUsersPerTick);
@@ -146,7 +146,7 @@ function makeDiscovery({ label, maxUsersPerTick, jitterMs, listCandidateUsers: l
             // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- scheduling jitter between users, not a secret
             if (i > 0) await sleep(Math.floor(Math.random() * jitterMs));
             try { await discoverUser(userId); }
-            catch (e) { log.error(`[${label}] discovery failed for user ${userId}: ${/** @type {any} */ (e).message}`); }
+            catch (e) { log.error(`[${label}] discovery failed for user ${userId}: ${/** @type {Error} */ (e).message}`); }
         }
     };
 }
@@ -208,12 +208,12 @@ async function failIngest({ store, job, err, terminalCodes, maxAttempts, fallbac
 async function processDueJobs({ store, limit, label, describe, processClaimedJob, quietCodes }) {
     let jobs;
     try { jobs = await store.claimDueJobs(limit); }
-    catch (e) { log.error(`[${label}] claim failed:`, /** @type {any} */ (e).message); return; }
+    catch (e) { log.error(`[${label}] claim failed:`, /** @type {Error} */ (e).message); return; }
     for (const job of jobs) {
         try {
             await processClaimedJob(job);
         } catch (e) {
-            const err = /** @type {any} */ (e);
+            const err = /** @type {Error & { code?: string }} */ (e);
             const code = err?.code || 'failed';
             const line = `[${label}] job ${describe(job)}: ${code}: ${err.message}`;
             if (quietCodes.has(code)) log.info(line); // expected outcome, no alarm

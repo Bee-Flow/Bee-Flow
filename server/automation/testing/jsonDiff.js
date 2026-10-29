@@ -40,7 +40,7 @@ const META_KEYS = Object.freeze(new Set([
     'wouldHaveCalled', '_fromScenario', 'httpCalls', FULL_OUTPUT_REF,
 ]));
 
-/** @param {unknown} v */
+/** @param {unknown} v @returns {v is Record<string, unknown>} */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
@@ -81,8 +81,8 @@ function makeIgnore(ignorePaths) {
 }
 
 /**
- * @param {any} a
- * @param {any} b
+ * @param {unknown} a
+ * @param {unknown} b
  * @param {{ ignorePaths?: string[], maxChanges?: number, differs?: { differFor: (v: any) => any }, ctx?: object }} [opts]
  * @returns {Promise<{ changes: import('./outputDiffers').Change[], truncated: boolean }>}
  */
@@ -105,9 +105,9 @@ async function diffJson(a, b, opts = {}) {
     const full = () => truncated;
 
     /**
-     * @param {any} da
-     * @param {any} va
-     * @param {any} vb
+     * @param {import('./outputDiffers').OutputDiffer} da
+     * @param {unknown} va
+     * @param {unknown} vb
      * @param {string} path
      */
     async function viaDiffer(da, va, vb, path) {
@@ -165,8 +165,8 @@ async function diffJson(a, b, opts = {}) {
     }
 
     /**
-     * @param {any} va
-     * @param {any} vb
+     * @param {unknown} va
+     * @param {unknown} vb
      * @param {string} path
      * @param {number} depth
      * @returns {Promise<void>}
@@ -189,12 +189,14 @@ async function diffJson(a, b, opts = {}) {
             if (sameJson(va, vb) === false) push({ path, change: 'changed', before: cutValue(va), after: cutValue(vb) });
             return;
         }
-        if (isObject(va) && typeof va.kind === 'string' && typeof vb.kind === 'string') {
+        // Both sides are of the same kind here, so isObject(vb) holds whenever isObject(va) does.
+        if (isObject(va) && isObject(vb) && typeof va.kind === 'string' && typeof vb.kind === 'string') {
             const da = differs.differFor(va);
             if (da && da === differs.differFor(vb) && await viaDiffer(da, va, vb, path)) return;
         }
-        if (ka === 'array') await walkArrays(va, vb, path, depth);
-        else await walkObjects(va, vb, path, depth);
+        // ka === kb, and both are 'array' or both 'object': exactly one branch runs.
+        if (Array.isArray(va) && Array.isArray(vb)) await walkArrays(va, vb, path, depth);
+        else if (isObject(va) && isObject(vb)) await walkObjects(va, vb, path, depth);
     }
 
     await walk(a, b, '', 0);

@@ -66,7 +66,8 @@ function declaredEntryCount(buffer) {
 }
 
 /**
- * @param {any} entry  a JSZip entry
+ * @param {JSZip.JSZipObject & { _data?: { uncompressedSize: number, compressedSize: number } | null }} entry  a JSZip
+ *   entry, with the private `_data` it carries once loaded
  * @returns {{ uncompressed: number, compressed: number }}
  */
 function declaredSizes(entry) {

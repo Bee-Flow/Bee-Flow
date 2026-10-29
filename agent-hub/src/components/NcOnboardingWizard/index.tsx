@@ -213,7 +213,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                     {/* Progress bar */}
                     <div className="flex gap-1 mb-8">
                         {STEPS.map((s, i) => (
-                            <div key={s} className="flex-1 h-1.5 rounded-full" style={{ background: i <= stepIdx ? 'var(--accent-primary)' : 'var(--border-subtle)' }} />
+                            <div key={s} className={`flex-1 h-1.5 rounded-full ${i <= stepIdx ? '[background:var(--accent-primary)]' : '[background:var(--border-subtle)]'}`} />
                         ))}
                     </div>
 

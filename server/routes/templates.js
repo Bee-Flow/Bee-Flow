@@ -89,7 +89,7 @@ const FillBody = bodyOf({
  * Returns the list unchanged when every id is usable.
  * @param {string[]} ids
  */
-async function authorizeKbIds(req, ids) {
+async function authorizeKbIds(/** @type {import('express').Request} */ req, ids) {
     if (!ids || ids.length === 0) return ids;
     const usable = await usableKbIdsForRequest(req, ids);
     const invalid = ids.filter((id) => !usable.includes(id));

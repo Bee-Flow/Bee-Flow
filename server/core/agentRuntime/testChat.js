@@ -139,7 +139,7 @@ function gateTestChatRequest(/** @type {{test?: any, canEdit?: any}} */ { test, 
 /**
  * The source under which this turn writes its usage.
  *
- * @param {object} messageMetadata
+ * @param {Parameters<typeof isTestChat>[0]} messageMetadata
  * @param {string} fallback  what the call site wrote when this did not yet exist
  */
 function usageSourceFor(messageMetadata, fallback) {
@@ -183,10 +183,8 @@ function isDryRunTurn(messageMetadata) {
  * Without a usable key: random and new. That counts too HIGH (every turn a conversation), and counting too high
  * lets nobody miss a conversation that was there — the reverse error, two sessions on one id, would do that.
  *
- * @param {object} p
- * @param {string} [p.sessionKey] what the client sends for this test session
- * @param {string} [p.userId]
- * @param {string} [p.agentId]
+ * @param {{ sessionKey?: string, userId?: string, agentId?: string }} p `sessionKey`: what the client
+ *   sends for this test session
  */
 function ephemeralConversationId({ sessionKey, userId, agentId } = {}) {
     const key = typeof sessionKey === 'string' ? sessionKey.trim() : '';

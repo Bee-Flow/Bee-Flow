@@ -39,8 +39,8 @@ export function useMeetingDelete(id: string, onDeleted: () => void) {
     /** The owner's first "Delete": a confirm, then the unconfirmed request. */
     const request = async () => {
         const ok = await confirm({
-            title: 'Delete this meeting?',
-            message: 'The transcript, the notes and the saved audio are all removed. This cannot be undone.',
+            title: t('meetings.delete_title', 'Delete this meeting?'),
+            message: t('mobile.recording.delete_message', 'The transcript, the notes and the saved audio are all removed. This cannot be undone.'),
             confirmLabel: t('common.delete', 'Delete'),
         });
         if (ok) remove.mutate(false);

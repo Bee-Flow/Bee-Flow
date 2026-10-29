@@ -27,20 +27,22 @@ const { findRelatedParts } = require('../../projects/relatedParts');
 
 /**
  * @param {object} deps
- * @param {Function} deps.requireProjectRole     (minRole) => middleware named requireProjectRoleMw
- * @param {any}   deps.projectStore           stores/projectStore
- * @param {typeof import('../../projects/membership')}   deps.membership             projects/membership (the kind registry)
- * @param {any}   deps.itemFiling             projects/itemFiling makeItemFiling(...)
- * @param {Function} deps.buildGraphForProject   (projectId) => { graph, members, unavailable }
- * @param {Function} deps.completeness           () => projects/completeness (loaded on first use)
- * @param {Function} deps.getUserId              (req) => the caller's user id
- * @param {Function} deps.getUserGroups          (req) => Promise<the caller's group ids>
+ * @param {import('./roleGate').ProjectRoleGate} deps.requireProjectRole  middleware named requireProjectRoleMw
+ * @param {any} deps.projectStore  stores/projectStore; its row's kind (string) does not fit sectionsAllowedIn
+ * @param {typeof import('../../projects/membership')} deps.membership  the kind registry
+ * @param {ReturnType<typeof import('../../projects/itemFiling').makeItemFiling>} deps.itemFiling
+ * @param {(projectId: string) => ReturnType<typeof import('../../projects/graphForProject').buildGraphForProject>} deps.buildGraphForProject
+ * @param {Function} deps.completeness  () => projects/completeness, loaded on first use (its inferred types reject the graph)
+ * @param {(req: import('express').Request) => string | undefined} deps.getUserId  the caller's user id
+ * @param {(req: import('express').Request) => Promise<string[]>} deps.getUserGroups  the caller's group ids
  */
 function makeResourcesRouter(deps) {
     const router = express.Router();
     const {
         projectStore, membership, itemFiling, buildGraphForProject, completeness, getUserId, getUserGroups,
     } = deps;
+    // Every route here runs behind the project role gate, which guarantees the session user.
+    const callerId = (/** @type {import('express').Request} */ req) => /** @type {string} */ (getUserId(req));
     const requireRole = deps.requireProjectRole;
 
     /**
@@ -104,7 +106,7 @@ function makeResourcesRouter(deps) {
 
         // Approvals are listed against the caller, not the project — the registry
         // header explains why they alone stay viewer-scoped.
-        const viewer = { userId: getUserId(req), groupIds: await getUserGroups(req) };
+        const viewer = { userId: callerId(req), groupIds: await getUserGroups(req) };
 
         const kinds = membership.listKinds().filter(k => !allowed || allowed.has(k.section));
         const sections = await Promise.all(
@@ -130,7 +132,7 @@ function makeResourcesRouter(deps) {
      */
     router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ResourceBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
-            const userId = getUserId(req);
+            const userId = callerId(req);
             const { kind, id, attach = true } = req.body || {};
             if (!kind || !id) return res.status(400).json({ error: 'kind and id are required' });
 
@@ -201,7 +203,7 @@ function makeResourcesRouter(deps) {
                 throw new HttpError(400, 'KIND_NOT_ALLOWED', `A ${project.kind === 'solution' ? 'Studio Solution' : 'project'} does not hold items of kind "${kind.replace(/_/g, ' ')}".`);
             }
         }
-        res.json(await findRelatedParts({ project, userId: getUserId(req), req, items: req.body.items }));
+        res.json(await findRelatedParts({ project, userId: callerId(req), req, items: req.body.items }));
     });
 
     /**

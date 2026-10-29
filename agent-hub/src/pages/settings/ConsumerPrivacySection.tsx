@@ -245,8 +245,7 @@ function ConsumerPrivacySectionSection2({ t, saveError, handleSave, saving, save
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-all hover:opacity-90"
-                style={{ background: saved ? '#10b981' : 'var(--accent-primary)' }}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-all hover:opacity-90 ${saved ? '[background:#10b981]' : '[background:var(--accent-primary)]'}`}
             >
                 {saving ? (
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>

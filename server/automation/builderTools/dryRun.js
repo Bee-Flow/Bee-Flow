@@ -33,8 +33,8 @@ function defaultDeps() {
 }
 
 /**
- * @param {any} draftWrap
- * @param {any} args   { triggerStepId?, triggerPayload? }
+ * @param {import('../../routes/ai/automationBuilder/turnSetup').BuilderDraftWrap} draftWrap
+ * @param {{ triggerStepId?: unknown, triggerPayload?: unknown }} args  the tool call's arguments, each checked before use
  * @param {any} deps   { persistDraft, annotate } from the facade, plus optional
  *                        getAutomation / getRunSteps / executeAutomation overrides
  */
@@ -45,6 +45,7 @@ async function applyRequestDryRun(draftWrap, args, deps) {
     // one of the additional triggers. Resolved against the DRAFT (the
     // persisted definition is the same object) so a typo is a clear
     // error rather than a run that silently entered the primary.
+    /** @type {string | undefined | null} */
     let rootStepId = null;
     if (typeof args?.triggerStepId === 'string' && args.triggerStepId) {
         const known = [draft.trigger, ...(Array.isArray(draft.triggers) ? draft.triggers : [])].filter(t => t && t.id);

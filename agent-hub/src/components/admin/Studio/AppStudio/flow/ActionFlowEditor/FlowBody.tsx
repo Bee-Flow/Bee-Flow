@@ -1,23 +1,59 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { layoutGraph } from '../layout';
-import { newStep, paletteGroups, stepMeta, type ActionStep } from '../stepCatalog';
-import { canConnect, graphToSteps, makeId, parseId, SEP, stepsToGraph, stripStepIds, withStepIds, type FlowStep, type GraphNode, type StepNode } from '../stepGraph';
-import StepSettings from '../StepSettings';
+import { newStep, type ActionStep } from '../stepCatalog';
+import { canConnect, graphToSteps, makeId, parseId, stepsToGraph, stripStepIds, withStepIds, type FlowStep, type GraphNode, type StepNode } from '../stepGraph';
 import useStepReferences from '../useStepReferences';
-import useTranslation from '@/hooks/useTranslation';
-import NodeContextMenu from '@/components/automation/Builder/flow/NodeContextMenu';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { NodeRuntimeContext } from '@/components/automation/Builder/flow/NodeRuntimeContext';
-import IconButton from '@/components/shared/IconButton';
 import toast from '@/components/shared/Toast';
 import type { BandItem } from '@/components/automation/Builder/flow/rowBands';
 import type { Connection } from '@xyflow/system';
-import type { FlowBodyProps, StepPaletteProps } from '../ActionFlowEditor.types';
-import { indexAfter, spliceScope, dropScopeEdges, canMove, normalizeToSequence, summarise } from './ActionFlowEditor.helpers';
+import type { FlowBodyProps } from '../ActionFlowEditor.types';
+import { indexAfter, dropScopeEdges, canMove, normalizeToSequence, summarise, duplicateInGraph, withNewStep } from './ActionFlowEditor.helpers';
 import { StepFlowNode } from './StepFlowNode';
 import { FlowBodySection } from './FlowBodySection';
+import { PickOrAddStep, SelectedStepPanel, StepContextMenu, StepPalette } from './FlowStepPanels';
 
 const NODE_TYPES_KEY = 'appStudioStep';
+
+interface FlowNodesArgs {
+    nodes: GraphNode[];
+    positions: ReturnType<typeof layoutGraph>;
+    selectedId: string | null;
+    options: Parameters<typeof summarise>[1];
+    t: TranslateFn;
+    disabled: boolean;
+    setSelectedId: (id: string | null) => void;
+    setAdding: (adding: { prefix: string; after?: string } | null) => void;
+    setCtxMenu: (menu: BandItem | null) => void;
+}
+
+/** The React Flow nodes: derived positions (never draggable), each with its summary and its select / add / menu handlers. */
+function flowNodesFor({ nodes, positions, selectedId, options, t, disabled, setSelectedId, setAdding, setCtxMenu }: FlowNodesArgs) {
+    return nodes.map((n) => ({
+        id: n.id,
+        type: NODE_TYPES_KEY,
+        position: positions.get(n.id) || { x: 0, y: 0 },
+        draggable: false,       // position is derived; dragging would lie
+        selectable: !n.isEntry,
+        data: {
+            node: n,
+            selected: n.id === selectedId,
+            summary: summarise(n.step, options, t),
+            onSelect: () => setSelectedId(n.isEntry ? null : n.id),
+            onAdd: () => setAdding({ prefix: n.prefix }),
+            // The "+" on the node itself — add a step straight after this one,
+            // the same gesture the automation builder offers.
+            onAddAfter: n.isEntry ? null : () => setAdding({ prefix: n.prefix, after: n.id }),
+            onContextMenu: n.isEntry ? undefined : (e: React.MouseEvent) => {
+                e.preventDefault();
+                setSelectedId(n.id);
+                setCtxMenu({ id: n.id, x: e.clientX, y: e.clientY });
+            },
+            disabled,
+        },
+    }));
+}
 
 export function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [] }: FlowBodyProps) {
     const { t } = useTranslation();
@@ -87,32 +123,10 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
         // a clock so two adds in the same millisecond cannot share an id.
         tempIdRef.current += 1;
         const step = { ...newStep(kind, { screenId: screens[0]?.id || '', t }), id: `n${tempIdRef.current}` };
-        const id = prefix ? `${prefix}/${step.id}` : step.id;
-        const scopeNodes = graph.nodes.filter((n): n is StepNode => n.prefix === prefix && !n.isEntry);
-        const last = scopeNodes[scopeNodes.length - 1];
-        const entry = graph.nodes.find((n) => n.isEntry && n.prefix === prefix);
-
-        const fresh: StepNode = {
-            id, kind, step, prefix,
-            parentId: entry?.parentId ?? null,
-            scopeKey: entry?.scopeKey ?? null,
-            scopeLabel: entry?.scopeLabel ?? null,
-            isEntry: false,
-        };
-
+        const added = withNewStep(graph, kind, step, prefix, at);
         setAdding(null);
-        if (at == null) {
-            // Appending: keep the chain and hang the new step off the last one.
-            const from = last?.id || entry?.id;
-            const edges = from ? [...graph.edges, { id: `${from}->${id}`, from, to: id }] : graph.edges;
-            pendingScopeRef.current = { prefix, at: scopeNodes.length };
-            commitSteps(graphToSteps([...graph.nodes, fresh], edges));
-            return;
-        }
-        // Inserting: splice into the scope's node order and drop that scope's
-        // edges, which encode the OLD order (see moveStep).
-        pendingScopeRef.current = { prefix, at };
-        commitSteps(graphToSteps(spliceScope(graph.nodes, prefix, at, fresh), dropScopeEdges(graph.edges, prefix)));
+        pendingScopeRef.current = { prefix, at: added.at };
+        commitSteps(graphToSteps(added.nodes, added.edges));
     }, [graph, screens, commitSteps, t]);
 
     /**
@@ -126,35 +140,13 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
      */
     const duplicateStep = useCallback((id: string) => {
         const { prefix } = parseId(id);
-        const scoped = graph.nodes.filter((n): n is StepNode => n.prefix === prefix && !n.isEntry);
-        const at = scoped.findIndex((n) => n.id === id);
+        const at = graph.nodes.filter((n) => n.prefix === prefix && !n.isEntry).findIndex((n) => n.id === id);
         if (at === -1) return;
 
         tempIdRef.current += 1;
-        const copyId = makeId(prefix, `n${tempIdRef.current}`);
-        const remap = (nid: string) => copyId + nid.slice(id.length);
-        const inside = (nid: string) => nid.startsWith(`${id}${SEP}`);
-
-        // stripStepIds clears the editor-only ids from the copy's whole subtree,
-        // so the duplicate cannot collide with the original's children.
-        const [copiedStep] = stripStepIds([scoped[at].step]);
-        const copy = { ...scoped[at], id: copyId, step: copiedStep };
-
-        const descendants = graph.nodes.filter((n) => inside(n.id)).map((n) => ({
-            ...n,
-            id: remap(n.id),
-            prefix: remap(n.prefix),
-            parentId: n.parentId && inside(n.parentId) ? remap(n.parentId) : copyId,
-        }));
-        const descendantEdges = graph.edges
-            .filter((e) => inside(e.from) && inside(e.to))
-            .map((e) => ({ id: `${remap(e.from)}->${remap(e.to)}`, from: remap(e.from), to: remap(e.to) }));
-
+        const copy = duplicateInGraph(graph, id, makeId(prefix, `n${tempIdRef.current}`));
         pendingScopeRef.current = { prefix, at: at + 1 };
-        commitSteps(graphToSteps(
-            [...spliceScope(graph.nodes, prefix, at + 1, copy), ...descendants],
-            [...dropScopeEdges(graph.edges, prefix), ...descendantEdges],
-        ));
+        commitSteps(graphToSteps(copy.nodes, copy.edges));
     }, [graph, commitSteps]);
 
     /**
@@ -204,29 +196,10 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
         ]));
     }, [graph, commitSteps, t]);
 
-    const rfNodes = useMemo(() => graph.nodes.map((n) => ({
-        id: n.id,
-        type: NODE_TYPES_KEY,
-        position: positions.get(n.id) || { x: 0, y: 0 },
-        draggable: false,       // position is derived; dragging would lie
-        selectable: !n.isEntry,
-        data: {
-            node: n,
-            selected: n.id === selectedId,
-            summary: summarise(n.step, references.options, t),
-            onSelect: () => setSelectedId(n.isEntry ? null : n.id),
-            onAdd: () => setAdding({ prefix: n.prefix }),
-            // The "+" on the node itself — add a step straight after this one,
-            // the same gesture the automation builder offers.
-            onAddAfter: n.isEntry ? null : () => setAdding({ prefix: n.prefix, after: n.id }),
-            onContextMenu: n.isEntry ? undefined : (e: React.MouseEvent) => {
-                e.preventDefault();
-                setSelectedId(n.id);
-                setCtxMenu({ id: n.id, x: e.clientX, y: e.clientY });
-            },
-            disabled,
-        },
-    })), [graph.nodes, positions, selectedId, disabled, references.options, t]);
+    const rfNodes = useMemo(
+        () => flowNodesFor({ nodes: graph.nodes, positions, selectedId, options: references.options, t, disabled, setSelectedId, setAdding, setCtxMenu }),
+        [graph.nodes, positions, selectedId, disabled, references.options, t],
+    );
 
     /**
      * The step actions StepNodeBase draws on hover. It reads them from this
@@ -260,114 +233,19 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
                         onCancel={() => setAdding(null)}
                     />
                 ) : selected ? (
-                    <div className="flex flex-col gap-3">
-                        <header className="flex items-center gap-2">
-                            <h3 className="flex-1 text-sm font-semibold text-[var(--text-primary)]">
-                                {stepMeta(selected.kind, t).label}
-                            </h3>
-                            <IconButton
-                                ariaLabel={t('studio_apps_edit.action_flow.move_earlier', 'Move this step earlier')}
-                                size="sm"
-                                disabled={disabled || !canMove(graph, selected.id, -1)}
-                                onClick={() => moveStep(selected.id, -1)}
-                            >
-                                <ChevronUp />
-                            </IconButton>
-                            <IconButton
-                                ariaLabel={t('studio_apps_edit.action_flow.move_later', 'Move this step later')}
-                                size="sm"
-                                disabled={disabled || !canMove(graph, selected.id, 1)}
-                                onClick={() => moveStep(selected.id, 1)}
-                            >
-                                <ChevronDown />
-                            </IconButton>
-                            <IconButton
-                                ariaLabel={t('studio_apps_edit.action_flow.delete_step', 'Delete this {kind} step', { kind: stepMeta(selected.kind, t).label.toLowerCase() })}
-                                variant="danger"
-                                size="sm"
-                                disabled={disabled}
-                                onClick={() => removeStep(selected.id)}
-                            >
-                                <Trash2 />
-                            </IconButton>
-                        </header>
-                        <StepSettings
-                            step={selected.step}
-                            onChange={(next) => patchStep(selected.id, next)}
-                            definition={definition}
-                            node={node}
-                            screens={screens}
-                            formFields={formFields}
-                            disabled={disabled}
-                        />
-                    </div>
+                    <SelectedStepPanel
+                        t={t} selected={selected} disabled={disabled} canMoveEarlier={canMove(graph, selected.id, -1)} canMoveLater={canMove(graph, selected.id, 1)}
+                        onMove={(delta) => moveStep(selected.id, delta)} onRemove={() => removeStep(selected.id)} onPatch={(next) => patchStep(selected.id, next)}
+                        definition={definition} node={node} screens={screens} formFields={formFields}
+                    />
                 ) : (
-                    <div className="flex flex-col gap-2">
-                        <p className="text-xs text-[var(--text-secondary)]">
-                            {t('studio_apps_edit.action_flow.pick_or_add', 'Pick a step to change it, or add one to the end.')}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={() => setAdding({ prefix: '' })}
-                            disabled={disabled}
-                            className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        >
-                            <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_edit.action_flow.add_step', 'Add a step')}
-                        </button>
-                    </div>
+                    <PickOrAddStep t={t} disabled={disabled} onAdd={() => setAdding({ prefix: '' })} />
                 )}
             </aside>
 
             {/* The automation builder's own right-click menu, unchanged. */}
-            {ctxMenu ? (
-                <NodeContextMenu
-                    x={ctxMenu.x}
-                    y={ctxMenu.y}
-                    canDelete={!disabled}
-                    canDuplicate={!disabled}
-                    onDuplicate={() => duplicateStep(ctxMenu.id)}
-                    onDelete={() => removeStep(ctxMenu.id)}
-                    onClose={() => setCtxMenu(null)}
-                />
-            ) : null}
+            {ctxMenu ? <StepContextMenu menu={ctxMenu} disabled={disabled} onDuplicate={duplicateStep} onDelete={removeStep} onClose={() => setCtxMenu(null)} /> : null}
         </div>
         </NodeRuntimeContext.Provider>
-    );
-}
-
-function StepPalette({ onPick, onCancel }: StepPaletteProps) {
-    const { t } = useTranslation();
-    return (
-        <div className="flex flex-col gap-3">
-            <header className="flex items-center gap-2">
-                <h3 className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{t('studio_apps_edit.action_flow.add_step', 'Add a step')}</h3>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] rounded px-1"
-                >
-                    {t('studio_apps_edit.action_flow.cancel', 'Cancel')}
-                </button>
-            </header>
-            {paletteGroups(t).map(({ group, label: groupName, kinds }) => (
-                <div key={group} className="flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{groupName}</span>
-                    {kinds.map(({ kind, label, blurb, icon: Icon }) => (
-                        <button
-                            key={kind}
-                            type="button"
-                            onClick={() => onPick(kind)}
-                            className="flex items-start gap-2 text-left rounded-md border border-[var(--border-subtle)] px-2 py-1.5 hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        >
-                            <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
-                            <span className="min-w-0">
-                                <span className="block text-xs font-medium text-[var(--text-primary)]">{label}</span>
-                                <span className="block text-[11px] text-[var(--text-secondary)]">{blurb}</span>
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            ))}
-        </div>
     );
 }

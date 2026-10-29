@@ -413,7 +413,7 @@ function repairApprovalStep(step, at, notes) {
 }
 
 /**
- * @param {object} action  the model's action object (any shape)
+ * @param {unknown} action  the model's action object (any shape)
  * @param {{ tables?: Array }} ctx  the app's data-model tables, for the id handle lookup
  * @returns {{ action: object, notes: string[], refusal: object|null }}
  */

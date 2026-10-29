@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import CmsAssistantPane from './assistant/CmsAssistantPane';
 import { CreatePageContext } from './fields';
+import type { CreatePageFn } from './fieldKit/LinkField';
 import CreateFirstSite from './panel/CreateFirstSite';
 import PanelInspector from './panel/PanelInspector';
 import PanelNavigator from './panel/PanelNavigator';
@@ -109,15 +110,14 @@ export default function ProductWebsitePanel({ onExit, onNavigate }: ProductWebsi
         setTemplates, pendingTemplatePage, setPendingTemplatePage,
         confirm, setInspectorOpen,
         setDirtySincePublish, translateTier,
-        assistantOpen, toggleAssistant,
         builderRunning, setBuilderRunning, builderRunningRef, builderTurnRef,
-        builderUndoAvailable, setBuilderUndoAvailable, builderUndoAvailableRef, disarmBuilderUndo,
+        setBuilderUndoAvailable, builderUndoAvailableRef, disarmBuilderUndo,
         iframeRef, previewReadyRef, saveTimerRef, saveStatusTimer, pendingSaves,
         inFlightSaveRef, aiRunningRef, failedSavesRef, localeOverridesRef,
     } = ps;
 
     const derived = useCmsDerived({ site, pages, activePageId, activeBlockId, activeLocale, defaultLocale, localeOverrides });
-    const { activePage, translationMode, pageIndex, previewPage } = derived;
+    const { activePage, translationMode, previewPage } = derived;
 
     useCmsSitesList({ activeSiteIdRef, setActiveSiteId, setError, setLiveSiteId, setLoading, setSites, setSitesLoaded });
 
@@ -238,6 +238,48 @@ export default function ProductWebsitePanel({ onExit, onNavigate }: ProductWebsi
         isBlogView: blogPanel.isBlogView, translationMode,
     });
 
+    return (
+        <PanelLayout
+            createPageFromPicker={createPageFromPicker} ps={ps} view={view} derived={derived} builderBridge={builderBridge}
+            changeLocaleSafe={changeLocaleSafe} history={history} retrySave={retrySave} mutations={mutations} blockOps={blockOps}
+            pagesOps={pagesOps} publish={publish} blogPanel={blogPanel} pageMeta={pageMeta} siteOps={siteOps}
+            selectAndScrollToBlock={selectAndScrollToBlock} drainPendingSaves={drainPendingSaves} onExit={onExit} onNavigate={onNavigate}
+        />
+    );
+}
+
+type PanelBag<T extends (...args: never[]) => unknown> = ReturnType<T>;
+
+interface PanelLayoutProps {
+    createPageFromPicker: CreatePageFn;
+    ps: PanelBag<typeof useCmsPanelState>;
+    view: PanelBag<typeof derivePanelView>;
+    derived: PanelBag<typeof useCmsDerived>;
+    builderBridge: PanelBag<typeof useCmsBuilderBridge>['builderBridge'];
+    changeLocaleSafe: PanelBag<typeof useCmsBuilderBridge>['changeLocaleSafe'];
+    history: PanelBag<typeof useCmsHistory>['history'];
+    retrySave: PanelBag<typeof useCmsAutosave>['retrySave'];
+    drainPendingSaves: PanelBag<typeof useCmsAutosave>['drainPendingSaves'];
+    mutations: PanelBag<typeof useCmsContentMutations>;
+    blockOps: PanelBag<typeof useCmsBlockEditing>;
+    pagesOps: PanelBag<typeof useCmsPagesTemplates>;
+    publish: PanelBag<typeof useCmsPublishing>;
+    blogPanel: PanelBag<typeof useCmsBlogPanel>;
+    pageMeta: PanelBag<typeof useCmsPageMeta>;
+    siteOps: PanelBag<typeof useCmsSiteOps>;
+    selectAndScrollToBlock: PanelBag<typeof useCmsPreviewBridge>['selectAndScrollToBlock'];
+    onExit: ProductWebsitePanelProps['onExit'];
+    onNavigate: ProductWebsitePanelProps['onNavigate'];
+}
+
+/** The builder shell and its four panes (plus the AI dock and dialogs), wired to the panel's hooks. */
+function PanelLayout({
+    createPageFromPicker, ps, view, derived, builderBridge, changeLocaleSafe, history, retrySave, drainPendingSaves,
+    mutations, blockOps, pagesOps, publish, blogPanel, pageMeta, siteOps, selectAndScrollToBlock, onExit, onNavigate,
+}: PanelLayoutProps) {
+    const { setInspectorOpen, builderRunning, assistantOpen, activeSiteId, builderUndoAvailable, toggleAssistant } = ps;
+    const { pageIndex, translationMode, activePage } = derived;
+    const { handleAddPage, reloadPayload } = pagesOps;
     return (
       <CreatePageContext.Provider value={createPageFromPicker}>
         <CmsBuilderShell

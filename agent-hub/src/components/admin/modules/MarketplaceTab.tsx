@@ -1,16 +1,12 @@
 import { SetStateAction, Dispatch, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { AlertTriangle, FileUp, Loader2, Plug, Search } from 'lucide-react';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useConnectHub, useDisconnectHub, useMarketplace, useModulesHealth } from '@/api/queries/modules';
 import { type MarketplaceModuleDetail } from '@/api/queries/modules.types';
-import MarketplaceModuleCard from './MarketplaceModuleCard';
+import { HubUnavailable, LoadMore, MarketplaceOverlays, ModuleGrid } from './MarketplaceParts';
 import ConnectHubBanner from './ConnectHubBanner';
 import ConnectHubDialog from './ConnectHubDialog';
-import ModuleDetailDrawer from './ModuleDetailDrawer';
-import ModuleLogsDialog from './ModuleLogsDialog';
-import PermissionConsentDialog from './PermissionConsentDialog';
-import SideloadDialog from './SideloadDialog';
 import { useModuleActions, type ModuleApiError } from './moduleActions';
 import { parsePurchaseReturn, stripPurchaseReturnParams } from './purchaseReturn';
 import { parseModuleDeepLink, searchWithModule, searchWithoutModule } from './moduleDeepLink';
@@ -25,6 +21,81 @@ import { parseModuleDeepLink, searchWithModule, searchWithoutModule } from './mo
 interface MarketplaceTabProps {
     flash: (msg: { type: string; text: string; }) => void;
     reloadEntitlements: () => void;
+}
+
+type ModuleActions = ReturnType<typeof useModuleActions>;
+
+interface PurchaseReturnArgs {
+    flash: MarketplaceTabProps['flash'];
+    t: TranslateFn;
+    refreshEnt: ModuleActions['refreshEnt'];
+    setAwaitingIds: ModuleActions['setAwaitingIds'];
+    reloadEntitlements: () => void;
+    refetch: () => void;
+}
+
+function usePurchaseReturn({ flash, t, refreshEnt, setAwaitingIds, reloadEntitlements, refetch }: PurchaseReturnArgs) {
+    // ── Stripe Checkout return (?purchase=success|cancel&module=<id>) ──
+    // Checkout sends the customer back here (URLs built in moduleActions.buy).
+    // Handle once on mount, then strip the params so a reload doesn't replay
+    // the flash. Success also marks the module awaiting so the background poll
+    // below keeps refreshing until the entitlement lands.
+    const handlePurchaseReturn = useEffectEvent(() => {
+        const ret = parsePurchaseReturn(window.location.search);
+        if (!ret) return;
+        window.history.replaceState(null, '', stripPurchaseReturnParams(window.location));
+        if (ret.result === 'success') {
+            flash?.({ type: 'success', text: t('modules.purchase_return_success') });
+            if (ret.moduleId) { const id = ret.moduleId; setAwaitingIds((s) => new Set(s).add(id)); }
+            refreshEnt.mutate(undefined, {
+                onSuccess: (res) => {
+                    const ids = res?.entitledModuleIds || [];
+                    if (ids.length) {
+                        setAwaitingIds((s) => { const n = new Set(s); for (const id of ids) n.delete(id); return n; });
+                    }
+                    reloadEntitlements();
+                    refetch();
+                },
+            });
+        } else {
+            flash?.({ type: 'info', text: t('modules.purchase_return_cancel') });
+        }
+    });
+    useEffect(() => { handlePurchaseReturn(); }, []);
+}
+
+interface AwaitingPollArgs {
+    refreshEnt: ModuleActions['refreshEnt'];
+    awaitingIds: ModuleActions['awaitingIds'];
+    setAwaitingIds: ModuleActions['setAwaitingIds'];
+    reloadEntitlements: () => void;
+    refetch: () => void;
+}
+
+function useAwaitingPoll({ refreshEnt, awaitingIds, setAwaitingIds, reloadEntitlements, refetch }: AwaitingPollArgs) {
+    // ── Background entitlement poll while a purchase is awaiting payment ──
+    // Honest, no hub→install push: after Checkout opens we poll entitlements so
+    // a completed payment flips the card to Install on its own; the explicit
+    // "I've paid — refresh" button remains for impatient admins. A fixed 6s
+    // cadence keeps this simple (the plan's tapering cadence is a refinement).
+    const pollEntitlements = useEffectEvent(() => {
+        if (refreshEnt.isPending) return;
+        refreshEnt.mutate(undefined, {
+            onSuccess: (res) => {
+                const ids = res?.entitledModuleIds || [];
+                if (ids.length) {
+                    setAwaitingIds((s) => { const n = new Set(s); for (const id of ids) n.delete(id); return n; });
+                }
+                reloadEntitlements();
+                refetch();
+            },
+        });
+    });
+    useEffect(() => {
+        if (awaitingIds.size === 0) return undefined;
+        const iv = setInterval(pollEntitlements, 6000);
+        return () => clearInterval(iv);
+    }, [awaitingIds.size]);
 }
 
 export default function MarketplaceTab({ flash, reloadEntitlements }: MarketplaceTabProps) {
@@ -83,33 +154,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
         && ((marketplace.error as ModuleApiError | null)?.status === 502 || (marketplace.error as ModuleApiError | null)?.body?.error === 'hub_unavailable');
     const hubDetail = (marketplace.error as ModuleApiError | null)?.body?.details?.detail ?? (marketplace.error as ModuleApiError | null)?.body?.detail;
 
-    // ── Stripe Checkout return (?purchase=success|cancel&module=<id>) ──
-    // Checkout sends the customer back here (URLs built in moduleActions.buy).
-    // Handle once on mount, then strip the params so a reload doesn't replay
-    // the flash. Success also marks the module awaiting so the background poll
-    // below keeps refreshing until the entitlement lands.
-    const handlePurchaseReturn = useEffectEvent(() => {
-        const ret = parsePurchaseReturn(window.location.search);
-        if (!ret) return;
-        window.history.replaceState(null, '', stripPurchaseReturnParams(window.location));
-        if (ret.result === 'success') {
-            flash?.({ type: 'success', text: t('modules.purchase_return_success') });
-            if (ret.moduleId) { const id = ret.moduleId; setAwaitingIds((s) => new Set(s).add(id)); }
-            refreshEnt.mutate(undefined, {
-                onSuccess: (res) => {
-                    const ids = res?.entitledModuleIds || [];
-                    if (ids.length) {
-                        setAwaitingIds((s) => { const n = new Set(s); for (const id of ids) n.delete(id); return n; });
-                    }
-                    reloadEntitlements();
-                    marketplace.refetch();
-                },
-            });
-        } else {
-            flash?.({ type: 'info', text: t('modules.purchase_return_cancel') });
-        }
-    });
-    useEffect(() => { handlePurchaseReturn(); }, []);
+    usePurchaseReturn({ flash, t, refreshEnt, setAwaitingIds, reloadEntitlements, refetch: () => marketplace.refetch() });
 
     // ── ?module=<id> deep link → open the detail drawer on mount ──
     useEffect(() => {
@@ -126,29 +171,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
         window.history.replaceState(null, '', searchWithoutModule(window.location));
     };
 
-    // ── Background entitlement poll while a purchase is awaiting payment ──
-    // Honest, no hub→install push: after Checkout opens we poll entitlements so
-    // a completed payment flips the card to Install on its own; the explicit
-    // "I've paid — refresh" button remains for impatient admins. A fixed 6s
-    // cadence keeps this simple (the plan's tapering cadence is a refinement).
-    const pollEntitlements = useEffectEvent(() => {
-        if (refreshEnt.isPending) return;
-        refreshEnt.mutate(undefined, {
-            onSuccess: (res) => {
-                const ids = res?.entitledModuleIds || [];
-                if (ids.length) {
-                    setAwaitingIds((s) => { const n = new Set(s); for (const id of ids) n.delete(id); return n; });
-                }
-                reloadEntitlements();
-                marketplace.refetch();
-            },
-        });
-    });
-    useEffect(() => {
-        if (awaitingIds.size === 0) return undefined;
-        const iv = setInterval(pollEntitlements, 6000);
-        return () => clearInterval(iv);
-    }, [awaitingIds.size]);
+    useAwaitingPoll({ refreshEnt, awaitingIds, setAwaitingIds, reloadEntitlements, refetch: () => marketplace.refetch() });
 
     const handleConnectConfirm = () => {
         setDialogError(null);
@@ -190,34 +213,8 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
 
     // Overlays for the connected view (consent can pop mid-install/update).
     const overlayNodes = (
-        <>
-            {actions.consent && (
-                <PermissionConsentDialog
-                    module={actions.consent.module}
-                    permissions={actions.consent.permissions}
-                    mode={actions.consent.mode}
-                    busy={actions.install.isPending || actions.update.isPending}
-                    onCancel={() => actions.setConsent(null)}
-                    onAccept={actions.acceptConsent}
-                />
-            )}
-            {sideloadOpen && (
-                <SideloadDialog
-                    onClose={() => setSideloadOpen(false)}
-                    onDone={() => actions.refreshAll()}
-                />
-            )}
-            {logsModule && <ModuleLogsDialog module={logsModule} onClose={() => setLogsModule(null)} />}
-            {detailModule && (
-                <ModuleDetailDrawer
-                    module={detailModule}
-                    health={healthById.get(detailModule.id) || null}
-                    actions={actions}
-                    onClose={closeDetails}
-                    onOpenLogs={(m) => setLogsModule(m)}
-                />
-            )}
-        </>
+        <MarketplaceOverlays actions={actions} sideloadOpen={sideloadOpen} setSideloadOpen={setSideloadOpen} logsModule={logsModule}
+            setLogsModule={setLogsModule} detailModule={detailModule} healthById={healthById} closeDetails={closeDetails} />
     );
 
     // ── Render ──
@@ -230,20 +227,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
     }
 
     if (hubUnavailable) {
-        return (
-            <div className="space-y-3">
-                <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 flex items-center gap-2" data-testid="marketplace-hub-unavailable">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span>{t('modules.hub_unavailable')}{hubDetail ? ` (${hubDetail})` : ''}</span>
-                </div>
-                <button
-                    onClick={() => marketplace.refetch()}
-                    className="text-xs font-medium flex items-center gap-1 hover:opacity-80 text-[var(--accent-primary)]"
-                >
-                    {t('modules.retry')}
-                </button>
-            </div>
-        );
+        return <HubUnavailable t={t} hubDetail={hubDetail} onRetry={() => marketplace.refetch()} />;
     }
 
     if (connected === false) {
@@ -290,41 +274,11 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
                     <p className="text-sm text-[var(--text-muted)]">{t('modules.empty')}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {modules.map((module) => (
-                        <MarketplaceModuleCard
-                            key={module.id}
-                            module={module}
-                            health={healthById.get(module.id) || null}
-                            awaiting={awaitingIds.has(module.id)}
-                            installProgress={installing?.id === module.id ? progress.data : null}
-                            busy={actions.busyFor(module)}
-                            onBuy={actions.buy}
-                            onInstall={actions.installModule}
-                            onUpdate={actions.updateModule}
-                            onPaidRefresh={actions.paidRefresh}
-                            onReactivate={actions.reactivateModule}
-                            onOpenDetails={openDetails}
-                            onPolicyChange={actions.setPolicy}
-                            policyBusy={actions.updatePolicy.isPending}
-                        />
-                    ))}
-                </div>
+                <ModuleGrid modules={modules} healthById={healthById} awaitingIds={awaitingIds} installing={installing} progress={progress} actions={actions} onOpenDetails={openDetails} />
             )}
 
             {/* Load more */}
-            {marketplace.hasNextPage && (
-                <div className="flex justify-center">
-                    <button
-                        onClick={() => marketplace.fetchNextPage()}
-                        disabled={marketplace.isFetchingNextPage}
-                        className="px-4 py-2 rounded-lg text-xs font-medium transition-all border disabled:opacity-50 flex items-center gap-1.5 bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-default)]"
-                    >
-                        {marketplace.isFetchingNextPage && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        {t('modules.load_more')}
-                    </button>
-                </div>
-            )}
+            {marketplace.hasNextPage && <LoadMore t={t} busy={marketplace.isFetchingNextPage} onMore={() => marketplace.fetchNextPage()} />}
         </div>
     );
 }

@@ -133,6 +133,9 @@ function _postOnce(url, body, apiKey) {
  * status: the guard's /health answers 503 while its model loads and still
  * says which version it is.
  * @returns {Promise<{ status: number, body: any }>}
+ * @param {string} url
+ * @param {string} apiKey
+ * @param {number} [timeoutMs]
  */
 function httpGetJson(url, apiKey, timeoutMs = 3000) {
     return new Promise((resolve, reject) => {
@@ -198,7 +201,7 @@ async function detectPiiViaCpuModel(text, enabledCategories, confidenceThreshold
     try {
         result = await httpPost(`${endpoint.url}/pii`, body, endpoint.apiKey);
     } catch (err) {
-        _status = /timeout/i.test(err?.message || '') ? 'timeout' : 'error';
+        _status = /timeout/i.test(/** @type {Error} */ (err)?.message || '') ? 'timeout' : 'error';
         throw err;
     } finally {
         releaseSlot(priority);

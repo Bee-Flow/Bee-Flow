@@ -79,10 +79,7 @@ function cacheControlFor(fileName) {
     return 'public, max-age=3600';
 }
 
-/**
- * @typedef {Object} CreateLearnMediaRouterArgs
- * @property {string} [dir]
- */
+/** @typedef {{ dir?: string }} CreateLearnMediaRouterArgs */
 /**
  * The router mounted at /learn-media. `dir` is resolved per app start; a pack
  * installed while the server runs is picked up without a restart because

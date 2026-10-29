@@ -45,13 +45,13 @@ export function RunActions({
         return (
             <View style={styles.pair}>
                 <Button
-                    label="Approve"
+                    label={t('approvals.approve', 'Approve')}
                     onPress={() => decide.run('approve')}
                     loading={decide.pending}
                     style={styles.half}
                 />
                 <Button
-                    label="Reject"
+                    label={t('approvals.reject', 'Reject')}
                     variant="danger"
                     onPress={() => decide.run('reject')}
                     disabled={decide.pending}
@@ -63,7 +63,7 @@ export function RunActions({
     if (live) {
         return (
             <Button
-                label="Stop this run"
+                label={t('automations.run_progress_banner.stop_this_run', 'Stop this run')}
                 variant="danger"
                 fullWidth
                 loading={stop.pending}
@@ -75,13 +75,13 @@ export function RunActions({
     return (
         <>
             <Button
-                label="Run it again"
+                label={t('studio_misc.runbar.run_again', 'Run it again')}
                 variant="secondary"
                 fullWidth
                 loading={retry.pending}
                 disabled={!canRetry}
                 onPress={() => retry.run()}
-                accessibilityHint={canRetry ? 'Replays this run with the same trigger data' : hint}
+                accessibilityHint={canRetry ? t('mobile.automations.run.retry_hint', 'Replays this run with the same trigger data') : hint}
             />
             {canRetry ? null : (
                 <Text variant="label" tone="tertiary">

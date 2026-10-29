@@ -71,8 +71,8 @@ class SignupError extends Error {
     /**
      * @param {string} code    key of SIGNUP_ERRORS
      * @param {string} message user-facing text; becomes the `error` field verbatim
-     * @param {any} [opts]  { status } overrides the table status (validateConsent
-     *                         picks its own); { body } adds fields to the JSON response
+     * @param {{ status?: number, body?: Record<string, unknown> }} [opts]  `status` overrides the table status
+     *   (validateConsent picks its own); `body` adds fields to the JSON response
      */
     constructor(code, message, { status, body } = {}) {
         super(message);
@@ -285,7 +285,7 @@ async function notifyOrganisationAlreadyExists({ email, displayName, error }) {
         log.info('[Signup] domain already registered — notified the address instead of answering the caller');
         return true;
     } catch (e) {
-        log.warn('[Signup] could not send the organisation-exists notice:', e.message);
+        log.warn('[Signup] could not send the organisation-exists notice:', /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -461,7 +461,7 @@ async function applyStatusPolicy(placement, intent) {
                     log.error('[Signup] SECURITY: email verification is ENABLED but no service email is configured — accounts are being created WITHOUT address verification. Configure service email, or turn the toggle off to stop advertising a control that is not running.');
                 }
             } catch (e) {
-                log.error('[Signup] SECURITY: verification gate check failed — account created WITHOUT address verification:', e.message);
+                log.error('[Signup] SECURITY: verification gate check failed — account created WITHOUT address verification:', /** @type {Error} */ (e).message);
             }
         }
     }
@@ -540,7 +540,7 @@ async function writePrivacyShield(intent, placement, userId) {
         }
         // Members joining an existing org inherit that org's shield.
     } catch (e) {
-        log.warn('[Signup] failed to write privacy shield:', e.message);
+        log.warn('[Signup] failed to write privacy shield:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -605,10 +605,10 @@ async function markInviteAccepted(intent, placement, userId) {
                 groups: invite.data.groups,
             }, invite.data.organization_id || placement.organizationId || null);
         } catch (auditErr) {
-            log.warn('[Signup] invitation.redeem audit failed:', auditErr.message);
+            log.warn('[Signup] invitation.redeem audit failed:', /** @type {Error} */ (auditErr).message);
         }
     } catch (e) {
-        log.error('[Signup] Failed to mark invitation as accepted:', e.message);
+        log.error('[Signup] Failed to mark invitation as accepted:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -632,7 +632,7 @@ function sendWelcomeEmailLater({ email, displayName, userId, organizationId, loc
             const orgName = organizationId ? (await userStore.getOrganization(organizationId))?.name : '';
             const { sendWelcomeEmail } = require('../utils/emailService');
             await sendWelcomeEmail({ email, displayName, loginUrl: clientHost, orgName, locale });
-        } catch (e) { log.warn('[Signup] welcome email failed:', e.message); }
+        } catch (e) { log.warn('[Signup] welcome email failed:', /** @type {Error} */ (e).message); }
     });
 }
 
@@ -649,12 +649,12 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
 
     const preferredLocale = await resolveSignupLocale(req, intent.locale);
     try { await userStore.updateUser(userId, { preferredLocale }); }
-    catch (e) { log.warn('[Signup] failed to persist preferred locale:', e.message); }
+    catch (e) { log.warn('[Signup] failed to persist preferred locale:', /** @type {Error} */ (e).message); }
 
     if (placement.needsVerification) {
         try {
             await issueVerificationToken({ userId, displayName, email, organizationId: placement.organizationId, locale: preferredLocale });
-        } catch (e) { log.error('[Signup] failed to issue verification token:', e.message); }
+        } catch (e) { log.error('[Signup] failed to issue verification token:', /** @type {Error} */ (e).message); }
     }
 
     await markInviteAccepted(intent, placement, userId);

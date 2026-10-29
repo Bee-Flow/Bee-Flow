@@ -84,24 +84,26 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
  */
 
 /**
- * @typedef {object} CmsMcpDeps
- * @property {object} cmsStore                 stores/cmsStore
- * @property {{ collectLocaleOverrides: Function, deepMerge: Function, sanitizeAnalytics: Function }} cmsParts  stores/cms/* helpers
- * @property {{ TOOL_SCHEMAS: Array<{ function?: { name?: string } }>, MUTATING_TOOLS: Set<string>, applyToolCall: Function }} builder
- * @property {(draftWrap: object) => { errors: object[], warnings: object[] }} validateDraft
- * @property {{ SITE_DEFAULTS: Record<string, any> }} defaults
- * @property {{ scopeAllowsTool: Function, filterToolsByScope: Function }} access
- * @property {{ getLiveSiteId: Function, setLiveSiteId: Function, ensurePublishedSnapshot: Function, SITE_ID_RE: RegExp }} live
- * @property {(siteId: string, ctx: object) => Promise<void>} [afterPublish]
- * @property {ReturnType<typeof import('./uploadTickets').createUploadTickets>} tickets
- * @property {{ render: Function }} screenshots
- * @property {{ isAvailable: Function, listKeys: Function }} storage
- * @property {Function} audit                  userStore.logAccessAudit
- * @property {(user: object) => Promise<boolean>} isAdmin
- * @property {(user: object) => boolean} [isSuperAdmin]  the operator test of requireSuperAdmin; absent = nobody (analytics tools stay hidden)
- * @property {{ analytics: { preflight: Function, resolveTarget: Function, getSettings: Function }, umami: { isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function, getActive: Function, get: Function, post: Function } }} [analytics]  core/cms/analyticsQueries instance + core/umamiClient
- * @property {{ classifyRpc: Function, parseToolCall: Function, PROTOCOL_VERSION: string, INVALID_REQUEST: string }} rpc
- * @property {() => number} [now]
+ * What the CMS MCP server is built from. `cmsStore` is stores/cmsStore; `cmsParts` the
+ * stores/cms/* helpers; `audit` userStore.logAccessAudit; `isSuperAdmin` the operator test of
+ * requireSuperAdmin (absent = nobody, so the analytics tools stay hidden); `analytics` the
+ * core/cms/analyticsQueries instance + core/umamiClient.
+ * @typedef {{ cmsStore: typeof import('../../stores/cmsStore'),
+ *   cmsParts: { collectLocaleOverrides: Function, deepMerge: Function, sanitizeAnalytics: Function },
+ *   builder: { TOOL_SCHEMAS: Array<{ function?: { name?: string } }>, MUTATING_TOOLS: Set<string>, applyToolCall: Function },
+ *   validateDraft: (draftWrap: object) => { errors: object[], warnings: object[] },
+ *   defaults: { SITE_DEFAULTS: Record<string, any> },
+ *   access: { scopeAllowsTool: Function, filterToolsByScope: Function },
+ *   live: { getLiveSiteId: Function, setLiveSiteId: Function, ensurePublishedSnapshot: Function, SITE_ID_RE: RegExp },
+ *   afterPublish?: (siteId: string, ctx: object) => Promise<void>,
+ *   tickets: ReturnType<typeof import('./uploadTickets').createUploadTickets>,
+ *   screenshots: { render: Function }, storage: { isAvailable: Function, listKeys: Function },
+ *   audit: (action: string, targetType: string, targetId: string, changedBy: string | null, oldValues: unknown,
+ *     newValues: unknown, organizationId?: string | null) => Promise<unknown>,
+ *   isAdmin: (user: object) => Promise<boolean>, isSuperAdmin?: (user: object) => boolean,
+ *   analytics?: { analytics: { preflight: Function, resolveTarget: Function, getSettings: Function }, umami: { isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function, getActive: Function, get: Function, post: Function } },
+ *   rpc: { classifyRpc: Function, parseToolCall: Function, PROTOCOL_VERSION: string, INVALID_REQUEST: string },
+ *   now?: () => number }} CmsMcpDeps
  */
 
 // ── JSON-RPC ────────────────────────────────────────────────────────

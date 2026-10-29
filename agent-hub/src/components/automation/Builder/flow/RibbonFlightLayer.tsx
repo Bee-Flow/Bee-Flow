@@ -172,7 +172,7 @@ export default function RibbonFlightLayer({ ghosts, rf, nodes = null }: { ghosts
     return createPortal(
         <div
             data-testid="ribbon-flight-layer"
-            style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1100 }}
+            className="[position:fixed] [inset:0] [pointer-events:none] [z-index:1100]"
         >
             {list.map(g => <Ghost key={g.id} ghost={g} rf={rf} nodes={nodes} />)}
         </div>,

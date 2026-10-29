@@ -10,6 +10,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, IconButton, Text } from '@/shared/ui';
 
@@ -47,6 +48,7 @@ export function UploadQueue({
     onRemove: (id: string) => void;
     onClearFinished: () => void;
 }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     if (items.length === 0) return null;
@@ -57,12 +59,12 @@ export function UploadQueue({
         <View style={styles.card}>
             <View style={styles.header}>
                 <Text variant="label" tone="tertiary" style={styles.title}>
-                    UPLOADS
+                    {t('mobile.knowledge.uploads', 'UPLOADS')}
                 </Text>
                 {finished > 0 ? (
                     <IconButton
                         icon={<Icon name="Check" size={16} color={theme.colors.textMuted} />}
-                        accessibilityLabel="Clear finished uploads"
+                        accessibilityLabel={t('mobile.knowledge.uploads_clear', 'Clear finished uploads')}
                         onPress={onClearFinished}
                     />
                 ) : null}

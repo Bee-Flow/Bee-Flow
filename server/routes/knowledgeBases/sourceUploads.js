@@ -44,6 +44,9 @@ function acceptUploads(/** @type {import('express').Request} */ req, /** @type {
  */
 const pendingUploads = new Set();
 
+/**
+ * @param {Promise<void>} promise
+ */
 function trackUpload(promise) {
     const job = Promise.resolve(promise).catch((e) => {
         log.error('[KB] Upload processing failed:', e && e.message ? e.message : e);
@@ -76,7 +79,7 @@ async function processUploadedFile(kb, source, doc, file) {
         text = extracted.text || '';
         meta = extracted.meta || {};
     } catch (e) {
-        log.warn(`[KB] Extraction failed for "${log.nameForLog(file.originalname)}": ${e.message}`);
+        log.warn(`[KB] Extraction failed for "${log.nameForLog(file.originalname)}": ${/** @type {Error} */ (e).message}`);
         await kbStore.updateDocumentStatus(doc.id, {
             status: 'error', statusReason: friendlyError(e), chunkCount: 0,
         }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:processUploadedFile', e));
@@ -99,7 +102,7 @@ async function processUploadedFile(kb, source, doc, file) {
                 return;
             }
         } catch (e) {
-            log.warn('[KB] Duplicate probe failed, ingesting anyway:', e.message);
+            log.warn('[KB] Duplicate probe failed, ingesting anyway:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -170,7 +173,7 @@ async function addFiles(/** @type {import('express').Request} */ req, /** @type 
                 try {
                     await processUploadedFile(kb, source, doc, file);
                 } catch (e) {
-                    log.error(`[KB] Upload "${log.nameForLog(file.originalname)}" failed:`, e.message);
+                    log.error(`[KB] Upload "${log.nameForLog(file.originalname)}" failed:`, /** @type {Error} */ (e).message);
                     await kbStore.updateDocumentStatus(doc.id, {
                         status: 'error', statusReason: helpers().friendlyError(e), chunkCount: 0,
                     }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:addFiles', e));
@@ -178,7 +181,7 @@ async function addFiles(/** @type {import('express').Request} */ req, /** @type 
             }
         })());
     } catch (e) {
-        log.error('[KB] Source upload error:', e.message);
+        log.error('[KB] Source upload error:', /** @type {Error} */ (e).message);
         if (!res.headersSent) next(e);
     }
 }

@@ -153,7 +153,7 @@ Wrap your output in \`\`\`mermaid ... \`\`\` tags. Focus on hierarchical relatio
                 resolvedTier = result.tier;
                 log.info(`[Notebooks] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason}) for ${type}`);
             } catch (err) {
-                log.info(`[Notebooks] Auto classification failed: ${err.message}, using balanced`);
+                log.info(`[Notebooks] Auto classification failed: ${/** @type {Error} */ (err).message}, using balanced`);
                 resolvedTier = 'balanced';
             }
         }
@@ -240,7 +240,7 @@ ${shield.units[0]}${shield.addendum}`;
     } catch (err) {
         log.error(`[Notebooks] Generate ${req.params.type} failed:`, err);
         try {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
             res.end();
         } catch { throw new HttpError(500, 'generation_failed', 'Generation failed'); }
     }
@@ -260,7 +260,9 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEdito
 
         // Extract all {{parameter}} placeholders
         const paramRegex = /\{\{([^}]+)\}\}/g;
+        /** @type {string[]} */
         const params = [];
+        /** @type {RegExpExecArray | null} */
         let match;
         while ((match = paramRegex.exec(documentContent)) !== null) {
             params.push(match[1].trim());
@@ -366,7 +368,7 @@ ${shieldedSources}${shield.addendum}`;
         if (!res.headersSent) {
             throw new HttpError(500, 'ai_fill_failed', 'AI Fill failed');
         } else {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
             res.end();
         }
     }

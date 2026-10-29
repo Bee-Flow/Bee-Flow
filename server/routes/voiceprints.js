@@ -204,6 +204,7 @@ router.get('/me', requireAuth, async (req, res) => {
  * directly halves the client's state machine.
  */
 router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body: EnrollFields }), async (req, res) => {
+    /** @type {string | null} */
     let tempPath = null;
     try {
         const user = await freshUser(req);
@@ -231,6 +232,7 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
         tempPath = path.join(os.tmpdir(), `voiceprint-${crypto.randomUUID()}${path.extname(req.file.originalname || '') || '.webm'}`);
         await fs.promises.writeFile(tempPath, req.file.buffer);
 
+        /** @type {{ voiceprint: string; jobId: string; durationSeconds: number; model: string; }} */
         let created;
         try {
             created = await voiceprintClient.createVoiceprint(tempPath, { language });
@@ -241,8 +243,8 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
             // The code is a guess at what the user should be told; when the
             // guess is wrong (and it will be), this line is the only way to
             // find out what pyannoteAI actually objected to.
-            log.warn(`[Voiceprints] Enrollment failed for ${user.id}: ${mapped.code} — ${err.message}`);
-            return res.status(mapped.status).json({ error: err.message, code: mapped.code });
+            log.warn(`[Voiceprints] Enrollment failed for ${user.id}: ${mapped.code} — ${/** @type {Error} */ (err).message}`);
+            return res.status(mapped.status).json({ error: /** @type {Error} */ (err).message, code: mapped.code });
         }
 
         const meta = await voiceprintStore.upsertVoiceprint({
@@ -278,12 +280,12 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
             state[CONSENT_DOC_ID] = { granted: true, version: CONSENT_VERSION, updatedAt: new Date().toISOString() };
             await userStore.setOptionalConsents(user.id, state);
         } catch (e) {
-            log.warn('[Voiceprints] consent ledger write failed:', e.message);
+            log.warn('[Voiceprints] consent ledger write failed:', /** @type {Error} */ (e).message);
         }
 
         res.json({ status: 'ready', voiceprint: meta, enrolled: true });
     } catch (e) {
-        log.error('[Voiceprints] POST /me error:', e.message);
+        log.error('[Voiceprints] POST /me error:', /** @type {Error} */ (e).message);
         throw new HttpError(500, 'enroll_failed', 'Could not record your voice profile');
     } finally {
         // Unconditional: the enrollment recording must not survive the request.
@@ -327,7 +329,7 @@ async function recordConsentWithdrawal(req, userId) {
         state[CONSENT_DOC_ID] = { granted: false, version: CONSENT_VERSION, updatedAt: new Date().toISOString() };
         await userStore.setOptionalConsents(userId, state);
     } catch (e) {
-        log.warn('[Voiceprints] consent withdrawal ledger write failed:', e.message);
+        log.warn('[Voiceprints] consent withdrawal ledger write failed:', /** @type {Error} */ (e).message);
     }
 }
 

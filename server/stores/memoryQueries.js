@@ -45,7 +45,7 @@ function makeListing({ db, crypto, ready }, presentMemories) {
      * are private to the person they belong to, in every scope.
      *
      * @param {string} userId
-     * @param {any} f
+     * @param {NonNullable<Parameters<typeof listMemories>[1]>} f
      */
     function buildWhere(userId, f) {
         const params = [userId];
@@ -359,13 +359,13 @@ function makeBulk({ db, crypto, ready, lifecycle }, presentMemories) {
 }
 
 /**
- * @param {object} [deps]
- * @param {{run: Function, getOne: Function, getAll: Function}} [deps.db]
- * @param {Function} [deps.hydrateRows]
- * @param {Function} [deps.resolveWriteContext]
- * @param {Function} [deps.keyHashForWrite]
- * @param {Function} [deps.ensureReady]  awaited before every query (the store's initDB)
- * @param {() => any} [deps.lifecycle]   memoryLifecycle, resolved lazily
+ * @param {{
+ *   db?: {run: Function, getOne: Function, getAll: Function},
+ *   hydrateRows?: typeof import('./memoryCrypto').hydrateRows,
+ *   resolveWriteContext?: typeof import('./memoryCrypto').resolveWriteContext,
+ *   keyHashForWrite?: typeof import('./memoryCrypto').keyHashForWrite,
+ *   ensureReady?: () => Promise<unknown>, lifecycle?: () => any,
+ * }} [deps]  ensureReady: awaited before every query (the store's initDB); lifecycle: memoryLifecycle, resolved lazily
  */
 function createMemoryQueries(deps = {}) {
     const db = () => deps.db || require('../db');

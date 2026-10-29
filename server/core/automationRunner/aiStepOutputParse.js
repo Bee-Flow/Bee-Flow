@@ -12,10 +12,10 @@ const log = require('../../telemetry/log');
 /**
  * @param {string} content the model's reply text
  * @param {{ step: any, effectiveSchema: any, inferred: any, inferredFields: string[]|null, outputContract: any }} shape
- * @returns {any} the step output (a parsed object, a wrapped object or the text)
+ * @returns {string | Record<string, unknown>} the step output (a parsed object, a wrapped object or the text)
  */
 function parseAiStepOutput(content, { step, effectiveSchema, inferred, inferredFields, outputContract }) {
-    /** @type {any} */
+    /** @type {string | Record<string, unknown>} */
     let output = content;
     if (effectiveSchema) {
         // Attempt JSON parse anywhere in the response. A model asked for JSON

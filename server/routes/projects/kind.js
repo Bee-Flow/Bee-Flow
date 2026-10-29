@@ -32,11 +32,10 @@ const { HttpError, notFound } = require('../../core/http/errors');
 const S = require('./schemas');
 
 /**
- * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]   (minRole) => middleware named requireProjectRoleMw
- * @param {any}   [deps.store]                stores/projectStore ({ getProject, setProjectKind })
- * @param {any}   [deps.kindChange]           projects/kindChange ({ refusedContent })
- * @param {Function} [deps.recordProjectChange]  projects/changeFeed recordProjectChange
+ * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate, // middleware named requireProjectRoleMw
+ *   store?: Pick<typeof import('../../stores/projectStore'), 'getProject'|'setProjectKind'>,
+ *   kindChange?: Pick<typeof import('../../projects/kindChange'), 'refusedContent'>,
+ *   recordProjectChange?: typeof import('../../projects/changeFeed').recordProjectChange }} [deps]
  */
 function makeKindRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });

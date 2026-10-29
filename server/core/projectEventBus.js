@@ -90,14 +90,14 @@ function _ensureSubscriber() {
                 delete parsed._origin;
                 bus.emit(channel.slice(CHANNEL_PREFIX.length), parsed);
             } catch (e) {
-                log.warn('[ProjectEventBus] bad message on', channel, e.message);
+                log.warn('[ProjectEventBus] bad message on', channel, /** @type {Error} */ (e).message);
             }
         });
         _subscriber = sub;
         _subscriberReady = sub.status === 'ready';
         return sub;
     } catch (e) {
-        log.warn('[ProjectEventBus] subscriber setup failed:', e.message);
+        log.warn('[ProjectEventBus] subscriber setup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -154,14 +154,14 @@ function subscribeProject(projectId, handler) {
  * is reporting.
  *
  * @param {string} projectId
- * @param {object} event
+ * @param {Record<string, unknown>} event
  */
 async function publishProjectEvent(projectId, event) {
     if (!projectId || !event) return;
     try {
         bus.emit(projectId, event);
     } catch (e) {
-        log.warn('[ProjectEventBus] local emit failed:', e.message);
+        log.warn('[ProjectEventBus] local emit failed:', /** @type {Error} */ (e).message);
     }
 
     const r = getRedis();
@@ -174,7 +174,7 @@ async function publishProjectEvent(projectId, event) {
         _ensureSubscriber();
         await r.publish(_channel(projectId), JSON.stringify({ ...event, _origin: _originId }));
     } catch (e) {
-        log.warn('[ProjectEventBus] publish failed:', e.message);
+        log.warn('[ProjectEventBus] publish failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -187,7 +187,7 @@ async function publishProjectEvent(projectId, event) {
  * typing" from ten minutes ago.
  *
  * @param {string} projectId
- * @param {object} event
+ * @param {Record<string, unknown>} event
  */
 async function publishTransient(projectId, event) {
     return publishProjectEvent(projectId, { ...event, transient: true });
@@ -199,7 +199,7 @@ async function publishTransient(projectId, event) {
  * cannot collide with a project uuid. Transient only: no row, no replay.
  */
 const subscribeChannel = (/** @type {string} */ channel, /** @type {(event: object) => void} */ handler) => subscribeProject(channel, handler);
-const publishChannel = (/** @type {string} */ channel, /** @type {object} */ event) => publishTransient(channel, event);
+const publishChannel = (/** @type {string} */ channel, /** @type {Record<string, unknown>} */ event) => publishTransient(channel, event);
 
 function _isHealthy() {
     try { return typeof _redisDeps.redisHealthy === 'function' ? !!_redisDeps.redisHealthy() : true; } catch (_) { return false; }

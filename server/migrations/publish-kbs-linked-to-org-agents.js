@@ -98,10 +98,7 @@ function kbIdsOf(agent) {
     return jsonArray(config?.knowledge_base_ids).filter(v => typeof v === 'string' && v);
 }
 
-/**
- * @typedef {Object} PlanArgs
- * @property {Pool} [db]
- */
+/** @typedef {{ db?: Pool }} PlanArgs */
 /**
  * @typedef {{ kbId: string, kbName: string | null, organizationId: string, sharedGroups: string[],
  *   agents: { id: string, name: string, organizationId: string }[] }} PlanEntry
@@ -176,12 +173,7 @@ async function plan({ db = pool } = {}) {
     return { publish, adopt, skipped };
 }
 
-/**
- * @typedef {Object} UpArgs
- * @property {Pool} [db]
- * @property {boolean} [dryRun]
- * @property {(value: string) => void} [log]
- */
+/** @typedef {{ db?: Pool, dryRun?: boolean, log?: (value: string) => void }} UpArgs */
 /**
  * Apply the plan.
  *

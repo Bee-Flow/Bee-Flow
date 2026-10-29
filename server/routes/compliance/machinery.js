@@ -175,7 +175,7 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
         try { require('./counts').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/machinery:anon#5', err); /* counts router not shipped yet */ }
         res.status(201).json({ ...attestation, classification: outcome });
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 

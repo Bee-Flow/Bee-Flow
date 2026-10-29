@@ -260,11 +260,10 @@ function offeredWrites(tools) {
  * literally there and `notMentioned` is what is not — and the second one is
  * evidence for the grader, NOT a failure. Paraphrase is why the grader exists.
  *
- * @param {object} p
- * @param {{ mustMention?: unknown, mustNotMention?: unknown, toolsExpected?: unknown, rulesExpected?: unknown, notes?: unknown }} [p.expect]        a normalised expect document
- * @param {string} [p.answer]        the agent's final text
- * @param {string[]} [p.toolsUsed]   tool names the turn actually called
- * @param {string[]} [p.withheldNames] tool names the sandbox kept out of the stack
+ * @param {{ expect?: { mustMention?: unknown, mustNotMention?: unknown, toolsExpected?: unknown, rulesExpected?: unknown, notes?: unknown },
+ *   answer?: string, toolsUsed?: string[], withheldNames?: string[] }} p `expect`: a normalised expect
+ *   document; `answer`: the agent's final text; `toolsUsed`: tool names the turn actually called;
+ *   `withheldNames`: tool names the sandbox kept out of the stack
  */
 function factsFor({ expect, answer, toolsUsed = [], withheldNames = [] } = {}) {
     const e = normaliseExpect(expect);

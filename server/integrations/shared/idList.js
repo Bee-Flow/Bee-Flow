@@ -28,7 +28,7 @@ function idList(value) {
     let withoutId = 0;
     for (const entry of entries) {
         const isRecord = !!entry && typeof entry === 'object';
-        const raw = isRecord ? (/** @type {any} */ (entry).id ?? /** @type {any} */ (entry).messageId) : entry;
+        const raw = isRecord ? (/** @type {{ id?: unknown }} */ (entry).id ?? /** @type {{ messageId?: unknown }} */ (entry).messageId) : entry;
         const id = raw === null || raw === undefined || typeof raw === 'object' ? '' : String(raw).trim();
         if (!id) {
             if (isRecord) withoutId += 1;

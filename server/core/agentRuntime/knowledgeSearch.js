@@ -1,3 +1,4 @@
+/** @typedef {import('../entitlements/betaFeatures').SessionLike} SessionLike */
 // @typecheck
 const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
@@ -27,6 +28,9 @@ const SYSTEM_KB_BETA_SLUGS = new Set();
  * the requesting user's enabled beta features. Returns the filtered id list.
  * Returns the input unchanged when no system KBs are referenced — cheap path
  * for the common case where an agent only uses ordinary user/org KBs.
+ * @param {string[]} kbIds
+ * @param {string} userId
+ * @param {Express.Session | null} session
  */
 async function filterSystemKBsForUser(kbIds, userId, session) {
     if (!Array.isArray(kbIds) || kbIds.length === 0) return kbIds;
@@ -239,7 +243,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
             }
         }
     } catch (err) {
-        log.warn('[quickKBSearch] KB search failed:', err.message);
+        log.warn('[quickKBSearch] KB search failed:', /** @type {Error} */ (err).message);
         return [];
     }
 

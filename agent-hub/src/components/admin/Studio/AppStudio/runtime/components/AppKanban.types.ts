@@ -64,7 +64,7 @@ export interface ToneMapEntry {
     tone: string;
 }
 
-export interface CardFieldSpec {
+interface CardFieldSpec {
     key: string;
     label: string;
     slot: string;

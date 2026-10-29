@@ -49,7 +49,7 @@ function freeze(decl, origin, orgId) {
  * honoured — a half-valid event would be offered in the builder and never fire.
  */
 function registerTriggerSource(decl, { origin = 'runtime', orgId = null } = {}) {
-    const issues = validateTriggerSource(decl, { existingIds: /** @type {any} */ (_global.keys()) });
+    const issues = validateTriggerSource(decl, { existingIds: _global.keys() });
     const errors = issues.filter(i => i.severity === 'error');
     if (errors.length) {
         log.warn(`[triggerSources] rejected "${decl?.id}" from ${origin}: `
@@ -73,7 +73,12 @@ function takeDeclarations(mod) {
     return [];
 }
 
+/**
+ * @param {string} dir
+ * @param {string} originPrefix
+ */
 function loadFromDir(dir, originPrefix) {
+    /** @type {string[]} */
     let names = [];
     try { names = fs.readdirSync(dir); } catch { return; }
     for (const name of names.sort()) {                       // deterministic order
@@ -83,13 +88,14 @@ function loadFromDir(dir, originPrefix) {
                 registerTriggerSource(decl, { origin: `${originPrefix}/${name}` });
             }
         } catch (e) {
-            log.warn(`[triggerSources] failed to load ${originPrefix}/${name}: ${e.message}`);
+            log.warn(`[triggerSources] failed to load ${originPrefix}/${name}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
 
 function loadBundledMcpManifests() {
     const root = path.join(__dirname, '..', '..', 'mcpServers');
+    /** @type {fs.Dirent<string>[]} */
     let entries = [];
     try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -101,7 +107,7 @@ function loadBundledMcpManifests() {
                 registerTriggerSource(decl, { origin: `mcpServers/${entry.name}` });
             }
         } catch (e) {
-            log.warn(`[triggerSources] failed to load mcpServers/${entry.name}/events.js: ${e.message}`);
+            log.warn(`[triggerSources] failed to load mcpServers/${entry.name}/events.js: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
@@ -128,7 +134,10 @@ function listTriggerSourcesForOrg(orgId, opts) {
         .sort((a, b) => (a.order ?? 1000) - (b.order ?? 1000) || a.label.localeCompare(b.label));
 }
 
-/** Exact lookup. Includes hidden and org-scoped entries — never enumerated. */
+/**
+ * Exact lookup. Includes hidden and org-scoped entries — never enumerated.
+ * @param {string} id
+ */
 function getTriggerSource(id) {
     ensureLoaded();
     return _allById.get(id) || null;
@@ -147,7 +156,10 @@ function getEventDef(provider, event) {
     return null;
 }
 
-/** Tenancy scope declared by a provider's events, or null when undeclared. */
+/**
+ * Tenancy scope declared by a provider's events, or null when undeclared.
+ * @param {string} provider
+ */
 function getProviderScope(provider) {
     // Auto-derived providers deliberately return null here: they are polled
     // 1:1 per subscription (dispatchToSubscription), never fanned out, and an
@@ -191,7 +203,7 @@ module.exports = {
 
 /**
  * How one event is produced (the runtime half of a declaration).
- * @typedef {Object} TriggerSourceSpec
+ * @typedef TriggerSourceSpec
  * @property {string} kind  'poller' | 'push' | 'poll_diff'
  * @property {boolean} [auto]
  * @property {string} [tool]
@@ -212,7 +224,7 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} TriggerEventDecl
+ * @typedef TriggerEventDecl
  * @property {string} id
  * @property {string} [label]
  * @property {boolean} [hidden]
@@ -225,7 +237,7 @@ module.exports = {
  */
 
 /**
- * @typedef {Object} TriggerSourceDecl
+ * @typedef TriggerSourceDecl
  * @property {string} id
  * @property {string} label
  * @property {number} [order]

@@ -93,7 +93,7 @@ function register(router) {
      * organisation would otherwise become invisible to its own owner, with no way
      * to read, export or erase it. `scope` describes where a NEW table would go.
      */
-    router.get('/', async (req, res) => {
+    router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const principal = await resolveDatatablePrincipal(req);
         const scopes = datatableScopesFor(principal);
         if (!scopes.length) {
@@ -126,9 +126,10 @@ function register(router) {
      * organisations picks one explicitly through `organizationId`; nothing here
      * guesses which of them a new table belongs to.
      */
-    router.post('/', validate({ body: CreateBody }), async (req, res) => {
+    router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         // Declared out here so the catch can drop the engine's access memo for
         // the scope whose transaction just rolled back.
+        /** @type {{ kind: 'org'; id: string; } | { kind: 'user'; id: string; } | null} */
         let scope = null;
         try {
             const principal = await resolveDatatablePrincipal(req);
@@ -264,7 +265,8 @@ function register(router) {
      * window, so jobs/datatableRetention is what removes an old answer. One
      * mechanism, two features: there is no second, invisible clock to reason about.
      */
-    router.post('/managed', validate({ body: ManagedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManagedBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/managed', validate({ body: ManagedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManagedBody>, import('qs').ParsedQs>} */ req, /** @type {import('express').Response} */ res) => {
+        /** @type {{ kind: 'org'; id: string; } | { kind: 'user'; id: string; } | null} */
         let scope = null;
         try {
             const principal = await resolveDatatablePrincipal(req);

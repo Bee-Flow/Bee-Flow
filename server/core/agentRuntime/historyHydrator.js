@@ -36,7 +36,7 @@ function refreshTempUrl(url, storageKey) {
             if (key) return generateTempDownloadUrl(key, 900);
         }
     } catch (e) {
-        log.warn(`[HistoryHydrator] Failed to refresh temp URL: ${e.message}`);
+        log.warn(`[HistoryHydrator] Failed to refresh temp URL: ${/** @type {Error} */ (e).message}`);
     }
     return null;
 }
@@ -107,6 +107,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
         const name = att.name || 'file';
 
         if (type.startsWith('image/')) {
+            /** @type {string | null} */
             let url = null;
             if (att.storageKey) {
                 url = refreshTempUrl(null, att.storageKey);
@@ -121,7 +122,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
                     const { uploadImageForInference } = require('./attachmentKinds');
                     url = await uploadImageForInference(att.content, type, userId, name);
                 } catch (e) {
-                    log.warn(`[HistoryHydrator] Lazy upload failed for ${log.nameForLog(name)}: ${e.message}`);
+                    log.warn(`[HistoryHydrator] Lazy upload failed for ${log.nameForLog(name)}: ${/** @type {Error} */ (e).message}`);
                 }
             }
 
@@ -162,9 +163,8 @@ async function attachmentsToContentBlocks(attachments, userId) {
  * pass `skipLast: false` to hydrate every message.
  *
  * @param {Array}   messages - Message array being built for the LLM
- * @param {object}  [opts]
- * @param {string}  [opts.userId]   - Needed for lazy base64→RustFS fallback
- * @param {boolean} [opts.skipLast=true] - Leave the final message alone
+ * @param {{ userId?: string, skipLast?: boolean }} [opts] `userId`: Needed for lazy base64→RustFS
+ *   fallback; `skipLast`: Leave the final message alone (default true)
  * @returns {Promise<Array>} the same `messages` array (mutated)
  */
 async function hydrateHistoryAttachments(messages, opts = {}) {

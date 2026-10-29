@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
@@ -58,16 +58,20 @@ function renderForm(step: Record<string, unknown>, { onPatch = vi.fn(), catalog 
 // Combobox order: [0] trigger kind, [1] event.
 const appButton = () => screen.getByLabelText('Choose the app to trigger on');
 const eventSelect = () => screen.getAllByRole('combobox')[1];
-const openPicker = () => fireEvent.click(appButton());
+const openPicker = async () => {
+        const user = userEvent.setup();
+        await user.click(appButton());
+    };
 /** Names of the apps the picker offers, in order. */
 const pickerApps = () => screen.getAllByRole('option', { hidden: false })
     .filter(o => o.closest('[role="listbox"][aria-label="Apps"]'))
     .map(o => o.textContent.trim());
 /** Click the app in the list, then confirm it — what a user actually does. */
-const chooseApp = (label: string) => {
+const chooseApp = async (label: string) => {
+    const user = userEvent.setup();
     const row = screen.getAllByRole('option').find(o => o.textContent.trim() === label);
-    fireEvent.click(row!);
-    fireEvent.click(screen.getByRole('button', { name: `Use ${label}` }));
+    await user.click(row!);
+    await user.click(screen.getByRole('button', { name: `Use ${label}` }));
 };
 
 const trigger = (appEvent?: unknown) => ({ id: 'trg', type: 'trigger', kind: 'app_event', ...(appEvent !== undefined ? { appEvent } : {}) });
@@ -79,16 +83,16 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         try { localStorage.clear(); } catch {}
     });
 
-    it('lists exactly the catalog providers — no hardcoded extras', () => {
+    it('lists exactly the catalog providers — no hardcoded extras', async () => {
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
-        openPicker();
+        await openPicker();
         expect(pickerApps()).toEqual(['Gmail', 'Nextcloud', 'Support Inbox', 'Google Sheets']);
     });
 
     it('the picker shows what an app can trigger on before you commit to it', async () => {
         const user = userEvent.setup();
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
-        openPicker();
+        await openPicker();
         await user.click(screen.getAllByRole('option').find(o => o.textContent.includes('Nextcloud'))!);
         expect(screen.getByText('New file')).toBeTruthy();
         expect(screen.getByText('Deck card created')).toBeTruthy();
@@ -99,7 +103,7 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
     it('the picker can be searched by app name', async () => {
         const user = userEvent.setup();
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
-        openPicker();
+        await openPicker();
         await user.clear(screen.getByLabelText('Search apps'));
         await user.type(screen.getByLabelText('Search apps'), 'next');
         expect(pickerApps()).toEqual(['Nextcloud']);
@@ -109,8 +113,8 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         const user = userEvent.setup();
         const step = trigger({ provider: 'gmail', event: 'label.added', filter: { labelId: 'Label_3' } });
         const { onPatch } = renderForm(step);
-        openPicker();
-        chooseApp('Nextcloud');
+        await openPicker();
+        await chooseApp('Nextcloud');
         expect((eventSelect() as HTMLInputElement).value).toBe('file.new');
         await user.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
@@ -159,7 +163,7 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         const catalog = { triggers: [{ kind: 'app_event', providers: ['gmail', 'nextcloud'] }] };
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }), stub<Parameters<typeof renderForm>[1]>({ catalog }));
         expect(appButton().textContent).toContain('gmail');
-        openPicker();
+        await openPicker();
         expect(pickerApps()).toEqual(['gmail', 'nextcloud']);
         await user.click(screen.getByLabelText('Close'));
         // String defs carry no events — the configured one survives as unknown.

@@ -214,7 +214,7 @@ function parseToolCall(params) {
 }
 
 /**
- * @param {any} [deps]  test seam: `{ toolsForUser, datatableTools }`. The real one needs
+ * @param {{ toolsForUser?: typeof toolsForUser, datatableTools?: ReturnType<typeof datatableTools.makeDatatableTools> }} [deps]  test seam. The real one needs
  *                         Postgres, and this router's tests run without it.
  * @param {{ token?: { id?: string|null, name?: string, legacy?: boolean, scopes?: any } }|null} [access]  what the access gate
  *                         resolved for this request. Its token's scopes narrow

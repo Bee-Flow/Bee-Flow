@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Button, TextField, useToast } from '@/shared/ui';
 
@@ -15,6 +16,7 @@ import { nameChanged } from '../model/profile';
 
 export function DisplayNameField({ current }: { current: string }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const { toast } = useToast();
     const [name, setName] = useState(current);
     const save = useUpdateProfile();
@@ -23,13 +25,13 @@ export function DisplayNameField({ current }: { current: string }) {
     const saveName = () =>
         save.mutate(
             { displayName: name.trim() },
-            { onSuccess: () => toast('Name updated', 'success') },
+            { onSuccess: () => toast(t('mobile.account.name_updated', 'Name updated'), 'success') },
         );
 
     return (
         <View style={styles.field}>
             <TextField
-                label="Display name"
+                label={t('mobile.account.display_name', 'Display name')}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
@@ -39,7 +41,7 @@ export function DisplayNameField({ current }: { current: string }) {
                 error={save.isError ? describeError(save.error).message : null}
             />
             {dirty ? (
-                <Button label="Save name" onPress={saveName} loading={save.isPending} fullWidth />
+                <Button label={t('automations.versions.saveName', 'Save name')} onPress={saveName} loading={save.isPending} fullWidth />
             ) : null}
         </View>
     );

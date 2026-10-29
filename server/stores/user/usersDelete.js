@@ -20,6 +20,7 @@ const { storeError } = require('../lib/storeError');
  *
  * Returns null when no admin is left. The caller must NOT then delete the table
  * — it is the organisation's record, not the leaver's.
+ * @param {string} excludeUserId
  */
 async function oldestOrgAdmin(organizationId, excludeUserId) {
     if (!organizationId) return null;
@@ -49,7 +50,7 @@ async function eraseSuggestionTraces(userId, { stores, onFail } = {}) {
     for (const store of list) {
         try { erased += (await store.purgeForUser(userId)) || 0; } catch (e) {
             if (onFail && !isMissingTable(e)) onFail(e);
-            else log.warn('[UserStore] Suggestion erasure failed:', e.message);
+            else log.warn('[UserStore] Suggestion erasure failed:', /** @type {Error} */ (e).message);
         }
     }
     return erased;
@@ -75,7 +76,10 @@ async function stagesRunBy(userId, opts = {}) {
     return stages.filter((st) => (st.organizationId || '') === (opts.organizationId || ''));
 }
 
-/** 409 stage_run_as, naming the stages (ids only). */
+/**
+ * 409 stage_run_as, naming the stages (ids only).
+ * @param {{ projectId: string; solutionId: string; stage: string; organizationId: string; }[]} stages
+ */
 function stageRunAsError(stages) {
     const { storeError } = require('../lib/managedParts');
     return storeError(409, 'stage_run_as',
@@ -129,7 +133,7 @@ function erasureSteps(userId) {
     /** @param {string} name @param {unknown} e */
     const fail = (name, e) => {
         failed.push(name);
-        const code = /** @type {{ code?: unknown, name?: unknown }} */ (e)?.code ?? /** @type {any} */ (e)?.name ?? 'unknown';
+        const code = /** @type {{ code?: unknown, name?: unknown }} */ (e)?.code ?? /** @type {{ code?: unknown, name?: unknown }} */ (e)?.name ?? 'unknown';
         log.error(`[UserStore] erasure step '${name}' failed for user '${userId}' (${code})`);
     };
     /** @param {string} name @param {() => Promise<unknown>} fn */

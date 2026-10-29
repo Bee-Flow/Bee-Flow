@@ -10,7 +10,7 @@ const { initDB, run, getOne, getAll } = require('./core');
 const { buildUpdate } = require('../lib/sqlBuilder');
 
 /**
- * @typedef {object} EvolutionRow
+ * @typedef EvolutionRow
  * @property {string} id
  * @property {string} automation_id
  * @property {string} user_id

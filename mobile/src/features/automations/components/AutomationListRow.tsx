@@ -6,7 +6,7 @@
 
 import React from 'react';
 
-import { timeAgo } from '@/core/i18n';
+import { timeAgo, useTranslation, type TranslateFn } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Icon, ListRow, Spinner } from '@/shared/ui';
 
@@ -15,10 +15,14 @@ import { absoluteTime } from '../model/time';
 import { describeTrigger, triggerIcon } from '../model/trigger';
 import type { Automation } from '../model/types';
 
-function subtitleOf(automation: Automation): string {
-    if (!automation.isActive) return automation.isDraft ? 'Draft — not finished yet' : 'Paused';
+function subtitleOf(t: TranslateFn, automation: Automation): string {
+    if (!automation.isActive) {
+        return automation.isDraft
+            ? t('mobile.automations.row.draft', 'Draft — not finished yet')
+            : t('automations.paused', 'Paused');
+    }
     return automation.nextRunAt
-        ? `Next ${absoluteTime(automation.nextRunAt).toLowerCase()}`
+        ? t('mobile.automations.row.next', 'Next {time}', { time: absoluteTime(automation.nextRunAt).toLowerCase() })
         : describeTrigger(automation.definition?.trigger ?? null);
 }
 
@@ -35,12 +39,13 @@ export function AutomationListRow({
     onLongPress?: () => void;
 }) {
     const theme = useTheme();
+    const t = useTranslation();
     const trigger = automation.definition?.trigger ?? null;
 
     return (
         <ListRow
-            title={automation.title || 'Untitled automation'}
-            subtitle={subtitleOf(automation)}
+            title={automation.title || t('automations.library.untitled', 'Untitled automation')}
+            subtitle={subtitleOf(t, automation)}
             meta={automation.lastRunAt ? timeAgo(automation.lastRunAt) : undefined}
             wrapTitle
             leading={

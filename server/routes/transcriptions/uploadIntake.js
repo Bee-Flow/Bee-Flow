@@ -63,7 +63,7 @@ async function resolveProjectFiling(req, userId, userOrgId) {
     } catch (err) {
         // The access check could not be answered: refuse, never file blind.
         dropUpload();
-        log.error('[Transcriptions] project access check failed:', err.message);
+        log.error('[Transcriptions] project access check failed:', /** @type {Error} */ (err).message);
         throw new HttpError(503, 'project_check_unavailable', 'Could not check access to that project. Try again in a moment.');
     }
     if (!target.ok) {
@@ -128,7 +128,7 @@ async function persistUploadAudio(file, userId, fileName) {
     try {
         await fs.promises.copyFile(file.path, savedAudioPath);
     } catch (copyErr) {
-        log.error('[Transcriptions] Could not persist audio up front:', copyErr.message);
+        log.error('[Transcriptions] Could not persist audio up front:', /** @type {Error} */ (copyErr).message);
         savedAudioPath = '';
     }
     // Durable copy in object storage (RustFS/S3) when available, so a later

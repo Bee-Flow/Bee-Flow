@@ -135,6 +135,7 @@ function layerStepsView(def, layerKey) {
  * @returns {Validation}
  */
 function layerValidation(def, layerKey) {
+    /** @type {{ ok: boolean; errors: object[]; warnings: object[]; }} */
     let v;
     try { v = validateDefinition(def, { deliverableEvents: getDeliverableEvents() }); }
     catch (_) { return { errors: [], warnings: [] }; }
@@ -193,21 +194,12 @@ ${apps}`;
  * The flowlet skeleton must already exist on draftWrap.def. Streams every tool
  * call via `send('tool_call', { layerKey, name, arguments, result })`.
  *
- * @param {object} p
- * @param {{ def: { layers?: Record<string, object>, schemaVersion?: number, trigger?: object, steps?: object[], edges?: object[], vars?: object } }} p.draftWrap
- * @param {string} p.layerKey
- * @param {string} p.instruction
- * @param {Contract|null} [p.contract]
- * @param {string} [p.mode]
- * @param {string} p.modelId
- * @param {string} [p.userId]
- * @param {string|null} [p.userOrgId]
- * @param {object|null} [p.session]
- * @param {object|null} [p.catalog]
- * @param {SendEvent} [p.send]
- * @param {number} [p.maxRounds]
- * @param {() => boolean} [p.isAborted]
- * @param {AbortSignal|null} [p.signal]
+ * @param {{
+ *   draftWrap: { def: { layers?: Record<string, object>, schemaVersion?: number, trigger?: object, steps?: object[], edges?: object[], vars?: object } },
+ *   layerKey: string, instruction: string, contract?: Contract|null, mode?: string, modelId: string,
+ *   userId?: string, userOrgId?: string|null, session?: object|null, catalog?: object|null,
+ *   send?: SendEvent, maxRounds?: number, isAborted?: () => boolean, signal?: AbortSignal|null,
+ * }} p
  * @returns {Promise<{ layerKey: string, outputFields: string[], params: ContractParams, summary: string, validation: Validation }>}
  */
 async function runLayerAgent({
@@ -250,9 +242,10 @@ async function runLayerAgent({
         const args = { ...(rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs) ? rawArgs : {}) };
         if (SCOPED_GRAPH_TOOLS.has(name)) args.scope = layerKey;        // scope lock
         if (name === 'builder_set_layer_contract') args.layerKey = layerKey;
+        /** @type {{ error: string; }} */
         let result;
         try { result = await applyToolCall(name, args, draftWrap); }
-        catch (e) { result = { error: e.message }; }
+        catch (e) { result = { error: /** @type {Error} */ (e).message }; }
         send('tool_call', { layerKey, name, arguments: args, result });
         return result;
     };
@@ -276,11 +269,11 @@ async function runLayerAgent({
                 reasoningEffort: 'medium',
             });
         } catch (e) {
-            if (isAborted() || e?.name === 'AbortError' || signal?.aborted) {
+            if (isAborted() || /** @type {Error} */ (e)?.name === 'AbortError' || signal?.aborted) {
                 log.info('[flowletAgent] flowlet build cancelled by the client');
                 break;
             }
-            send('layer_agent_error', { layerKey, error: e.message });
+            send('layer_agent_error', { layerKey, error: /** @type {Error} */ (e).message });
             break;
         }
         if (response.content) summary = response.content;
@@ -340,22 +333,14 @@ async function runLayerAgent({
  * key reserved UP FRONT (so two same-titled flowlets never collide) and its own
  * isolated draft (so the parallel agents never race on a shared object).
  *
- * @param {object} p
- * @param {{ layers?: Record<string, object>, schemaVersion?: number }} p.rootDef
- * @param {Array<{ title?: string, instruction?: string, params?: object[], outputFields?: string[] }>} p.specs
- * @param {string} p.modelId
- * @param {string} p.userId
- * @param {string|null} [p.userOrgId]
- * @param {object|null} [p.session]
- * @param {object|null} [p.catalog]
- * @param {SendEvent} [p.send]
- * @param {number} [p.cap]
- * @param {object|null} [p.inputSchemasByTool]
- * @param {Set<string>|null} [p.allowedModelTiers]  only a Set is honoured
- * @param {object|null} [p.datatables]
- * @param {Set<string>|string[]|null} [p.approvedDatatableIds]
- * @param {object|null} [p.documents]
- * @param {Set<string>|string[]|null} [p.availableToolNames]
+ * @param {{
+ *   rootDef: { layers?: Record<string, object>, schemaVersion?: number },
+ *   specs: Array<{ title?: string, instruction?: string, params?: object[], outputFields?: string[] }>,
+ *   modelId: string, userId: string, userOrgId?: string|null, session?: object|null, catalog?: object|null,
+ *   send?: SendEvent, cap?: number, inputSchemasByTool?: object|null, allowedModelTiers?: Set<string>|null,
+ *   datatables?: object|null, approvedDatatableIds?: Set<string>|string[]|null, documents?: object|null,
+ *   availableToolNames?: Set<string>|string[]|null,
+ * }} p  allowedModelTiers: only a Set is honoured
  * @returns {Promise<Array<{ ok: boolean, layerKey: string, title: string, outputFields?: string[], summary?: string, error?: string }>>}
  */
 async function runLayersInParallel({
@@ -420,8 +405,8 @@ async function runLayersInParallel({
             send('layer_agent_done', { layerKey, outputFields: r.outputFields, summary: r.summary });
             return { ok: true, layerKey, title, layer: isoDef.layers[layerKey], outputFields: r.outputFields, summary: r.summary };
         } catch (e) {
-            send('layer_agent_error', { layerKey, error: e.message });
-            return { ok: false, layerKey, title, error: e.message };
+            send('layer_agent_error', { layerKey, error: /** @type {Error} */ (e).message });
+            return { ok: false, layerKey, title, error: /** @type {Error} */ (e).message };
         }
     });
 

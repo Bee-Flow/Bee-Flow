@@ -77,10 +77,8 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
  * `conversationCount`, which is the safe reading when nobody was named.
  *
  * @param {string[]} agentIds
- * @param {object}  [opts]
- * @param {string|null} [opts.excludeUserId] whose conversations do NOT count
- *   towards `othersConversationCount`
- * @param {any}  [opts.db] injection seam for the tests
+ * @param {{ excludeUserId?: string|null, db?: DbQueryable }} [opts]  excludeUserId: whose conversations do
+ *   NOT count towards `othersConversationCount`; db: injection seam for the tests
  * @returns {Promise<Map<string, {conversationCount:number, userCount:number,
  *   othersConversationCount:number, lastUsedAt:string|null}>>} one entry per
  *   requested id — an agent nobody ever chatted with reads as zeros, which is

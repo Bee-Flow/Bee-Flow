@@ -38,7 +38,7 @@ const INTERNAL_RE = /^\/[A-Za-z0-9._~/%-]*(?:\?[A-Za-z0-9._~/%=&+:@,;-]*)?(?:#[A
 const HOST_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
 /**
- * @typedef {object} Redirect
+ * @typedef Redirect
  * @property {string} id
  * @property {string} from      lower-case path, no trailing slash
  * @property {string} to        a site path ("/new", optionally ?query/#hash) or an https URL

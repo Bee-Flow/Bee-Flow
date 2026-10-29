@@ -90,7 +90,7 @@ async function subworkflowsVisibleTo(userId) {
  * hidden (fail closed). The scope is read from the user row (orgId of the
  * caller, or of the agent's owner), the same source subworkflowsVisibleTo uses.
  *
- * @param {any} definition component.json as loaded
+ * @param {{ owner?: { orgId?: string, userId?: string } | null } | null | undefined} definition component.json as loaded
  * @param {{ userId?: string|null, orgId?: string|null }} scope
  */
 function componentVisibleTo(definition, { userId = null, orgId = null } = {}) {

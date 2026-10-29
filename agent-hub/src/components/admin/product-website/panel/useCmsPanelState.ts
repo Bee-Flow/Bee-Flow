@@ -49,6 +49,24 @@ interface FocusRestore {
 /** The page whose context menu opened Save-as-template, with its blocks. */
 type PendingTemplatePage = CmsPageIndexEntry & { blocks?: unknown[] };
 
+/**
+ * Focus-mode hotkey '\' — skipped while typing (inputs, textareas,
+ * selects, contentEditable) so backslashes can still be typed.
+ */
+function useFocusModeHotkey(toggleFocusMode: () => void) {
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== '\\' || e.ctrlKey || e.metaKey || e.altKey) return;
+            const t = e.target as HTMLElement | null;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+            e.preventDefault();
+            toggleFocusMode();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [toggleFocusMode]);
+}
+
 export default function useCmsPanelState() {
     // ── multi-site state ─────────────────────────────────────────────
     const [sites, setSites]                   = useState<CmsSiteListEntry[]>([]);
@@ -178,19 +196,7 @@ export default function useCmsPanelState() {
         }
         setFocusMode(entering);
     }, [focusMode, navOpen, inspectorOpen, assistantOpen]);
-    // Focus-mode hotkey '\' — skipped while typing (inputs, textareas,
-    // selects, contentEditable) so backslashes can still be typed.
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key !== '\\' || e.ctrlKey || e.metaKey || e.altKey) return;
-            const t = e.target as HTMLElement | null;
-            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-            e.preventDefault();
-            toggleFocusMode();
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [toggleFocusMode]);
+    useFocusModeHotkey(toggleFocusMode);
     // Stream lock: while an AI turn runs, human writes are blocked so the
     // server-persisted drafts can't be clobbered (cmsStore has no CAS).
     const [builderRunning, setBuilderRunning] = useState(false);

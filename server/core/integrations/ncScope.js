@@ -64,15 +64,28 @@ const RESOURCE_KINDS = {
     'nextcloud-forms': { kind: 'form', label: 'forms', listTool: 'nextcloud_forms_list' },
 };
 
+/**
+ * @param {string} userId
+ */
 function userKey(userId) { return `user_nc_scope_${userId}`; }
+/**
+ * @param {string} orgId
+ */
 function orgKey(orgId) { return `org_nc_scope_${orgId}`; }
+/**
+ * @param {string} agentId
+ */
 function agentKey(agentId) { return `agent_nc_scope_${agentId}`; }
 
+/**
+ * @param {string} integrationId
+ */
 function isScopable(integrationId) { return integrationId in RESOURCE_KINDS; }
 
 /**
  * Normalise a files-scope folder path: rooted, single slashes, no trailing
  * slash, no traversal. Returns null for anything unusable.
+ * @param {string | number} raw
  */
 function normalizeFolderPath(raw) {
     if (typeof raw !== 'string') return null;
@@ -87,9 +100,11 @@ function normalizeFolderPath(raw) {
 
 function sanitizeSelected(integrationId, list) {
     if (!Array.isArray(list)) return [];
+    /** @type {string[]} */
     const out = [];
     const seen = new Set();
     for (const raw of list) {
+        /** @type {string | null} */
         let v = null;
         if (integrationId === 'nextcloud') {
             v = normalizeFolderPath(raw);
@@ -129,6 +144,9 @@ function sanitizeIntegrations(patch) {
     return out;
 }
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function getOrgScopeDoc(orgId) {
     if (!orgId) return null;
     // Deliberately uncaught — see resolveNcScope: "store is down" must stay
@@ -145,6 +163,8 @@ async function getOrgScopeDoc(orgId) {
  * admin saves the panel for the first time. That is what keeps this
  * enforceable without taking Nextcloud away from anyone on deploy: nothing
  * changes until somebody makes a choice here.
+ * @param {string | undefined} orgId
+ * @param {{ integrations: Record<string, { mode: string; }>; }} patch
  */
 async function saveOrgScope(orgId, patch, { updatedBy = null } = {}) {
     if (!orgId) throw new Error('orgId required');
@@ -177,9 +197,12 @@ async function saveOrgScope(orgId, patch, { updatedBy = null } = {}) {
  * the shape the admin panel speaks (a list of ticked boxes). Ids absent from
  * the list are stored as an explicit `off`, which is how "untick everything"
  * becomes expressible at all: an empty legacy array could never say that.
+ * @param {string | undefined} orgId
+ * @param {string[]} enabledIds
  */
 async function setOrgEnabledIntegrations(orgId, enabledIds, { updatedBy = null } = {}) {
     const enabled = new Set((Array.isArray(enabledIds) ? enabledIds : []).filter(id => NC_INTEGRATION_ID_SET.has(id)));
+    /** @type {Record<string, { mode: string; }>} */
     const integrations = {};
     for (const { id } of NC_INTEGRATIONS) {
         integrations[id] = enabled.has(id) ? { mode: 'all' } : { mode: 'off' };
@@ -187,6 +210,9 @@ async function setOrgEnabledIntegrations(orgId, enabledIds, { updatedBy = null }
     return await saveOrgScope(orgId, { integrations }, { updatedBy });
 }
 
+/**
+ * @param {string} userId
+ */
 async function getUserScopeDoc(userId) {
     if (!userId) return null;
     // No catch: an unreadable store must THROW, not read as "no doc". A
@@ -196,6 +222,7 @@ async function getUserScopeDoc(userId) {
     return await configStore.getConfig(userKey(userId));
 }
 
+/** @typedef {{ orgId?: string | null, userId?: string | null | undefined, agentId?: string | null }} ResolveNcScopeArgs */
 /**
  * Resolve the EFFECTIVE scope for a caller: Map-like plain object
  * { [integrationId]: { mode, selected: Set<string> } } covering every
@@ -204,6 +231,7 @@ async function getUserScopeDoc(userId) {
  * agentId is accepted now, composed last (a further narrowing layer), so a
  * future per-agent identity story needs no signature change. No UI writes
  * agent docs yet.
+ * @param {ResolveNcScopeArgs} [param0]
  */
 async function resolveNcScope({ orgId = null, userId = null, agentId = null } = {}) {
     // No catch on these reads: "the store is down" and "no scope stored"
@@ -243,6 +271,7 @@ async function resolveNcScope({ orgId = null, userId = null, agentId = null } = 
 }
 
 function _diffSummary(before, after) {
+    /** @type {string[]} */
     const parts = [];
     const ids = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
     for (const id of ids) {
@@ -273,6 +302,8 @@ async function _audit({ userId, orgId, updatedBy: _updatedBy, summary, scope = '
  * stored entry per integration id; an entry of null/undefined removes the
  * override (back to 'all') — that is how a row's "Everything" choice is
  * stored as absence, keeping absent-means-default true everywhere.
+ * @param {string} userId
+ * @param {{ integrations: {}; }} patch
  */
 async function saveUserScope(userId, patch, { orgId = null, updatedBy = null } = {}) {
     if (!userId) throw new Error('userId required');
@@ -300,11 +331,15 @@ async function saveUserScope(userId, patch, { orgId = null, updatedBy = null } =
     return doc;
 }
 
-/** One-click offboarding: every integration explicitly off. */
+/**
+ * One-click offboarding: every integration explicitly off.
+ * @param {string} userId
+ */
 async function revokeAll(userId, { orgId = null, updatedBy = null } = {}) {
     if (!userId) throw new Error('userId required');
     const current = (await getUserScopeDoc(userId)) || { v: 1, integrations: {} };
     const before = sanitizeIntegrations(current.integrations);
+    /** @type {Record<string, { mode: string; }>} */
     const integrations = {};
     for (const { id } of NC_INTEGRATIONS) integrations[id] = { mode: 'off' };
     const doc = { v: 1, integrations, updatedAt: new Date().toISOString(), updatedBy: updatedBy || userId };
@@ -313,7 +348,10 @@ async function revokeAll(userId, { orgId = null, updatedBy = null } = {}) {
     return doc;
 }
 
-/** Back to allow-all: delete the doc (absent = default). */
+/**
+ * Back to allow-all: delete the doc (absent = default).
+ * @param {string} userId
+ */
 async function resetToDefault(userId, { orgId = null, updatedBy = null } = {}) {
     if (!userId) throw new Error('userId required');
     const current = (await getUserScopeDoc(userId)) || { v: 1, integrations: {} };

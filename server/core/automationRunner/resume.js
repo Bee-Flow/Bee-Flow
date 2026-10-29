@@ -35,6 +35,10 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
  */
 const PAUSED_STATUSES = new Set(['awaiting_form', 'awaiting_approval', 'awaiting_confirm']);
 
+/**
+ * @param {string | null} runId
+ * @param {string} fromStepId
+ */
 async function resumeFromStep(runId, fromStepId, { decision = null, userId = null, rootStepId = null, triggerHeaders = null, onRunCreated = null, onRunFinished = null } = {}) {
     const original = await automationStore.getRun(runId);
     if (!original) throw new Error(`Run ${runId} not found`);

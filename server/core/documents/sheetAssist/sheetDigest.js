@@ -50,7 +50,7 @@ function usedExtent(/** @type {Cells} */ cells) {
 
 const clip = (/** @type {string} */ s, /** @type {number} */ n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 /** A cell as the model reads it: newlines and pipes escaped, formulas with their result. */
-function cellText(/** @type {string} */ raw, /** @type {any} */ shown, /** @type {number} */ max) {
+function cellText(/** @type {string} */ raw, /** @type {Shown[string] | undefined} */ shown, /** @type {number} */ max) {
     if (raw === undefined || raw === '') return '';
     const flat = clip(String(raw).replace(/\r?\n/g, '\\n').replace(/\|/g, '\\|'), max);
     if (!String(raw).startsWith('=')) return flat;

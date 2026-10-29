@@ -190,12 +190,7 @@ function ActivityRow({ event: e, onDrill }: { event: RealtimeEvent; onDrill?: Dr
             <button
                 onClick={() => e.urlPath && onDrill?.('path', e.urlPath)}
                 title={e.urlPath ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: e.urlPath }) : undefined}
-                style={{
-                    flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none',
-                    padding: 0, cursor: e.urlPath ? 'pointer' : 'default',
-                    fontSize: 12, color: 'var(--text-primary, #fff)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}
+                className={`[flex:1] [min-width:0] [text-align:left] [background:transparent] [border:none] [padding:0] [font-size:12px] [color:var(--text-primary,_#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${e.urlPath ? '[cursor:pointer]' : '[cursor:default]'}`}
             >{e.urlPath || '/'}</button>
             <span className="[font-size:11px] [color:var(--text-muted,#888)] [flex-shrink:0]">
                 {[e.browser, e.os, e.country].filter(Boolean).join(' · ')}
