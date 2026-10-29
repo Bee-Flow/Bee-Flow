@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import useAutomationBuilderStream from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
@@ -12,7 +12,7 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  * a test catches them coming back.
  */
 
-const json = (body, { ok = true, status = 200 } = {}) => ({
+const json = (body: { active?: never[]; steps?: { stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: { b: number; }; }[]|{ stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: null; }[]|{ stepId: string; status: string; output: { v: number; }; }[]|{ stepId: string; status: string; output: null; }[]; run?: { id: string; status: string; }; error?: string; }, { ok = true, status = 200 } = {}) => ({
     ok,
     status,
     json: () => Promise.resolve(body),
@@ -26,13 +26,14 @@ const FINISHED_RUN_ROWS = [
     { stepId: 's3', status: 'success', output: { c: 3 } },
 ];
 
-const stepIds = (result) => result.current.state.steps.map(s => s.stepId).sort();
+type StepRow = ReturnType<typeof useAutomationBuilderStream>['state']['steps'][number];
+const stepIds = (result: { current: ReturnType<typeof useAutomationBuilderStream> }) => result.current.state.steps.map(s => s.stepId).sort();
 
 describe('useAutomationBuilderStream — run state', () => {
     beforeEach(() => {
-        authFetch.mockReset();
+        (authFetch as Mock).mockReset();
         // Default: the active-run discovery poll started by watchActiveRun.
-        authFetch.mockResolvedValue(json({ active: [] }));
+        (authFetch as Mock).mockResolvedValue(json({ active: [] }));
     });
 
     it('a partial "Execute step" poll merges — it does not wipe every other node', async () => {
@@ -43,8 +44,8 @@ describe('useAutomationBuilderStream — run state', () => {
         // only that step's row. Replacing state.steps with it erased s1 and s3
         // from the panel — and executeStep's own merge then merged into an
         // already-wiped map.
-        let resolveRun;
-        authFetch.mockImplementation((url) => {
+        let resolveRun: (value: unknown) => void;
+        (authFetch as Mock).mockImplementation((url: string|string[]) => {
             if (url.includes('/steps/s2/run')) return new Promise((r) => { resolveRun = r; });
             if (url.includes('/runs/run-2/steps')) {
                 return Promise.resolve(json({ steps: [{ stepId: 's2', status: 'running', output: null }] }));
@@ -52,7 +53,7 @@ describe('useAutomationBuilderStream — run state', () => {
             return Promise.resolve(json({ active: [] }));
         });
 
-        let exec;
+        let exec: Promise<unknown>;
         await act(async () => {
             exec = result.current.executeStep('s2');
             await Promise.resolve();
@@ -60,8 +61,8 @@ describe('useAutomationBuilderStream — run state', () => {
         await act(async () => { await result.current.pollRunProgress('run-2'); });
 
         expect(stepIds(result)).toEqual(['s1', 's2', 's3']);
-        expect(result.current.state.steps.find(s => s.stepId === 's1').output).toEqual({ a: 1 });
-        expect(result.current.state.steps.find(s => s.stepId === 's3').output).toEqual({ c: 3 });
+        expect((result.current.state.steps.find(s => s.stepId === 's1') as StepRow).output).toEqual({ a: 1 });
+        expect((result.current.state.steps.find(s => s.stepId === 's3') as StepRow).output).toEqual({ c: 3 });
 
         await act(async () => {
             resolveRun(json({
@@ -73,20 +74,20 @@ describe('useAutomationBuilderStream — run state', () => {
 
         // The executed step picked up its new output, the others kept theirs.
         expect(stepIds(result)).toEqual(['s1', 's2', 's3']);
-        expect(result.current.state.steps.find(s => s.stepId === 's2').output).toEqual({ b: 22 });
-        expect(result.current.state.steps.find(s => s.stepId === 's1').output).toEqual({ a: 1 });
+        expect((result.current.state.steps.find(s => s.stepId === 's2') as StepRow).output).toEqual({ b: 22 });
+        expect((result.current.state.steps.find(s => s.stepId === 's1') as StepRow).output).toEqual({ a: 1 });
     });
 
     it('a fresh FULL run still clears the previous run rows, then merges within that run', async () => {
         const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
         act(() => { result.current.setRunResult({ id: 'run-1', status: 'success' }, FINISHED_RUN_ROWS); });
 
-        authFetch.mockResolvedValueOnce(json({ steps: [{ stepId: 's1', status: 'running', output: null }] }));
+        (authFetch as Mock).mockResolvedValueOnce(json({ steps: [{ stepId: 's1', status: 'running', output: null }] }));
         await act(async () => { await result.current.pollRunProgress('run-9'); });
         // New run id + no partial execute in flight → start from a clean slate.
         expect(stepIds(result)).toEqual(['s1']);
 
-        authFetch.mockResolvedValueOnce(json({ steps: [{ stepId: 's2', status: 'running', output: null }] }));
+        (authFetch as Mock).mockResolvedValueOnce(json({ steps: [{ stepId: 's2', status: 'running', output: null }] }));
         await act(async () => { await result.current.pollRunProgress('run-9'); });
         // Same run → merge, so the row polled a moment ago survives.
         expect(stepIds(result)).toEqual(['s1', 's2']);
@@ -95,14 +96,14 @@ describe('useAutomationBuilderStream — run state', () => {
     it('ignores a poll response that lands after a newer one', async () => {
         const { result } = renderHook(() => useAutomationBuilderStream({ automationId: 'a1' }));
 
-        let resolveSlow;
-        authFetch
+        let resolveSlow: (value: unknown) => void;
+        (authFetch as Mock)
             .mockImplementationOnce(() => new Promise((r) => { resolveSlow = r; }))
             .mockImplementationOnce(() => Promise.resolve(json({
                 steps: [{ stepId: 's1', status: 'success', output: { v: 2 } }],
             })));
 
-        let slow;
+        let slow: Promise<unknown>;
         await act(async () => {
             slow = result.current.pollRunProgress('run-3');   // issued first, answers last
             await result.current.pollRunProgress('run-3');    // issued second, answers first
@@ -126,20 +127,20 @@ describe('useAutomationBuilderStream — run state', () => {
             ]);
         });
 
-        authFetch.mockImplementation((url) => (url.includes('/steps/s2/run')
+        (authFetch as Mock).mockImplementation((url: string|string[]) => (url.includes('/steps/s2/run')
             ? Promise.resolve(json({ error: 'Gmail auth expired' }, { ok: false, status: 400 }))
             : Promise.resolve(json({ active: [] }))));
 
         await act(async () => { await result.current.executeStep('s2'); });
 
         const s2 = result.current.state.steps.find(s => s.stepId === 's2');
-        expect(s2.status).toBe('error');
-        expect(s2.output).toBeNull();
-        expect(s2.error).toBe('Gmail auth expired');
+        expect((s2 as NonNullable<typeof s2>).status).toBe('error');
+        expect((s2 as NonNullable<typeof s2>).output).toBeNull();
+        expect((s2 as NonNullable<typeof s2>).error).toBe('Gmail auth expired');
         // The failed step's flowlet sub-rows belonged to the superseded attempt.
         expect(result.current.state.steps.some(s => s.stepId === 's2/inner')).toBe(false);
         // Untouched nodes keep their output.
-        expect(result.current.state.steps.find(s => s.stepId === 's1').output).toEqual({ a: 1 });
+        expect((result.current.state.steps.find(s => s.stepId === 's1') as StepRow).output).toEqual({ a: 1 });
         expect(result.current.state.error).toBe('Gmail auth expired');
     });
 
@@ -151,7 +152,7 @@ describe('useAutomationBuilderStream — run state', () => {
 
         // 'running'/'queued' is what keeps liveRunInFlight true and every ▶
         // Execute button disabled.
-        expect(result.current.state.dryRun.status).toBe('error');
+        expect((result.current.state.dryRun as NonNullable<typeof result.current.state.dryRun>).status).toBe('error');
         expect(result.current.state.steps).toHaveLength(3);
     });
 
@@ -161,6 +162,6 @@ describe('useAutomationBuilderStream — run state', () => {
 
         act(() => { result.current.settleRun(); });
 
-        expect(result.current.state.dryRun.status).toBe('success');
+        expect((result.current.state.dryRun as NonNullable<typeof result.current.state.dryRun>).status).toBe('success');
     });
 });

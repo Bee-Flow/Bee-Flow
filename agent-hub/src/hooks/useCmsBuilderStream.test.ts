@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
@@ -8,7 +8,7 @@ import useCmsBuilderStream from './useCmsBuilderStream';
 
 const SITE_ID = 'pj_abc1';
 
-function sseResponse(events) {
+function sseResponse(events: [string, object][]) {
     const text = events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join('');
     return {
         ok: true,
@@ -30,7 +30,7 @@ beforeEach(() => {
 
 describe('useCmsBuilderStream', () => {
     it('rehydrates the site-scoped session snapshot on mount', async () => {
-        authFetch.mockResolvedValueOnce({
+        (authFetch as Mock).mockResolvedValueOnce({
             ok: true,
             status: 200,
             json: async () => ({
@@ -51,8 +51,8 @@ describe('useCmsBuilderStream', () => {
         const onDraft = vi.fn();
         const onToolCall = vi.fn();
         const onDone = vi.fn();
-        authFetch.mockResolvedValueOnce(noSession); // rehydrate
-        authFetch.mockResolvedValueOnce(sseResponse([
+        (authFetch as Mock).mockResolvedValueOnce(noSession); // rehydrate
+        (authFetch as Mock).mockResolvedValueOnce(sseResponse([
             ['builder_session', { sessionId: 'cbs_2', siteId: SITE_ID }],
             ['model_selected', { modelId: 'm', tier: 'thinking' }],
             ['message', { content: 'Creating ' }],
@@ -69,37 +69,37 @@ describe('useCmsBuilderStream', () => {
             await result.current.send('Add a pricing page', { modelTier: 'thinking', context: { activePageId: null } });
         });
 
-        const [, opts] = authFetch.mock.calls.at(-1);
+        const [, opts] = (authFetch as Mock).mock.calls.at(-1) as [unknown, { body: string }];
         const body = JSON.parse(opts.body);
         expect(body).toMatchObject({ message: 'Add a pricing page', siteId: SITE_ID, modelTier: 'thinking' });
 
         const assistant = result.current.messages.find(m => m.role === 'assistant');
-        expect(assistant.content).toBe('Creating the page…');
-        expect(assistant.autoSelectedTier).toBe('thinking');
+        expect((assistant as NonNullable<typeof assistant>).content).toBe('Creating the page…');
+        expect((assistant as NonNullable<typeof assistant>).autoSelectedTier).toBe('thinking');
         expect(result.current.messages.some(m => m.kind === 'tool' && m.label === 'Created page')).toBe(true);
         expect(onToolCall).toHaveBeenCalledTimes(1);
         expect(onDraft).toHaveBeenCalledTimes(2);
         expect(onDraft.mock.calls[1][0]).toMatchObject({ kind: 'page', pageId: 'pg_9' });
-        expect(result.current.lastValidation.errors).toHaveLength(1);
+        expect((result.current.lastValidation as NonNullable<typeof result.current.lastValidation>).errors).toHaveLength(1);
         expect(onDone).toHaveBeenCalledWith({ siteId: SITE_ID, createdPageIds: ['pg_9'], touchedPageIds: ['pg_9'] });
         expect(result.current.running).toBe(false);
     });
 
     it('maps gateway drops to the friendly saved-progress message', async () => {
         const onError = vi.fn();
-        authFetch.mockResolvedValueOnce(noSession);
-        authFetch.mockResolvedValueOnce({ ok: false, status: 504, json: async () => ({}) });
+        (authFetch as Mock).mockResolvedValueOnce(noSession);
+        (authFetch as Mock).mockResolvedValueOnce({ ok: false, status: 504, json: async () => ({}) });
         const { result } = renderHook(() => useCmsBuilderStream({ siteId: SITE_ID, onError }));
         await act(async () => { await result.current.send('hi'); });
         const err = result.current.messages.find(m => m.kind === 'error');
-        expect(err.message).toMatch(/pages are already saved/i);
+        expect((err as NonNullable<typeof err>).message).toMatch(/pages are already saved/i);
         expect(onError).toHaveBeenCalled();
     });
 
     it('surfaces in-stream taxonomy errors with their code', async () => {
         const onError = vi.fn();
-        authFetch.mockResolvedValueOnce(noSession);
-        authFetch.mockResolvedValueOnce(sseResponse([
+        (authFetch as Mock).mockResolvedValueOnce(noSession);
+        (authFetch as Mock).mockResolvedValueOnce(sseResponse([
             ['error', { message: 'limit reached', code: 'subscription_limit' }],
         ]));
         const { result } = renderHook(() => useCmsBuilderStream({ siteId: SITE_ID, onError }));

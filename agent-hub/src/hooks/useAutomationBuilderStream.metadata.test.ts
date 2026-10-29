@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import useAutomationBuilderStream from './useAutomationBuilderStream';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import useAutomationBuilderStream, { AutomationBuilderSendOptions } from './useAutomationBuilderStream';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -17,25 +17,26 @@ vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
  */
 
 const enc = new TextEncoder();
-const sse = (event, data) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+const sse = (event: string, data: object) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 function openBody() {
-    let controller;
+    let controller: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream({ start(c) { controller = c; } });
-    return { stream, push: (c) => controller.enqueue(c), close: () => controller.close() };
+    return { stream, push: (c: Uint8Array) => controller.enqueue(c), close: () => controller.close() };
 }
 
 describe('useAutomationBuilderStream — metadata', () => {
-    let lastBody;
+    type SentBody = { seedMetadata?: unknown };
+    let lastBody: SentBody | null;
     beforeEach(() => {
         lastBody = null;
-        authFetch.mockReset();
+        (authFetch as Mock).mockReset();
     });
 
-    async function start(sendArgs) {
+    async function start(sendArgs: AutomationBuilderSendOptions) {
         const body = openBody();
-        authFetch.mockImplementation(async (url, opts) => {
+        (authFetch as Mock).mockImplementation(async (url, opts) => {
             lastBody = JSON.parse(opts.body);
             return { ok: true, status: 200, body: body.stream };
         });
@@ -68,10 +69,10 @@ describe('useAutomationBuilderStream — metadata', () => {
 
     it('sends seedMetadata in the body only when the caller gave one', async () => {
         await start({ seedMetadata: { title: 'Facturen inlezen' } });
-        expect(lastBody.seedMetadata).toEqual({ title: 'Facturen inlezen' });
+        expect((lastBody as SentBody).seedMetadata).toEqual({ title: 'Facturen inlezen' });
         await start({});
-        expect(lastBody.seedMetadata).toBeUndefined();
+        expect((lastBody as SentBody).seedMetadata).toBeUndefined();
         await start({ seedMetadata: null });
-        expect(lastBody.seedMetadata).toBeUndefined();
+        expect((lastBody as SentBody).seedMetadata).toBeUndefined();
     });
 });

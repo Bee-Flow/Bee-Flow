@@ -1,45 +1,45 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import useDlpDecision, { DLP_TOUCH_INTERVAL_MS } from './useDlpDecision';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 beforeEach(() => {
-    authFetch.mockReset();
-    authFetch.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+    (authFetch as Mock).mockReset();
+    (authFetch as Mock).mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
 });
 
 afterEach(() => {
     vi.useRealTimers();
 });
 
-function dispatch(type, detail) {
+function dispatch(type: string, detail: { decisionId?: string; reviewText?: string; findings?: never[]; filename?: string; }) {
     window.dispatchEvent(new CustomEvent(type, { detail }));
 }
 
 /** authFetch calls to the decision endpoint itself (not the touch heartbeat). */
 function decisionCalls() {
-    return authFetch.mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision'));
+    return (authFetch as Mock).mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision'));
 }
 
 function touchCalls() {
-    return authFetch.mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision/touch'));
+    return (authFetch as Mock).mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision/touch'));
 }
 
 describe('useDlpDecision — pending shape', () => {
     it('a dlp_preview event tags pending as kind:"chat_text"', () => {
         const { result } = renderHook(() => useDlpDecision());
         act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd1', reviewText: 'hello Alice', findings: [] }));
-        expect(result.current.pending.kind).toBe('chat_text');
-        expect(result.current.pending.decisionId).toBe('d1');
+        expect((result.current.pending as NonNullable<typeof result.current.pending>).kind).toBe('chat_text');
+        expect((result.current.pending as NonNullable<typeof result.current.pending>).decisionId).toBe('d1');
     });
 
     it('a dlp_attachment_preview event tags pending as kind:"attachment" and carries the filename', () => {
         const { result } = renderHook(() => useDlpDecision());
         act(() => dispatch('beeflow:dlp_attachment_preview', { decisionId: 'd2', filename: 'report.pdf', reviewText: 'contents', findings: [] }));
-        expect(result.current.pending.kind).toBe('attachment');
-        expect(result.current.pending.filename).toBe('report.pdf');
+        expect((result.current.pending as NonNullable<typeof result.current.pending>).kind).toBe('attachment');
+        expect((result.current.pending as NonNullable<typeof result.current.pending>).filename).toBe('report.pdf');
     });
 
     it('dlp_resolved / dlp_blocked clear pending regardless of which kind was showing', () => {
@@ -80,7 +80,7 @@ describe('useDlpDecision — submit', () => {
     });
 
     it('a failed POST surfaces an error and keeps pending open (no silent send)', async () => {
-        authFetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'Decision not found' }) });
+        (authFetch as Mock).mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'Decision not found' }) });
         const { result } = renderHook(() => useDlpDecision());
         act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd6', reviewText: 'x', findings: [] }));
 
@@ -106,7 +106,7 @@ describe('useDlpDecision — keep-alive heartbeat', () => {
     });
 
     it('a heartbeat failure leaves the review alone — submit still reports its own error', async () => {
-        authFetch.mockImplementation((url) => (
+        (authFetch as Mock).mockImplementation((url: string) => (
             url.endsWith('/touch')
                 ? Promise.reject(new Error('offline'))
                 : Promise.resolve({ ok: true, json: async () => ({ ok: true }) })

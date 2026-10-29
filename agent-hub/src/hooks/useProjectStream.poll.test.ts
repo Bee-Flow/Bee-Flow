@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
@@ -11,7 +11,7 @@ afterEach(() => { vi.useRealTimers(); });
 describe('useProjectStream: degraded polling', () => {
     it('tells the caller after each successful poll, so it can re-read what the activity feed does not log', async () => {
         vi.useFakeTimers();
-        authFetch.mockImplementation(async (url) => {
+        (authFetch as Mock).mockImplementation(async (url) => {
             if (url.includes('/activity')) return { ok: true, status: 200, json: async () => ({ items: [] }) };
             throw new Error('no sse here');
         });
