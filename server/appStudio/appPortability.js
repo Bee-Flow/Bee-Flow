@@ -259,7 +259,7 @@ function sanitizeAppImport(envelope) {
     ));
 
     const { captureTemplate } = require('./templateCapture');
-    const gate = captureTemplate(/** @type {any} */ ({
+    const gate = captureTemplate({
         definition: incoming.definition,
         dataModel: isObject(incoming.dataModel) ? incoming.dataModel : null,
         // NO SEED. The rows are content and are judged below, against this
@@ -270,7 +270,7 @@ function sanitizeAppImport(envelope) {
         seedPeople: isObject(incoming.seedPeople) ? incoming.seedPeople : null,
         datasets: Array.isArray(incoming.datasets) ? incoming.datasets : [],
         meta: { title, description: appMeta.description, icon: appMeta.icon, version: 1 },
-    }));
+    });
     if (gate.ok === false) return refuse(...gate.errors);
 
     const template = gate.template;
