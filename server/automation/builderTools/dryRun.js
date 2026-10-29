@@ -45,6 +45,7 @@ async function applyRequestDryRun(draftWrap, args, deps) {
     // one of the additional triggers. Resolved against the DRAFT (the
     // persisted definition is the same object) so a typo is a clear
     // error rather than a run that silently entered the primary.
+    /** @type {string | undefined | null} */
     let rootStepId = null;
     if (typeof args?.triggerStepId === 'string' && args.triggerStepId) {
         const known = [draft.trigger, ...(Array.isArray(draft.triggers) ? draft.triggers : [])].filter(t => t && t.id);

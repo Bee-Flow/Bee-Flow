@@ -293,7 +293,10 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
     });
 }
 
-/** The final approver's "it is your turn" bell — person, or group capped. */
+/**
+ * The final approver's "it is your turn" bell — person, or group capped.
+ * @param {Approval} approval
+ */
 async function notifyFinalApprover(approval) {
     const recipients = new Set();
     if (approval.finalApproverUserId) recipients.add(approval.finalApproverUserId);

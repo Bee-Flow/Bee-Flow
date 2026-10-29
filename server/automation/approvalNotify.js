@@ -1,3 +1,4 @@
+/** @typedef {import('./approvalDelivery').ApprovalAutomation} ApprovalAutomation */
 /**
  * approvalNotify — one place every "an approval needs you" announcement goes.
  *
@@ -46,6 +47,7 @@ const CARD_CHANNELS = ['talk', 'nc_talk'];
  * automation to ask (an App Studio request_approval has no automation behind it).
  * The default is `channels: ['bell']`, so an app-sourced row behaves exactly
  * as it does today.
+ * @param {ApprovalAutomation | null} automation
  */
 function approvalPolicy(automation) {
     if (!automation) {

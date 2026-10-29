@@ -1,3 +1,5 @@
+/** @typedef {import('../builderTools/draftGraph').GraphStep} GraphStep */
+/** @typedef {import('../builderTools/draftGraph').DraftGraph} DraftGraph */
 // @typecheck
 /**
  * Order the app catalogue by relevance to what the user asked for.
@@ -41,6 +43,7 @@ const ACTIONS_PER_DOC = 12;
  * A one-line description of what an app can do, for the cross-encoder.
  * Action names carry the meaning ("nextcloud_notifications_send" ->
  * "nextcloud notifications send"), so underscores become spaces.
+ * @param {CatalogAppRow} app
  */
 function appDocument(app) {
     const actions = (app.actions || [])
@@ -51,9 +54,15 @@ function appDocument(app) {
     return `${app.label || app.id}. ${actions}`;
 }
 
-/** Apps the draft already commits to. They must never drift down the list. */
+/**
+ * Apps the draft already commits to. They must never drift down the list.
+ * @param {DraftGraph} draft
+ */
 function pinnedAppIds(draft) {
     const ids = new Set();
+    /**
+     * @param {GraphStep[] | undefined} steps
+     */
     const walk = (steps) => {
         for (const s of (steps || [])) {
             if (s && typeof s.tool === 'string') {
@@ -115,6 +124,7 @@ async function rankAppsForMessage(catalog, userMessage, draft) {
                 // it omitted keeps its registry position at the back rather than
                 // disappearing.
                 const seen = new Set();
+                /** @type {CatalogAppRow[]} */
                 const head = [];
                 for (const r of ranked) {
                     if (rest[r.index] && !seen.has(r.index)) { head.push(rest[r.index]); seen.add(r.index); }
