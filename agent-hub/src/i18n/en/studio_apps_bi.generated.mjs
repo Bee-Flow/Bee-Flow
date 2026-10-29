@@ -44,7 +44,7 @@ export default {
     "studio_apps_bi.connectors.add_it": "Add it",
     "studio_apps_bi.connectors.add_param": "Add param",
     "studio_apps_bi.connectors.advanced": "Advanced settings",
-    "studio_apps_bi.connectors.auth_header": "Header",
+    "studio_apps_bi.connectors.auth_header": "Auth header",
     "studio_apps_bi.connectors.auth_none": "None",
     "studio_apps_bi.connectors.auth_type": "Auth type",
     "studio_apps_bi.connectors.automation_id": "Automation id",
@@ -430,4 +430,5 @@ export default {
     "studio_apps_bi.sync.when_rows_come_back": "When rows come back",
     "studio_apps_bi.sync.your_timezone": "your timezone",
     "studio_apps_bi.connectors.auth_bearer": "Bearer",
+    "studio_apps_bi.connectors.auth_type_header": "Header",
 };
