@@ -112,6 +112,7 @@ function realGeminiAdapter(script = [{ text: 'ok' }], { vertex = false } = {}) {
 /**
  * What a logged usage entry must carry after ONE call with CLAUDE_RAW_USAGE.
  * @param {{ prompt_tokens: unknown; completion_tokens: unknown; cached_tokens: unknown; cache_creation_tokens: unknown; cache_creation_5m_tokens: unknown; cache_creation_1h_tokens: unknown; cache_ttl: unknown; service_tier: unknown; }} entry
+ * @param {number} [times]
  */
 function assertClaudeEntry(entry, times = 1) {
     assert.strictEqual(entry.prompt_tokens, 120 * times, 'input_tokens stays the uncached remainder');
@@ -127,6 +128,7 @@ function assertClaudeEntry(entry, times = 1) {
 /**
  * What a logged usage entry must carry after ONE call with GEMINI_RAW_USAGE.
  * @param {{ prompt_tokens: unknown; completion_tokens: unknown; cached_tokens: unknown; reasoning_tokens: unknown; }} entry
+ * @param {number} [times]
  */
 function assertGeminiEntry(entry, times = 1) {
     assert.strictEqual(entry.prompt_tokens, 1000 * times);

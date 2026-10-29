@@ -147,6 +147,8 @@ function isDutchHoliday(year, month, day, opts = {}) {
 /**
  * The calendar date of an instant in a time zone, as 'YYYY-MM-DD'. Throws a
  * RangeError for an unknown zone, exactly like the scheduler would.
+ * @param {string | number} ts
+ * @param {string} [tz]
  */
 function localDate(ts, tz = 'Europe/Amsterdam') {
     const p = cron.partsInTz(typeof ts === 'number' ? ts : new Date(ts).getTime(), tz);
