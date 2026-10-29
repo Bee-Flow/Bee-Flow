@@ -498,10 +498,10 @@
       "count": 4
     },
     "max-depth": {
-      "count": 13
+      "count": 7
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     },
     "max-params": {
       "count": 1
@@ -614,12 +614,6 @@
   "appStudio/mailboxConnector.js": {
     "complexity": {
       "count": 3
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "appStudio/mailboxIdentity.js": {

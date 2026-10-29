@@ -18,19 +18,14 @@ const {
     FORMULA_SCOPE_ROOTS,
     EVENT_NAMES, COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
-const { pickClosestId } = require('../../automation/validate/helpers');
-const { isObject } = require('./shared');
+const { isObject, pickClosestId } = require('./shared');
 const { validateFormula } = require('./formulas');
 const { checkTableRef, checkTableSource } = require('./refs');
 const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
+const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-// How many children a non-scrolling pane may stack before the ones at the
-// bottom are, in practice, off screen. Six is roughly a header + a control row +
-// content + a footer; past that something has to scroll or fill.
-const PANE_CLIP_CHILDREN = 6;
 
 // ---------------------------------------------------------------------------
 // Per-prop value checks driven by COMPONENT_SPECS
@@ -431,7 +426,7 @@ const ROOT_PARENT = /** @type {{label: string, heightDefinite: boolean, heightRo
  * @param {number} depth
  */
 function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
-    const { pushE, pushW, actionIds } = ctx;
+    const { pushE, pushW } = ctx;
 
     if (!isObject(node)) {
         pushE({ code: 'node.not_object', severity: 'error', path, message: 'Each component must be an object.', hint: 'Remove the malformed entry.' });
@@ -508,37 +503,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     if (node.type === 'modal' && typeof node.id === 'string') ctx.modalIds.add(node.id);
     if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
 
-    // events — only on types whose spec allows them, and must resolve
-    for (const ev of EVENT_NAMES) {
-        const ref = node[ev];
-        if (ref === undefined || ref === null) continue;
-        if (!Array.isArray(spec.events) || !spec.events.includes(ev)) {
-            pushE({ code: 'event.not_supported', severity: 'error', path: `${path}.${ev}`, message: `${node.type} does not support ${ev}.`, hint: spec.events && spec.events.length ? `${node.type} supports: ${spec.events.join(', ')}.` : `${node.type} carries no events; wire the action to a button or form instead.` });
-        }
-        if (typeof ref !== 'string' || !actionIds.has(ref)) {
-            const suggestion = pickClosestId(ref, Array.from(actionIds));
-            pushE({ code: 'event.action_unresolved', severity: 'error', path: `${path}.${ev}`, message: `${ev} references unknown action ${JSON.stringify(ref)}.`, hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first.' });
-        }
-    }
-
-    // Per-row actions (data_grid rowActions / repeater itemActions) are UI
-    // wiring exactly like events — the runtime runs their actionId on click and
-    // validate clean and render a button that silently does nothing (and feed
-    // validate clean and render a button that silently did nothing (and fed
-    // garbage into the reached-set). Empty string stays legal: it is the
-    // inspector's deliberate "not wired yet" state, guarded at runtime.
-    for (const listKey of ['rowActions', 'itemActions', 'bulkActions', 'toolbarActions']) {
-        const entries = props[listKey];
-        if (!Array.isArray(entries)) continue;
-        entries.forEach((entry, i) => {
-            const ref = isObject(entry) ? entry.actionId : undefined;
-            if (ref === undefined || ref === null || ref === '') return;
-            if (typeof ref !== 'string' || !actionIds.has(ref)) {
-                const suggestion = pickClosestId(ref, Array.from(actionIds));
-                pushE({ code: 'event.action_unresolved', severity: 'error', path: `${path}.props.${listKey}[${i}].actionId`, message: `${listKey} references unknown action ${JSON.stringify(ref)}.`, hint: suggestion ? `Did you mean "${suggestion}"?` : 'Add the action to definition.actions first.' });
-            }
-        });
-    }
+    checkActionWiring(node, path, props, spec, ctx);
 
     // form / input structure
     const isForm = node.type === 'form';
@@ -563,69 +528,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
         }
     }
 
-    // A pane that clips. `scroll:'none'` means "everything fits"; a stack of a
-    // dozen children in a fixed-height pane does not, and the pane's own
-    // overflow:hidden silently eats the bottom of it. The support desk shipped
-    // with eleven children under scroll:'none' and the reply composer was simply
-    // not on screen — nothing in the definition said so.
-    if (node.type === 'pane' && Array.isArray(node.children)) {
-        const scroll = props.scroll ?? 'none';
-        const fills = node.children.filter((c) => isObject(c) && c.style && c.style.height === 'fill').length;
-        if (scroll === 'none' && node.children.length > PANE_CLIP_CHILDREN && fills === 0) {
-            pushW({
-                code: 'component.pane_clips', severity: 'warning', path,
-                message: `This pane stacks ${node.children.length} components with scroll "none" and nothing set to fill — the ones at the bottom are cut off.`,
-                hint: 'Set scroll to "auto", give one child height "fill", or split the pane.',
-            });
-        }
-    }
-
-    // A control that demonstrably does nothing. A button with no onClick and no
-    // submit role renders, looks primary, and is inert — the single loudest
-    // signal that a screen was generated rather than designed.
-    //
-    // role "submit" only excuses a button that is actually INSIDE a form: the
-    // runtime gives it type="submit" and no onClick, so one placed in a page
-    // header (next to the form, not in it) has no form to submit and is exactly
-    // as dead as the case above — and is flagged the same way.
-    //
-    // This is the one app-validator record that reaches the shared "needs
-    // attention" list (core/findings/finding.js), so it carries the two Finding
-    // fields on top of the legacy ones: `kind` drives the tinted glyph, and
-    // `targetRef` is where "Show me" goes. The validator only ever sees a
-    // definition — the app id is whatever the caller threaded in as
-    // ctx.target ({ id, title }), else null.
-    if (node.type === 'button' && !node.onClick && !(props.role === 'submit' && formId)) {
-        pushW({
-            code: 'component.control_inert', severity: 'warning', path,
-            kind: 'app',
-            targetRef: {
-                kind: 'app',
-                id: ctx.target?.id ?? null,
-                ...(ctx.target?.title ? { title: ctx.target.title } : {}),
-                path,
-                nodeId: typeof node.id === 'string' ? node.id : null,
-            },
-            message: props.role === 'submit'
-                ? 'This submit button sits outside a form — there is nothing for it to submit.'
-                : 'This button is wired to nothing — clicking it does nothing at all.',
-            hint: props.role === 'submit'
-                ? 'Move it inside the form component, or set onClick to an action.'
-                : 'Set onClick to an action, or give it role "submit" inside a form.',
-        });
-    }
-
-    // A form whose built-in submit button is shown but wired to nothing. The
-    // dangling case cannot ship (event.action_unresolved is an error), so this
-    // is the one that reaches a viewer: they fill the fields, click Submit and
-    // nothing happens, with nothing on screen to explain it.
-    if (isForm && !node.onSubmit && props.showSubmit !== false) {
-        pushW({
-            code: 'form.no_submit_action', severity: 'warning', path,
-            message: 'This form shows a Submit button but has no onSubmit action — clicking it does nothing.',
-            hint: 'Wire onSubmit to an action, or set showSubmit to false if the fields save themselves.',
-        });
-    }
+    checkNodeAdvisories(node, path, props, formId, ctx);
 
     // children — containers only
     if (node.children !== undefined && node.children !== null) {
