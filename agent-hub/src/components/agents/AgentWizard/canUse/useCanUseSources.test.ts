@@ -10,8 +10,9 @@
 import { waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const calls = [];
-let handler = async () => ({ ok: true, json: async () => ({}) });
+const calls: string[] = [];
+type Res = { ok: boolean; status?: number; json: () => Promise<unknown> };
+let handler: (url: string, opts?: object) => Promise<Res> = async () => ({ ok: true, json: async () => ({}) });
 
 vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
@@ -28,7 +29,7 @@ import useCanUseSources from './useCanUseSources';
 const TABLES = { datatables: [{ id: 't1', name: 'Quotes' }] };
 const SUMMARY = { summary: { s1: { agents: 3 } } };
 
-const okHandler = async (url) => {
+const okHandler = async (url: string) => {
     if (url.includes('/api/datatables')) return { ok: true, json: async () => TABLES };
     if (url.includes('/api/skills/usage-summary')) return { ok: true, json: async () => SUMMARY };
     return { ok: true, json: async () => ({}) };
@@ -74,7 +75,7 @@ describe('useCanUseSources — wél grants', () => {
     });
 
     it('landt op READ.ERROR als de tabellenroute weigert (403 zonder automations-module)', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/api/datatables')) return { ok: false, status: 403, json: async () => ({}) };
             return okHandler(url);
         };
@@ -86,7 +87,7 @@ describe('useCanUseSources — wél grants', () => {
     });
 
     it('landt op READ.ERROR als het antwoord geen lijst draagt', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/api/datatables')) return { ok: true, json: async () => ({ datatables: 'nope' }) };
             return okHandler(url);
         };
@@ -95,7 +96,7 @@ describe('useCanUseSources — wél grants', () => {
     });
 
     it('landt op READ.ERROR als de gebruikstelling weigert', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('usage-summary')) throw new Error('offline');
             return okHandler(url);
         };
@@ -109,7 +110,7 @@ describe('useCanUseSources — wél grants', () => {
         // Then the count must be read again, otherwise the card subtracts one from a number that did not include this agent.
         const { result, rerender } = renderHook(
             ({ saved }) => useCanUseSources({ toolsConfig: null, attachedSkillIds: ['s1'], savedSkillIds: saved }),
-            { initialProps: { saved: [] } },
+            { initialProps: { saved: [] as string[] } },
         );
         await waitFor(() => expect(result.current.usageState).toBe(READ.OK));
         const before = calls.filter(u => u.includes('usage-summary')).length;
@@ -119,7 +120,7 @@ describe('useCanUseSources — wél grants', () => {
     });
 
     it('probeert opnieuw op verzoek', async () => {
-        handler = async (url) => {
+        handler = async (url: string) => {
             if (url.includes('/api/datatables')) return { ok: false, status: 500, json: async () => ({}) };
             return okHandler(url);
         };

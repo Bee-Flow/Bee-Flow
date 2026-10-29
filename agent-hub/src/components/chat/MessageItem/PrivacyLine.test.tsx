@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { describe, it, expect } from 'vitest';
 
 import { interpolate } from '@/hooks/useTranslation';
@@ -15,7 +15,8 @@ import PrivacyLine from './PrivacyLine';
  * `t` here is the real resolution form (the key is still missing from the dictionary, so the English fallback,
  * WITH interpolation), so that the test sees what a user sees today.
  */
-const t = (_key, fallback, params) => interpolate(fallback, params);
+type T = NonNullable<ComponentProps<typeof PrivacyLine>['t']>;
+const t: T = (_key, fallback, params) => interpolate(fallback, params);
 
 const TEXT = 'Bel Jan de Vries even op j.devries@vandijk.nl over de offerte.';
 const MAP = { '[email_1]': 'j.devries@vandijk.nl' };
@@ -141,7 +142,7 @@ describe('PrivacyLine — wat de zin niet mag claimen', () => {
     it('laat de plaatsvervanger nooit vallen, ook niet in een vertaling zonder {tokens}', () => {
         // The safety net that the code promises. A translator who removes the "odd brace" may not reduce the demonstration
         // to the counter form that this batch precisely removed. Then the chips end up at the back of the sentence.
-        const noPlaceholder = (_key, _fallback, params) =>
+        const noPlaceholder: T = (_key, _fallback, params) =>
             interpolate('Er zijn {count} gegevens vervangen voordat dit naar de AI ging.', params);
         render(<PrivacyLine count={1} messageText={TEXT} tokenMap={MAP} t={noPlaceholder} />);
 

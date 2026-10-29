@@ -1,6 +1,6 @@
-import { render as rtlRender, screen, waitFor } from '@testing-library/react';
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render as rtlRender, screen, waitFor, type RenderOptions } from '@testing-library/react';
+import React, { type ReactElement } from 'react';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 import ConversationHeader from './ConversationHeader';
 import { invalidateShieldStatus } from '../../hooks/useShieldStatus';
@@ -8,7 +8,7 @@ import { queryWrapper } from '../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.
-const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
+const render = (ui: ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
 
 /**
  * The conversation header (C1) — what it is allowed to put above a chat.
@@ -25,7 +25,8 @@ const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...opti
  */
 
 /** What GET /api/privacy/shield-status answers, per test. */
-let shieldBody = null;
+type ShieldBody = { enabled: boolean; source: string; action: string | null; failMode: string; guardReachable: boolean; euMode: boolean; coworkEnabled: boolean; };
+let shieldBody: ShieldBody | null = null;
 
 beforeEach(() => {
     vi.restoreAllMocks();
@@ -34,7 +35,7 @@ beforeEach(() => {
         enabled: true, source: 'org', action: 'redact', failMode: 'fail_closed',
         guardReachable: true, euMode: false, coworkEnabled: false,
     };
-    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+    (vi.spyOn(global, 'fetch') as Mock).mockImplementation(async (url) => {
         const href = String(url);
         if (href.includes('/privacy/shield-status')) {
             return { ok: true, status: 200, json: async () => shieldBody, text: async () => '' };
@@ -44,7 +45,7 @@ beforeEach(() => {
 });
 
 const USER = { id: 1, name: 'Tester' };
-const KB = (id, name) => ({ id, name, usage_contexts: ['direct_chat'] });
+const KB = (id: string, name: string) => ({ id, name, usage_contexts: ['direct_chat'] });
 
 /**
  * Mount as a call site that KNOWS its send route is shielded. `shieldApplies`
@@ -76,7 +77,7 @@ describe('ConversationHeader — the shield pill is a runtime claim', () => {
     });
 
     it('says something else, in another colour, when nothing is scanning', async () => {
-        shieldBody = { ...shieldBody, guardReachable: false };
+        shieldBody = { ...(shieldBody as ShieldBody), guardReachable: false };
         mount({ title: 'Chat' });
         const pill = await screen.findByTestId('header-shield-pill');
         // The configuration is provable and the protection is not: it may say
@@ -108,7 +109,7 @@ describe('ConversationHeader — the shield pill is a runtime claim', () => {
     });
 
     it('shows no pill at all when the shield is switched off', async () => {
-        shieldBody = { ...shieldBody, enabled: false, action: null };
+        shieldBody = { ...(shieldBody as ShieldBody), enabled: false, action: null };
         mount({ title: 'Chat' });
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         await waitFor(() => expect(screen.queryByTestId('header-shield-pill')).toBeNull());

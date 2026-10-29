@@ -12,7 +12,8 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-let handler = async () => ({ ok: true, json: async () => ({}) });
+type Res = { ok: boolean; json: () => Promise<unknown> };
+let handler: (url: string, opts?: object) => Promise<Res> = async () => ({ ok: true, json: async () => ({}) });
 
 vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
@@ -39,7 +40,7 @@ const mount = () => render(
 );
 const probe = () => screen.getByTestId('probe');
 
-const withAutomations = (res) => async (url) => {
+const withAutomations = (res: Res) => async (url: string) => {
     if (url.includes('/api/automation')) return res;
     return { ok: true, json: async () => ({}) };
 };
