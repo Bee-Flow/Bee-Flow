@@ -85,8 +85,8 @@ function RestAuthFields({ connector, setOpt, disabled }: { connector: Connector;
                     aria-label={t('studio_apps_bi.connectors.auth_type', 'Auth type')}
                 >
                     <option value="">{t('studio_apps_bi.connectors.auth_none', 'None')}</option>
-                    <option value="bearer">Bearer</option>
-                    <option value="header">Header</option>
+                    <option value="bearer">{t('studio_apps_bi.connectors.auth_bearer', 'Bearer')}</option>
+                    <option value="header">{t('studio_apps_bi.connectors.auth_header', 'Header')}</option>
                 </select>
             </label>
             <TextField

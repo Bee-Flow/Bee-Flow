@@ -42,7 +42,7 @@ export function SidebarTopBar({ t, isOpen, brand, onDirectChat, toggleSidebar }:
                                 ? <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden flex items-center justify-center bg-[var(--bg-primary)]">
                                       <img src={brand.logoUrl} alt={brand.altText} className="w-full h-full object-contain" />
                                   </div>
-                                : <img src={beeFlowLogo} alt="Bee Flow" className="w-[4.5rem] h-[4.5rem] rounded-xl object-cover" />}
+                                : <img src={beeFlowLogo} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-[4.5rem] h-[4.5rem] rounded-xl object-cover" />}
                         </button>
                         <div className="flex items-center gap-1">
                             <NotificationCenter variant="icon" />
@@ -63,7 +63,7 @@ export function SidebarTopBar({ t, isOpen, brand, onDirectChat, toggleSidebar }:
                     >
                         {brand
                             ? <img src={brand.logoUrl} alt={brand.altText} className="w-full h-full rounded-lg object-contain" />
-                            : <img src={beeFlowIcon} alt="Bee Flow" className="w-8 h-8 rounded-lg object-contain" />}
+                            : <img src={beeFlowIcon} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-8 h-8 rounded-lg object-contain" />}
                     </button>
                 )}
             </div>

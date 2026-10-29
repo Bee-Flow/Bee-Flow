@@ -188,7 +188,7 @@ const SignupWizard = ({
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-[var(--border-subtle)] flex items-center justify-center bg-[var(--bg-primary)] shrink-0">
-                            <img src={logoSrc} alt="Bee Flow" className="w-full h-full object-cover" />
+                            <img src={logoSrc} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{titleFor(step)}</h1>
