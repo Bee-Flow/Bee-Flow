@@ -28,7 +28,7 @@ const { idList: messageIdList, isOn } = require('./shared/idList');
  * gmail_read_many: up to 100 full messages through Gmail's batch endpoint (two
  * requests for 100, where one gmail_read per email made 100). Takes the batch
  * function so a test can hand it a fake one.
- * @param {object} session
+ * @param {GmailSession} session
  * @param {{ messageIds?: unknown }} args
  * @param {{ batch?: Function }} [deps]
  */
@@ -67,9 +67,10 @@ async function readManyMessages(session, args, { batch = require('./googleBatch'
 /**
  * gmail_bulk_modify: labels, read/unread and archive for up to 1000 messages
  * in ONE users.messages.batchModify request.
- * @param {any} gmail - Gmail client (createGmailClient)
- * @param {object} args
- * @param {object} [labelCacheKey] - the session, so a run resolves label names once a minute
+ * @param {{ users: Pick<GmailClient['users'], 'labels'> & { messages: Pick<GmailClient['users']['messages'], 'batchModify'> } }} gmail
+ *   - Gmail client (createGmailClient); the labels and batchModify are what this reads
+ * @param {{ messageIds?: unknown, addLabelIds?: unknown, removeLabelIds?: unknown, markRead?: unknown, markUnread?: unknown, archive?: unknown }} args
+ * @param {GmailSession | null} [labelCacheKey] - the session, so a run resolves label names once a minute
  */
 async function bulkModifyMessages(gmail, args, labelCacheKey = null) {
     const ids = messageIdList(args?.messageIds);
@@ -121,7 +122,7 @@ async function createGmailClient(session) {
 /**
  * gmail_search: one messages.list (paged), then each hit's metadata ten at a
  * time. Takes the client, so a test can hand it a fake one.
- * @param {any} gmail - Gmail client (createGmailClient)
+ * @param {GmailClient} gmail - Gmail client (createGmailClient)
  * @param {{ query?: string, maxResults?: number|string }} args
  */
 async function searchMessages(gmail, args) {
@@ -192,15 +193,14 @@ async function searchMessages(gmail, args) {
 /**
  * Execute a Gmail tool call.
  * @param {string} toolName - 'gmail_search' / 'gmail_read' / 'gmail_compose' / etc.
- * @param {object} args - Tool arguments
- * @param {object} session - Express session with OAuth tokens
- * @param {object} [opts]
- * @param {boolean} [opts.autoSend=false] - For gmail_compose: when true the tool
+ * @param {Record<string, unknown>} args - Tool arguments
+ * @param {GmailSession} session - Express session with OAuth tokens
+ * @param {{ autoSend?: boolean }} [opts] - autoSend (default false), for gmail_compose: when true the tool
  *   actually sends the email (no UI handshake). Set by the automation runner
  *   because there is no user present to confirm a draft. Direct-chat / agent
  *   chat leave this false so the existing email_draft → user-approves → send
  *   flow stays in place as a safety net.
- * @returns {object} Tool result
+ * @returns {Promise<Record<string, unknown>>} Tool result
  */
 async function executeGmailTool(toolName, args, session, opts = {}) {
     const gmail = await createGmailClient(session);

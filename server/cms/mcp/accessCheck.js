@@ -19,15 +19,14 @@
 'use strict';
 
 /**
- * @param {object} deps
- * @param {(id: string) => Promise<any>} deps.getTokenById
- * @param {(userId: string) => Promise<object|null>} deps.getUser
- * @param {(user: object) => Promise<{ primary: string|null, all: string[] }>} deps.resolveOrgs  auth/mcpAccess/orgResolve
- * @param {(orgId: string|null) => Promise<object>} deps.getOrgPolicy
- * @param {Function} deps.evaluateAccessForOrgs auth/mcpAccess/gate
- * @param {(user: object|null) => boolean} deps.isActiveAccount
- * @param {Function} deps.scopeAllowsTool
- * @param {(user: object | null) => Promise<boolean>} deps.isAdmin
+ * `resolveOrgs` is auth/mcpAccess/orgResolve's, `evaluateAccessForOrgs` auth/mcpAccess/gate's.
+ * @param {{ getTokenById: (id: string) => Promise<any>, getUser: (userId: string) => Promise<object|null>,
+ *   resolveOrgs: (user: object) => Promise<{ primary: string|null, all: string[] }>,
+ *   getOrgPolicy: (orgId: string|null) => Promise<object>,
+ *   evaluateAccessForOrgs: typeof import('../../auth/mcpAccess/gate').evaluateAccessForOrgs,
+ *   isActiveAccount: (user: object|null) => boolean,
+ *   scopeAllowsTool: typeof import('../../auth/mcpAccess/scopes').scopeAllowsTool,
+ *   isAdmin: (user: object | null) => Promise<boolean> }} deps
  */
 function createAccessCheck(deps) {
     return async function checkAccess(/** @type {{ legacy?: boolean, tokenId?: string, userId?: string, orgId?: string|null }} */ bound, /** @type {string} */ ip) {

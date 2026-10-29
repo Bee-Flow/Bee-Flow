@@ -17,11 +17,9 @@ const log = require('../telemetry/log');
 /**
  * OpenAI-compatible chat completion.
  *
- * @param {object} params
- * @param {string} params.model — model ID (e.g. 'gpt-4.1-mini', 'mistral-small-latest')
- * @param {Parameters<typeof import('../core/llm/llmClient').chat>[1]} params.messages — [{role, content}, ...]
- * @param {number} [params.temperature]
- * @param {number} [params.max_tokens]
+ * @param {{ model: string, messages: Parameters<typeof import('../core/llm/llmClient').chat>[1],
+ *   temperature?: number, max_tokens?: number }} params  `model` is a model ID (e.g. 'gpt-4.1-mini',
+ *   'mistral-small-latest'); `messages` the [{role, content}, ...] list
  * @returns {Promise<{choices: [{message: {role: string, content: string}}], usage: object}>}
  */
 async function createChatCompletion({ model, messages, temperature, max_tokens }) {

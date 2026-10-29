@@ -105,7 +105,7 @@ function serialise(v) {
 /**
  * Deterministic JSON text for `value`, stable across the Postgres JSONB
  * round-trip (see the header).
- * @param {any} value
+ * @param {unknown} value
  * @returns {string}
  */
 function canonicalJSON(value) {
@@ -121,7 +121,7 @@ function canonicalJSON(value) {
  * `payload_hash` of an evidence payload: sha256 over the canonical JSON.
  * A falsy payload hashes as `{}`, matching what complianceStore.addEvidence
  * stores for a missing payload.
- * @param {any} payload
+ * @param {unknown} payload
  * @returns {string} 64 lowercase hex characters
  */
 function hashPayload(payload) {

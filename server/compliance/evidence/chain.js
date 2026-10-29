@@ -80,9 +80,9 @@ function isMissingColumnError(err) {
  * Walk one org's chain and report on it.
  *
  * @param {string} orgId
- * @param {object} [opts]
- * @param {number} [opts.limit=2000]  max chained rows loaded (the newest ones)
- * @param {{ getOne: typeof import('../../db').getOne, getAll: typeof import('../../db').getAll }} [opts.db]          db module (`getOne`, `getAll`); injected by tests
+ * @param {{ limit?: number, db?: { getOne: typeof import('../../db').getOne, getAll: typeof import('../../db').getAll } }} [opts]
+ *   `limit` (2000 by default) is the most chained rows loaded (the newest ones); `db` the db
+ *   module (`getOne`, `getAll`), injected by tests
  * @returns {Promise<{
  *   ok: boolean|null,
  *   reason?: 'columns_missing',

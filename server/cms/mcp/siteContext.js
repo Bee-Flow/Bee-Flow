@@ -16,7 +16,7 @@ const { err } = require('./handlerKit');
  * @param {Set<string>} touched
  */
 function scopeValidation(v, touched) {
-    const isOtherEmpty = (/** @type {any} */ w) => w.code === 'empty_page'
+    const isOtherEmpty = (/** @type {{ code?: string, path?: string }} */ w) => w.code === 'empty_page'
         && !touched.has(String(w.path || '').replace(/^pages\./, ''));
     const others = v.warnings.filter(isOtherEmpty);
     if (others.length < 2) return v;
@@ -85,7 +85,7 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         };
     }
 
-    /** @param {any} draftWrap @param {Set<string>} [touched] scope the empty-page warnings to this edit */
+    /** @param {Awaited<ReturnType<typeof loadDraft>>} draftWrap @param {Set<string>} [touched] scope the empty-page warnings to this edit */
     const validationOf = (draftWrap, touched) => {
         const raw = validateDraft(draftWrap);
         const v = touched ? scopeValidation(raw, touched) : raw;

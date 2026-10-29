@@ -95,14 +95,8 @@ async function _buildRawMessage({ from, to, cc, bcc, replyTo, subject, text, htm
 /**
  * Send an email using the configured service email account.
  * 
- * @param {Object} options
- * @param {string|string[]} options.to       - Recipient(s)
- * @param {string}          options.subject  - Email subject
- * @param {string}          [options.text]   - Plain-text body
- * @param {string}          [options.html]   - HTML body
- * @param {string}          [options.cc]     - CC recipients
- * @param {string}          [options.bcc]    - BCC recipients
- * @param {string}          [options.replyTo] - Reply-to address
+ * @param {{ to: string|string[], subject: string, text?: string, html?: string, cc?: string, bcc?: string,
+ *   replyTo?: string }} options  `to` the recipient(s), `text` the plain-text body, `html` the HTML body
  * @returns {Promise<{ success: boolean, messageId?: string, error?: string }>}
  */
 async function sendServiceEmail({ to, subject, text, html, cc, bcc, replyTo }) {

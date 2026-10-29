@@ -371,7 +371,7 @@ async function resolvePublicKeyByKid(kid) {
  * @returns {boolean}
  * @param {string} signingInput
  * @param {string} signatureB64url
- * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike>} publicKey
+ * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike> | null | undefined} publicKey  no key (null) verifies nothing
  */
 function verifyCompactRs256(signingInput, signatureB64url, publicKey) {
     if (!publicKey) return false;
@@ -404,18 +404,9 @@ module.exports = {
 };
 
 /**
- * @typedef {object} LicensePayload  the signed claims of a license JWT
- * @property {string} [sub]
- * @property {string} [iss]
- * @property {number} [iat]
- * @property {number} [exp]
- * @property {string} [license_id]
- * @property {string} [tier]
- * @property {string} [billing_interval]
- * @property {string[]} [features]
- * @property {object} [limits]
- * @property {number} [max_seats]
- * @property {object} [branding]
- * @property {string} [refresh_required_after]
- * @property {object} [metadata]
+ * The signed claims of a license JWT.
+ * @typedef {{ sub?: string, iss?: string, iat?: number, exp?: number, license_id?: string, tier?: string,
+ *   billing_interval?: string, features?: string[], limits?: Record<string, unknown>, max_seats?: number,
+ *   branding?: Record<string, unknown>, refresh_required_after?: string,
+ *   metadata?: Record<string, unknown> }} LicensePayload
  */

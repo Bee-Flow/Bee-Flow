@@ -21,7 +21,7 @@ const json = (status, body) => ({
 
 /**
  * @param {(req: { url: string, method: string, body: any }) => unknown} handler
- * @param {object} [auth] extra fields on the auth context (mode, publicBaseUrl, ...)
+ * @param {Partial<import('./nextcloudClient.types').NcAuth>} [auth] extra fields on the auth context (mode, publicBaseUrl, ...)
  * @returns {{ url: string, method: string, body: any }[]} the recorded calls
  */
 function installFakeNc(handler, auth = {}) {

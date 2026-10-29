@@ -349,15 +349,13 @@ async function readBodyCapped(response, capBytes) {
  * scrubbed of credential material.
  *
  * @param {string} prefixedName  full tool name, e.g. cint_ab12cd34ef5_list_invoices
- * @param {object} args          model-provided arguments
- * @param {object} opts
- * @param {string} opts.userId               running user (org + credential resolution)
- * @param {object} [opts.draftIntegration]   shaped row for the builder's test
- *                                           route — skips status + capability
- *                                           checks (the route pre-authorizes)
- *                                           and runs the WORKING definition
- * @param {string} [opts.connectionOverrideId] explicit connection (test route)
- * @param {boolean} [opts.unattended]        automated run (refused for now)
+ * @param {Record<string, unknown>} args  model-provided arguments
+ * @param {{ userId?: string | null, draftIntegration?: CustomIntegrationRow | null,
+ *   connectionOverrideId?: string | null, unattended?: boolean }} [opts]  `userId` is the
+ *   running user (org + credential resolution); `draftIntegration` a shaped row for the
+ *   builder's test route, which skips the status and capability checks (the route
+ *   pre-authorizes) and runs the WORKING definition; `connectionOverrideId` an explicit
+ *   connection (test route); `unattended` an automated run (refused for now)
  */
 async function executeCustomIntegrationTool(prefixedName, args, {
     userId = null, draftIntegration = null, connectionOverrideId = null, unattended = false,
@@ -664,6 +662,7 @@ module.exports = {
 };
 
 /** @typedef {{ type?: string, valueTemplate?: string, header?: string, queryParam?: string }} AuthConfig */
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/orgCustomIntegrationStore').getBySlug>>>} CustomIntegrationRow */
 
 /**
  * One tool of a 'rest' definition.

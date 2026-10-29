@@ -116,19 +116,17 @@ function _renderField(str, vars, { multiline = false } = {}) {
 }
 
 /**
- * Build a {subject, html, text} email from a configurable, locale-aware
- * template. Shared by the send functions and the admin preview/test endpoint
- * (no-send path). The CTA URL is taken from vars.verifyUrl / vars.loginUrl.
- *
- * @param {'verification'|'welcome'} templateId
- * @param {string} locale
- * @param {any} vars  e.g. { name, orgName, verifyUrl } or { name, orgName, loginUrl }
+ * The substitution values of a template, e.g. { name, orgName, verifyUrl } or { name, orgName, loginUrl }.
+ * @typedef {Record<string, string | null | undefined>} EmailVars
  */
+
 /**
  * Build {subject, html, text} from an already-resolved template object
  * ({subject,title,intro,body,ctaLabel}) and substitution vars. Used by the
  * send functions and by the admin live-preview endpoint (which passes
  * in-progress, unsaved fields).
+ * @param {{ subject?: string, title?: string, intro?: string, body?: string, ctaLabel?: string, footer?: string }} tpl
+ * @param {EmailVars} [vars]
  */
 function renderEmailFromTemplate(tpl, vars = {}) {
     const ctaUrl = vars.verifyUrl || vars.loginUrl || vars.cta || null;
@@ -159,6 +157,15 @@ function renderEmailFromTemplate(tpl, vars = {}) {
     return { subject, html, text };
 }
 
+/**
+ * Build a {subject, html, text} email from a configurable, locale-aware
+ * template. Shared by the send functions and the admin preview/test endpoint
+ * (no-send path). The CTA URL is taken from vars.verifyUrl / vars.loginUrl.
+ *
+ * @param {string} templateId  'verification', 'welcome', 'project_collab', …
+ * @param {string} locale
+ * @param {EmailVars} [vars]
+ */
 async function renderEmailTemplate(templateId, locale, vars = {}) {
     const languageStore = require('../stores/languageStore');
     const tpl = await languageStore.getEffectiveEmailTemplate(templateId, locale);

@@ -10,27 +10,12 @@ const { toUtcIso, keepDue } = require('./nextcloudDeckDates');
 
 /**
  * Tool arguments of every Deck tool (each reads its own subset).
- * @typedef {object} DeckArgs
- * @property {number | string} [boardId]
- * @property {number | string} [stackId]
- * @property {number | string} [cardId]
- * @property {number | string} [targetStackId]
- * @property {number | string} [labelId]
- * @property {string} [title]
- * @property {string} [description]
- * @property {string} [type]
- * @property {string | number} [duedate]
- * @property {number} [order]
- * @property {boolean} [archived]
- * @property {boolean} [includeArchived]
- * @property {string} [labelTitle]
- * @property {string} [query]
- * @property {string} [assignedUid]
- * @property {string} [dueBefore]
- * @property {string} [dueAfter]
- * @property {number} [limit]
- * @property {string} [message]
- * @property {number} [parentId]
+ * @typedef {{ boardId?: number | string, stackId?: number | string, cardId?: number | string,
+ *   targetStackId?: number | string, labelId?: number | string, title?: string,
+ *   description?: string, type?: string, duedate?: string | number, order?: number,
+ *   archived?: boolean, includeArchived?: boolean, labelTitle?: string, query?: string,
+ *   assignedUid?: string, dueBefore?: string, dueAfter?: string, limit?: number, message?: string,
+ *   parentId?: number }} DeckArgs
  */
 /**
  * What the executor hands every handler.

@@ -101,16 +101,12 @@ function isBrowseWebTool(toolName) {
 
 /**
  * @param {string} toolName
- * @param {Object} args   { task, url }
- * @param {Object} [context]
- * @param {(type: string, data: object) => void} [context.send]
- * @param {string} [context.userId]
- * @param {string} [context.orgId]
- * @param {string[]|null} [context.allowedHosts] — confine navigation (App
- *   Studio's per-app domain allowlist); chat passes nothing and stays open.
- * @param {()=>boolean} [context.isCancelled] — client-disconnect hook; ends
- *   the browse at the next step boundary and frees the slot.
- * @param {number|null} [context.maxSteps] — per-call step cap.
+ * @param {{ task?: string, url?: string }} args
+ * @param {{ send?: (type: string, data: object) => void, userId?: string | null, orgId?: string | null,
+ *   allowedHosts?: string[] | null, isCancelled?: (() => boolean) | null, maxSteps?: number | null }} [context]
+ *   `allowedHosts` confines navigation (App Studio's per-app domain allowlist; chat passes
+ *   nothing and stays open); `isCancelled` is the client-disconnect hook, which ends the
+ *   browse at the next step boundary and frees the slot; `maxSteps` the per-call step cap.
  */
 async function executeBrowseWebTool(toolName, args, context = {}) {
     if (!isBrowseWebTool(toolName)) {

@@ -217,7 +217,7 @@ function isPdf(buffer) {
 
 /**
  * @param {string} toolName
- * @param {object} args
+ * @param {Record<string, unknown>} args
  * @param {{ secretKey: string, orgId?: string|null }} creds
  * @param {{ request: Function, keepFile?: Function|null, now?: Date }} deps
  *   `request(url, opts)` is jsonApiRequest's contract; `keepFile({buffer,
@@ -356,7 +356,7 @@ function keepFileForRun(userId, ctx) {
 
 /**
  * @param {string} toolName
- * @param {object} args
+ * @param {Record<string, unknown>} args
  * @param {string} userId
  * @param {{ automationId?: string|null, runScope?: {runId:string, rootRunId?:string}|null }} [ctx]
  */

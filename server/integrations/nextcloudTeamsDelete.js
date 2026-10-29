@@ -41,8 +41,8 @@ function ocsRefusal(ocs) {
 }
 
 /**
- * @param {{ api: string, ncFetch: Function, authError: string, handle: Function, HEADERS: Record<string,string>, sleep?: (ms: number) => Promise<void> }} deps
- * @param {any} args
+ * @param {{ api: string, ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], authError: string, handle: Function, HEADERS: Record<string,string>, sleep?: (ms: number) => Promise<void> }} deps
+ * @param {{ teamId?: string }} args
  */
 async function deleteTeam(deps, args) {
     const { api, ncFetch, authError, handle, HEADERS } = deps;

@@ -78,11 +78,10 @@ function staffTicketUrl(threadId) {
  * `support_threads` (requester_email, requester_name, requester_org_name,
  * requester_ip, requester_ua, …) is unreachable from here by construction.
  *
- * @param {object}  p
- * @param {{ id?: string, ticket_ref?: string, source?: string, created_at?: string|Date, subject?: string }} p.thread          a support_threads row
- * @param {string}  p.summary         the agent's issue title
- * @param {string}  [p.description]   the agent's problem description
- * @param {boolean} [p.includeSubject]  admin setting; appends the ticket subject
+ * `thread` is a support_threads row; `summary` the agent's issue title and `description` its
+ * problem description; `includeSubject`, an admin setting, appends the ticket subject.
+ * @param {{ thread: { id?: string, ticket_ref?: string, source?: string, created_at?: string|Date, subject?: string },
+ *   summary: string, description?: string, includeSubject?: boolean }} p
  * @returns {{summary: string, description: string, ticketRef: string, url: string}}
  */
 function buildIssuePayload({ thread, summary, description = '', includeSubject = false }) {

@@ -49,7 +49,7 @@ function createBlogHandlers(deps) {
     }
     const budgetSpent = () => err(`Blog write budget spent (${WRITE_MAX_PER_WINDOW} changes per ${WRITE_WINDOW_MS / 60000} minutes). Wait a few minutes, and batch edits (bodyEdits takes up to ${BODY_EDITS_MAX} at once).`);
 
-    const storeError = (/** @type {any} */ e) => {
+    const storeError = (/** @type {Error & { code?: string }} */ e) => {
         if (e && e.name === 'PostError') return err(e.message, { code: e.code });
         throw e;
     };

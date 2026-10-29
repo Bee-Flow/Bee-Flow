@@ -160,7 +160,7 @@ function _manifestSummary(m) {
  * Verify a `.bfmod` and extract it to versionDir atomically.
  * @param {string} moduleId
  * @param {string} version
- * @param {{ buffer?:Buffer, download?:boolean }} opts
+ * @param {{ buffer?: Buffer | null, download?: boolean, expectedSha256?: string | null, redownloadSha?: string | null }} [opts]
  * @returns {Promise<{ manifest, dir, sha256, kid }>}
  */
 async function verifyAndStage(moduleId, version, { buffer = null, download = false, expectedSha256 = null, redownloadSha = null } = {}) {

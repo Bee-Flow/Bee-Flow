@@ -38,12 +38,10 @@ const { MAX_CUSTOM_SPAN_MS, RANGES, MAX_METRIC_LIMIT, MAX_SERIES_POINTS, METRIC_
 // ── the handlers ────────────────────────────────────────────────────────
 
 /**
- * @param {object} deps
- * @param {RegExp} deps.siteIdRe
- * @param {{ preflight: Function, resolveTarget: Function, getSettings: Function }} deps.analytics  core/cms/analyticsQueries
- * @param {{ isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function,
- *           getActive: Function, get: Function, post: Function }} deps.umami
- * @param {() => number} [deps.now]
+ * `analytics` is core/cms/analyticsQueries.
+ * @param {{ siteIdRe: RegExp, analytics: { preflight: Function, resolveTarget: Function, getSettings: Function },
+ *   umami: { isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function,
+ *     getActive: Function, get: Function, post: Function }, now?: () => number }} deps
  */
 function createAnalyticsHandlers(deps) {
     const { analytics, umami, siteIdRe } = deps;

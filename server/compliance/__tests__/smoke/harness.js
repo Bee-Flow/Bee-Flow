@@ -28,7 +28,7 @@ const _state = {
     dbOne: /** @type {{query: RegExp, row: any}[]} */ ([]),
     dsrStats: /** @type {Record<string, any>} */ ({}),   // keyed by request type
     dsrOpen: /** @type {any[]} */ ([]),                  // open requests with due_at, every type
-    dpia: /** @type {any} */ (null),                     // latest DPIA row per agent
+    dpia: /** @type {Awaited<ReturnType<typeof dpiaStore.getLatestForAgent>>} */ (null), // latest DPIA row per agent
     incidentDeadlines: { open: 0, overdue_unnotified: 0, nearing_deadline: 0 },
     isoConnectorConfigs: /** @type {Record<string, any>} */ ({}),
     isoSnapshots: /** @type {Record<string, any[]>} */ ({}),

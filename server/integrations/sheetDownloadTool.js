@@ -48,7 +48,8 @@ function csvTab(tabs, wanted) {
 }
 
 /**
- * @param {any} doc   the document, already looked up and scope-checked
+ * @param {{ id?: string, userId: string, name?: string, docType?: string,
+ *   settings?: { sheet?: import('./sheetDocumentTools').SheetSettings } }} doc   the document, already looked up and scope-checked
  * @param {{ format?: string, tab?: string }} args
  * @param {{ userId: string }} ctx
  * @param {{ cells?: any, storage?: any, evaluate?: (cells: Record<string, string>) => Record<string, { display: string }> }} [deps]

@@ -280,12 +280,12 @@ async function _recordAuditEvent({ threadId, kind, errorMsg }) {
 /**
  * Wraps a single send-call with surfacing logic.
  *
- * @param {Function} sendFn  one of sendThreadCreatedEmail / sendAiReplyEmail / …
+ * @param {(args: { to: unknown }) => Promise<{ success?: boolean, error?: string } | void | null | undefined>} sendFn
+ *   one of sendThreadCreatedEmail / sendAiReplyEmail / …
  * @param {{ to: unknown; }}   sendArgs  passed to `sendFn` verbatim
- * @param {Object}   ctx
- * @param {string}   ctx.kind       'thread_created' | 'ai_reply' | 'staff_reply' | 'resolved'
- * @param {string}   ctx.threadId   for notification + audit
- * @param {string}   [ctx.messageId] support_messages.id to annotate with email_send_status
+ * @param {{ kind: string, threadId: string, messageId?: string }} ctx  `kind` is 'thread_created' | 'ai_reply' |
+ *   'staff_reply' | 'resolved'; `threadId` is for notification + audit; `messageId` the
+ *   support_messages.id to annotate with email_send_status
  */
 async function sendOrNotifyStaff(sendFn, sendArgs, ctx) {
     try {

@@ -210,7 +210,12 @@ async function sendWelcomeEmail({ email, displayName, loginUrl, orgName, locale 
  * it never throws (the bell of the same event has already rung).
  *
  * @param {{ userId: string, locale?: string, event: string, vars?: { project?: string, actor?: string, intro?: string, detail?: string }, ctaUrl?: string|null }} opts
- * @param {any} [deps]  injectable for tests
+ * @param {{ getServiceEmailConfig?: () => Promise<{ configured: boolean }>,
+ *   getUser?: (id: string) => Promise<{ email?: string, preferredLocale?: string } | null>,
+ *   translate?: (locale: string, key: string, vars: Record<string, unknown>) => Promise<string> | string,
+ *   renderTemplate?: (templateId: string, locale: string, vars: import('./emailTemplates').EmailVars) => Promise<{ subject: string, html: string, text: string }>,
+ *   sendServiceEmail?: (mail: { to: string, subject: string, text: string, html: string }) => Promise<{ success: boolean, error?: string }> }} [deps]
+ *   injectable for tests
  * @returns {Promise<{ sent: boolean }>}
  */
 async function sendProjectCollabEmail({ userId, locale, event, vars = {}, ctaUrl = null }, deps = {}) {

@@ -48,7 +48,7 @@ function tierFromPlanName(planName) {
 /**
  * The tier a plan grants: its `tier` column, else a logged name guess.
  *
- * @param {object} plan  a subscription_plans row (or a join exposing plan_tier / plan_name)
+ * @param {PlanRow} plan  a subscription_plans row (or a join exposing plan_tier / plan_name)
  * @returns {string|null} null means "no licence to issue" (a Free plan)
  */
 function resolveTierForPlan(plan) {
@@ -117,13 +117,7 @@ module.exports = {
 };
 
 /**
- * @typedef {object} PlanRow  a subscription_plans row, or a join exposing plan_* columns
- * @property {string} [id]
- * @property {string} [plan_id]
- * @property {string} [name]
- * @property {string} [plan_name]
- * @property {string} [tier]
- * @property {string} [plan_tier]
- * @property {number|string} [price]
- * @property {number|string} [amount]
+ * A subscription_plans row, or a join exposing plan_* columns.
+ * @typedef {{ id?: string, plan_id?: string, name?: string, plan_name?: string, tier?: string,
+ *   plan_tier?: string, price?: number|string, amount?: number|string }} PlanRow
  */

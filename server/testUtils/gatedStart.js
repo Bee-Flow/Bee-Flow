@@ -21,7 +21,7 @@
 
 /**
  * @param {(opts: object) => void} startFn calls the worker's start with the given options
- * @param {object} [opts] extra start() options (e.g. intervalMs)
+ * @param {Record<string, unknown>} [opts] extra start() options (e.g. intervalMs)
  */
 function mountGated(startFn, opts = {}) {
     const state = { active: true, consulted: [], passed: 0 };

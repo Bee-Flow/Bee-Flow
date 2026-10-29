@@ -57,7 +57,7 @@ function defaultFacade() {
         if (!missingLogged) {
             missingLogged = true;
             log.info('[NotebookCollab] co-editing engine not available; notebooks stay single-writer', {
-                code: /** @type {any} */ (err)?.code || null,
+                code: /** @type {{ code?: string }} */ (err)?.code || null,
             });
         }
         return null;
@@ -77,7 +77,7 @@ async function isCollabActive(notebookId, collab = defaultFacade()) {
     try {
         return !!(await collab.isActive(KIND, notebookId));
     } catch (err) {
-        log.warn('[NotebookCollab] isActive failed; treating as not co-edited', { notebookId, error: /** @type {any} */ (err)?.message });
+        log.warn('[NotebookCollab] isActive failed; treating as not co-edited', { notebookId, error: /** @type {Error} */ (err)?.message });
         return false;
     }
 }
@@ -131,7 +131,7 @@ async function readCurrentContent(notebook, collab = defaultFacade()) {
         if (!current) return stored;
         return { html: current.html, markdown: current.markdown, live: true, active: true, seq: current.seq };
     } catch (err) {
-        log.warn('[NotebookCollab] live read failed; using the stored mirror', { notebookId: notebook.id, error: /** @type {any} */ (err)?.message });
+        log.warn('[NotebookCollab] live read failed; using the stored mirror', { notebookId: notebook.id, error: /** @type {Error} */ (err)?.message });
         return { ...stored, active: true };
     }
 }
@@ -144,7 +144,7 @@ const actorOf = (who) => ({
     ...(who.agentId ? { agentId: who.agentId } : {}),
 });
 
-/** @param {any} r */
+/** @param {{ seq?: unknown } | null | undefined} r */
 const seqOf = (r) => (Number.isFinite(r?.seq) ? { seq: /** @type {number} */ (r.seq) } : {});
 
 /**
@@ -205,7 +205,7 @@ async function applyRebased(notebookId, who, content, collab) {
     for (let attempt = 0; attempt < MAX_REBASE_ATTEMPTS; attempt++) {
         const current = await readLive(notebookId, collab);
         if (!current) return { applied: false };
-        const r = rebaseEdit(/** @type {any} */ (content.base), next, current.html);
+        const r = rebaseEdit(content.base, next, current.html);
         if (r.conflict || r.html == null) return { applied: false, conflict: true };
         if (!r.changed) return { applied: true, html: current.html, ...seqOf(current) };
         const res = await collab.applyServerEdit(KIND, notebookId, actorOf(who), {

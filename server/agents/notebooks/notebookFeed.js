@@ -25,7 +25,7 @@ function defaultChangeFeed() {
 /**
  * Call one recorder function if it exists; swallow and log a failure.
  * @param {string} fn
- * @param {object} args
+ * @param {Record<string, unknown>} args
  * @param {Record<string, any>|null} feed
  * @returns {Promise<void>}
  */
@@ -34,7 +34,7 @@ async function record(fn, args, feed) {
     try {
         await feed[fn](args);
     } catch (err) {
-        log.warn('[NotebookFeed] change feed call failed', { fn, itemId: /** @type {any} */ (args)?.itemId, error: /** @type {any} */ (err)?.message });
+        log.warn('[NotebookFeed] change feed call failed', { fn, itemId: args?.itemId, error: /** @type {Error} */ (err)?.message });
     }
 }
 
