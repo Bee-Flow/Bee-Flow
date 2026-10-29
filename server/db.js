@@ -127,12 +127,12 @@ function _redisOptions(url) {
  * The queue stays on until the first connection is up, so what boot sends
  * waits for it. A duplicated client (a pub/sub subscriber) keeps its own
  * queue: it subscribes before it has connected.
- * @param {any} client an ioredis client
+ * @param {import('ioredis').Redis} client an ioredis client
  */
 function _failFastWhenDisconnected(client) {
     client.once('ready', () => { client.options.enableOfflineQueue = false; });
     const duplicate = client.duplicate.bind(client);
-    client.duplicate = (/** @type {any} */ override) => duplicate({ enableOfflineQueue: true, ...(override || {}) });
+    client.duplicate = (/** @type {Partial<import('ioredis').RedisOptions>} */ override) => duplicate({ enableOfflineQueue: true, ...(override || {}) });
     return client;
 }
 
@@ -414,7 +414,7 @@ async function withTransaction(fn) {
  * transient, and caching THAT silently disables vector search for the whole
  * process lifetime.
  *
- * @param {any} err - the rejected error
+ * @param {{ code?: unknown, severity?: unknown } | null | undefined} err - the rejected error
  * @returns {boolean} true when Postgres answered with a SQL-level error
  */
 function isSqlStateError(err) {

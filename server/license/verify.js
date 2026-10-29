@@ -371,7 +371,7 @@ async function resolvePublicKeyByKid(kid) {
  * @returns {boolean}
  * @param {string} signingInput
  * @param {string} signatureB64url
- * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike>} publicKey
+ * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike> | null | undefined} publicKey  no key (null) verifies nothing
  */
 function verifyCompactRs256(signingInput, signatureB64url, publicKey) {
     if (!publicKey) return false;

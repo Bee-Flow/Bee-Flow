@@ -44,14 +44,14 @@ function decodeGrantUnverified(token) {
 
 /**
  * Verify a module entitlement grant.
+ * @typedef {string | Buffer | import('node:crypto').KeyObject} PublicKey  a PEM, its bytes, or a KeyObject
  *
  * @param {string} token  compact JWS module-grant token
- * @param {object} [opts]
- * @param {string} [opts.moduleId]          slug the grant must be scoped to
- * @param {string[]} [opts.subjectIds]      if provided, payload.sub must be one of these
- * @param {number} [opts.now]               unix seconds (defaults to real clock)
- * @param {function} [opts.publicKeyResolver] (kid) => key | Promise<key>; when
- *        omitted, falls back to verify.js's JWKS/bundled key resolution
+ * @param {{ moduleId?: string, subjectIds?: string[], now?: number,
+ *   publicKeyResolver?: (kid: string) => PublicKey | Promise<PublicKey> }} [opts]  `moduleId` is the slug the grant must be
+ *   scoped to; with `subjectIds`, payload.sub must be one of these; `now` is in unix seconds
+ *   (the real clock by default); `publicKeyResolver` answers a key or a promise of one for a kid,
+ *   and without it verify.js's JWKS/bundled key resolution is used
  * @returns {Promise<{ valid: boolean, payload?: { exp?: number, kind?: string, entitlement_id?: string, [k: string]: unknown }, error?: string }>}
  *   `payload` when valid, `error` when not
  */

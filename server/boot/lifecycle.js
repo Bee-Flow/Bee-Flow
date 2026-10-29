@@ -30,23 +30,16 @@ function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) 
 
 /**
  * The collaborators startServer takes from a test instead of requiring them.
- * @typedef {object} StartServerDeps
- * @property {typeof import('node:http').createServer} [createServer]
- * @property {{ initDB(): Promise<unknown> }} [userStore]
- * @property {{ migrate(): Promise<unknown> }} [authConfigStore]
- * @property {{ startReaper(): void, isEnabled(): boolean }} [webpageRuntimeManager]
- * @property {{ mountFullTierProxy(app: Express, server: import('node:http').Server): void }} [fullTierProxy]
+ * @typedef {{ createServer?: typeof import('node:http').createServer,
+ *   userStore?: { initDB(): Promise<unknown> }, authConfigStore?: { migrate(): Promise<unknown> },
+ *   webpageRuntimeManager?: { startReaper(): void, isEnabled(): boolean },
+ *   fullTierProxy?: { mountFullTierProxy(app: Express, server: import('node:http').Server): void } }} StartServerDeps
  */
 /**
- * @typedef {object} StartServerArgs
- * @property {Express} app
- * @property {string | number} port
- * @property {import('express').ErrorRequestHandler} terminalErrorHandler  re-registered after the full-tier proxy mounts
- * @property {() => void} runStartupChecks
- * @property {() => void} runStartupTasks
- * @property {Log} [log]
- * @property {NodeJS.Process} [proc]
- * @property {StartServerDeps} [deps]
+ * What startServer is started with; `terminalErrorHandler` is re-registered after the full-tier proxy mounts.
+ * @typedef {{ app: Express, port: string | number, terminalErrorHandler: import('express').ErrorRequestHandler,
+ *   runStartupChecks: () => void, runStartupTasks: () => void, log?: Log, proc?: NodeJS.Process,
+ *   deps?: StartServerDeps }} StartServerArgs
  */
 /**
  * Create the HTTP server and start it. Returns the server at once (the webpage

@@ -277,10 +277,9 @@ async function scanBuffer(buffer) {
 // ── Middleware factory ──────────────────────────────────────────────
 
 /**
- * @param {object} [opts]
- * @param {number} [opts.maxBytes]  size cap (bytes) → 413 when exceeded
- * @param {readonly string[]} [opts.allow]   declared-MIME allowlist → 415 otherwise
- * @param {string} [opts.field]     multipart field name (default 'file')
+ * @param {{ maxBytes?: number, allow?: readonly string[], field?: string }} [opts]  `maxBytes` is the
+ *   size cap (bytes), 413 when exceeded; `allow` the declared-MIME allowlist, 415 otherwise;
+ *   `field` the multipart field name (default 'file')
  */
 function uploadGuard({ maxBytes = DEFAULT_MAX_BYTES, allow = DEFAULT_ALLOW, field = 'file' } = {}) {
     const allowSet = new Set(allow);
