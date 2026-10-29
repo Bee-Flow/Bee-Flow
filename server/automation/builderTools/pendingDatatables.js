@@ -24,7 +24,10 @@
 const { isObj, isPendingDatatableId, walkDatatableRefs, boundDatatableIds } = require('./boundDatatables');
 const MAX_PENDING_TABLES = 5;
 
-/** n = 1 + the highest n in the list, so a ref is never reused within a proposal. */
+/**
+ * n = 1 + the highest n in the list, so a ref is never reused within a proposal.
+ * @param {PendingDatatable[]} list
+ */
 function nextPendingRef(list) {
     let max = 0;
     for (const e of Array.isArray(list) ? list : []) {
@@ -87,6 +90,7 @@ function stepsByScope(def) {
  * review card: `newlyBound` = the flow did not reference that table before.
  * @param {WeakKey} baseDef
  * @param {WeakKey} def
+ * @param {DatatableCatalogEntry[] | null | undefined} catalog
  */
 function usedDatatables(baseDef, def, catalog, pending = []) {
     const byId = new Map();
