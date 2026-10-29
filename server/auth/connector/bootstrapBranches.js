@@ -51,18 +51,12 @@ const NC_SUBJECT_PROBLEM_CODES = [
 /** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRow */
 
 /**
- * @typedef {object} BootstrapContext
- * @property {import('express').Request} req
- * @property {import('express').Response} res
- * @property {{ themingName: string, ncVersion: string }} nc  what the capabilities round-trip reported
- * @property {string} provisioningMode  'open' | 'pairing_only'
- * @property {string} ncInstanceId
- * @property {string} ncBaseUrl
- * @property {string} ncAdminUid
- * @property {string} ncAdminEmail
- * @property {string} ncAdminDisplayName
- * @property {string} connectorCallbackUrl
- * @property {string} pairingCode
+ * @typedef {{
+ *   req: import('express').Request, res: import('express').Response, nc: { themingName: string, ncVersion: string },
+ *   provisioningMode: string, ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, ncAdminEmail: string,
+ *   ncAdminDisplayName: string, connectorCallbackUrl: string, pairingCode: string,
+ * }} BootstrapContext
+ *   `nc`: what the capabilities round-trip reported; `provisioningMode`: 'open' | 'pairing_only'.
  */
 
 // 0. Pairing-code branch — wins over auto-detect when present. The org

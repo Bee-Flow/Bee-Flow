@@ -22,13 +22,12 @@
  * the env var names, the configStore key, the temp-file name — are arguments,
  * never merged: a secret scoped to one feature must not sign another's tokens.
  *
- * @param {object}   opts
- * @param {string[]} opts.envVars        env var names, checked in order
- * @param {string}   opts.devCacheName   temp-file prefix, e.g. 'beeflow-learning-cert-secret'
- * @param {string}   [opts.configKey]    configStore key for ensureDurable(); omit to disable
- * @param {string}   opts.label          log prefix, e.g. 'CertificateToken'
- * @param {string}   opts.productionWarning  message logged when falling back to a random secret
- * @param {'warn'|'error'} [opts.productionLogLevel='error']
+ * The options of createSigningSecret: `envVars` are the env var names, checked
+ * in order; `devCacheName` the temp-file prefix, e.g.
+ * 'beeflow-learning-cert-secret'; `configKey` the configStore key for
+ * ensureDurable() (omit to disable); `label` the log prefix, e.g.
+ * 'CertificateToken'; `productionWarning` the message logged when falling back
+ * to a random secret; `productionLogLevel` 'warn' or 'error' (default 'error').
  */
 
 const crypto = require('crypto');

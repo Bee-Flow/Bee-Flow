@@ -40,10 +40,10 @@
  * @param {string[]} [opts.preserve] Pre-auth session keys copied across the
  *                                   regeneration (only keys that are defined
  *                                   on the old session are re-applied).
- * @param {any}   [opts.extra]   Site-specific keys written verbatim after
+ * @param {Record<string, unknown>} [opts.extra]   Site-specific keys written verbatim after
  *                                   the canonical shape (explicit null is
  *                                   written, not skipped).
- * @param {any}   [opts.audit]   {method, organizationId, details} for the
+ * @param {{ method?: string, organizationId?: string | null, details?: Record<string, unknown> }} [opts.audit]  for the
  *                                  login_succeeded audit row. Omitted still
  *                                  writes a row, tagged method 'unknown'.
  */

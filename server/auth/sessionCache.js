@@ -30,9 +30,9 @@ const CACHE_TTL_SECONDS = 15 * 60; // 15 min — same order as session prune int
 /**
  * Wrap a connect-pg-simple store with a Redis read-through cache.
  *
- * @param {any} pgStore    - Instance of connect-pg-simple
- * @param {any} redis      - the shared ioredis client from db.js (getRedis())
- * @returns {any}          - A drop-in session store replacement
+ * @param {SessionStore} pgStore    - Instance of connect-pg-simple
+ * @param {SessionRedis | null} redis      - the shared ioredis client from db.js (getRedis())
+ * @returns {SessionStore}          - A drop-in session store replacement
  */
 function wrapWithRedisCache(pgStore, redis) {
     // If Redis is not available return the pgStore unwrapped
@@ -167,9 +167,9 @@ function wrapWithRedisCache(pgStore, redis) {
  * ioredis emits 'ready' again after every reconnect; the cache is installed
  * on the first one only.
  *
- * @param {any} liveStore - the store object handed to express-session
- * @param {any} pgStore   - the connect-pg-simple store
- * @param {{ status: string; once: (arg0: string, arg1: () => void) => void; }} redis     - the shared ioredis client, or null without Redis
+ * @param {SessionStore} liveStore - the store object handed to express-session
+ * @param {SessionStore} pgStore   - the connect-pg-simple store
+ * @param {(SessionRedis & { status: string; once: (arg0: string, arg1: () => void) => void; }) | null} redis     - the shared ioredis client, or null without Redis
  * @returns {boolean} whether activation is pending or done
  */
 function installRedisCacheWhenReady(liveStore, pgStore, redis) {
@@ -262,3 +262,13 @@ async function bustSessionsForOrg(organizationId, { db = require('../db') } = {}
 }
 
 module.exports = { wrapWithRedisCache, installRedisCacheWhenReady, bustSessionsForUser, bustSessionsForOrg };
+
+/**
+ * @typedef {Record<string, unknown> & { cookie?: { expires?: string | number | Date | null } }} SessionData  a stored session (JSON)
+ * @typedef {(err?: unknown) => void} StoreCallback
+ * @typedef {{ get: (sid: string, cb: (err: unknown, session?: SessionData | null) => void) => void,
+ *   set: (sid: string, session: SessionData, cb: StoreCallback) => void, touch?: (sid: string, session: SessionData, cb?: StoreCallback) => void,
+ *   destroy: (sid: string, cb?: StoreCallback) => void }} SessionStore  the express-session store methods the cache wraps
+ * @typedef {{ get: (key: string) => Promise<string | null>, set: (key: string, value: string, mode: 'EX', seconds: number) => Promise<unknown>,
+ *   del: (...keys: string[]) => Promise<unknown> }} SessionRedis  the ioredis calls the cache makes
+ */

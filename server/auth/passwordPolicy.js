@@ -194,12 +194,11 @@ function derivesFromIdentity(password, { username, email }) {
  * caller accidentally makes an outbound network call part of its hot path.
  *
  * @param {string} password
- * @param {object} [opts]
- * @param {string} [opts.username]  the account's username, if known
- * @param {string} [opts.email]     the account's e-mail, if known
- * @param {boolean} [opts.isAdmin]  target holds administrative rights → longer minimum
- * @param {string} [opts.role]      'admin' also selects the longer minimum
- * @param {string} [opts.orgRole]   'org_admin' also selects the longer minimum
+ * `opts`: the account's `username` and `email`, if known; `isAdmin` (target
+ * holds administrative rights), `role` 'admin' and `orgRole` 'org_admin' each
+ * select the longer minimum.
+ *
+ * @param {{ username?: string, email?: string, isAdmin?: boolean, role?: string, orgRole?: string }} [opts]
  * @returns {{ok: boolean, error?: string, code?: string}}
  */
 function validatePassword(password, opts = {}) {

@@ -86,7 +86,7 @@ function isReplay(key, ts) {
 }
 
 /**
- * @param {any} req
+ * @param {import('express').Request} req
  * @param {{ rejectReplay?: boolean }} [opts]
  */
 async function verifyConnectorSig(req, { rejectReplay = false } = {}) {

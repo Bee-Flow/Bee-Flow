@@ -213,7 +213,7 @@ async function _listOrgIdsFallback() {
     // configStore exports `getAllConfig` (singular) — match that. The earlier
     // typo caused this to silently return [] and reject every connector JWT
     // with "no matching tenant key" even when the tenant key was present.
-    const fn = configStore.getAllConfig || /** @type {any} */ (configStore).getAllConfigs; // defensive: an impl without the singular name
+    const fn = configStore.getAllConfig || /** @type {typeof configStore & { getAllConfigs?: typeof configStore.getAllConfig }} */ (configStore).getAllConfigs; // defensive: an impl without the singular name
     if (typeof fn !== 'function') return [];
     const all = await fn();
     return Object.keys(all || {})

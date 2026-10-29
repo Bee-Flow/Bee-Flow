@@ -40,12 +40,13 @@ function deriveLocalUserId(email, azureUserId) {
 /**
  * Resolve the canonical local user for an incoming SSO identity.
  *
- * @param {any} identity
- *   - azureUserId: the Azure AD object id (oid) — null for non-Microsoft providers
- *   - email: from the SSO provider (mail or userPrincipalName for Microsoft)
- *   - localId: the provisional local id used by the caller (only used as a
- *              last-resort lookup for non-Azure providers)
- * @param {any} userStore  store with getUserByAzureId, getUserByEmail, getUser, updateUser
+ * `identity`: `azureUserId` is the Azure AD object id (oid) — null for
+ * non-Microsoft providers; `email` comes from the SSO provider (mail or
+ * userPrincipalName for Microsoft); `localId` is the provisional local id used
+ * by the caller (only used as a last-resort lookup for non-Azure providers).
+ *
+ * @param {{ azureUserId?: string | null, azureTenantId?: string | null, email?: string | null, localId?: string | null }} identity
+ * @param {Pick<typeof import('../stores/userStore'), 'getUserByAzureId' | 'getUserByEmail' | 'getUser'>} userStore
  * @returns {Promise<{user: any|null, branch: 'azureId'|'email'|'legacyId'|'none'}>}
  *
  */
