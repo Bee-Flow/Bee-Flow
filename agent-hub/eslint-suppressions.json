@@ -1022,9 +1022,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "max-statements": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppPageHeader.tsx": {
@@ -3949,9 +3946,6 @@
     }
   },
   "src/components/admin/subscriptions/grants/GrantWizard.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
