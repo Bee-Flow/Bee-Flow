@@ -6,6 +6,8 @@ import {
     AdvancedSettings, AgentMarketplace, AgentStudio, AppsHomePage, CoworkPage, DocumentsPage,
     FormsHomePage, PublicFormPage, SkillsPanel, Studio,
 } from './hubLazySlots';
+import type { MarketCategory } from '../components/agents/AgentMarketplace.types';
+import type { Project } from '../api/queries/projects';
 import ProjectsView, { type ProjectsRoute } from './ProjectsView';
 import { studioRouteProps, type StudioRoute } from './studioRouteProps';
 
@@ -52,8 +54,8 @@ export interface HubMainContentProps {
     activeSkillIds: string[];
     handleToggleSkill: Fn;
     agents: any[];
-    favorites: any;
-    agentCategories: any[];
+    favorites: string[];
+    agentCategories: MarketCategory[];
     handleToggleFavorite: Fn;
     handleSelectAgent: Fn;
     setShowMarketplace: (open: boolean) => void;
@@ -61,7 +63,7 @@ export interface HubMainContentProps {
     // Projects.
     activeProjectId: string | null;
     initialProjectRoute: (ProjectsRoute & { projectId?: string | null }) | null;
-    projects: any[];
+    projects: Project[];
     projectsQuery: { isPending: boolean; isError: boolean };
     projectsEnabled: boolean;
     goToProject: Fn;
