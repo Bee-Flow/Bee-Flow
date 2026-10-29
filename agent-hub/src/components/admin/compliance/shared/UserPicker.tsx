@@ -59,9 +59,9 @@ export default function UserPicker({ users, mode = 'single', label, placeholder,
     };
 
     return (
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <label className="[display:flex] [flex-direction:column] [gap:4px]">
             <span style={labelStyle}>
-                <Users size={11} style={{ marginRight: 4, verticalAlign: '-1px' }} />
+                <Users size={11} className="[margin-right:4px] [vertical-align:-1px]" />
                 {label}
             </span>
             <select value={value} onChange={handleChange} disabled={disabled} style={selectStyle}>

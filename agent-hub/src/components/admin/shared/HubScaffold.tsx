@@ -46,19 +46,9 @@ export default function HubScaffold<S extends HubSection>({
     children,
 }: HubScaffoldProps<S>) {
     return (
-        <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+        <div className="[display:flex] [height:100%] [overflow:hidden]">
             {/* ── Left rail ── */}
-            <div style={{
-                width: '56px',
-                flexShrink: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                padding: '8px 0',
-                background: 'var(--bg-secondary, #111)',
-                borderRight: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-                overflowY: 'auto',
-            }}>
+            <div className="[width:56px] [flex-shrink:0] [display:flex] [flex-direction:column] [gap:2px] [padding:8px_0] [background:var(--bg-secondary,_#111)] [border-right:1px_solid_var(--border-default,_rgba(255,255,255,0.08))] [overflow-y:auto]">
                 {sections.map(sec => {
                     const Icon = sec.icon;
                     const isActive = activeId === sec.id;
@@ -107,7 +97,7 @@ export default function HubScaffold<S extends HubSection>({
             </div>
 
             {/* ── Main panel ── */}
-            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+            <div className="[flex:1] [overflow:hidden] [position:relative]">
                 {children}
             </div>
         </div>

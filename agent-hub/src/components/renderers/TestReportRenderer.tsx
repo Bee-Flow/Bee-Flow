@@ -58,18 +58,7 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
     };
 
     return (
-        <div style={{
-            width: '100%',
-            maxWidth: '100%',
-            overflow: 'hidden',
-            whiteSpace: 'normal',
-            fontFamily: 'var(--font-sans)',
-            margin: '0.5rem 0',
-            borderRadius: '1rem',
-            background: 'var(--bg-primary, #0a0a1a)',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            boxSizing: 'border-box',
-        }}>
+        <div className="[width:100%] [max-width:100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)] [margin:0.5rem_0] [border-radius:1rem] [background:var(--bg-primary,_#0a0a1a)] [border:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))] [box-sizing:border-box]">
             {/* ── Header ── */}
             <div style={{
                 padding: '1.5rem 1.5rem 1rem',
@@ -81,25 +70,13 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
                         : 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 50%)',
                 borderRadius: '1rem 1rem 0 0',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '1.25rem' }}>🧪</span>
-                    <h2 style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '700',
-                        color: 'var(--text-primary, #fff)',
-                        margin: 0,
-                    }}>
+                <div className="[display:flex] [align-items:center] [gap:0.5rem] [margin-bottom:0.25rem]">
+                    <span className="[font-size:1.25rem]">🧪</span>
+                    <h2 className="[font-size:1.25rem] [font-weight:700] [color:var(--text-primary,_#fff)] [margin:0]">
                         {data.title || 'Test Report'}
                     </h2>
                 </div>
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '1rem',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted, #888)',
-                    marginTop: '0.5rem',
-                }}>
+                <div className="[display:flex] [flex-wrap:wrap] [gap:1rem] [font-size:0.75rem] [color:var(--text-muted,_#888)] [margin-top:0.5rem]">
                     {data.url && <span>🌐 {data.url}</span>}
                     {data.timestamp && <span>📅 {new Date(data.timestamp).toLocaleString()}</span>}
                     {data.duration && <span>⏱ {data.duration}</span>}
@@ -114,28 +91,11 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
 
             {/* ── Recommendations ── */}
             {data.recommendations && data.recommendations.length > 0 && (
-                <div style={{
-                    padding: '1rem 1.5rem',
-                    borderTop: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-                }}>
-                    <div style={{
-                        fontSize: '0.8rem',
-                        fontWeight: '700',
-                        color: 'var(--text-primary, #fff)',
-                        marginBottom: '0.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                    }}>
+                <div className="[padding:1rem_1.5rem] [border-top:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))]">
+                    <div className="[font-size:0.8rem] [font-weight:700] [color:var(--text-primary,_#fff)] [margin-bottom:0.5rem] [display:flex] [align-items:center] [gap:0.4rem]">
                         💡 {t('chat.renderers.tests_recommendations', 'Recommendations')}
                     </div>
-                    <ul style={{
-                        margin: 0,
-                        paddingLeft: '1.25rem',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-secondary, #ccc)',
-                        lineHeight: 1.8,
-                    }}>
+                    <ul className="[margin:0] [padding-left:1.25rem] [font-size:0.8rem] [color:var(--text-secondary,_#ccc)] [line-height:1.8]">
                         {data.recommendations.map((rec, i) => (
                             <li key={i}>{typeof rec === 'string' ? rec : (rec?.description || rec?.action || JSON.stringify(rec))}</li>
                         ))}
@@ -145,13 +105,7 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
 
             {/* ── Notes ── */}
             {data.notes && (
-                <div style={{
-                    padding: '1rem 1.5rem',
-                    borderTop: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-secondary, #ccc)',
-                    lineHeight: 1.6,
-                }}>
+                <div className="[padding:1rem_1.5rem] [border-top:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))] [font-size:0.8rem] [color:var(--text-secondary,_#ccc)] [line-height:1.6]">
                     <MarkdownRenderer content={data.notes} />
                 </div>
             )}
@@ -162,20 +116,9 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
 export default TestReportRenderer;
 
 function TestReportRendererSection2({ passRate, t, summary, statusConfig, setFilter, filter }: { passRate: number; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; summary: { passed?: number; failed?: number; skipped?: number; warnings?: number; }; statusConfig: Record<string, { color: string; bg: string; icon: React.JSX.Element; label: string; }>; setFilter: React.Dispatch<React.SetStateAction<string>>; filter: string; }) {
-    return <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '0.5rem',
-        padding: '1rem 1.5rem',
-        borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-    }}>
+    return <div className="[display:grid] [grid-template-columns:repeat(5,_1fr)] [gap:0.5rem] [padding:1rem_1.5rem] [border-bottom:1px_solid_var(--border-subtle,_rgba(255,255,255,0.08))]">
         {/* Pass rate */}
-        <div style={{
-            textAlign: 'center',
-            padding: '0.75rem 0.5rem',
-            borderRadius: '0.75rem',
-            background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-        }}>
+        <div className="[text-align:center] [padding:0.75rem_0.5rem] [border-radius:0.75rem] [background:var(--bg-tertiary,_rgba(255,255,255,0.03))]">
             <div style={{
                 fontSize: '1.5rem',
                 fontWeight: '800',
@@ -184,14 +127,7 @@ function TestReportRendererSection2({ passRate, t, summary, statusConfig, setFil
             }}>
                 {passRate}%
             </div>
-            <div style={{
-                fontSize: '0.65rem',
-                color: 'var(--text-muted, #888)',
-                marginTop: '0.25rem',
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-            }}>
+            <div className="[font-size:0.65rem] [color:var(--text-muted,_#888)] [margin-top:0.25rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.5px]">
                 {t('chat.renderers.tests_pass_rate', 'Pass Rate')}
             </div>
         </div>
@@ -225,14 +161,7 @@ function TestReportRendererSection2({ passRate, t, summary, statusConfig, setFil
                     }}>
                         {val}
                     </div>
-                    <div style={{
-                        fontSize: '0.65rem',
-                        color: 'var(--text-muted, #888)',
-                        marginTop: '0.25rem',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                    }}>
+                    <div className="[font-size:0.65rem] [color:var(--text-muted,_#888)] [margin-top:0.25rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.5px]">
                         {sc.label}
                     </div>
                 </button>
