@@ -21,7 +21,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * during boot before that cost is worth paying. Falls back to a plain tag strip
  * if it cannot be loaded, so a write is never blocked on the sanitiser.
  *
- * @param {object} src        the incoming user data / update payload
+ * @param {Record<string, unknown> | null | undefined} src  the incoming user data / update payload
  * @param {{onlyPresent?: boolean}} opts  skip keys the caller did not supply
  */
 function sanitizeUserNames(src, { onlyPresent = false } = {}) {
