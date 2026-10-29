@@ -2161,16 +2161,6 @@
       "count": 1
     }
   },
-  "compliance/__tests__/smoke/iso-github-repos.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "compliance/__tests__/smoke/iso-governance.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "compliance/__tests__/smoke/iso-platform-controls.js": {
     "max-lines-per-function": {
       "count": 1

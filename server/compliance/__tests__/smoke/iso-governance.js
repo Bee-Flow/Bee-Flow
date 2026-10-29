@@ -8,19 +8,26 @@
 const { t, assertStatus, resetState, _state } = require('./harness');
 const incidentStore = require('../../../stores/incidentStore');
 
-module.exports = async function isoGovernance() {
-    // ONE extra store stub the base harness lacks (evidence enrichment only —
-    // status never depends on it). Stores are singletons, so assigning here,
-    // after the base stubs, is sufficient:
-    incidentStore.listNeedingAttention = async () => _state.incidentAttention || [];
-
-    const isoChecks = {
+/**
+ * The four governance checks, required when the scenario runs (after the
+ * harness has stubbed the stores they read).
+ */
+function loadIsoChecks() {
+    return {
         incidentMgmt: require('../../checks/iso27001/a5-24-incident-mgmt'),
         assetInventory: require('../../checks/iso27001/a5-9-asset-inventory'),
         suppliers: require('../../checks/iso27001/a5-20-suppliers'),
         evidenceIntegrity: require('../../checks/iso27001/a5-28-evidence-integrity'),
     };
+}
 
+/** @typedef {ReturnType<typeof loadIsoChecks>} IsoChecks */
+
+/**
+ * A.5.24 — incident management.
+ * @param {IsoChecks} isoChecks
+ */
+async function incidentManagement(isoChecks) {
     log.info('\n▶ ISO 27001 A.5.24 — Incident management');
     await t('pass with recipient and clean register', async () => {
         resetState();
@@ -54,7 +61,13 @@ module.exports = async function isoGovernance() {
         _state.incidentDeadlines = { open: 2, overdue_unnotified: 0, nearing_deadline: 0 };
         assertStatus(await isoChecks.incidentMgmt.evaluate('x'), 'pass', 'inside window');
     });
+}
 
+/**
+ * A.5.9 — asset inventory.
+ * @param {IsoChecks} isoChecks
+ */
+async function assetInventory(isoChecks) {
     log.info('\n▶ ISO 27001 A.5.9 — Asset inventory');
     await t('not_applicable when nothing is configured', async () => {
         resetState();
@@ -87,7 +100,13 @@ module.exports = async function isoGovernance() {
         _state.config['ai'] = { providers: [{ id: 'p1', type: 'openai' }] };
         assertStatus(await isoChecks.assetInventory.evaluate('x'), 'pass', 'providers only');
     });
+}
 
+/**
+ * A.5.20 — supplier agreements.
+ * @param {IsoChecks} isoChecks
+ */
+async function supplierAgreements(isoChecks) {
     log.info('\n▶ ISO 27001 A.5.20 — Supplier agreements');
     await t('not_applicable without observed traffic', async () => {
         resetState();
@@ -118,7 +137,13 @@ module.exports = async function isoGovernance() {
         }];
         assertStatus(await isoChecks.suppliers.evaluate('x'), 'warn', 'EU uncovered');
     });
+}
 
+/**
+ * A.5.28 — evidence chain integrity.
+ * @param {IsoChecks} isoChecks
+ */
+async function evidenceIntegrity(isoChecks) {
     // A.5.28 is verified through compliance/evidence/chain.verifyChain, which
     // reads compliance_evidence itself: an aggregate row (getOne) plus the
     // newest linked rows (getAll). These scenarios therefore build a REAL
@@ -167,7 +192,6 @@ module.exports = async function isoGovernance() {
         _state.dbOne = [{ query: /FROM compliance_evidence/, row: aggregate(rows, aggOpts) }];
         _state.dbRows = [{ query: /FROM compliance_evidence/, rows }];
     }
-
     log.info('\n▶ ISO 27001 A.5.28 — Evidence chain integrity');
     await t('warn when the chain has no recent rows', async () => {
         resetState();
@@ -220,5 +244,18 @@ module.exports = async function isoGovernance() {
         }
     });
     // ═══ end ISO 27001 governance fragment ══════════════════════════════════
+}
+
+module.exports = async function isoGovernance() {
+    // ONE extra store stub the base harness lacks (evidence enrichment only —
+    // status never depends on it). Stores are singletons, so assigning here,
+    // after the base stubs, is sufficient:
+    incidentStore.listNeedingAttention = async () => _state.incidentAttention || [];
+    const isoChecks = loadIsoChecks();
+
+    await incidentManagement(isoChecks);
+    await assetInventory(isoChecks);
+    await supplierAgreements(isoChecks);
+    await evidenceIntegrity(isoChecks);
 };
 const log = require('../../../telemetry/log');
