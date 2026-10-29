@@ -58,7 +58,7 @@ function bothSignals(a, b) {
  * }} ctx
  * @param {Partial<{ executeTool: Function, captureCall: Function, logEgress: Function, toolLoopGate: Function, logGuardrailEvent: Function }>|null} [overrides]
  * @returns {{
- *   read: (name: string, args: object, opts?: { signal?: AbortSignal }) => Promise<ReadResult>,
+ *   read: (name: string, args: Record<string, unknown>, opts?: { signal?: AbortSignal }) => Promise<ReadResult>,
  *   gate: { refuse: (toolName: string, args: object) => Promise<any>, forModel: (content: any, toolName: string) => Promise<any> },
  * }}
  */
@@ -72,7 +72,7 @@ function makeScanReader(ctx, overrides = null) {
 
     /**
      * @param {string} name
-     * @param {object} args
+     * @param {Record<string, unknown>} args  the tool's JSON arguments
      * @param {{ signal?: AbortSignal }} [opts]
      * @returns {Promise<ReadResult>}
      */
@@ -102,10 +102,10 @@ function makeScanReader(ctx, overrides = null) {
  * The reader as the `executeTool(name, args, { signal })` the pattern sources
  * take: a value, or a throw the source turns into a skipped step. The signal
  * is the source's own (its time limit), on top of the scan's.
- * @param {{ read: (name: string, args: object, opts?: { signal?: AbortSignal }) => Promise<ReadResult> }} reader
+ * @param {{ read: (name: string, args: Record<string, unknown>, opts?: { signal?: AbortSignal }) => Promise<ReadResult> }} reader
  */
 function asToolExecutor(reader) {
-    return async (/** @type {string} */ name, /** @type {object} */ args, /** @type {{ signal?: AbortSignal }} */ opts = {}) => {
+    return async (/** @type {string} */ name, /** @type {Record<string, unknown>} */ args, /** @type {{ signal?: AbortSignal }} */ opts = {}) => {
         const r = await reader.read(name, args, { signal: opts?.signal });
         if (r.ok) return r.value;
         // Its own code, so the scan's details say "blocked by Privacy Shield", not "could not be read".
