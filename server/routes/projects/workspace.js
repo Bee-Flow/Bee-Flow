@@ -40,8 +40,8 @@ const MAX_FILE_MB = 20;
  * @param {typeof import('../../projects/projectFiles')} [deps.projectFiles]
  * @param {typeof import('../../projects/myProjectChats')} [deps.myChats]  ({ list })
  * @param {typeof import('../../stores/projectStore').logActivity} [deps.logActivity]
- * @param {Function} [deps.emitProjectEvent]  core/projectFeed.emitProjectEvent; typed, the (...a) spread below does not compile
- * @param {Function} [deps.publishTransient]  core/projectEventBus.publishTransient; same
+ * @param {typeof import('../../core/projectFeed').emitProjectEvent} [deps.emitProjectEvent]
+ * @param {typeof import('../../core/projectEventBus').publishTransient} [deps.publishTransient]
  * @param {typeof import('./complianceSignal').signalProjectChanged} [deps.signalProjectChanged]
  * @param {import('express').RequestHandler} [deps.uploadLimiter]  rate limit for uploads
  * @param {import('express').RequestHandler} [deps.presenceLimiter]  rate limit for presence pings
@@ -60,9 +60,9 @@ function makeWorkspaceRouter(deps = {}) {
     const getProject = (id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
     /** @param {...unknown} a */
     const logActivity = (...a) => (deps.logActivity || require('../../stores/projectStore').logActivity)(...a);
-    /** @param {...unknown} a */
+    /** @type {typeof import('../../core/projectFeed').emitProjectEvent} */
     const emitProjectEvent = (...a) => (deps.emitProjectEvent || require('../../core/projectFeed').emitProjectEvent)(...a);
-    /** @param {...unknown} a */
+    /** @type {typeof import('../../core/projectEventBus').publishTransient} */
     const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // The project's files are something the project compliance checks read.
     /** @param {{ id: string }} project */
