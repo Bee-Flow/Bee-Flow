@@ -125,9 +125,9 @@ function normalizeOrgPolicy(stored, { env = process.env } = {}) {
     return /** @type {typeof DEFAULT_ORG_POLICY} */ (out);
 }
 
-/** @param {any} stored */
+/** @param {unknown} stored */
 function normalizeUserPreference(stored) {
-    const src = stored && typeof stored === 'object' ? stored : {};
+    const src = /** @type {Record<string, unknown>} */ (stored && typeof stored === 'object' ? stored : {});
     return {
         autoJoinOnMyMessages: typeof src.autoJoinOnMyMessages === 'boolean'
             ? src.autoJoinOnMyMessages
