@@ -22,6 +22,7 @@ const { AutomationError } = require('../automationErrors');
 /**
  * Every step reachable from `fromStepId` along the definition's edges.
  * @param {string} fromStepId
+ * @param {{ steps?: Array<{ id?: string; }>; edges?: Array<{ from?: string; to?: string; }>; } | null | undefined} definition
  */
 function stepsAfter(definition, fromStepId) {
     const out = new Set();

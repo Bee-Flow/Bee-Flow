@@ -137,6 +137,7 @@ async function assertKeyUnique(source, next, fieldId, entry, ctx) {
     // Typed like the pass mints the ids: a number key's spellings are one key.
     const check = identity.checkKeyColumn(read.rows, kd.col, entry.type || 'text');
     if (!check.unique) {
+        /** @type {string[]} */
         const why = [];
         if (check.missing) why.push(`${check.missing} rows have no value in it`);
         if (check.duplicate) why.push(`${check.duplicate} rows repeat a value${check.firstDuplicate ? ` ("${String(check.firstDuplicate).slice(0, 40)}")` : ''}`);

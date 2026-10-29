@@ -379,6 +379,7 @@ ${catalogTail}
 Begin now.`;
 }
 
+/** @typedef {{ catalog?: BuilderPromptCatalog }} RenderCatalogContextMessageArgs */
 /**
  * The per-user context for the small band, rendered into the LATE dynamic
  * message instead of the system prompt (buildLeanSystemPrompt with
@@ -386,6 +387,7 @@ Begin now.`;
  * documents — the same three renderers, the same three-way absent/none/list
  * rendering. It leads the dynamic message so the draft state can stay last.
  * Null when the caller has nothing to say (no catalog at all).
+ * @param {RenderCatalogContextMessageArgs} [param0]
  */
 function renderCatalogContextMessage({ catalog } = {}) {
     if (!catalog) return null;

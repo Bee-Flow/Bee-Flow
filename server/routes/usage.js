@@ -83,7 +83,7 @@ const { redactRow, redactRows } = require('./usageCustomerView');
 /**
  * @param {string} kind
  */
-async function maybeRedact(req, payload, kind) {
+async function maybeRedact(/** @type {import('express').Request} */ req, payload, kind) {
     // Self-hosted: no Stripe markup/reselling exists, so there's nothing to
     // redact — the operator sees raw tokens/cost. Redaction is purely a cloud
     // billing concern (serverLicenseGovernsOrgs() === self-hosted). The license
@@ -141,7 +141,7 @@ function buildRequestFilters(req) {
 /**
  * @param {NextFunction} next
  */
-async function attachOrgFilter(req, res, next) {
+async function attachOrgFilter(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     const orgId = await getOrgFilter(req);
     req.usageFilters = buildRequestFilters(req);

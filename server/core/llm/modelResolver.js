@@ -235,6 +235,7 @@ async function resolveModelForTier(rawModel, { userOrgId = null, userId = null, 
 /**
  * Resolve a model and fall back to the global default if tier resolution fails.
  * A convenience wrapper that guarantees a non-null return (if global config has a model).
+ * @param {string | null} rawModel
  */
 async function resolveModelWithGlobalFallback(rawModel, opts = {}) {
     const resolved = await resolveModelForTier(rawModel, opts);
@@ -253,6 +254,7 @@ async function resolveModelWithGlobalFallback(rawModel, opts = {}) {
 // an agent saved with `tier:smart` is rejected by PUT /agents/:id with a 403.
 // `pro` is deliberately NOT normalized here — it is a first-class key across the
 // allow-list and the UI, so rewriting it would change existing agents' display.
+/** @type {Record<string, string>} */
 const LEGACY_TIER_ALIASES = { smart: 'thinking' };
 
 /**
@@ -348,6 +350,7 @@ const MISTRAL_API_ID = /^(mistral|ministral|magistral|codestral|devstral|pixtral
  * Detection goes through the shared family table in providers/localModels so
  * `qwen3:30b`, `Qwen/Qwen3-30B-A3B` and `Qwen3-30B-Q4_K_M.gguf` all resolve to
  * the same answer.
+ * @param {string} modelId
  */
 function isReasoningModel(modelId) {
     if (!modelId || typeof modelId !== 'string') return false;
@@ -392,6 +395,7 @@ function isReasoningModel(modelId) {
  * Returns null for other models, which keep the generic 'medium' default.
  * OpenAI and Mistral answer from their catalogs; for Mistral that answer is
  * `none` (see mistralModels.cheapestMistralEffort).
+ * @param {string} modelId
  */
 function _cheapestEffort(modelId) {
     modelId = require('../providers/azureDeployments').azureModelFor(modelId);
@@ -445,6 +449,7 @@ function applyReasoningDefaults(merged, userConfig, tierName) {
  * Reasoning-capable models auto-enable `reasoningSummary` + a `medium`
  * reasoningEffort so users see the model's thought process stream before
  * the final answer (parallel to the typing-dots/phase indicator).
+ * @param {string} tierName
  */
 async function getTierConfig(tierName, /** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
     // Custom tiers carry their own full config — no TIER_DEFAULTS fallback needed.

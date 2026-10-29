@@ -1,3 +1,5 @@
+/** @typedef {import('./formAnswers/provision').AutomationRef} AutomationRef */
+/** @typedef {import('./formAnswers/derive').Def} Def */
 /**
  * The helpers an automation's save, activation and publish share — moved out of
  * routes/automation/crud.js so that code below routes/ (the go-live cores in
@@ -171,6 +173,8 @@ function makeLiveSideEffects(deps = {}) {
      * rides back as `answers`, a failure never fails the save. Returns the
      * usage entry the dependents index needs, so the table's "used by" names
      * the automation and a DELETE of the table warns.
+     * @param {AutomationRef} automation
+     * @param {Def} definition
      */
     async function ensureAnswersTable(automation, definition) {
         try {

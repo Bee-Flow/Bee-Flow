@@ -117,7 +117,10 @@ async function isMemoryEnabledForOrg(orgId) {
     }
 }
 
-/** Config key holding the per-user master switch. */
+/**
+ * Config key holding the per-user master switch.
+ * @param {string | undefined} userId
+ */
 function memoryEnabledKey(userId) {
     return `memory_enabled_user_${userId}`;
 }

@@ -40,6 +40,10 @@ function makeBlock(type, contentOverride) {
     };
 }
 
+/**
+ * @param {string} siteId
+ * @param {string} pageId
+ */
 async function getPage(siteId, pageId, { fresh = false } = {}) {
     assertSiteId(siteId);
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
@@ -106,6 +110,7 @@ async function mutatePage(siteId, pageId, change, { attempts = 5 } = {}) {
 // Forgiving aliases for casing/spelling variants of our block type strings —
 // mirrors agent-hub/src/components/admin/ProductWebsite/blockSchema.js so client
 // import and server persist agree on which blocks survive.
+/** @type {Record<string, string>} */
 const BLOCK_TYPE_ALIASES = {
     'social-proof': 'socialProof', socialproof: 'socialProof',
     'tech-stats': 'techStats', techstats: 'techStats', stats: 'techStats',
@@ -179,6 +184,10 @@ function sanitizeBlock(block) {
     return normalizeBlockRecord(block, -1).block;
 }
 
+/**
+ * @param {string} siteId
+ * @param {string} pageId
+ */
 async function deletePage(siteId, pageId) {
     assertSiteId(siteId);
     await configStore.deleteConfig(pageKey(siteId, pageId));

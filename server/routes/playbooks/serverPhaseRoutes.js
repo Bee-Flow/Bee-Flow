@@ -50,7 +50,7 @@ function register(router, ctx) {
     /**
      * @param {string} key
      */
-    const runTable = async (req, res, pb, key, progress = null) => {
+    const runTable = async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, pb, key, progress = null) => {
         const recipe = resolveRecipe(pb);
         const cur = lifecycle.phaseByKey(pb.phases, key);
         if (!cur || cur.status !== 'ready') return sendErr(res, 409, 'phase_not_ready', `The table phase is ${cur ? cur.status : 'missing'}.`, { from: cur ? cur.status : null, to: 'running' });
@@ -94,7 +94,7 @@ function register(router, ctx) {
     /**
      * @param {string} key
      */
-    const runFill = async (req, res, pb, key) => {
+    const runFill = async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, pb, key) => {
         const cur = lifecycle.phaseByKey(pb.phases, key);
         if (!cur || cur.status !== 'ready') return sendErr(res, 409, 'phase_not_ready', `The fill phase is ${cur ? cur.status : 'missing'}.`, { from: cur ? cur.status : null, to: 'running' });
         const automation = automationBefore(pb.phases, key);
@@ -150,7 +150,7 @@ function register(router, ctx) {
     /**
      * @param {string} key
      */
-    const runDesign = async (req, res, pb, key) => {
+    const runDesign = async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, pb, key) => {
         const recipe = resolveRecipe(pb);
         const cur = lifecycle.phaseByKey(pb.phases, key);
         // A REVISION: the design landed, the person asks for something else.
@@ -270,7 +270,7 @@ function register(router, ctx) {
     };
 
     // One route for the phases the server runs; the phase's KIND decides.
-    router.post('/:id/phases/:key/run', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/:id/phases/:key/run', requireManageApps, runLimiter, async (req, /** @type {import('express').Response} */ res) => {
         const parsed = check(res, RunBody, req.body, 'bad_patch');
         if (!parsed.ok) return;
         req.body = parsed.value;

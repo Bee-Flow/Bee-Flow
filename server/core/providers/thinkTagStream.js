@@ -71,6 +71,10 @@ function matchAny(s, tags) {
     return tags.find(tag => s.startsWith(tag)) || null;
 }
 
+/** @typedef {{ onText: (s: string) => void, onThinking: (s: string) => void, onThinkingStart?: () => void, onThinkingStop?: () => void }} CreateThinkTagSplitterArgs */
+/**
+ * @param {CreateThinkTagSplitterArgs} param0
+ */
 function createThinkTagSplitter({ onText, onThinking, onThinkingStart, onThinkingStop }) {
     // phase: 'start' — deciding whether the turn opens with a think tag;
     //        'thinking' — inside a tag, scanning for the close;

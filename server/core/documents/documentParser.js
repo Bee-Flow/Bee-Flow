@@ -74,6 +74,7 @@ async function parseDocument(buffer, mimeType, filename, options = {}) {
 /**
  * @param {Buffer<ArrayBufferLike>} buffer
  * @param {string} filename
+ * @param {{ returnHtml?: boolean; }} [options]
  */
 async function parseDocx(buffer, filename, options = {}) {
     try {

@@ -479,6 +479,7 @@ async function getServersForUser(userId) {
  * probed at admin-install time) get their tools_cache populated so agents can
  * use them.
  * @param {string} userId
+ * @param {string} serverId
  */
 async function discoverWithUserCreds(serverId, userId) {
     const server = await mcpStore.getServer(serverId);

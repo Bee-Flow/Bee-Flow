@@ -192,7 +192,7 @@ async function backfillDeadlines() {
         // Never fail the boot over a correction: an unbackfilled row is wrong
         // in the same way it was yesterday, while a rejected initDB promise
         // would take every read of the register down with it.
-        log.error('[IncidentStore] deadline backfill failed:', err.message);
+        log.error('[IncidentStore] deadline backfill failed:', /** @type {Error} */ (err).message);
     }
     return { scanned, moved };
 }
@@ -552,6 +552,9 @@ async function listOpenClocks(orgId) {
  * the roll-up, which is what they mean.
  */
 const GDPR_NOTIFICATION_HOURS = REGIME_CLOCKS.GDPR.notificationHours;
+/**
+ * @param {string} orgId
+ */
 async function getDeadlineStats(orgId) {
     await initDB();
     const gdprDue = `detected_at + INTERVAL '${GDPR_NOTIFICATION_HOURS} hours'`;
@@ -582,7 +585,10 @@ async function getDeadlineStats(orgId) {
     };
 }
 
-/** Open incidents whose deadline is near or past — for the daily notifier. */
+/**
+ * Open incidents whose deadline is near or past — for the daily notifier.
+ * @param {string} orgId
+ */
 async function listNeedingAttention(orgId) {
     await initDB();
     return getAll(`

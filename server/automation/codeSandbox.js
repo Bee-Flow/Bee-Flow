@@ -104,6 +104,7 @@ const SECRETS_NOT_CONFIGURED_MESSAGE =
  * @param {number} def
  * @param {number} min
  * @param {number} max
+ * @param {number | undefined} value
  */
 function clampLimit(value, def, min, max) {
     if (value == null) return def; // missing/null → default (Number(null) is 0, not NaN)
@@ -112,6 +113,9 @@ function clampLimit(value, def, min, max) {
     return Math.max(min, Math.min(n, max));
 }
 
+/**
+ * @param {{ memoryMb?: number; cpuMs?: number; wallMs?: number; httpBudget?: number; }} [limits]
+ */
 function clampLimits(limits = {}) {
     return {
         memoryMb: clampLimit(limits.memoryMb, DEFAULT_LIMITS.memoryMb, 8, MAX_LIMITS.memoryMb),

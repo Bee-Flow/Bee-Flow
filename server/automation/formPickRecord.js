@@ -141,6 +141,7 @@ async function runTool(toolName, args, caller) {
  * person may see before a single word is matched.
  * @param {string} query
  * @param {number} limit
+ * @param {Caller} caller
  */
 async function searchMeetingNotes(query, limit, caller) {
     const store = require('../stores/transcriptionStore');

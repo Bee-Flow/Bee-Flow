@@ -75,6 +75,9 @@ function isEnvelope(value) {
     return false;
 }
 
+/**
+ * @param {string} value
+ */
 function _toObject(value) {
     return typeof value === 'string' ? JSON.parse(value) : value;
 }

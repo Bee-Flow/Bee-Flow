@@ -116,6 +116,7 @@ function identityOf(source) {
  * @returns {{ ids:(string|null)[], missing:number, duplicate:number, blank:number }}
  */
 function assignRowIds(rows, rowNumbers, { mode, keyCol = null, keyType = 'text' } = {}) {
+    /** @type {(string | null)[]} */
     const ids = [];
     let missing = 0;
     let duplicate = 0;
@@ -147,6 +148,7 @@ function assignRowIds(rows, rowNumbers, { mode, keyCol = null, keyType = 'text' 
 function checkKeyColumn(rows, keyCol, keyType = 'text') {
     let missing = 0;
     let duplicate = 0;
+    /** @type {string | null} */
     let firstDuplicate = null;
     const seen = new Set();
     for (const cells of rows) {

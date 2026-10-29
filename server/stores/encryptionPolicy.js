@@ -143,7 +143,10 @@ function _cacheGet(key) {
     return hit.policy;
 }
 
-/** @param {string} key */
+/**
+ * @param {string} key
+ * @param {Readonly<{ tier: string; enabled: boolean; scope: Record<string, boolean>; }>} policy
+ */
 function _cacheSet(key, policy) {
     if (_cache.size >= CACHE_MAX) {
         // Cheap eviction: drop the oldest inserted entry.

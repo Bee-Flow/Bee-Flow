@@ -221,6 +221,7 @@ function readCell(v) {
  */
 function gridCell(c) {
     const ev = (c && c.effectiveValue) || null;
+    /** @type {string | number | boolean | null} */
     let value = null;
     if (ev) {
         if (ev.numberValue !== undefined) value = ev.numberValue;

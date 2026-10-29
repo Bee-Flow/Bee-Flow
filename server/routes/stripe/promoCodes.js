@@ -97,7 +97,7 @@ const { hasPermission } = require('../../auth/permissions');
 /**
  * @param {NextFunction} next
  */
-async function requireAdmin(req, res, next) {
+async function requireAdmin(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
     // Check RBAC permissions

@@ -158,6 +158,9 @@ async function buildPresentation({ deck, theme = null, title = null, author = nu
     // An emphasis slide (style accent/dark) paints on its own master, defined
     // the first time one is needed, with the theme re-resolved on that surface.
     const variants = {};
+    /**
+     * @param {string | null} style
+     */
     const themeFor = (style) => {
         if (!style || style === th.variant || th.template) return { th, master: 'BF_CONTENT' };
         if (!variants[style]) {

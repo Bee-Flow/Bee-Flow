@@ -145,6 +145,7 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
 
     let piiResult = null;
     let piiFailed = false;
+    /** @type {string | null} */
     let failReason = null;
     try {
         if (piiEnabled) {
@@ -190,7 +191,7 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
     } catch (err) {
         piiFailed = true;
         failReason = 'pii_unavailable';
-        log.warn('[DLP] PII scan failed:', err.message);
+        log.warn('[DLP] PII scan failed:', /** @type {Error} */ (err).message);
     }
 
     let piiEntities = piiResult?.hasPii ? _normalisePiiEntities(piiResult.entities) : [];
@@ -292,6 +293,8 @@ async function applyRedactionChoice({ conversationId, text, findings, ephemeral 
  * both of which produce their own tokenMap but historically dropped it after
  * rewriting the user message — which meant tokens leaked through to the user
  * when DLP itself was disabled.
+ * @param {string} conversationId
+ * @param {Record<string, string>} tokenMap
  */
 function mergeTokenMap(conversationId, tokenMap) {
     if (!conversationId || !tokenMap) return;

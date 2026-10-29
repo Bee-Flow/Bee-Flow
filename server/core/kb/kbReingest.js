@@ -23,6 +23,9 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * @param {{ strict?: boolean, deleteLocal?: typeof import('./localKBIngest').deleteChunksLocally }} [opts]  `strict`
  *   (default false): throw if the remote cleanup is not demonstrably done, instead of warning;
  *   `deleteLocal` a test seam for localKBIngest.deleteChunksLocally
+ * @param {string} kbId
+ * @param {string} docId
+ * @param {string} tenantId
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -67,7 +70,11 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, dele
     }
 }
 
-/** The documents of a base a Solution stage carries change by deploy only (managed_part otherwise). */
+/**
+ * The documents of a base a Solution stage carries change by deploy only (managed_part otherwise).
+ * @param {string} kbId
+ * @param {{ deploymentId?: string; } | null} managedWrite
+ */
 async function assertKbDocumentsWrite(kbId, managedWrite) {
     if (typeof kbStore.assertKbWrite !== 'function') return;
     await kbStore.assertKbWrite(kbId, ['documents'], managedWrite, { carryOnly: true });

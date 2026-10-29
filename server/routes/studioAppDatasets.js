@@ -191,7 +191,7 @@ async function audienceFor(req) {
     return { orgIdArr, userGroups: Array.isArray(userGroups) ? userGroups : [] };
 }
 
-async function loadVisibleApp(req, res) {
+async function loadVisibleApp(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
@@ -205,7 +205,7 @@ async function loadVisibleApp(req, res) {
     return app;
 }
 
-async function viewerRoleFor(req, app) {
+async function viewerRoleFor(/** @type {import('express').Request} */ req, app) {
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
     const model = meta && meta.model && typeof meta.model === 'object' ? meta.model : null;
     if (!model || !Array.isArray(model.tables)) return { model: null, role: null };
@@ -214,7 +214,7 @@ async function viewerRoleFor(req, app) {
     return { model, role: role || null };
 }
 
-async function viewerMayUpload(req, app) {
+async function viewerMayUpload(/** @type {import('express').Request} */ req, app) {
     if (app.userId === req.session.user.id) return true;
     const { model, role } = await viewerRoleFor(req, app);
     return attachmentAccess.roleMayWriteSomewhere(model, role);
@@ -222,19 +222,19 @@ async function viewerMayUpload(req, app) {
 
 // Reading dataset status: the owner, or any viewer with a mapped role — and
 // then only their own datasets (isMine).
-async function viewerMayRead(req, app) {
+async function viewerMayRead(/** @type {import('express').Request} */ req, app) {
     if (app.userId === req.session.user.id) return true;
     const { role } = await viewerRoleFor(req, app);
     return role !== null;
 }
 
 // List, single, parts, complete: the person who uploaded it — see the header.
-function isMine(req, ds) {
+function isMine(/** @type {import('express').Request} */ req, ds) {
     return isUploaderOf(ds, req.session.user.id);
 }
 
 // Delete: the uploader, or the owner whose storage it occupies.
-function mayDelete(req, app, ds) {
+function mayDelete(/** @type {import('express').Request} */ req, app, ds) {
     return isMine(req, ds) || req.session.user.id === app.userId;
 }
 

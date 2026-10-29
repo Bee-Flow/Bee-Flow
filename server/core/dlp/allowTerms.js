@@ -34,7 +34,10 @@
 const { PUBLIC_ORGANISATIONS } = require('./publicOrgs');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 
-/** Case-, punctuation- and whitespace-insensitive comparison key. */
+/**
+ * Case-, punctuation- and whitespace-insensitive comparison key.
+ * @param {string | null | undefined} value
+ */
 function normaliseAllowValue(value) {
     return String(value || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }

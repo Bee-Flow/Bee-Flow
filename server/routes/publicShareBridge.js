@@ -82,7 +82,7 @@ const PUBLIC_MAX_SCHEMA_CHARS = PUBLIC_MAX_PROMPT_CHARS * 2;
  * Request after requireShareBridgeToken, which stashes the verified claims on it.
  * @typedef {import('express').Request & { shareBridgeClaims: { shareId: string, webpageId: string } }} ShareBridgeReq
  */
-function requireShareBridgeToken(req, res, next) {
+function requireShareBridgeToken(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     const auth = req.headers['authorization'] || req.headers['Authorization'];
     const m = (typeof auth === 'string' ? auth : '').match(/^Bearer\s+(.+)$/i);
     if (!m) return res.status(401).json({ error: 'Missing bearer token' });

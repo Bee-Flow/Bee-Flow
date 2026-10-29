@@ -219,6 +219,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
         .sort((a, b) => new Date(b.end || 0).getTime() - new Date(a.end || 0).getTime())
         .slice(0, 10);
 
+    /** @type {({ eventId: string; title: string; start: string | null; end: string | null; recordingState: string; importedNoteId: string | null; })[]} */
     const items = [];
     for (const m of meetings) {
         // Teams needs time to process a recording: inside the import deadline an

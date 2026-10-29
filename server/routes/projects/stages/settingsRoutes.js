@@ -133,7 +133,7 @@ function makeSettingsHandlers(d) {
     }
 
     /** PATCH /:id/stages/:stage/parts/:ref (and the drain router's, `active` only). */
-    async function patchPart(req, res) {
+    async function patchPart(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const { stage, userId } = ctx;
         const { stamp, shape } = await partOf(stage, req.params.ref);
@@ -205,7 +205,7 @@ function makeSettingsHandlers(d) {
      * @param {boolean} pause
      */
     function pauseHandler(pause) {
-        return async function pauseResume(req, res) {
+        return async function pauseResume(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
             const ctx = req.stageCtx;
             const out = await setPaused(ctx, pause);
             if (out.changed) {
@@ -225,7 +225,7 @@ function makeSettingsHandlers(d) {
      * GET /:id/stages/:stage/variables and the drain router's: the declarations
      * (steering marked) and what was entered, next to what runs.
      */
-    async function getValues(req, res) {
+    async function getValues(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const target = ctx.stageName === 'dev' ? ctx.dev.id : ctx.stage.projectId;
         const [decls, values] = await Promise.all([declarationsFor(d, ctx), d.stageStore.listVariableValues(target)]);
@@ -242,7 +242,7 @@ function makeSettingsHandlers(d) {
      * router's (`opts.drain`: non-steering values only, whoever asks).
      */
     function putValuesHandler({ drain = false } = {}) {
-        return async function putValues(req, res) {
+        return async function putValues(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
             const ctx = req.stageCtx;
             const onDev = ctx.stageName === 'dev';
             const target = onDev ? ctx.dev.id : ctx.stage.projectId;
@@ -302,7 +302,7 @@ function makeSettingsRouter(d, h) {
     const turnsGateOn = (req) => !!req.body && req.body.requiresApproval === true;
 
     /** PATCH /:id/stages/:stage */
-    async function patchStage(req, res) {
+    async function patchStage(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const ctx = req.stageCtx;
         const { stage, userId } = ctx;
         const body = req.body;

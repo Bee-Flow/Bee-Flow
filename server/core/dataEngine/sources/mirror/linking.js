@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MAKING mirrors — the part of linking that is the same for every source.
  *

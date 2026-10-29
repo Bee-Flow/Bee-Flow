@@ -108,6 +108,9 @@ function _isoChecksByControl() { return checksByFrameworkRef('ISO27001'); }
 // framework's rows never surface (they are not run or persisted either — rows
 // from before a disable are hidden the same way). Regulations the policy does
 // not know (legacy rows of a deleted check) fall back to the row's own column.
+/**
+ * @param {string} orgId
+ */
 async function activeResultsFilter(orgId, opts = {}) {
     const frameworkPolicy = require('../../compliance/frameworkPolicy');
     const active = await frameworkPolicy.activeRegulations(orgId, opts);

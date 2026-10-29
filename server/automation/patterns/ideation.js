@@ -211,6 +211,7 @@ async function runIdeasScan(input, overrides = null) {
         }
         /** @type {string} */
         let guardedText;
+        /** @type {string[]} */
         let categories = [];
         let blocked = false;
         try {

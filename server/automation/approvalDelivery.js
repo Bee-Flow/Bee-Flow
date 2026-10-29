@@ -47,11 +47,15 @@ const {
 } = require('./approvalAnnouncement');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
-/** Org-level default conversation for approval cards (plain config, not a secret). */
+/**
+ * Org-level default conversation for approval cards (plain config, not a secret).
+ * @param {string} orgId
+ */
 function talkRoomConfigKey(orgId) {
     return `nc_approvals_talk_room_${orgId}`;
 }
 
+/** @typedef {{ automation?: ApprovalAutomation | null, approval?: Approval | null, orgId?: string | null }} ResolveTalkRoomArgs */
 /**
  * Which Talk conversation does this approval's card belong in?
  *
@@ -61,6 +65,7 @@ function talkRoomConfigKey(orgId) {
  * conversations a moderator deliberately added it to, so an invented room
  * would 401, and posting as an impersonated user into someone's private chat
  * is a different product decision than the one this feature made.
+ * @param {ResolveTalkRoomArgs} param0
  */
 async function resolveTalkRoom({ automation = null, approval = null, orgId = null }) {
     // `talkRoom` is the handoff 5 name; `ncTalkRoom` what older automations stored.
@@ -77,7 +82,10 @@ async function resolveTalkRoom({ automation = null, approval = null, orgId = nul
     } catch { return null; }
 }
 
-/** The stage a card is announcing, and where it sits in the chain. */
+/**
+ * The stage a card is announcing, and where it sits in the chain.
+ * @param {Approval} approval
+ */
 function stageContext(approval) {
     try {
         const approvalService = require('./approvalService');

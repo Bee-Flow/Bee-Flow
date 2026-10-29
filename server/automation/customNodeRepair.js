@@ -66,6 +66,9 @@ const MAX_REPAIR_ATTEMPTS = 3;
 // an author-supplied bill (one model call and one V8 isolate per turn).
 const ATTEMPT_CEILING = 5;
 
+/**
+ * @param {{ code?: string; } | null} v
+ */
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -156,7 +159,10 @@ function notRepaired(reason, message, attempts, extra = {}) {
     };
 }
 
-/** A model's answer, in whichever of the two shapes it comes back as. */
+/**
+ * A model's answer, in whichever of the two shapes it comes back as.
+ * @param {string | { code?: string; } | null} answer
+ */
 function proposedCode(answer) {
     if (typeof answer === 'string') return answer.trim() ? answer : null;
     if (isObject(answer) && typeof answer.code === 'string' && answer.code.trim()) return answer.code;
@@ -250,6 +256,7 @@ async function repairCodeBody({
         if (n === bound) break;
 
         emit('repairing', { attempt: n, error: evidence.error });
+        /** @type {string | { code?: string; } | null} */
         let answer;
         try {
             answer = await proposeFix({
@@ -340,6 +347,7 @@ function replaceStep(graph, target, next) {
  * the node comes back with the repaired body in place; on failure the node is
  * NOT returned changed, for the reason in the header.
  * @param {RepairCustomNodeArgs} [param0]
+ * @param {RepairDeps} [deps]
  */
 async function repairCustomNode({ definition, inputs = {}, maxAttempts, goal = '', onProgress = null } = {}, deps = defaultDeps()) {
     const { customNodeBody, customNodeContract, sandboxAllowedTools } = require('./customNode');

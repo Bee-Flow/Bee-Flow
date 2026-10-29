@@ -22,10 +22,19 @@ function deps() {
     };
 }
 
+/**
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ * @param {{ errorClass?: string | null; ref?: import("./errors").ErrorRef | null; detail?: string | string[] | null; datatableId?: string | null; reason?: string | null; header?: string | null; key?: string | null; } | undefined} [extra]
+ */
 function rejected(status, code, message, extra) {
     return new SpreadsheetSourceError(status, code, message, extra);
 }
 
+/**
+ * @param {string | undefined} provider
+ */
 function assertProvider(provider) {
     if (!PROVIDERS.includes(provider)) {
         throw rejected(400, 'spreadsheet_rejected', `Say which storage to use (${PROVIDERS.join(', ')}).`);
@@ -123,6 +132,7 @@ async function browse(session, principal, scope, { provider, folderId = null, q 
     }
     const ctx = await callerApi(session, principal, provider);
     let view = 'mine';
+    /** @type {string | { id: string; driveId: string; } | null} */
     let parentId = null;
     let path = '/';
     if (term) {
@@ -156,9 +166,13 @@ async function browse(session, principal, scope, { provider, folderId = null, q 
     return { provider, folder, items, nextPageToken: res.nextPageToken || null };
 }
 
-/** `/Documents/Q3` → [{ id:'/Documents', name:'Documents' }, { id:'/Documents/Q3', name:'Q3' }]. */
+/**
+ * `/Documents/Q3` → [{ id:'/Documents', name:'Documents' }, { id:'/Documents/Q3', name:'Q3' }].
+ * @param {string} path
+ */
 function crumbs(path) {
     const parts = String(path || '').split('/').filter(Boolean);
+    /** @type {{ id: string; name: string; }[]} */
     const out = [];
     let acc = '';
     for (const p of parts) { acc += `/${p}`; out.push({ id: acc, name: p }); }
@@ -177,6 +191,7 @@ function crumbs(path) {
  * OneDrive folder keeps its `drive|item` spelling).
  */
 async function folderTrail(ctx, provider, first) {
+    /** @type {({ id: string | null; name: string; })[]} */
     const up = [];
     const seen = new Set();
     let cur = first && first.id ? { fileId: String(first.id), driveId: first.driveId || null } : null;

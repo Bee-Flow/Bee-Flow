@@ -79,6 +79,7 @@ async function askAssistantFor(ctx, req, { project, chat, userId, stored, conten
     // organisation on every post: a withdrawn `always` acts as `mention`.
     // (`auto` is re-checked by the participation engine itself.)
     const aiMode = chat.aiMode === 'always' ? effectiveAiMode(chat.aiMode, await ctx.aiPolicyFor(project)) : chat.aiMode;
+    /** @type {string | null} */
     let agentName = null;
     // The agent's name only matters for "@<agent name>" in mention and auto
     // mode, and only an agent the poster may use can be addressed by them.

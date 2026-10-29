@@ -215,7 +215,7 @@ function announceCreated({ thread, firstMsg, requesterEmail, requesterName, subj
  * announcements, and the AI auto-responder (fire-and-forget). Returns what
  * the route answers with.
  */
-async function openTicket(req, r, val) {
+async function openTicket(/** @type {import('express').Request} */ req, r, val) {
     const userId = getUserId(req);
     // For in_app: source must match a logged-in user.
     const effectiveSource = userId ? 'in_app' : 'marketing';

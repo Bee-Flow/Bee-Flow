@@ -158,7 +158,7 @@ function mountBase(req) {
  * @param {string} shareId
  * @param {string | null} email
  */
-function setUnlockCookie(req, res, shareId, email) {
+function setUnlockCookie(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, shareId, email) {
     const token = publicShareToken.issueUnlockCookie({ shareId, email });
     res.cookie(UNLOCK_COOKIE_NAME, token, {
         httpOnly: true,
@@ -174,7 +174,7 @@ function setUnlockCookie(req, res, shareId, email) {
 /**
  * @param {string} shareId
  */
-function getUnlockClaim(req, shareId) {
+function getUnlockClaim(/** @type {import('express').Request} */ req, shareId) {
     const cookieHeader = req.headers.cookie || '';
     const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${UNLOCK_COOKIE_NAME}=([^;]+)`));
     if (!m) return null;
@@ -186,7 +186,7 @@ function getUnlockClaim(req, shareId) {
 // unlock cookie, so these accept EITHER the unlock cookie OR a valid view
 // token (query `v`) minted at chrome-render time. Returns { email } on
 // success (email may be null for password/unlisted) or null when gated-out.
-function resolveSubResourceGate(req, share) {
+function resolveSubResourceGate(/** @type {import('express').Request} */ req, share) {
     if (share.accessMode === 'unlisted') return { email: null };
     // Cookie (same-site top-level fallback), else the view token: the opaque-origin sub-frame's real authorization.
     const claim = getUnlockClaim(req, share.id) || publicShareToken.verifyViewToken(viewTokenOf(req), share.id);
@@ -460,7 +460,7 @@ const formParser = express.urlencoded({ extended: false, limit: '4kb' });
  *
  * @returns {{share, addr, base}|null}
  */
-async function resolveShareOr404(req, res) {
+async function resolveShareOr404(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const base = mountBase(req);
     const addr = req.params.token;
     const notFound = () => {
@@ -578,7 +578,7 @@ router.get('/:token', async (req, res) => {
  * @param {string} nonce
  * @param {string | null} [viewerEmail]
  */
-async function renderChrome(req, res, share, { addr, base }, nonce, viewerEmail) {
+async function renderChrome(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, share, { addr, base }, nonce, viewerEmail) {
     const publisher = await lookupPublisher(share);
     setSecurityHeaders(res, { nonce });
     // Mint a short-lived view token bound to this share. The content iframe

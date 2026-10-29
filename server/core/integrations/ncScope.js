@@ -72,6 +72,9 @@ function userKey(userId) { return `user_nc_scope_${userId}`; }
  * @param {string} orgId
  */
 function orgKey(orgId) { return `org_nc_scope_${orgId}`; }
+/**
+ * @param {string} agentId
+ */
 function agentKey(agentId) { return `agent_nc_scope_${agentId}`; }
 
 /**
@@ -219,6 +222,7 @@ async function getUserScopeDoc(userId) {
     return await configStore.getConfig(userKey(userId));
 }
 
+/** @typedef {{ orgId?: string | null, userId?: string | null | undefined, agentId?: string | null }} ResolveNcScopeArgs */
 /**
  * Resolve the EFFECTIVE scope for a caller: Map-like plain object
  * { [integrationId]: { mode, selected: Set<string> } } covering every
@@ -227,6 +231,7 @@ async function getUserScopeDoc(userId) {
  * agentId is accepted now, composed last (a further narrowing layer), so a
  * future per-agent identity story needs no signature change. No UI writes
  * agent docs yet.
+ * @param {ResolveNcScopeArgs} [param0]
  */
 async function resolveNcScope({ orgId = null, userId = null, agentId = null } = {}) {
     // No catch on these reads: "the store is down" and "no scope stored"

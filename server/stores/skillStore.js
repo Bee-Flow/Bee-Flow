@@ -67,6 +67,12 @@ const { isMissingTable } = require('../utils/isMissingTable');
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
 // A skill in a Solution stage project is a deployed copy of a Dev skill: Dev
 // is what syncs, so the stage copy never becomes a pending GitHub change.
+/**
+ * @param {string} orgId
+ * @param {string} skillId
+ * @param {string} [action]
+ * @param {string | null} [projectId]
+ */
 async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = null) {
     if (!orgId) return;
     try {
@@ -295,6 +301,7 @@ async function updateSkill(id, userId, updates, opts = {}) {
     // placeholders continue where the SET clause left off.
     const params = built.params;
     let idx = params.length + 1;
+    /** @type {string} */
     let where;
     if (managerOrgId) {
         where = `WHERE id = $${idx++} AND (user_id = $${idx++} OR (org_id IS NOT NULL AND org_id = $${idx++}))`;
@@ -317,6 +324,9 @@ async function updateSkill(id, userId, updates, opts = {}) {
  * "not found" rather than learning which Solution holds the skill.
  *
  * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ * @param {string} id
+ * @param {string} userId
+ * @param {boolean} [isAdmin]
  */
 async function deleteSkill(id, userId, isAdmin = false, opts = {}) {
     await initDB();

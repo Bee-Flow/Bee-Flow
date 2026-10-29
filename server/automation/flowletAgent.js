@@ -135,6 +135,7 @@ function layerStepsView(def, layerKey) {
  * @returns {Validation}
  */
 function layerValidation(def, layerKey) {
+    /** @type {{ ok: boolean; errors: object[]; warnings: object[]; }} */
     let v;
     try { v = validateDefinition(def, { deliverableEvents: getDeliverableEvents() }); }
     catch (_) { return { errors: [], warnings: [] }; }
@@ -241,9 +242,10 @@ async function runLayerAgent({
         const args = { ...(rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs) ? rawArgs : {}) };
         if (SCOPED_GRAPH_TOOLS.has(name)) args.scope = layerKey;        // scope lock
         if (name === 'builder_set_layer_contract') args.layerKey = layerKey;
+        /** @type {{ error: string; }} */
         let result;
         try { result = await applyToolCall(name, args, draftWrap); }
-        catch (e) { result = { error: e.message }; }
+        catch (e) { result = { error: /** @type {Error} */ (e).message }; }
         send('tool_call', { layerKey, name, arguments: args, result });
         return result;
     };
@@ -267,11 +269,11 @@ async function runLayerAgent({
                 reasoningEffort: 'medium',
             });
         } catch (e) {
-            if (isAborted() || e?.name === 'AbortError' || signal?.aborted) {
+            if (isAborted() || /** @type {Error} */ (e)?.name === 'AbortError' || signal?.aborted) {
                 log.info('[flowletAgent] flowlet build cancelled by the client');
                 break;
             }
-            send('layer_agent_error', { layerKey, error: e.message });
+            send('layer_agent_error', { layerKey, error: /** @type {Error} */ (e).message });
             break;
         }
         if (response.content) summary = response.content;
@@ -403,8 +405,8 @@ async function runLayersInParallel({
             send('layer_agent_done', { layerKey, outputFields: r.outputFields, summary: r.summary });
             return { ok: true, layerKey, title, layer: isoDef.layers[layerKey], outputFields: r.outputFields, summary: r.summary };
         } catch (e) {
-            send('layer_agent_error', { layerKey, error: e.message });
-            return { ok: false, layerKey, title, error: e.message };
+            send('layer_agent_error', { layerKey, error: /** @type {Error} */ (e).message });
+            return { ok: false, layerKey, title, error: /** @type {Error} */ (e).message };
         }
     });
 

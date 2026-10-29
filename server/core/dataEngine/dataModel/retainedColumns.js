@@ -39,7 +39,10 @@ function retiredColumnKey(fieldId) {
     return RETIRED_PREFIX + (plain ? id : crypto.createHash('sha256').update(id, 'utf8').digest('hex').slice(0, 40));
 }
 
-/** Does this field have a column in the table at all? */
+/**
+ * Does this field have a column in the table at all?
+ * @param {ModelField} field
+ */
 function hasColumn(field) {
     return isAlterPhysical(field) || isStoredComputed(field);
 }

@@ -104,7 +104,10 @@ function buildAppEventProviders(ctx = {}) {
     return out;
 }
 
-/** Full registry lookup — INCLUDES hidden entries, for label resolution. */
+/**
+ * Full registry lookup — INCLUDES hidden entries, for label resolution.
+ * @param {string} id
+ */
 function getProviderDef(id) {
     return getTriggerSource(id);
 }

@@ -1,3 +1,4 @@
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
 // @typecheck
 'use strict';
 /**
@@ -76,6 +77,8 @@ function valueOfItem(item, valuePath) {
 /**
  * The allowed values of one list spec `{ ref, value? }`, from RAW run data.
  * @returns {{ ok: boolean, values: string[] }} ok is false when the ref is not a list
+ * @param {{ field: string; ref: string; value?: string; ignoreCase?: boolean; allowEmpty?: boolean; }} spec
+ * @param {BindRunState} runState
  */
 function listValuesOf(spec, runState) {
     const list = walkList(spec.ref, { ...runState, secrets: {} });

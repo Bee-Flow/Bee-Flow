@@ -18,6 +18,7 @@ const { isObject } = require('../helpers');
  * Findings of a spec onto the validator's two sinks.
  * @param {Finding[]} findings
  * @param {string} at
+ * @param {{ pushE: (arg0: { hint?: string | undefined; code: string; severity: "error" | "warning"; path: string; message: string; }) => void; pushW: (arg0: { hint?: string | undefined; code: string; severity: "error" | "warning"; path: string; message: string; }) => void; }} ctx
  */
 function report(ctx, findings, at) {
     for (const f of findings) {

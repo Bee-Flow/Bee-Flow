@@ -380,6 +380,7 @@ async function attributeTurn({ testChat, persona, configInfo, answer, question, 
         logUsage = _logAttributionUsage,
     } = deps;
 
+    /** @type {string | null} */
     let modelId = null;
     try {
         // No `fallback:` — just like the grader in routes/agents/tests.js: choosing a model

@@ -364,6 +364,7 @@ class ClaudeProvider extends BaseProvider {
 
     /**
      * @param {string} model
+     * @param {ClaudeOptions} [options]
      */
     buildThinking(model, options = {}) {
         return buildThinking(this, model, options);

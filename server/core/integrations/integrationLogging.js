@@ -149,6 +149,7 @@ async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null 
  * `mcp__<server>__<tool>` names it exactly; `mcp_<server>_<tool>` only up to
  * the first underscore, which is what the ledger label has always used.
  * @param {string} toolName
+ * @param {{ integration: string; }} meta
  */
 function _mcpServerName(toolName, meta) {
     if (toolName.startsWith('mcp__')) return toolName.split('__')[1] || 'mcp';

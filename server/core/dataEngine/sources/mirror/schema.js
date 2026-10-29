@@ -44,7 +44,7 @@ async function reconcileMirrorSchema(scope, datatable, nextFields, { retyped = [
     const saved = await db.withTransaction(async (client) => {
         const { model } = await datatableStore.getModel(scope);
         const next = JSON.parse(JSON.stringify(model));
-        const t = (next.tables || []).find(x => x && x.id === datatable.id);
+        const t = (next.tables || []).find((/** @type {{ id: string; }} */ x) => x && x.id === datatable.id);
         if (!t) {
             const e = new Error('This mirror is not in the scope model');
             e.status = 409;

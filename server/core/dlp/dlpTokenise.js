@@ -85,6 +85,8 @@ async function _tokeniseAll(text, findings, conversationId = null, { ephemeral =
  * Persist a token map to the owning user's vault. Fire-and-forget by design:
  * the conversation map is already updated and remains the authority for this
  * conversation, so a vault write must never delay or fail a chat turn.
+ * @param {string} conversationId
+ * @param {Record<string, string>} tokenMap
  */
 function _recordToVault(conversationId, tokenMap) {
     if (!conversationId || !tokenMap || Object.keys(tokenMap).length === 0) return;
@@ -95,6 +97,9 @@ function _recordToVault(conversationId, tokenMap) {
         .catch(err => log.warn(`[DlpRunner] vault record failed for ${conversationId}: ${err.message}`));
 }
 
+/**
+ * @param {string | null} conversationId
+ */
 async function _vaultUserFor(conversationId) {
     if (!conversationId) return null;
     try {

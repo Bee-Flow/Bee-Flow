@@ -1,3 +1,4 @@
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
 // @typecheck
 'use strict';
 /**

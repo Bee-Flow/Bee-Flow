@@ -1,3 +1,6 @@
+/** @typedef {import('../swarms/swarmWorkerRound').WorkerMessage} WorkerMessage */
+/** @typedef {import('../agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
+/** @typedef {import('../../utils/messageUtils').WireMessage} WireMessage */
 // @typecheck
 /**
  * Outbound-prompt safety guard.
@@ -118,10 +121,12 @@ function applyTokenMapToOutbound({ conversationId, systemPrompt, messages }) {
     };
 }
 
+/** @typedef {{ conversationId?: string | null | undefined, messages?: WorkerMessage[] | ChatMessage[] | WireMessage[] }} ApplyTokenMapToMessagesArgs */
 /**
  * Convenience for call sites that already have a single OpenAI-shape messages
  * array (system at index 0, then user/assistant/tool). Returns a new array;
  * does not mutate the input.
+ * @param {ApplyTokenMapToMessagesArgs} param0
  */
 function applyTokenMapToMessages({ conversationId, messages }) {
     const map = conversationId ? (getConversationTokenMap(conversationId) || {}) : {};

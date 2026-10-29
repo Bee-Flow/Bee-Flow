@@ -1,3 +1,4 @@
+/** @typedef {import('../helpers').StepDef} StepDef */
 // @typecheck
 /**
  * Per-step-type field rules: everything the validator checks INSIDE one step —
@@ -68,6 +69,7 @@ function createStepChecker({
     //   seen       — ids whose output is available at this point
     /**
      * @param {string} at
+     * @param {StepDef} step
      */
     const checkStep = (step, at, { nested = false, idsForRefs = null, seen = null } = {}) => {
         const refIds = idsForRefs || ids;
