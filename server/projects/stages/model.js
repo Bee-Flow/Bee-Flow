@@ -87,6 +87,11 @@ const refusal = (code) => ({ ok: false, code });
 const OK = Object.freeze({ ok: true, code: null });
 
 /**
+ * @typedef {{ stage: string, kind?: string, release?: {id?: string, channel?: string, gate?: {blocked?: boolean}}|null,
+ *   testedInUat?: boolean, succeededInPrd?: boolean, currentReleaseId?: string|null,
+ *   actorId?: string|null, solutionOwnerId?: string|null, runAsUserId?: string|null }} EligibilityInput
+ */
+/**
  * May this stage receive this release (design 6.2)?
  *
  * - UAT: any pipeline release of the Solution whose gate is clean.
@@ -98,15 +103,13 @@ const OK = Object.freeze({ ok: true, code: null });
  *   Both checks run only when the caller passes the ids.
  * - `settings` and `remove` carry no release.
  *
- * @param {{ stage: string, kind?: string, release?: {id?: string, channel?: string, gate?: {blocked?: boolean}}|null,
- *   testedInUat?: boolean, succeededInPrd?: boolean, currentReleaseId?: string|null,
- *   actorId?: string|null, solutionOwnerId?: string|null, runAsUserId?: string|null }} input
+ * @param {EligibilityInput} input
  * @returns {{ ok: boolean, code: string|null }}
  */
 function eligibleForStage({
     stage, kind = 'deploy', release = null, testedInUat = false, succeededInPrd = false,
     currentReleaseId = null, actorId = null, solutionOwnerId = null, runAsUserId = null,
-} = /** @type {any} */ ({})) {
+} = /** @type {EligibilityInput} */ ({})) {
     if (!STAGES.includes(stage)) return refusal('stage_invalid');
     if (!KINDS.includes(kind)) return refusal('kind_invalid');
     if (actorId && solutionOwnerId && actorId !== solutionOwnerId) return refusal('solution_owner_only');
@@ -125,6 +128,10 @@ function eligibleForStage({
 }
 
 /**
+ * @typedef {{ stage: string|{stage: string, requiresApproval?: boolean, rollbackNeedsApproval?: boolean},
+ *   kind: string, settings?: {requiresApproval?: boolean, rollbackNeedsApproval?: boolean}|null }} ApprovalInput
+ */
+/**
  * Does this deployment pass the PRD approval gate (design 6.2, 6.6, D19)?
  *
  * Only PRD, only with `requires_approval` on. Then every deploy, redeploy
@@ -135,10 +142,9 @@ function eligibleForStage({
  * `stage` is 'uat' | 'prd' or a stage row (`{ stage, requiresApproval,
  * rollbackNeedsApproval }`), whose settings are used when none are passed.
  *
- * @param {{ stage: string|{stage: string, requiresApproval?: boolean, rollbackNeedsApproval?: boolean},
- *   kind: string, settings?: {requiresApproval?: boolean, rollbackNeedsApproval?: boolean}|null }} input
+ * @param {ApprovalInput} input
  */
-function needsApproval({ stage, kind, settings = null } = /** @type {any} */ ({})) {
+function needsApproval({ stage, kind, settings = null } = /** @type {ApprovalInput} */ ({})) {
     const row = stage && typeof stage === 'object' ? stage : null;
     const name = row ? row.stage : stage;
     const s = settings || row || {};

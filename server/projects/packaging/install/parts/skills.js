@@ -35,7 +35,7 @@ function resolvedRefList(list, refMap, unresolved) {
  * resolved against `refMap`; step references the same. `sharedGroups`,
  * `isShared` and `enabledIntegrations` are never taken from a file.
  *
- * @param {object} entity
+ * @param {Record<string, unknown>} entity
  * @param {Map<string, string>} refMap
  * @param {string[]} [unresolved]  collects every `$ref` that had no target
  */

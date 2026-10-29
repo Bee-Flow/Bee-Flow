@@ -277,7 +277,7 @@ const CANONICAL = {
  * entity (camelCase; the store's snake_case is read too).
  *
  * @param {string} kind  a part kind (`automation`, `app`, …) or a section name
- * @param {object} shape
+ * @param {unknown} shape
  */
 function canonicalOf(kind, shape) {
     const k = KIND_OF_SECTION[kind] || kind;
@@ -447,7 +447,7 @@ async function readStageShape(kind, id, opts = {}, deps = {}) {
  * @param {{ client?: any, versionId?: string|null }} [opts]  `client` reads
  *   inside the caller's transaction where a reader uses SQL; `versionId`
  *   reads that page snapshot / template revision instead of the pinned one
- * @param {object} [deps]  stores and `readers` doubles
+ * @param {Record<string, unknown>} [deps]  stores and `readers` doubles
  */
 async function readStagePayload(kind, id, opts = {}, deps = {}) {
     const shape = await readStageShape(kind, id, opts, deps);

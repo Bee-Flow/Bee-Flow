@@ -91,7 +91,7 @@ function errorOf(err) {
 }
 
 /**
- * @param {object} [deps]
+ * @param {Record<string, unknown>} [deps]
  *   stores (journal.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
  *   `planDeps`, `approvalGate` ({ request }), `approvalDeps`, `getApproval(id)`, `solutionOwnerOf(solutionId)`,
  *   `prepare`, `commit`, `commitSettings`, `converge`, `compensate`, `removeStage` ({ prepareRemove,
@@ -146,15 +146,15 @@ function makeRunner(deps = {}) {
         return null;
     }
 
+    /** @typedef {{ solutionId: string, stage: 'uat'|'prd', releaseId?: string|null, kind?: string, planHash: string, requestKey: string,
+     *   acknowledgements?: any[], actor: string|{ id: string }, settingsPatch?: object|null }} AdmitInput */
     /**
-     * @param {{ solutionId: string, stage: 'uat'|'prd', releaseId?: string|null, kind?: string, planHash: string,
-     *   requestKey: string, acknowledgements?: any[], actor: string|{ id: string }, settingsPatch?: object|null }} input
-     *   `settingsPatch`: the gate change of a `settings` deployment; `{ deleteData }` asks a `remove` to drop the
-     *   stage's data, which only counts once the plan carries it
+     * @param {AdmitInput} input  `settingsPatch`: the gate change of a `settings` deployment; `{ deleteData }` asks a
+     *   `remove` to drop the stage's data, which only counts once the plan carries it
      * @returns {Promise<{ deployment: object, replayed: boolean }>}
      */
     async function admit({ solutionId, stage, releaseId = null, kind = 'deploy', planHash, requestKey,
-        acknowledgements = [], actor, settingsPatch = null } = /** @type {any} */ ({})) {
+        acknowledgements = [], actor, settingsPatch = null } = /** @type {AdmitInput} */ ({})) {
         const actorId = actorIdOf(actor);
         if (!actorId) throw new HttpError(401, 'unauthorized', 'Sign in to deploy.');
         if (typeof requestKey !== 'string' || !requestKey) throw new HttpError(400, 'request_key_required', 'A request key is required.');

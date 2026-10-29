@@ -358,12 +358,11 @@ const BINDERS = {
  * bindings. Kinds without holes (knowledge bases, skills, templates) pass
  * through unchanged.
  *
+ * @param {string} kind
  * @param {{ ref?: string }} entity  the release entity (with `ref`), pointers already resolved
- * @param {object} entity  the release entity (with `ref`), pointers already resolved
  * @param {Map<string, unknown>|Array<{ slot?: string, value?: unknown }>|Record<string, unknown>} bindings  slot → value
  * @param {{ slots?: object[] }} [opts]  the release's `solution.slots` (needed for connections)
  * @returns {{ entity: { ref?: string }, applied: string[] }} the slots that were read
- * @param {string} kind
  */
 function applyBindingsTo(kind, entity, bindings, { slots = null } = {}) {
     const k = /** @type {Record<string, string>} */ (KIND_OF_SECTION)[kind] || kind;
