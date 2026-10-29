@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NOT_INSIDE_A_LAYER, buildStepGroups, buildSearchResults } from './stepPalette';
+import type { GateItem, PaletteScope, StepGroup } from './stepPalette.types';
+import type { ItemSection } from './ribbon/ribbonCategories';
 
 /**
  * THE SIXTH CANVAS PLACE: THE PALETTE.
@@ -25,11 +27,11 @@ import { NOT_INSIDE_A_LAYER, buildStepGroups, buildSearchResults } from './stepP
  * throw travels out of every sub-graph), and approval/form_page are not terminal. The list is
  * about the PLACE, not about the end of the run.
  */
-const kindsIn = (groups) => {
-    const out = new Set();
-    const eat = (items) => (items || []).forEach((it) => out.add(it?.payload?.kind));
+const kindsIn = (groups: StepGroup[]) => {
+    const out = new Set<string | undefined>();
+    const eat = (items: readonly GateItem[] | null | undefined) => (items || []).forEach((it) => out.add(it?.payload?.kind));
     for (const g of groups) {
-        if (g.kind === 'sections') g.sections.forEach((sec) => eat(sec.items));
+        if (g.kind === 'sections') (g.sections as ItemSection[]).forEach((sec) => eat(sec.items));
         else eat(g.items);
     }
     return out;
@@ -56,7 +58,7 @@ describe('stepPalette — wat de validator binnen een lus/flowlet weigert, wordt
     });
 
     it('zoeken loopt langs dezelfde poort als browsen', () => {
-        const kinds = (q, scope) => buildSearchResults(q, scope).map((r) => r.payload?.kind);
+        const kinds = (q: string, scope: PaletteScope) => buildSearchResults(q, scope).map((r) => r.payload?.kind);
         expect(kinds('back to the app', { inLayer: true })).not.toContain('return_to_app');
         expect(kinds('approval', { inLayer: true })).not.toContain('approval');
         // Tegenproef: buiten de lus vindt dezelfde zoekterm hem wel.

@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
-    authFetch: (...args) => authFetch(...args),
+    authFetch: (...args: unknown[]) => authFetch(...args),
 }));
 
 import TriggerNode from './TriggerNode';
+import type { StepNodeProps } from './nodeProps';
 import { __clearAppRefCacheForTests } from '../appRefLabel';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 
@@ -26,7 +27,7 @@ import { NodeRuntimeContext } from '../NodeRuntimeContext';
  */
 
 const authFetch = vi.fn();
-const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
 const REF = { appId: '5f2a1c34-8b7d-4e19-9f00-2ab3c4d5e6f7', screenId: 'scr_dash01', nodeId: 'cmp_btn123' };
 
@@ -39,7 +40,7 @@ function appTrigger(overrides = {}) {
     };
 }
 
-function renderTrigger(step) {
+function renderTrigger(step: StepNodeProps['data']['step']) {
     return render(
         <ReactFlowProvider>
             <NodeRuntimeContext.Provider value={{
@@ -53,7 +54,7 @@ function renderTrigger(step) {
 }
 
 /** Answer the one /ref lookup this card makes. */
-function answer(record) {
+function answer(record: unknown) {
     authFetch.mockResolvedValue(ok(record));
 }
 

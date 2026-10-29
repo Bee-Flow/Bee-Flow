@@ -39,7 +39,7 @@ const GROUPS = [
 // tests above keep reading the shipped English. Switched on below to prove the
 // panel's chrome comes from t() at all: with English defaults a hardcoded
 // string and a translated one are indistinguishable.
-const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
+const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null as Record<string, string> | null } }));
 vi.mock('../../../../hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
@@ -84,7 +84,7 @@ describe('InputDataPanel', () => {
     it('dragging a field carries BOTH mime types', () => {
         renderPanel();
         const setData = vi.fn();
-        fireEvent.dragStart(screen.getByText('Count').parentElement, {
+        fireEvent.dragStart(screen.getByText('Count').parentElement as HTMLElement, {
             dataTransfer: { setData, get effectAllowed() { return ''; }, set effectAllowed(_v) {} },
         });
         expect(setData).toHaveBeenCalledWith('text/plain', 'steps.s1.output.count');
@@ -94,7 +94,7 @@ describe('InputDataPanel', () => {
     it('dragging the section header carries the whole output path', () => {
         renderPanel();
         const setData = vi.fn();
-        fireEvent.dragStart(screen.getByText('Gmail search').parentElement, {
+        fireEvent.dragStart(screen.getByText('Gmail search').parentElement as HTMLElement, {
             dataTransfer: { setData, get effectAllowed() { return ''; }, set effectAllowed(_v) {} },
         });
         expect(setData).toHaveBeenCalledWith('application/x-binding-path', 'steps.s1.output');
@@ -136,7 +136,7 @@ describe('InputDataPanel', () => {
     it('expanding a field keeps the row itself clickable as the parent path', async () => {
         const user = userEvent.setup();
         const { onPick } = renderPanel();
-        const row = screen.getByText('Results').parentElement;
+        const row = screen.getByText('Results').parentElement as HTMLElement;
         await user.click(within(row).getByRole('button'));       // the chevron
         expect(screen.getByText('Subject')).toBeTruthy();
         expect(onPick).not.toHaveBeenCalled();

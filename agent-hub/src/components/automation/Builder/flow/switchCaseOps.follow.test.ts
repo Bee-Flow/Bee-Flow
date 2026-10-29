@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { mergeStepPatchIntoDefinition } from './switchCaseOps';
+import type { DiagramDefinition, DiagramEdge, DiagramStep } from './diagramPaneTypes';
 
 /**
  * A Condition that works through a list hands its OUTPUTS on (W3-W5, and the
@@ -11,18 +12,26 @@ import { mergeStepPatchIntoDefinition } from './switchCaseOps';
 const MESSAGES = 'steps.read_many.output.messages';
 const PDF_RULE = 'anyOf(fileType(item.attachments[*]), "equals", "pdf")';
 
+type CaseDef = { name: string; expr: string };
+type Parent = { itemVar: string; overRef: string };
+interface TestStep extends DiagramStep {
+    type: string; cases?: CaseDef[]; forEach?: { overRef: string; itemVar: string; parents?: Parent[] };
+}
+interface TestEdge extends DiagramEdge { from: string; to: string; label?: string; caseName?: string }
+interface TestDef extends DiagramDefinition { steps: TestStep[]; edges: TestEdge[] }
+
 const filterStep = (extra = {}) => ({ id: 'cond', type: 'filter', label: 'Condition', arrayRef: MESSAGES, expr: PDF_RULE, ...extra });
-const switchStep = (names, extra = {}) => ({
+const switchStep = (names: string[], extra = {}) => ({
     id: 'cond', type: 'switch', label: 'Condition', arrayRef: MESSAGES, routeStyle: 'rules', defaultBranch: null,
     cases: names.map(name => ({ name, expr: `equals(fileType(item), "${name}")` })),
     ...extra,
 });
 
 /** Read many → Condition → Read attachment, plus a step that reads another list. */
-function definition(route, readAttachmentOverRef, parents = null) {
+function definition(route: TestStep, readAttachmentOverRef: string, parents: Parent[] | null = null): TestDef {
     const edgeOut = route.type === 'filter'
         ? { from: 'cond', to: 'read_attachment' }
-        : { from: 'cond', to: 'read_attachment', label: `case:${route.cases[0].name}`, caseName: route.cases[0].name };
+        : { from: 'cond', to: 'read_attachment', label: `case:${(route.cases as CaseDef[])[0].name}`, caseName: (route.cases as CaseDef[])[0].name };
     return {
         trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
         steps: [
@@ -47,8 +56,8 @@ function definition(route, readAttachmentOverRef, parents = null) {
     };
 }
 
-const stepOf = (def, id) => def.steps.find(s => s.id === id);
-const overRefOf = (def) => stepOf(def, 'read_attachment').forEach.overRef;
+const stepOf = (def: TestDef, id: string) => def.steps.find(s => s.id === id) as TestStep;
+const overRefOf = (def: TestDef) => (stepOf(def, 'read_attachment').forEach as NonNullable<TestStep['forEach']>).overRef;
 
 describe('mergeStepPatchIntoDefinition — the steps after a list Condition follow its outputs', () => {
     it('W3: one output → several moves the reader from items to the first output', () => {
@@ -92,7 +101,7 @@ describe('mergeStepPatchIntoDefinition — the steps after a list Condition foll
         const next = mergeStepPatchIntoDefinition(def, filterStep(), {
             arrayRef: `${MESSAGES}[*].attachments`, expr: 'equals(fileType(item), "pdf")',
         });
-        const fe = stepOf(next, 'read_attachment').forEach;
+        const fe = stepOf(next, 'read_attachment').forEach as NonNullable<TestStep['forEach']>;
         expect(fe.overRef).toBe('steps.cond.output.items');
         expect(fe.parents || []).toEqual([]);
     });

@@ -29,7 +29,7 @@ const BUILDER_TOOLS = path.resolve(HERE, '../../../../../../server/automation/bu
  * Types whose server label is deliberately different, with the reason. Anything
  * NOT listed here has to agree.
  */
-const EXEMPT = {
+const EXEMPT: Record<string, string> = {
     // Built from the bound path — "Loop over steps.s1.output.results" tells the
     // reader more than a static name, and only the server knows it at add time.
     loop: 'server composes a contextual label from overRef',
@@ -45,7 +45,7 @@ const EXEMPT = {
  * (`stepBuilders/` and any that follow): a builder that moves one directory
  * deeper must not drop out of the scan and take its labels with it.
  */
-function sourceFiles(dir) {
+function sourceFiles(dir: string): string[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const p = path.join(dir, e.name);
         if (e.isDirectory()) return sourceFiles(p);
@@ -75,10 +75,10 @@ describe('nodeDefs ↔ server builderTools default labels', () => {
     });
 
     it('every non-exempt type is named the same on both sides', () => {
-        const drift = [];
+        const drift: string[] = [];
         for (const [type, serverLabel] of server) {
             if (EXEMPT[type]) continue;
-            const ours = NODE_DEFS[type]?.defaultLabel;
+            const ours = (NODE_DEFS as Record<string, { defaultLabel?: string } | undefined>)[type]?.defaultLabel;
             if (!ours) continue; // covered by nodeDefs.test.js
             if (ours !== serverLabel) drift.push(`${type}: nodeDefs "${ours}" vs builderTools "${serverLabel}"`);
         }
@@ -87,7 +87,7 @@ describe('nodeDefs ↔ server builderTools default labels', () => {
 
     it('every exemption names a type the server actually labels', () => {
         for (const type of Object.keys(EXEMPT)) {
-            expect(server.has(type) || NODE_DEFS[type], `${type} is exempted but neither side knows it`).toBeTruthy();
+            expect(server.has(type) || (NODE_DEFS as Record<string, unknown>)[type], `${type} is exempted but neither side knows it`).toBeTruthy();
         }
     });
 });
