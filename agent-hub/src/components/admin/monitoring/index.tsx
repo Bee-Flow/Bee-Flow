@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
 import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
 import { COLORS } from './shared/SvgAreaChart';
@@ -22,6 +22,18 @@ import { rangeToFilter, prevPeriodFilter, autoInterval, toLocalInput, fetchJson 
 // stale per-user API responses from the browser cache — and usage figures are
 // exactly that kind of per-org, always-changing response. It is also the seam
 // the public demo transport hooks, so a raw fetch here silently bypasses it.
+
+/** Change against the previous period, in percent (null where the previous period had none). */
+function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
+    if (!prevSummary || !summary) return {};
+    const calc = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : null;
+    return {
+        calls: calc(summary.total_calls || 0, prevSummary.total_calls || 0),
+        tokens: calc(summary.total_tokens || 0, prevSummary.total_tokens || 0),
+        cost: calc(summary.total_estimated_cost || 0, prevSummary.total_estimated_cost || 0),
+        latency: calc(summary.avg_duration_ms || 0, prevSummary.avg_duration_ms || 0),
+    };
+}
 
 export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
     const { t } = useTranslation();
@@ -136,16 +148,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     }, [byModel, modelCosts]);
 
     // Deltas
-    const deltas = useMemo((): UsageDeltas => {
-        if (!prevSummary || !summary) return {};
-        const calc = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : null;
-        return {
-            calls: calc(summary.total_calls || 0, prevSummary.total_calls || 0),
-            tokens: calc(summary.total_tokens || 0, prevSummary.total_tokens || 0),
-            cost: calc(summary.total_estimated_cost || 0, prevSummary.total_estimated_cost || 0),
-            latency: calc(summary.avg_duration_ms || 0, prevSummary.avg_duration_ms || 0),
-        };
-    }, [summary, prevSummary]);
+    const deltas = useMemo(() => usageDeltas(summary, prevSummary), [summary, prevSummary]);
 
     const deltaLabel = range === 'today' ? 'vs yesterday' : range === '7d' ? 'vs prev 7d' : range === '30d' ? 'vs prev 30d' : range === 'custom' ? 'vs prev period' : '';
 
@@ -166,52 +169,10 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                             {t(PAGES.find(p => p.id === page)?.descriptionKey, PAGES.find(p => p.id === page)?.description)}
                         </p>
                     </div>
-                    <div className="[display:flex] [gap:8px] [align-items:center] [flex-wrap:wrap]">
-                        <div style={styles.rangeGroup}>
-                            {RANGES.map(r => (
-                                <button
-                                    key={r.id}
-                                    onClick={() => setRange(r.id)}
-                                    style={{
-                                        ...styles.rangeBtn,
-                                        ...(range === r.id ? styles.rangeBtnActive : {}),
-                                        ...(r.id === 'custom' ? { display: 'flex', alignItems: 'center', gap: '5px' } : {}),
-                                    }}
-                                >
-                                    {r.id === 'custom' && <Calendar className="w-[12px] h-[12px]" />}
-                                    {r.labelKey ? t(r.labelKey, r.label) : r.label}
-                                </button>
-                            ))}
-                        </div>
-                        {range === 'custom' && (
-                            <div style={styles.datePickerRow}>
-                                <div style={styles.datePickerField}>
-                                    <span style={styles.datePickerLabel}>{t('admin_monitoring.from', 'From')}</span>
-                                    <input
-                                        type="datetime-local"
-                                        value={customStart}
-                                        onChange={e => setCustomStart(e.target.value)}
-                                        max={customEnd}
-                                        style={styles.dateInput}
-                                    />
-                                </div>
-                                <span className="[color:var(--text-muted,#666)] [font-size:12px] [padding:0_2px]">→</span>
-                                <div style={styles.datePickerField}>
-                                    <span style={styles.datePickerLabel}>{t('admin_monitoring.to', 'To')}</span>
-                                    <input
-                                        type="datetime-local"
-                                        value={customEnd}
-                                        onChange={e => setCustomEnd(e.target.value)}
-                                        min={customStart}
-                                        style={styles.dateInput}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        <button onClick={fetchData} style={styles.refreshBtn} title={t('admin_monitoring.refresh', 'Refresh')}>
-                            <RefreshCw className={`[width:15px] [height:15px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
-                        </button>
-                    </div>
+                    <RangeControls
+                        t={t} range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
+                        customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={fetchData}
+                    />
                 </div>
 
                 {/* Page Content */}
@@ -302,4 +263,68 @@ function MonitoringPanelSection({ t, onNavigate, page }: { t: (key: string | und
             ))}
         </nav>
     </div>;
+}
+
+interface RangeControlsProps {
+    t: TranslateFn;
+    range: string;
+    setRange: (range: string) => void;
+    customStart: string;
+    setCustomStart: (value: string) => void;
+    customEnd: string;
+    setCustomEnd: (value: string) => void;
+    loading: boolean;
+    onRefresh: () => void;
+}
+
+/** The range chips, the custom from/to pickers, and Refresh. */
+function RangeControls({ t, range, setRange, customStart, setCustomStart, customEnd, setCustomEnd, loading, onRefresh }: RangeControlsProps) {
+    return (
+        <div className="[display:flex] [gap:8px] [align-items:center] [flex-wrap:wrap]">
+            <div style={styles.rangeGroup}>
+                {RANGES.map(r => (
+                    <button
+                        key={r.id}
+                        onClick={() => setRange(r.id)}
+                        style={{
+                            ...styles.rangeBtn,
+                            ...(range === r.id ? styles.rangeBtnActive : {}),
+                            ...(r.id === 'custom' ? { display: 'flex', alignItems: 'center', gap: '5px' } : {}),
+                        }}
+                    >
+                        {r.id === 'custom' && <Calendar className="w-[12px] h-[12px]" />}
+                        {r.labelKey ? t(r.labelKey, r.label) : r.label}
+                    </button>
+                ))}
+            </div>
+            {range === 'custom' && (
+                <div style={styles.datePickerRow}>
+                    <div style={styles.datePickerField}>
+                        <span style={styles.datePickerLabel}>{t('admin_monitoring.from', 'From')}</span>
+                        <input
+                            type="datetime-local"
+                            value={customStart}
+                            onChange={e => setCustomStart(e.target.value)}
+                            max={customEnd}
+                            style={styles.dateInput}
+                        />
+                    </div>
+                    <span className="[color:var(--text-muted,#666)] [font-size:12px] [padding:0_2px]">→</span>
+                    <div style={styles.datePickerField}>
+                        <span style={styles.datePickerLabel}>{t('admin_monitoring.to', 'To')}</span>
+                        <input
+                            type="datetime-local"
+                            value={customEnd}
+                            onChange={e => setCustomEnd(e.target.value)}
+                            min={customStart}
+                            style={styles.dateInput}
+                        />
+                    </div>
+                </div>
+            )}
+            <button onClick={onRefresh} style={styles.refreshBtn} title={t('admin_monitoring.refresh', 'Refresh')}>
+                <RefreshCw className={`[width:15px] [height:15px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
+            </button>
+        </div>
+    );
 }
