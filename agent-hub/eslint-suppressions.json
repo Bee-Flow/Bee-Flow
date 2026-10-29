@@ -2157,9 +2157,6 @@
     }
   },
   "src/components/admin/Studio/SkillsStudio/CanUseCard.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }

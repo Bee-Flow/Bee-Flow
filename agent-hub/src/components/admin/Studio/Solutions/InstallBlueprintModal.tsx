@@ -5,7 +5,7 @@ import { ConnectStep, ResultStep, type InstallChoices, type InstallPayload, type
 import { ContentsStep } from './ContentsStep';
 import { AccessStep } from './AccessStep';
 import useRemote, { readJson } from './useRemote';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { Catalog } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
 import { API_BASE } from '@/utils/helpers';
@@ -147,12 +147,81 @@ interface InstallBlueprintModalProps {
     onInstalled?(id: string | undefined): void;
 }
 
+type AccessEntry = { type: string; id: string; permission: string };
+
+/** What happens after the Solution exists: the ticked tool grants, then the shares. Each returns its failures as sentences. */
+function useInstallFollowUps(grants: InstallChoices['grants'], access: AccessEntry[], t: TranslateFn) {
+    /**
+     * Hand over the tools the installer ticked — through the PAGE'S OWN grants
+     * route, never through the install body.
+     *
+     * That route is the one the webpage IDE posts to, so this meets the same
+     * owner check and the same 409 for an app the installer has not connected.
+     * A failure is collected and shown; it must not read as though the grant
+     * went through.
+     */
+    const grantTicked = useCallback(async (report: InstallReport | undefined) => {
+        const idByRef = new Map<string | null, string>((report?.installed?.webpages || []).map(w => [w.ref, w.id]));
+        const problems = [];
+        for (const row of Object.values(grants)) {
+            // `false` is an unticked box, kept in state so untick is a state
+            // change rather than a deletion. Only a row travels.
+            if (!row) continue;
+            const webpageId = idByRef.get(row.ref);
+            if (!webpageId) {
+                problems.push(t('solutions.install_grant_no_page',
+                    '{tool} could not be granted: that page was not installed.', { tool: row.tool }));
+                continue;
+            }
+            try {
+                await mutate(`${API_BASE}/api/webpages/${encodeURIComponent(webpageId)}/grants/integrations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool: row.tool }),
+                });
+            } catch (err) {
+                if (err instanceof RefusedError) {
+                    problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
+                        { tool: row.tool, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
+                    continue;
+                }
+                problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
+                    { tool: row.tool, why: t('solutions.install_unreachable', 'the server could not be reached') }));
+            }
+        }
+        return problems;
+    }, [grants, t]);
+
+    const shareWith = useCallback(async (projectId: string | undefined) => {
+        const problems = [];
+        for (const entry of access) {
+            try {
+                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(String(projectId))}/share`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sharedWithType: entry.type, sharedWithId: entry.id, permission: entry.permission }),
+                });
+            } catch (err) {
+                if (err instanceof RefusedError) {
+                    problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
+                        { who: entry.id, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
+                    continue;
+                }
+                problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
+                    { who: entry.id, why: t('solutions.install_unreachable', 'the server could not be reached') }));
+            }
+        }
+        return problems;
+    }, [access, t]);
+    return { grantTicked, shareWith };
+}
+
 export default function InstallBlueprintModal({ open, source, onClose, onInstalled }: InstallBlueprintModalProps) {
     const { t } = useTranslation();
     const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [choices, setChoices] = useState<InstallChoices>(EMPTY_CHOICES);
-    const [access, setAccess] = useState<{ type: string; id: string; permission: string }[]>([]);
+    const [access, setAccess] = useState<AccessEntry[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState<InstallPayload | null>(null);
@@ -188,68 +257,7 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
     const people = useRemote<WaitlistUser[]>(`${API_BASE}/auth/users`, open && (step === 2 || step === 3));
     const groups = useRemote<{ id: string; name: string }[]>(`${API_BASE}/auth/groups`, open && (step === 2 || step === 3));
 
-    /**
-     * Hand over the tools the installer ticked — through the PAGE'S OWN grants
-     * route, never through the install body.
-     *
-     * That route is the one the webpage IDE posts to, so this meets the same
-     * owner check and the same 409 for an app the installer has not connected.
-     * A failure is collected and shown; it must not read as though the grant
-     * went through.
-     */
-    const grantTicked = useCallback(async (report: InstallReport | undefined) => {
-        const idByRef = new Map<string | null, string>((report?.installed?.webpages || []).map(w => [w.ref, w.id]));
-        const problems = [];
-        for (const row of Object.values(choices.grants)) {
-            // `false` is an unticked box, kept in state so untick is a state
-            // change rather than a deletion. Only a row travels.
-            if (!row) continue;
-            const webpageId = idByRef.get(row.ref);
-            if (!webpageId) {
-                problems.push(t('solutions.install_grant_no_page',
-                    '{tool} could not be granted: that page was not installed.', { tool: row.tool }));
-                continue;
-            }
-            try {
-                await mutate(`${API_BASE}/api/webpages/${encodeURIComponent(webpageId)}/grants/integrations`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tool: row.tool }),
-                });
-            } catch (err) {
-                if (err instanceof RefusedError) {
-                    problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
-                        { tool: row.tool, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
-                    continue;
-                }
-                problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
-                    { tool: row.tool, why: t('solutions.install_unreachable', 'the server could not be reached') }));
-            }
-        }
-        return problems;
-    }, [choices.grants, t]);
-
-    const shareWith = useCallback(async (projectId: string | undefined) => {
-        const problems = [];
-        for (const entry of access) {
-            try {
-                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(String(projectId))}/share`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sharedWithType: entry.type, sharedWithId: entry.id, permission: entry.permission }),
-                });
-            } catch (err) {
-                if (err instanceof RefusedError) {
-                    problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
-                        { who: entry.id, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
-                    continue;
-                }
-                problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
-                    { who: entry.id, why: t('solutions.install_unreachable', 'the server could not be reached') }));
-            }
-        }
-        return problems;
-    }, [access, t]);
+    const { grantTicked, shareWith } = useInstallFollowUps(choices.grants, access, t);
 
     const install = async () => {
         setBusy(true);

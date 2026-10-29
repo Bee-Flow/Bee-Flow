@@ -54,7 +54,6 @@
     "src/components/admin/Studio/Forms/FormsStudio.tsx": 561,
     "src/components/admin/Studio/KnowledgeStudio/AddSourcePanel.tsx": 705,
     "src/components/admin/Studio/Playbooks/NewPlaybookDialog.tsx": 435,
-    "src/components/admin/Studio/SkillsStudio/CanUseCard.tsx": 401,
     "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx": 528,
     "src/components/admin/Studio/SkillsStudio/TestTab.tsx": 437,
     "src/components/admin/subscriptions/plans/planTemplates.ts": 446,

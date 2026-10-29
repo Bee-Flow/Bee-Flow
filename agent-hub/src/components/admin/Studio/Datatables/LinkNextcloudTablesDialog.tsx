@@ -168,32 +168,7 @@ export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onC
                 t('datatables.nc_step_relations', 'Relations'),
                 t('datatables.nc_step_review', 'Review'),
             ]} />}
-            footer={(
-                <>
-                    <button type="button" onClick={back} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
-                        <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                        {t('datatables.nc_back', 'Back')}
-                    </button>
-                    <span className="mr-auto" />
-                    <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
-                        {t('datatables.cancel', 'Cancel')}
-                    </button>
-                    {step !== 'review' ? (
-                        <button type="button" onClick={next} disabled={!canNext} className={`${BTN} font-medium disabled:opacity-50`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {t('datatables.nc_next', 'Next')}
-                        </button>
-                    ) : (
-                        <button type="button" onClick={submit} disabled={busy || !selected.length} className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
-                            {selected.length === 1
-                                ? t('datatables.nc_link_submit_one', 'Link the table')
-                                : t('datatables.nc_link_submit', 'Link {n} tables', { n: selected.length })}
-                        </button>
-                    )}
-                </>
-            )}
+            footer={<WizardFooter t={t} busy={busy} isReview={step === 'review'} canNext={canNext} selectedCount={selected.length} onBack={back} onClose={onClose} onNext={next} onSubmit={submit} />}
         >
             <div className="space-y-4">
                 {step === 'tables' && (
@@ -218,6 +193,48 @@ export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onC
                 )}
             </div>
         </Modal>
+    );
+}
+
+interface WizardFooterProps {
+    t: TranslateFn;
+    busy: boolean;
+    isReview: boolean;
+    canNext: boolean;
+    selectedCount: number;
+    onBack: () => void;
+    onClose: () => void;
+    onNext: () => void;
+    onSubmit: () => void;
+}
+
+/** Back · Cancel · Next, or Link on the review step. */
+function WizardFooter({ t, busy, isReview, canNext, selectedCount, onBack, onClose, onNext, onSubmit }: WizardFooterProps) {
+    return (
+        <>
+            <button type="button" onClick={onBack} disabled={busy} className={`${BTN} border inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+                {t('datatables.nc_back', 'Back')}
+            </button>
+            <span className="mr-auto" />
+            <button type="button" onClick={onClose} disabled={busy} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
+                {t('datatables.cancel', 'Cancel')}
+            </button>
+            {!isReview ? (
+                <button type="button" onClick={onNext} disabled={!canNext} className={`${BTN} font-medium disabled:opacity-50`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {t('datatables.nc_next', 'Next')}
+                </button>
+            ) : (
+                <button type="button" onClick={onSubmit} disabled={busy || !selectedCount} className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
+                    style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
+                    {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
+                    {selectedCount === 1
+                        ? t('datatables.nc_link_submit_one', 'Link the table')
+                        : t('datatables.nc_link_submit', 'Link {n} tables', { n: selectedCount })}
+                </button>
+            )}
+        </>
     );
 }
 
