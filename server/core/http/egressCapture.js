@@ -98,12 +98,18 @@ function normaliseIp(raw) {
     return net.isIP(ip) ? ip.toLowerCase() : null;
 }
 
+/**
+ * @param {string | null} ip
+ */
 function familyOf(ip) {
     const v = ip ? net.isIP(ip) : 0;
     return v === 4 || v === 6 ? v : null;
 }
 
-/** Lowercased hostname, no brackets, no trailing dot, no port. */
+/**
+ * Lowercased hostname, no brackets, no trailing dot, no port.
+ * @param {string} raw
+ */
 function normaliseHost(raw) {
     if (typeof raw !== 'string' || !raw) return null;
     let h = raw.trim().toLowerCase();
@@ -117,6 +123,9 @@ function normaliseHost(raw) {
     return h || null;
 }
 
+/**
+ * @param {string} origin
+ */
 function urlParts(origin) {
     try {
         const u = new URL(String(origin));
@@ -163,7 +172,10 @@ function edgeFromObject(headers) {
 // for every peer of every probed call.
 const _envCache = { otlpRaw: /** @type {string | null} */ (null), otlpHosts: new Set(), proxyRaw: /** @type {string | null} */ (null), proxy: /** @type {({ host: string; port: number | null; noProxy: string[]; } | null) | null} */ (null) };
 
-/** Hosts of the OTLP exporter. A batch export started inside a call is not the call's egress. */
+/**
+ * Hosts of the OTLP exporter. A batch export started inside a call is not the call's egress.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function telemetryHosts(env = process.env) {
     const raw = [
         env.OTEL_EXPORTER_OTLP_ENDPOINT, env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
@@ -179,6 +191,8 @@ function telemetryHosts(env = process.env) {
 /**
  * The proxy this process would use for `targetHost`, or null.
  * @returns {{ host: string, port: number|null }|null}
+ * @param {string} targetHost
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function proxyFor(targetHost, env = process.env) {
     const raw = [
@@ -595,6 +609,7 @@ function recordPeer(peer, probe = liveProbe()) {
  * A pooled mail connection reused by this call: the address it was opened
  * to, from the last time this process saw it (no DNS). Null when unknown or
  * older than ten minutes.
+ * @param {string} host
  */
 function recordReusedConnection(host, probe = liveProbe()) {
     const key = normaliseHost(host);

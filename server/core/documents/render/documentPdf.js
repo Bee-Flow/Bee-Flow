@@ -1,3 +1,4 @@
+/** @typedef {import('./documentRenderer').AiMarking} AiMarking */
 const { featureModule } = require('../../featureModules');
 const { escapeHtml } = require('../../../templates/exportTemplate');
 const log = require('../../../telemetry/log');
@@ -51,6 +52,7 @@ async function renderDeckPdf({ deck, theme = null, title = '', marking = null, d
 /**
  * Chromium's per-page footer: the page counter on the right and, for a marked
  * document, the marking line on the left of the same 8px row.
+ * @param {AiMarking | null} marking
  */
 function browserFooterTemplate(marking) {
     const text = markingText(marking);
