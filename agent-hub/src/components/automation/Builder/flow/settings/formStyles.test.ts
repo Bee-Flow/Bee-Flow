@@ -94,7 +94,7 @@ describe('form style vocabulary', () => {
  * different input materials before this module existed.
  */
 describe('no hand-rolled control styles in the builder', () => {
-    const walk = (dir, out = []) => {
+    const walk = (dir: string, out: string[] = []): string[] => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(p, out);
@@ -124,7 +124,7 @@ describe('no hand-rolled control styles in the builder', () => {
         // stragglers cannot come back; it does not claim the drawer is clean.
         const src = fs.readFileSync(path.join(BUILDER, 'mapping/ValueBuilder.tsx'), 'utf8');
         const offenders = src.split('\n')
-            .map((line, i) => [i + 1, line])
+            .map((line, i) => [i + 1, line] as [number, string])
             .filter(([, line]) => /(?:text|bg|border|ring)-\[var\(--accent\)/.test(line))
             .map(([n, line]) => `mapping/ValueBuilder.jsx:${n} ${line.trim()}`);
         expect(offenders, `Use INLINE_LINK / a type-family token instead:\n${offenders.join('\n')}`).toEqual([]);
@@ -143,7 +143,7 @@ describe('no hand-rolled control styles in the builder', () => {
         // only catches a raw class list. --bg-primary elsewhere is left alone:
         // it is the correct surface for popovers and floating panels.
         const DECL = /(?:const|function)\s+\w*(?:[iI]nputClass|[tT]extareaClass)\w*\s*[=(]/;
-        const offenders = [];
+        const offenders: string[] = [];
         for (const p of walk(BUILDER).filter(f => !f.endsWith('formStyles.ts'))) {
             const lines = fs.readFileSync(p, 'utf8').split('\n');
             lines.forEach((line, i) => {

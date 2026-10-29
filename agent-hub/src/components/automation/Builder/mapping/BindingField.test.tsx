@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import BindingField from './BindingField';
 import { VariablePickerProvider } from './VariablePickerContext';
+import type { BindingInput } from '../../../../utils/bindingHelpers.types';
+import type { OnFocusField } from './focusField.types';
+import type { kindAtPath } from './mismatch';
 import { editorValue, typeInEditor } from '../../../../test/refEditor';
 
 // The KIND a pick resolves to is read at ONE boundary — kindAtPath. Stubbing
@@ -10,10 +13,11 @@ import { editorValue, typeInEditor } from '../../../../test/refEditor';
 // mismatchSentence stay real) is how "unknown" can be put on the wire at all;
 // through real sample data an array always resolves to `list` or `table`, so
 // the fallback that used to sit under it could never be caught from outside.
-let kindOverride = null;
+type FocusHandle = NonNullable<Parameters<OnFocusField>[0]>;
+let kindOverride: ReturnType<typeof kindAtPath> | null = null;
 vi.mock('./mismatch', async (importOriginal) => {
-    const actual = await importOriginal();
-    return { ...actual, kindAtPath: (path, root) => kindOverride || actual.kindAtPath(path, root) };
+    const actual = await importOriginal<typeof import('./mismatch')>();
+    return { ...actual, kindAtPath: (path: string, root: unknown) => kindOverride || actual.kindAtPath(path, root) };
 });
 
 const labels = new Map([['s1', 'Search web']]);
@@ -177,7 +181,7 @@ describe('BindingField — mode toggle stability', () => {
             </VariablePickerProvider>,
         );
         await user.click(screen.getByTitle(/^Expression/));
-        const emitted = onChange.mock.calls.at(-1)[0];
+        const emitted = (onChange.mock.calls.at(-1) as BindingInput[])[0];
 
         act(() => {
             rerender(
@@ -219,7 +223,7 @@ describe('BindingField — click-to-insert survives losing focus', () => {
 
     it('the broadcast handle still splices after the input has blurred', () => {
         const onChange = vi.fn();
-        let handle = null;
+        let handle: FocusHandle | null = null;
         render(
             <VariablePickerProvider groups={[]} previewSample={null} stepLabelById={labels}>
                 <BindingField
@@ -238,9 +242,9 @@ describe('BindingField — click-to-insert survives losing focus', () => {
         // The tree row takes focus away, exactly as a real click does.
         fireEvent.blur(input);
 
-        act(() => { handle.insert('steps.s1.output.count'); });
+        act(() => { (handle as FocusHandle).insert('steps.s1.output.count'); });
         expect(onChange).toHaveBeenCalled();
-        const last = onChange.mock.calls.at(-1)[0];
+        const last = (onChange.mock.calls.at(-1) as unknown[])[0];
         expect(JSON.stringify(last)).toContain('steps.s1.output.count');
     });
 });
@@ -263,7 +267,7 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
 
     function renderScalarSlot() {
         const onChange = vi.fn();
-        let handle = null;
+        let handle: FocusHandle | null = null;
         render(
             <VariablePickerProvider groups={[]} previewSample={SAMPLE} stepLabelById={labels}>
                 <BindingField
@@ -279,7 +283,7 @@ describe('BindingField — the mismatch box is asked the pick\'s REAL kind', () 
         );
         const input = screen.getByRole('textbox');
         fireEvent.focus(input);
-        return { onChange, insert: (path) => act(() => { handle.insert(path); }) };
+        return { onChange, insert: (path: string) => act(() => { (handle as FocusHandle).insert(path); }) };
     }
 
     it('a TABLE pick gets the table question, not the list menu', async () => {
