@@ -11,7 +11,7 @@
 function deepFreeze(value) {
     if (value && typeof value === 'object' && !Object.isFrozen(value)) {
         Object.freeze(value);
-        for (const key of Object.keys(value)) deepFreeze(/** @type {any} */ (value)[key]);
+        for (const key of Object.keys(value)) deepFreeze(/** @type {Record<string, unknown>} */ (value)[key]);
     }
     return value;
 }

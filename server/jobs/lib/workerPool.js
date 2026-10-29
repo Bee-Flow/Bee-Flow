@@ -56,7 +56,7 @@ function createLockedTick({ pool, lockKey, job, label, run }) {
     return async function lockedTick() {
         if (inFlight) return;
         inFlight = true;
-        /** @type {any} */
+        /** @type {Awaited<ReturnType<typeof pool.connect>> | null} */
         let client = null;
         let acquired = false;
         const t0 = Date.now();
@@ -69,7 +69,7 @@ function createLockedTick({ pool, lockKey, job, label, run }) {
             if ((await run()) === false) ok = false;
         } catch (e) {
             ok = false;
-            log.warn(`[${label}] tick error:`, /** @type {any} */ (e).message);
+            log.warn(`[${label}] tick error:`, /** @type {Error} */ (e).message);
         } finally {
             if (client) {
                 try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [lockKey]); } catch (err) { bestEffort('jobs/lib/workerPool:createLockedTick', err); /* best-effort */ }

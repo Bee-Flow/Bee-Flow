@@ -204,9 +204,8 @@ function cleanMarkdown(md) {
  *
  * @param {string} html - Raw HTML content
  * @param {string} baseUrl - Base URL for resolving relative links
- * @param {Object} [options] - Conversion options
- * @param {boolean} [options.includeLinks=true] - Include hyperlinks
- * @param {boolean} [options.includeImages=false] - Include images
+ * @param {{ includeLinks?: boolean, includeImages?: boolean }} [options] - Conversion options:
+ *   include hyperlinks (default true), include images (default false)
  * @returns {{ markdown: string, title: string }}
  */
 function htmlToMarkdown(html, baseUrl, options = {}) {
