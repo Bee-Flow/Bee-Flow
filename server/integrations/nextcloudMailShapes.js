@@ -48,4 +48,39 @@ function mailBodyText(m) {
     return m.body || m.bodyPlain || '';
 }
 
-module.exports = { mailError, normaliseRole, mailBodyText };
+const MAIL_API_BASE = '/index.php/apps/mail/api';
+const MAX_BODY_BYTES = 200 * 1024;
+
+/**
+ * The body as JSON, or as the raw text when it is not JSON ('' when unreadable).
+ * @param {{ text: () => Promise<string> }} res
+ */
+async function readJsonSafe(res) {
+    const text = await res.text().catch(() => '');
+    try { return JSON.parse(text); } catch { return text; }
+}
+
+/**
+ * @param {string} baseUrl
+ * @param {string} path
+ */
+function api(baseUrl, path) {
+    return `${baseUrl}${MAIL_API_BASE}${path}`;
+}
+
+const baseHeaders = {
+    'Accept': 'application/json',
+    'OCS-APIRequest': 'true', // harmless on non-OCS routes; required by some NC reverse proxies
+};
+
+/**
+ * A message body cut to MAX_BODY_BYTES characters, marked when it was cut.
+ * @param {string} text
+ */
+function trimBody(text) {
+    if (!text) return text;
+    if (text.length <= MAX_BODY_BYTES) return text;
+    return text.slice(0, MAX_BODY_BYTES) + '\n\n... [truncated — body too large]';
+}
+
+module.exports = { mailError, normaliseRole, mailBodyText, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody };

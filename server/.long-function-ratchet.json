@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of functions over 200 lines server may still carry. Lower it with `node scripts/count-ratchet.mjs long-function server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-10-29",
-  "count": 105
+  "count": 103
 }
