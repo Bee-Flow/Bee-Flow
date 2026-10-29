@@ -31,6 +31,121 @@ const OptionalConsentBody = z.object({
     granted: z.boolean({ error: GRANTED_TEXT }),
 }).strict();
 
+/**
+ * Whether a password account must enrol MFA before it can go on: the platform
+ * flag (default on) or the organisation's duty, never for an SSO login or an
+ * account already enrolled. False on any error.
+ * @param {import('express').Request} req
+ * @param {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} freshUser
+ */
+async function mfaSetupRequired(req, freshUser) {
+    try {
+        const configStore = require('../../stores/configStore');
+        const { resolveOrgMfaRequired } = require('../../core/entitlements/orgMfaRequired');
+        const platformRequired = (await configStore.getConfig('require_mfa_for_password_accounts')) ?? true;
+        // The org flag can only ADD the duty — it never switches the
+        // platform flag off, and a missing org row reads as false
+        // (deliberately NOT `?? true` like the platform flag).
+        const orgRequired = await resolveOrgMfaRequired(freshUser?.organizationId || null);
+        if (!platformRequired && !orgRequired) return false;
+        if (freshUser?.mfa_enabled) return false;            // already enrolled
+        // a connector-hydrated session (password account
+        // that connected Google via Settings → Connections) is NOT
+        // an SSO login — connecting Google must never silently
+        // exempt a password account from forced MFA enrollment.
+        const isSso = (!!req.session.oauthProvider && req.session.oauthTokenSource !== 'connector') ||
+                      (freshUser?.provider && freshUser.provider !== 'local');
+        if (isSso) return false;                             // Google/Microsoft own MFA
+        if (req.session.isAdmin || freshUser?.role === 'admin') return true; // admin included (row may not exist yet)
+        return !!freshUser?.passwordHash;                    // local password account
+    } catch (_) { return false; }
+}
+
+/**
+ * The Nextcloud onboarding state of the user's organisation: a pending binding
+ * for an org admin to approve, whether the setup wizard still has to run (and
+ * for whom), and the org's Nextcloud binding.
+ * @param {import('express').Request} req
+ * @param {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} freshUser
+ */
+async function ncOnboardingState(req, freshUser) {
+    if (!freshUser?.organizationId) return {};
+    const isOrgAdmin = (freshUser?.orgRole === 'org_admin') || (freshUser?.role === 'admin') || !!req.session.isAdmin;
+    // Pending NC binding — shown to org-admins so they can
+    // approve a connector that's waiting to bind to this org.
+    // Surfaced even when nc_instance_id is null because that's
+    // exactly the state where adoption is pending.
+    let pendingNcBinding = null;
+    if (isOrgAdmin) {
+        try {
+            const row = await userStore.getPendingNcBindingForOrg(freshUser.organizationId);
+            if (row) {
+                pendingNcBinding = {
+                    id: row.id,
+                    ncBaseUrl: row.ncBaseUrl,
+                    ncInstanceId: row.ncInstanceId,
+                    ncAdminUid: row.ncAdminUid,
+                    ncAdminEmail: row.ncAdminEmail,
+                    themingName: row.themingName,
+                    ncVersion: row.ncVersion,
+                    expiresAt: row.expiresAt,
+                };
+            }
+        } catch (e) { log.warn('[auth/user] pendingNcBinding lookup failed:', /** @type {Error} */ (e).message); }
+    }
+    const org = await userStore.getOrganization(freshUser.organizationId);
+    if (!org?.nc_instance_id) {
+        return pendingNcBinding ? { pendingNcBinding } : {};
+    }
+    const onboardingDone = !!org.nc_onboarding_completed_at;
+    // ncOrg is the org-level binding info — present iff the org
+    // was provisioned through Nextcloud. SPA uses this to gate
+    // settings sections that don't apply when identity is
+    // delegated to NC (sign-in method, allowed domains, etc.).
+    return {
+        ncOnboardingNeeded: !onboardingDone && isOrgAdmin,
+        ncOnboardingPending: !onboardingDone && !isOrgAdmin,
+        isOrgAdmin,
+        organizationName: org.name || null,
+        pendingNcBinding,
+        ncOrg: {
+            instanceId: org.nc_instance_id,
+            baseUrl: org.nc_base_url || null,
+            adminUid: org.nc_admin_uid || null,
+            syncMode: org.nc_sync_mode || 'mirror_all',
+            lastSyncAt: org.nc_last_sync_at || null,
+            provisionedAt: org.nc_provisioned_at || null,
+            onboardingCompletedAt: org.nc_onboarding_completed_at || null,
+        },
+    };
+}
+
+/**
+ * The feature flags the SPA reads, from the environment and configStore.
+ */
+async function featureFlags() {
+    const configStore = require('../../stores/configStore');
+    const notebooksEnabled = await configStore.getConfig('feature_notebooks_enabled');
+    const projectsEnabled = await configStore.getConfig('feature_projects_enabled');
+    const askAiEnabled = await configStore.getConfig('feature_ask_ai_enabled');
+    const exportEnabled = await configStore.getConfig('feature_export_enabled');
+    const openInNotebookEnabled = await configStore.getConfig('feature_open_in_notebook_enabled');
+    const notebooksMenuEnabled = await configStore.getConfig('feature_notebooks_menu_enabled');
+    return {
+        tasks: process.env.ENABLE_TASKS !== 'false',
+        monitoring: process.env.ENABLE_MONITORING !== 'false',
+        meeting_notes: process.env.ENABLE_MEETING_NOTES !== 'false',
+        templates: process.env.ENABLE_TEMPLATES !== 'false',
+        notebooks: notebooksEnabled !== false && notebooksEnabled !== 'false',
+        projects: projectsEnabled !== false && projectsEnabled !== 'false',
+        askAi: askAiEnabled !== false && askAiEnabled !== 'false',
+        export: exportEnabled !== false && exportEnabled !== 'false',
+        openInNotebook: openInNotebookEnabled !== false && openInNotebookEnabled !== 'false',
+        notebooksMenu: notebooksMenuEnabled !== false && notebooksMenuEnabled !== 'false',
+        deploymentMode: process.env.DEPLOYMENT_MODE || 'cloud',
+    };
+}
+
 // Get current user info
 router.get('/user', async (req, res) => {
     if (req.session.isAuthenticated && req.session.user) {
@@ -136,107 +251,15 @@ router.get('/user', async (req, res) => {
             // row. Gated by an admin toggle, default ON, OR'd with the per-org
             // duty (A3, `org_mfa_required_<orgId>` — default OFF, read side only
             // this release).
-            mfaSetupRequired: await (async () => {
-                try {
-                    const configStore = require('../../stores/configStore');
-                    const { resolveOrgMfaRequired } = require('../../core/entitlements/orgMfaRequired');
-                    const platformRequired = (await configStore.getConfig('require_mfa_for_password_accounts')) ?? true;
-                    // The org flag can only ADD the duty — it never switches the
-                    // platform flag off, and a missing org row reads as false
-                    // (deliberately NOT `?? true` like the platform flag).
-                    const orgRequired = await resolveOrgMfaRequired(freshUser?.organizationId || null);
-                    if (!platformRequired && !orgRequired) return false;
-                    if (freshUser?.mfa_enabled) return false;            // already enrolled
-                    // a connector-hydrated session (password account
-                    // that connected Google via Settings → Connections) is NOT
-                    // an SSO login — connecting Google must never silently
-                    // exempt a password account from forced MFA enrollment.
-                    const isSso = (!!req.session.oauthProvider && req.session.oauthTokenSource !== 'connector') ||
-                                  (freshUser?.provider && freshUser.provider !== 'local');
-                    if (isSso) return false;                             // Google/Microsoft own MFA
-                    if (req.session.isAdmin || freshUser?.role === 'admin') return true; // admin included (row may not exist yet)
-                    return !!freshUser?.passwordHash;                    // local password account
-                } catch (_) { return false; }
-            })(),
+            mfaSetupRequired: await mfaSetupRequired(req, freshUser),
             // NC App Store onboarding wizard gate. When the connector has
             // bootstrapped a fresh org but the admin hasn't completed the
             // 4-step setup wizard yet, we surface that to the SPA so it
             // renders <NcOnboardingWizard/> for the admin and a "Setup in
             // progress" screen for everyone else in that org.
-            ...(await (async () => {
-                if (!freshUser?.organizationId) return {};
-                const isOrgAdmin = (freshUser?.orgRole === 'org_admin') || (freshUser?.role === 'admin') || !!req.session.isAdmin;
-                // Pending NC binding — shown to org-admins so they can
-                // approve a connector that's waiting to bind to this org.
-                // Surfaced even when nc_instance_id is null because that's
-                // exactly the state where adoption is pending.
-                let pendingNcBinding = null;
-                if (isOrgAdmin) {
-                    try {
-                        const row = await userStore.getPendingNcBindingForOrg(freshUser.organizationId);
-                        if (row) {
-                            pendingNcBinding = {
-                                id: row.id,
-                                ncBaseUrl: row.ncBaseUrl,
-                                ncInstanceId: row.ncInstanceId,
-                                ncAdminUid: row.ncAdminUid,
-                                ncAdminEmail: row.ncAdminEmail,
-                                themingName: row.themingName,
-                                ncVersion: row.ncVersion,
-                                expiresAt: row.expiresAt,
-                            };
-                        }
-                    } catch (e) { log.warn('[auth/user] pendingNcBinding lookup failed:', /** @type {Error} */ (e).message); }
-                }
-                const org = await userStore.getOrganization(freshUser.organizationId);
-                if (!org?.nc_instance_id) {
-                    return pendingNcBinding ? { pendingNcBinding } : {};
-                }
-                const onboardingDone = !!org.nc_onboarding_completed_at;
-                // ncOrg is the org-level binding info — present iff the org
-                // was provisioned through Nextcloud. SPA uses this to gate
-                // settings sections that don't apply when identity is
-                // delegated to NC (sign-in method, allowed domains, etc.).
-                return {
-                    ncOnboardingNeeded: !onboardingDone && isOrgAdmin,
-                    ncOnboardingPending: !onboardingDone && !isOrgAdmin,
-                    isOrgAdmin,
-                    organizationName: org.name || null,
-                    pendingNcBinding,
-                    ncOrg: {
-                        instanceId: org.nc_instance_id,
-                        baseUrl: org.nc_base_url || null,
-                        adminUid: org.nc_admin_uid || null,
-                        syncMode: org.nc_sync_mode || 'mirror_all',
-                        lastSyncAt: org.nc_last_sync_at || null,
-                        provisionedAt: org.nc_provisioned_at || null,
-                        onboardingCompletedAt: org.nc_onboarding_completed_at || null,
-                    },
-                };
-            })()),
+            ...(await ncOnboardingState(req, freshUser)),
             // Feature flags from env + configStore
-            featureFlags: await (async () => {
-                const configStore = require('../../stores/configStore');
-                const notebooksEnabled = await configStore.getConfig('feature_notebooks_enabled');
-                const projectsEnabled = await configStore.getConfig('feature_projects_enabled');
-                const askAiEnabled = await configStore.getConfig('feature_ask_ai_enabled');
-                const exportEnabled = await configStore.getConfig('feature_export_enabled');
-                const openInNotebookEnabled = await configStore.getConfig('feature_open_in_notebook_enabled');
-                const notebooksMenuEnabled = await configStore.getConfig('feature_notebooks_menu_enabled');
-                return {
-                    tasks: process.env.ENABLE_TASKS !== 'false',
-                    monitoring: process.env.ENABLE_MONITORING !== 'false',
-                    meeting_notes: process.env.ENABLE_MEETING_NOTES !== 'false',
-                    templates: process.env.ENABLE_TEMPLATES !== 'false',
-                    notebooks: notebooksEnabled !== false && notebooksEnabled !== 'false',
-                    projects: projectsEnabled !== false && projectsEnabled !== 'false',
-                    askAi: askAiEnabled !== false && askAiEnabled !== 'false',
-                    export: exportEnabled !== false && exportEnabled !== 'false',
-                    openInNotebook: openInNotebookEnabled !== false && openInNotebookEnabled !== 'false',
-                    notebooksMenu: notebooksMenuEnabled !== false && notebooksMenuEnabled !== 'false',
-                    deploymentMode: process.env.DEPLOYMENT_MODE || 'cloud',
-                };
-            })(),
+            featureFlags: await featureFlags(),
             // Org branding (logo + name) for self-hosted white-label rendering
             // in the sidebar / loading screens. Cloud users see the same data
             // but the frontend only swaps the logo when deploymentMode is
