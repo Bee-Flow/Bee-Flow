@@ -70,7 +70,11 @@ async function addQuestion(deps, args) {
     };
 }
 
-/** @param {FormsDeps} deps @param {any} args */
+/**
+ * @param {FormsDeps} deps
+ * @param {{ formId?: string, title?: string, description?: string, isAnonymous?: unknown, submitMultiple?: unknown,
+ *   state?: unknown, submissionMessage?: string, expires?: string }} args
+ */
 async function updateSettings(deps, args) {
     const { api, ncFetch, authError, handle, HEADERS } = deps;
     if (!args.formId) return { error: 'formId is required' };

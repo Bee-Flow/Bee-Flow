@@ -614,7 +614,7 @@ const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that r
  * Used for audio/video imports where loading the whole file into memory
  * would be wasteful — meeting recordings can easily exceed 100 MB.
  *
- * @param {object} session  Express session (used to resolve auth).
+ * @param {Partial<Express.Session> | null | undefined} session  Express session (used to resolve auth).
  * @param {string} userId   For app-password fallback.
  * @param {string} ncPath   Path within the user's Files root, e.g. "/Recordings/2026-05-08.mp3".
  * @param {string} destPath Local filesystem path to write to.

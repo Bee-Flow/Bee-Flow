@@ -142,7 +142,9 @@ function isBuilderTool(toolName) {
  * Execute a builder tool call.
  *
  * @param {string} toolName
- * @param {any} args
+ * @param {{ webpageId?: string, name?: string, description?: string, file?: string, content?: string,
+ *   title?: string, icon?: unknown, accent_color?: unknown, tagline?: unknown, [key: string]: unknown }} args
+ *   the tool arguments; the doc tools read the rest
  * @param {{ userId: string, readSlots?: Map<string, Set<string>> }} ctx
  *   readSlots is keyed by webpageId — tracks which slots the AI has read this
  *   call-batch so the read-before-edit guard can warn when an edit comes in

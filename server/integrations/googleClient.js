@@ -247,14 +247,14 @@ const GOOGLE_RETRY_CONFIG = Object.freeze({
  * whose vault sessions have no .save()).
  *
  * @param {GoogleSession} session             Live session (mutated on token refresh).
- * @param {object}   opts
- * @param {string}   opts.api                 google API name, e.g. 'gmail', 'calendar', 'drive'.
- * @param {string}   opts.version             API version, e.g. 'v1', 'v3'.
- * @param {Array<{ api: string, version: string }>} [opts.extraApis]         [{api, version}] extra clients on the SAME OAuth2 (docs/slides/sheets).
- * @param {boolean}  [opts.exposeOAuth2]      also return the oauth2Client (docs/slides/sheets).
- * @param {(session: GoogleSession) => unknown} [opts.onSaved]           write-back override; default session.save?.().
- * @param {string}   [opts.notConnectedError] error message when the session has no accessToken.
- * @param {string}   [opts.notConfiguredError] error message when the Google OAuth app is not configured.
+ * @param {{ api: string, version: string, extraApis?: Array<{ api: string, version: string }>,
+ *   exposeOAuth2?: boolean, onSaved?: (session: GoogleSession) => unknown,
+ *   notConnectedError?: string, notConfiguredError?: string }} opts  `api` is the google API
+ *   name ('gmail', 'calendar', 'drive'), `version` its version ('v1', 'v3'); `extraApis` are
+ *   extra clients on the SAME OAuth2 (docs/slides/sheets); `exposeOAuth2` also returns the
+ *   oauth2Client; `onSaved` overrides the write-back (default session.save?.());
+ *   `notConnectedError` is the message when the session has no accessToken,
+ *   `notConfiguredError` the one when the Google OAuth app is not configured.
  * @returns {Promise<Object>} google[api] client, or {[api], ...extraApis, oauth2Client}.
  */
 async function createGoogleApiClient(session, { api, version, extraApis = [], exposeOAuth2 = false, onSaved, notConnectedError, notConfiguredError } = {}) {

@@ -10,18 +10,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * What nextcloudTools.js hands every file-family handler.
- * @typedef {object} FilesToolCtx
- * @property {string} baseUrl
- * @property {import('../nextcloudClient.types').NcAuth['fetch']} ncFetch
- * @property {string} authError
- * @property {string} uid
- * @property {string} root
- * @property {Partial<Express.Session>} [session]
- * @property {string | null} [mode]
- * @property {string | null} [publicBaseUrl]
- * @property {string} [userId]
- * @property {string | null} [orgId]
- * @property {{ runId: string, rootRunId?: string } | null} [runScope]
+ * @typedef {{ baseUrl: string, ncFetch: import('../nextcloudClient.types').NcAuth['fetch'],
+ *   authError: string, uid: string, root: string, session?: Partial<Express.Session>,
+ *   mode?: string | null, publicBaseUrl?: string | null, userId?: string, orgId?: string | null,
+ *   runScope?: { runId: string, rootRunId?: string } | null }} FilesToolCtx
  */
 
 const MAX_TEXT_BYTES = 200 * 1024;          // 200 KB cap on file reads

@@ -32,7 +32,7 @@ const SHEET_HOW = 'To change cells, call document_write({ documentId, cells: { "
 
 /**
  * The tab a call asks for: its id or its name (any case), the first by default.
- * @param {any} doc
+ * @param {SheetDocument} doc
  * @param {unknown} wanted
  * @returns {{ tabs: any[], tab: any } | { error: string }}
  */
@@ -52,7 +52,7 @@ function pickTab(doc, wanted) {
  * @param {{ userId: string; }} doc
  * @param {{ tabs: any[], tab: any }} picked
  * @param {Record<string, string>} cells  the read tab's cells
- * @param {any} sheetCells
+ * @param {SheetCellsReader} sheetCells
  */
 async function workbookFor(doc, picked, cells, sheetCells) {
     const refTabs = await require('../core/documents/sheetWorkbook').readReferencedTabs(doc, picked.tabs, picked.tab.id, cells, sheetCells);
@@ -64,7 +64,7 @@ async function workbookFor(doc, picked, cells, sheetCells) {
  * Add a tab named `name` to the spreadsheet: a new cell table, then the
  * document's tab list, as the editor's "+" does (routes/studioDocuments/
  * sheet.js). The table is dropped again when the document refuses the tab.
- * @param {any} doc
+ * @param {SheetDocument} doc
  * @param {string} name
  * @param {{ cells: any, documents?: any, actorUserId?: string }} deps
  * @returns {Promise<{ tabs: any[], tab: any } | { error: string }>}
@@ -98,8 +98,8 @@ async function addTab(doc, name, deps) {
 }
 
 /**
- * @param {any} doc  the spreadsheet, as getDocument returned it to the caller
- * @param {{ cells?: any, evaluate?: Function }} [deps]
+ * @param {SheetDocument} doc  the spreadsheet, as getDocument returned it to the caller
+ * @param {{ cells?: any, evaluate?: EvaluateSheet }} [deps]
  * @param {{ tab?: unknown, mode?: unknown, range?: unknown }} [args]  the document_read arguments
  */
 async function readSheetDocument(doc, deps = {}, args = {}) {
@@ -176,9 +176,9 @@ function partOf(all, range) {
 /**
  * Every tab's outline: headers, column types, how full, min/max and the
  * values of category columns (core/documents/sheetOutline.js) — no rows.
- * @param {any} doc
- * @param {any} sheetCells
- * @param {Function} evaluate
+ * @param {SheetDocument} doc
+ * @param {SheetCellsReader} sheetCells
+ * @param {EvaluateSheet} evaluate
  */
 async function readOutline(doc, sheetCells, evaluate) {
     const { tabOutline } = require('../core/documents/sheetOutline');
@@ -200,7 +200,7 @@ async function readOutline(doc, sheetCells, evaluate) {
 }
 
 /**
- * @param {any} doc
+ * @param {SheetDocument} doc
  * @param {any} args  the document_write arguments
  * @param {{ cells?: any, documents?: any, actorUserId?: string }} [deps]
  */
@@ -255,5 +255,14 @@ async function writeSheetDocument(doc, args, deps = {}) {
 }
 
 const SHEET_EDIT_REFUSAL = { error: `document_edit changes text in a page or a designed document; this one is a spreadsheet. ${SHEET_HOW}` };
+
+/**
+ * The spreadsheet's tabs and charts, under `settings.sheet`.
+ * @typedef {{ tabs?: Array<{ id: string, name: string, datatableId: string }>, datatableId?: string,
+ *   charts?: Array<import('../core/documents/sheetChartFields').ChartFields & { id?: string, tab?: string }> }} SheetSettings
+ * @typedef {import('../stores/documentStore').DocumentView & { settings: { sheet?: SheetSettings } }} SheetDocument
+ * @typedef {Pick<ReturnType<typeof import('../core/documents/sheetCells').makeSheetCells>, 'readSheet'>} SheetCellsReader
+ * @typedef {typeof import('../shared/expr/sheet.mjs').evaluateSheet} EvaluateSheet
+ */
 
 module.exports = { MAX_CELLS_PER_CALL, MAX_TABS, readSheetDocument, writeSheetDocument, SHEET_EDIT_REFUSAL };

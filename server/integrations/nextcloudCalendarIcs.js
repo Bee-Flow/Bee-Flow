@@ -78,7 +78,7 @@ function resolveRange({ start, end, allDay }) {
     return { startTime: s, endTime: e };
 }
 
-/** @param {any} vevent @param {string} email */
+/** @param {import('ical.js').Component} vevent @param {string} email */
 function addAttendee(vevent, email) {
     const prop = new ICAL.Property('attendee', vevent);
     prop.setParameter('role', 'REQ-PARTICIPANT');
@@ -87,7 +87,7 @@ function addAttendee(vevent, email) {
     vevent.addProperty(prop);
 }
 
-/** @param {any} vevent @param {Record<string, string | undefined | null>} fields */
+/** @param {import('ical.js').Component} vevent @param {Record<string, string | undefined | null>} fields */
 function applyTextFields(vevent, fields) {
     for (const [name, value] of Object.entries(fields)) {
         if (value === undefined) continue;
@@ -160,7 +160,7 @@ function wallClockIn(utcTime, tzid) {
 /**
  * Write a new DTSTART/DTEND. A stored TZID is kept: the instant is converted to
  * that zone's wall-clock time, so recurrence, EXDATE and DST keep their meaning.
- * @param {any} vevent @param {'dtstart' | 'dtend'} name @param {any} time
+ * @param {any} vevent @param {'dtstart' | 'dtend'} name @param {import('ical.js').Time} time
  */
 function writeTime(vevent, name, time) {
     const event = new ICAL.Event(vevent);

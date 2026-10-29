@@ -224,7 +224,7 @@ function batchError(res) {
  * outlook_read_many: up to 100 messages through Graph JSON batching, then the
  * attachment lists of those that have any, also batched. Two to ten requests
  * for 100 emails, where outlook_read made up to 200.
- * @param {object} session - a Microsoft session (SSO or the vault shim)
+ * @param {OutlookSession} session - a Microsoft session (SSO or the vault shim)
  * @param {{ messageIds?: unknown, mailbox?: unknown }} args
  * @param {{ batch?: Function }} [deps]
  */
@@ -373,8 +373,7 @@ async function listRecentMessages(args, fetchPage, base = '/me') {
  * @param {string} toolName
  * @param {OutlookArgs} args
  * @param {OutlookSession} session - a Microsoft session (SSO or the vault shim)
- * @param {Object} [opts]
- * @param {boolean} [opts.autoSend=false] - For outlook_compose: when true the
+ * @param {{ autoSend?: boolean }} [opts] - autoSend (default false), for outlook_compose: when true the
  *   mail is sent straight away instead of returning an email_draft for the
  *   user to approve. Only unattended callers (the automation runner, a
  *   scheduled agent run) set it — there is nobody to click Send there, and a

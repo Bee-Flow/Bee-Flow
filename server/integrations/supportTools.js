@@ -65,11 +65,11 @@ async function _resolveThread(context) {
 /**
  * @param {string} threadId
  * @param {string} tool
- * @param {object} [payload]
+ * @param {Record<string, unknown>} [payload]
  */
 async function _recordAction(threadId, tool, payload = {}) {
     try {
-        await supportStore.recordThreadEvent(/** @type {any} */ ({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } }));
+        await supportStore.recordThreadEvent({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } });
     } catch (err) { bestEffort('integrations/supportTools:_recordAction', err); /* audit is best-effort */ }
 }
 

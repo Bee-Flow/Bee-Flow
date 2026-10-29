@@ -93,7 +93,7 @@ const SEARCH_FIELDS = 'id,snippet,payload/headers';
  * The search summary of one message from a metadata GET. The raw
  * List-Unsubscribe value (URLs, addresses) is not passed on: only whether it
  * was there, plus the Precedence keyword and the bulk verdict both imply.
- * @param {object} data - users.messages.get response data
+ * @param {GmailMessage} data - users.messages.get response data
  */
 function summarizeSearchMessage(data) {
     const headers = data?.payload?.headers || [];
@@ -127,7 +127,7 @@ const GMAIL_MESSAGE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 /**
  * A `format: 'full'` message as gmail_read returns it. gmail_read and
  * gmail_read_many both shape through here, so one email reads the same either way.
- * @param {object} data - users.messages.get response data
+ * @param {GmailMessage} data - users.messages.get response data
  * @param {number} [maxChars]
  */
 function shapeReadMessage(data, maxChars = READ_MAX_CHARS) {
@@ -151,11 +151,8 @@ function shapeReadMessage(data, maxChars = READ_MAX_CHARS) {
 module.exports = { guessMimeTypeFromName, extractAttachments, summarizeSearchMessage, shapeReadMessage, extractTextBody, getHeader, SEARCH_METADATA_HEADERS, SEARCH_FIELDS, READ_MAX_CHARS, READ_MANY_MAX_CHARS, READ_MANY_MAX, BULK_MODIFY_MAX, NOT_IN_BULK, GMAIL_MESSAGE_ID };
 
 /**
- * @typedef {object} GmailMessage  users.messages.get response data, as far as this file reads it
- * @property {string} [id]
- * @property {string} [threadId]
- * @property {string} [snippet]
- * @property {GmailPart} [payload]
+ * users.messages.get response data, as far as this file reads it.
+ * @typedef {{ id?: string, threadId?: string, snippet?: string, payload?: GmailPart }} GmailMessage
  */
 
 /**

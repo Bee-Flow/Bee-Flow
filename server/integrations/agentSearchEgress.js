@@ -26,9 +26,9 @@ function defaultDeps() {
 
 /**
  * @param {string} toolName
- * @param {object} toolArgs
+ * @param {Record<string, unknown>} toolArgs
  * @param {{ source: string, ids: object }} egress  row attribution
- * @param {object} [deps]  test seam
+ * @param {Partial<ReturnType<typeof defaultDeps>>} [deps]  test seam: a test hands over the functions its call reaches
  */
 async function runAgentSearchWithEgress(toolName, toolArgs, egress, deps = defaultDeps()) {
     const t0 = deps.now();

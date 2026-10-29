@@ -692,7 +692,7 @@ async function pollGeneration(apiKey, generationId, timeoutSeconds) {
 /**
  * @param {string} apiKey
  * @param {string} path
- * @param {object} body
+ * @param {Record<string, unknown>} body
  * @param {GammaArgs} args
  * @param {GammaGenerationMeta} [meta]
  */

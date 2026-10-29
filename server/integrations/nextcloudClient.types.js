@@ -6,16 +6,9 @@
  * How a tool reaches Nextcloud: base URL, the user's uid, a ready `fetch` and the
  * message to show when it is refused. The rest depends on `mode`.
  *
- * @typedef {object} NcAuth
- * @property {string} [mode]
- * @property {string} baseUrl
- * @property {string} [publicBaseUrl]
- * @property {string} [uid]
- * @property {any} [session]
- * @property {string} [username]
- * @property {string} [password]
- * @property {(url: string, options?: any) => Promise<any>} fetch
- * @property {string} authError
+ * @typedef {{ mode?: string, baseUrl: string, publicBaseUrl?: string, uid?: string,
+ *   session?: Partial<Express.Session> | null, username?: string, password?: string,
+ *   fetch: (url: string, options?: any) => Promise<any>, authError: string }} NcAuth
  */
 
 module.exports = {};

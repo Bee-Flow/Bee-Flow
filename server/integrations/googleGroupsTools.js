@@ -100,7 +100,7 @@ const { extractTextBody, getGmailHeader: getHeader } = require('../services/emai
  * Execute a Google Groups tool call.
  * @param {string} toolName - Tool name
  * @param {{ groupEmail?: string, query?: string, maxResults?: number, threadId?: string, replyToMessageId?: string, subject?: string, body?: string }} args - Tool arguments
- * @param {object} session - Express session with OAuth tokens
+ * @param {import('./googleClient').GoogleSession} session - Express session with OAuth tokens
  * @returns {Promise<object>} Tool result
  */
 async function executeGoogleGroupsTool(toolName, args, session) {

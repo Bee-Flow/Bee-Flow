@@ -7,7 +7,7 @@
 
 /**
  * Lower-cased Nextcloud user ids currently in a team, or `{ error }`.
- * @param {Function} ncFetch the deps.ncFetch below
+ * @param {import('./nextcloudClient.types').NcAuth['fetch']} ncFetch the deps.ncFetch below
  * @param {string} teamPath
  * @param {string} authError
  * @param {Function} handle the deps.handle below
@@ -25,8 +25,8 @@ async function memberUserIds(ncFetch, teamPath, authError, handle, HEADERS) {
 }
 
 /**
- * @param {{ api: string, ncFetch: Function, authError: string, handle: Function, HEADERS: Record<string,string> }} deps
- * @param {any} args
+ * @param {{ api: string, ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], authError: string, handle: Function, HEADERS: Record<string,string> }} deps
+ * @param {{ teamId?: string, userIds?: unknown }} args
  */
 async function addMembers(deps, args) {
     const { api, ncFetch, authError, handle, HEADERS } = deps;

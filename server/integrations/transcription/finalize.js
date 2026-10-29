@@ -104,13 +104,11 @@ function buildResult({ audioFileName, language, merged, totalDuration, speakerMa
 /**
  * Raw provider segments in, chat-tool result out.
  *
- * @param {object} opts
- * @param {Array<{speakerId?: string, start?: number, end?: number, text?: string}>} opts.segments
- * @param {string} opts.audioFileName
- * @param {string} opts.language
- * @param {number} opts.totalDuration    recording length in seconds (see maxSegmentEnd)
- * @param {(speakerIds: string[], formattedLines: string[]) => Promise<object|null>|object|null} opts.identifyNames
- *        speaker id → display name, from the transcript lines before renaming
+ * @param {{ segments: Array<{speakerId?: string, start?: number, end?: number, text?: string}>,
+ *   audioFileName: string, language: string, totalDuration: number,
+ *   identifyNames: (speakerIds: string[], formattedLines: string[]) => Promise<object|null>|object|null }} opts
+ *   `totalDuration` is the recording length in seconds (see maxSegmentEnd); `identifyNames` maps
+ *   speaker id → display name, from the transcript lines before renaming
  */
 async function finalizeTranscript({ segments, audioFileName, language, totalDuration, identifyNames }) {
     const merged = mergeSegments(segments);
