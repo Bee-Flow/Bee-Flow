@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -235,9 +235,10 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         try { localStorage.clear(); } catch { /* jsdom without storage */ }
     });
 
-    const pickInto = (buttonIndex, path) => {
-        fireEvent.click(screen.getAllByLabelText('Insert variable')[buttonIndex]);
-        fireEvent.click(screen.getByTitle(path));
+    const pickInto = async (buttonIndex, path) => {
+        const user = userEvent.setup();
+        await user.click(screen.getAllByLabelText('Insert variable')[buttonIndex]);
+        await user.click(screen.getByTitle(path));
     };
 
     it('every text slot on a page offers the picker', async () => {
@@ -251,7 +252,7 @@ describe('SettingsForm — form page: values from earlier steps', () => {
     it('picking a value writes a {{…}} template into the page title', async () => {
         const user = userEvent.setup();
         const { onPatch } = renderStep(inputPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
-        pickInto(0, 'steps.t.output.number');
+        await pickInto(0, 'steps.t.output.number');
         await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].form.title).toContain('{{steps.t.output.number}}');
     });
@@ -261,7 +262,7 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         const user = userEvent.setup();
         await user.click(screen.getByLabelText('Expand question 1'));
         // Index 2: title, intro, then the first question's label.
-        pickInto(2, 'steps.t.output.number');
+        await pickInto(2, 'steps.t.output.number');
         await user.click(screen.getByText('Save'));
 
         const field = onPatch.mock.calls.at(-1)[0].form.fields[0];

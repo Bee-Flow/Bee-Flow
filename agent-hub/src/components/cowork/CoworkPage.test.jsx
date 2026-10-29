@@ -137,7 +137,7 @@ describe('CoworkPage — creating', () => {
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Weekly digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Weekly digest');
         await user.click(screen.getByTestId('cowork-repeat-chip'));
         await user.click(screen.getByText('Every week'));
         await user.click(screen.getByTestId('cowork-when-chip'));
@@ -157,7 +157,7 @@ describe('CoworkPage — creating', () => {
         const user = userEvent.setup();
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Do the thing');
 
         await user.click(screen.getByTestId('cowork-when-chip'));
         await user.click(screen.getByText('Pick a moment…'));
@@ -174,7 +174,7 @@ describe('CoworkPage — creating', () => {
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Do the thing');
         await user.click(screen.getByTestId('cowork-send'));
 
         expect(await screen.findByText(/Maximum number of cowork items reached/)).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('CoworkPage — creating', () => {
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await user.click(screen.getByTestId('cowork-send'));
 
         await waitFor(() => expect(api.createCowork).toHaveBeenCalled());
@@ -222,7 +222,7 @@ describe('CoworkPage — creating', () => {
         // The refresh after create is what puts the new row in the list.
         api.listCowork.mockResolvedValue({ items: [{ ...ITEM, id: 'new' }], maxItems: 10 });
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await user.click(screen.getByTestId('cowork-send'));
 
         expect(await screen.findByTestId('cowork-detail')).toBeInTheDocument();
@@ -296,6 +296,7 @@ describe('CoworkPage — the list', () => {
     });
 
     it('drops the When popover below the chip when there is no room above it', async () => {
+        const user = userEvent.setup();
         // The composer sits at the top of the column, where the default upward
         // placement runs the panel off the viewport. Real bug, caught in the
         // browser: the sheet's title was clipped above the fold.
@@ -304,7 +305,7 @@ describe('CoworkPage — the list', () => {
             rect.mockReturnValue({ top: -120, bottom: 0, left: 0, right: 0, width: 280, height: 400, x: 0, y: -120, toJSON: () => ({}) });
             render(withQueryClient(<CoworkPage />));
             await screen.findByTestId('cowork-when-chip');
-            fireEvent.click(screen.getByTestId('cowork-when-chip'));
+            await user.click(screen.getByTestId('cowork-when-chip'));
 
             const panel = screen.getByRole('dialog', { name: 'When should this run?' });
             expect(panel.className).toContain('top-full');
@@ -469,7 +470,7 @@ describe('CoworkPage — detail, history and editing', () => {
         await screen.findByTestId('cowork-detail');
 
         await user.click(screen.getByTestId('cowork-edit'));
-        fireEvent.change(await screen.findByTestId('cowork-edit-title'), { target: { value: 'Monthly digest' } });
+        await user.clear(await screen.findByTestId('cowork-edit-title')); await user.type(await screen.findByTestId('cowork-edit-title'), 'Monthly digest');
         await user.click(screen.getByTestId('cowork-edit-save'));
 
         await waitFor(() => expect(api.updateCowork).toHaveBeenCalled());
@@ -487,7 +488,7 @@ describe('CoworkPage — detail, history and editing', () => {
         await screen.findByTestId('cowork-detail');
 
         await user.click(screen.getByTestId('cowork-edit'));
-        fireEvent.change(await screen.findByTestId('cowork-edit-title'), { target: { value: 'Monthly digest' } });
+        await user.clear(await screen.findByTestId('cowork-edit-title')); await user.type(await screen.findByTestId('cowork-edit-title'), 'Monthly digest');
         await user.click(screen.getByTestId('cowork-edit-save'));
 
         expect(await screen.findByText(/Unknown timezone/)).toBeInTheDocument();
@@ -711,11 +712,12 @@ describe('CoworkPage — how the list is built', () => {
 
 describe('CoworkPage — the quota ceiling and the flash', () => {
     it('drops the send silently once every slot is taken — the button stays live (wart)', async () => {
+        const user = userEvent.setup();
         api.listCowork.mockResolvedValue({ items: [ITEM], maxItems: 1 });
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'One more thing' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'One more thing');
         expect(screen.getByTestId('cowork-send')).not.toBeDisabled();
         await userEvent.click(screen.getByTestId('cowork-send'));
 
@@ -726,10 +728,11 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
     });
 
     it('confirms a "run now" creation under the composer, and clears the box', async () => {
+        const user = userEvent.setup();
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await userEvent.click(screen.getByTestId('cowork-send'));
 
         const flash = await screen.findByText('Off it goes — the result lands in your notifications.');
@@ -738,10 +741,11 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
     });
 
     it('says only "Scheduled." for something dated in the future', async () => {
+        const user = userEvent.setup();
         render(withQueryClient(<CoworkPage />));
         await screen.findByTestId('cowork-brief-input');
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await userEvent.click(screen.getByTestId('cowork-when-chip'));
         await userEvent.click(screen.getByText('Tomorrow morning'));
         await userEvent.click(screen.getByTestId('cowork-send'));
@@ -750,12 +754,13 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
     });
 
     it('clears the flash after exactly 4 seconds', async () => {
+        const user = userEvent.setup();
         const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
         try {
             render(withQueryClient(<CoworkPage />));
             await screen.findByTestId('cowork-brief-input');
-            fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
-            fireEvent.click(screen.getByTestId('cowork-send'));
+            await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
+            await user.click(screen.getByTestId('cowork-send'));
             await screen.findByText('Off it goes — the result lands in your notifications.');
 
             // The timer is armed in an effect after the render that shows the
@@ -773,6 +778,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
     });
 
     it('hides its own creation flash the moment the new item comes back from the server (wart)', async () => {
+        const user = userEvent.setup();
         // The flash lives inside the composer block, and creating something
         // selects it — which replaces the composer with the detail pane. So the
         // confirmation is only ever seen when the refresh has not caught up.
@@ -780,7 +786,7 @@ describe('CoworkPage — the quota ceiling and the flash', () => {
         await screen.findByTestId('cowork-brief-input');
         api.listCowork.mockResolvedValue({ items: [{ ...ITEM, id: 'new' }], maxItems: 10 });
 
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Send the digest' } });
+        await user.clear(screen.getByTestId('cowork-brief-input')); await user.type(screen.getByTestId('cowork-brief-input'), 'Send the digest');
         await userEvent.click(screen.getByTestId('cowork-send'));
 
         await screen.findByTestId('cowork-detail');

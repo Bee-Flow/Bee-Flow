@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,12 +36,15 @@ describe('TemplateEditor', () => {
         expect(screen.getByText('Specific group')).toBeTruthy();
     });
 
-    it('disables Save until a name and prompt are provided', () => {
+    it('disables Save until a name and prompt are provided', async () => {
+        const user = userEvent.setup();
         render(<TemplateEditor open onClose={() => {}} canManageOrg={false} builtins={[]} />);
         const save = screen.getByRole('button', { name: /Save template/i });
         expect(save.disabled).toBe(true);
-        fireEvent.change(screen.getByPlaceholderText(/Board summary/i), { target: { value: 'My style' } });
-        fireEvent.change(screen.getByPlaceholderText(/Describe the summary/i), { target: { value: 'Summarise it' } });
+        await user.clear(screen.getByPlaceholderText(/Board summary/i));
+        await user.type(screen.getByPlaceholderText(/Board summary/i), 'My style');
+        await user.clear(screen.getByPlaceholderText(/Describe the summary/i));
+        await user.type(screen.getByPlaceholderText(/Describe the summary/i), 'Summarise it');
         expect(save.disabled).toBe(false);
     });
 
@@ -50,8 +53,10 @@ describe('TemplateEditor', () => {
         const onSaved = vi.fn();
         const onClose = vi.fn();
         render(<TemplateEditor open onClose={onClose} canManageOrg={false} builtins={[]} onSaved={onSaved} />);
-        fireEvent.change(screen.getByPlaceholderText(/Board summary/i), { target: { value: 'My style' } });
-        fireEvent.change(screen.getByPlaceholderText(/Describe the summary/i), { target: { value: 'Summarise it' } });
+        await user.clear(screen.getByPlaceholderText(/Board summary/i));
+        await user.type(screen.getByPlaceholderText(/Board summary/i), 'My style');
+        await user.clear(screen.getByPlaceholderText(/Describe the summary/i));
+        await user.type(screen.getByPlaceholderText(/Describe the summary/i), 'Summarise it');
         await user.click(screen.getByRole('button', { name: /Save template/i }));
         await waitFor(() => expect(api.createSummaryTemplate).toHaveBeenCalled());
         expect(api.createSummaryTemplate).toHaveBeenCalledWith(expect.objectContaining({ scope: 'user', name: 'My style', prompt: 'Summarise it' }));
@@ -64,7 +69,8 @@ describe('TemplateEditor', () => {
         render(<TemplateEditor open onClose={() => {}} canManageOrg initial={initial} builtins={[]} onSaved={() => {}} />);
         // Scope buttons are disabled when editing.
         expect(screen.getByText('Whole organization').closest('button').disabled).toBe(true);
-        fireEvent.change(screen.getByPlaceholderText(/Board summary/i), { target: { value: 'Org tmpl v2' } });
+        await user.clear(screen.getByPlaceholderText(/Board summary/i));
+        await user.type(screen.getByPlaceholderText(/Board summary/i), 'Org tmpl v2');
         await user.click(screen.getByRole('button', { name: /Save template/i }));
         await waitFor(() => expect(api.updateSummaryTemplate).toHaveBeenCalledWith('tpl-1', expect.objectContaining({ name: 'Org tmpl v2' })));
     });

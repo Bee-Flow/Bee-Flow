@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
@@ -191,8 +191,10 @@ describe('TokenVaultSection — search', () => {
     beforeEach(() => { cleanup(); vi.clearAllMocks(); i18n.value = { ...i18n.value, t: stableT }; });
 
     it('sends the typed term as a search parameter after the debounce', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 });
-        fireEvent.change(screen.getByLabelText('Search a value or placeholder…'), { target: { value: 'jan' } });
+        await user.clear(screen.getByLabelText('Search a value or placeholder…'));
+        await user.type(screen.getByLabelText('Search a value or placeholder…'), 'jan');
 
         await waitFor(
             () => expect(lastGetUrl()).toBe('/api/privacy/token-vault?limit=100&offset=0&search=jan'),
@@ -201,9 +203,11 @@ describe('TokenVaultSection — search', () => {
     });
 
     it('drops the hint and changes the wording when a search returns nothing', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 });
         serve({ entries: [], total: 0 });
-        fireEvent.change(screen.getByLabelText('Search a value or placeholder…'), { target: { value: 'zzz' } });
+        await user.clear(screen.getByLabelText('Search a value or placeholder…'));
+        await user.type(screen.getByLabelText('Search a value or placeholder…'), 'zzz');
 
         expect(await screen.findByText('Nothing matches that search.', {}, { timeout: 2000 })).toBeInTheDocument();
         expect(screen.queryByText(/Entries appear here once Privacy Shield hides/)).toBeNull();

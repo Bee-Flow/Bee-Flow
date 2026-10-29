@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -82,9 +82,11 @@ const journey = (extra = {}) => ({
 });
 
 async function finishTheForm() {
+    const user = userEvent.setup();
     await screen.findByText('Contact us');
-    fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'a@b.nl' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+    await user.clear(screen.getByLabelText(/Your email/));
+    await user.type(screen.getByLabelText(/Your email/), 'a@b.nl');
+    await user.click(screen.getByRole('button', { name: 'Send it' }));
     await screen.findByText('All done', {}, { timeout: 4000 });
 }
 

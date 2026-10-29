@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
@@ -48,9 +48,8 @@ describe('SettingsForm — JSON view of the step config (BFSF-481)', () => {
         const user = userEvent.setup();
         const { onPatch } = renderForm(waitStep());
         await user.click(screen.getByTestId('settings-json-toggle'));
-        fireEvent.change(screen.getByLabelText('Step config as JSON'), {
-            target: { value: JSON.stringify({ label: 'Hold longer', seconds: 300 }) },
-        });
+        await user.clear(screen.getByLabelText('Step config as JSON'));
+        await user.paste(JSON.stringify({ label: 'Hold longer', seconds: 300 }));
         await user.click(screen.getByText('Apply JSON'));
         // The editor closed and the form reflects the new draft.
         expect(screen.queryByLabelText('Step config as JSON')).toBeNull();

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -130,9 +130,11 @@ describe('LibraryFilters — counted tag chips', () => {
         expect(screen.getByTestId('view-switch')).toBeTruthy();
     });
 
-    it('search reports every keystroke to the page', () => {
+    it('search reports every keystroke to the page', async () => {
+        const user = userEvent.setup();
         const { onQueryChange } = setup();
-        fireEvent.change(screen.getByLabelText(/search meetings/i), { target: { value: 'knltb' } });
+        await user.clear(screen.getByLabelText(/search meetings/i));
+        await user.paste('knltb');
         expect(onQueryChange).toHaveBeenCalledWith('knltb');
     });
 });

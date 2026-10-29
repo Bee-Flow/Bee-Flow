@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -78,8 +78,10 @@ describe('SkillFormModal', () => {
         const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
-        fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
-        fireEvent.change(screen.getByLabelText('Instructions'), { target: { value: 'Be brief.' } });
+        await user.clear(screen.getByLabelText('Skill name'));
+        await user.type(screen.getByLabelText('Skill name'), 'Renamed');
+        await user.clear(screen.getByLabelText('Instructions'));
+        await user.type(screen.getByLabelText('Instructions'), 'Be brief.');
         await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(Object.keys(form).sort()).toEqual([
@@ -102,7 +104,8 @@ describe('SkillFormModal', () => {
         const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
-        fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
+        await user.clear(screen.getByLabelText('Skill name'));
+        await user.type(screen.getByLabelText('Skill name'), 'Renamed');
         await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(form.name).toBe('Renamed');
@@ -116,7 +119,8 @@ describe('SkillFormModal', () => {
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
         await user.click(screen.getByRole('button', { name: 'Workflow' }));
-        fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch it twice.' } });
+        await user.clear(screen.getByLabelText('Workflow'));
+        await user.type(screen.getByLabelText('Workflow'), '1. Fetch it twice.');
         await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(form.workflow).toBe('1. Fetch it twice.');
@@ -128,8 +132,10 @@ describe('SkillFormModal', () => {
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
         await user.click(screen.getByRole('button', { name: 'Workflow' }));
-        fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch the quote!' } });
-        fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch the quote.' } });
+        await user.clear(screen.getByLabelText('Workflow'));
+        await user.type(screen.getByLabelText('Workflow'), '1. Fetch the quote!');
+        await user.clear(screen.getByLabelText('Workflow'));
+        await user.type(screen.getByLabelText('Workflow'), '1. Fetch the quote.');
         await user.click(screen.getByRole('button', { name: 'Update skill' }));
         expect(onSave.mock.calls.at(-1)[0]).not.toHaveProperty('workflow');
     });
@@ -138,7 +144,8 @@ describe('SkillFormModal', () => {
         const user = userEvent.setup();
         const onSave = vi.fn();
         open({ onSave });
-        fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Fresh' } });
+        await user.clear(screen.getByLabelText('Skill name'));
+        await user.type(screen.getByLabelText('Skill name'), 'Fresh');
         await user.click(screen.getByRole('button', { name: 'Create skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(Object.keys(form).sort()).toEqual([
@@ -155,12 +162,15 @@ describe('SkillFormModal', () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
-    it('caps the instructions field rather than letting the server refuse the save', () => {
+    it('caps the instructions field rather than letting the server refuse the save', async () => {
+        const user = userEvent.setup();
         open();
         const field = screen.getByLabelText('Instructions');
-        fireEvent.change(field, { target: { value: 'x'.repeat(4001) } });
+        await user.clear(field);
+        await user.paste('x'.repeat(4001));
         expect(field.value).toBe('');
-        fireEvent.change(field, { target: { value: 'x'.repeat(4000) } });
+        await user.clear(field);
+        await user.paste('x'.repeat(4000));
         expect(field.value).toHaveLength(4000);
     });
 });
@@ -198,7 +208,8 @@ describe('SkillFormModal: a skill a Solution stage manages', () => {
         open({ skill: WITH_STRUCTURE, onSave });
         expect(screen.queryByTestId('managed-part-banner')).toBeNull();
         expect(screen.getByLabelText('Skill name').readOnly).toBe(false);
-        fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
+        await user.clear(screen.getByLabelText('Skill name'));
+        await user.type(screen.getByLabelText('Skill name'), 'Renamed');
         await user.click(screen.getByRole('button', { name: /Update skill/ }));
         expect(onSave.mock.calls[0][0].name).toBe('Renamed');
     });

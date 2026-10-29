@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -128,6 +129,7 @@ afterEach(() => { cleanup(); vi.doUnmock('@monaco-editor/react'); vi.doUnmock('.
 
 describe('there is always a box to type code into', () => {
     it('uses the real editor when the chunk is there, and edits reach the draft', async () => {
+        const user = userEvent.setup();
         const { CodeFields } = await loadCodeFields();
         const set = vi.fn();
         renderUI(<CodeFields draft={draftOf({ code: 'return 1;' })} set={set} />);
@@ -144,7 +146,7 @@ describe('there is always a box to type code into', () => {
         expect(loaderConfigs.at(-1)?.paths?.vs).toMatch(/\/monaco\/vs$/);
         expect(loaderConfigs.at(-1)?.paths?.vs).not.toMatch(/jsdelivr|cdn/);
 
-        fireEvent.click(screen.getByRole('button', { name: 'stub-edit' }));
+        await user.click(screen.getByRole('button', { name: 'stub-edit' }));
         expect(set).toHaveBeenCalledWith('code', 'return 42;');
     });
 
@@ -172,6 +174,7 @@ describe('there is always a box to type code into', () => {
     });
 
     it('offers the plain box as a CHOICE, with a way out of the keyboard trap', async () => {
+        const user = userEvent.setup();
         const { CodeFields } = await loadCodeFields();
         const set = vi.fn();
         renderUI(<CodeFields draft={draftOf({ code: 'return 1;' })} set={set} />);
@@ -180,14 +183,14 @@ describe('there is always a box to type code into', () => {
         // Monaco holds Tab; the escape hatch has to be readable, not folklore.
         expect(screen.getByText(/Ctrl\+M/)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('radio', { name: /plain text/i }));
+        await user.click(screen.getByRole('radio', { name: /plain text/i }));
         expect(screen.queryByTestId('monaco-stub')).toBeNull();
         expect(plainBox().value).toBe('return 1;');
         fireEvent.change(plainBox(), { target: { value: 'return 3;' } });
         expect(set).toHaveBeenCalledWith('code', 'return 3;');
 
         // Back again — the choice is a preference, not a one-way door.
-        fireEvent.click(screen.getByRole('radio', { name: /code editor/i }));
+        await user.click(screen.getByRole('radio', { name: /code editor/i }));
         expect(await screen.findByTestId('monaco-stub')).toBeInTheDocument();
     });
 
@@ -205,6 +208,7 @@ describe('there is always a box to type code into', () => {
 // a box — for the failure mode nothing ever reports.
 describe('the editor that never arrives at all', () => {
     it('BITES — an editor that never finishes loading hands the box back on a deadline', async () => {
+        const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
         // The offline/air-gapped self-host case, which is the deployment this
         // whole product is sold for: the import resolves (the chunk is in the
         // bundle), so neither the missing-chunk path nor the no-editor path
@@ -234,7 +238,7 @@ describe('the editor that never arrives at all', () => {
             // something, because `plain` is true while a failure is recorded.
             const again = screen.getByRole('radio', { name: /code editor/i });
             expect(again).not.toBeDisabled();
-            fireEvent.click(again);
+            await user.click(again);
             expect(screen.getByTestId('monaco-stub')).toBeInTheDocument();
             expect(plainBox()).toBeNull();
             expect(screen.queryByText(/did not finish loading/i)).toBeNull();
@@ -382,6 +386,7 @@ describe('the inputs table is offered only when a save can carry it', () => {
     });
 
     it('offers it, because the form round-trip exists', async () => {
+        const user = userEvent.setup();
         const { CodeFields } = await loadCodeFields();
         const set = vi.fn();
         renderUI(
@@ -396,7 +401,7 @@ describe('the inputs table is offered only when a save can carry it', () => {
         // And the panel stops apologising, because the author can now act.
         expect(document.body.textContent).not.toMatch(/this editor cannot set yet/i);
 
-        fireEvent.click(screen.getByRole('button', { name: /^add field$/i }));
+        await user.click(screen.getByRole('button', { name: /^add field$/i }));
         expect(set).toHaveBeenCalledWith('inputs', expect.objectContaining({
             invoiceId: { kind: 'literal', value: 'INV-1' },
         }));

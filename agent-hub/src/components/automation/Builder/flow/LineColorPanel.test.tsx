@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -43,7 +43,10 @@ function renderPanel(props = {}) {
     return { onModeChange, onDefinitionChange };
 }
 
-const openPanel = () => fireEvent.click(screen.getByLabelText('Line colour rules'));
+const openPanel = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Line colour rules'));
+    };
 
 describe('LineColorPanel', () => {
     beforeEach(cleanup);
@@ -59,9 +62,9 @@ describe('LineColorPanel', () => {
         expect(onModeChange.mock.calls.map(c => c[0])).toEqual(['off', 'branches', 'pii']);
     });
 
-    it('lists every routing rule with its step, and explains PII when no data exists', () => {
+    it('lists every routing rule with its step, and explains PII when no data exists', async () => {
         renderPanel();
-        openPanel();
+        await openPanel();
         expect(screen.getByText('pdf')).toBeTruthy();
         expect(screen.getByText('word')).toBeTruthy();
         expect(screen.getAllByText('· Sort documents').length).toBe(2);
@@ -76,7 +79,7 @@ describe('LineColorPanel', () => {
     it('pinning a case colour writes edge.color on every edge of that case', async () => {
         const user = userEvent.setup();
         const { onDefinitionChange } = renderPanel();
-        openPanel();
+        await openPanel();
         await user.click(screen.getByLabelText('Change the colour of pdf'));
         await user.click(screen.getByLabelText('Colour pdf red'));
         const next = onDefinitionChange.mock.calls[0][0];
@@ -87,22 +90,22 @@ describe('LineColorPanel', () => {
     it('remapping a PII group writes definition.piiLineColors; auto clears it', async () => {
         const user = userEvent.setup();
         const { onDefinitionChange } = renderPanel();
-        openPanel();
+        await openPanel();
         await user.click(screen.getByLabelText('Change the colour of Contact'));
         await user.click(screen.getByLabelText('Colour Contact cyan'));
         expect(onDefinitionChange.mock.calls[0][0].piiLineColors).toEqual({ Contact: 'cyan' });
     });
 
-    it('read-only canvases see the rules but get no editing affordance', () => {
+    it('read-only canvases see the rules but get no editing affordance', async () => {
         renderPanel({ editable: false });
-        openPanel();
+        await openPanel();
         expect(screen.queryByLabelText('Change the colour of pdf')).toBeNull();
         expect(screen.getByText('pdf')).toBeTruthy(); // legend still readable
     });
 
-    it('the hint disappears once PII data exists', () => {
+    it('the hint disappears once PII data exists', async () => {
         renderPanel({ hasPiiData: true });
-        openPanel();
+        await openPanel();
         expect(screen.queryByText(/No PII data yet/)).toBeNull();
     });
 });

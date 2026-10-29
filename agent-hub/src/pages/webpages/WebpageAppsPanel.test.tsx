@@ -106,8 +106,8 @@ describe('WebpageAppsPanel', () => {
         const user = userEvent.setup();
         render(<WebpageAppsPanel webpageId="wp1" />);
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
-        fireEvent.change(await screen.findByLabelText('App'), { target: { value: 'gmail' } });
-        fireEvent.change(await screen.findByLabelText('Action'), { target: { value: 'gmail_search' } });
+        await user.selectOptions(await screen.findByLabelText('App'), 'gmail');
+        await user.selectOptions(await screen.findByLabelText('Action'), 'gmail_search');
         await user.click(screen.getByRole('button', { name: /Add to page/ }));
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
             'https://host.example/api/webpages/wp1/grants/integrations',
@@ -127,8 +127,8 @@ describe('WebpageAppsPanel', () => {
         });
         render(<WebpageAppsPanel webpageId="wp1" />);
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
-        fireEvent.change(await screen.findByLabelText('App'), { target: { value: 'gmail' } });
-        fireEvent.change(await screen.findByLabelText('Action'), { target: { value: 'gmail_search' } });
+        await user.selectOptions(await screen.findByLabelText('App'), 'gmail');
+        await user.selectOptions(await screen.findByLabelText('Action'), 'gmail_search');
         await user.click(screen.getByRole('button', { name: /Add to page/ }));
         await waitFor(() => expect(screen.getByText('Connect YouTrack first.')).toBeTruthy());
         expect(screen.getByRole('link', { name: 'Reconnect it' }).getAttribute('href')).toContain('/app/settings/integrations');

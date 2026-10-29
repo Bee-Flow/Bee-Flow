@@ -94,7 +94,7 @@ describe('DiagramPane — characterisation', () => {
         const user = userEvent.setup();
         const onExecuteStep = vi.fn();
         const { container, onDefinitionChange } = renderCanvas({ onExecuteStep });
-        fireEvent.click(nodeEl(container, 'b'));
+        await user.click(nodeEl(container, 'b'));
         fireEvent.keyDown(document, { key: 'd' });
         expect(onDefinitionChange).toHaveBeenCalledTimes(1);
         expect(lastDef(onDefinitionChange).steps).toHaveLength(4);
@@ -110,7 +110,7 @@ describe('DiagramPane — characterisation', () => {
         const user = userEvent.setup();
         const runSteps = [{ stepId: 'a', status: 'success', output: { ok: 1 }, finishedAt: '2026-01-01T00:00:00Z' }];
         const { container, onDefinitionChange } = renderCanvas({ runSteps });
-        fireEvent.click(nodeEl(container, 'a'));
+        await user.click(nodeEl(container, 'a'));
         fireEvent.keyDown(document, { key: 'p', ctrlKey: true });
         expect(onDefinitionChange).not.toHaveBeenCalled();
         fireEvent.keyDown(document, { key: 'p' });
@@ -148,7 +148,7 @@ describe('DiagramPane — characterisation', () => {
         const { container, onDefinitionChange } = renderCanvas({ structuralEditsBlocked: true });
         fireEvent.contextMenu(nodeEl(container, 'a'), { clientX: 200, clientY: 200 });
         expect(screen.queryByRole('menuitem', { name: /^delete/i })).toBeNull();
-        fireEvent.click(nodeEl(container, 'a'));
+        await user.click(nodeEl(container, 'a'));
         fireEvent.keyDown(document, { key: 'd' });
         expect(onDefinitionChange).not.toHaveBeenCalled();
     });

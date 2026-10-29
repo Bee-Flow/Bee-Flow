@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -62,7 +62,11 @@ function open(props = {}) {
 }
 
 const confirmButton = () => screen.getByRole('button', { name: 'Delete for good' });
-const typeName = (value) => fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value } });
+const typeName = async (value) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.paste(value);
+    };
 
 beforeEach(() => { authFetch.mockReset(); });
 
@@ -78,7 +82,7 @@ describe('blocked by use', () => {
         expect(screen.queryByTestId('danger-unused')).toBeNull();
 
         expect(confirmButton()).toBeDisabled();
-        typeName('Prijslijst');
+        await typeName('Prijslijst');
         await user.click(confirmButton());
 
         // Shown the list, typed the name → the confirmation the 409 asks for.
@@ -124,7 +128,7 @@ describe('blocked by unreadability', () => {
 
         await screen.findByTestId('webpage-delete-unchecked');
         expect(confirmButton()).toBeDisabled();
-        typeName('Prijslijst');
+        await typeName('Prijslijst');
         await user.click(confirmButton());
 
         await waitFor(() => expect(calls.del).toHaveLength(1));
@@ -133,7 +137,7 @@ describe('blocked by unreadability', () => {
 
         // The refusal came back: the card cleared the name and asks again.
         await screen.findByText(/type the name again/i);
-        typeName('Prijslijst');
+        await typeName('Prijslijst');
         await user.click(confirmButton());
 
         await waitFor(() => expect(calls.del).toHaveLength(2));
@@ -156,7 +160,7 @@ describe('blocked by unreadability', () => {
         const { onDeleted } = open();
 
         await screen.findByTestId('webpage-delete-unchecked');
-        typeName('Prijslijst');
+        await typeName('Prijslijst');
         await user.click(confirmButton());
 
         // The Solution the first list never had is now on screen, and nothing
@@ -217,7 +221,7 @@ describe('the server refuses anyway', () => {
         expect(screen.getByTestId('webpage-delete-unchecked')).toHaveTextContent(/agents/i);
         expect(onDeleted).not.toHaveBeenCalled();
 
-        typeName('Prijslijst');
+        await typeName('Prijslijst');
         await user.click(confirmButton());
         await waitFor(() => expect(calls.del).toHaveLength(2));
         expect(calls.del[1].url).toBe('https://host.example/api/webpages/wp1?confirm=1');

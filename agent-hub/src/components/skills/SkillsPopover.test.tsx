@@ -1,10 +1,11 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';
 import type { UseSkillsReturn } from '../../hooks/useSkills';
 import type { SessionSkillView } from './SkillsPopover.types';
 import type { TranslationOverride } from '@/test/translationOverride';
+import userEvent from '@testing-library/user-event';
 
 /**
  * A switchable dictionary over the REAL useTranslation, off by default so the
@@ -266,30 +267,31 @@ describe('SkillsPopover — the expanded stage detail labels speak through t()',
     instructions: 'Do the thing', workflow: 'Step by step', rules: 'Never guess', examples: 'Like so',
   }];
 
-  const openDetail = () => {
+  const openDetail = async () => {
+    const user = userEvent.setup();
     renderPopover({
       directMode: true,
       directConversationId: 'c1',
       directSessionSkills: DETAILED,
     });
-    fireEvent.click(screen.getByText('Gather sources'));
+    await user.click(screen.getByText('Gather sources'));
   };
 
-  it('reads as English by default', () => {
-    openDetail();
+  it('reads as English by default', async () => {
+    await openDetail();
     for (const label of ['Instructions', 'Workflow', 'Rules', 'Examples']) {
       expect(screen.getByText(label)).toBeTruthy();
     }
   });
 
-  it('follows the dictionary on all four field labels', () => {
+  it('follows the dictionary on all four field labels', async () => {
     transOverride.current = {
       'skills.field_instructions': 'Instructies',
       'skills.field_workflow': 'Werkstroom',
       'skills.field_rules': 'Regels',
       'skills.field_examples': 'Voorbeelden',
     };
-    openDetail();
+    await openDetail();
     for (const label of ['Instructies', 'Werkstroom', 'Regels', 'Voorbeelden']) {
       expect(screen.getByText(label)).toBeTruthy();
     }

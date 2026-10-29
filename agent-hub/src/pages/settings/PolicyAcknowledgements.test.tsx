@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, type Matcher, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, type Matcher, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -315,8 +315,9 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
 
 describe('PolicyAcknowledgements — confirming', () => {
     const openFirst = async () => {
+        const user = userEvent.setup();
         const header = await screen.findByRole('button');
-        fireEvent.click(header);
+        await user.click(header);
         return screen.findByRole('button', { name: /I have read and understood this policy/ });
     };
 

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
@@ -52,11 +52,14 @@ const renderGate = (props = {}) => {
     return { ...render(<EncryptionSetup onComplete={onComplete} {...props} />), onComplete };
 };
 
-const typePin = (pin, confirm = pin) => {
-    fireEvent.change(screen.getByTestId('encryption-pin'), { target: { value: pin } });
+const typePin = async (pin, confirm = pin) => {
+    const user = userEvent.setup();
+    await user.clear(screen.getByTestId('encryption-pin'));
+    await user.paste(pin);
     const confirmField = screen.queryByTestId('encryption-pin-confirm');
-    if (confirmField) fireEvent.change(confirmField, { target: { value: confirm } });
-    fireEvent.click(screen.getByTestId('encryption-submit'));
+    if (confirmField) await user.clear(confirmField);
+    if (confirmField) await user.paste(confirm);
+    await user.click(screen.getByTestId('encryption-submit'));
 };
 
 describe('choosing an encryption PIN for the first time', () => {
@@ -67,17 +70,17 @@ describe('choosing an encryption PIN for the first time', () => {
         expect(screen.getByText(/The server cannot read your encrypted data without it/)).toBeInTheDocument();
     });
 
-    it('refuses a PIN under six characters without any request', () => {
+    it('refuses a PIN under six characters without any request', async () => {
         renderGate({ mode: 'setup' });
-        typePin('12345');
+        await typePin('12345');
         expect(screen.getByText('PIN must be at least 6 characters')).toBeInTheDocument();
         expect(opaquePinRegister).not.toHaveBeenCalled();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
-    it('refuses two PINs that do not match', () => {
+    it('refuses two PINs that do not match', async () => {
         renderGate({ mode: 'setup' });
-        typePin('123456', '654321');
+        await typePin('123456', '654321');
         expect(screen.getByText('PINs do not match')).toBeInTheDocument();
         expect(opaquePinRegister).not.toHaveBeenCalled();
     });
@@ -85,7 +88,7 @@ describe('choosing an encryption PIN for the first time', () => {
     it('registers the PIN through OPAQUE and shows the recovery key it returns', async () => {
         opaquePinRegister.mockResolvedValue({ success: true, recoveryKey: 'AAAA-BBBB-CCCC' });
         renderGate({ mode: 'setup' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         expect(await screen.findByTestId('encryption-recovery-key')).toHaveTextContent('AAAA-BBBB-CCCC');
         expect(opaquePinRegister).toHaveBeenCalledWith('correct-pin');
         expect(callTo('/auth/sso-encryption-setup')).toBeFalsy();
@@ -99,7 +102,7 @@ describe('choosing an encryption PIN for the first time', () => {
         opaquePinRegister.mockRejectedValue(new Error('wasm unavailable'));
         route('/auth/sso-encryption-setup', () => ok({ success: true, recoveryKey: 'LEGACY-KEY' }));
         renderGate({ mode: 'setup' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         await waitFor(() => expect(callTo('/auth/sso-encryption-setup')).toBeTruthy());
         expect(bodyOf(callTo('/auth/sso-encryption-setup'))).toEqual({ pin: 'correct-pin' });
         expect(await screen.findByTestId('encryption-recovery-key')).toHaveTextContent('LEGACY-KEY');
@@ -111,7 +114,7 @@ describe('choosing an encryption PIN for the first time', () => {
         opaquePinRegister.mockResolvedValue({ success: true });
         route('/auth/sso-encryption-setup', () => ok({ success: true, recoveryKey: 'LEGACY-KEY' }));
         renderGate({ mode: 'setup' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         await waitFor(() => expect(callTo('/auth/sso-encryption-setup')).toBeTruthy());
     });
 
@@ -119,7 +122,7 @@ describe('choosing an encryption PIN for the first time', () => {
         opaquePinRegister.mockRejectedValue(new Error('nope'));
         route('/auth/sso-encryption-setup', () => fail(400, { error: 'PIN too common' }));
         renderGate({ mode: 'setup' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         expect(await screen.findByText('PIN too common')).toBeInTheDocument();
     });
 
@@ -132,7 +135,7 @@ describe('choosing an encryption PIN for the first time', () => {
         opaquePinRegister.mockRejectedValue(new Error('nope'));
         route('/auth/sso-encryption-setup', () => Promise.reject(new Error('offline')));
         renderGate({ mode: 'setup' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         expect(await screen.findByText('Connection error')).toBeInTheDocument();
     });
 });
@@ -156,7 +159,7 @@ describe('unlocking with an existing PIN', () => {
     it('lets you in when OPAQUE accepts the PIN, without contacting the legacy route', async () => {
         opaquePinLogin.mockResolvedValue({ success: true });
         const { onComplete } = renderGate({ mode: 'unlock' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         await waitFor(() => expect(onComplete).toHaveBeenCalled());
         expect(callTo('/auth/sso-encryption-unlock')).toBeFalsy();
     });
@@ -168,7 +171,7 @@ describe('unlocking with an existing PIN', () => {
         opaquePinLogin.mockResolvedValue({ success: false, needsSetup: true });
         route('/auth/sso-encryption-unlock', () => ok({ success: true }));
         const { onComplete } = renderGate({ mode: 'unlock' });
-        typePin('correct-pin');
+        await typePin('correct-pin');
         await waitFor(() => expect(callTo('/auth/sso-encryption-unlock')).toBeTruthy());
         expect(bodyOf(callTo('/auth/sso-encryption-unlock'))).toEqual({ pin: 'correct-pin' });
         expect(onComplete).toHaveBeenCalled();
@@ -178,7 +181,7 @@ describe('unlocking with an existing PIN', () => {
         opaquePinLogin.mockResolvedValue({ success: false });
         route('/auth/sso-encryption-unlock', () => fail(401, { error: 'Incorrect PIN' }));
         const { onComplete } = renderGate({ mode: 'unlock' });
-        typePin('wrong-pin');
+        await typePin('wrong-pin');
         expect(await screen.findByText('Incorrect PIN')).toBeInTheDocument();
         expect(onComplete).not.toHaveBeenCalled();
     });
@@ -193,38 +196,43 @@ describe('unlocking with an existing PIN', () => {
 });
 
 describe('recovering with the recovery key', () => {
-    const openRecovery = () => {
+    const openRecovery = async () => {
+        const user = userEvent.setup();
         const rendered = renderGate({ mode: 'unlock' });
-        fireEvent.click(screen.getByText('Forgot your PIN? Use recovery key'));
+        await user.click(screen.getByText('Forgot your PIN? Use recovery key'));
         return rendered;
     };
 
-    const fillRecovery = (key, pin, confirm = pin) => {
-        fireEvent.change(screen.getByPlaceholderText('Paste your recovery key here'), { target: { value: key } });
-        fireEvent.change(screen.getByPlaceholderText('Minimum 6 characters'), { target: { value: pin } });
-        fireEvent.change(screen.getByPlaceholderText('Confirm your new PIN'), { target: { value: confirm } });
-        fireEvent.click(screen.getByText('Recover & Set New PIN'));
+    const fillRecovery = async (key, pin, confirm = pin) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByPlaceholderText('Paste your recovery key here'));
+        await user.paste(key);
+        await user.clear(screen.getByPlaceholderText('Minimum 6 characters'));
+        await user.paste(pin);
+        await user.clear(screen.getByPlaceholderText('Confirm your new PIN'));
+        await user.paste(confirm);
+        await user.click(screen.getByText('Recover & Set New PIN'));
     };
 
     it('refuses an empty recovery key', async () => {
         const user = userEvent.setup();
-        openRecovery();
+        await openRecovery();
         await user.click(screen.getByText('Recover & Set New PIN'));
         expect(screen.getByText('Please enter your recovery key')).toBeInTheDocument();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
-    it('refuses a new PIN under six characters', () => {
-        openRecovery();
-        fillRecovery('AAAA-BBBB', '123');
+    it('refuses a new PIN under six characters', async () => {
+        await openRecovery();
+        await fillRecovery('AAAA-BBBB', '123');
         expect(screen.getByText('New PIN must be at least 6 characters')).toBeInTheDocument();
         expect(authFetch).not.toHaveBeenCalled();
     });
 
     it('posts the trimmed key with the new PIN and shows the fresh recovery key', async () => {
         route('/auth/sso-recovery', () => ok({ success: true, recoveryKey: 'NEW-KEY-1234' }));
-        openRecovery();
-        fillRecovery('  AAAA-BBBB  ', 'brand-new-pin');
+        await openRecovery();
+        await fillRecovery('  AAAA-BBBB  ', 'brand-new-pin');
         await waitFor(() => expect(callTo('/auth/sso-recovery')).toBeTruthy());
         expect(bodyOf(callTo('/auth/sso-recovery'))).toEqual({
             recoveryKey: 'AAAA-BBBB', newPin: 'brand-new-pin',
@@ -234,14 +242,14 @@ describe('recovering with the recovery key', () => {
 
     it('shows the server\'s reason for refusing the recovery key', async () => {
         route('/auth/sso-recovery', () => fail(400, { error: 'Recovery key does not match' }));
-        openRecovery();
-        fillRecovery('AAAA-BBBB', 'brand-new-pin');
+        await openRecovery();
+        await fillRecovery('AAAA-BBBB', 'brand-new-pin');
         expect(await screen.findByText('Recovery key does not match')).toBeInTheDocument();
     });
 
     it('walks back to PIN entry, forgetting what was typed', async () => {
         const user = userEvent.setup();
-        openRecovery();
+        await openRecovery();
         await user.clear(screen.getByPlaceholderText('Paste your recovery key here'));
         await user.type(screen.getByPlaceholderText('Paste your recovery key here'), 'AAAA');
         await user.click(screen.getByText('Back to PIN entry'));

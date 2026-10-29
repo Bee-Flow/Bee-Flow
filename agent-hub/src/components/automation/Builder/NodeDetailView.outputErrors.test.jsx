@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // NDV fetches the tool catalog on mount — stub the API.
@@ -29,10 +30,16 @@ import {
 } from './ndv/ndvTestProps';
 import NodeDetailView from './NodeDetailView';
 
-const openEditor = () => fireEvent.click(screen.getByTestId('ndv-edit-output'));
+const openEditor = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByTestId('ndv-edit-output'));
+    };
 const textarea = () => screen.getByLabelText('Output JSON');
 const type = (value) => fireEvent.change(textarea(), { target: { value } });
-const save = () => fireEvent.click(screen.getByText('Save output'));
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save output'));
+    };
 const alertText = () => screen.getByRole('alert').textContent;
 
 const reset = () => { cleanup(); transOverride.current = null; try { localStorage.clear(); } catch { /* ignore */ } };
@@ -40,12 +47,12 @@ const reset = () => { cleanup(); transOverride.current = null; try { localStorag
 describe('NodeDetailView — the output editor refuses in the user\'s language', () => {
     beforeEach(reset);
 
-    it('speaks the invalid-JSON refusal through a key, and keeps the parser message', () => {
+    it('speaks the invalid-JSON refusal through a key, and keeps the parser message', async () => {
         transOverride.current = { 'automations.ndv.err_invalid_json': 'Ongeldige JSON: {message}' };
         render(<NodeDetailView {...baseProps()} />);
-        openEditor();
+        await openEditor();
         type('{ "subject": ');
-        save();
+        await save();
 
         const text = alertText();
         expect(text).toMatch(/^Ongeldige JSON: /);
@@ -55,7 +62,7 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
         expect(text).not.toMatch(/\{message\}/);
     });
 
-    it('names the Remove button by its own key, so a rename cannot orphan the sentence', () => {
+    it('names the Remove button by its own key, so a rename cannot orphan the sentence', async () => {
         // The bug this pins: the sentence said "use Remove", the button next to
         // it said common.remove. On a Dutch install the message pointed at a
         // button that is not on the screen.
@@ -68,33 +75,33 @@ describe('NodeDetailView — the output editor refuses in the user\'s language',
         const pinned = { ...step, pinnedOutput: { id: 'x' }, pinnedAt: 'now', pinnedSource: 'edited' };
         const def = { ...definition, steps: [pinned] };
         render(<NodeDetailView {...baseProps({ step: pinned, definition: def, rootDefinition: def })} />);
-        openEditor();
+        await openEditor();
         type('null');
-        save();
+        await save();
 
         expect(alertText()).toBe('Niets op te slaan — gebruik Verwijderen om de bewaarde uitvoer te wissen.');
         // …and the button it names really does carry that label.
         expect(screen.getByText('Verwijderen')).toBeTruthy();
     });
 
-    it('speaks the truncation-sentinel refusal through a key', () => {
+    it('speaks the truncation-sentinel refusal through a key', async () => {
         transOverride.current = { 'automations.ndv.err_truncated_placeholder': 'Dat is de plaatsaanduiding van de server, geen gegevens.' };
         render(<NodeDetailView {...baseProps()} />);
-        openEditor();
+        await openEditor();
         type('{"__truncated__":true}');
-        save();
+        await save();
         expect(alertText()).toBe('Dat is de plaatsaanduiding van de server, geen gegevens.');
     });
 
-    it('speaks the size refusal through a key, with BOTH numbers as parameters', () => {
+    it('speaks the size refusal through a key, with BOTH numbers as parameters', async () => {
         // Grammar-in-code check: the two sizes must arrive as {size}/{limit},
         // not baked into a template literal, or a translator cannot move them.
         transOverride.current = { 'automations.ndv.err_too_big': 'Te groot: {size} KB, limiet {limit} KB.' };
         const onSaveStep = vi.fn().mockResolvedValue(undefined);
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
-        openEditor();
+        await openEditor();
         type(JSON.stringify({ body: 'x'.repeat(70_000) }));
-        save();
+        await save();
 
         expect(alertText()).toMatch(/^Te groot: \d+ KB, limiet \d+ KB\.$/);
         expect(alertText()).not.toMatch(/\{size\}|\{limit\}/);
@@ -146,9 +153,9 @@ describe('NodeDetailView — a failed save says so in the user\'s language', () 
         // copy, and that is the branch that was hardcoded English.
         const onSaveStep = vi.fn().mockRejectedValue(new Error(''));
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
-        openEditor();
+        await openEditor();
         type('{"ok":true}');
-        save();
+        await save();
 
         await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Opslaan mislukt'));
     });
@@ -159,9 +166,9 @@ describe('NodeDetailView — a failed save says so in the user\'s language', () 
         transOverride.current = { 'automations.ndv.save_failed': 'Opslaan mislukt' };
         const onSaveStep = vi.fn().mockRejectedValue(new Error('definition too large'));
         render(<NodeDetailView {...baseProps({ onSaveStep })} />);
-        openEditor();
+        await openEditor();
         type('{"ok":true}');
-        save();
+        await save();
 
         await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('definition too large'));
     });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -454,14 +454,18 @@ describe('AppsHomePage search', () => {
         { id: 'a3', name: 'Bakker-tool', description: 'Check an invoice before it goes out', isPublished: true },
     ];
     const withDirectory = () => asMock(studioAppsApi.listAccessible).mockResolvedValue({ apps: DIRECTORY });
-    const type = (value: unknown) => fireEvent.change(screen.getByRole('searchbox'), { target: { value } });
+    const type = async (value: string) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByRole('searchbox'));
+        await user.paste(value);
+    };
 
     it('narrows the grid to the apps whose name matches, whatever the casing', async () => {
         withDirectory();
         render(<AppsHomePage />);
         await screen.findByText('CRM Pipeline');
 
-        type('crm');
+        await type('crm');
 
         expect(screen.getByText('CRM Pipeline')).toBeInTheDocument();
         expect(screen.queryByText('Ticket Tracker')).not.toBeInTheDocument();
@@ -475,7 +479,7 @@ describe('AppsHomePage search', () => {
 
         // Half the tools in a real directory are named after the department
         // that ordered them; "invoice" appears only in the description.
-        type('invoice');
+        await type('invoice');
 
         expect(screen.getByText('Bakker-tool')).toBeInTheDocument();
         expect(screen.queryByText('CRM Pipeline')).not.toBeInTheDocument();
@@ -486,7 +490,7 @@ describe('AppsHomePage search', () => {
         render(<AppsHomePage />);
         await screen.findByText('CRM Pipeline');
 
-        type('zzzz');
+        await type('zzzz');
 
         expect(screen.getByText('No apps match your search.')).toBeInTheDocument();
         expect(within(screen.getByTestId('apps-all')).queryAllByRole('link')).toHaveLength(0);
@@ -500,8 +504,8 @@ describe('AppsHomePage search', () => {
         render(<AppsHomePage />);
         await screen.findByText('CRM Pipeline');
 
-        type('crm');
-        type('');
+        await type('crm');
+        await type('');
 
         expect(screen.getByText('Ticket Tracker')).toBeInTheDocument();
         expect(screen.getByText('Bakker-tool')).toBeInTheDocument();

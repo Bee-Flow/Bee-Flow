@@ -8,7 +8,7 @@
  * tested, which is exactly when nobody is watching the network tab.
  */
 
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { type ComponentProps } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
@@ -44,7 +44,11 @@ function renderOverlay(props: Partial<ComponentProps<typeof FormRunOverlay>> = {
     return { onStartRun, onClose };
 }
 
-const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(new RegExp(label)), { target: { value } });
+const fill = async (label: string, value: string) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText(new RegExp(label)));
+        await user.paste(value);
+    };
 
 beforeEach(() => { get.mockReset(); post.mockReset(); });
 afterEach(cleanup);
@@ -62,7 +66,7 @@ describe('FormRunOverlay — page one', () => {
         const user = userEvent.setup();
         get.mockResolvedValue({ runId: 'run1', status: 'success', waiting: false });
         const { onStartRun } = renderOverlay();
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
 
         await waitFor(() => expect(onStartRun).toHaveBeenCalled());
@@ -76,7 +80,7 @@ describe('FormRunOverlay — page one', () => {
         const user = userEvent.setup();
         get.mockResolvedValue({ runId: 'run1', status: 'success', waiting: false });
         renderOverlay();
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
     });
@@ -85,7 +89,7 @@ describe('FormRunOverlay — page one', () => {
         const user = userEvent.setup();
         get.mockResolvedValue({ runId: 'run1', status: 'error', waiting: false });
         renderOverlay();
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText(/ended as error/)).toBeTruthy());
     });
@@ -94,7 +98,7 @@ describe('FormRunOverlay — page one', () => {
         const user = userEvent.setup();
         const onStartRun = vi.fn(async () => { throw new Error('Add a trigger first.'); });
         renderOverlay({ onStartRun });
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText('Add a trigger first.')).toBeTruthy());
     });
@@ -107,14 +111,14 @@ describe('FormRunOverlay — the rest of the journey', () => {
         post.mockResolvedValue({ accepted: true, run: { id: 'run2' } });
         renderOverlay();
 
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText('Nog één ding')).toBeTruthy());
         expect(screen.getByText(/paused here and is waiting for an answer/)).toBeTruthy();
 
         // The second page's answers go to the RUN, not back through the trigger.
         get.mockResolvedValue({ runId: 'run2', status: 'success', waiting: false });
-        fill('Je adres', 'Dorpsstraat 1');
+        await fill('Je adres', 'Dorpsstraat 1');
         await user.click(screen.getByRole('button', { name: 'Ga door' }));
 
         await waitFor(() => expect(post).toHaveBeenCalled());
@@ -131,12 +135,12 @@ describe('FormRunOverlay — the rest of the journey', () => {
         get.mockResolvedValue({ runId: 'run1', status: 'awaiting_form', waiting: true, stepId: 'fp_2', form: PAGE_TWO });
         post.mockResolvedValue({ accepted: true, run: { id: 'run2' } });
         renderOverlay();
-        fill('Jouw naam', 'Tom');
+        await fill('Jouw naam', 'Tom');
         await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(screen.getByText('Nog één ding')).toBeTruthy());
 
         get.mockResolvedValue({ runId: 'run2', status: 'success', waiting: false });
-        fill('Je adres', 'Dorpsstraat 1');
+        await fill('Je adres', 'Dorpsstraat 1');
         await user.click(screen.getByRole('button', { name: 'Ga door' }));
 
         await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
@@ -177,7 +181,7 @@ describe('FormRunOverlay — attached to a live run', () => {
         expect(screen.getAllByText('Live run — this page is waiting for you').length).toBeGreaterThan(0);
 
         get.mockResolvedValue({ runId: 'run9', status: 'success', waiting: false });
-        fill('Je adres', 'Dorpsstraat 1');
+        await fill('Je adres', 'Dorpsstraat 1');
         await user.click(screen.getByRole('button', { name: 'Ga door' }));
         await waitFor(() => expect(post).toHaveBeenCalled());
         const [url, body] = post.mock.calls[0];

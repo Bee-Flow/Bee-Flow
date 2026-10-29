@@ -1,5 +1,5 @@
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
@@ -171,12 +171,15 @@ describe('confirming the first code', () => {
     };
 
     it('keeps the enable button dead until six characters are typed', async () => {
+        const user = userEvent.setup();
         await arrive();
         const enable = screen.getByText('Enable').closest('button');
         expect(enable).toBeDisabled();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '12345' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '12345');
         expect(enable).toBeDisabled();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         expect(enable).not.toBeDisabled();
     });
 
@@ -189,7 +192,8 @@ describe('confirming the first code', () => {
         const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({ recoveryCodes: ['aaaa-1111', 'bbbb-2222'] }));
         await arrive();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         await user.click(screen.getByText('Enable'));
         await waitFor(() => expect(callsTo('/auth/mfa/enable')).toHaveLength(1));
         expect(bodyOf(callsTo('/auth/mfa/enable')[0])).toEqual({ code: '123456' });
@@ -199,7 +203,8 @@ describe('confirming the first code', () => {
         const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({ recoveryCodes: ['aaaa-1111', 'bbbb-2222'] }));
         const { onDone } = await arrive();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         await user.click(screen.getByText('Enable'));
         expect(await screen.findByText('aaaa-1111')).toBeInTheDocument();
         expect(screen.getByText('bbbb-2222')).toBeInTheDocument();
@@ -212,7 +217,8 @@ describe('confirming the first code', () => {
         const user = userEvent.setup();
         route('/auth/mfa/enable', () => fail(400, { error: 'Invalid code' }));
         await arrive();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '000000' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '000000');
         await user.click(screen.getByText('Enable'));
         expect(await screen.findByText('Invalid code')).toBeInTheDocument();
         expect(screen.getByAltText('MFA QR code')).toBeInTheDocument();
@@ -225,7 +231,8 @@ describe('confirming the first code', () => {
         const user = userEvent.setup();
         route('/auth/mfa/enable', () => ok({}));
         const { onDone } = await arrive();
-        fireEvent.change(screen.getByPlaceholderText('000000'), { target: { value: '123456' } });
+        await user.clear(screen.getByPlaceholderText('000000'));
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
         await user.click(screen.getByText('Enable'));
         expect(await screen.findByText(/Save these one-time recovery codes/)).toBeInTheDocument();
         await user.click(screen.getByText('I’ve saved them'));

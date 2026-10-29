@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -50,31 +50,32 @@ const toggle = () => screen.getByRole('checkbox', { name: /ask this app only onc
 // Idempotent on purpose: AccordionSection persists open/closed per user via
 // scopedStorage, so a blind click would CLOSE the band for a later test in the
 // same file and the toggle would vanish for reasons nothing to do with askOnce.
-const openAdvanced = () => {
+const openAdvanced = async () => {
+    const user = userEvent.setup();
     if (screen.queryByRole('checkbox', { name: /ask this app only once per run/i })) return;
     const band = screen.queryByRole('button', { name: /advanced/i });
-    if (band) fireEvent.click(band);
+    if (band) await user.click(band);
 };
 
 beforeEach(() => cleanup());
 
 describe('the toggle is off unless ticked', () => {
-    it('renders unchecked for a step with no askOnce', () => {
+    it('renders unchecked for a step with no askOnce', async () => {
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).checked).toBe(false);
     });
 
-    it('renders checked when the step carries askOnce', () => {
+    it('renders checked when the step carries askOnce', async () => {
         renderFields({ draft: { askOnce: true } });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).checked).toBe(true);
     });
 
     it('ticking it writes `true`', async () => {
         const user = userEvent.setup();
         const { set } = renderFields();
-        openAdvanced();
+        await openAdvanced();
         await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
@@ -85,7 +86,7 @@ describe('the toggle is off unless ticked', () => {
         // literal `false` would be a field the diff, the validator and the
         // summariser all have to learn to ignore.
         const { set } = renderFields({ draft: { askOnce: true } });
-        openAdvanced();
+        await openAdvanced();
         await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', undefined);
     });
@@ -100,45 +101,45 @@ describe('a step that already asks once', () => {
 });
 
 describe('the disabled reason is true of the action it names', () => {
-    it('a write is disabled and names the app', () => {
+    it('a write is disabled and names the app', async () => {
         renderFields({ tool: 'gmail_compose' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
         expect(screen.getByText(/changes something in Gmail/i)).toBeTruthy();
     });
 
-    it('a read the runner refuses to memoise is disabled WITHOUT claiming it writes', () => {
+    it('a read the runner refuses to memoise is disabled WITHOUT claiming it writes', async () => {
         renderFields({ tool: 'nextcloud_list_files' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
         expect(screen.queryByText(/changes something/i)).toBeNull();
         expect(screen.getByText(/checked fresh every time/i)).toBeTruthy();
     });
 
-    it('an unclassified tool is disabled by askOnceable, and its reason follows sideEffect', () => {
+    it('an unclassified tool is disabled by askOnceable, and its reason follows sideEffect', async () => {
         // The fail-closed pair: askOnceable:false disables it, and because the
         // catalog also reports sideEffect:true the "changes something" wording
         // is the one shown. That is the server's own claim, not the UI
         // inventing one — the test exists so the UI never invents a DIFFERENT
         // one from a flag the server did not send.
         renderFields({ tool: 'mcp_unknown_read' });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(true);
     });
 
-    it('a memoisable read is enabled and explains the reuse in plain words', () => {
+    it('a memoisable read is enabled and explains the reuse in plain words', async () => {
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
         expect(screen.getByText(/the first answer is used again/i)).toBeTruthy();
     });
 });
 
 describe('an older server that sends no askOnceable does not disable the toggle', () => {
-    it('leaves it usable and lets the validator have the last word', () => {
+    it('leaves it usable and lets the validator have the last word', async () => {
         const legacy = { apps: [{ id: 'gmail', label: 'Gmail', actions: [{ name: 'gmail_search', sideEffect: false }] }] };
         renderFields(partial<Parameters<typeof renderFields>[0]>({ catalog: legacy }));
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).disabled).toBe(false);
     });
 });
@@ -146,17 +147,17 @@ describe('an older server that sends no askOnceable does not disable the toggle'
 const acrossRuns = () => screen.queryByRole('checkbox', { name: /keep the answer for later runs/i });
 
 describe('"keep it for later runs" is a second, narrower promise', () => {
-    it('is not offered at all until the step asks once per run', () => {
+    it('is not offered at all until the step asks once per run', async () => {
         // "Keep it for the NEXT run" is meaningless for a step that asks fresh
         // every time, and a tick that silently does nothing is worse than none.
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         expect(acrossRuns()).toBeNull();
     });
 
-    it('appears once the first tick is on', () => {
+    it('appears once the first tick is on', async () => {
         renderFields({ draft: { askOnce: true } });
-        openAdvanced();
+        await openAdvanced();
         expect(acrossRuns()).toBeTruthy();
         expect((acrossRuns()! as HTMLInputElement).checked).toBe(false);
     });
@@ -167,7 +168,7 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         // separate field could be set while askOnce was off, which the runtime
         // would ignore — a definition that lies about itself.
         const { set } = renderFields({ draft: { askOnce: true } });
-        openAdvanced();
+        await openAdvanced();
         await user.click(acrossRuns()!);
         expect(set).toHaveBeenCalledWith('askOnce', { acrossRuns: true });
     });
@@ -175,15 +176,15 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
     it('unticking it falls back to plain once-per-run, not to off', async () => {
         const user = userEvent.setup();
         const { set } = renderFields({ draft: { askOnce: { acrossRuns: true } } });
-        openAdvanced();
+        await openAdvanced();
         expect((acrossRuns()! as HTMLInputElement).checked).toBe(true);
         await user.click(acrossRuns()!);
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
 
-    it('an object askOnce still reads as ON for the first tick', () => {
+    it('an object askOnce still reads as ON for the first tick', async () => {
         renderFields({ draft: { askOnce: { acrossRuns: true } } });
-        openAdvanced();
+        await openAdvanced();
         expect((toggle() as HTMLInputElement).checked).toBe(true);
     });
 
@@ -194,34 +195,34 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         // collapsing to a bare `true` would delete the author's reuse window
         // on a toggle they made about something else entirely.
         const on = renderFields({ draft: { askOnce: { ttlSeconds: 60 } } });
-        openAdvanced();
+        await openAdvanced();
         await user.click(acrossRuns()!);
         expect(on.set).toHaveBeenCalledWith('askOnce', { acrossRuns: true, ttlSeconds: 60 });
 
         cleanup();
         const off = renderFields({ draft: { askOnce: { acrossRuns: true, ttlSeconds: 60 } } });
-        openAdvanced();
+        await openAdvanced();
         await user.click(acrossRuns()!);
         expect(off.set).toHaveBeenCalledWith('askOnce', { ttlSeconds: 60 });
     });
 
-    it('says the answer is STORED and that an administrator decides', () => {
+    it('says the answer is STORED and that an administrator decides', async () => {
         // Neither is discoverable from the runtime behaviour — a step whose
         // organisation has not allowed this just looks slow.
         renderFields({ draft: { askOnce: true } });
-        openAdvanced();
+        await openAdvanced();
         expect(screen.getByText(/stored, encrypted/i)).toBeTruthy();
         expect(screen.getByText(/administrator decides/i)).toBeTruthy();
     });
 });
 
 describe('the word "cache" stays out of the visible copy', () => {
-    it('never appears', () => {
+    it('never appears', async () => {
         // "reuse" already means a reusable sub-flow in this product; a fifth
         // overload of the concept is not affordable. cache/ttl/memo live in
         // search keywords only.
         renderFields();
-        openAdvanced();
+        await openAdvanced();
         for (const word of [/\bcache\b/i, /\bcaching\b/i, /\bTTL\b/, /\bmemo/i]) {
             expect(document.body.textContent).not.toMatch(word);
         }

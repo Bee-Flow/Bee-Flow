@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -44,9 +44,11 @@ const load = { [`GET /${TOKEN}`]: async () => ({ body: { form: FORM, csrf: 'csrf
 const accept = { [`POST /${TOKEN}`]: async () => ({ status: 202, body: { accepted: true, sessionId: SESSION } }) };
 
 async function submitPageOne() {
+    const user = userEvent.setup();
     await screen.findByText('Contact us');
-    fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'a@b.nl' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+    await user.clear(screen.getByLabelText(/Your email/));
+    await user.type(screen.getByLabelText(/Your email/), 'a@b.nl');
+    await user.click(screen.getByRole('button', { name: 'Send it' }));
 }
 
 describe('PublicFormPage — while the automation works', () => {

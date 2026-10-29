@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -96,7 +96,8 @@ describe('PublicFormPage', () => {
         }));
         render(<PublicFormPage token={TOKEN} />);
         await screen.findByText('Contact us');
-        fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'a@b.nl' } });
+        await user.clear(screen.getByLabelText(/Your email/));
+        await user.type(screen.getByLabelText(/Your email/), 'a@b.nl');
         await user.click(screen.getByRole('button', { name: 'Send it' }));
 
         expect(await screen.findByText('Thanks — we got your answer.')).toBeTruthy();
@@ -117,7 +118,8 @@ describe('PublicFormPage', () => {
         }));
         render(<PublicFormPage token={TOKEN} />);
         await screen.findByText('Contact us');
-        fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'nope' } });
+        await user.clear(screen.getByLabelText(/Your email/));
+        await user.type(screen.getByLabelText(/Your email/), 'nope');
         await user.click(screen.getByRole('button', { name: 'Send it' }));
         expect(await screen.findByText('Your email is not a valid email address.')).toBeTruthy();
     });
@@ -169,9 +171,11 @@ describe('PublicFormPage — multi-page', () => {
 
     /** Fill page one and submit it. */
     async function submitPageOne() {
+        const user = userEvent.setup();
         await screen.findByText('Contact us');
-        fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'a@b.nl' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
+        await user.clear(screen.getByLabelText(/Your email/));
+        await user.type(screen.getByLabelText(/Your email/), 'a@b.nl');
+        await user.click(screen.getByRole('button', { name: 'Send it' }));
     }
 
     it('the next page appears on the SAME url, without a navigation', async () => {
@@ -247,7 +251,8 @@ describe('PublicFormPage — multi-page', () => {
         await submitPageOne();
         await screen.findByText('Nearly there', {}, { timeout: 4000 });
 
-        fireEvent.change(screen.getByLabelText(/Your address/), { target: { value: 'Main Street 1' } });
+        await user.clear(screen.getByLabelText(/Your address/));
+        await user.type(screen.getByLabelText(/Your address/), 'Main Street 1');
         await user.click(screen.getByRole('button', { name: 'Finish' }));
 
         await waitFor(() => expect(posted).not.toBeNull());
@@ -383,6 +388,7 @@ describe('PublicFormPage — multi-page', () => {
     });
 
     it('an upload on a later page tells the server which page it is for', async () => {
+        const user = userEvent.setup();
         const withFile = { ...PAGE_2, fields: [...PAGE_2.fields, { name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5 }] };
         let uploadBody = null;
         vi.stubGlobal('fetch', mockFetch({
@@ -396,7 +402,7 @@ describe('PublicFormPage — multi-page', () => {
         await screen.findByText('Nearly there', {}, { timeout: 4000 });
 
         const input = document.querySelector('input[type="file"]');
-        fireEvent.change(input, { target: { files: [new File(['pdf'], 'p.pdf', { type: 'application/pdf' })] } });
+        await user.upload(input, [new File(['pdf'], 'p.pdf', { type: 'application/pdf' })]);
 
         await waitFor(() => expect(uploadBody).not.toBeNull());
         expect(uploadBody.get('sessionId')).toBe(SESSION);

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '@/utils/scopedStorage';
@@ -78,11 +78,15 @@ function renderForm(step, { groups, previewSample, onPatch = vi.fn(), wiredCaseN
 const renderFiles = (step = FILES_STEP, onPatch = vi.fn()) =>
     renderForm(step, { groups: [DRIVE_GROUP], previewSample: DRIVE_ROOT, onPatch });
 
-const describeIt = (text) => fireEvent.change(
-    screen.getByLabelText('Describe the outputs you want'),
-    { target: { value: text } },
-);
-const save = () => fireEvent.click(screen.getByText('Save'));
+const describeIt = async (text) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText('Describe the outputs you want'));
+        await user.paste(text);
+    };
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save'));
+    };
 // The preview is one <li> per suggested output; its text is assembled from
 // the name, the sentence and the count, so read the line as a whole.
 const previewLines = () => Array.from(document.querySelectorAll('li'))
@@ -104,9 +108,9 @@ describe('Condition editor — Suggest outputs', () => {
         expect(screen.queryByText('Suggest outputs')).toBeNull();
     });
 
-    it('answers the example that motivated the feature, in sentences and not in code', () => {
+    it('answers the example that motivated the feature, in sentences and not in code', async () => {
         renderFiles();
-        describeIt('split these files by pdf, word and powerpoint');
+        await describeIt('split these files by pdf, word and powerpoint');
 
         expect(screen.getByText(/File type is PDF/)).toBeTruthy();
         expect(screen.getByText(/File type is Word/)).toBeTruthy();
@@ -116,9 +120,9 @@ describe('Condition editor — Suggest outputs', () => {
         expect(screen.queryByText(/fileType\(|equals\(/)).toBeNull();
     });
 
-    it('counts the suggestion against the rows the editor already has', () => {
+    it('counts the suggestion against the rows the editor already has', async () => {
         renderFiles();
-        describeIt('split by pdf, word, powerpoint');
+        await describeIt('split by pdf, word, powerpoint');
 
         // Counted with the engine the server runs, against the rows the step
         // above actually produced — ".PDF" included, because the file type
@@ -134,14 +138,14 @@ describe('Condition editor — Suggest outputs', () => {
     it('saves nothing until the suggestion is accepted', async () => {
         const user = userEvent.setup();
         const { onPatch } = renderFiles();
-        describeIt('split by pdf, word, powerpoint');
+        await describeIt('split by pdf, word, powerpoint');
         // The node is untouched while the preview is on screen.
         expect(screen.getByText('This node has 1 output.')).toBeTruthy();
 
         await user.click(screen.getByText('Use these 3 outputs'));
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         // Straight through writeRoute: several rules ⇒ a switch, and the
@@ -167,12 +171,12 @@ describe('Condition editor — Suggest outputs', () => {
         });
         expect(screen.getByRole('radio', { name: 'Several outputs' }).getAttribute('aria-checked')).toBe('true');
 
-        describeIt('keep only the pdf ones');
+        await describeIt('keep only the pdf ones');
         await userEvent.setup().click(screen.getByRole('button', { name: 'Use this output' }));
         expect(screen.getByRole('radio', { name: 'One output' }).getAttribute('aria-checked')).toBe('true');
         expect(screen.getByText('This node has 1 output.')).toBeTruthy();
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('filter');
@@ -183,7 +187,7 @@ describe('Condition editor — Suggest outputs', () => {
 
     it('hands the accepted rules to the normal condition builder, still editable', async () => {
         renderFiles();
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         await userEvent.setup().click(screen.getByRole('button', { name: 'Use these 2 outputs' }));
         // The rules landed as ordinary rows — named ports with a readable
         // field, not a frozen blob the author now has to live with.
@@ -193,17 +197,17 @@ describe('Condition editor — Suggest outputs', () => {
         expect(screen.queryByRole('textbox', { name: /expression/i })).toBeNull();
     });
 
-    it('says plainly that it cannot count, instead of a reassuring "1 of 1"', () => {
+    it('says plainly that it cannot count, instead of a reassuring "1 of 1"', async () => {
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         expect(screen.getByText(/File type is PDF/)).toBeTruthy();
         expect(screen.getByText(/no sample records here yet, so none of this can be counted/)).toBeTruthy();
         expect(screen.queryByText(/1 of 1/)).toBeNull();
     });
 
-    it('warns before it replaces outputs that are already set up', () => {
+    it('warns before it replaces outputs that are already set up', async () => {
         renderFiles({ ...FILES_STEP, expr: 'contains(item.name, "2025")' });
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         expect(screen.getByText(/Accepting replaces the output already set up below/)).toBeTruthy();
     });
 
@@ -223,7 +227,7 @@ describe('Condition editor — Suggest outputs', () => {
      * output would have been unwired by an accept with nothing on screen
      * mentioning it, which is the silent-loss shape BFSF-356 is about.
      */
-    it('names the wired outputs an accept would unwire, including one with no condition yet', () => {
+    it('names the wired outputs an accept would unwire, including one with no condition yet', async () => {
         renderForm(
             {
                 id: 's3', type: 'switch', arrayRef: 'steps.d.output.files', routeStyle: 'rules',
@@ -231,14 +235,14 @@ describe('Condition editor — Suggest outputs', () => {
             },
             { groups: [DRIVE_GROUP], previewSample: DRIVE_ROOT, wiredCaseNames: new Set(['big', 'todo']) },
         );
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         // The "already set up" line can only see `big` — `todo` has no
         // condition yet. Both are ports, and both lose their edge.
         expect(screen.getByText(/Accepting replaces the output already set up below/)).toBeTruthy();
         expect(screen.getByText(/big, todo are wired on the canvas and are not in this suggestion, so their connections go too/)).toBeTruthy();
     });
 
-    it('does not call an output a casualty when the suggestion keeps its name', () => {
+    it('does not call an output a casualty when the suggestion keeps its name', async () => {
         renderForm(
             {
                 id: 's4', type: 'switch', arrayRef: 'steps.d.output.files', routeStyle: 'rules',
@@ -246,19 +250,19 @@ describe('Condition editor — Suggest outputs', () => {
             },
             { groups: [DRIVE_GROUP], previewSample: DRIVE_ROOT, wiredCaseNames: new Set(['pdf', 'oud']) },
         );
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         // An output that keeps its name keeps its connection — the rule this
         // section states — so only `oud` is named.
         expect(screen.getByText(/oud is wired on the canvas and is not in this suggestion, so its connection goes too/)).toBeTruthy();
     });
 
-    it('says nothing about wiring when nothing is wired', () => {
+    it('says nothing about wiring when nothing is wired', async () => {
         renderFiles({ ...FILES_STEP, expr: 'contains(item.name, "2025")' });
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         expect(screen.queryByText(/wired on the canvas and/)).toBeNull();
     });
 
-    it('refuses to guess a field rather than building rules that match nothing', () => {
+    it('refuses to guess a field rather than building rules that match nothing', async () => {
         renderForm(
             { id: 'f2', type: 'filter', arrayRef: 'steps.m.output.messages', expr: '' },
             {
@@ -270,7 +274,7 @@ describe('Condition editor — Suggest outputs', () => {
                 previewSample: { steps: { m: { output: { messages: [{ from_email: 'anna@bee-flow.nl' }] } } } },
             },
         );
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         // ".nl" is not a file extension, and an e-mail address is not a file
         // name — so it says so instead of routing on one.
         expect(screen.getByText(/Nothing here looks like a file name/)).toBeTruthy();
@@ -282,7 +286,7 @@ describe('Condition editor — Suggest outputs', () => {
             { id: 'f3', type: 'filter', arrayRef: 'steps.m.output.messages', expr: '' },
             { groups: [MAIL_GROUP], previewSample: MAIL_ROOT },
         );
-        describeIt('split by pdf and word');
+        await describeIt('split by pdf and word');
         expect(previewLines()).toEqual([
             'pdf — any attachment · File type is PDF · 3 of 4 sample messages',
             'word — any attachment · File type is Word · 1 of 4 sample messages',
@@ -299,14 +303,14 @@ describe('Condition editor — Suggest outputs', () => {
         expect(screen.getByText('5 of 9 sample attachments match none of these and go to “Otherwise”.')).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Check each/ })).toBeNull();
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].arrayRef).toBe('steps.m.output.messages[*].attachments');
     });
 
-    it('names what it did not understand', () => {
+    it('names what it did not understand', async () => {
         renderFiles();
-        describeIt('do the usual thing here');
+        await describeIt('do the usual thing here');
         expect(screen.getByText(/Nothing recognised there yet/)).toBeTruthy();
     });
 });

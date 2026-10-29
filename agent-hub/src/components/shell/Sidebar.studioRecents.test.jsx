@@ -83,7 +83,10 @@ const renderSidebar = (props = {}) => render(
 
 const openStudioFlyout = () => fireEvent.click(screen.getByTestId('nav-studio'));
 // The wrapper around the section row is what carries the hover handler.
-const hoverSection = (id) => fireEvent.mouseOver(screen.getByTestId(`nav-studio-${id}`).parentElement);
+const hoverSection = async (id) => {
+        const user = userEvent.setup();
+        await user.hover(screen.getByTestId(`nav-studio-${id}`).parentElement);
+    };
 
 beforeEach(() => {
     cleanup();
@@ -98,7 +101,7 @@ describe('Studio flyout — recently edited panel', () => {
         renderSidebar();
         openStudioFlyout();
         expect(screen.queryByTestId('subflyout-agents')).toBeNull();
-        hoverSection('agents');
+        await hoverSection('agents');
         expect(await screen.findByTestId('subflyout-agents')).toBeTruthy();
         expect(screen.getByTestId('nav-recent-agents-ag1')).toBeTruthy();
         expect(screen.getByTestId('nav-recent-agents-ag2')).toBeTruthy();
@@ -108,7 +111,7 @@ describe('Studio flyout — recently edited panel', () => {
         serveAgents();
         renderSidebar();
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         expect(screen.getByText('Helps with quotes')).toBeTruthy();
         expect(screen.queryByText(/ago$/)).toBeNull();
@@ -119,7 +122,7 @@ describe('Studio flyout — recently edited panel', () => {
         serveAgents([{ id: 'ag1', name: 'Nextcloud_Buddy', description: long, updated_at: '2026-08-10T10:00:00Z' }]);
         renderSidebar();
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         const row = screen.getByTestId('nav-recent-agents-ag1');
         expect(row.textContent).not.toContain('best practices');
@@ -132,7 +135,7 @@ describe('Studio flyout — recently edited panel', () => {
             : { ok: false });
         renderSidebar();
         openStudioFlyout();
-        hoverSection('meetingNotes');
+        await hoverSection('meetingNotes');
         await screen.findByTestId('subflyout-meetingNotes');
         expect(screen.getByTestId('nav-recent-meetingNotes-m1').textContent).toMatch(/just now/);
     });
@@ -143,7 +146,7 @@ describe('Studio flyout — recently edited panel', () => {
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         await user.click(screen.getByTestId('nav-recent-agents-ag2'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents/ag2');
@@ -155,7 +158,7 @@ describe('Studio flyout — recently edited panel', () => {
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         await user.click(screen.getByTestId('nav-recent-agents-all'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents');
@@ -166,7 +169,7 @@ describe('Studio flyout — recently edited panel', () => {
         serveAgents();
         renderSidebar();
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         await user.click(screen.getByTestId('nav-recent-agents-ag1'));
         expect(screen.queryByTestId('subflyout-agents')).toBeNull();
@@ -177,7 +180,7 @@ describe('Studio flyout — recently edited panel', () => {
         serveAgents();
         renderSidebar();
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         await screen.findByTestId('subflyout-agents');
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByTestId('subflyout-agents')).toBeNull();
@@ -192,7 +195,7 @@ describe('Studio flyout — recently edited panel', () => {
     it('opens no panel for a section with nothing in it', async () => {
         renderSidebar();
         openStudioFlyout();
-        hoverSection('skills');
+        await hoverSection('skills');
         await waitFor(() => expect(screen.getByTestId('nav-studio-skills')).toBeTruthy());
         expect(screen.queryByTestId('subflyout-skills')).toBeNull();
     });
@@ -203,7 +206,7 @@ describe('Studio flyout — recently edited panel', () => {
         fetchMock.impl = async () => { throw new Error('403'); };
         renderSidebar({ onNavigate });
         openStudioFlyout();
-        hoverSection('skills');
+        await hoverSection('skills');
         await waitFor(() => expect(screen.queryByTestId('subflyout-skills')).toBeNull());
         await user.click(screen.getByTestId('nav-studio-skills'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/skills');
@@ -219,9 +222,9 @@ describe('Studio flyout — recently edited panel', () => {
         openStudioFlyout();
         // Nothing is requested for a section nobody has looked at.
         expect(seen.filter(u => u.endsWith('/api/automation'))).toHaveLength(0);
-        hoverSection('aiTasks');
+        await hoverSection('aiTasks');
         await screen.findByTestId('subflyout-aiTasks');
-        hoverSection('aiTasks');
+        await hoverSection('aiTasks');
         await waitFor(() => expect(seen.filter(u => u.endsWith('/api/automation'))).toHaveLength(1));
     });
 
@@ -230,7 +233,7 @@ describe('Studio flyout — recently edited panel', () => {
         serveAgents();
         renderSidebar();
         openStudioFlyout();
-        hoverSection('agents');
+        await hoverSection('agents');
         const panel = await screen.findByTestId('subflyout-agents');
         const ids = [...panel.querySelectorAll('[data-testid^="nav-recent-agents-"]')]
             .map(el => el.getAttribute('data-testid'));

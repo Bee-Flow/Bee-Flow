@@ -24,7 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '@/utils/scopedStorage';
@@ -70,15 +70,20 @@ function renderForm(step, { groups, previewSample, onInsertUpstreamStep = vi.fn(
     return { onPatch, onInsertUpstreamStep };
 }
 
-const describeIt = (text) => fireEvent.change(
-    screen.getByLabelText('Describe the outputs you want'),
-    { target: { value: text } },
-);
-const nameAnswers = (text) => fireEvent.change(
-    screen.getByLabelText('Name the possible answers'),
-    { target: { value: text } },
-);
-const save = () => fireEvent.click(screen.getByText('Save'));
+const describeIt = async (text) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText('Describe the outputs you want'));
+        await user.paste(text);
+    };
+const nameAnswers = async (text) => {
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText('Name the possible answers'));
+        await user.paste(text);
+    };
+const save = async () => {
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Save'));
+    };
 
 /** The state the offer belongs in: asked, and the model found no field. */
 async function askAndFail() {
@@ -86,7 +91,7 @@ async function askAndFail() {
     api.suggestRouteRules.mockResolvedValue({
         rules: [], problem: 'None of these fields says what the message is about.',
     });
-    describeIt('is this e-mail about a complaint');
+    await describeIt('is this e-mail about a complaint');
     await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
     await screen.findByLabelText('Name the possible answers');
 }
@@ -105,7 +110,7 @@ describe('Condition editor — the semantic handoff', () => {
         // box still works — this is the only part that needs the definition.
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT, onInsertUpstreamStep: null });
         api.suggestRouteRules.mockResolvedValue({ rules: [], problem: 'No field says what this is about.' });
-        describeIt('is this e-mail about a complaint');
+        await describeIt('is this e-mail about a complaint');
         await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
         expect(await screen.findByText(/No field says what this is about/)).toBeTruthy();
         expect(screen.queryByLabelText('Name the possible answers')).toBeNull();
@@ -114,7 +119,7 @@ describe('Condition editor — the semantic handoff', () => {
     it('saves nothing until the plan is accepted', async () => {
         const { onPatch, onInsertUpstreamStep } = renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         await askAndFail();
-        nameAnswers('complaint, question, something else');
+        await nameAnswers('complaint, question, something else');
         await screen.findByRole('button', { name: /Add the step/i });
         // The node still has the single output it opened with.
         // A whole-run Condition: its one output, and the else port as “Otherwise”.
@@ -127,7 +132,7 @@ describe('Condition editor — the semantic handoff', () => {
         const user = userEvent.setup();
         const { onPatch, onInsertUpstreamStep } = renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         await askAndFail();
-        nameAnswers('complaint, question, something else');
+        await nameAnswers('complaint, question, something else');
         await user.click(await screen.findByRole('button', { name: /Add the step/i }));
 
         const inserted = onInsertUpstreamStep.mock.calls[0][0];
@@ -135,7 +140,7 @@ describe('Condition editor — the semantic handoff', () => {
         const field = Object.keys(inserted.outputSchema.properties)[0];
 
         expect(screen.getByText('This node has 3 outputs.')).toBeTruthy();
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         // Straight through writeRoute, exactly like a hand-built router:
@@ -153,7 +158,7 @@ describe('Condition editor — the semantic handoff', () => {
         const user = userEvent.setup();
         const { onPatch, onInsertUpstreamStep } = renderForm(LIST_STEP, { groups: [MAIL_GROUP], previewSample: MAIL_ROOT });
         await askAndFail();
-        nameAnswers('complaint, something else');
+        await nameAnswers('complaint, something else');
         await user.click(await screen.findByRole('button', { name: /Add the step/i }));
 
         const inserted = onInsertUpstreamStep.mock.calls[0][0];
@@ -161,7 +166,7 @@ describe('Condition editor — the semantic handoff', () => {
         expect(inserted.forEach).toEqual({ overRef: 'steps.m.output.messages', itemVar: 'item' });
         const field = Object.keys(inserted.outputSchema.properties)[0];
 
-        save();
+        await save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         // ...and the node now works through what that produced, where each row
@@ -178,7 +183,7 @@ describe('Condition editor — the semantic handoff', () => {
         const user = userEvent.setup();
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         await askAndFail();
-        nameAnswers('complaint, something else');
+        await nameAnswers('complaint, something else');
         await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Named ports in ordinary rows — not a frozen blob the author now has
         // to live with.
@@ -192,7 +197,7 @@ describe('Condition editor — the semantic handoff', () => {
             groups: [DOC_GROUP], previewSample: DOC_ROOT, onInsertUpstreamStep: vi.fn(() => false),
         });
         await askAndFail();
-        nameAnswers('complaint, something else');
+        await nameAnswers('complaint, something else');
         await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Rules naming a step that was never added would be the empty branch
         // this feature exists to remove, arriving through its own front door.

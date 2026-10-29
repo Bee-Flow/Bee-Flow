@@ -58,7 +58,7 @@ describe('DiagramPane — overlay zones', () => {
         const user = userEvent.setup();
         const onAskAssistant = vi.fn();
         const { container } = renderCanvas({ onAskAssistant, onNodeClick: vi.fn() });
-        fireEvent.click(container.querySelector('.react-flow__node[data-id="a"]')!);
+        await user.click(container.querySelector('.react-flow__node[data-id="a"]')!);
         fireEvent.keyDown(document, { key: 'j', ctrlKey: true });
         expect(onAskAssistant).toHaveBeenCalledWith('a');
     });
