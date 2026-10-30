@@ -34,32 +34,8 @@ function resolveOrgId(rawOrgId) {
 // throw 22P02, which callers would surface as a 500 instead of a clean 404.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// ── Legacy `config` key ⇄ named-connection mapping ──────────────────
-// Each per-user secret key looks like `<prefix>_user_<userId>`. The prefix
-// encodes a (provider, field). Multi-field providers (youtrack url+token,
-// signrequest subdomain+token) map several prefixes onto ONE connection blob.
-const LEGACY_KEY_MAP = {
-    'fireflies_api_key':     { provider: 'fireflies',   field: 'api_key',      kind: 'api_key' },
-    'gamma_api_key':         { provider: 'gamma',       field: 'api_key',      kind: 'api_key' },
-    'github_token':          { provider: 'github',      field: 'token',        kind: 'api_key' },
-    'youtrack_url':          { provider: 'youtrack',    field: 'url',          kind: 'basic'   },
-    'youtrack_token':        { provider: 'youtrack',    field: 'token',        kind: 'basic'   },
-    'signrequest_subdomain': { provider: 'signrequest', field: 'subdomain',    kind: 'basic'   },
-    'signrequest_token':     { provider: 'signrequest', field: 'token',        kind: 'basic'   },
-    'linkedin_access_token': { provider: 'linkedin',    field: 'access_token', kind: 'oauth'   },
-    'afas_token':            { provider: 'afas-profit', field: 'token',        kind: 'basic'   },
-    'afas_member_number':    { provider: 'afas-profit', field: 'member_number', kind: 'basic'  },
-    'afas_env_type':         { provider: 'afas-profit', field: 'env_type',     kind: 'basic'   },
-    'nmbrs_api_mode':        { provider: 'nmbrs',       field: 'api_mode',     kind: 'basic'   },
-    'nmbrs_subdomain':       { provider: 'nmbrs',       field: 'subdomain',    kind: 'basic'   },
-    'nmbrs_email':           { provider: 'nmbrs',       field: 'email',        kind: 'basic'   },
-    'nmbrs_token':           { provider: 'nmbrs',       field: 'token',        kind: 'basic'   },
-    'nmbrs_env':             { provider: 'nmbrs',       field: 'env',          kind: 'basic'   },
-    'vplan_api_key':         { provider: 'vplan',       field: 'api_key',      kind: 'basic'   },
-    'vplan_api_env':         { provider: 'vplan',       field: 'api_env',      kind: 'basic'   },
-    'scaleway_billing_secret_key': { provider: 'scaleway-billing', field: 'secret_key',      kind: 'basic' },
-    'scaleway_billing_org_id':     { provider: 'scaleway-billing', field: 'organization_id', kind: 'basic' },
-};
+// ── Legacy `config` key ⇄ named-connection mapping: stores/integrationConnectionLegacyKeys.js
+const { LEGACY_KEY_MAP } = require('./integrationConnectionLegacyKeys');
 // Reverse index: provider → [{ prefix, field, kind }] for mirror-writes + backfill grouping.
 const PROVIDER_LEGACY_FIELDS = {};
 for (const [prefix, m] of Object.entries(LEGACY_KEY_MAP)) {

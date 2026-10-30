@@ -50,6 +50,7 @@ Available via the [Nextcloud connector](../connector/index.md). The 11 integrati
 | Integration | What it does |
 |-------------|--------------|
 | [vPlan](vplan.md) | Read planning, capacity, resources, orders & time tracking (read-only) |
+| [Firebird database](firebird.md) | Read a Firebird database such as Syntess Atrium with SELECT queries (read-only) |
 
 ### Social / messaging
 

@@ -25,6 +25,7 @@ const { GAMMA_TOOLS } = require('./gammaTools');
 const { AFAS_TOOLS } = require('./afasTools');
 const { NMBRS_TOOLS } = require('./nmbrsTools');
 const { VPLAN_TOOLS } = require('./vplanTools');
+const { FIREBIRD_TOOLS } = require('./firebirdTools');
 const { SCALEWAY_BILLING_TOOLS } = require('./scalewayBillingTools');
 const { buildN8nTools } = require('./n8nTools');
 const { N8N_WORKFLOW_TOOLS, getN8nToolPermission } = require('./n8nWorkflowTools');
@@ -76,6 +77,7 @@ const TOOLSETS = {
     AFAS_TOOLS,
     NMBRS_TOOLS,
     VPLAN_TOOLS,
+    FIREBIRD_TOOLS,
     SCALEWAY_BILLING_TOOLS,
     N8N_WORKFLOW_TOOLS,
     AGENT_SEARCH_TOOLS,

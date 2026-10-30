@@ -188,6 +188,7 @@ const sidebars: SidebarsConfig = {
           label: 'Business systems',
           items: [
             'integrations/vplan',
+            'integrations/firebird',
           ],
         },
         {

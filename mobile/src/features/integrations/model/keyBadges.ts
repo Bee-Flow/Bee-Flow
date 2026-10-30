@@ -17,6 +17,7 @@ const SIGNREQUEST: Copy = { i18nKey: 'mobile.integrations.app_signrequest', en: 
 const AFAS: Copy = { i18nKey: 'mobile.integrations.app_afas_profit', en: 'AFAS Profit' };
 const NMBRS: Copy = { i18nKey: 'mobile.integrations.app_nmbrs', en: 'NMBRS' };
 const VPLAN: Copy = { i18nKey: 'mobile.integrations.app_vplan', en: 'vPlan' };
+const FIREBIRD: Copy = { i18nKey: 'mobile.integrations.app_firebird', en: 'Firebird database' };
 const N8N: Copy = { i18nKey: 'mobile.integrations.app_n8n', en: 'n8n' };
 
 const badge = (copy: Copy, present: boolean) => ({ label: translate(copy.i18nKey, copy.en), present });
@@ -32,6 +33,7 @@ export function keyBadges(
         badge(AFAS, Boolean(settings?.hasAfasConfig)),
         badge(NMBRS, Boolean(settings?.hasNmbrsConfig)),
         badge(VPLAN, Boolean(settings?.hasVplanConfig)),
+        badge(FIREBIRD, Boolean(settings?.hasFirebirdConfig)),
         badge(N8N, Boolean(settings?.hasN8nConfig)),
     ];
 }

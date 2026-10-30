@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/ai`
 
-128 routes, 57 with a request schema. Back to the [endpoint reference](../reference.md).
+129 routes, 58 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `agent-search`
 
@@ -638,6 +638,23 @@ No request schema.
 |-------|------|:--------:|-------|
 | `content` | string |  | default `""` |
 | `notebookId` | string or null |  |  |
+
+## `firebird`
+
+### `POST /ai/firebird/test`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `firebirdHost` | string or null |  |  |
+| `firebirdPort` | string or null |  |  |
+| `firebirdDatabase` | string or null |  |  |
+| `firebirdUser` | string or null |  |  |
+| `firebirdPassword` | string or null |  |  |
+| `firebirdCharset` | string or null |  |  |
 
 ## `generate-regex`
 
@@ -1269,6 +1286,12 @@ No request schema.
 | `nmbrsEnv` | string or null |  |  |
 | `vplanApiKey` | string or null |  |  |
 | `vplanApiEnv` | string or null |  |  |
+| `firebirdHost` | string or null |  |  |
+| `firebirdPort` | string or null |  |  |
+| `firebirdDatabase` | string or null |  |  |
+| `firebirdUser` | string or null |  |  |
+| `firebirdPassword` | string or null |  |  |
+| `firebirdCharset` | string or null |  |  |
 | `scalewayBillingSecretKey` | string or null |  |  |
 | `scalewayBillingOrgId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |

@@ -84,6 +84,7 @@ const LAZY_GROUPS = [
     { key: 'signrequest',  label: 'SignRequest',  desc: 'send documents for e-signature, track status',   prefix: 'signrequest_' },
     { key: 'fireflies',    label: 'Fireflies',    desc: 'meeting transcripts',                            prefix: 'fireflies_' },
     { key: 'vplan',        label: 'vPlan',        desc: 'read planning: boards, cards, collections, resource availability, capacity, orders, time tracking', prefix: 'vplan_' },
+    { key: 'firebird',     label: 'Firebird database', desc: 'read a Firebird database such as Syntess Atrium: tables, columns, sample rows, SELECT queries', prefix: 'firebird_' },
     { key: 'scaleway_billing', label: 'Scaleway Billing', desc: 'list Scaleway invoices; download the invoice PDF inside an automation', prefix: 'scaleway_' },
     { key: 'linkedin',     label: 'LinkedIn',     desc: 'create posts (approval before publishing)',      prefix: 'linkedin_' },
     { key: 'github',       label: 'GitHub',       desc: 'list repos, view code, manage branches',         prefix: 'github_' },

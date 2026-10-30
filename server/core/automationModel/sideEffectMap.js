@@ -68,11 +68,11 @@ const READ_ONLY = new Set([
     'nmbrs_list_debtors', 'nmbrs_list_companies', 'nmbrs_list_employees', 'nmbrs_get_employee',
     'nmbrs_list_employee_contracts', 'nmbrs_list_employee_salaries', 'nmbrs_list_employee_wage_components', 'nmbrs_list_payslips',
     'nmbrs_list_company_employments', 'nmbrs_list_company_lease_cars', 'nmbrs_list_company_svw_settings', 'nmbrs_list_company_runs', 'nmbrs_list_company_personal_info', 'nmbrs_list_company_contracts',
-    // vPlan (read-only planning integration by design)
+    // vPlan (read-only planning integration by design); Firebird (read-only transaction + SELECT guard)
     'vplan_whoami', 'vplan_list_boards', 'vplan_list_resources', 'vplan_get_resource_availability',
     'vplan_list_activities', 'vplan_list_collections', 'vplan_get_collection', 'vplan_list_cards',
     'vplan_get_card', 'vplan_list_orders', 'vplan_get_order', 'vplan_list_time_tracking',
-    'vplan_time_tracking_summary', 'vplan_get_capacity', 'vplan_list_master_data',
+    'vplan_time_tracking_summary', 'vplan_get_capacity', 'vplan_list_master_data', 'firebird_whoami', 'firebird_list_tables', 'firebird_describe_table', 'firebird_sample_rows', 'firebird_query',
     // Scaleway Billing (read-only by design; the download keeps the PDF for the
     // run and writes nowhere outside Bee Flow)
     'scaleway_list_invoices', 'scaleway_download_invoice',

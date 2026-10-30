@@ -2,7 +2,7 @@ import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.types';
-
+import { FirebirdLogo } from './integrationLogos.database';
 /**
  * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in underscore
  * form ('google_drive') so they line up with INTEGRATION_META in
@@ -14,10 +14,9 @@ import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.typ
  * logo is registered for the id. Most SVGs were extracted verbatim from the chat sidebar's APP_DEFS so
  * the chat panel and the automation palette show the SAME marks.
  *
- * IDs we add here that were NOT in APP_DEFS (Nextcloud, GitHub, LinkedIn,
- * SignRequest, n8n, KB, Webpages, Video Gen, Transcription, Agent Search,
- * Maps) carry compact official-style brand glyphs so every integration the
- * automation palette surfaces gets a recognisable mark, not a letter fallback.
+ * IDs added here that were NOT in APP_DEFS (Nextcloud, GitHub, LinkedIn, SignRequest, n8n, KB,
+ * Webpages, Video Gen, Transcription, Agent Search, Maps) carry compact official-style glyphs so
+ * every integration the automation palette surfaces gets a recognisable mark, not a letter fallback.
  */
 
 const Wrap = ({ size = 18, viewBox, children, className }: WrapProps) => (
@@ -547,6 +546,7 @@ const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     afas_profit: AfasLogo,
     nmbrs: NmbrsLogo,
     vplan: VplanLogo,
+    firebird: FirebirdLogo,
     scaleway_billing: ScalewayBillingLogo,
     linkedin: LinkedInLogo,
     github: GitHubLogo,

@@ -120,6 +120,7 @@ const INTEGRATION_CATALOG = [
     { id: 'afas-profit',      name: 'AFAS Profit',           description: 'Query AFAS Profit GetConnectors (read-only)', category: 'Productivity' },
     { id: 'nmbrs',            name: 'NMBRS',                 description: 'Read NMBRS payroll & HR data (read-only)',    category: 'Productivity' },
     { id: 'vplan',            name: 'vPlan',                 description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
+    { id: 'firebird',         name: 'Firebird database',     description: 'Read a Firebird database such as Syntess Atrium (SELECT only)', category: 'Productivity' },
     { id: 'scaleway-billing', name: 'Scaleway Billing',      description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'youtrack',         name: 'YouTrack',              description: 'Issue tracking',                             category: 'Developer' },
     { id: 'github',           name: 'GitHub',                description: 'Repository management, view code',           category: 'Developer' },
@@ -163,7 +164,6 @@ const MCP_SERVER_CATEGORY = 'MCP servers';
 //   - stores/user/schema.js owns the column DEFAULT + '[]'-backfill that gives
 //     NEW orgs their out-of-the-box grants — a new id must be added there too.
 const USER_FACING_CORE = new Set(['notebooks', 'projects']);
-
 let _cache = null;
 
 // ── Dynamic MCP-as-integration projection ───────────────────────────────

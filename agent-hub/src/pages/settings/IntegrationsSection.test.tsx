@@ -117,7 +117,7 @@ describe('IntegrationsSection (Settings → Connections)', () => {
         const options = within(screen.getByRole('combobox', { name: 'Provider' })).getAllByRole('option').map(o => o.textContent);
         expect(options).toContain('YouTrack');
         expect(options).toContain('HTTP API (custom)');
-        expect(options.length).toBe(10);
+        expect(options.length).toBe(11);
     });
 
     it('ignores OAuth callback messages from a foreign origin (LinkedIn, Withings)', async () => {

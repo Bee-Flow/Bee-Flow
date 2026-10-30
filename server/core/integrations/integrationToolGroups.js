@@ -232,6 +232,16 @@ async function addUserCredentialTools({ userId, userSimpleMode, isAppOn, addTool
         addTools(T.VPLAN_TOOLS);
     }
 
+    // Firebird database (e.g. Syntess Atrium) — read-only SQL. Bring-your-own like
+    // AFAS/vPlan (no isLentProvider clause): ERP database credentials are not lent.
+    const hasFirebirdConfig = !!(await D.configStore.getSecret(`firebird_host_user_${userId}`))
+        && !!(await D.configStore.getSecret(`firebird_database_user_${userId}`))
+        && !!(await D.configStore.getSecret(`firebird_user_user_${userId}`))
+        && !!(await D.configStore.getSecret(`firebird_password_user_${userId}`));
+    if (hasFirebirdConfig && isAppOn('firebird')) {
+        addTools(T.FIREBIRD_TOOLS);
+    }
+
     // Scaleway Billing — read-only invoices. The secret key is required; the
     // organization id is optional. Bring-your-own (no isLentProvider clause):
     // a lent key would show one org's Scaleway bill to another.

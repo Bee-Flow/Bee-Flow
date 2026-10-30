@@ -13,7 +13,7 @@ const NO_AGENTS: PreferencesAgent[] = [];
 
 const BASE_STATUSES: SettingsStatuses = {
     hasFirefliesKey: false, hasYouTrackConfig: false, hasGammaKey: false, hasAfasConfig: false,
-    hasVplanConfig: false, hasScalewayBillingConfig: false,
+    hasVplanConfig: false, hasFirebirdConfig: false, hasScalewayBillingConfig: false,
     hasNmbrsConfig: false, nmbrsApiMode: 'soap', nmbrsSubdomain: '', nmbrsEmail: '', nmbrsEnv: 'production',
     hasSignRequestConfig: false,
     linkedInConnected: false, linkedInName: null, hasLinkedInConfig: false,
@@ -34,7 +34,7 @@ function mergeStatuses(
     if (data) {
         next = {
             ...next, hasFirefliesKey: !!data.hasFirefliesKey, hasYouTrackConfig: !!data.hasYouTrackConfig, hasSignRequestConfig: !!data.hasSignRequestConfig,
-            hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig,
+            hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig, hasFirebirdConfig: !!data.hasFirebirdConfig,
             hasScalewayBillingConfig: !!data.hasScalewayBillingConfig, hasNmbrsConfig: !!data.hasNmbrsConfig,
             nmbrsApiMode: data.nmbrsApiMode || 'soap', nmbrsSubdomain: data.nmbrsSubdomain || '', nmbrsEmail: data.nmbrsEmail || '',
             nmbrsEnv: data.nmbrsEnv || 'production', hasLinkedInConfig: !!data.hasLinkedInConfig,

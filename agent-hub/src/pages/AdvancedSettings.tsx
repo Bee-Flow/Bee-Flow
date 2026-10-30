@@ -78,7 +78,7 @@ const ALL_ORG_IDS: (string | null)[] = Object.keys(SETTINGS_ORG_ID_TO_URL);
  * rather than forced to true (which showed "Connected" after a Disconnect, or
  * after a partial save). GitHub is here for the org GitHub Sync row, which is
  * drawn on statuses.githubConnected. */
-const STATUS_BACKED_KEYS = ['fireflies', 'youtrack', 'signrequest', 'gamma', 'afas-profit', 'vplan', 'scaleway-billing', 'nmbrs', 'linkedin', 'nextcloud', 'github'];
+const STATUS_BACKED_KEYS = ['fireflies', 'youtrack', 'signrequest', 'gamma', 'afas-profit', 'vplan', 'firebird', 'scaleway-billing', 'nmbrs', 'linkedin', 'nextcloud', 'github'];
 
 /* ── URL ⟷ activeTab mapping → authedApp/settingsRoutes.js ────────────────
  * The three segment tables and their two readers used to sit here. They live

@@ -15,7 +15,6 @@
  * workflow family (with its permission check) must come first — and
  * toolFamilies.test.js pins the whole sequence.
  */
-
 const { registerToolFamily } = require('../core/tools/toolFamilyRegistry');
 const { hasPermission } = require('../auth/permissions');
 const { isGmailTool, executeGmailTool } = require('./gmailTools');
@@ -358,6 +357,7 @@ const INTEGRATION_TOOL_FAMILIES = [
     { name: 'afas', order: 150, isTool: isAfasTool, execute: byUser(executeAfasTool) },
     { name: 'nmbrs', order: 160, isTool: isNmbrsTool, execute: (n, a, ctx) => executeNmbrsTool(n, a, ctx.userId, { orgId: ctx.orgId }) },
     { name: 'vplan', order: 170, isTool: isVplanTool, execute: byUser(executeVplanTool) },
+    { name: 'firebird', order: 175, isTool: n => require('./firebirdTools').isFirebirdTool(n), execute: byUser((n, a, u) => require('./firebirdTools').executeFirebirdTool(n, a, u)) }, // lazy: the driver loads on first use
     // The run scope lets scaleway_download_invoice keep the PDF for this
     // automation run and hand on a generated_file handle.
     { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) },
