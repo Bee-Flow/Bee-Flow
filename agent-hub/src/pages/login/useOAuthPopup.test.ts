@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { newPickupId } from './useOAuthPopup';
+import { microsoftLoginUrl, newPickupId } from './useOAuthPopup';
+
+describe('microsoftLoginUrl', () => {
+    it('names the connection only for an additional tenant, and the popup only when embedded', () => {
+        expect(microsoftLoginUrl('https://api.example', undefined, false)).toBe('https://api.example/auth/login/microsoft');
+        expect(microsoftLoginUrl('https://api.example', 'default', false)).toBe('https://api.example/auth/login/microsoft');
+        expect(microsoftLoginUrl('https://api.example', 'sub', false)).toBe('https://api.example/auth/login/microsoft?connection=sub');
+        expect(microsoftLoginUrl('https://api.example', 'sub', true)).toBe('https://api.example/auth/login/microsoft?popup=1&connection=sub');
+    });
+});
 
 // The pickup id is what the OAuth callback files the session token under, so
 // it must come from the CSPRNG on every path, including a non-secure context

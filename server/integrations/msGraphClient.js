@@ -19,7 +19,7 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
 /**
  * The session fields the Graph client reads and writes (an Express session or an automation's vault session).
- * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, save?: () => void }} MsSession
+ * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, oauthConnectionId?: string, save?: () => void }} MsSession
  * @typedef {Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }} GraphRequestOptions
  */
 
@@ -72,9 +72,12 @@ function isThrottled(status, method) {
  */
 async function refreshAccessToken(session) {
     const config = await loadConfig();
-    const providerConfig = config.providers?.microsoft || {};
+    // The app the session signed in through: the primary, or an additional
+    // tenant (session.oauthConnectionId). A refresh token is bound to its app
+    // registration, so refreshing with the primary's credentials would fail.
+    const providerConfig = require('../auth/oauth/microsoftConnections.mts').microsoftCredentialsFor(config, session?.oauthConnectionId);
 
-    if (!providerConfig.clientId || !providerConfig.clientSecret) {
+    if (!providerConfig) {
         throw new Error('Microsoft OAuth not configured');
     }
 
@@ -83,7 +86,7 @@ async function refreshAccessToken(session) {
         throw new Error('No refresh token available — user must re-authenticate with Microsoft');
     }
 
-    const tenantId = providerConfig.tenantId || 'common';
+    const tenantId = providerConfig.tenantId;
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
     const response = await fetch(tokenUrl, {

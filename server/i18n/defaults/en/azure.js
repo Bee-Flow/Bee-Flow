@@ -13,6 +13,10 @@ module.exports = {
     'azure.identity_disconnect_user': 'Disconnect Microsoft identity for local user ID',
     'azure.identity_disconnect_confirm': 'I confirm this account must stop accepting its current Microsoft identity.',
     'azure.identity_disconnect': 'Disconnect identity',
+    'azure.identity_requests_title': 'Pending identity links',
+    'azure.identity_requests_empty': 'No pending link requests.',
+    'azure.sync_binding_title': 'Directory sync binding',
+    'azure.identity_disconnect_title': 'Disconnect an identity',
 
     // ── Azure Configuration ─────────────────────────────────────
     'azure.title': 'Azure Configuration',

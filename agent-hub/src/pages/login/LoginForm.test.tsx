@@ -336,3 +336,37 @@ describe('the shape of the login form itself', () => {
         expect(screen.getByTestId('password')).not.toHaveAttribute('autocomplete');
     });
 });
+
+describe('one Microsoft button per connection', () => {
+    const logins = [
+        { id: 'default', label: '', logo: '' },
+        { id: 'sub', label: 'Sign in at Subsidiary', logo: 'data:image/png;base64,iVBORw0KGgo=' },
+    ];
+
+    it('shows the primary with the default text and logo, and each tenant with its own', () => {
+        renderForm({ microsoftLogins: logins });
+        const primary = screen.getByTestId('sso-microsoft-button');
+        expect(primary).toHaveTextContent('login.sign_in_with_microsoft');
+        expect(primary.querySelector('svg')).not.toBeNull();
+        const sub = screen.getByTestId('sso-microsoft-button-sub');
+        expect(sub).toHaveTextContent('Sign in at Subsidiary');
+        expect(sub.querySelector('img')?.getAttribute('src')).toBe(logins[1].logo);
+    });
+
+    it('starts the sign-in with the connection that was pressed', async () => {
+        const user = userEvent.setup();
+        const { p } = renderForm({ microsoftLogins: logins });
+        await user.click(screen.getByTestId('sso-microsoft-button-sub'));
+        expect(p.handleMicrosoftLogin).toHaveBeenCalledWith('sub');
+        await user.click(screen.getByTestId('sso-microsoft-button'));
+        expect(p.handleMicrosoftLogin).toHaveBeenLastCalledWith('default');
+    });
+
+    it('offers Microsoft when only additional tenants exist, and all of them in the dedicated view', () => {
+        document.cookie = 'bf_preferred_login=microsoft;path=/';
+        renderForm({ isMicrosoftConfigured: false, microsoftLogins: [logins[1]] });
+        expect(screen.getByTestId('sso-microsoft-button-sub')).toBeInTheDocument();
+        expect(screen.queryByTestId('sso-microsoft-button')).toBeNull();
+        expect(screen.queryByText('login.or_continue_with')).toBeNull();
+    });
+});

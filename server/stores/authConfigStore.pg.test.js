@@ -86,6 +86,29 @@ test('replaceAdminPasswordHash swaps only the hash it was given, keeping the res
     assert.ok(invalidations.includes('admin'));
     assert.equal(await store.replaceAdminPasswordHash('', '$argon2id$x'), false);
 });
+test('each additional Microsoft connection keeps its secret encrypted under its own key; removing the connection removes the secret', async () => {
+    await store.save({ providers: { microsoft: { connections: [
+        { id: 'sub', label: 'Subsidiary', logo: '', clientId: 'sub-id', clientSecret: 'sub-secret', tenantId: 'common' },
+        { id: 'two', label: 'Two', logo: '', clientId: 'two-id', clientSecret: 'two-secret', tenantId: 'common' },
+    ] } } });
+    let config = await store.load();
+    assert.equal(config.providers.microsoft.clientSecret, 'rotated', 'the primary is untouched');
+    assert.deepEqual(config.providers.microsoft.connections.map(c => [c.id, c.clientSecret, c.hasClientSecret]), [['sub', 'sub-secret', true], ['two', 'two-secret', true]]);
+    assert.equal(JSON.parse(await raw('oauth_microsoft_client_secret:sub'))._encrypted, 'config-v1');
+    assert.equal(crypto.decryptValue(await raw('oauth_microsoft_client_secret:sub')), 'sub-secret');
+    assert.ok(!(await raw('providers')).includes('sub-secret'), 'never in the metadata row');
+
+    // A blank secret keeps the stored one; a changed label is written; a dropped connection loses its secret row.
+    await store.save({ providers: { microsoft: { connections: [{ id: 'sub', label: 'Renamed', clientId: 'sub-id', clientSecret: '', tenantId: 'common' }] } } });
+    config = await store.load();
+    assert.deepEqual(config.providers.microsoft.connections.map(c => [c.id, c.label, c.clientSecret]), [['sub', 'Renamed', 'sub-secret']]);
+    assert.equal(await raw('oauth_microsoft_client_secret:two'), undefined);
+    assert.equal(await raw('oauth_microsoft_client_secret:sub') === undefined, false);
+    assert.ok(invalidations.includes('oauth_microsoft_client_secret:two'));
+    // A save that does not mention connections leaves them alone.
+    await store.save({ providers: { microsoft: { clientId: 'ms-renamed' } } });
+    assert.equal((await store.load()).providers.microsoft.connections.length, 1);
+});
 test('corrupt metadata or encrypted credentials fail without writing defaults or plaintext fallback', async () => {
     await pg.query('UPDATE config SET value=$1 WHERE key=$2', ['{bad', 'providers']);
     await assert.rejects(store.load());

@@ -21,6 +21,18 @@ export function newPickupId(cryptoApi: Crypto = window.crypto): string {
 }
 
 /**
+ * The login URL for one Microsoft button. `connectionId` names one of the
+ * additional Microsoft tenants; absent (or 'default') is the primary app.
+ */
+export function microsoftLoginUrl(base: string, connectionId: string | undefined, embedded: boolean): string {
+    const params = new URLSearchParams();
+    if (embedded) params.set('popup', '1');
+    if (connectionId && connectionId !== 'default') params.set('connection', connectionId);
+    const query = params.size > 0 ? `?${params.toString()}` : '';
+    return `${base}/auth/login/microsoft${query}`;
+}
+
+/**
  * The three SSO buttons. Outside an iframe they redirect; inside one they open
  * a popup and poll for the finished login. Hook order: useRef, useCallback,
  * useEffect (the unmount cleanup).
@@ -130,12 +142,10 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
         }
     };
 
-    const handleMicrosoftLogin = () => {
-        if (isEmbedded) {
-            openOAuthPopup(`${oauthBase}/auth/login/microsoft?popup=1`);
-        } else {
-            window.location.href = `${oauthBase}/auth/login/microsoft`;
-        }
+    const handleMicrosoftLogin = (connectionId?: string) => {
+        const url = microsoftLoginUrl(oauthBase, connectionId, isEmbedded);
+        if (isEmbedded) openOAuthPopup(url);
+        else window.location.href = url;
     };
 
     return { handleOAuthLogin, handleGoogleLogin, handleMicrosoftLogin };

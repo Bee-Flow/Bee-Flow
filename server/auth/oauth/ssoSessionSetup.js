@@ -111,6 +111,7 @@ async function writeOAuthSession({ req, provider, user, freshUser, tokenData, pe
     } else {
         delete req.session.microsoftIdentityVersion;
         delete req.session.microsoftLoginIdentity;
+        delete req.session.oauthConnectionId;
     }
     // Remember what the provider ACTUALLY granted, so a later token refresh
     // re-requests that set instead of a hardcoded list — a narrower refresh

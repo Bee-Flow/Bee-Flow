@@ -153,11 +153,11 @@ async function refreshGoogle(cred) {
 async function refreshMicrosoft(cred) {
     if (!cred?.refreshToken) throw reauthError('No Microsoft refresh token');
     const config = await loadConfig();
-    const providerConfig = config.providers?.microsoft || {};
-    if (!providerConfig.clientId || !providerConfig.clientSecret) {
-        throw new Error('Microsoft OAuth not configured');
-    }
-    const tenantId = providerConfig.tenantId || 'common';
+    // One vault credential per user, not per connection: the account's verified tenant picks the app (microsoftConnections.mts).
+    const account = cred.userId ? await require('../stores/userStore').getUser(cred.userId).catch((e) => fallback('automationAuth:refresh-account', e, null)) : null;
+    const providerConfig = require('./oauth/microsoftConnections.mts').microsoftCredentialsForTenant(config, account?.azureTenantId);
+    if (!providerConfig) throw new Error('Microsoft OAuth not configured');
+    const tenantId = providerConfig.tenantId;
     const tokenUrl = OAUTH_PROVIDERS.microsoft.tokenUrl(tenantId);
     const res = await fetch(tokenUrl, {
         method: 'POST',

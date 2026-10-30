@@ -6,6 +6,22 @@ import { settled } from '@/api/settled';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
+/** One additional Microsoft tenant: its own app registration and its own login button. */
+export interface MicrosoftConnection {
+    id: string;
+    label: string;
+    logo: string;
+    clientId: string;
+    tenantId: string;
+    clientSecretSet: boolean;
+}
+
+/** A client-side id for a connection that is not saved yet; the server keeps whatever id it gets. */
+export function newConnectionId(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** One provider as GET /auth/providers returns it; the secret itself never comes back. */
 export interface SsoProviderConfig {
     enabled: boolean;
@@ -15,6 +31,12 @@ export interface SsoProviderConfig {
     url?: string;
     /** Microsoft only: a directory GUID or common/organizations/consumers. */
     tenantId?: string;
+    /** Microsoft only: the login button's text; empty means "Sign in with Microsoft". */
+    label?: string;
+    /** Microsoft only: the login button's logo (data URL or https URL); empty means the Microsoft logo. */
+    logo?: string;
+    /** Microsoft only: the additional tenants. */
+    connections?: MicrosoftConnection[];
 }
 
 type SsoProviders = Record<SsoProviderId, SsoProviderConfig>;
@@ -31,6 +53,11 @@ export interface SsoProvidersState {
     providers: SsoProviders;
     secrets: SsoSecrets;
     setSecrets: Dispatch<SetStateAction<SsoSecrets>>;
+    /** A client secret typed for an additional Microsoft connection, by connection id. */
+    connectionSecrets: Record<string, string>;
+    setConnectionSecret: (connectionId: string, secret: string) => void;
+    /** Replace the additional Microsoft connections (an unsaved edit). */
+    setConnections: (connections: MicrosoftConnection[]) => void;
     loading: boolean;
     saving: Partial<Record<SsoProviderId, boolean>>;
     testing: Partial<Record<SsoProviderId, boolean>>;
@@ -46,7 +73,7 @@ export interface SsoProvidersState {
 const INITIAL_PROVIDERS: SsoProviders = {
     nextcloud: { enabled: false, url: '', clientId: '', clientSecretSet: false },
     google: { enabled: false, clientId: '', clientSecretSet: false },
-    microsoft: { enabled: false, clientId: '', clientSecretSet: false, tenantId: 'common' }
+    microsoft: { enabled: false, clientId: '', clientSecretSet: false, tenantId: 'common', label: '', logo: '', connections: [] }
 };
 
 /** The providers with the form's unsaved edits laid over them. */
@@ -59,8 +86,8 @@ function overlayEdits(base: SsoProviders, edits: Partial<Record<SsoProviderId, P
 }
 
 /** The PUT body for one provider: only its own fields, and the secret only when one was typed. */
-function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret: string): Record<string, string | undefined> {
-    const body: Record<string, string | undefined> = {};
+function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret: string, connectionSecrets: Record<string, string> = {}): Record<string, unknown> {
+    const body: Record<string, unknown> = {};
     if (provider === 'nextcloud') {
         body.url = config.url;
         body.clientId = config.clientId;
@@ -69,6 +96,12 @@ function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret
     } else if (provider === 'microsoft') {
         body.clientId = config.clientId;
         body.tenantId = config.tenantId;
+        body.label = config.label ?? '';
+        body.logo = config.logo ?? '';
+        body.connections = (config.connections ?? []).map(({ id, label, logo, clientId, tenantId }) => ({
+            id, label, logo, clientId, tenantId,
+            ...(connectionSecrets[id] ? { clientSecret: connectionSecrets[id] } : {}),
+        }));
     }
     if (secret) body.clientSecret = secret;
     return body;
@@ -81,6 +114,7 @@ export default function useSsoProviders(): SsoProvidersState {
     const [edits, setEdits] = useState<Partial<Record<SsoProviderId, Partial<SsoProviderConfig>>>>({});
     const providers = useMemo(() => overlayEdits(providersQuery.data ?? INITIAL_PROVIDERS, edits), [providersQuery.data, edits]);
     const [secrets, setSecrets] = useState<SsoSecrets>({ nextcloud: '', google: '', microsoft: '' });
+    const [connectionSecrets, setConnectionSecrets] = useState<Record<string, string>>({});
     const loading = providersQuery.isPending;
     const [saving, setSaving] = useState<Partial<Record<SsoProviderId, boolean>>>({});
     const [testing, setTesting] = useState<Partial<Record<SsoProviderId, boolean>>>({});
@@ -102,13 +136,14 @@ export default function useSsoProviders(): SsoProvidersState {
             const res = await settled(`${API_BASE}/auth/providers/${provider}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(providerBody(provider, providers[provider], secrets[provider]))
+                body: JSON.stringify(providerBody(provider, providers[provider], secrets[provider], connectionSecrets))
             });
 
             const data = res.ok ? await res.res.json() : res.body;
             if (res.ok) {
                 setMessage({ type: 'success', text: data.message });
                 setSecrets(prev => ({ ...prev, [provider]: '' }));
+                if (provider === 'microsoft') setConnectionSecrets({});
                 fetchProviders();
             } else {
                 setMessage({ type: 'error', text: data.error });
@@ -141,8 +176,16 @@ export default function useSsoProviders(): SsoProvidersState {
         setEdits(prev => ({ ...prev, [provider]: { ...prev[provider], [field]: value } }));
     };
 
+    const setConnectionSecret = (connectionId: string, secret: string) => {
+        setConnectionSecrets(prev => ({ ...prev, [connectionId]: secret }));
+    };
+    const setConnections = (connections: MicrosoftConnection[]) => {
+        setEdits(prev => ({ ...prev, microsoft: { ...prev.microsoft, connections } }));
+    };
+
     return {
-        providers, secrets, setSecrets, loading, saving, testing, message, setMessage,
+        providers, secrets, setSecrets, connectionSecrets, setConnectionSecret, setConnections,
+        loading, saving, testing, message, setMessage,
         redirectBase: serverUrl || API_BASE,
         handleSaveProvider, handleTestProvider, updateProviderField,
     };

@@ -123,8 +123,8 @@ const SSOConfigPanel = () => {
                 {activeTab === 'nextcloud' && <NextcloudSsoTab sso={sso} />}
                 {activeTab === 'google' && <GoogleSsoTab sso={sso} />}
                 {activeTab === 'microsoft' && <MicrosoftSsoTab sso={sso} />}
+                {activeTab === 'microsoft' && <MicrosoftIdentityPanel />}
             </div>
-            {activeTab === 'microsoft' && <MicrosoftIdentityPanel />}
         </div>
     );
 };

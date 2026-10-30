@@ -932,7 +932,7 @@
   },
   "auth/oauth/ssoConfigRoutes.js": {
     "complexity": {
-      "count": 4
+      "count": 2
     }
   },
   "auth/oauth/ssoSessionSetup.js": {

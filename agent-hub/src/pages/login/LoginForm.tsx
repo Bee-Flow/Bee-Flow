@@ -3,6 +3,7 @@ import { User, Lock, LogIn, Loader2, Zap, UserPlus, ChevronDown, Eye, EyeOff } f
 import type { ChangeEventHandler, FormEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
+import type { MicrosoftLogin } from './useAuthSettings';
 
 interface PasswordInputProps {
     value: string;
@@ -28,10 +29,12 @@ interface LoginFormProps {
     handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
     handleOAuthLogin: () => void;
     handleGoogleLogin: () => void;
-    handleMicrosoftLogin: () => void;
+    handleMicrosoftLogin: (connectionId?: string) => void;
     isOAuthConfigured: boolean | undefined;
     isGoogleConfigured: boolean | undefined;
     isMicrosoftConfigured: boolean | undefined;
+    /** The Microsoft buttons, one per connection; absent means one default button when configured. */
+    microsoftLogins?: MicrosoftLogin[];
     setSignupMode: ((signupMode: boolean) => void) | null;
     setError: (message: string) => void;
     onForgotPassword?: () => void;
@@ -74,6 +77,27 @@ const MicrosoftIcon = () => (
         <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
     </svg>
 );
+
+/** The Microsoft buttons: the primary app and every additional tenant, each with its own text and logo. */
+const MicrosoftButtons = ({ logins, onClick, disabled, dedicated }: { logins: MicrosoftLogin[]; onClick: (id: string) => void; disabled: boolean; dedicated?: boolean }) => {
+    const { t } = useTranslation();
+    const sizing = dedicated ? 'py-3.5 font-semibold gap-3 shadow-md text-base' : 'py-2.5 font-medium gap-2.5 shadow-sm';
+    return (
+        <>
+            {logins.map((login) => {
+                const label = login.label || t('login.sign_in_with_microsoft');
+                return (
+                    <button key={login.id} onClick={() => onClick(login.id)} disabled={disabled}
+                        data-testid={login.id === 'default' ? 'sso-microsoft-button' : `sso-microsoft-button-${login.id}`}
+                        aria-label={label}
+                        className={`w-full ${sizing} bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl transition-all flex items-center justify-center disabled:opacity-50`}>
+                        {login.logo ? <img src={login.logo} alt="" className="w-5 h-5 object-contain" /> : <MicrosoftIcon />} {label}
+                    </button>
+                );
+            })}
+        </>
+    );
+};
 
 const PasswordInput = ({ value, onChange, inputClass, placeholder = "••••••••", label = "Password", labelClass, setupMode, minLength, id = "password" }: PasswordInputProps) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -128,7 +152,7 @@ const LoginForm = ({
     confirmPassword, setConfirmPassword,
     setupMode, isLoading, handleSubmit,
     handleOAuthLogin, handleGoogleLogin, handleMicrosoftLogin,
-    isOAuthConfigured, isGoogleConfigured, isMicrosoftConfigured,
+    isOAuthConfigured, isGoogleConfigured, isMicrosoftConfigured, microsoftLogins,
     setSignupMode, setError, onForgotPassword,
     allowSignups = true, allowPasswordLogin = true,
     inputClass, labelClass
@@ -152,14 +176,21 @@ const LoginForm = ({
         handleGoogleLogin();
     };
 
-    const handleMicrosoftWithCookie = () => {
+    const handleMicrosoftWithCookie = (connectionId: string) => {
         setCookie('bf_preferred_login', 'microsoft');
-        handleMicrosoftLogin();
+        handleMicrosoftLogin(connectionId);
     };
+
+    // One button per Microsoft connection. A server without the list (or a
+    // test that only sets the flag) gets the one default button.
+    const microsoftButtons: MicrosoftLogin[] = microsoftLogins && microsoftLogins.length > 0
+        ? microsoftLogins
+        : (isMicrosoftConfigured ? [{ id: 'default' }] : []);
+    const hasMicrosoft = microsoftButtons.length > 0;
 
     const isPreferredAvailable =
         (preferredMethod === 'google' && isGoogleConfigured) ||
-        (preferredMethod === 'microsoft' && isMicrosoftConfigured) ||
+        (preferredMethod === 'microsoft' && hasMicrosoft) ||
         (preferredMethod === 'nextcloud' && isOAuthConfigured) ||
         (preferredMethod === 'password' && allowPasswordLogin);
 
@@ -167,7 +198,7 @@ const LoginForm = ({
     const hasOtherMethods =
         (preferredMethod !== 'password' && allowPasswordLogin) ||
         (preferredMethod !== 'google' && isGoogleConfigured) ||
-        (preferredMethod !== 'microsoft' && isMicrosoftConfigured) ||
+        (preferredMethod !== 'microsoft' && hasMicrosoft) ||
         (preferredMethod !== 'nextcloud' && isOAuthConfigured);
 
     const showDedicated = !setupMode && preferredMethod && isPreferredAvailable && !showAllMethods;
@@ -218,11 +249,7 @@ const LoginForm = ({
                 )}
 
                 {preferredMethod === 'microsoft' && (
-                    <button onClick={handleMicrosoftWithCookie} disabled={isLoading}
-                        data-testid="sso-microsoft-button"
-                        className="w-full py-3.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-md text-base">
-                        <MicrosoftIcon /> {t('login.sign_in_with_microsoft')}
-                    </button>
+                    <MicrosoftButtons logins={microsoftButtons} onClick={handleMicrosoftWithCookie} disabled={isLoading} dedicated />
                 )}
 
                 {hasOtherMethods && (
@@ -329,13 +356,8 @@ const LoginForm = ({
                             </button>
                         )}
 
-                        {isMicrosoftConfigured && (
-                            <button onClick={handleMicrosoftWithCookie} disabled={isLoading}
-                                data-testid="sso-microsoft-button"
-                                aria-label={t('login.sign_in_with_microsoft')}
-                                className="w-full py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-medium transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 shadow-sm">
-                                <MicrosoftIcon /> {t('login.sign_in_with_microsoft')}
-                            </button>
+                        {hasMicrosoft && (
+                            <MicrosoftButtons logins={microsoftButtons} onClick={handleMicrosoftWithCookie} disabled={isLoading} />
                         )}
 
                         {allowSignups && setSignupMode && (
