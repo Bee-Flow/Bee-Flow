@@ -113,8 +113,8 @@ function LogoField({ value, onChange, inputId }: LogoFieldProps) {
         <div>
             <span className={LABEL}>{t('admin_security.sso_ms_logo', 'Logo')}</span>
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg border border-[var(--border-default)] bg-white flex items-center justify-center overflow-hidden">
-                    {value ? <img src={value} alt="" className="w-6 h-6 object-contain" /> : <MicrosoftLogo />}
+                <div className="h-10 min-w-10 max-w-[160px] px-2 rounded-lg border border-[var(--border-default)] bg-white flex items-center justify-center overflow-hidden">
+                    {value ? <img src={value} alt="" className="h-7 w-auto max-w-[140px] object-contain" /> : <MicrosoftLogo />}
                 </div>
                 <input ref={fileRef} id={inputId} type="file" accept={LOGO_TYPES.join(',')} onChange={onFile} className="sr-only" />
                 <button type="button" onClick={() => fileRef.current?.click()}
@@ -161,7 +161,7 @@ function LoginButtonFields({ label, logo, onLabel, onLogo, idPrefix }: ButtonFie
             <div className="lg:col-span-2">
                 <span className={LABEL}>{t('admin_security.sso_ms_preview', 'Preview')}</span>
                 <div className="max-w-sm py-2.5 px-4 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium flex items-center justify-center gap-2.5 shadow-sm" aria-hidden="true">
-                    {logo ? <img src={logo} alt="" className="w-5 h-5 object-contain" /> : <MicrosoftLogo />}
+                    {logo ? <img src={logo} alt="" className="h-7 w-auto max-w-[120px] object-contain" /> : <MicrosoftLogo />}
                     {label || t('admin_security.sso_ms_button_label_ph', 'Sign in with Microsoft')}
                 </div>
             </div>
