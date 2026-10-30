@@ -94,9 +94,12 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
     const handleAddOrg = async () => {
         if (!orgData.name) return;
         try {
+            // POST /auth/organizations refuses unknown keys: the id is minted from
+            // the name on the server and the integrations come from the global default.
+            const { id: _id, enabledIntegrations: _integrations, ...body } = orgData;
             const res = await settled(`${API_BASE}/auth/organizations`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orgData),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Organization created successfully' });
@@ -111,9 +114,11 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleUpdateOrg = async () => {
         try {
-            const res = await settled(`${API_BASE}/auth/organizations/${orgData.id}`, {
+            // The id travels in the URL; the update route refuses it as a body key.
+            const { id, ...body } = orgData;
+            const res = await settled(`${API_BASE}/auth/organizations/${id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orgData),
+                body: JSON.stringify(body),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Organization updated successfully' });
