@@ -189,7 +189,9 @@ test('ensureDurableSecret short-circuits (no configStore call) when the env secr
 });
 
 test('ensureDurableSecret never throws when configStore is unreachable, and the request path keeps minting', async () => {
-    await withEnv({ NODE_ENV: 'production', PUBLIC_SHARE_TOKEN_SECRET: '' }, async () => {
+    // No retry delays: the bootstrap gives up after its first attempt here,
+    // where in production it would retry on a backoff for minutes.
+    await withEnv({ NODE_ENV: 'production', PUBLIC_SHARE_TOKEN_SECRET: '', SIGNING_SECRET_RETRY_DELAYS_MS: '' }, async () => {
         await withConfigStore({
             setSecretIfAbsent: async () => { throw new Error('no database'); },
         }, async () => {

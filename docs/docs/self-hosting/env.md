@@ -153,6 +153,29 @@ The container image, `ghcr.io/bee-flow/webpage-runner`, is **built outside this 
 
 If the image can neither be found nor pulled (for example on an air-gapped host), the preview does not start: the API answers `503 full_tier_unavailable` and the server log says `webpage-runner image unavailable. Set WEBPAGE_RUNNER_IMAGE.` Pull or load the image on the host first, then set `WEBPAGE_RUNNER_IMAGE`.
 
+## In-process CPU models
+
+Three models run inside the server process when nothing else is configured for
+their task: the `bge-reranker-base` cross-encoder (KB search and web search
+reranking), the `multilingual-e5-small` embedder and `whisper-base`
+(transcription). Loading one builds an ONNX session on the main thread, which
+blocks the server for seconds on a small host, so the server warms them
+`CPU_PIPELINES_PREWARM_DELAY_MS` (default 30000) after boot, one at a time,
+and only a model that the current configuration routes to **and** that served
+a request in the last `CPU_PIPELINES_PREWARM_DAYS` days (default 30). A model
+that is not warmed loads on its first request, at the cost of one slow call.
+
+| Variable | Values | Effect |
+|---|---|---|
+| `CPU_PIPELINES_PREWARM` | `auto` (default), `all`, `false` | `all` warms every model the configuration routes to, used or not; `false` warms none |
+| `CPU_PIPELINES_PREWARM_DELAY_MS` | ms | wait after boot before the first warmup |
+| `CPU_PIPELINES_PREWARM_DAYS` | days | how recent a model's last request must be |
+| `LOCAL_WHISPER_PREWARM` | `false` | never warm Whisper, whatever the setting above |
+
+An install with Azure (or any provider) embeddings, a Cohere reranker or
+`cpu_reranker_enabled = false` in the admin never loads the matching CPU model
+at boot; an install that never transcribes never loads Whisper.
+
 ## Everything else
 
 Model-provider keys, OAuth client credentials, SMTP, licensing, retention

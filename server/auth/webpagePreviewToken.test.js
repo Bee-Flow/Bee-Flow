@@ -49,7 +49,9 @@ test('ensureDurableSecret short-circuits (no configStore call) when the env secr
 });
 
 test('ensureDurableSecret never throws even when configStore is unreachable', async () => {
-    await withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: '' }, async () => {
+    // No retry delays: the bootstrap gives up after its first attempt here,
+    // where in production it would retry on a backoff for minutes.
+    await withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: '', SIGNING_SECRET_RETRY_DELAYS_MS: '' }, async () => {
         const mod = freshModule();
         // No DB in this test environment — must resolve to a boolean, not reject.
         // This exercises the exact failure mode that previously hard-crashed the

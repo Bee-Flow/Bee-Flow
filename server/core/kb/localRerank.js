@@ -52,6 +52,39 @@ function applyRerank(rows, ranked) {
 }
 
 /**
+ * The admin's reranker settings, read once per search: the Azure Cohere
+ * endpoint (config or env), the GPU sidecar URL and the CPU opt-out. Also what
+ * the boot warmup reads, through the same function, so the two cannot drift.
+ *
+ * @param {{ getConfig: (key: string) => Promise<any>, getSecret: (key: string) => Promise<any> }} store
+ * @returns {Promise<{ azureEndpoint: string | undefined, azureKey: string | undefined, azureModel: string, localUrl: string | undefined, cpuEnabled: boolean }>}
+ */
+async function readRerankTierInputs(store) {
+    return {
+        azureEndpoint: await store.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT,
+        azureKey: await store.getSecret('azure_reranker_key') || process.env.AZURE_RERANKER_KEY,
+        azureModel: await store.getConfig('azure_reranker_model') || process.env.AZURE_RERANKER_MODEL || 'Cohere-rerank-v4.0-fast',
+        localUrl: process.env.RERANKER_URL,
+        // Admin opt-in for the CPU cross-encoder. Default true so fresh installs
+        // get reranking out of the box; admins who want only Azure or only GPU
+        // can disable it via `cpu_reranker_enabled = false`.
+        cpuEnabled: (await store.getConfig('cpu_reranker_enabled')) !== false,
+    };
+}
+
+/**
+ * Would a KB search reach the CPU cross-encoder with these settings? Mirrors
+ * the chain in rerankCandidates (llama.cpp > Azure Cohere > CPU): a tier
+ * ahead of it that is configured takes the search, whether or not it answers.
+ * For the boot warmup: a model no search can reach is not worth loading.
+ *
+ * @param {{ llamaCppEnabled: boolean, azureEndpoint?: string, azureKey?: string, cpuEnabled: boolean }} inputs
+ */
+function cpuTierConfigured({ llamaCppEnabled, azureEndpoint, azureKey, cpuEnabled }) {
+    return !llamaCppEnabled && !(azureEndpoint && azureKey) && cpuEnabled;
+}
+
+/**
  * Rerank the fused candidates of a search. Holds no DB connection: the
  * caller released its own before calling.
  *
@@ -68,14 +101,13 @@ async function rerankCandidates(candidates, query, topK) {
     // local GPU vLLM sidecar (`RERANKER_URL`) > RRF passthrough.
     // CPU branch sits ahead of the GPU sidecar so users without a GPU box
     // get a working reranker by default; existing GPU users are unaffected.
-    const azureRerankerEndpoint = await configStore.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT;
-    const azureRerankerKey = await configStore.getSecret('azure_reranker_key') || process.env.AZURE_RERANKER_KEY;
-    const azureRerankerModel = await configStore.getConfig('azure_reranker_model') || process.env.AZURE_RERANKER_MODEL || 'Cohere-rerank-v4.0-fast';
-    const localRerankerUrl = process.env.RERANKER_URL;
-    // Admin opt-in for the CPU cross-encoder. Default true so fresh installs
-    // get reranking out of the box; admins who want only Azure or only GPU
-    // can disable it via `cpu_reranker_enabled = false`.
-    const cpuRerankerEnabled = (await configStore.getConfig('cpu_reranker_enabled')) !== false;
+    const {
+        azureEndpoint: azureRerankerEndpoint,
+        azureKey: azureRerankerKey,
+        azureModel: azureRerankerModel,
+        localUrl: localRerankerUrl,
+        cpuEnabled: cpuRerankerEnabled,
+    } = await readRerankTierInputs(configStore);
     // Opt-in (config `llamacpp_rerank_enabled`), so no existing install changes
     // behaviour. When an admin has turned it on they have a local GPU
     // cross-encoder that is both better and cheaper than the alternatives, so it
@@ -225,6 +257,6 @@ async function rerankCandidates(candidates, query, topK) {
     return results;
 }
 
-module.exports = { applyRerank, rerankCandidates, wire };
+module.exports = { applyRerank, rerankCandidates, wire, readRerankTierInputs, cpuTierConfigured };
 
 /** @typedef {typeof globalThis & { _azureRerankerPath?: string | null }} AzureRerankerGlobal */

@@ -37,6 +37,7 @@ const path = require('path');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { markUsed } = require('../llm/cpuPipelineUsage');
 
 const LOCAL_WHISPER_MODEL_ID = process.env.LOCAL_WHISPER_MODEL || 'Xenova/whisper-base';
 const LOCAL_WHISPER_DTYPE    = process.env.LOCAL_WHISPER_DTYPE   || 'q4';
@@ -254,6 +255,7 @@ async function transcribeLocally(audioPath, options = {}) {
         log.warn('[LocalWhisper] inference failed:', /** @type {Error} */ (err).message);
         return null;
     }
+    markUsed('whisper');
 
     const text = (raw?.text || '').trim();
     const chunks = Array.isArray(raw?.chunks) ? raw.chunks : [];
@@ -284,11 +286,13 @@ async function transcribeLocally(audioPath, options = {}) {
 }
 
 /**
- * Background pre-warm; runs once at server boot so the first user-upload
- * doesn't pay the model-download latency. Safe to call unconditionally.
+ * Background pre-warm so the first upload doesn't pay the model-download
+ * latency. Never throws. The session build blocks the main thread for seconds
+ * on a small host, so boot/cpuPipelineWarmup.js decides when, and whether, to
+ * call it; the returned promise settles when the model is loaded (or failed).
  */
 function warmLocalWhisper() {
-    getPipeline().catch((e) => bestEffort('core/voice/localWhisper:warmLocalWhisper', e));
+    return getPipeline().then(() => undefined, (e) => bestEffort('core/voice/localWhisper:warmLocalWhisper', e));
 }
 
 module.exports = {

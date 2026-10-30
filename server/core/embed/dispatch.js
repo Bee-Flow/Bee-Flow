@@ -162,6 +162,41 @@ function applyModelPrefix(texts, modelId, kind) {
  *   that must not mix models: re-embedding the stored vectors after a model
  *   switch (core/kb/embeddingMigration.js).
  */
+/**
+ * A self-hosted runtime (Ollama, vLLM, llama.cpp, …) normally has no API key
+ * at all, so requiring one here silently skipped every local embedding
+ * provider and fell through to the CPU embedder. Local targets are accepted
+ * keyless; everything else still needs a key.
+ * @param {{ endpoint?: string | null, modelId?: string | null, apiKey?: string | null, providerType?: string | null }} target
+ */
+function isTargetUsable(target) {
+    const { isLocalProviderType } = require('../providers/localModels');
+    return !!target.endpoint && !!target.modelId
+        && (!!target.apiKey || isLocalProviderType(target.providerType));
+}
+
+async function readLegacyAzureEmbedConfig() {
+    return {
+        endpoint: await configStore.getConfig('azure_openai_embedding_endpoint'),
+        key: await configStore.getSecret('azure_openai_embedding_key'),
+        model: await configStore.getConfig('azure_openai_embedding_model') || 'text-embedding-3-small',
+    };
+}
+
+/**
+ * Would an embedding call end up at the in-process CPU embedder with the
+ * current settings, i.e. is neither a global provider nor the legacy Azure
+ * config usable? The same two reads tiers (1) and (2) of dispatchEmbedTexts
+ * make. For the boot warmup: a model no call can reach is not worth loading.
+ */
+async function cpuEmbedderConfigured() {
+    const { resolveEmbedTarget } = require('./resolveTarget');
+    const target = await resolveEmbedTarget();
+    if (target && isTargetUsable(target)) return false;
+    const legacy = await readLegacyAzureEmbedConfig();
+    return !(legacy.endpoint && legacy.key);
+}
+
 async function dispatchEmbedTexts(texts, options = {}) {
     if (!Array.isArray(texts) || texts.length === 0) return { vectors: [], source: null, model: null };
     const kind = options.kind === 'query' ? 'query' : 'passage';
@@ -175,14 +210,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
     try {
         const { resolveEmbedTarget } = require('./resolveTarget');
         const target = await resolveEmbedTarget();
-        // A self-hosted runtime (Ollama, vLLM, llama.cpp, …) normally has no
-        // API key at all, so requiring one here silently skipped every local
-        // embedding provider and fell through to the CPU embedder. Local
-        // targets are accepted keyless; everything else still needs a key.
-        const { isLocalProviderType } = require('../providers/localModels');
-        const targetUsable = !!target?.endpoint && !!target?.modelId
-            && (!!target.apiKey || isLocalProviderType(target.providerType));
-        if (targetUsable) {
+        if (target && isTargetUsable(target)) {
             const root = target.endpoint.replace(/\/+$/, '');
             const isAzure = target.providerType === 'azure';
             // Azure v1 GA: `<origin>/openai/v1/embeddings`, no api-version,
@@ -221,9 +249,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
     if (strict) throw new Error('No usable embedding provider is configured');
 
     // (2) Legacy azure_openai_embedding_* config
-    const azureEndpoint = await configStore.getConfig('azure_openai_embedding_endpoint');
-    const azureKey = await configStore.getSecret('azure_openai_embedding_key');
-    const azureModel = await configStore.getConfig('azure_openai_embedding_model') || 'text-embedding-3-small';
+    const { endpoint: azureEndpoint, key: azureKey, model: azureModel } = await readLegacyAzureEmbedConfig();
     if (azureEndpoint && azureKey) {
         try {
             const out = await azureEmbed(texts, azureEndpoint, azureKey, azureModel);
@@ -261,6 +287,7 @@ module.exports = {
     dispatchEmbedTexts: (texts, options) => outsideProbe(() => dispatchEmbedTexts(texts, options)),
     azureEmbed: (texts, endpoint, apiKey, model) => outsideProbe(() => azureEmbed(texts, endpoint, apiKey, model)),
     applyModelPrefix,
+    cpuEmbedderConfigured,
     // Tests replace the backoff wait so a retry costs no wall-clock time.
     _setSleepForTests: (fn) => { sleep = fn; },
 };
