@@ -9,6 +9,10 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 
 ## [Unreleased]
 
+### Fixed
+- **A Nextcloud that is still starting when the connector boots is no longer taken for one with a self-signed certificate.** The boot-time certificate check treated every failed connection (refused, no DNS, timeout, a plain-HTTP port) as an untrusted certificate, which put an install with a valid public certificate in the relaxed, pinned posture and, since 1.6.6, recorded a certificate pin under that wrong decision. The check now tells a certificate problem from a connection problem, retries an unreachable Nextcloud for up to 30 seconds (`BEEFLOW_NC_TLS_PROBE_BUDGET_MS`), and keeps strict verification when it stays unreachable. A certificate the public roots trust is never pinned, also when the relaxed posture is active, and supersedes an older self-signed pin. A peer that closed mid-handshake used to hang the boot check.
+- **Many requests of one person at once no longer each ask Nextcloud who they are.** When the cached account of a user had just expired, every request of a page load made its own account lookup, and on installs that reach the connector through Nextcloud's PHP proxy those lookups could wait behind the very requests that caused them until they timed out, which showed the sign-in screen. Concurrent lookups for one account now share a single call, an expired account is used at once and refreshed behind the request, and a throttled (429) or timed-out (408) answer from Nextcloud is retried like a network error instead of being taken as a verdict on the account.
+
 ## [1.6.7] - 2026-10-28
 
 ### Fixed

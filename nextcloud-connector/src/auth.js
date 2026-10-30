@@ -144,6 +144,20 @@ const USER_CACHE_TTL_MS = 60_000;
 const USER_STALE_TTL_MS = 24 * 60 * 60 * 1000;
 const USER_LOOKUP_RETRY_DELAY_MS = 250;
 
+// One lookup per uid at a time (#454). A page load fires ten to thirty
+// requests for the same user at once; when the entry has just expired every
+// one of them used to make its own OCS call. On an install that reaches the
+// connector through Nextcloud's PHP proxy each browser request already holds
+// a PHP worker while it waits here, and each of these calls needs another
+// one, so a burst could occupy the whole pool and time every lookup out.
+/** @type {Map<string, Promise<NextcloudUser>>} */
+const _lookupsInFlight = new Map();
+// Nextcloud answers that are not a verdict on the user: a throttle or a
+// request timeout is retried like a network error, and the stale user may
+// stand in. Every other 4xx (unknown user, refused secret) stands.
+const TRANSIENT_4XX = /HTTP 4(08|29)\b/;
+let _lastRefreshWarnAt = 0;
+
 /**
  * One OCS call for the user, no caching.
  * @param {string} uid
@@ -184,6 +198,77 @@ async function lookupNextcloudUser(uid) {
 }
 
 /**
+ * @param {unknown} err
+ * @returns {boolean} true when Nextcloud answered with a verdict on the user (a 4xx other than a throttle or timeout)
+ */
+function isVerdict(err) {
+    const msg = errMessage(err);
+    return /HTTP 4\d\d/.test(msg) && !TRANSIENT_4XX.test(msg);
+}
+
+/**
+ * The lookup with its one retry, coalesced per uid. Resolves with the user
+ * and stores it; rejects with Nextcloud's verdict or the last transient error.
+ * @param {string} uid
+ * @returns {Promise<NextcloudUser>}
+ */
+function lookupCoalesced(uid) {
+    const running = _lookupsInFlight.get(uid);
+    if (running) return running;
+    const p = (async () => {
+        /** @type {NextcloudUser} */
+        let user;
+        try {
+            user = await lookupNextcloudUser(uid);
+        } catch (first) {
+            // A 4xx is Nextcloud's verdict (unknown user, refused secret) and
+            // stands; a timeout, a reset, a throttle or a 5xx gets one more try.
+            if (isVerdict(first)) throw first;
+            await new Promise((resolve) => setTimeout(resolve, USER_LOOKUP_RETRY_DELAY_MS));
+            user = await lookupNextcloudUser(uid);
+        }
+        const now = Date.now();
+        // Re-insert so the Map keeps insertion order as recency: the eviction
+        // below then drops the least recently refreshed user, not the first
+        // one ever seen.
+        _userCache.delete(uid);
+        _userCache.set(uid, { user, expiresAt: now + USER_CACHE_TTL_MS, staleUntil: now + USER_STALE_TTL_MS });
+        // Bound the cache so churn on a busy NC instance can't leak memory.
+        if (_userCache.size > 1000) {
+            const oldest = _userCache.keys().next().value;
+            if (oldest) _userCache.delete(oldest);
+        }
+        return user;
+    })().finally(() => _lookupsInFlight.delete(uid));
+    _lookupsInFlight.set(uid, p);
+    return p;
+}
+
+/**
+ * Refresh an expired entry without holding the request. A verdict drops the
+ * entry so the next request asks Nextcloud and gets that verdict itself; a
+ * transient failure keeps the stale user for up to a day.
+ * @param {string} uid
+ */
+function refreshInBackground(uid) {
+    if (_lookupsInFlight.has(uid)) return;
+    lookupCoalesced(uid).catch((err) => {
+        if (isVerdict(err)) {
+            _userCache.delete(uid);
+            return;
+        }
+        const now = Date.now();
+        if (now - _lastRefreshWarnAt < 60_000) return;
+        _lastRefreshWarnAt = now;
+        log.warn(`[Auth] Refreshing the Nextcloud user for ${log.ref(uid)} failed twice (${errMessage(err)}); the user from the last lookup stands in for up to a day`);
+    });
+}
+
+/**
+ * The user for a request. A fresh entry answers at once; an expired one
+ * answers at once too and is refreshed behind the request (the embedded app
+ * used to show its sign-in screen whenever the refresh of a busy user hit a
+ * blip); only a uid this process has never resolved waits for Nextcloud.
  * @param {string} uid
  * @returns {Promise<NextcloudUser>}
  */
@@ -191,34 +276,19 @@ async function fetchNextcloudUser(uid) {
     const now = Date.now();
     const cached = _userCache.get(uid);
     if (cached && cached.expiresAt > now) return cached.user;
+    if (cached && cached.staleUntil > now) {
+        refreshInBackground(uid);
+        return cached.user;
+    }
+    return lookupCoalesced(uid);
+}
 
-    /** @type {NextcloudUser} */
-    let user;
-    try {
-        user = await lookupNextcloudUser(uid);
-    } catch (first) {
-        // A 4xx is Nextcloud's verdict (unknown user, refused secret) and
-        // stands; a timeout, a reset or a 5xx gets one more try, and if that
-        // fails too the user the last lookup returned stands in.
-        if (/HTTP 4\d\d/.test(errMessage(first))) throw first;
-        await new Promise((resolve) => setTimeout(resolve, USER_LOOKUP_RETRY_DELAY_MS));
-        try {
-            user = await lookupNextcloudUser(uid);
-        } catch (second) {
-            if (cached && cached.staleUntil > now) {
-                log.warn(`[Auth] User lookup for ${log.ref(uid)} failed twice (${errMessage(second)}); using the user from ${Math.round((now - (cached.expiresAt - USER_CACHE_TTL_MS)) / 1000)} s ago`);
-                return cached.user;
-            }
-            throw second;
-        }
-    }
-    _userCache.set(uid, { user, expiresAt: now + USER_CACHE_TTL_MS, staleUntil: now + USER_STALE_TTL_MS });
-    // Bound the cache so churn on a busy NC instance can't leak memory.
-    if (_userCache.size > 1000) {
-        const oldest = _userCache.keys().next().value;
-        if (oldest) _userCache.delete(oldest);
-    }
-    return user;
+/**
+ * Test hook: settle every lookup in flight (the background refreshes included).
+ * @returns {Promise<void>}
+ */
+async function _settleLookupsForTests() {
+    await Promise.allSettled([..._lookupsInFlight.values()]);
 }
 
 /**
@@ -393,7 +463,8 @@ function appApiAuthMiddleware(req, res, next) {
 
 module.exports = {
     appApiAuthMiddleware,
-    _resetUserCacheForTests: () => _userCache.clear(),
+    _resetUserCacheForTests: () => { _userCache.clear(); _lookupsInFlight.clear(); },
+    _settleLookupsForTests,
     isDocumentNavigation,
     decodeAuthHeader,
     secretMatches,
