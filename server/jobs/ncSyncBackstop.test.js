@@ -42,6 +42,7 @@ let healthy = new Set();
 let syncCalls = [];
 let logs = [];
 let listThrows = false;
+let failWith404 = false;
 const rows = new Map(); // `${subject}|${code}` -> problem row
 
 // In-memory stand-in for orgHealthStore: the upsert bumps last_seen_at, a
@@ -79,11 +80,17 @@ const memStore = {
 
 const ncUserGroupSync = {
     NC_SYNC_FAILED,
+    APP_REMOVED: 'connector.app_removed',
+    KEY_DIVERGENCE: 'connector.key_divergence',
     async runFullSync(org) {
         syncCalls.push(org.id);
+        if (!healthy.has(org.id) && failWith404) {
+            await orgHealth.problem('connector.app_removed', { orgId: org.id, meta: { stage: 'list_users', reason: 'http_404', httpStatus: 404 }, source: 'ncSync' });
+            return { error: 'NC proxy /nc/ocs/v2.php/apps/app_api/api/v1/users?format=json HTTP 404' };
+        }
         if (!healthy.has(org.id)) {
-            await orgHealth.problem(NC_SYNC_FAILED, { orgId: org.id, meta: { stage: 'list_users', reason: 'http_401', httpStatus: 401 }, source: 'ncSync' });
-            return { error: 'NC proxy /nc/ocs/v2.php/apps/app_api/api/v1/users?format=json HTTP 401' };
+            await orgHealth.problem(NC_SYNC_FAILED, { orgId: org.id, meta: { stage: 'list_users', reason: 'http_503', httpStatus: 503 }, source: 'ncSync' });
+            return { error: 'NC proxy /nc/ocs/v2.php/apps/app_api/api/v1/users?format=json HTTP 503' };
         }
         await orgHealth.resolve(org.id, [NC_SYNC_FAILED]);
         return { created: 0, deactivated: 0, groupsCreated: 0, errors: [] };
@@ -102,6 +109,7 @@ test.beforeEach(() => {
     syncCalls = [];
     logs = [];
     listThrows = false;
+    failWith404 = false;
     rows.clear();
     orgHealth._resetThrottles();
     orgHealth._setStore(memStore);
@@ -134,7 +142,7 @@ test('a failure opens the problem, warns once, and the next tick skips the org',
     await tickAt(T0);
     assert.deepEqual(syncCalls, ['org-a']);
     assert.equal(at('warn').length, 1);
-    assert.match(at('warn')[0].msg, /org=org-a .*HTTP 401.*backing off 24h/);
+    assert.match(at('warn')[0].msg, /org=org-a .*HTTP 503.*backing off 24h/);
     const open = await memStore.listProblems({ code: NC_SYNC_FAILED });
     assert.equal(open.length, 1, 'the failure must be visible on org health');
 
@@ -213,4 +221,17 @@ test('orgs synced in the last 30 minutes and manual-mode orgs are still left alo
     ];
     await tickAt(T0);
     assert.deepEqual(syncCalls, []);
+});
+
+test('a removed app (404) backs off 7 days instead of 24 hours', async () => {
+    failWith404 = true;
+    await tickAt(T0);
+    assert.equal(at('warn').length, 1);
+    assert.match(at('warn')[0].msg, /HTTP 404.*backing off 7d/);
+
+    await tickAt(T0 + 6 * 24 * HOUR);
+    assert.deepEqual(syncCalls, ['org-a'], 'well past 24h the org is still skipped');
+
+    await tickAt(T0 + 7 * 24 * HOUR);
+    assert.deepEqual(syncCalls, ['org-a', 'org-a'], 'after 7 days it is tried again');
 });

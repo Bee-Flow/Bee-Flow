@@ -11,7 +11,8 @@
  * Skips orgs that synced via webhook recently (last 30 min) — webhooks are
  * fresher and cheap to trust.
  *
- * Backs off for 24 hours after a failed sync. A broken connector (401/404 from
+ * Backs off for 24 hours after a failed sync (7 days when the failure is a
+ * removed app or a diverged tenant key, which retrying cannot fix). A broken connector (401/404 from
  * the NC proxy, or an unreachable instance) would be retried and logged at
  * warn on every tick, on every replica and after every restart, because
  * runFullSync returns before it writes ncLastSyncAt. The backoff reads the
@@ -30,6 +31,8 @@ const { bestEffort } = require('../utils/bestEffort');
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 const FRESH_WEBHOOK_WINDOW_MS = 30 * 60 * 1000;
 const FAILURE_BACKOFF_MS = 24 * 60 * 60 * 1000;
+// A removed app (404) or a diverged tenant key (401) does not heal by itself.
+const PERMANENT_FAILURE_BACKOFF_MS = 7 * 24 * 60 * 60 * 1000;
 
 const inFlight = new Set();
 let _interval = null;
@@ -58,6 +61,27 @@ function _setDeps(d) {
 }
 
 /**
+ * Per org: when the last failure was seen and which window it earns. Whichever
+ * of the three codes was seen last decides (a removed app or a diverged tenant
+ * key backs off longer than a transient failure).
+ */
+async function lastFailures(orgHealth, sync) {
+    const transient = await orgHealth.openProblemLastSeen(sync.NC_SYNC_FAILED);
+    const out = new Map([...transient].map(([id, at]) => [id, { at, backoffMs: FAILURE_BACKOFF_MS }]));
+    for (const code of [sync.APP_REMOVED, sync.KEY_DIVERGENCE]) {
+        for (const [id, at] of await orgHealth.openProblemLastSeen(code)) {
+            if (!out.has(id) || at >= out.get(id).at) out.set(id, { at, backoffMs: PERMANENT_FAILURE_BACKOFF_MS });
+        }
+    }
+    return out;
+}
+
+function backoffFor(map, orgId) {
+    const hit = map.get(orgId);
+    return { failedAt: hit ? hit.at : null, backoffMs: hit ? hit.backoffMs : FAILURE_BACKOFF_MS };
+}
+
+/**
  * One sweep. Resolves once every sync it started has settled (the timers
  * ignore the promise; tests await it).
  */
@@ -79,7 +103,7 @@ async function runOnce() {
 
     // One read per tick. Never rejects; an empty map means no backoff, which
     // degrades to the old retry-every-tick behaviour rather than to silence.
-    const lastFailureAt = await orgHealth.openProblemLastSeen(ncUserGroupSync.NC_SYNC_FAILED);
+    const lastFailureAt = await lastFailures(orgHealth, ncUserGroupSync);
 
     const started = [];
     for (const org of ncOrgs) {
@@ -88,9 +112,9 @@ async function runOnce() {
         const lastSync = org.nc_last_sync_at ? new Date(org.nc_last_sync_at).getTime() : 0;
         if (tick - lastSync < FRESH_WEBHOOK_WINDOW_MS) continue;
 
-        const failedAt = lastFailureAt.get(String(org.id));
-        if (failedAt != null && tick - failedAt < FAILURE_BACKOFF_MS) {
-            const retryAt = new Date(failedAt + FAILURE_BACKOFF_MS).toISOString();
+        const { failedAt, backoffMs } = backoffFor(lastFailureAt, String(org.id));
+        if (failedAt != null && tick - failedAt < backoffMs) {
+            const retryAt = new Date(failedAt + backoffMs).toISOString();
             log.debug(`[ncSyncBackstop] org=${org.id} skipped: last sync failed ${new Date(failedAt).toISOString()}, next attempt after ${retryAt}`);
             continue;
         }
@@ -99,7 +123,7 @@ async function runOnce() {
         started.push(ncUserGroupSync.runFullSync(org)
             .then(result => {
                 if (result?.error) {
-                    log.warn(`[ncSyncBackstop] org=${org.id} error=${result.error}; backing off 24h (manual sync still allowed)`);
+                    log.warn(`[ncSyncBackstop] org=${org.id} error=${result.error}; backing off ${result.error.includes('HTTP 404') || result.error.includes('HTTP 401') ? '7d' : '24h'} (manual sync still allowed)`);
                 } else if (result) {
                     const drift = (result.created || 0) + (result.deactivated || 0);
                     if (drift > 0) {
@@ -131,12 +155,12 @@ function stop() {
     }
 }
 
-module.exports = { start, stop, runOnce, FAILURE_BACKOFF_MS, _setDeps };
+module.exports = { start, stop, runOnce, FAILURE_BACKOFF_MS, PERMANENT_FAILURE_BACKOFF_MS, _setDeps };
 
 /**
  * @typedef {{
  *   userStore: Pick<typeof import('../stores/userStore'), 'getAllOrganizations'>,
- *   ncUserGroupSync: Pick<typeof import('../services/ncUserGroupSync'), 'runFullSync' | 'NC_SYNC_FAILED'>,
+ *   ncUserGroupSync: Pick<typeof import('../services/ncUserGroupSync'), 'runFullSync' | 'NC_SYNC_FAILED' | 'APP_REMOVED' | 'KEY_DIVERGENCE'>,
  *   orgHealth: Pick<typeof import('../services/orgHealth'), 'openProblemLastSeen'>,
  *   recordJobRun: typeof import('../telemetry/metrics').recordJobRun,
  *   log: typeof import('../telemetry/log'),
