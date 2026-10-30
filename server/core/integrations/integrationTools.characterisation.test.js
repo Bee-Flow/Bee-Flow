@@ -148,14 +148,16 @@ const ALL_SECRETS = {
     fireflies_api_key_user_u1: 'f', youtrack_url_user_u1: 'https://yt', youtrack_token_user_u1: 't',
     gamma_api_key_user_u1: 'ga', signrequest_subdomain_user_u1: 'sr', signrequest_token_user_u1: 'srt',
     afas_token_user_u1: 'a', afas_member_number_user_u1: '1', nmbrs_subdomain_user_u1: 'n', nmbrs_token_user_u1: 'nt',
-    vplan_api_key_user_u1: 'v', vplan_api_env_user_u1: 've', scaleway_billing_secret_key_user_u1: 'sc',
+    vplan_api_key_user_u1: 'v', vplan_api_env_user_u1: 've',
+    firebird_host_user_u1: 'fh', firebird_database_user_u1: 'fd', firebird_user_user_u1: 'fu', firebird_password_user_u1: 'fp',
+    scaleway_billing_secret_key_user_u1: 'sc',
     linkedin_access_token_user_u1: 'li', github_token_user_u1: 'gh', n8n_api_key_org_o1: 'nk',
 };
 const ALL_INTEGRATIONS = [
     'gmail', 'google-calendar', 'google-drive', 'google-docs', 'google-sheets', 'google-slides', 'google-contacts',
     'google-keep', 'google-groups', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts',
     'image-gen', 'video-gen', 'elevenlabs', 'agent-search', 'browser-fetch', 'fireflies', 'youtrack', 'gamma',
-    'signrequest', 'afas-profit', 'nmbrs', 'vplan', 'scaleway-billing', 'n8n', 'linkedin', 'withings',
+    'signrequest', 'afas-profit', 'nmbrs', 'vplan', 'firebird', 'scaleway-billing', 'n8n', 'linkedin', 'withings',
     'google-maps', 'github', 'transcription', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts',
     'nextcloud-deck', 'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes',
     'nextcloud-mail', 'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams',

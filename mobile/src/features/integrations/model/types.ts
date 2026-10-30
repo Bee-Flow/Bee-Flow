@@ -52,6 +52,7 @@ export interface UserSettings {
     hasAfasConfig: boolean;
     hasNmbrsConfig: boolean;
     hasVplanConfig: boolean;
+    hasFirebirdConfig: boolean;
     hasLinkedInConfig: boolean;
     hasWithingsConfig: boolean;
     hasN8nConfig: boolean;

@@ -317,6 +317,6 @@ describe('ConnectionsManager — share toggle and offered providers', () => {
         render(<ConnectionsManager />);
         await user.click(await screen.findByText('Add a connection'));
         const options = within(screen.getByRole('combobox', { name: 'Provider' })).getAllByRole('option');
-        expect(options.length).toBe(10);
+        expect(options.length).toBe(11);
     });
 });

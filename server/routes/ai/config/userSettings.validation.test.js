@@ -49,6 +49,14 @@ const MOCKS = {
         API_KEY_RE: /^[A-Za-z0-9._~-]{16,512}$/,
         API_ENV_RE: /^[A-Za-z0-9._~-]{4,128}$/,
     },
+    '../../../integrations/firebirdTools': {
+        HOST_RE: /^[A-Za-z0-9.-]{1,253}$|^\[[0-9A-Fa-f:]{2,45}\]$/,
+        PORT_RE: /^([1-9]\d{0,4})$/,
+        DATABASE_RE: /^[^\r\n\0]{1,512}$/,
+        USER_RE: /^[^\r\n\0:@/\\\s]{1,63}$/,
+        PASSWORD_RE: /^[^\r\n\0]{1,255}$/,
+        CHARSET_RE: /^[A-Za-z0-9_]{1,31}$/,
+    },
     '../../../learning/progressValidation': {
         sanitizeLearningProgress: (input) => (JSON.stringify(input).length > 1000
             ? { map: null, dropped: [], error: 'too_large' }
@@ -79,7 +87,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /config[\\/]userSettings\.js$/.test(parent.filename)
+    if (parent && /config[\\/](userSettings|firebirdFields)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -247,4 +255,41 @@ test('changing or removing the NMBRS connection forgets the lists cached under i
     clearedNmbrsCache.length = 0;
     assert.strictEqual((await post({ afasEnvType: '' })).statusCode, 200);
     assert.deepStrictEqual(clearedNmbrsCache, []);
+});
+
+// ── Firebird database ──────────────────────────────────────────────────
+test('a Firebird host with a scheme or a path is refused and nothing is saved', async () => {
+    for (const firebirdHost of ['tcp://db.internal', 'db.internal/atrium', 'db internal']) {
+        const res = await post({ firebirdHost });
+        assert.strictEqual(res.statusCode, 400, firebirdHost);
+        assert.match(res.body.error, /Firebird server is invalid/);
+    }
+    assert.deepStrictEqual(touched, []);
+});
+
+test('a Windows database path is accepted and stored as typed', async () => {
+    const res = await post({
+        firebirdHost: 'db.internal', firebirdPort: 3050, firebirdDatabase: 'C:\\Data\\Atrium.fdb',
+        firebirdUser: 'READER', firebirdPassword: ' pass word ', firebirdCharset: 'WIN1252',
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('firebird_database_user_u1').value, 'C:\\Data\\Atrium.fdb');
+    assert.strictEqual(written('firebird_port_user_u1').value, '3050');
+    assert.strictEqual(written('firebird_password_user_u1').value, ' pass word ');
+    assert.strictEqual(written('firebird_charset_user_u1').value, 'WIN1252');
+});
+
+test('a Firebird port outside 1..65535 is refused; an empty port means the default', async () => {
+    assert.strictEqual((await post({ firebirdPort: 70000 })).statusCode, 400);
+    assert.strictEqual((await post({ firebirdPort: '0' })).statusCode, 400);
+    touched.length = 0;
+    const res = await post({ firebirdPort: '' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('firebird_port_user_u1').value, '');
+});
+
+test('a Firebird user with a separator is refused', async () => {
+    const res = await post({ firebirdUser: 'dom\\reader' });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Firebird user is invalid/);
 });

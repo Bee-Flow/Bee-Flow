@@ -68,6 +68,12 @@ export interface VplanIntegrationProps {
     last: boolean;
 }
 
+export interface FirebirdIntegrationProps {
+    hasFirebirdConfig?: boolean;
+    onSaved: () => void;
+    last: boolean;
+}
+
 export interface NMBRSIntegrationProps {
     hasNmbrsConfig?: boolean;
     apiMode?: string;

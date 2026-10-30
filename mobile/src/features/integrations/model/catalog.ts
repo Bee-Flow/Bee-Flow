@@ -229,6 +229,7 @@ export const INTEGRATION_CATALOG: CatalogEntry[] = [
     app('afas-profit', 'Productivity', { i18nKey: 'mobile.integrations.app_afas_profit', en: 'AFAS Profit' }, { i18nKey: 'mobile.integrations.app_afas_profit_desc', en: 'Query AFAS Profit business data' }),
     app('nmbrs', 'Productivity', { i18nKey: 'mobile.integrations.app_nmbrs', en: 'NMBRS' }, { i18nKey: 'mobile.integrations.app_nmbrs_desc', en: 'Read NMBRS payroll and HR data' }),
     app('vplan', 'Productivity', { i18nKey: 'mobile.integrations.app_vplan', en: 'vPlan' }, { i18nKey: 'mobile.integrations.app_vplan_desc', en: 'Read vPlan planning and time tracking' }),
+    app('firebird', 'Productivity', { i18nKey: 'mobile.integrations.app_firebird', en: 'Firebird database' }, { i18nKey: 'mobile.integrations.app_firebird_desc', en: 'Read a Firebird database such as Syntess Atrium (SELECT only)' }),
 
     app('withings', 'Health', WITHINGS, { i18nKey: 'mobile.integrations.app_withings_desc', en: 'Weight, blood pressure, sleep and activity' }),
 

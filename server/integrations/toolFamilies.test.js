@@ -31,7 +31,7 @@ test('the walk keeps the order of the former dispatcher chain', () => {
         'activate_skill', 'session_skills', 'generate_image',
         'create_presentation', 'create_word_document',
         'generate_video', 'elevenlabs',
-        'fireflies', 'regex_generator', 'youtrack', 'signrequest', 'gamma', 'afas', 'nmbrs', 'vplan',
+        'fireflies', 'regex_generator', 'youtrack', 'signrequest', 'gamma', 'afas', 'nmbrs', 'vplan', 'firebird',
         'scaleway_billing', 'withings',
         'gmail', 'google_calendar', 'google_docs', 'google_sheets', 'google_slides', 'google_drive',
         'google_contacts', 'google_keep', 'google_groups',

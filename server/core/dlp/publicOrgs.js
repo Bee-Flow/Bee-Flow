@@ -46,7 +46,7 @@ const PUBLIC_ORGANISATIONS = [
     'Notion', 'Figma', 'Canva', 'Dropbox', 'Docker', 'Kubernetes', 'Red Hat',
     'VMware', 'Citrix', 'Fortinet', 'Palo Alto Networks', 'Cloudflare', 'Scaleway',
     'Nextcloud', 'WordPress', 'Shopify', 'Stripe', 'PayPal', 'Adyen', 'Mollie',
-    'Exact', 'AFAS', 'Twinfield', 'Visma', 'Unit4', 'TOPdesk', 'Zendesk', 'vPlan',
+    'Exact', 'AFAS', 'Twinfield', 'Visma', 'Unit4', 'TOPdesk', 'Zendesk', 'vPlan', 'Firebird', 'Syntess',
     'HubSpot', 'Mailchimp', 'Trello', 'Asana', 'Monday.com', 'ServiceNow',
 
     // IT services / consulting (public, and named as vendors not as clients)

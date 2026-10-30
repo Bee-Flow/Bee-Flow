@@ -85,6 +85,7 @@
     "maxmind": "^5.0.7",
     "microsoft-cognitiveservices-speech-sdk": "^1.53.0",
     "multer": "^2.4.0",
+    "node-firebird": "^2.19.1",
     "nodemailer": "^10.2.1",
     "occt-import-js": "^0.0.23",
     "openai": "^7.45.1",

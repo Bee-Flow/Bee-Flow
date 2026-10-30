@@ -6,6 +6,12 @@
  */
 
 export default {
+    "connections.field_firebird_host": "Server",
+    "connections.field_firebird_port": "Port (default 3050)",
+    "connections.field_firebird_database": "Database (alias or path)",
+    "connections.field_firebird_user": "User",
+    "connections.field_firebird_password": "Password",
+    "connections.field_firebird_charset": "Character set (default UTF8)",
     "connections.field_vplan_key": "API key",
     "connections.field_vplan_env": "API env",
     "connections.field_scaleway_billing_key": "Secret key",

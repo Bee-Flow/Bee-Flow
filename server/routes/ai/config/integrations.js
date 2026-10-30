@@ -283,7 +283,7 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
         res.json({ ok: false, error: /** @type {Error} */ (err).message });
     }
 });
-
+router.use(require('./firebirdTestRoute').createFirebirdTestRouter()); // POST /ai/firebird/test
 const N8N_PERMISSION_IDS = ['use_n8n_tools', 'modify_n8n_workflows'];
 
 // GET /ai/n8n/diagnostics — self-service access check for the current user.

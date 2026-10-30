@@ -62,6 +62,8 @@ const INTEGRATION_PREFIXES = {
     // REST); null lets the probe-captured tls_servername be the truth.
     nmbrs_:         { integration: 'nmbrs',           label: 'NMBRS',               serverFn: () => null },
     vplan_:         { integration: 'vplan',           label: 'vPlan',               server: 'api.vplan.com' },
+    // Firebird host is user-defined (the customer's own database server).
+    firebird_:      { integration: 'firebird',        label: 'Firebird database',   serverFn: () => null },
     scaleway_:      { integration: 'scaleway-billing', label: 'Scaleway Billing',   server: 'api.scaleway.com' },
     linkedin_:      { integration: 'linkedin',        label: 'LinkedIn',            server: 'api.linkedin.com' },
     withings_:      { integration: 'withings',        label: 'Withings',            server: 'wbsapi.withings.net' },
@@ -218,34 +220,8 @@ const INTEGRATION_TOOL_MAP = {
         direction: 'received', dataCategories: 'health, biometric, special_category_pii',
     },
 
-    // ── vPlan (read-only planning) ───────────────────────────
-    // Planning data is business data, but a few endpoints carry people: the
-    // resource/user lists are named employees, and time tracking ties named
-    // people to hours. Tag those separately from the plain planning reads.
-    vplan_whoami: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'account_metadata',
-    },
-    vplan_list_resources: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'planning_data, hr, pii',
-    },
-    vplan_get_resource_availability: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'planning_data, hr, absence',
-    },
-    vplan_list_time_tracking: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'planning_data, hr, pii',
-    },
-    vplan_time_tracking_summary: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'planning_data, hr',
-    },
-    vplan_list_master_data: {
-        integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
-        direction: 'received', dataCategories: 'planning_data, crm, pii',
-    },
+    // Firebird and vPlan: integrationToolMap.databases.js
+    ...require('./integrationToolMap.databases'),
 
     // ── Scaleway Billing (read-only invoices) ────────────────
     // Invoices are the organisation's own financial records.

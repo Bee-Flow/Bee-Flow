@@ -46,6 +46,8 @@ const configStore = require('../../../stores/configStore');
 const { normalizeAfasToken } = require('../../../integrations/afasTools');
 const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE, clearNmbrsPageCacheForUser } = require('../../../integrations/nmbrsTools');
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
+const { firebirdFields } = require('./firebirdFields');
+const { SECRETS } = require('./userSettingsSecrets');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
 const { readServerProgress } = require('../../../learning/certificates');
@@ -136,6 +138,9 @@ const UserSettingsBody = z.object({
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
     vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
+    // Firebird database (read-only SQL). Shapes live in firebirdFields.js,
+    // shared with the connection test.
+    ...firebirdFields,
     // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
     // the organization id in a query string; both are UUIDs.
     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
@@ -306,6 +311,8 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasAfasConfig: !!(await configStore.getSecret(`afas_token_user_${userId}`)) && !!(await configStore.getSecret(`afas_member_number_user_${userId}`)),
         hasNmbrsConfig: !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
+        hasFirebirdConfig: !!(await configStore.getSecret(`firebird_host_user_${userId}`)) && !!(await configStore.getSecret(`firebird_database_user_${userId}`))
+            && !!(await configStore.getSecret(`firebird_user_user_${userId}`)) && !!(await configStore.getSecret(`firebird_password_user_${userId}`)),
         hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
         // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
         nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
@@ -374,26 +381,6 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
 
     // Integration credentials, each already shape-checked by the schema.
     // Empty string (or null) clears a field — disconnect.
-    const SECRETS = {
-        firefliesApiKey: 'fireflies_api_key',
-        gammaApiKey: 'gamma_api_key',
-        youtrackUrl: 'youtrack_url',
-        youtrackToken: 'youtrack_token',
-        signrequestSubdomain: 'signrequest_subdomain',
-        signrequestToken: 'signrequest_token',
-        afasMemberNumber: 'afas_member_number',
-        afasToken: 'afas_token',
-        afasEnvType: 'afas_env_type',
-        nmbrsApiMode: 'nmbrs_api_mode',
-        nmbrsSubdomain: 'nmbrs_subdomain',
-        nmbrsEmail: 'nmbrs_email',
-        nmbrsToken: 'nmbrs_token',
-        nmbrsEnv: 'nmbrs_env',
-        vplanApiKey: 'vplan_api_key',
-        vplanApiEnv: 'vplan_api_env',
-        scalewayBillingSecretKey: 'scaleway_billing_secret_key',
-        scalewayBillingOrgId: 'scaleway_billing_org_id',
-    };
     for (const [field, key] of Object.entries(SECRETS)) {
         if (req.body[field] === undefined) continue;
         await configStore.setSecret(`${key}_user_${userId}`, req.body[field] || '');
