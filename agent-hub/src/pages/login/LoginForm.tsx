@@ -91,7 +91,7 @@ const MicrosoftButtons = ({ logins, onClick, disabled, dedicated }: { logins: Mi
                         data-testid={login.id === 'default' ? 'sso-microsoft-button' : `sso-microsoft-button-${login.id}`}
                         aria-label={label}
                         className={`w-full ${sizing} bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl transition-all flex items-center justify-center disabled:opacity-50`}>
-                        {login.logo ? <img src={login.logo} alt="" className="w-5 h-5 object-contain" /> : <MicrosoftIcon />} {label}
+                        {login.logo ? <img src={login.logo} alt="" className="h-7 w-auto max-w-[120px] object-contain" /> : <MicrosoftIcon />} {label}
                     </button>
                 );
             })}
