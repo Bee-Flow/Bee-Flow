@@ -24,6 +24,7 @@ const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { markUsed } = require('../llm/cpuPipelineUsage');
 
 // Pinned permissive-licensed cross-encoder model (MIT). Do NOT swap to
 // a Llama-Community-licensed reranker without a licence audit.
@@ -138,11 +139,13 @@ async function scorePairs(ranker, query, docs) {
  * @param {string} query - User search query.
  * @param {string[]} documents - Candidate documents (raw text).
  * @param {number} [topN] - Optional cap on returned items. Defaults to all.
+ * @param {{ warmup?: boolean }} [options] - `warmup`: a boot warmup, not a
+ *   request, so it does not count as use of the model (core/llm/cpuPipelineUsage.js).
  * @returns {Promise<Array<{index: number, relevance_score: number}>>}
  *   Sorted descending by relevance_score (0..1). Empty array on any
  *   failure so callers can fall back to RRF / passthrough.
  */
-async function rerankCpu(query, documents, topN = null) {
+async function rerankCpu(query, documents, topN = null, options = {}) {
     if (!query || !Array.isArray(documents) || documents.length === 0) return [];
 
     const ranker = await getPipeline();
@@ -167,6 +170,7 @@ async function rerankCpu(query, documents, topN = null) {
         const result = topN ? scored.slice(0, topN) : scored;
         const tookMs = Date.now() - startedAt;
         log.info(`[CpuRerank] reranked ${docs.length} docs in ${tookMs}ms (top=${result[0]?.relevance_score?.toFixed(3)})`);
+        if (!options.warmup) markUsed('rerank');
         return result;
     } catch (err) {
         log.warn(`[CpuRerank] inference failed (${err.message}); caller should fall back`);
@@ -177,11 +181,12 @@ async function rerankCpu(query, documents, topN = null) {
 /**
  * Best-effort warmup. Triggers model load + first inference so the
  * first user-facing rerank doesn't pay the ~5-10s cold-start cost.
- * Safe to call from boot — never throws.
+ * Never throws. The session build blocks the main thread for seconds on a
+ * small host, so boot/cpuPipelineWarmup.js decides when, and whether, to call it.
  */
 async function warmup() {
     try {
-        const out = await rerankCpu('warmup', ['warmup document'], 1);
+        const out = await rerankCpu('warmup', ['warmup document'], 1, { warmup: true });
         if (out.length > 0) {
             log.info('[CpuRerank] Warmup complete — first user query will be fast.');
         }

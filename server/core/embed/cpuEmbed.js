@@ -17,6 +17,7 @@ const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { markUsed } = require('../llm/cpuPipelineUsage');
 
 // Pinned permissive-licensed embedding model (MIT). Multilingual-e5
 // requires the "query: " / "passage: " prefix for best quality —
@@ -100,9 +101,10 @@ function withTimeout(promise, ms, label) {
  * can fall back gracefully.
  *
  * @param {string[]} texts
- * @param {{ kind?: 'query'|'passage' }} [options] controls the
- *   multilingual-e5 prefix. Default 'passage' (storage); use 'query'
- *   for the search-time embedding.
+ * @param {{ kind?: 'query'|'passage', warmup?: boolean }} [options] `kind`
+ *   controls the multilingual-e5 prefix. Default 'passage' (storage); use
+ *   'query' for the search-time embedding. `warmup`: a boot warmup, not a
+ *   request, so it does not count as use of the model (core/llm/cpuPipelineUsage.js).
  * @returns {Promise<number[][]>}
  */
 async function cpuEmbed(texts, options = {}) {
@@ -134,12 +136,17 @@ async function cpuEmbed(texts, options = {}) {
             return [];
         }
     }
+    if (!options.warmup) markUsed('embed');
     return out;
 }
 
+/**
+ * Never throws. The session build blocks the main thread for seconds on a
+ * small host, so boot/cpuPipelineWarmup.js decides when, and whether, to call it.
+ */
 async function warmup() {
     try {
-        const out = await cpuEmbed(['warmup']);
+        const out = await cpuEmbed(['warmup'], { warmup: true });
         if (out.length > 0) {
             log.info('[CpuEmbed] Warmup complete — first user query will be fast.');
         }

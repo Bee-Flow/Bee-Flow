@@ -6,11 +6,10 @@
  * in the order they always ran; see that file for the whole sequence.
  */
 
-const { isModuleAvailable } = require('../modules/catalog');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
-/** Boot probes: the connector-bootstrap table check, the CPU pipeline warmups and the two PII Guard notices. */
+/** Boot probes: the connector-bootstrap table check, the scheduling of the CPU model warmups and the two PII Guard notices. */
 function startBootProbes() {
     // Connector bootstrap sanity probe — verifies the tables the
     // /auth/connector/bootstrap endpoint relies on actually exist after the
@@ -30,19 +29,11 @@ function startBootProbes() {
             });
     }, 8000).unref();
 
-    // CPU cross-encoder + CPU embedder — pre-load the Transformers.js
-    // pipelines so the first user KB search / web rerank doesn't pay the
-    // ~280 MB cold-start cost. Both warmup()s are non-blocking and
-    // fail-open; if the model load fails the pipelines stay disabled and
-    // search falls back to RRF / cosine.
-    try {
-        const { warmup: warmRerank } = require('../core/rerank/cpuCrossEncoder');
-        const { warmup: warmEmbed } = require('../core/embed/cpuEmbed');
-        setImmediate(() => { warmRerank().catch((e) => bestEffort('boot/startupProbes:startBootProbes', e)); });
-        setImmediate(() => { warmEmbed().catch((e) => bestEffort('boot/startupProbes:startBootProbes#2', e)); });
-    } catch (e) {
-        log.warn('[CpuPipelines] Warmup could not start:', e.message);
-    }
+    // The in-process CPU models (reranker, embedder, Whisper) are warmed later,
+    // one at a time, and only when a request can reach them and has lately:
+    // building their sessions blocks the main thread for seconds on a small
+    // host, which at this point of boot starved the pool. See the module.
+    require('./cpuPipelineWarmup').startCpuPipelineWarmups();
 
     // PII Guard model migration hint — non-blocking. If the configStore still
     // records the older `urchade/gliner_multi_pii-v1` model, nudge the admin
@@ -111,7 +102,7 @@ function startLicenseAndModuleRuntime() {
     }
 }
 
-/** Optional browser warmup, the Privacy Shield self-check and the Whisper prewarm. */
+/** Optional browser warmup and the Privacy Shield self-check. */
 function startLateWarmups() {
     // Optionally pre-warm the shared browser singleton so the first PDF export /
     // thumbnail / SPA ingest doesn't pay the container cold-start. Off by default
@@ -141,14 +132,8 @@ function startLateWarmups() {
 
     // The previous in-process PII pre-warm has been removed — PII detection
     // now runs only through the optional PII Guard service container, which
-    // owns its own model loading lifecycle.
-
-    // Pre-warm the in-process Whisper-base CPU transcription model. Same
-    // fail-open semantics; first upload doesn't pay the download tax.
-    if (process.env.LOCAL_WHISPER_PREWARM !== 'false' && isModuleAvailable('meetingNotes')) {
-        const { warmLocalWhisper } = require('../core/voice/localWhisper');
-        warmLocalWhisper();
-    }
+    // owns its own model loading lifecycle. The Whisper pre-warm lives in
+    // boot/cpuPipelineWarmup.js with the other CPU models.
 }
 
 module.exports = { startBootProbes, startLicenseAndModuleRuntime, startLateWarmups };

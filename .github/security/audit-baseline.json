@@ -90,7 +90,7 @@
     },
     "mobile": {
       "critical": 0,
-      "high": 0
+      "high": 3
     },
     ".": {
       "critical": 0,
@@ -182,6 +182,17 @@
       "expires": "2027-01-13",
       "reviewedAt": "2026-10-13",
       "reachability": "npm ls in mobile/ shows node-forge 1.4.0 only under @expo/cli/@expo/code-signing-certificates; no file in mobile/src, mobile/modules or the app config imports node-forge or @expo/code-signing-certificates, and expo-updates is not a dependency. The vulnerable path (PKCS#1 v1.5 signature verification) runs only inside the CLI on a developer or CI machine, never on a user device.",
+      "images": [
+        "mobile"
+      ]
+    },
+    {
+      "id": "GHSA-qr28-fpjm-wq7f",
+      "package": "decode-uri-component",
+      "reason": "The fixed release (0.5.1) is ESM-only, and the only consumer, query-string 7 (a dependency of expo-router 57), loads it with require(): an npm override to 0.5.1 breaks the module load. The fix is expo-router 58 / the next Expo SDK, a major upgrade of the mobile app that is its own change. The advisory is quadratic CPU time while decoding a long run of percent-encoded bytes in a query string; the worst case is a hang of one app session after the user opens a crafted deep link, no data exposure and nothing reachable without that tap.",
+      "expires": "2027-01-30",
+      "reviewedAt": "2026-10-30",
+      "reachability": "npm ls in mobile/ shows decode-uri-component 0.2.2 only under expo-router -> query-string. expo-router calls queryString.parse on the query of a deep link in react-navigation/core/getStateFromPath.js, so a crafted link opened on the device reaches the vulnerable code; the effect is bounded to CPU time on that device. No file in mobile/src or mobile/modules imports query-string or decode-uri-component directly.",
       "images": [
         "mobile"
       ]
