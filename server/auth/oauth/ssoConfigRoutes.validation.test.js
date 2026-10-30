@@ -34,7 +34,10 @@ const touched = [];
 // The gates are the harness's session-only ones; the config the route loads and
 // saves is swapped on the shared auth/permissions exports (routeHarness.openGates).
 require('../../testUtils/routeHarness').openGates({
-    loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.test', clientId: 'cid' }, providers: { microsoft: { tenantId: 'common' } } }),
+    loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.test', clientId: 'cid' }, providers: { microsoft: {
+        tenantId: 'common', clientId: 'ms-primary', clientSecret: 'ms-secret', label: 'Head office',
+        connections: [{ id: 'sub', label: 'Subsidiary', logo: '', clientId: 'sub-id', tenantId: 'common', hasClientSecret: true }],
+    } } }),
     saveConfig: (cfg) => { touched.push({ what: 'saveConfig', args: [cfg] }); return true; },
 });
 
@@ -119,4 +122,66 @@ test('a real tenant id still reaches the configuration', async () => {
 
 test('a misspelled key on the instance OAuth config is refused too', async () => {
     await refuses({ method: 'PUT', url: '/oauth-config', body: { clientSecrett: 'x' } }, 'body');
+});
+
+test('the Microsoft view lists every connection without a secret, and the primary as it always was', async () => {
+    const res = await dispatch({ method: 'GET', url: '/providers' });
+    assert.strictEqual(res.statusCode, 200);
+    const microsoft = res.body.microsoft;
+    assert.strictEqual(microsoft.clientId, 'ms-primary');
+    assert.strictEqual(microsoft.clientSecretSet, true);
+    assert.strictEqual(microsoft.label, 'Head office');
+    assert.deepStrictEqual(microsoft.connections, [{ id: 'sub', label: 'Subsidiary', logo: '', clientId: 'sub-id', tenantId: 'common', clientSecretSet: true }]);
+    assert.ok(!JSON.stringify(res.body).includes('secret'), 'no secret value leaves the server');
+});
+
+test('a new connection needs a client secret; a kept one does not', async () => {
+    const res = await dispatch({
+        method: 'PUT', url: '/providers/microsoft',
+        body: { connections: [{ label: 'New', clientId: 'new-id', tenantId: 'common' }] },
+    });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /needs a client secret/);
+    assert.deepStrictEqual(touched, []);
+
+    const kept = await dispatch({
+        method: 'PUT', url: '/providers/microsoft',
+        body: { connections: [{ id: 'sub', label: 'Subsidiary', clientId: 'sub-id', tenantId: 'common' }] },
+    });
+    assert.strictEqual(kept.statusCode, 200);
+    const saved = touched.find((t) => t.what === 'saveConfig').args[0].providers.microsoft;
+    assert.deepStrictEqual(saved.connections.map((c) => c.id), ['sub']);
+    assert.strictEqual(saved.connections[0].clientSecret, undefined, 'blank: the stored secret stays');
+});
+
+test('a connection without an id gets one, its tenant is normalised, and the primary is untouched', async () => {
+    const res = await dispatch({
+        method: 'PUT', url: '/providers/microsoft',
+        body: { label: 'Group', logo: '', connections: [
+            { id: 'sub', label: 'Subsidiary', clientId: 'sub-id', tenantId: 'common' },
+            { label: 'Second', clientId: 'second-id', clientSecret: 's2', tenantId: ' 11111111-1111-1111-1111-111111111111 ' },
+        ] },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    const saved = touched.find((t) => t.what === 'saveConfig').args[0].providers.microsoft;
+    assert.strictEqual(saved.clientId, undefined, 'not in the body: the primary client id is left alone');
+    assert.strictEqual(saved.label, 'Group');
+    assert.match(saved.connections[1].id, /^[0-9a-f]{12}$/);
+    assert.strictEqual(saved.connections[1].tenantId, '11111111-1111-1111-1111-111111111111');
+    assert.strictEqual(saved.connections[1].clientSecret, 's2');
+});
+
+test('a logo that is not a small image, a duplicate id and a bad tenant are refused by name', async () => {
+    const bad = [
+        [{ logo: 'javascript:alert(1)' }, /logo/],
+        [{ connections: [{ id: 'sub', label: 'A', clientId: 'a' }, { id: 'sub', label: 'B', clientId: 'b', clientSecret: 'x' }] }, /repeats the id/],
+        [{ connections: [{ id: 'default', label: 'A', clientId: 'a', clientSecret: 'x' }] }, /invalid id/],
+        [{ connections: [{ id: 'sub', label: 'A', clientId: 'a', tenantId: 'contoso' }] }, /Invalid Tenant ID/],
+    ];
+    for (const [body, message] of bad) {
+        const res = await dispatch({ method: 'PUT', url: '/providers/microsoft', body });
+        assert.strictEqual(res.statusCode, 400, JSON.stringify(body));
+        assert.match(res.body.error, message);
+        assert.deepStrictEqual(touched, [], JSON.stringify(body));
+    }
 });

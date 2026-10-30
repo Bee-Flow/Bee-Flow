@@ -36,6 +36,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const { loadConfig, OAUTH_PROVIDERS } = require('../permissions');
+const { microsoftCredentialsFor, PRIMARY_CONNECTION_ID } = require('./microsoftConnections.mts');
 const { getReturnUrl, popupRedirect, resolveNativeAppRedirect } = require('./shared');
 
 // === Multi-Provider OAuth Routes ===
@@ -56,6 +57,7 @@ router.get('/login/:provider', async (req, res) => {
     delete req.session.oauthPickupId;
     delete req.session.oauthAppRedirect;
     delete req.session.oauthNonce;
+    delete req.session.oauthConnectionId;
 
     // When ?popup=1 is set (embedded iframe mode), remember so the callback
     // can render a postMessage page instead of a redirect.
@@ -157,17 +159,23 @@ router.get('/login/:provider', async (req, res) => {
         });
 
     } else if (provider === 'microsoft') {
-        const providerConfig = config.providers?.microsoft || {};
-        log.info(`[OAuth/Microsoft] clientId present: ${!!providerConfig.clientId}, clientSecret present: ${!!providerConfig.clientSecret}`);
-        log.info(`[OAuth/Microsoft] tenantId: ${providerConfig.tenantId || 'common (default)'}`);
+        // Which Microsoft button was pressed: the primary app, or one of the
+        // additional tenants (?connection=<id>). The id is checked against the
+        // configuration here and remembered for the callback, which exchanges
+        // the code with the same connection's credentials.
+        const connectionId = typeof req.query.connection === 'string' && req.query.connection ? req.query.connection.slice(0, 32) : PRIMARY_CONNECTION_ID;
+        const providerConfig = microsoftCredentialsFor(config, connectionId);
+        log.info(`[OAuth/Microsoft] connection: ${connectionId}, configured: ${!!providerConfig}`);
+        log.info(`[OAuth/Microsoft] tenantId: ${providerConfig?.tenantId || '(none)'}`);
         log.info(`[OAuth/Microsoft] REDIRECT_URI: ${REDIRECT_URI}`);
         log.info(`[OAuth/Microsoft] returnTo: ${returnTo}`);
-        if (!providerConfig.clientId) {
-            log.error(`[OAuth/Microsoft] ABORT: No clientId configured`);
+        if (!providerConfig) {
+            log.error(`[OAuth/Microsoft] ABORT: connection ${connectionId} has no client id or secret`);
             return res.redirect(`${returnTo}?error=microsoft_not_configured`);
         }
+        if (connectionId !== PRIMARY_CONNECTION_ID) req.session.oauthConnectionId = connectionId;
 
-        const tenantId = providerConfig.tenantId || 'common';
+        const tenantId = providerConfig.tenantId;
         const nonce = crypto.randomBytes(32).toString('base64url');
         req.session.oauthNonce = nonce;
         const scopes = OAUTH_PROVIDERS.microsoft.scopes.join(' ');

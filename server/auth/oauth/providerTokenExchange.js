@@ -10,12 +10,13 @@
 const log = require('../../telemetry/log');
 const { OAUTH_PROVIDERS } = require('../permissions');
 const microsoftLogin = require('./microsoftLogin');
+const { microsoftCredentialsFor } = require('./microsoftConnections.mts');
 
 /** @typedef {import('./providerCallbackRoutes').OAuthTokenResponse} OAuthTokenResponse */
 /** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
 
 /** @typedef {{ clientId?: string, clientSecret?: string, tenantId?: string }} ProviderCredentials */
-/** @typedef {{ providers?: { google?: ProviderCredentials, microsoft?: ProviderCredentials }, oauth?: { nextcloudUrl?: string, clientId?: string, clientSecret?: string } }} ExchangeConfig */
+/** @typedef {{ providers?: { google?: ProviderCredentials, microsoft?: import('./microsoftConnections.mts').MicrosoftProviderConfig }, oauth?: { nextcloudUrl?: string, clientId?: string, clientSecret?: string } }} ExchangeConfig */
 
 /**
  * Google: token endpoint + OpenID userinfo.
@@ -71,14 +72,20 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
 }
 
 /**
- * Microsoft: token endpoint, verified id_token, Graph profile and photo.
- * @param {{ config: ExchangeConfig, code: string, redirectUri: string, codeVerifier?: string, nonce?: string }} args
+ * Microsoft: token endpoint, verified id_token, Graph profile and photo. The
+ * credentials and tenant policy are those of the connection the sign-in
+ * started with (session.oauthConnectionId; absent for the primary app).
+ * @param {{ config: ExchangeConfig, code: string, redirectUri: string, codeVerifier?: string, nonce?: string, connectionId?: string }} args
  */
-async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonce }) {
+async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonce, connectionId }) {
     let tokenData, user;
 
-    const providerConfig = config.providers?.microsoft || {};
-    const tenantId = providerConfig.tenantId || 'common';
+    const providerConfig = microsoftCredentialsFor(config, connectionId);
+    if (!providerConfig) {
+        log.error(`[OAuth/Microsoft] Connection ${connectionId || 'default'} is no longer configured`);
+        return { error: 'microsoft_not_configured' };
+    }
+    const tenantId = providerConfig.tenantId;
     const tokenUrl = OAUTH_PROVIDERS.microsoft.tokenUrl(tenantId);
 
     log.info(`[OAuth/Microsoft] Token URL: ${tokenUrl}`);
@@ -210,7 +217,7 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
  */
 async function exchangeCodeForUser({ provider, config, code, redirectUri, codeVerifier, nonce, session }) {
     if (provider === 'google') return exchangeGoogle({ config, code, redirectUri, codeVerifier });
-    if (provider === 'microsoft') return exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonce });
+    if (provider === 'microsoft') return exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonce, connectionId: session?.oauthConnectionId });
     if (provider === 'nextcloud') return exchangeNextcloud({ config, code, redirectUri, session });
     return { error: 'unknown_provider' };
 }

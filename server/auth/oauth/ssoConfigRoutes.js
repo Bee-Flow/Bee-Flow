@@ -27,6 +27,10 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+// The primary Microsoft app plus the additional sign-in connections (each its
+// own tenant, app registration, label and logo): one module decides what a
+// connection is, here and on the login routes.
+const msConnections = require('./microsoftConnections.mts');
 
 /** @param {string} what */
 const secret = (what) => worded(`A ${what} must be text.`).max(4096, `That ${what} is too long.`).optional();
@@ -54,15 +58,105 @@ const OAuthConfigBody = z.object({
 const PROVIDER_KEYS = Object.freeze({
     nextcloud: ['url', 'clientId', 'clientSecret'],
     google: ['clientId', 'clientSecret'],
-    microsoft: ['clientId', 'clientSecret', 'tenantId'],
+    microsoft: ['clientId', 'clientSecret', 'tenantId', 'label', 'logo', 'connections'],
 });
+
+// One additional Microsoft sign-in connection as the form sends it. The id is
+// the form's (kept across saves so a typed secret stays with its row) or minted
+// here when absent; the secret is only required for a connection that has none yet.
+const MicrosoftConnectionBody = z.object({
+    id: worded('A connection id must be text.').trim().max(32, 'That connection id is too long.').optional(),
+    label: worded('A button text must be text.').trim().max(msConnections.MAX_LABEL_LENGTH, 'That button text is too long.'),
+    logo: worded('A logo must be text.').max(2 * msConnections.MAX_LOGO_BYTES, 'That logo is too large.').optional(),
+    clientId: worded('A client id must be text.').trim().min(1, 'A connection needs an Application (client) ID.').max(512, 'That client id is too long.'),
+    clientSecret: secret('client secret'),
+    tenantId: worded('A tenant id must be text.').trim().max(128, 'That tenant id is too long.').optional(),
+}).strict();
 
 const ProviderConfigBody = z.object({
     url: worded('A URL must be text.').trim().max(2048, 'That URL is too long.').optional(),
     clientId: worded('A client id must be text.').trim().max(512, 'That client id is too long.').optional(),
     clientSecret: secret('client secret'),
     tenantId: worded('A tenant id must be text.').trim().max(128, 'That tenant id is too long.').optional(),
+    label: worded('A button text must be text.').trim().max(msConnections.MAX_LABEL_LENGTH, 'That button text is too long.').optional(),
+    logo: worded('A logo must be text.').max(2 * msConnections.MAX_LOGO_BYTES, 'That logo is too large.').optional(),
+    connections: z.array(MicrosoftConnectionBody, { error: 'The connections must be a list.' })
+        .max(msConnections.MAX_CONNECTIONS, `At most ${msConnections.MAX_CONNECTIONS} additional connections.`).optional(),
 }).strict();
+
+/**
+ * The Microsoft provider as the admin form reads it: never a secret, only
+ * whether one is stored, for the primary and for every additional connection.
+ * @param {msConnections.MicrosoftProviderConfig | undefined} pc
+ */
+function microsoftView(pc = {}) {
+    return {
+        enabled: !!(pc.clientId && pc.clientSecret),
+        clientId: pc.clientId || '',
+        clientSecretSet: !!pc.clientSecret,
+        tenantId: pc.tenantId || 'common',
+        label: pc.label || '',
+        logo: pc.logo || '',
+        connections: msConnections.connectionsOf({ providers: { microsoft: pc } }).map((c) => ({
+            id: c.id, label: c.label || '', logo: c.logo || '', clientId: c.clientId || '',
+            tenantId: c.tenantId || 'common', clientSecretSet: !!(c.clientSecret || c.hasClientSecret),
+        })),
+    };
+}
+
+/** @param {string} tid */
+const tenantIdError = (tid) => new HttpError(400, 'invalid_tenant_id',
+    `Invalid Tenant ID "${tid}". Must be a GUID (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) or one of: common, organizations, consumers`);
+
+/**
+ * The additional connections as they will be stored: ids minted or checked,
+ * tenants normalised, logos checked, and a secret present for every new one.
+ * @param {{ id?: string, label: string, logo?: string, clientId: string, clientSecret?: string, tenantId?: string }[]} supplied
+ * @param {msConnections.MicrosoftConnection[]} existing
+ */
+function cleanConnections(supplied, existing) {
+    const seen = new Set();
+    return supplied.map((c, index) => {
+        const id = c.id || msConnections.newConnectionId();
+        if (!msConnections.isValidConnectionId(id)) throw new HttpError(400, 'invalid_connection_id', `Connection ${index + 1} has an invalid id.`);
+        if (seen.has(id)) throw new HttpError(400, 'duplicate_connection_id', `Connection ${index + 1} repeats the id of another connection.`);
+        seen.add(id);
+        const tenantId = msConnections.normalizeTenantId(c.tenantId);
+        if (tenantId === null) throw tenantIdError(String(c.tenantId));
+        if (c.logo !== undefined && !msConnections.isValidLogo(c.logo)) {
+            throw new HttpError(400, 'invalid_logo', `The logo of connection ${index + 1} must be a PNG, JPEG, GIF, WebP or SVG image of at most ${msConnections.MAX_LOGO_BYTES / 1024} KB.`);
+        }
+        const previous = existing.find((e) => e.id === id);
+        const hasSecret = !!(c.clientSecret && c.clientSecret.trim()) || !!(previous && (previous.clientSecret || previous.hasClientSecret));
+        if (!hasSecret) throw new HttpError(400, 'connection_secret_required', `Connection ${index + 1} ("${c.label || c.clientId}") needs a client secret.`);
+        return { id, label: c.label, logo: c.logo, clientId: c.clientId, clientSecret: c.clientSecret, tenantId };
+    });
+}
+
+/**
+ * What a PUT on the Microsoft provider stores. Throws a 400 that names the
+ * field; nothing is written before every field was understood.
+ * @param {{ clientId?: string, clientSecret?: string, tenantId?: string, label?: string, logo?: string, connections?: { id?: string, label: string, logo?: string, clientId: string, clientSecret?: string, tenantId?: string }[] }} body
+ * @param {msConnections.MicrosoftProviderConfig} current
+ */
+function microsoftPatch(body, current) {
+    const { clientId, clientSecret, tenantId, label, logo, connections } = body;
+    /** @type {Record<string, unknown>} */
+    const patch = { clientId, clientSecret, label };
+    if (tenantId !== undefined) {
+        const tid = msConnections.normalizeTenantId(tenantId);
+        if (tid === null) throw tenantIdError(tenantId.trim());
+        patch.tenantId = tid;
+    }
+    if (logo !== undefined) {
+        if (!msConnections.isValidLogo(logo)) throw new HttpError(400, 'invalid_logo', `The logo must be a PNG, JPEG, GIF, WebP or SVG image of at most ${msConnections.MAX_LOGO_BYTES / 1024} KB.`);
+        patch.logo = logo;
+    }
+    if (connections !== undefined) {
+        patch.connections = cleanConnections(connections, msConnections.connectionsOf({ providers: { microsoft: current } }));
+    }
+    return patch;
+}
 
 router.get('/oauth-config', requireSuperAdmin, async (req, res) => {
     const config = await loadConfig();
@@ -139,12 +233,7 @@ router.get('/providers', requireSuperAdmin, async (req, res) => {
             clientId: providers.google?.clientId || '',
             clientSecretSet: !!providers.google?.clientSecret
         },
-        microsoft: {
-            enabled: !!(providers.microsoft?.clientId && providers.microsoft?.clientSecret),
-            clientId: providers.microsoft?.clientId || '',
-            clientSecretSet: !!providers.microsoft?.clientSecret,
-            tenantId: providers.microsoft?.tenantId || 'common'
-        }
+        microsoft: microsoftView(providers.microsoft),
     });
 });
 
@@ -204,13 +293,7 @@ router.get('/providers/:provider', requireSuperAdmin, requireSsoProvider, async 
             clientSecretSet: !!providerConfig.clientSecret
         });
     } else if (provider === 'microsoft') {
-        const providerConfig = config.providers?.microsoft || {};
-        res.json({
-            enabled: !!(providerConfig.clientId && providerConfig.clientSecret),
-            clientId: providerConfig.clientId || '',
-            clientSecretSet: !!providerConfig.clientSecret,
-            tenantId: providerConfig.tenantId || 'common'
-        });
+        res.json(microsoftView(config.providers?.microsoft));
     } else {
         res.status(404).json({ error: 'Unknown provider' });
     }
@@ -229,6 +312,8 @@ router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, valida
         }
     }
     const config = await loadConfig();
+    /** @type {Record<string, unknown> | undefined} */
+    let providerPatch;
 
     if (provider === 'nextcloud') {
         const { url, clientId, clientSecret } = req.body;
@@ -245,20 +330,7 @@ router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, valida
         if (clientSecret && clientSecret.trim()) config.providers.google.clientSecret = clientSecret;
 
     } else if (provider === 'microsoft') {
-        const { clientId, clientSecret, tenantId } = req.body;
-        config.providers = config.providers || {};
-        config.providers.microsoft = config.providers.microsoft || {};
-        if (clientId !== undefined) config.providers.microsoft.clientId = clientId;
-        if (clientSecret && clientSecret.trim()) config.providers.microsoft.clientSecret = clientSecret;
-        if (tenantId !== undefined) {
-            const tid = (tenantId || '').trim();
-            const knownAliases = ['common', 'organizations', 'consumers', ''];
-            const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tid);
-            if (!knownAliases.includes(tid.toLowerCase()) && !isGuid) {
-                return res.status(400).json({ error: `Invalid Tenant ID "${tid}". Must be a GUID (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) or one of: common, organizations, consumers` });
-            }
-            config.providers.microsoft.tenantId = tid || 'common';
-        }
+        providerPatch = microsoftPatch(req.body, config.providers?.microsoft || {});
 
     } else {
         return res.status(404).json({ error: 'Unknown provider' });
@@ -266,7 +338,7 @@ router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, valida
 
     const update = provider === 'nextcloud'
         ? { oauth: { ...req.body, nextcloudUrl: req.body.url, url: undefined } }
-        : { providers: { [provider]: req.body } };
+        : { providers: { [provider]: providerPatch || req.body } };
     if (!(await saveConfig(update))) {
         throw new Error(`Failed to save the ${provider} SSO configuration`);
     }

@@ -61,7 +61,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
     const { availablePlans, selectedPlanId } = useSignupPlans(signupMode, signupData);
     const {
         availableLocales, setupMode, setSetupMode, setIsSetupComplete,
-        isOAuthConfigured, serverUrl, isGoogleConfigured, isMicrosoftConfigured,
+        isOAuthConfigured, serverUrl, isGoogleConfigured, isMicrosoftConfigured, microsoftLogins,
         allowSignups, allowOrgSignups, allowConsumerSignups, consumerLoginMethods,
         allowPasswordLogin, authSettingsLoaded, deploymentMode, orgLogo, signupOrgs, captchaConfig,
     } = useAuthSettings();
@@ -198,6 +198,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                             isOAuthConfigured={isOAuthConfigured}
                             isGoogleConfigured={isGoogleConfigured}
                             isMicrosoftConfigured={isMicrosoftConfigured}
+                            microsoftLogins={microsoftLogins}
                             setSignupMode={allowSignups ? setSignupMode : null}
                             setError={setError}
                             allowSignups={allowSignups}

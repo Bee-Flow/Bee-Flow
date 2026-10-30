@@ -254,7 +254,11 @@ async function resolveSsoUser({ req, provider, user, config }) {
 
     // Installations from before tenant binding: link the old account on first login when the
     // verified token comes from the configured concrete tenant and the match is unambiguous.
-    const msTenant = config.providers?.microsoft?.tenantId;
+    // The tenant the administrator configured for the connection this sign-in
+    // came through: the primary app's, or the additional tenant's.
+    const msTenant = provider === 'microsoft'
+        ? require('./microsoftConnections.mts').microsoftCredentialsFor(config, req.session.oauthConnectionId)?.tenantId
+        : undefined;
     if (provider === 'microsoft' && !existingUser && await microsoftLogin.autoLinkOnLogin(user, msTenant)) {
         ({ user: existingUser, branch } = await resolveExistingSSOUser(
             { azureUserId: user.azureUserId, azureTenantId: user.azureTenantId, email: user.email, localId: provisionalLocalId }, userStore));

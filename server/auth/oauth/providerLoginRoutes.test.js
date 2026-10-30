@@ -26,8 +26,23 @@ const Module = require('module');
 const MOCKS = {
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../permissions': {
-        loadConfig: async () => ({ providers: { google: { clientId: 'client-1' } }, oauth: {} }),
-        OAUTH_PROVIDERS: { google: { authUrl: 'https://accounts.example/auth', scopes: ['openid', 'email'] } },
+        loadConfig: async () => ({
+            providers: {
+                google: { clientId: 'client-1' },
+                microsoft: {
+                    clientId: 'ms-primary', clientSecret: 'ms-primary-secret', tenantId: 'common',
+                    connections: [
+                        { id: 'sub', label: 'Subsidiary', logo: '', clientId: 'ms-sub', clientSecret: 'ms-sub-secret', tenantId: '22222222-2222-2222-2222-222222222222' },
+                        { id: 'draft', label: 'Draft', logo: '', clientId: 'ms-draft', tenantId: 'common' },
+                    ],
+                },
+            },
+            oauth: {},
+        }),
+        OAUTH_PROVIDERS: {
+            google: { authUrl: 'https://accounts.example/auth', scopes: ['openid', 'email'] },
+            microsoft: { authUrl: (tenantId) => `https://login.example/${tenantId}/authorize`, scopes: ['openid'] },
+        },
     },
     './shared': {
         getReturnUrl: () => 'https://app.example',
@@ -110,4 +125,36 @@ test('a second popup attempt replaces the first one\'s pickup rather than keepin
     await navigate('/login/google?popup=1&pickup=second', session);
     assert.strictEqual(session.oauthPickupId, 'second');
     assert.strictEqual(session.oauthAppRedirect, undefined, 'this attempt named no app');
+});
+
+test('a Microsoft sign-in without ?connection= uses the primary app, as before connections existed', async () => {
+    const session = newSession();
+    const res = await navigate('/login/microsoft', session);
+    const url = new URL(res.location);
+    assert.strictEqual(url.pathname, '/common/authorize');
+    assert.strictEqual(url.searchParams.get('client_id'), 'ms-primary');
+    assert.strictEqual(session.oauthConnectionId, undefined, 'the callback exchanges with the primary credentials');
+});
+
+test('a Microsoft sign-in through an additional tenant uses that connection\'s app and tenant, and remembers it', async () => {
+    const session = newSession();
+    const res = await navigate('/login/microsoft?connection=sub', session);
+    const url = new URL(res.location);
+    assert.strictEqual(url.pathname, '/22222222-2222-2222-2222-222222222222/authorize');
+    assert.strictEqual(url.searchParams.get('client_id'), 'ms-sub');
+    assert.strictEqual(session.oauthConnectionId, 'sub');
+
+    // The next attempt from the same browser starts from no connection.
+    const plain = await navigate('/login/microsoft', session);
+    assert.strictEqual(new URL(plain.location).searchParams.get('client_id'), 'ms-primary');
+    assert.strictEqual(session.oauthConnectionId, undefined);
+});
+
+test('an unknown or half-configured connection is refused, never silently the primary', async () => {
+    for (const id of ['nope', 'draft', 'default-ish']) {
+        const session = newSession();
+        const res = await navigate(`/login/microsoft?connection=${id}`, session);
+        assert.strictEqual(res.location, 'https://app.example?error=microsoft_not_configured', id);
+        assert.strictEqual(session.oauthConnectionId, undefined, id);
+    }
 });

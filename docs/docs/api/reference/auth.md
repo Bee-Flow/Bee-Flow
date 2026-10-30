@@ -1276,6 +1276,15 @@ No request schema.
 | `clientId` | string |  | max length 512 |
 | `clientSecret` | string |  | max length 4096 |
 | `tenantId` | string |  | max length 128 |
+| `label` | string |  | max length 60 |
+| `logo` | string |  | max length 204800 |
+| `connections` | array of object |  | max items 20 |
+| `connections[].id` | string |  | max length 32 |
+| `connections[].label` | string | yes | max length 60 |
+| `connections[].logo` | string |  | max length 204800 |
+| `connections[].clientId` | string | yes | min length 1; max length 512 |
+| `connections[].clientSecret` | string |  | max length 4096 |
+| `connections[].tenantId` | string |  | max length 128 |
 
 ### `POST /auth/providers/:provider/test`
 

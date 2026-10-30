@@ -1337,7 +1337,24 @@
     "admin_subscriptions.visibility_nc_only_public": "Verbergt het plan op de openbare prijspagina en bij aanmelding. Het blijft beschikbaar voor organisaties die via de Nextcloud-app koppelen.",
     "admin_subscriptions.visibility_public": "Zichtbaar op openbare prijspagina",
     "admin_subscriptions.visibility_public_desc": "Openbare prijspagina’s en onboardingkaarten halen hun gegevens uit plannen die als Openbaar zijn gemarkeerd.",
-    "admin_subscriptions.visibility_title": "Zichtbaarheid"
+    "admin_subscriptions.visibility_title": "Zichtbaarheid",
+    "admin_security.sso_ms_button_title": "Inlogknop",
+    "admin_security.sso_ms_button_desc": "Wat de knop van deze app op de inlogpagina toont. Laat de tekst leeg voor \"Inloggen met Microsoft\"; zonder logo wordt het Microsoft-logo gebruikt.",
+    "admin_security.sso_ms_button_label": "Knoptekst",
+    "admin_security.sso_ms_button_label_ph": "Inloggen met Microsoft",
+    "admin_security.sso_ms_logo_choose": "Afbeelding kiezen",
+    "admin_security.sso_ms_logo_remove": "Logo verwijderen",
+    "admin_security.sso_ms_logo_hint": "PNG, JPEG, SVG of WebP, maximaal 100 KB.",
+    "admin_security.sso_ms_logo_too_large": "Die afbeelding is groter dan 100 KB.",
+    "admin_security.sso_ms_logo_type": "Kies een PNG-, JPEG-, SVG- of WebP-afbeelding.",
+    "admin_security.sso_ms_preview": "Voorbeeld",
+    "admin_security.sso_ms_connections_title": "Extra Microsoft-tenants",
+    "admin_security.sso_ms_connections_desc": "Elke extra tenant heeft een eigen app-registratie en een eigen knop op de inlogpagina. Registreer in elke app dezelfde redirect-URI.",
+    "admin_security.sso_ms_connections_empty": "Geen extra tenants. Iedereen logt in via de app-registratie hierboven.",
+    "admin_security.sso_ms_connection_add": "Tenant toevoegen",
+    "admin_security.sso_ms_connection_remove": "Verwijderen",
+    "admin_security.sso_ms_secret_ph": "Waarde van het clientgeheim",
+    "admin_security.sso_ms_connection_label_hint": "Staat op de knop, bijvoorbeeld de naam van het dochterbedrijf."
   },
   "sameAsEnglish": [
     "admin_ai_config.azure_subtitle",
@@ -1431,6 +1448,8 @@
     "admin_subscriptions.shell_audit",
     "admin_subscriptions.shell_stripe",
     "admin_subscriptions.stripe_country_fi",
-    "admin_subscriptions.stripe_dashboard"
+    "admin_subscriptions.stripe_dashboard",
+    "admin_security.sso_ms_logo",
+    "admin_security.sso_ms_connection_n"
   ]
 }

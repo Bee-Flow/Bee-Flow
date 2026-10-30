@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import { getPublicOrganizations, getSetupStatus } from '../../api/loginRequests';
 
+/** One Microsoft button on the login page; empty label/logo mean the defaults. */
+export interface MicrosoftLogin {
+    id: string;
+    label?: string;
+    logo?: string;
+}
+
 /** What /auth/setup-status answers; only the fields this screen reads. */
 interface SetupStatus {
     isSetupComplete?: boolean;
     isOAuthConfigured?: boolean;
     isGoogleConfigured?: boolean;
     isMicrosoftConfigured?: boolean;
+    microsoftLogins?: MicrosoftLogin[];
     serverUrl?: string;
     allowSignups?: boolean;
     allowOrgSignups?: boolean;
@@ -18,6 +26,12 @@ interface SetupStatus {
     branding?: { logo?: string };
     availableLocales?: { code: string }[];
     signupCaptcha?: { enabled?: boolean } & Record<string, unknown>;
+}
+
+/** The Microsoft buttons; an older server answers without the list: one default button when configured. */
+function microsoftLoginsOf(data: SetupStatus): MicrosoftLogin[] {
+    if (Array.isArray(data.microsoftLogins)) return data.microsoftLogins;
+    return data.isMicrosoftConfigured ? [{ id: 'default' }] : [];
 }
 
 /**
@@ -32,6 +46,7 @@ export function useAuthSettings() {
     const [serverUrl, setServerUrl] = useState('');
     const [isGoogleConfigured, setIsGoogleConfigured] = useState<boolean | undefined>(false);
     const [isMicrosoftConfigured, setIsMicrosoftConfigured] = useState<boolean | undefined>(false);
+    const [microsoftLogins, setMicrosoftLogins] = useState<MicrosoftLogin[]>([]);
     const [, setIsSetupComplete] = useState<boolean | undefined>(true);
     const [allowSignups, setAllowSignups] = useState<boolean | null>(null);
     const [allowOrgSignups, setAllowOrgSignups] = useState(true);
@@ -57,6 +72,7 @@ export function useAuthSettings() {
                     setIsOAuthConfigured(data.isOAuthConfigured);
                     setIsGoogleConfigured(data.isGoogleConfigured);
                     setIsMicrosoftConfigured(data.isMicrosoftConfigured);
+                    setMicrosoftLogins(microsoftLoginsOf(data));
                     if (data.serverUrl) setServerUrl(data.serverUrl);
                     if (!data.isSetupComplete) setSetupMode(true);
                     // Also track raw setup-complete flag for wizard
@@ -95,7 +111,7 @@ export function useAuthSettings() {
 
     return {
         availableLocales, setupMode, setSetupMode, setIsSetupComplete,
-        isOAuthConfigured, serverUrl, isGoogleConfigured, isMicrosoftConfigured,
+        isOAuthConfigured, serverUrl, isGoogleConfigured, isMicrosoftConfigured, microsoftLogins,
         allowSignups, allowOrgSignups, allowConsumerSignups, consumerLoginMethods,
         allowPasswordLogin, authSettingsLoaded, deploymentMode, orgLogo, signupOrgs, captchaConfig,
     };

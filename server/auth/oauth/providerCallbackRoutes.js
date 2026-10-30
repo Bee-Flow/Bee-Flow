@@ -73,7 +73,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                 isAdmin: req.session.isAdmin || false,
                 preserve: [
                     'oauthPopup', 'oauthPickupId', 'oauthAppRedirect',
-                    'accessToken', 'refreshToken', 'oauthProvider', 'microsoftIdentityVersion', 'microsoftLoginIdentity',
+                    'accessToken', 'refreshToken', 'oauthProvider', 'oauthConnectionId', 'microsoftIdentityVersion', 'microsoftLoginIdentity',
                     'nextcloudUid', 'nextcloudTokenExpiresAt',
                     'encryptionKey', 'needsEncryptionSetup', 'needsEncryptionPin',
                     'pendingApproval', 'noOrganization',
@@ -105,6 +105,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                         accessToken: req.session.accessToken,
                         refreshToken: req.session.refreshToken,
                         oauthProvider: req.session.oauthProvider,
+                        oauthConnectionId: req.session.oauthConnectionId,
                         microsoftIdentityVersion: req.session.microsoftIdentityVersion,
                         microsoftLoginIdentity: req.session.microsoftLoginIdentity,
                         nextcloudUid: req.session.nextcloudUid,

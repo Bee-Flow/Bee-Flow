@@ -9,6 +9,89 @@ const SECRET_KEYS = Object.freeze({
     nextcloud: 'oauth_nextcloud_client_secret',
 });
 const META_KEYS = ['admin', 'oauth', 'providers'];
+// Each additional Microsoft sign-in connection (auth/oauth/microsoftConnections.mts)
+// keeps its secret under its own key, next to the primary's.
+const CONNECTION_SECRET_PREFIX = `${SECRET_KEYS.microsoft}:`;
+/** @param {string} connectionId */
+const connectionSecretKey = (connectionId) => `${CONNECTION_SECRET_PREFIX}${connectionId}`;
+
+/**
+ * The additional Microsoft connections on a provider entry, never undefined.
+ * @param {{ connections?: unknown } | undefined} entry
+ * @returns {Record<string, any>[]}
+ */
+function connectionList(entry) {
+    return Array.isArray(entry?.connections) ? entry.connections : [];
+}
+
+/**
+ * An additional Microsoft connection stores its secret under its own key, never in
+ * the providers row; one that got there anyway (a hand-edited row) is moved like a
+ * legacy primary secret, inside the same locked transaction.
+ * @param {{ providers: Record<string, any> }} state
+ * @param {{ has: (key: string) => boolean, secretAt: (key: string) => string, write: (key: string, value: any, secret?: boolean) => Promise<void> }} tx
+ */
+async function upgradeConnectionSecrets(state, { has, secretAt, write }) {
+    for (const connection of connectionList(state.providers.microsoft)) {
+        if (!connection || !Object.hasOwn(connection, 'clientSecret')) continue;
+        const key = connectionSecretKey(connection.id);
+        const old = connection.clientSecret;
+        if (old && !has(key)) await write(key, old, true);
+        if (old && secretAt(key) !== old) throw new Error('Conflicting OAuth credentials require administrator recovery');
+        delete connection.clientSecret;
+        connection.hasClientSecret = !!secretAt(key);
+        await write('providers', state.providers);
+    }
+}
+
+/**
+ * Replace the additional Microsoft connections with `supplied`: the
+ * metadata goes in `providers`, each secret under its own key (kept when
+ * the patch leaves it blank), and the secret of a connection that is no
+ * longer in the list is deleted in the same transaction.
+ * @param {Record<string, any>} current the providers.microsoft entry
+ * @param {Record<string, any>[]} supplied
+ * @param {{ secretAt: (key: string) => string, write: (key: string, value: any, secret?: boolean) => Promise<void>, remove: (key: string) => Promise<void> }} tx
+ */
+async function replaceConnections(current, supplied, { secretAt, write, remove }) {
+    const kept = new Set();
+    const next = [];
+    for (const fields of supplied) {
+        const { clientSecret, hasClientSecret: _presence, ...metadata } = fields;
+        if (typeof metadata.id !== 'string' || !metadata.id) throw new Error('A Microsoft connection needs an id');
+        if (kept.has(metadata.id)) throw new Error('Duplicate Microsoft connection id');
+        kept.add(metadata.id);
+        const key = connectionSecretKey(metadata.id);
+        if (clientSecret !== undefined && typeof clientSecret !== 'string') throw new Error('Invalid OAuth credential');
+        if (clientSecret?.trim()) await write(key, clientSecret, true);
+        const previous = connectionList(current).find((c) => c.id === metadata.id) || {};
+        next.push({ ...previous, ...Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)), hasClientSecret: !!secretAt(key) });
+    }
+    for (const old of connectionList(current)) {
+        if (!kept.has(old.id)) await remove(connectionSecretKey(old.id));
+    }
+    current.connections = next;
+}
+
+/**
+ * One provider's patch: metadata on the entry, the secret under its key (kept when
+ * blank), and for Microsoft the additional connections.
+ * @param {string} provider
+ * @param {Record<string, any>} current
+ * @param {Record<string, any>} fields
+ * @param {{ secretValue: (provider: string) => string, secretAt: (key: string) => string, write: (key: string, value: any, secret?: boolean) => Promise<void>, remove: (key: string) => Promise<void> }} tx
+ */
+async function applyProviderFields(provider, current, fields, { secretValue, secretAt, write, remove }) {
+    const { clientSecret, hasClientSecret: _presence, connections, ...metadata } = fields;
+    Object.assign(current, Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)));
+    if (connections !== undefined) {
+        if (provider !== 'microsoft' || !Array.isArray(connections)) throw new Error('Only Microsoft has sign-in connections');
+        await replaceConnections(current, connections, { secretAt, write, remove });
+    }
+    if (clientSecret !== undefined && typeof clientSecret !== 'string') throw new Error('Invalid OAuth credential');
+    if (clientSecret?.trim()) await write(SECRET_KEYS[provider], clientSecret, true);
+    current.hasClientSecret = !!secretValue(provider);
+}
 
 function createAuthConfigStore({ db, configStore }) {
     const invalidate = (keys) => {
@@ -19,8 +102,8 @@ function createAuthConfigStore({ db, configStore }) {
         const changed = new Set();
         const result = await db.withTransaction(async client => {
             await client.query("SELECT pg_advisory_xact_lock(hashtext('beeflow:auth-config'))");
-            const { rows } = await client.query('SELECT key, value FROM config WHERE key = ANY($1::text[])',
-                [[...META_KEYS, ...Object.values(SECRET_KEYS)]]);
+            const { rows } = await client.query('SELECT key, value FROM config WHERE key = ANY($1::text[]) OR key LIKE $2',
+                [[...META_KEYS, ...Object.values(SECRET_KEYS)], `${CONNECTION_SECRET_PREFIX}%`]);
             const values = new Map(rows.map(row => [row.key, row.value]));
             /**
              * @param {string} key
@@ -43,14 +126,24 @@ function createAuthConfigStore({ db, configStore }) {
                 // Postgres delivers transactional notifications only at commit.
                 await client.query('SELECT pg_notify($1,$2)', [configStore.CONFIG_INVALIDATE_CHANNEL, key]);
             };
-            const secretValue = (/** @type {string} */ provider) => {
-                const raw = values.get(SECRET_KEYS[provider]);
+            /** @param {string} key */
+            const remove = async (key) => {
+                if (!values.has(key)) return;
+                await client.query('DELETE FROM config WHERE key=$1', [key]);
+                values.delete(key);
+                changed.add(key);
+                await client.query('SELECT pg_notify($1,$2)', [configStore.CONFIG_INVALIDATE_CHANNEL, key]);
+            };
+            /** @param {string} key */
+            const secretAt = (key) => {
+                const raw = values.get(key);
                 if (!raw) return '';
                 if (JSON.parse(raw)?._encrypted !== 'config-v1') throw new Error('OAuth credential is not encrypted');
                 const value = configStore.decryptValue(raw);
                 if (value === null) throw new Error('OAuth credential could not be decrypted');
                 return value;
             };
+            const secretValue = (/** @type {string} */ provider) => secretAt(SECRET_KEYS[provider]);
             const state = {
                 admin: read('admin') || { username: 'admin', passwordHash: '' },
                 oauth: read('oauth') || { nextcloudUrl: '', clientId: '' },
@@ -74,22 +167,26 @@ function createAuthConfigStore({ db, configStore }) {
                 }
                 }
             }
-            return fn({ state, secretValue, write, client });
+            await upgradeConnectionSecrets(state, { has: key => values.has(key), secretAt, write });
+            return fn({ state, secretValue, secretAt, write, remove, client });
         });
         invalidate(changed);
         return result;
     }
     async function load() {
-        return transaction(async ({ state, secretValue }) => {
+        return transaction(async ({ state, secretValue, secretAt }) => {
             for (const provider of Object.keys(SECRET_KEYS)) {
                 const entry = provider === 'nextcloud' ? state.oauth : (state.providers[provider] ||= {});
                 entry.clientSecret = secretValue(provider);
+            }
+            for (const connection of connectionList(state.providers.microsoft)) {
+                connection.clientSecret = secretAt(connectionSecretKey(connection.id));
             }
             return state;
         });
     }
     async function save(patch) {
-        return transaction(async ({ state, secretValue, write }) => {
+        return transaction(async ({ state, secretValue, secretAt, write, remove }) => {
             if (patch.admin !== undefined) {
                 state.admin = { ...state.admin, ...patch.admin };
                 await write('admin', state.admin);
@@ -100,11 +197,7 @@ function createAuthConfigStore({ db, configStore }) {
                 for (const [provider, fields] of Object.entries(entries)) {
                     if (!Object.hasOwn(SECRET_KEYS, provider)) throw new Error('Unknown OAuth provider');
                     const current = key === 'oauth' ? state.oauth : (state.providers[provider] ||= {});
-                    const { clientSecret, hasClientSecret: _presence, ...metadata } = fields;
-                    Object.assign(current, Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined)));
-                    if (clientSecret !== undefined && typeof clientSecret !== 'string') throw new Error('Invalid OAuth credential');
-                    if (clientSecret?.trim()) await write(SECRET_KEYS[provider], clientSecret, true);
-                    current.hasClientSecret = !!secretValue(provider);
+                    await applyProviderFields(provider, current, fields, { secretValue, secretAt, write, remove });
                 }
                 await write(key, state[key]);
             }

@@ -18,6 +18,7 @@ const signupCaptcha = require('../signupCaptcha');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { listMicrosoftLogins } = require('../oauth/microsoftConnections.mts');
 
 const PASSWORD_TEXT = 'Choose a password for the operator account.';
 // Only the password, and it must be a string: the policy check below reads
@@ -34,6 +35,9 @@ router.get('/setup-status', async (/** @type {import('express').Request} */ req,
     const isOAuthConfigured = !!(config.oauth.clientId && config.oauth.clientSecret);
     const isGoogleConfigured = !!(config.providers?.google?.clientId && config.providers?.google?.clientSecret);
     const isMicrosoftConfigured = !!(config.providers?.microsoft?.clientId && config.providers?.microsoft?.clientSecret);
+    // One login button per Microsoft connection: the primary app and every
+    // additional tenant, each with its own text and logo (empty = defaults).
+    const microsoftLogins = listMicrosoftLogins(config);
     // Expose server URL so frontend can redirect OAuth directly to the backend
     // (bypassing the frontend nginx proxy which strips Set-Cookie from 302s)
     const serverUrl = process.env.SERVER_PUBLIC_HOST
@@ -79,6 +83,7 @@ router.get('/setup-status', async (/** @type {import('express').Request} */ req,
         isOAuthConfigured,
         isGoogleConfigured,
         isMicrosoftConfigured,
+        microsoftLogins,
         serverUrl,
         deploymentMode,
         branding,
