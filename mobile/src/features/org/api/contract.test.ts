@@ -19,12 +19,12 @@ function expectAll(src: string, needles: string[]) {
 }
 
 describe('the org record, logo and default language', () => {
-    it('keeps the logo routes, their multer field and the answer', () => {
+    it('keeps the logo routes, their upload field and the answer', () => {
         const src = read('auth/admin/orgRoutes.js');
         expectAll(src, [
             "router.post('/organizations/:id/logo'",
-            "orgLogoUpload.single('logo')",
-            'fileSize: 2 * 1024 * 1024',
+            "field: 'logo'",
+            'receiveLogo,',
             'res.json({ success: true, logo: logoPath })',
             "router.delete('/organizations/:id/logo'",
             "router.put('/organizations/:id', requireOrgAdmin('id')",

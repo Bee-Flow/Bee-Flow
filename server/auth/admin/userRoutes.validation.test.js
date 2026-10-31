@@ -136,3 +136,36 @@ test('a real password change still re-wraps the key', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.ok(touched.some((t) => t.what === 'rewrapUserDEKCompat'));
 });
+
+// ── The avatar upload, through a real multipart request ─────────────
+// The stored extension is the file TYPE's (read from the bytes by
+// middleware/uploadedImage.js), never the client's file name's, and the
+// response shape is the one the Hub reads: { success, avatar, avatarType }.
+
+test('POST /users/:id/avatar stores a PNG named x.html as .png and answers the same shape', async () => {
+    const http = require('node:http');
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const express = require('express');
+    const app = express();
+    app.use('/auth', router);
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32, 1)]);
+    let storedFile = null;
+    try {
+        const form = new FormData();
+        form.append('avatar', new Blob([png], { type: 'image/png' }), 'x.html');
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/auth/users/u1/avatar`, { method: 'POST', body: form });
+        const body = await res.json();
+        assert.strictEqual(res.status, 200, JSON.stringify(body));
+        assert.match(body.avatar, /^\/uploads\/user-avatar-u1-\d+\.png$/);
+        assert.deepStrictEqual(body, { success: true, avatar: body.avatar, avatarType: 'image' });
+        storedFile = path.join(__dirname, '..', '..', 'data', 'uploads', path.basename(body.avatar));
+        assert.deepStrictEqual(fs.readFileSync(storedFile), png);
+        assert.deepStrictEqual(touched.find((t) => t.what === 'updateUser').args, ['u1', { avatar: body.avatar, avatarType: 'image' }]);
+    } finally {
+        if (storedFile) fs.rmSync(storedFile, { force: true });
+        await new Promise((resolve) => server.close(resolve));
+    }
+});

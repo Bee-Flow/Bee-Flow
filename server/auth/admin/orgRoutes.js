@@ -8,7 +8,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
+const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
@@ -562,32 +562,16 @@ router.delete('/organizations/:id', requireSuperAdmin, async (/** @type {import(
     }
 });
 
-// Upload organization logo
-const orgLogoUpload = multer({
-    storage: multer.diskStorage({
-        destination: (/** @type {import('express').Request} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, dir: string) => void} */ cb) => {
-            const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads');
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
-            }
-            cb(null, uploadDir);
-        },
-        filename: (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, name: string) => void} */ cb) => {
-            const ext = path.extname(file.originalname);
-            cb(null, `org-logo-${req.params.id}-${Date.now()}${ext}`);
-        }
-    }),
-    limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
-        if (/^image\/(png|jpeg|jpg|svg\+xml|webp)$/.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only PNG, JPG, SVG, WEBP images are allowed'));
-        }
-    }
+// Upload organization logo. The type is read from the bytes and decides the
+// stored extension (middleware/uploadedImage.js); the client's file name
+// never does. Served back by the /uploads mount in boot/staticAssets.js.
+const receiveLogo = receiveImage({
+    field: 'logo',
+    allow: ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
+    name: (req) => `org-logo-${String(req.params.id)}-${Date.now()}`,
 });
 
-router.post('/organizations/:id/logo', requireOrgAdmin('id'), orgLogoUpload.single('logo'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+router.post('/organizations/:id/logo', requireOrgAdmin('id'), receiveLogo, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const logoPath = `/uploads/${req.file.filename}`;
     await userStore.updateOrganization(req.params.id, { logo: logoPath });

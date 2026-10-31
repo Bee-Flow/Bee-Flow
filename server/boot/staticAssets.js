@@ -16,7 +16,7 @@ const path = require('path');
 const defaultLog = require('../telemetry/log');
 
 const AGENT_HUB_DIST_PATH = path.resolve(__dirname, '../../agent-hub/dist');
-const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
+const { UPLOADS_DIR, INLINE_UPLOAD_EXTS } = require('../middleware/uploadedImage');
 
 /**
  * @param {{ use: Function }} app
@@ -47,7 +47,19 @@ function mountStaticAssets(app, { log = defaultLog } = {}) {
     // authenticates nothing and sits ahead of every router, so it is gated by an
     // allowlist. See middleware/publicUploads.js for why.
     app.use('/uploads', require('../middleware/publicUploads').publicUploadsOnly);
-    app.use('/uploads', express.static(UPLOADS_DIR));
+    // Whatever a stored file turns out to be — including one written before the
+    // upload path sniffed its bytes — it is never a document that runs on this
+    // origin: no sniffing, a sandbox policy, and anything outside the image
+    // extensions downloads instead of rendering. Image subresource loads
+    // (`<img src="/uploads/…">`) are unaffected by all three.
+    app.use('/uploads', express.static(UPLOADS_DIR, {
+        setHeaders(res, filePath) {
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
+            const inline = INLINE_UPLOAD_EXTS.has(path.extname(filePath).toLowerCase());
+            res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+        },
+    }));
     // Learning Center video pack (LEARN_MEDIA_DIR, outside git and the image).
     // Public, allow-listed file types, a bare 404 on a miss so the SPA renderer
     // never answers for it. See learning/learnMedia.js.

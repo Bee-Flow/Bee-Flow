@@ -9,7 +9,7 @@ const express = require('express');
 const passwords = require('../passwordHash');
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
+const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
@@ -520,35 +520,19 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
     }
 });
 
-// Upload user avatar image
-const userAvatarUpload = multer({
-    storage: multer.diskStorage({
-        destination: (/** @type {import('express').Request} */ req, file, cb) => {
-            const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads');
-            if (!fs.existsSync(uploadDir)) {
-                fs.mkdirSync(uploadDir, { recursive: true });
-            }
-            cb(null, uploadDir);
-        },
-        filename: (/** @type {import('express').Request} */ req, file, cb) => {
-            const ext = path.extname(file.originalname);
-            cb(null, `user-avatar-${req.params.id}-${Date.now()}${ext}`);
-        }
-    }),
-    limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: (/** @type {import('express').Request} */ req, file, cb) => {
-        if (/^image\/(png|jpeg|jpg|svg\+xml|webp|gif)$/.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only PNG, JPG, SVG, WEBP, GIF images are allowed'));
-        }
-    }
+// Upload user avatar image. The type is read from the bytes and decides the
+// stored extension (middleware/uploadedImage.js); the client's file name
+// never does. Served back by the /uploads mount in boot/staticAssets.js.
+const receiveAvatar = receiveImage({
+    field: 'avatar',
+    allow: ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'],
+    name: (req) => `user-avatar-${String(req.params.id)}-${Date.now()}`,
 });
 
-router.post('/users/:id/avatar', requireOrgAdminForUser, userAvatarUpload.single('avatar'), async (req, res) => {
+router.post('/users/:id/avatar', requireOrgAdminForUser, receiveAvatar, async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const avatarPath = `/uploads/${req.file.filename}`;
-    await userStore.updateUser(req.params.id, { avatar: avatarPath, avatarType: 'image' });
+    await userStore.updateUser(String(req.params.id), { avatar: avatarPath, avatarType: 'image' });
     res.json({ success: true, avatar: avatarPath, avatarType: 'image' });
 });
 
