@@ -190,7 +190,7 @@ const LEAN = Object.freeze({
             query: { description: 'Query parameters as data: {mode:"json", json:\'{"builder":[{"paginate":{{steps.a.output.n}}}]}\'} or {mode:"fields", items:[{key,value}]}; arrayFormat indices|brackets|repeat|comma. PREFER over a hand-encoded ?query in url; bind dynamic parts with {{…}}.' },
             timeoutMs: { description: '1000..60000, default 10000.' },
             parseResponse: { description: 'How to fill output.data: auto (JSON content-type), never, always.' },
-            blockPrivateTargets: { description: 'Default true. false ONLY for an internal address the user explicitly asked for.' },
+            blockPrivateTargets: { description: 'Default true. false ONLY for an internal address the user explicitly asked for, and only effective on a server whose operator allowed it (AUTOMATION_ALLOW_PRIVATE_TARGETS); do not suggest it.' },
             authConnectionId: { description: 'Id of a saved HTTP credential the user supplied; never invent one.' },
             askOnce: null,
             cacheInto: null,

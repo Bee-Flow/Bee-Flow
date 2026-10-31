@@ -57,6 +57,26 @@ stub('../utils/ssrfGuard', {
 });
 stub('../core/documents/pdfExtractor', { extractTextFromPDF: (...args) => pdfTextImpl(...args) });
 
+// The route screen resolves DNS names server-side; here a fixed resolver
+// stands in for dns.lookup so the SSRF test needs no network.
+const ROUTE_DNS = {
+    'public-site.com': [{ address: '93.184.216.34', family: 4 }],
+    'evil.test': [{ address: '169.254.169.254', family: 4 }],
+    'mixed.test': [{ address: '93.184.216.34', family: 4 }, { address: '10.0.0.5', family: 4 }],
+};
+const realRouteGuard = require('../core/http/browserRouteGuard');
+stub('../core/http/browserRouteGuard', {
+    ...realRouteGuard,
+    makeResolvedHostScreen: (opts) => realRouteGuard.makeResolvedHostScreen({
+        ...opts,
+        lookup: (host, _opts, cb) => {
+            const a = ROUTE_DNS[host];
+            if (!a) { const e = new Error(`getaddrinfo ENOTFOUND ${host}`); e.code = 'ENOTFOUND'; return process.nextTick(cb, e); }
+            process.nextTick(cb, null, a);
+        },
+    }),
+});
+
 // Fake Playwright page + context. route() captures the SSRF handler so a test
 // can invoke it directly; goto records nav; screenshot returns a tiny buffer.
 function makeFakePage() {
@@ -171,6 +191,9 @@ test('runBrowseTask: ctx.route SSRF handler aborts private/loopback hosts and no
     await routeHandler(makeRoute('http://127.0.0.1:8000/'));
     await routeHandler(makeRoute('http://10.0.0.5/'));
     await routeHandler(makeRoute('file:///etc/passwd'));
+    await routeHandler(makeRoute('https://evil.test/'));
+    await routeHandler(makeRoute('https://mixed.test/'));
+    await routeHandler(makeRoute('https://nxdomain.test/'));
 
     const byUrl = Object.fromEntries(results.map(r => [r.url, r.action]));
     assert.strictEqual(byUrl['https://public-site.com/page'], 'continue', 'public host allowed');
@@ -178,6 +201,9 @@ test('runBrowseTask: ctx.route SSRF handler aborts private/loopback hosts and no
     assert.strictEqual(byUrl['http://127.0.0.1:8000/'], 'abort', 'loopback blocked');
     assert.strictEqual(byUrl['http://10.0.0.5/'], 'abort', 'private range blocked');
     assert.strictEqual(byUrl['file:///etc/passwd'], 'abort', 'non-http scheme blocked');
+    assert.strictEqual(byUrl['https://evil.test/'], 'abort', 'a public name resolving to the metadata address is blocked');
+    assert.strictEqual(byUrl['https://mixed.test/'], 'abort', 'one private record among public ones is enough');
+    assert.strictEqual(byUrl['https://nxdomain.test/'], 'abort', 'an unresolvable name is not let through');
 });
 
 // ── Cross-origin navigation is allowed (unlike the QA driver) ────────────────

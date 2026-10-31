@@ -41,7 +41,7 @@
 'use strict';
 
 const dns = require('dns');
-const { parseIPv4Numeric, formatIPv4, looksNumericLabel, parseIPv6, isForbiddenIPv4Int } = require('./ssrfGuardParseIPv6');
+const { parseIPv4Numeric, formatIPv4, looksNumericLabel, parseIPv6, isForbiddenIPv4Int, isForbiddenIPv6Bytes } = require('./ssrfGuardParseIPv6');
 
 // ── IPv4 / IPv6 parsing lives in ./ssrfGuardParseIPv6 ─────────────
 
@@ -75,28 +75,12 @@ function formatIPv6(bytes) {
 }
 
 // ── Forbidden range checks (numeric, never regex-on-strings) ──────
-
-/** @param {number[]} bytes @returns {boolean} */
-function isForbiddenIPv6Bytes(bytes) {
-    let leadingZeroBytes = 0;
-    while (leadingZeroBytes < 16 && bytes[leadingZeroBytes] === 0) leadingZeroBytes++;
-    if (leadingZeroBytes === 16) return true;                     // :: unspecified
-    if (leadingZeroBytes === 15 && bytes[15] === 1) return true;  // ::1 loopback
-    if (bytes[0] === 0xfe && (bytes[1] & 0xc0) === 0x80) return true; // fe80::/10
-    if ((bytes[0] & 0xfe) === 0xfc) return true;                  // fc00::/7 ULA
-    const v4 = ((bytes[12] << 24) | (bytes[13] << 16) | (bytes[14] << 8) | bytes[15]) >>> 0;
-    if (leadingZeroBytes >= 10 && bytes[10] === 0xff && bytes[11] === 0xff) {
-        return isForbiddenIPv4Int(v4);                            // ::ffff:a.b.c.d mapped
-    }
-    if (leadingZeroBytes >= 12) {
-        return isForbiddenIPv4Int(v4);                            // deprecated ::a.b.c.d compat
-    }
-    return false;
-}
+// The tables themselves live in ./ssrfGuardParseIPv6.
 
 /**
  * True when `ip` is loopback, RFC1918, link-local, ULA, CGNAT, 0.0.0.0/8,
- * broadcast, unspecified, or an IPv4-mapped IPv6 form of any of those.
+ * 192.0.0.0/24, 198.18.0.0/15, multicast, reserved, broadcast, unspecified,
+ * site-local, or a wrapped IPv4 form (mapped, compat, NAT64, 6to4) of any of those.
  * Fail-closed: anything that does not parse as an IP is also forbidden —
  * callers only pass literal IPs (resolved addresses / numeric hostnames).
  * @param {unknown} ip

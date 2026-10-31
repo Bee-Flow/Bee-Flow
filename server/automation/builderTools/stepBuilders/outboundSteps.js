@@ -143,9 +143,10 @@ function applyAddHttpRequest(draft, args, draftWrap) {
         body: loopBody.value,
         ...(queryChecked.query ? { query: queryChecked.query } : {}),
         timeoutMs: typeof args.timeoutMs === 'number' ? args.timeoutMs : 10000,
-        // blockPrivateTargets defaults TRUE (safe): only reaches localhost /
-        // private-network / cloud-metadata targets when the caller explicitly
-        // sets it false (a deliberate opt-out for internal endpoints).
+        // blockPrivateTargets defaults TRUE (safe). false is a per-step
+        // opt-out for internal endpoints that only takes effect on a server
+        // whose operator allowed it (AUTOMATION_ALLOW_PRIVATE_TARGETS=1);
+        // elsewhere the call is screened as usual.
         blockPrivateTargets: args.blockPrivateTargets === false ? false : true,
         parseResponse: ['never', 'always'].includes(args.parseResponse) ? args.parseResponse : undefined,
         // "Ask this web service only once" — GET/HEAD only, and the validator

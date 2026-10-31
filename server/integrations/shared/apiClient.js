@@ -20,6 +20,7 @@
  * default), so no per-request agent is created.
  */
 const { isPrivateTarget } = require('../../utils/isPrivateTarget');
+const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_ERROR_CHARS = 500;
@@ -37,10 +38,11 @@ function _truncate(s, n) {
  * Answers the parsed JSON, the raw text, or null (an empty body).
  * @param {string} url  absolute URL
  * @param {{ method?: string, headers?: Record<string, string>, body?: unknown, timeoutMs?: number,
- *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean }} [opts]  `method` GET by
+ *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean, fetchImpl?: Function }} [opts]  `method` GET by
  *   default; `body` an object (JSON-encoded) or a string; `timeoutMs` 30000 by default; `errorPrefix`
  *   ('API') starts thrown error messages; `maxErrorChars` (500) truncates the error body;
- *   `allowPrivate` skips the SSRF pre-filter (self-host internal services)
+ *   `allowPrivate` skips the SSRF guard (self-host internal services); `fetchImpl` is a test seam
+ *   (default: the guarded safeFetch, or the global fetch with `allowPrivate`)
  */
 async function jsonApiRequest(url, opts = {}) {
     const {
@@ -51,13 +53,18 @@ async function jsonApiRequest(url, opts = {}) {
         errorPrefix = 'API',
         maxErrorChars = DEFAULT_MAX_ERROR_CHARS,
         allowPrivate = false,
+        fetchImpl = allowPrivate ? fetch : safeFetch,
     } = opts;
 
-    if (!allowPrivate && isPrivateTarget(url)) {
+    const refused = () => {
         const err = new Error(`${errorPrefix}: request to a private or blocked address was refused`);
         err.code = 'EPRIVATETARGET';
-        throw err;
-    }
+        return err;
+    };
+    // The literal pre-filter answers before any network activity; a name
+    // that resolves to a private address (and every redirect hop) is refused
+    // by the guarded fetch at connect time.
+    if (!allowPrivate && isPrivateTarget(url)) throw refused();
 
     const reqHeaders = { ...headers };
     /** @type {string | undefined} */
@@ -71,13 +78,14 @@ async function jsonApiRequest(url, opts = {}) {
     /** @type {Response} */
     let resp;
     try {
-        resp = await fetch(url, {
+        resp = await fetchImpl(url, {
             method,
             headers: reqHeaders,
             body: payload,
             signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (e) {
+        if (!allowPrivate && isPrivateAddressError(e)) throw refused();
         if (e && (/** @type {Error} */ (e).name === 'TimeoutError' || /** @type {Error} */ (e).name === 'AbortError')) {
             const err = new Error(`${errorPrefix}: request timed out after ${timeoutMs}ms`);
             err.code = 'ETIMEDOUT';

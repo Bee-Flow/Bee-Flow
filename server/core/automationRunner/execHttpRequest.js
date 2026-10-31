@@ -5,14 +5,15 @@
  * answer from the response cache when the step asks for it (./httpCache.js),
  * and otherwise send it, log it and guard the reply.
  *
- * Outbound HTTP/webhook call step. `blockPrivateTargets` (default true) is an
- * explicit, OPTIONAL per-step security toggle — not mandatory, per product
- * decision — that routes through utils/ssrfGuard's safeFetch (literal-hostname
- * screen + DNS-rebinding-safe validated lookup + a connector that re-screens
- * every redirect hop) instead of a bare fetch. Turning it off is a deliberate
- * escape hatch for automations that need to reach an internal/private endpoint
- * (e.g. a self-hosted user's own LAN service) — the inspector surfaces a clear
- * warning when it's disabled.
+ * Outbound HTTP/webhook call step. Every call goes through utils/ssrfGuard's
+ * safeFetch (literal-hostname screen + DNS-rebinding-safe validated lookup +
+ * a connector that re-screens every redirect hop). The per-step
+ * `blockPrivateTargets: false` is an escape hatch for an automation that
+ * needs to reach an internal/private endpoint (a self-hosted user's own LAN
+ * service): it only takes effect when the server operator allowed it with
+ * AUTOMATION_ALLOW_PRIVATE_TARGETS=1. Otherwise the call is screened as
+ * usual and the run carries a warning naming the flag, so an author on a
+ * server that does not allow it learns why rather than wondering.
  *
  * Dry-run follows the same reads-live/writes-simulated convention as
  * execIntegrationAction's sideEffect gate: GET/HEAD execute for real so the
@@ -38,6 +39,15 @@ const safety = require('./safety');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 const { bestEffort } = require('../../utils/bestEffort');
+const { noteRunWarning } = require('./runWarnings');
+
+/**
+ * Whether a step's `blockPrivateTargets: false` takes effect on this server.
+ * The opt-out is per step; the permission to use it is per instance.
+ */
+function privateTargetsAllowed() {
+    return process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS === '1';
+}
 
 // 1MB response cap — shared with codeSandbox's defaultFetchHttp bridge via
 // core/http/httpResponseLimits.js, so both outbound-HTTP surfaces (code step
@@ -161,7 +171,7 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
     let httpProbe = null;
     try {
         const sent = await sendHttp({
-            fetchImpl: blockPrivateTargets ? safeFetch : fetch,
+            fetchImpl: blockPrivateTargets ? safeFetch : fetch, // false only reaches here when the instance allows it
             sendUrl, method, headers, sendBody, signal: ac.signal,
             followSameHostOnly: authInjectedHeaders.size > 0,
         });
@@ -207,7 +217,9 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
         });
         if (e && e.guardrailBlocked) throw e;
         if (blockPrivateTargets && isPrivateAddressError(e)) {
-            throw new Error('http_request: refused — target resolves to a private/internal address. Turn off "Block requests to private/internal addresses" in this step\'s settings if you specifically need to reach it.');
+            throw new Error(step.blockPrivateTargets === false
+                ? 'http_request: refused — target resolves to a private/internal address. This server does not allow automations to reach private addresses (the operator enables it with AUTOMATION_ALLOW_PRIVATE_TARGETS=1).'
+                : 'http_request: refused — target resolves to a private/internal address. Turn off "Block requests to private/internal addresses" in this step\'s settings if you specifically need to reach it.');
         }
         if (/** @type {Error} */ (e).name === 'AbortError') throw new Error(`http_request: timed out after ${timeoutMs}ms.`);
         /** @type {import('./runnerError.types').RunnerError} */
@@ -242,7 +254,11 @@ async function execHttpRequest(step, ctx, runState, mode) {
         throw new Error(`http_request: unsupported URL scheme "${parsedUrl.protocol}" — only http/https are allowed.`);
     }
 
-    const blockPrivateTargets = step.blockPrivateTargets !== false; // default true
+    // Default true. The step's opt-out counts only on a server that allows it.
+    const blockPrivateTargets = step.blockPrivateTargets !== false || !privateTargetsAllowed();
+    if (step.blockPrivateTargets === false && blockPrivateTargets) {
+        noteRunWarning(runState, `${step.id}: "Block requests to private/internal addresses" is off, but this server does not allow automations to reach private addresses (AUTOMATION_ALLOW_PRIVATE_TARGETS); the call was screened as usual.`);
+    }
     const credential = await injectCredential(step, ctx, runState, req, { parsedUrl, blockPrivateTargets });
     const { authInjectedHeaders } = credential;
     const { guarded, httpMeta, destination } = await guardHttpRequest(step, ctx, mode, req, { parsedUrl, authInjectedHeaders });

@@ -33,6 +33,9 @@ const rendered = [];
 let renderFailure = null;
 
 const fakeContext = {
+    // The route screen is registered on the context before the page renders;
+    // what it decides is covered by core/http/browserRouteGuard.test.js.
+    route: async () => {},
     newPage: async () => ({
         setContent: async () => {},
         waitForTimeout: async () => {},

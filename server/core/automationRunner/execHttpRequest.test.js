@@ -178,17 +178,46 @@ test('blockPrivateTargets default true: a private-address refusal from safeFetch
     );
 });
 
-test('blockPrivateTargets: false is an explicit opt-out — uses a bare fetch, NOT safeFetch', async () => {
+test('blockPrivateTargets: false is an explicit opt-out — uses a bare fetch, NOT safeFetch, once the instance allows it', async () => {
     safeFetchCalls.length = 0;
     const originalFetch = global.fetch;
     let bareFetchCalled = false;
     global.fetch = async (_url, _opts) => { bareFetchCalled = true; return fakeResponse({ status: 200, body: 'internal ok' }); };
+    process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS = '1';
     try {
         const step = { id: 'h1', type: 'http_request', url: 'http://internal.local/health', blockPrivateTargets: false };
-        const result = await execHttpRequest(step, {}, baseState(), 'live');
+        const state = baseState();
+        const result = await execHttpRequest(step, {}, state, 'live');
         assert.strictEqual(bareFetchCalled, true, 'blockPrivateTargets:false must bypass safeFetch entirely');
         assert.strictEqual(safeFetchCalls.length, 0, 'safeFetch (the guarded path) must NOT be invoked when the toggle is off');
         assert.strictEqual(result.output.body, 'internal ok');
+        assert.deepStrictEqual(state._templateWarnings, [], 'no warning when the instance allows the opt-out');
+    } finally {
+        global.fetch = originalFetch;
+        delete process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
+    }
+});
+
+test('blockPrivateTargets: false without the instance flag — still safeFetch, with a warning that names the flag', async () => {
+    safeFetchCalls.length = 0;
+    authState.calls.length = 0;
+    const originalFetch = global.fetch;
+    let bareFetchCalled = false;
+    global.fetch = async () => { bareFetchCalled = true; return fakeResponse({ status: 200, body: 'internal ok' }); };
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: 'screened ok' });
+    delete process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
+    try {
+        const step = { id: 'h1', type: 'http_request', url: 'http://internal.local/health', blockPrivateTargets: false };
+        const state = baseState();
+        const result = await execHttpRequest(step, {}, state, 'live');
+        assert.strictEqual(bareFetchCalled, false, 'the bare fetch is never reached without the flag');
+        assert.strictEqual(safeFetchCalls.length, 1, 'the guarded path is used');
+        assert.strictEqual(result.output.body, 'screened ok');
+        assert.strictEqual(state._templateWarnings.length, 1);
+        assert.match(state._templateWarnings[0], /AUTOMATION_ALLOW_PRIVATE_TARGETS/);
+        // A refusal on that path names the flag, not the per-step switch.
+        safeFetchImpl = async () => { throw new FakePrivateAddressError('internal.local'); };
+        await assert.rejects(() => execHttpRequest(step, {}, baseState(), 'live'), /AUTOMATION_ALLOW_PRIVATE_TARGETS/);
     } finally {
         global.fetch = originalFetch;
     }
@@ -502,6 +531,7 @@ test('a step with blockPrivateTargets:false never caches at all', async () => {
     let bareFetches = 0;
     const realFetch = global.fetch;
     global.fetch = async () => { bareFetches++; return fakeResponse({ status: 200, body: 'ok' }); };
+    process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS = '1';
     try {
         const ctx = CACHE_CTX();
         const step = { ...CACHED_STEP, blockPrivateTargets: false };
@@ -511,6 +541,7 @@ test('a step with blockPrivateTargets:false never caches at all', async () => {
         assert.deepStrictEqual(ctx._toolMemo.peeks, [], 'it was never eligible, so it is not even a miss');
     } finally {
         global.fetch = realFetch;
+        delete process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
     }
 });
 

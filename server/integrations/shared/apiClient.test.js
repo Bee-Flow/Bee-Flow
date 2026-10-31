@@ -1,17 +1,24 @@
 /**
- * Unit — jsonApiRequest hardened outbound client (H10). DB-free; stubs global
- * fetch. Run: node --test integrations/shared/apiClient.test.js
+ * Unit — jsonApiRequest hardened outbound client (H10). DB-free. The guarded
+ * fetch is the default; tests hand in `fetchImpl` (the seam) and `allowPrivate`
+ * keeps using the global fetch, which is stubbed for that one case.
+ * Run: node --test integrations/shared/apiClient.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { jsonApiRequest } = require('./apiClient');
+const { jsonApiRequest: rawJsonApiRequest } = require('./apiClient');
+
+let fetchStub = null;
+/** jsonApiRequest with the stubbed fetch as `fetchImpl` (and as global fetch for allowPrivate). */
+const jsonApiRequest = (url, opts = {}) => rawJsonApiRequest(url, { fetchImpl: fetchStub, ...opts });
 
 function stubFetch(fn) {
     const orig = global.fetch;
     global.fetch = fn;
-    return () => { global.fetch = orig; };
+    fetchStub = fn;
+    return () => { global.fetch = orig; fetchStub = null; };
 }
 
 function jsonResponse(body, { ok = true, status = 200 } = {}) {
@@ -36,9 +43,27 @@ test('refuses a private/internal target before any fetch (SSRF pre-filter)', asy
 test('allowPrivate lets an internal target through (self-hosted service opt-out)', async () => {
     const restore = stubFetch(async () => jsonResponse({ ok: 1 }));
     try {
-        const out = await jsonApiRequest('http://127.0.0.1:5678/rest/workflows', { allowPrivate: true });
+        const out = await rawJsonApiRequest('http://127.0.0.1:5678/rest/workflows', { allowPrivate: true });
         assert.deepStrictEqual(out, { ok: 1 });
     } finally { restore(); }
+});
+
+test('a refusal at connect time (name resolving to a private address, redirect hop) is the same EPRIVATETARGET', async () => {
+    const restore = stubFetch(async () => {
+        const e = new Error('Refused: target resolves to a private/internal address.');
+        e.code = 'EPRIVATEADDRESS';
+        throw e;
+    });
+    try {
+        await assert.rejects(
+            () => jsonApiRequest('https://rebind.example.com/x', { errorPrefix: 'YouTrack API' }),
+            (e) => e.code === 'EPRIVATETARGET' && !/rebind\.example\.com/.test(e.message),
+        );
+    } finally { restore(); }
+});
+
+test('without fetchImpl the guarded fetch is the default (a literal private host never dials)', async () => {
+    await assert.rejects(() => rawJsonApiRequest('http://10.0.0.5/x'), (e) => e.code === 'EPRIVATETARGET');
 });
 
 test('public target: returns parsed JSON, sends JSON content-type + body', async () => {
