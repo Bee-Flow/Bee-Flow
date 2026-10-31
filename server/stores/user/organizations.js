@@ -13,6 +13,7 @@ const { applyDefaultEncryptionTier } = require('../initialTier');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
+
 // ── Organizations ─────────────────────────────
 function parseOrg(o) {
     return {
@@ -449,7 +450,6 @@ async function deleteOrganization(orgId) {
         for (const u of orgUsers) await assertNotStageRunAs(u.id);
         for (const u of orgUsers) await deleteUser(u.id);
         if (orgUsers.length > 0) log.info(`[UserStore] Deleted ${orgUsers.length} user(s) from org '${orgId}'`);
-
         step = 'groups';
         await run('DELETE FROM groups WHERE "organizationId" = $1', [orgId]);
         step = 'organization_subscriptions';
@@ -543,7 +543,7 @@ async function deleteOrganization(orgId) {
             await run('DELETE FROM dashboard_panels WHERE dashboard_id = ANY($1)', [dashboards.map(d => d.id)]);
         }
         await run('DELETE FROM dashboards WHERE organization_id = $1', [orgId]);
-
+        await require('./orgErasure').eraseOrgKeyedRows(orgId, (name) => { step = name; });
         step = 'organizations';
         await run('DELETE FROM organizations WHERE id = $1', [orgId]);
     } catch (e) {

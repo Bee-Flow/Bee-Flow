@@ -19,4 +19,12 @@ registerErasurePorts({
     projects: {
         makeTeardown: () => require('./projectTeardown').makeProjectTeardown(),
     },
+    content: {
+        eraseTranscriptions: (userId) => require('./accountContentErasure').eraseTranscriptions(userId),
+        eraseOrgTranscriptions: (orgId) => require('./accountContentErasure').eraseOrgTranscriptions(orgId),
+        eraseWebpages: (userId) => require('./accountContentErasure').eraseWebpages(userId),
+        eraseStudioApps: (userId) => require('./accountContentErasure').eraseStudioApps(userId),
+        eraseSkills: (userId) => require('./accountContentErasure').eraseSkills(userId),
+        eraseStoragePrefix: (userId) => require('./accountContentErasure').eraseStoragePrefix(userId),
+    },
 });

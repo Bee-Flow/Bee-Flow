@@ -1,0 +1,5 @@
+{
+    "_comment": "Tables that may keep a deleted account's id, each with the reason. Read by the erasure footprint test: a user-keyed table that is neither in erasureCoverage.js nor here fails the build. A content table never belongs here.",
+    "isms_acknowledgements": "ISMS evidence that a policy version was acknowledged: the organisation's record under its own lawful basis. Once the users row is gone the id resolves to no person.",
+    "microsoft_sso_binding_audit": "Security audit trail of identity-binding changes, kept for incident investigation. The id resolves to no person after the account is gone."
+}

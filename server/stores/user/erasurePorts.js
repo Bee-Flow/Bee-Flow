@@ -6,6 +6,8 @@
  *
  *   notebooks.deleteAllForUser(userId) -> { notebooks }   (core/kb/notebookCascade)
  *   projects.makeTeardown()            -> project teardown (projects/projectTeardown)
+ *   content.erase*(userId)             -> meeting notes, web pages, apps, skills,
+ *                                         the object-storage prefix (projects/accountContentErasure)
  *
  * Registered at boot by projects/erasurePorts.js (loaded from
  * boot/featureRegistrations.js). FAIL CLOSED: erasurePort() throws when a
@@ -21,6 +23,14 @@
  * @typedef {{
  *   notebooks: { deleteAllForUser: (userId: string) => Promise<{ notebooks?: number }> },
  *   projects: { makeTeardown: () => any },
+ *   content: {
+ *     eraseTranscriptions: (userId: string) => Promise<number>,
+ *     eraseOrgTranscriptions: (orgId: string) => Promise<number>,
+ *     eraseWebpages: (userId: string) => Promise<number>,
+ *     eraseStudioApps: (userId: string) => Promise<number>,
+ *     eraseSkills: (userId: string) => Promise<number>,
+ *     eraseStoragePrefix: (userId: string) => Promise<number>,
+ *   },
  * }} ErasurePorts
  */
 

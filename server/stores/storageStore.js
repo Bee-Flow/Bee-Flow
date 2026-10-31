@@ -617,12 +617,10 @@ async function deleteFile(key) {
         return;
     }
     if (!s3) throw new Error('StorageStore not initialized');
-
     await s3.send(new DeleteObjectCommand({
         Bucket: BUCKET,
         Key: key,
     }));
-
     log.info(`[StorageStore] Deleted: ${key}`);
 }
 
@@ -773,6 +771,8 @@ module.exports = {
     streamFile,
     buildProxyUrl,
     deleteFile,
+    // The store's live state goes along at call time (stores/storage/prefixErasure.js).
+    deletePrefix: (/** @type {string} */ prefix) => require('./storage/prefixErasure').deletePrefix(prefix, { mode, localPathFor, listKeys, s3, bucket: BUCKET }),
     listKeys,
     copyObject,
     BUCKET,
