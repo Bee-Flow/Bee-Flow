@@ -82,6 +82,11 @@ module.exports = {
         // touches req.session, so it decides whether the REQUEST is well formed
         // and never who the caller is.
         'validateRequest',
+        // Receives an avatar/logo upload (middleware/uploadedImage.js): size cap,
+        // sniffed type, sanitised SVG, then the write. It decides whether the
+        // FILE is acceptable and never who sent it — the gate on those routes
+        // is the (tagged) org-admin check sitting beside it.
+        'receiveImageMiddleware',
     ],
 
     routes: {

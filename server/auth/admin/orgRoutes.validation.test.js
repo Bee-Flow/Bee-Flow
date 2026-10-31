@@ -131,3 +131,37 @@ test('DELETE /organizations/:id/logo removes the file and clears the field', asy
         fs.rmSync(file, { force: true });
     }
 });
+
+// ── The logo upload, through a real multipart request ───────────────
+// An SVG is stored sanitised (middleware/uploadedImage.js runs it through
+// uploadGuard), under the type's extension, with the response shape the Hub
+// reads: { success, logo }.
+
+test('POST /organizations/:id/logo stores an SVG without its script element', async () => {
+    const http = require('node:http');
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const express = require('express');
+    const app = express();
+    app.use('/auth', router);
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><script>alert(1)</script><rect width="8" height="8"/></svg>';
+    let storedFile = null;
+    try {
+        const form = new FormData();
+        form.append('logo', new Blob([svg], { type: 'image/svg+xml' }), 'logo.html');
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/auth/organizations/orgA/logo`, { method: 'POST', body: form });
+        const body = await res.json();
+        assert.strictEqual(res.status, 200, JSON.stringify(body));
+        assert.match(body.logo, /^\/uploads\/org-logo-orgA-\d+\.svg$/);
+        assert.deepStrictEqual(body, { success: true, logo: body.logo });
+        storedFile = path.join(__dirname, '..', '..', 'data', 'uploads', path.basename(body.logo));
+        assert.ok(!fs.readFileSync(storedFile, 'utf8').toLowerCase().includes('<script'));
+        assert.ok(fs.readFileSync(storedFile, 'utf8').toLowerCase().includes('<svg'));
+        assert.deepStrictEqual(touched.find((t) => t.what === 'updateOrganization').args, ['orgA', { logo: body.logo }]);
+    } finally {
+        if (storedFile) fs.rmSync(storedFile, { force: true });
+        await new Promise((resolve) => server.close(resolve));
+    }
+});

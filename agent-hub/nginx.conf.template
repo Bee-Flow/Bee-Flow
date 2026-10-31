@@ -815,13 +815,24 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Proxy /uploads requests (generated images, etc.)
+    # Proxy /uploads requests (avatars, org logos). These are stored files from
+    # the admin upload routes, never a document of ours: the backend serves them
+    # nosniff under a sandbox policy (boot/staticAssets.js). The server-level
+    # proxy_hide_header drops that policy and the add_header above would put the
+    # SPA's $csp in its place, so the location repeats the fixed headers and
+    # carries the sandbox policy itself.
     location /uploads {
         proxy_pass $backend;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        add_header Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" always;
     }
 
     # Proxy /download requests (APK download page + file)
