@@ -169,6 +169,14 @@ module.exports = {
             enforcement: 'public',
             note: 'As POST /auth/signup.',
         },
+        'GET /auth/login': {
+            enforcement: 'public',
+            note: 'The legacy Nextcloud sign-in start — anonymous by necessity: the browser is sent to the identity provider from here. isPickupTokenShaped(req.query.pickup_challenge) in the body is INPUT SHAPE, not authorization: it decides whether the embedded client\'s claim challenge is well formed enough to file with the deposit (utils/sessionToken.js) and never who the caller is. A probe hit here is expected and is not a gate.',
+        },
+        'GET /auth/login/:provider': {
+            enforcement: 'public',
+            note: 'As GET /auth/login, for Google / Microsoft / Nextcloud OAuth. The same isPickupTokenShaped(...) shape check on the optional pickup challenge; the session it starts is pre-auth and carries only the state, PKCE verifier and handoff flags.',
+        },
         'GET /auth/callback': {
             enforcement: 'public',
             note: 'SSO callback — the identity provider is the authenticator. The session.isAdmin touch is post-login session shaping, not a gate.',
@@ -299,6 +307,19 @@ module.exports = {
             scope: { kind: 'selfOnly' },
             note: 'routes/privacyChatSignals.js — route-level requireAuth; anonymous → 401. Body { counted: boolean } (strict); writes the CALLER\'s own objection only (setObjecting on req.session.user.id) and answers { counted }.',
             verifiedBy: 'routes/privacyChatSignals.test.js',
+        },
+        // ── Credential replacement: requireAuth in the chain, a recency step-up in the body ──
+        'POST /auth/opaque/register/finish': {
+            enforcement: 'handler',
+            scope: { kind: 'selfOnly' },
+            note: 'opaqueRoutes.js — the account is the caller\'s own (taken from the session, never the body). requireRecentAuth(req, res, …) in the body (auth/recentAuth.js) is a STEP-UP, not a role check: when an OPAQUE record is already in place, replacing it needs a sign-in, second factor, OPAQUE password or PIN exchange within the last ten minutes; a first registration passes without it. confirmReplace stays as the explicit acknowledgement that existing encrypted data may become unreadable.',
+            verifiedBy: 'auth/opaqueRoutes.validation.test.js',
+        },
+        'POST /auth/opaque/pin/register/finish': {
+            enforcement: 'handler',
+            scope: { kind: 'selfOnly' },
+            note: 'As POST /auth/opaque/register/finish, for the SSO encryption PIN: the same requireRecentAuth(req, res, …) step-up when a PIN is already in place (a PIN unlock counts as a proof); first-time setup right after the SSO sign-in passes.',
+            verifiedBy: 'auth/opaqueRoutes.validation.test.js',
         },
     },
 

@@ -26,6 +26,8 @@ const { fallback } = require('../utils/bestEffort');
 
 const PREFIX = 'sealed:v1:';
 const SALT = 'beeflow-session-seal-v1';
+/** GCM's full tag; a shorter one is refused before it is even compared. */
+const TAG_BYTES = 16;
 
 /** The session fields that are sealed. `mfaPending` is an object: sealed whole. */
 const SEALED_FIELDS = Object.freeze(['encryptionKey', 'accessToken', 'refreshToken', 'mfaPending']);
@@ -93,7 +95,7 @@ function createSessionSealer(masterKey) {
      */
     function seal(context, value) {
         const iv = crypto.randomBytes(12);
-        const cipher = crypto.createCipheriv('aes-256-gcm', keyFor(context), iv);
+        const cipher = crypto.createCipheriv('aes-256-gcm', keyFor(context), iv, { authTagLength: TAG_BYTES });
         const data = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
         return `${PREFIX}${iv.toString('base64url')}.${cipher.getAuthTag().toString('base64url')}.${data.toString('base64url')}`;
     }
@@ -109,8 +111,10 @@ function createSessionSealer(masterKey) {
         if (!isSealed(stored)) return stored;
         try {
             const [ivB64, tagB64, dataB64] = stored.slice(PREFIX.length).split('.');
-            const decipher = crypto.createDecipheriv('aes-256-gcm', keyFor(context), Buffer.from(ivB64, 'base64url'));
-            decipher.setAuthTag(Buffer.from(tagB64, 'base64url'));
+            const tag = Buffer.from(tagB64, 'base64url');
+            if (tag.length !== TAG_BYTES) return undefined;
+            const decipher = crypto.createDecipheriv('aes-256-gcm', keyFor(context), Buffer.from(ivB64, 'base64url'), { authTagLength: TAG_BYTES });
+            decipher.setAuthTag(tag);
             const plain = Buffer.concat([decipher.update(Buffer.from(dataB64, 'base64url')), decipher.final()]);
             return JSON.parse(plain.toString('utf8'));
         } catch (e) {

@@ -258,12 +258,12 @@ async function revokeSessionTokensForUser(userId) {
 // the switch to flip once every client sends one.
 
 /**
- * The challenge for a secret, as the clients compute it: base64url of the
- * SHA-256 of the secret's UTF-8 bytes.
- * @param {string} secret
+ * The challenge for a claim proof, as the clients compute it: base64url of
+ * the SHA-256 of the proof's UTF-8 bytes.
+ * @param {string} proof what the client presents on the claim
  */
-function pickupChallengeOf(secret) {
-    return crypto.createHash('sha256').update(String(secret), 'utf8').digest('base64url');
+function pickupChallengeOf(proof) {
+    return crypto.createHash('sha256').update(String(proof), 'utf8').digest('base64url');
 }
 
 /** What a challenge or a secret must look like to be stored or compared at all. */

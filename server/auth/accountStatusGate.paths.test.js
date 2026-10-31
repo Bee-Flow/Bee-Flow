@@ -41,6 +41,7 @@ const read = (/** @type {string} */ rel) => fs.readFileSync(path.join(AUTH, rel)
 const LOGIN_COMPLETION_PATHS = [
     ['login/finalizeLogin.js', 'password and MFA'],
     ['opaqueRoutes.js', 'OPAQUE (zero-knowledge password)'],
+    ['login/finalizeOpaqueLogin.js', 'OPAQUE, after the second factor'],
     ['oauth/providerCallbackRoutes.js', 'OAuth / SSO callback'],
     ['oauth/nextcloudLegacyRoutes.js', 'Nextcloud legacy callback'],
 ];

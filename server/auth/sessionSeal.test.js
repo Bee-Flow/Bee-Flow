@@ -59,6 +59,15 @@ test('a damaged seal opens to undefined', () => {
     assert.equal(sealer.unseal('ctx', a.slice(0, -4) + 'AAAA'), undefined);
 });
 
+test('a seal with a truncated tag is refused before the tag is compared', () => {
+    const a = sealer.seal('ctx', { k: 1 });
+    const [iv, tag, data] = a.slice('sealed:v1:'.length).split('.');
+    assert.equal(Buffer.from(tag, 'base64url').length, 16, 'the full GCM tag is written');
+    const shortTag = Buffer.from(tag, 'base64url').subarray(0, 12).toString('base64url');
+    assert.equal(sealer.unseal('ctx', `sealed:v1:${iv}.${shortTag}.${data}`), undefined);
+    assert.equal(sealer.unseal('ctx', `sealed:v1:${iv}..${data}`), undefined);
+});
+
 test('without a master key the sealer is the identity', () => {
     const none = createSessionSealer(undefined);
     assert.equal(none.enabled, false);

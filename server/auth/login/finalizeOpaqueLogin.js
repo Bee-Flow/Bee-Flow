@@ -12,6 +12,7 @@
 
 const log = require('../../telemetry/log');
 const { establishSession } = require('../establishSession');
+const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
 
 /**
  * @param {import('express').Request} req
@@ -19,6 +20,12 @@ const { establishSession } = require('../establishSession');
  * @param {{ user: Record<string, any>, encryptionKey?: string | null, sessionExtra?: Record<string, unknown>, response?: Record<string, unknown> }} args
  */
 async function finalizeOpaqueLogin(req, res, { user, encryptionKey = null, sessionExtra = {}, response = {} }) {
+    // The account-status gate, asked here as well as at the protocol step:
+    // the second-factor completion arrives minutes later with a freshly read
+    // row, and an account suspended in between must not get its session.
+    if (isLoginBlockedAccount(user)) {
+        return res.status(REFUSAL.status).json(REFUSAL.body);
+    }
     const sessionUser = {
         id: user.id,
         displayName: user.displayName,
