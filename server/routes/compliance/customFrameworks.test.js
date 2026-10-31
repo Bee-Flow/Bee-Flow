@@ -240,7 +240,9 @@ test('POST /custom/checks/:id/attest: expiry from the framework months, attester
     assert.equal(a.args[0].outcome, 'compliant');
     // framework.attestation_valid_months = 6
     const exp = new Date(a.args[0].expiresAt).getTime();
-    const sixMonths = new Date(before); sixMonths.setUTCMonth(sixMonths.getUTCMonth() + 6);
+    // Through the same clamp the route uses (tested on its own below): a bare
+    // setUTCMonth(+6) rolls 31 Oct over to 1 May and failed on the 31st (#458).
+    const sixMonths = router.computeExpiresAt(new Date(before).toISOString(), 6);
     assert.ok(Math.abs(exp - sixMonths.getTime()) < 5 * 60 * 1000, 'expires ≈ +6 months');
 
     assert.equal(state.evidence.length, 1);
