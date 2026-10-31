@@ -559,6 +559,76 @@ function countLongFunctions(text) {
     return n;
 }
 
+// ── Outbound and input-boundary metrics (server) ──────────────────────
+// bare-fetch: a call to the global fetch in server code. Every outbound request
+// whose target a user, document, model or admin can influence goes through the
+// guarded fetch (utils/ssrfGuard.js safeFetch, utils/nextcloudTarget.js
+// nextcloudFetch, core/http/*), which resolves the host and refuses private,
+// loopback and link-local addresses on every hop. The guard modules and the
+// provider adapters (fixed vendor hosts) are the allow-list.
+const BARE_FETCH = /(?<![\w$.])fetch\s*\(/g;
+const BARE_FETCH_ALLOWED = /^(?:utils\/ssrfGuard\.js|utils\/nextcloudTarget\.js|core\/http\/|core\/providers\/|telemetry\/|scripts\/|testUtils\/)/;
+// static-mount: express.static(...) without a setHeaders option. A static mount
+// serves whatever lands in the directory, so the headers (nosniff, a sandbox
+// CSP, attachment for anything that is not an image) are the only thing that
+// keeps an uploaded file from running as a page on the app origin.
+const STATIC_MOUNT = /\bexpress\s*\.\s*static\s*\(/g;
+// multer-guard: a multer(...) instance in a file that never references the
+// upload guard (middleware/uploadGuard.js sniffs the bytes and sanitises SVG;
+// middleware/uploadedImage.js receives an image through it);
+// multer's fileFilter only sees the client's own mimetype.
+const MULTER_CALL = /(?<![\w$.])multer\s*\(/g;
+// env-parseint-fallback: parseInt(process.env.X) || n (or Number(...)): zero and
+// an unparsable value both fall back to n, so 0 cannot be configured. Parse
+// with Number.isNaN and refuse to boot on a non-numeric value.
+const ENV_PARSEINT_FALLBACK = /\b(?:parseInt|Number|parseFloat)\s*\(\s*process\.env\.[^()]*\)\s*\|\|\s*\d/g;
+// secret-equality: === or !== with a secret-shaped identifier on the left and a
+// value (not a literal, null or undefined) on the right. `token` is left out of
+// the shape on purpose: most token comparisons in the tree are lookups of an
+// id in a list, not a credential check, and a metric that counted those would
+// name the wrong sites. A secret, key, signature or one-time code is never a
+// lookup. This is the shape a comparison whose
+// timing leaks how many leading bytes matched. The target is
+// crypto.timingSafeEqual on equal-length buffers.
+const SECRET_EQUALITY = /(?:\b[\w$]+\.)*\b([\w$]*(?:secret|apikey|api_key|signature|passcode|otp|sharedkey)[\w$]*)\s*[!=]==?\s*(?!null\b|undefined\b|true\b|false\b|typeof\b|[\x27"`\d])([\w$]+(?:\.[\w$]+)*)/gi;
+const SECRET_EQUALITY_NOT = /(?:type|kind|id|count|length|len|name|mode|status|used|exp|limit|url|path|ttl|source|scope|shape|format|provider|version|family|prefix)$/i;
+// instance-config-gate: a file that writes instance-wide config
+// (stores/configStore setConfig / setSecret / deleteConfig) without the
+// platform-admin gate. Instance-wide settings are the whole install's: on a
+// multi-tenant deployment an organisation-level role may not write them.
+const CONFIG_WRITE = /\b(?:setSecret|setConfig|deleteConfig|setSecretIfAbsent)\s*\(/;
+const CONFIG_STORE_REF = /configStore/;
+// requirePlatformAdmin / createPlatformAdminGate (auth/requirePlatformAdmin.js) and the
+// isAdminUser helper of routes/ai/config/shared.js, which is built on it.
+const PLATFORM_GATE_REF = /requirePlatformAdmin|createPlatformAdminGate|isAdminUser|requireSuperAdmin|isSuperAdmin/;
+
+function countSecretEquality(text) {
+    const code = blankNonCode(text);
+    let n = 0;
+    for (const m of code.matchAll(SECRET_EQUALITY)) {
+        // The LAST segment names the value compared; `secretMeta.origin` is not a secret.
+        if (SECRET_EQUALITY_NOT.test(m[1])) continue;
+        n++;
+    }
+    return n;
+}
+
+function countStaticMountsWithoutHeaders(text) {
+    const code = blankNonCode(text);
+    let n = 0;
+    for (const m of code.matchAll(STATIC_MOUNT)) {
+        const open = m.index + m[0].length - 1;
+        const end = closeParen(code, open);
+        if (end < 0 || !/setHeaders/.test(text.slice(open, end))) n++;
+    }
+    return n;
+}
+
+function countMulterWithoutGuard(text) {
+    if (/uploadGuard|uploadedImage|receiveImageMiddleware/.test(text)) return 0;
+    return (blankNonCode(text).match(MULTER_CALL) || []).length;
+}
+
 const METRICS = {
     'inline-style': {
         measure: countMatches(/\bstyle=\{\s*\{/g),
@@ -783,9 +853,54 @@ const METRICS = {
         what: `functions over ${LONG_FUNCTION_LINES} lines`,
         advice: 'split the function: extract the phases into named helpers (or hooks and subcomponents for a React component)',
     },
-};
-
-// deep-imports parses with the TypeScript compiler API: loaded on demand, like the other parsers.
+    'bare-fetch': {
+        include: (rel) => !TEST_FILE.test(rel) && !BARE_FETCH_ALLOWED.test(rel),
+        measure: (text) => (blankNonCode(text).match(BARE_FETCH) || []).length,
+        what: 'calls to the global fetch outside the guard modules and the provider adapters',
+        advice: 'use safeFetch (utils/ssrfGuard.js) for any target a user, document, model or admin can influence, nextcloudFetch for Nextcloud hosts; a fixed vendor host belongs in core/providers/',
+    },
+    'static-mount': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: (text) => countStaticMountsWithoutHeaders(text),
+        what: 'express.static mounts without a setHeaders option',
+        advice: "give the mount setHeaders with X-Content-Type-Options: nosniff, a sandbox Content-Security-Policy and Content-Disposition: attachment for anything that is not an image (routes/branding.js and routes/icons.js show the shape)",
+    },
+    'multer-guard': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: (text) => countMulterWithoutGuard(text),
+        what: 'multer instances in files that never use middleware/uploadGuard or middleware/uploadedImage',
+        advice: 'run the upload through uploadGuard (sniffs the bytes, sanitises SVG) and derive the stored extension from the sniffed type, never from the client mimetype or file name',
+    },
+    'env-parseint-fallback': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: (text) => (blankNonCode(text).match(ENV_PARSEINT_FALLBACK) || []).length,
+        what: 'numeric env vars parsed as parseInt(process.env.X) || default, where 0 cannot be configured',
+        advice: 'parse once at boot: const n = Number(process.env.X ?? default); if (!Number.isFinite(n)) throw; a value of 0 then means 0',
+    },
+    'secret-equality': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        measure: (text) => countSecretEquality(text),
+        what: '=== / !== comparisons of a secret, API key, signature or one-time code against another value',
+        advice: 'compare secrets with crypto.timingSafeEqual on equal-length buffers (utils/ssrfGuard.js and auth/connectorSig.js show the shape); a shape or presence check on a token is fine when it is renamed to say so',
+    },
+    'instance-config-gate': {
+        // The request-facing layers: a service that writes a setting on the
+        // operator's behalf is gated by whoever called it.
+        include: (rel) => !TEST_FILE.test(rel) && /^(?:routes|auth)\//.test(rel),
+        measure: (text) => (CONFIG_WRITE.test(text) && CONFIG_STORE_REF.test(text) && !PLATFORM_GATE_REF.test(text) ? 1 : 0),
+        what: 'files that write instance-wide config (configStore setConfig / setSecret / deleteConfig) without a platform-admin gate',
+        advice: 'gate the write with requirePlatformAdmin (super admin, or an admin permission only on a self-hosted install); an organisation-level permission may not change settings the whole install shares',
+    },
+    'tenant-matrix-exemptions': {
+        // One file: the routes with a path parameter that no fixture kind of the
+        // tenant-isolation matrix drives yet (server/tenantIsolation.matrix.test.js).
+        include: (rel) => rel === 'tenantIsolation.exemptions.json',
+        extraFiles: ['tenantIsolation.exemptions.json'],
+        measure: (text) => Object.keys(JSON.parse(text).routes || {}).length,
+        what: 'routes with a path parameter the tenant-isolation matrix does not drive yet',
+        advice: 'add the route to a kind in server/testUtils/tenantFixtures.js (or add the kind) and remove its entry from server/tenantIsolation.exemptions.json',
+    },
+};// deep-imports parses with the TypeScript compiler API: loaded on demand, like the other parsers.
 let deepSpecifiers;
 let isDeepImportsExcluded;
 const args = process.argv.slice(2);
@@ -833,7 +948,13 @@ if (!fs.existsSync(dir)) {
 
 const rows = [];
 let count = 0;
-for (const file of collect(srcDir, [])) {
+// A metric may name files the extension filter leaves out (a JSON list it counts).
+const files = collect(srcDir, []);
+for (const extra of metric.extraFiles || []) {
+    const full = path.join(srcDir, extra);
+    if (fs.existsSync(full)) files.push(full);
+}
+for (const file of files) {
     const rel = path.relative(dir, file).split(path.sep).join('/');
     const srcRel = path.relative(srcDir, file).split(path.sep).join('/');
     if (metric.include && !metric.include(srcRel)) continue;

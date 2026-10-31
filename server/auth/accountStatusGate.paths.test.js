@@ -54,6 +54,7 @@ const LOGIN_COMPLETION_PATHS = [
 const NOT_A_LOGIN = new Map([
     ['establishSession.js', 'the helper itself'],
     ['login/signupRoutes.js', 'account creation — a brand-new row cannot already be suspended'],
+    ['loginPaths.js', 'the static inventory of the call sites (loginPaths.inventory.json); it names establishSession in a string and never establishes a session itself'],
 ]);
 
 test('every login-completion path consults the account-status gate', () => {

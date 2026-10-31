@@ -614,6 +614,12 @@ jobs:
       - name: API reference is current
         working-directory: .
         run: node scripts/gen-api-reference.mjs --check
+      # The route contract is read from the same walk, so it needs this job's
+      # server install too and check:fast leaves it out likewise. Stale after a
+      # route or gate change? `npm run gen:routes-contract` and commit.
+      - name: Route contract is current
+        working-directory: .
+        run: npm run lint:routes-contract
       # A merge in which "the second wins" drops keys without a conflict git
       # shows. Every key the PR base has must still exist, or be listed in
       # server/i18n/defaults/removed-keys.txt. The checkout is shallow, so the

@@ -16,6 +16,7 @@
 'use strict';
 
 const { HttpError, notFound } = require('../core/http/errors');
+const { lazyGate } = require('../auth/gateMeta');
 
 const ACTIONS = /** @type {ReadonlyArray<'accept'|'reject'>} */ (Object.freeze(['accept', 'reject']));
 
@@ -42,7 +43,9 @@ function makeDocumentSuggestionsRouter(deps = {}) {
     /** @type {ReturnType<typeof import('../core/documents/suggestions/apply').makeSuggestionApplier> | null} */
     let madeApplier = null;
     const applier = () => deps.applier || (madeApplier ||= require('../core/documents/suggestions/apply').makeSuggestionApplier({ store: store(), documents: documents() }));
-    const auth = deps.requireAuth || ((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => require('../auth/permissions').requireAuth(req, res, next));
+    // lazyGate keeps the deferred require (a cycle through auth/permissions) and
+    // tags the mount so the route walk reads it as the session gate it is.
+    const auth = deps.requireAuth || lazyGate(() => require('../auth/permissions').requireAuth, { axis: 'auth' });
     const isManaged = deps.isManaged || (async (/** @type {string} */ id) => !!(await require('../stores/document/solutionTemplates').managedOf(id)));
     const isOrgAdmin = deps.isOrgAdmin || ((/** @type {string} */ userId, /** @type {import('../core/entitlements/entitlementTypes').SessionLike | null} */ session) => require('../auth/permissions').hasPermission(userId, 'org_admin', session));
 

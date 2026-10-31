@@ -44,8 +44,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -o pipefail
+          # .semgrep/security-gates.yml: the repository's own rules (outbound
+          # fetch, static mounts, uploads, env parsing, secret compares, outbound
+          # payloads), next to the registry rulesets.
           args=(--config p/javascript --config p/typescript --config p/nodejsscan
                 --config p/python --config p/dockerfile --config p/github-actions
+                --config .semgrep/security-gates.yml
                 --metrics off --timeout 60
                 # Severity INFO is advice (e.g. "consider a rate limit"), not a
                 # finding; tests build hostile input on purpose.

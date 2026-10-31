@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of routes with a path parameter the tenant-isolation matrix does not drive yet server may still carry. Lower it with `node scripts/count-ratchet.mjs tenant-matrix-exemptions server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-31",
+  "count": 1059
+}

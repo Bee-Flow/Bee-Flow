@@ -12,6 +12,7 @@
 const express = require('express');
 const { HttpError } = require('../../../core/http/errors');
 const { validate } = require('../../../core/http/validate');
+const { lazyGate } = require('../../../auth/gateMeta');
 const { bodyOf } = require('../../../core/http/schemaParts');
 const { firebirdFields } = require('./firebirdFields');
 
@@ -57,7 +58,8 @@ async function credsFor(req, getSecret) {
 function createFirebirdTestRouter(deps = {}) {
     const router = express.Router();
     /** @type {import('express').RequestHandler} */
-    const auth = deps.requireAuth || ((req, res, next) => require('../../../auth/permissions').requireAuth(req, res, next));
+    // lazyGate keeps the deferred require and tags the mount as the session gate it is.
+    const auth = deps.requireAuth || lazyGate(() => require('../../../auth/permissions').requireAuth, { axis: 'auth' });
     const getSecret = deps.getSecret || ((/** @type {string} */ key) => require('../../../stores/configStore').getSecret(key));
     const testConnection = deps.testConnection || ((/** @type {TestCreds} */ creds) => require('../../../integrations/firebirdTools').testFirebirdConnection(creds));
 
