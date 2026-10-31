@@ -72,7 +72,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                 user: req.session.user,
                 isAdmin: req.session.isAdmin || false,
                 preserve: [
-                    'oauthPopup', 'oauthPickupId', 'oauthAppRedirect',
+                    'oauthPopup', 'oauthPickupId', 'oauthPickupChallenge', 'oauthAppRedirect',
                     'accessToken', 'refreshToken', 'oauthProvider', 'oauthConnectionId', 'microsoftIdentityVersion', 'microsoftLoginIdentity',
                     'nextcloudUid', 'nextcloudTokenExpiresAt',
                     'encryptionKey', 'needsEncryptionSetup', 'needsEncryptionPin',
@@ -87,10 +87,12 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
 
         if (req.session.oauthPopup) {
             const pickupId = req.session.oauthPickupId;
+            const pickupChallenge = req.session.oauthPickupChallenge;
             // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- knownNativeAppRedirect returns one of the fixed NATIVE_APP_REDIRECTS literals or null, never the session value
             const appRedirect = knownNativeAppRedirect(req.session.oauthAppRedirect);
             delete req.session.oauthPopup;
             delete req.session.oauthPickupId;
+            delete req.session.oauthPickupChallenge;
             delete req.session.oauthAppRedirect;
             req.session.save();
 
@@ -128,9 +130,13 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
                         pendingApproval: req.session.pendingApproval || false,
                         noOrganization: req.session.noOrganization || false,
                     });
-                    await setPickup(pickupId, { sessionToken });
+                    // The challenge rides along so the claim can be checked
+                    // against it (utils/sessionToken.js claimPickup). The id is
+                    // not logged: together with the deposit it names a live
+                    // session.
+                    await setPickup(pickupId, pickupChallenge ? { sessionToken, challenge: pickupChallenge } : { sessionToken });
                     deposited = true;
-                    log.info(`[OAuth/${provider}] Pickup ${pickupId} deposited`);
+                    log.info(`[OAuth/${provider}] Pickup deposited (bound: ${!!pickupChallenge})`);
                 } catch (pickupErr) {
                     log.error(`[OAuth/${provider}] Pickup deposit failed:`, pickupErr.message);
                 }
@@ -219,7 +225,7 @@ router.get('/callback/:provider', async (req, res) => {
     const config = await loadConfig();
 
     log.info(`[OAuth/${provider}] Callback received — session present: ${!!req.sessionID}`);
-    log.info(`[OAuth/${provider}] Callback session: oauthPopup=${!!req.session.oauthPopup} oauthPickupId=${req.session.oauthPickupId || '(none)'} oauthState=${req.session.oauthState ? '(present)' : '(missing)'}`);
+    log.info(`[OAuth/${provider}] Callback session: oauthPopup=${!!req.session.oauthPopup} oauthPickupId=${req.session.oauthPickupId ? '(present)' : '(none)'} oauthState=${req.session.oauthState ? '(present)' : '(missing)'}`);
     log.info(`[OAuth/${provider}] Query params — code present: ${!!code}, error: ${error || 'none'}, state present: ${!!state}`);
     if (error_description) log.info(`[OAuth/${provider}] Error description: ${error_description}`);
     log.info(`[OAuth/${provider}] Session returnTo: ${req.session.returnTo || '(not set)'}`);

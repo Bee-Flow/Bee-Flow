@@ -27,7 +27,7 @@ const Module = require('module');
 const touched = [];
 
 const MOCKS = {
-    '../../utils/sessionToken': { claimPickup: async (id) => { touched.push({ what: 'claimPickup', args: [id] }); return null; } },
+    '../../utils/sessionToken': { claimPickup: async (id, secret) => { touched.push({ what: 'claimPickup', args: [id, secret] }); return null; } },
     '../../db': { getRedis: () => null },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
 };
@@ -54,14 +54,14 @@ test.after(() => { Module._resolveFilename = originalResolve; });
 // harness has to answer one the way index.js does.
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
-function dispatch({ method, url, body = {}, session }) {
+function dispatch({ method, url, body = {}, session, headers = {} }) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
         const query = {};
         for (const [k, v] of new URLSearchParams(search)) query[k] = v;
         const req = {
-            method, url, originalUrl: url, path: pathname, body, query, headers: {},
-            session: session || {}, get() { return undefined; },
+            method, url, originalUrl: url, path: pathname, body, query, headers,
+            session: session || {}, get(name) { return headers[String(name).toLowerCase()]; },
         };
         const res = {
             statusCode: 200, headersSent: false,
@@ -109,4 +109,14 @@ test('a real pickup id still reaches the token store', async () => {
     const res = await dispatch({ method: 'GET', url: '/login-pickup?id=abc' });
     assert.strictEqual(res.statusCode, 404, 'the mock store has nothing yet, which is the polled state');
     assert.strictEqual(touched.find((t) => t.what === 'claimPickup').args[0], 'abc');
+});
+
+test('the claim passes the X-Pickup-Secret header to the store, and nothing from the URL', async () => {
+    const res = await dispatch({ method: 'GET', url: '/login-pickup?id=abc', headers: { 'x-pickup-secret': 's3cret-s3cret-s3cret-s3cret' } });
+    assert.strictEqual(res.statusCode, 404);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'claimPickup').args, ['abc', 's3cret-s3cret-s3cret-s3cret']);
+});
+
+test('a secret in the query string is refused: it belongs in the header', async () => {
+    await refuses({ method: 'GET', url: '/login-pickup?id=abc&secret=zzz' }, 'query');
 });

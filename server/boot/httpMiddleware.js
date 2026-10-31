@@ -136,7 +136,9 @@ function applyCors(app, { log = defaultLog } = {}) {
         // the SPA and the API share an origin there, so nothing pre-flights; it
         // breaks exactly the split-origin setups — the dev server on :5176 talking
         // to :3001, and self-hosts serving the app from a separate host.
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token', 'X-Beeflow-Client']
+        // X-Pickup-Secret: the embedded iframe's claim on /auth/login-pickup
+        // (auth/oauth/loginPickupRoutes.js), cross-origin in the same setups.
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token', 'X-Beeflow-Client', 'X-Pickup-Secret']
     });
 
     // Sandboxed preview iframes have an opaque origin (`Origin: null`) and never

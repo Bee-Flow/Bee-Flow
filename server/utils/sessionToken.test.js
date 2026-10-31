@@ -193,3 +193,72 @@ test('a native token is not evicted early by the clamped timer', async () => {
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepStrictEqual(await getSessionToken(token), { user: { id: 'u1' } });
 });
+
+// ── The claim is bound to the client that started the sign-in ────────────
+//
+// The pickup id travels in a URL the browser navigates to; the secret never
+// leaves the client until the claim. A deposit filed with a challenge answers
+// only to the secret behind it, once.
+
+const { setPickup, claimPickup, pickupChallengeOf, isPickupTokenShaped } = require('./sessionToken');
+
+/** A deposit with a live session token behind it, bound to `secret` when given. */
+async function deposit(secret) {
+    const sessionToken = generateToken();
+    const pickupId = generateToken();
+    await setSessionToken(sessionToken, { user: { id: 'u1' }, isAuthenticated: true });
+    await setPickup(pickupId, secret ? { sessionToken, challenge: pickupChallengeOf(secret) } : { sessionToken });
+    return { sessionToken, pickupId };
+}
+
+const SECRET = 'c2VjcmV0LXNlY3JldC1zZWNyZXQtc2VjcmV0LXNlY3JldA';
+
+test('a bound deposit is refused without the secret', async () => {
+    const { pickupId } = await deposit(SECRET);
+    assert.strictEqual(await claimPickup(pickupId), null);
+});
+
+test('a bound deposit is refused with the wrong secret, and is spent by that claim', async () => {
+    const { pickupId } = await deposit(SECRET);
+    assert.strictEqual(await claimPickup(pickupId, 'd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmc'), null);
+    assert.strictEqual(await claimPickup(pickupId, SECRET), null, 'one-shot: the wrong claim consumed it');
+});
+
+test('a bound deposit answers the right secret, once', async () => {
+    const { pickupId, sessionToken } = await deposit(SECRET);
+    const first = await claimPickup(pickupId, SECRET);
+    assert.strictEqual(first && first.sessionToken, sessionToken);
+    assert.strictEqual(await claimPickup(pickupId, SECRET), null);
+});
+
+test('a deposit without a challenge is claimable by id alone while the switch is off', async () => {
+    delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
+    const { pickupId, sessionToken } = await deposit(null);
+    const got = await claimPickup(pickupId);
+    assert.strictEqual(got && got.sessionToken, sessionToken);
+});
+
+test('a deposit without a challenge is refused once every client is expected to send one', async () => {
+    process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE = '1';
+    try {
+        const { pickupId } = await deposit(null);
+        assert.strictEqual(await claimPickup(pickupId), null);
+        assert.strictEqual(await claimPickup(pickupId, SECRET), null, 'nor with a secret nobody filed');
+    } finally {
+        delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
+    }
+});
+
+test('the challenge is base64url SHA-256 of the secret text, as the clients compute it', () => {
+    const expected = require('node:crypto').createHash('sha256').update(SECRET, 'utf8').digest('base64url');
+    assert.strictEqual(pickupChallengeOf(SECRET), expected);
+    assert.match(expected, /^[A-Za-z0-9_-]{43}$/);
+});
+
+test('only a token-shaped challenge or secret is accepted', () => {
+    assert.ok(isPickupTokenShaped(pickupChallengeOf(SECRET)));
+    assert.ok(isPickupTokenShaped(SECRET));
+    for (const bad of [undefined, null, '', 'short', 'has space ' + SECRET, 'x'.repeat(129), ['a'], { a: 1 }, 42]) {
+        assert.strictEqual(isPickupTokenShaped(bad), false, JSON.stringify(bad));
+    }
+});

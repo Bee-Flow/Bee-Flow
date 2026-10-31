@@ -20,10 +20,15 @@ const PickupQuery = z.object({
 // under a random pickup id (see callback below); the iframe polls this
 // endpoint until the token is available, then sends it as X-Session-Token on
 // every subsequent request. One-time read.
+//
+// The claim carries the client's secret in X-Pickup-Secret, never in the URL:
+// the deposit is bound to sha256(secret) and the store refuses a claim that
+// cannot answer it (utils/sessionToken.js). A header keeps the secret out of
+// access logs, which is where the id alone already lands.
 router.get('/login-pickup', validate({ query: PickupQuery }), async (req, res) => {
     const { id } = req.query;
     const { claimPickup } = require('../../utils/sessionToken');
-    const data = await claimPickup(id);
+    const data = await claimPickup(id, req.get('X-Pickup-Secret'));
     if (!data) {
         // A miss is normally just "the callback has not finished yet", and
         // the client polls through it. But it is ALSO what a cross-replica
@@ -32,9 +37,9 @@ router.get('/login-pickup', validate({ query: PickupQuery }), async (req, res) =
         // the callback on one pod is invisible to a claim that lands on
         // another — and today that failure leaves no server-side evidence
         // at all, which is exactly why it is unreproducible. Say which
-        // store answered.
+        // store answered. The id itself stays out of the log line.
         const { getRedis } = require('../../db');
-        log.info(`[OAuth/login-pickup] ${id} pending (store: ${getRedis() ? 'redis' : 'in-memory'})`);
+        log.info(`[OAuth/login-pickup] pending (store: ${getRedis() ? 'redis' : 'in-memory'})`);
         return res.status(404).json({ pending: true });
     }
     return res.json({ sessionToken: data.sessionToken });

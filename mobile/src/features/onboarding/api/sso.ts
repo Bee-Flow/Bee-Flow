@@ -79,6 +79,7 @@
  * closing the tab by itself the day one has, with no new APK.
  */
 
+import { sha256 } from '@noble/hashes/sha2.js';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { AppState } from 'react-native';
@@ -87,7 +88,7 @@ import { api, ApiError } from '@/core/api/client';
 import { getServerUrl } from '@/core/api/server';
 import { readCurrentUser } from '@/core/auth/readers';
 import type { CurrentUserResponse } from '@/core/auth/types';
-import { toHex } from '@/core/crypto/keys';
+import { toBase64, toHex } from '@/core/crypto/keys';
 import { randomBytes } from '@/core/crypto/random';
 import { translate } from '@/core/i18n';
 
@@ -155,6 +156,23 @@ export function isSsoProvider(value: string): value is SsoProvider {
 /** The pickup id is short-lived and single-use; 16 bytes is plenty. */
 function newPickupId(): string {
     return toHex(randomBytes(16));
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+    return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * What binds the deposit to THIS app. The id rides in the Custom Tab's URL and
+ * is not a secret; the app also keeps one, sends only its SHA-256 (the
+ * challenge) with the id, and presents the secret itself on the claim. The
+ * server compares the two (utils/sessionToken.js claimPickup). An older server
+ * ignores the extra parameter and header.
+ */
+export function newPickupClaim(): { secret: string; challenge: string } {
+    const secret = toBase64Url(randomBytes(32));
+    const challenge = toBase64Url(sha256(new TextEncoder().encode(secret)));
+    return { secret, challenge };
 }
 
 /** Why the flow ended without a session. */
@@ -250,9 +268,11 @@ export async function startSsoLogin(
     if (!base) throw new Error(translate('mobile.onboarding.sso_no_server', 'No Bee Flow server is configured.'));
 
     const pickupId = newPickupId();
+    const claim = newPickupClaim();
     const authUrl =
         `${base}/auth/login/${encodeURIComponent(provider)}` +
         `?popup=1&pickup=${encodeURIComponent(pickupId)}` +
+        `&pickup_challenge=${encodeURIComponent(claim.challenge)}` +
         `&app=${NATIVE_APP_KEY}`;
 
     // What the server redirects to once it knows about `app=beeflow`, and what
@@ -285,7 +305,7 @@ export async function startSsoLogin(
         .then(() => loop.markReturn());
 
     try {
-        const token = await claimPickup(pickupId, loop, stop.signal);
+        const token = await claimPickup(pickupId, claim.secret, loop, stop.signal);
         if (!token) {
             const completed = browserSaidSuccess || Date.now() - openedAt >= LIKELY_COMPLETED_MS;
             throw new SsoCancelledError(completed ? 'no-token' : 'user-cancelled');
@@ -311,6 +331,7 @@ export async function startSsoLogin(
  */
 async function claimPickup(
     pickupId: string,
+    secret: string,
     loop: ForegroundLoop,
     signal: AbortSignal,
 ): Promise<string | null> {
@@ -324,6 +345,7 @@ async function claimPickup(
             const res = readPickup(
                 await api.get<unknown>('/auth/login-pickup', {
                     query: { id: pickupId },
+                    headers: { 'X-Pickup-Secret': secret },
                     retry: false,
                     timeoutMs: 8000,
                 }),

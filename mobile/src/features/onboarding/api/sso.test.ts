@@ -251,6 +251,9 @@ describe('startSsoLogin', () => {
         expect(authUrl).toContain('/auth/login/google');
         expect(authUrl).toContain('popup=1');
         expect(authUrl).toMatch(/pickup=[0-9a-f]{32}/);
+        // The deposit is bound to this app: the URL carries the challenge, the
+        // claim presents the secret (below).
+        expect(authUrl).toMatch(/pickup_challenge=[A-Za-z0-9_-]{43}/);
         // The flag that makes a deployed server redirect to beeflow://oauth so
         // the Custom Tab closes itself. An older server ignores it.
         expect(authUrl).toContain('app=beeflow');

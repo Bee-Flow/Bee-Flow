@@ -38,6 +38,7 @@ const router = express.Router();
 const { loadConfig, OAUTH_PROVIDERS } = require('../permissions');
 const { microsoftCredentialsFor, PRIMARY_CONNECTION_ID } = require('./microsoftConnections.mts');
 const { getReturnUrl, popupRedirect, resolveNativeAppRedirect } = require('./shared');
+const { isPickupTokenShaped } = require('../../utils/sessionToken');
 
 // === Multi-Provider OAuth Routes ===
 
@@ -55,6 +56,7 @@ router.get('/login/:provider', async (req, res) => {
     // of an ordinary sign-in (see the header).
     delete req.session.oauthPopup;
     delete req.session.oauthPickupId;
+    delete req.session.oauthPickupChallenge;
     delete req.session.oauthAppRedirect;
     delete req.session.oauthNonce;
     delete req.session.oauthConnectionId;
@@ -69,6 +71,13 @@ router.get('/login/:provider', async (req, res) => {
     // cookie gap. Stash the id so the callback can deposit a token.
     if (req.query.pickup) {
         req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
+        // The client keeps the secret and sends only its hash; the claim on
+        // /auth/login-pickup has to present the secret (utils/sessionToken.js).
+        // A malformed value is dropped rather than stored: a deposit filed
+        // under a challenge nobody can answer is a sign-in that never lands.
+        if (isPickupTokenShaped(req.query.pickup_challenge)) {
+            req.session.oauthPickupChallenge = req.query.pickup_challenge;
+        }
     }
     // When ?app=<key> names a known native client, the callback 302s to that
     // app's own scheme instead of rendering the close page — which is the only

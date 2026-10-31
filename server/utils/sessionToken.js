@@ -163,8 +163,58 @@ async function deleteSessionToken(token) {
 // tinguishable from a failed sign-in. The token remains one-shot and is
 // deleted on the first claim.
 
+//
+// The claim is bound to the client that started the sign-in. That client mints
+// a secret along with the pickup id and sends only sha256(secret) — the
+// `challenge` — on /auth/login/:provider; the callback files it next to the
+// token, and the claim must present the secret itself. The id alone travels
+// in a URL the browser navigates to, so it cannot be the whole claim key.
+//
+// A pickup deposited WITHOUT a challenge — a client that predates the secret —
+// is claimable by id alone unless OAUTH_PICKUP_REQUIRE_CHALLENGE=1, which is
+// the switch to flip once every client sends one.
+
 /**
- * @param {{ sessionToken: string; }} data
+ * The challenge for a secret, as the clients compute it: base64url of the
+ * SHA-256 of the secret's UTF-8 bytes.
+ * @param {string} secret
+ */
+function pickupChallengeOf(secret) {
+    return crypto.createHash('sha256').update(String(secret), 'utf8').digest('base64url');
+}
+
+/** What a challenge or a secret must look like to be stored or compared at all. */
+const PICKUP_TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,128}$/;
+
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function isPickupTokenShaped(value) {
+    return typeof value === 'string' && PICKUP_TOKEN_SHAPE.test(value);
+}
+
+function pickupChallengeRequired() {
+    return process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE === '1';
+}
+
+/**
+ * Whether `secret` is the one the deposit was bound to. A deposit with no
+ * challenge is open by id alone only while the compatibility switch allows it.
+ * @param {{ challenge?: string } | null | undefined} pickup
+ * @param {unknown} secret
+ */
+function pickupSecretMatches(pickup, secret) {
+    const challenge = pickup && pickup.challenge;
+    if (!challenge) return !pickupChallengeRequired();
+    if (!isPickupTokenShaped(secret)) return false;
+    const expected = Buffer.from(String(challenge));
+    const presented = Buffer.from(pickupChallengeOf(secret));
+    return expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+}
+
+/**
+ * @param {{ sessionToken: string; challenge?: string }} data
  * @param {number} [ttlSeconds]
  * @param {string} pickupId
  */
@@ -174,25 +224,51 @@ async function setPickup(pickupId, data, ttlSeconds = 300) {
         await r.set(`bf:pickup:${pickupId}`, JSON.stringify(data), 'EX', ttlSeconds);
     } else {
         _pickupFallback.set(pickupId, data);
-        setTimeout(() => _pickupFallback.delete(pickupId), ttlSeconds * 1000);
+        // An eviction hint only; it must not keep the process alive.
+        const timer = setTimeout(() => _pickupFallback.delete(pickupId), ttlSeconds * 1000);
+        if (typeof timer.unref === 'function') timer.unref();
     }
 }
 
 /**
- * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} pickupId
+ * Take the deposit out of the store in one step: a second claimant racing the
+ * first must find nothing, which get-then-del cannot promise.
+ * @param {string} key
+ * @param {import('ioredis').Redis} r
  */
-async function claimPickup(pickupId) {
-    const r = getRedis();
-    if (r) {
-        const key = `bf:pickup:${pickupId}`;
-        const val = await r.get(key);
-        if (val) await r.del(key);
-        const pickup = val ? JSON.parse(val) : null;
-        return pickup && await getSessionToken(pickup.sessionToken) ? pickup : null;
+async function takeFromRedis(r, key) {
+    if (typeof r.getdel === 'function') {
+        try {
+            return await r.getdel(key);
+        } catch (_) {
+            // A Redis older than 6.2: fall through to the two-step read.
+        }
     }
-    const data = _pickupFallback.get(pickupId);
-    if (data) _pickupFallback.delete(pickupId);
-    return data && await getSessionToken(data.sessionToken) ? data : null;
+    const val = await r.get(key);
+    if (val) await r.del(key);
+    return val;
+}
+
+/**
+ * One-shot: the deposit is consumed whether or not the secret matches, so a
+ * claim with the wrong secret leaves nothing for a later one.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} pickupId
+ * @param {unknown} [secret]
+ */
+async function claimPickup(pickupId, secret) {
+    const r = getRedis();
+    /** @type {{ sessionToken: string; challenge?: string } | null} */
+    let pickup = null;
+    if (r) {
+        const val = await takeFromRedis(r, `bf:pickup:${pickupId}`);
+        pickup = val ? JSON.parse(val) : null;
+    } else {
+        pickup = _pickupFallback.get(String(pickupId)) || null;
+        if (pickup) _pickupFallback.delete(String(pickupId));
+    }
+    if (!pickup) return null;
+    if (!pickupSecretMatches(pickup, secret)) return null;
+    return await getSessionToken(pickup.sessionToken) ? pickup : null;
 }
 
 function generateToken() {
@@ -207,5 +283,7 @@ module.exports = {
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
     setPickup,
     claimPickup,
+    pickupChallengeOf,
+    isPickupTokenShaped,
     generateToken,
 };
