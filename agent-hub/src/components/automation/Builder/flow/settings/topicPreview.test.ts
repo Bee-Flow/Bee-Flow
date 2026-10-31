@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { hasTopicRules, hostFromPreview, planTopicPreview, MAX_PREVIEW_TEXTS } from './topicPreview';
 import { matchCounts } from './routeIntents';

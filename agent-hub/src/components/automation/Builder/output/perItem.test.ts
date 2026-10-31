@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { cellText } from './cellSummary';
 import { discoverColumns, nameColumn, suggestColumns, type OutputColumn } from './columns';

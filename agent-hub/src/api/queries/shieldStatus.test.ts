@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { CHAT_MONITORING_OFF, httpsUrlOrNull, parseChatMonitoring, parseShieldStatus } from './shieldStatus';
 

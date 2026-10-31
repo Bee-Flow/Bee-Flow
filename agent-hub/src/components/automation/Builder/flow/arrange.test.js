@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { arrangeDefinition, DEFAULT_DIMS } from './arrange';
 import { DEFAULT_SPACING } from './dagreLayout';

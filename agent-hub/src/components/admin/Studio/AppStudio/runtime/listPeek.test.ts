@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { buildPeekIndex, peekBadgeLabel, peekKey, peekSections } from './listPeek';
 import { stub } from '@/test/mocks';

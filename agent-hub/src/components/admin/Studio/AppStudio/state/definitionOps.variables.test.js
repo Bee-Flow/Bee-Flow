@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
 import { listVariables, removeVariable, renameVariable, setVariable } from './definitionOps';

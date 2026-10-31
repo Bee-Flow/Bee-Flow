@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
     ackKey, buildColumns, effectiveStage, errorKind, followUp, isNoop, outcomeOf, phaseOf, pillStatusOf,

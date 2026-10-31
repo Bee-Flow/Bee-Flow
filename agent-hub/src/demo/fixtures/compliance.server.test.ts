@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { createState, ROUTES } from './compliance';
 import { ISO_CONNECTORS } from './complianceCatalog';

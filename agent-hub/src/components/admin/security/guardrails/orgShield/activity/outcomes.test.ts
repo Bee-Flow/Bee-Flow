@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
 import { carriesKinds, isAuditRow, outcomeOfAction, outcomeOfCall, sumByAction } from './outcomes';

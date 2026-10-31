@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { hasDetails, joinOptions, mergeLines, setDetail, splitOptions, toOption, visibleRows } from './choiceOptionsModel';
 

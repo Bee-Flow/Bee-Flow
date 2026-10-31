@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { claudeAddCommand, expiryToIso, invalidEntries, ipInList, isValidIpOrCidr, MCP_SERVERS, parseList } from './mcpAccessLib';
 

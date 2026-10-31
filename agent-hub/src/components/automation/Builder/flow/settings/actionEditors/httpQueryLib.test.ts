@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { mergeMovedQuery, parseJsonWithBindings, previewUrl, queryPairs, splitQueryFromUrl, type HttpQuery } from './httpQueryLib';
 

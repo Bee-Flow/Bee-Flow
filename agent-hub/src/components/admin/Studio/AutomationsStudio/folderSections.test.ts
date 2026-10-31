@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { folderSectionsOf } from './folderSections';
 import { NO_FOLDER } from './overviewModel';

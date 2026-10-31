@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { filePreview, humanBytes, importMetaLine, importProvenanceText } from './importExport';
 import type { TranslateFn } from '@/hooks/useTranslation';

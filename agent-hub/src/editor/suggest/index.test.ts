@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
 import { markdownToAst } from '../serialization/mdToAst';

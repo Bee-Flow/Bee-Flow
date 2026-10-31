@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Outbox — the queue of updates the server has not confirmed: batches leave
  * the queue while in flight, come back in front when they fail, are bounded

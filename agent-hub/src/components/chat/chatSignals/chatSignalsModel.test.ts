@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { CHAT_MONITORING_OFF, type ChatMonitoringStatus, type ShieldStatus } from '@/api/queries/shieldStatus';
 import { formatNoticeDate, lineKey, markerFor, noticeFor, payloadFor } from './chatSignalsModel';

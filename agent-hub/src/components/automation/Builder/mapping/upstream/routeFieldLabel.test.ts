@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { fieldLabelText, routeFieldLabel } from './routeFieldLabel';
 import { recordFields } from './fieldTree';

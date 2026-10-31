@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The Privacy Shield / consumer picker reads this single canonical list, so a
  * drift here silently hides or invents category toggles. BFSF-269 touched the

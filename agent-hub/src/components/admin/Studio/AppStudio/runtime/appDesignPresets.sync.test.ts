@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The preset gallery's data is ONE module (server/shared/appDefinition/
  * designPresets.mjs, mirrored into @shared/appDefinition by npm run gen:shared;

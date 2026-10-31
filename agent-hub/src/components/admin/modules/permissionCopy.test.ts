@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { isEnvPermission, normalizePermissions, permissionCopy, splitEnvPermissions } from './permissionCopy';
 import EN_DEFAULTS from '@/i18n/en-defaults';

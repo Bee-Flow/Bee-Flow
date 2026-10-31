@@ -11,7 +11,12 @@
  *      run FAILS — a rename must update the exclusion list, so stale entries
  *      can never silently shrink coverage.
  *   3. Runs each remaining file in its own `node --test` process, pooled at
- *      the machine's parallelism, and adds the per-file tallies up.
+ *      the machine's parallelism, and adds the per-file tallies up. The file
+ *      runs INSIDE that process (--experimental-test-isolation=none) instead of
+ *      in a further child `node --test` would otherwise spawn, and every
+ *      process shares one V8 compile cache (NODE_COMPILE_CACHE): the suite is
+ *      ~2,900 files that all load the same modules. A file that calls
+ *      process.exit() itself keeps the extra child, see IN_PROCESS below.
  *
  * Why one process per file and no --test-force-exit: that flag was dropping
  * results, quietly and by a different amount every run. The measurements and
@@ -42,7 +47,7 @@
  * refuses `--test-reporter` and `--test-reporter-destination` (see Run).
  */
 
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, writeSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -189,14 +194,40 @@ const passthrough = process.argv.slice(2).filter((a, i, all) => {
 // COVERAGE, AND WHY IT IS NOT A PASSTHROUGH EITHER. With one process per file,
 // any single report destination is rewritten by each file in turn (see the
 // reporter note below). V8 itself does it right: with NODE_V8_COVERAGE set,
-// every node process — the `node --test` child and the process it spawns for
-// the file — writes its own uniquely named dump into that directory. After the
+// every node process (one per file, two for a file that keeps the extra
+// child, see IN PROCESS below) writes its own uniquely named dump into that directory. After the
 // run, c8 merges all of them into one report. A file that hangs is SIGKILLed
 // and leaves no dump; its lines read as uncovered, which is the honest answer.
 const coverage = process.argv.includes('--coverage');
 const coverageJson = flagValue('--coverage-json');
 const coverageTmp = coverage ? mkdtempSync(path.join(tmpdir(), 'server-v8-coverage-')) : null;
-const childEnv = coverage ? { ...process.env, NODE_V8_COVERAGE: coverageTmp } : process.env;
+
+// COMPILE CACHE. Every file is a fresh process that parses and compiles the same
+// server modules again; Node 22 can keep the compiled code on disk
+// (NODE_COMPILE_CACHE) and every later process loads it from there. Measured on
+// shard 3 of 3 (978 files, four workers): 107 s -> 94 s together with the
+// in-process run below. The directory sits under node_modules/.cache so a local
+// rerun is warm too; an explicit NODE_COMPILE_CACHE in the environment wins.
+const compileCache = process.env.NODE_COMPILE_CACHE || path.join(SERVER_DIR, 'node_modules', '.cache', 'node-compile-cache');
+mkdirSync(compileCache, { recursive: true });
+const childEnv = {
+    ...process.env,
+    NODE_COMPILE_CACHE: compileCache,
+    ...(coverage ? { NODE_V8_COVERAGE: coverageTmp } : {}),
+};
+
+// IN PROCESS, OR NOT. `node --test <file>` runs the file in a child of its own
+// by default, so each file cost two Node start-ups; with
+// --experimental-test-isolation=none the file runs in the `node --test`
+// process itself and the per-file isolation (one process per file, the
+// timeout, the process-group kill) is untouched. The one thing that differs
+// is process.exit(): in the child it ended the file and `node --test` still
+// printed the summary, in-process it ends the reporter too and the file reads
+// NO SUMMARY. The files that call it keep the child (checked on the source,
+// per file, before the run); everything else runs in-process. Verified file by
+// file on shard 3: the same tallies both ways, except exactly those files.
+const callsProcessExit = (file) => /\bprocess\.exit\(/.test(readFileSync(path.join(SERVER_DIR, file), 'utf8'));
+const inProcessArgs = (file) => (callsProcessExit(file) ? [] : ['--experimental-test-isolation=none']);
 
 // The reporter is not a passthrough option, because the tallies below are read
 // from each child's TAP output (`# tests N`) and every child gets the same
@@ -249,7 +280,7 @@ function runFile(file) {
         // load average reached 26 on four cores and every suite crawled.
         const child = spawn(
             process.execPath,
-            ['--test', ...PRELOAD_ARGS, ...passthrough, file],
+            ['--test', ...inProcessArgs(file), ...PRELOAD_ARGS, ...passthrough, file],
             { cwd: SERVER_DIR, env: childEnv, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
         );
         const t0 = Date.now();
@@ -328,7 +359,7 @@ if (durationsOut) {
     const sorted = Object.fromEntries(Object.entries(fileMs).sort(([a], [b]) => (a < b ? -1 : 1)));
     writeFileSync(
         durationsOut,
-        `${JSON.stringify({ _comment: 'Wall ms per test file from one real run; only used to balance shards (scripts/testShards.mjs). Regenerate: node scripts/run-tests.mjs --write-durations scripts/test-durations.json. A file missing here still runs (hash shard).', durations: sorted }, null, 1)}\n`,
+        `${JSON.stringify({ _comment: 'Wall ms per test file from a real run; only used to balance the CI shards (scripts/testShards.mjs). Regenerate from GitHub, where the PGlite-heavy files weigh differently than on a fast laptop: gh run download <ci.yml run id> -p "server-shard-durations-*" -D /tmp/d && node scripts/merge-durations.mjs scripts/test-durations.json /tmp/d/*/shard-durations.json. Locally: node scripts/run-tests.mjs --write-durations scripts/test-durations.json. A file missing here still runs (hash shard).', durations: sorted }, null, 1)}\n`,
     );
 }
 

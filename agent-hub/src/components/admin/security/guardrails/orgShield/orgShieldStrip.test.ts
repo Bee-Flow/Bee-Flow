@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The path strip's read-outs. Asserted on data (step numbers, counts, tones,
  * which items exist) with a `t` that returns its English fallback, so a

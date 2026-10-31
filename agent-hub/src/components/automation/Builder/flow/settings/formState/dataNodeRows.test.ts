@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { sanitizeOperations, sanitizeParseJsonFields } from './dataNodeRows';
 

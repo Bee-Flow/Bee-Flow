@@ -48,9 +48,9 @@ function getApiBase(): string {
     if (import.meta.env.PROD) {
         return ''; // Relative URLs in production (nginx proxy)
     }
-    // Development: use same host as frontend but port 3001
-    const host = window.location.hostname;
-    return `http://${host}:3001`;
+    // Development: use same host as frontend but port 3001; no window (a node-environment test): relative, like production
+    const host = typeof window === 'undefined' ? '' : window.location.hostname;
+    return host ? `http://${host}:3001` : '';
 }
 export const API_BASE: string = getApiBase();
 

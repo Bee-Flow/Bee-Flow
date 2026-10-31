@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The refinement pipeline of the editor (A2 step 5, plus a confirmed A1c finding).
  *

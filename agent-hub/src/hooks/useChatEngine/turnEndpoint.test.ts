@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DIRECT_TURN_PATH, chatSignalsSurfaceFor, resolveTurnEndpoint } from './turnEndpoint';
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));

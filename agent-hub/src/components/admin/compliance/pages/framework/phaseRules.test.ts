@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { disclosureFails, isArt50Phase, shortTitlesOf } from './phaseRules';
 

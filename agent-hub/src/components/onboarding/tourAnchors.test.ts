@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { COURSES, CERTIFICATES, unknownLessonRefs } from './courses';
 import { LESSONS } from './lessons';

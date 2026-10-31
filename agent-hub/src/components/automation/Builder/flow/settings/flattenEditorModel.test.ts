@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { FLATTEN_MAIL_STEP, flattenMailRoot, flattenOrdersRoot } from '@shared/expr/corpus.mjs';
 import { describe, expect, it } from 'vitest';
 import {

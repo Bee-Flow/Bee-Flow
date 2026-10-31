@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The pixel geometry under the egress map: curves, bubbles, the fit and the
  * pan limits. Pure functions, checked against d3-zoom's own behaviour where

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The EN catalogue is loaded NATIVELY in tests — this pins that, and the two
  * properties it depends on.

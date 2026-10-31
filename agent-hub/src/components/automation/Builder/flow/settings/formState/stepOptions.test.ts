@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ASK_ONCE_FORM_TYPES, normalizeAskOnce, normalizeRetry } from './stepOptions';
 

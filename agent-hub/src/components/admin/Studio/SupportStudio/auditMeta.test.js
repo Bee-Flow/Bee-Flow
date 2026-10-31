@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { categoryFor, labelFor, summarize, metaFor, CATEGORY_META } from './auditMeta';
 

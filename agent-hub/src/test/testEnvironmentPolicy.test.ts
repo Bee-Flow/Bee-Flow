@@ -8,7 +8,7 @@ import { stub } from '@/test/mocks';
 /**
  * Policy guard for `// @vitest-environment node`.
  *
- * ~187 pure-logic suites opt out of jsdom with that pragma on line 1. jsdom
+ * ~590 pure-logic suites opt out of jsdom with that pragma on line 1. jsdom
  * construction is roughly 100s of CPU across them, so the opt-out is worth
  * having — but the pragma encodes "this file needs no DOM", and it silently
  * buys a SECOND property it does not name: under node, src/test/setup.js
@@ -163,6 +163,6 @@ describe('test-environment policy', () => {
             + 'this floor in the same commit and say why. If this dropped by dozens, '
             + 'something reverted the opt-out and the suite just got ~100s of CPU '
             + 'slower per run.',
-        ).toBeGreaterThanOrEqual(185);
+        ).toBeGreaterThanOrEqual(514);
     });
 });

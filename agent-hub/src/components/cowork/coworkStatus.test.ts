@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { coworkStatus, isInFlight, runStatusToken } from './coworkStatus';
 import { STATUS_TOKENS } from '../shared/statusTokens';

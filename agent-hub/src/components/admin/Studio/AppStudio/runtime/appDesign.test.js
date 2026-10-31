@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * App Design v2 runtime helpers — identity discipline + the noPurple contract
  * for the derived chart palette.

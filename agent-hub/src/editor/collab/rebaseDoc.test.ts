@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * rebaseDoc — a whole-document rewrite made from a snapshot, carried onto a
  * document that co-editors changed since: the rewrite lands, their work stays.

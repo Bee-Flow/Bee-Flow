@@ -244,3 +244,39 @@ test('shards together run every file exactly once, a file unknown to the duratio
     assert.strictEqual(total, 5);
     assert.notStrictEqual(run(dir, {}, ['--shard', '4/3']).status, 0);
 });
+
+const EXITS_ITSELF = `
+import test from 'node:test';
+test('one', () => {});
+test('two', () => {});
+test('then leaves', () => { setImmediate(() => process.exit(0)); });
+`;
+
+const IN_PROCESS = `
+import test from 'node:test';
+import assert from 'node:assert';
+test('runs in the node --test process itself', () => {
+    assert.ok(process.execArgv.includes('--experimental-test-isolation=none'), process.execArgv.join(' '));
+});
+`;
+
+test('a file that calls process.exit() itself still reports, the others run in-process', () => {
+    const dir = sandbox({ 'exits.test.mjs': EXITS_ITSELF, 'inproc.test.mjs': IN_PROCESS });
+    const r = run(dir);
+    assert.equal(r.status, 0, r.all);
+    assert.match(r.all, /^# tests 4$/m, r.all);
+    assert.match(r.all, /^# pass 4$/m, r.all);
+    assert.doesNotMatch(r.all, /NO SUMMARY/, r.all);
+});
+
+test('every child shares one compile cache, under node_modules/.cache unless the environment names one', () => {
+    const dir = sandbox({ 'a.test.mjs': PASSES });
+    // This file itself runs under the runner, which hands every child its
+    // cache directory; an empty value is "unset" to the runner under test.
+    const r = run(dir, { NODE_COMPILE_CACHE: '' });
+    assert.equal(r.status, 0, r.all);
+    assert.ok(fs.existsSync(path.join(dir, 'node_modules/.cache/node-compile-cache')), 'default cache directory');
+    const own = path.join(dir, 'own-cache');
+    assert.equal(run(dir, { NODE_COMPILE_CACHE: own }).status, 0);
+    assert.ok(fs.existsSync(own), 'explicit NODE_COMPILE_CACHE directory');
+});

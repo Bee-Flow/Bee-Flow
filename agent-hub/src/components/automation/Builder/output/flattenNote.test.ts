@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * F49: a flatten's run in one sentence, every form, with the nouns taken
  * from the data's own keys.

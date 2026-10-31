@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { pickTopicField, readTopics } from './routeTopicIntent';
 import { suggestOutputs } from './routeIntents';

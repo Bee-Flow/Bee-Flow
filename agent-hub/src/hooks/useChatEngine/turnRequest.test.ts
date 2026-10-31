@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { buildTurnRequest, toHistory, type TurnRequestInput } from './turnRequest';
 import type { ChatMessage } from './types';

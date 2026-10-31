@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { ProjectMembers } from '@/api/queries/projects';
 import { AI_TONE, aiToneFor, hueOf } from '../projectVisuals';

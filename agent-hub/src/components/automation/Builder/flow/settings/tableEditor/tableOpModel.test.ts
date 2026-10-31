@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { TableColumn } from '@/api/queries/automation/runTables';
 import type { OpResult } from '@/api/queries/automation/tablePreview';

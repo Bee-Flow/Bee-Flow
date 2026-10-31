@@ -81,6 +81,17 @@ export function orderLongestFirst(files, durations) {
 }
 
 /**
+ * The files the durations file does not know, so the balancing placed them by
+ * hash at the median. Each one is fine on its own; many of them (a few weeks of
+ * new tests) tilt the shards, and the slowest shard is the job's wall clock.
+ * The CI guard warns above `UNRECORDED_WARN_SHARE`.
+ */
+export const UNRECORDED_WARN_SHARE = 0.1;
+export function unrecorded(all, durations) {
+    return all.filter((f) => !known(durations, f));
+}
+
+/**
  * The CI guard: do the shard lists together equal the full list, as SETS?
  * (A count would pass with one file missing and one run twice.)
  * @returns {string[]} problems, empty when the shards are exactly a partition of `all`.

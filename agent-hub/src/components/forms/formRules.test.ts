@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { fieldError, groupBlocks, initialValues, isBlank, isDisplayField, ruleError, submissionValues, typicalDurationText, visibleNames } from './formRules';
 import type { FormFieldDef } from './PublicFormRenderer.types';

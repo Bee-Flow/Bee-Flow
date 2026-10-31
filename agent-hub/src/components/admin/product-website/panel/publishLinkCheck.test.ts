@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { mutate } from '@/api/mutate';
 import { confirmPublishDespiteBrokenLinks, describeLinkErrors, fetchLinkErrors } from './publishLinkCheck';

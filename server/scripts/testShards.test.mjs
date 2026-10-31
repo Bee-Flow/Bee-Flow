@@ -1,7 +1,7 @@
 // @typecheck strict
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assignShards, fileTimeoutMs, hashShard, orderLongestFirst, parseShard, TIMEOUT_CAP_MS } from './testShards.mjs';
+import { assignShards, unrecorded, fileTimeoutMs, hashShard, orderLongestFirst, parseShard, TIMEOUT_CAP_MS } from './testShards.mjs';
 
 const names = Array.from({ length: 200 }, (_, i) => `dir${i % 7}/file${i}.test.js`);
 const durations = Object.fromEntries(names.slice(0, 150).map((f, i) => [f, (i * 37) % 900 + 50]));
@@ -67,4 +67,11 @@ test('fileTimeoutMs: a quick or unrecorded file keeps the base', () => {
 test('fileTimeoutMs: never above the cap, unless the base itself is higher', () => {
     assert.equal(fileTimeoutMs('huge.test.js', { 'huge.test.js': 10 * 60_000 }, 180_000), TIMEOUT_CAP_MS);
     assert.equal(fileTimeoutMs('huge.test.js', { 'huge.test.js': 10 * 60_000 }, 20 * 60_000), 20 * 60_000);
+});
+
+test('unrecorded: the files the durations file does not know', () => {
+    const all = ['a.test.js', 'b.test.js', 'c.test.js'];
+    assert.deepEqual(unrecorded(all, { 'a.test.js': 120, 'b.test.js': 0 }), ['b.test.js', 'c.test.js']);
+    assert.deepEqual(unrecorded(all, {}), all);
+    assert.deepEqual(unrecorded(all, { 'a.test.js': 1, 'b.test.js': 1, 'c.test.js': 1 }), []);
 });

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The cookie banner's seeded copy (server defaults, mirrored into the admin
  * editor) and the renderer's built-in fallback must say the same thing, and

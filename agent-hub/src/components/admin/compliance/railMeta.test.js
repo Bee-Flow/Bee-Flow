@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import railMeta, { formatClock, formatDay, railScore, railHint } from './railMeta';
 import { sectionById, SECTIONS } from './sections';

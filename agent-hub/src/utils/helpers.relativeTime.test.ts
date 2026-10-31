@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getRelativeTime, getToolIcon, toolNameToCatalogId } from './helpers';
 import { malformed } from '@/test/mocks';

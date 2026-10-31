@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { answerableFields, describeFormPage, formFieldSample } from './formAnswers';
 import type { UpstreamNode } from './upstream.types';

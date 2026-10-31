@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { describeChatTool, detailOf, detailPayload, errorOf, resultFor, visibleToolHistory } from './chatToolCallDisplay';
 import { stub } from '@/test/mocks';

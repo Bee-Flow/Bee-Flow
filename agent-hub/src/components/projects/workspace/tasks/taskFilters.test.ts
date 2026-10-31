@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { ProjectTask } from '@/api/queries/projectTasks';
 import { activeFilterCount, allLabels, applyFilters, hasFilters, NO_FILTERS, sortTasks } from './taskFilters';

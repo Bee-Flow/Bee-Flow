@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Pattern, RepeatingSuggestion } from '../../api/queries/automation/repeating';
 import { buildMessageFromPattern, cadenceHint } from './patternMessage';

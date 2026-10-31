@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { VIRTUALIZE_FALLBACK_PX } from './gridConstants';
 import { activeFiltersOf, gridBoxOf, gridLookFor, pageRangeOf, pageSizeChoicesFor, virtualWindowOf } from './gridLayout';

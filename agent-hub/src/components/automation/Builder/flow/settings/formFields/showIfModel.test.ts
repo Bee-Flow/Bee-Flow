@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { buildShowIf, isComplete, isConditionable, opsFor, parseShowIf, type ShowIfModel } from './showIfModel';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { FIELDS_SHOWN, isSystemField, planIncomingFields, technicalPreview } from './incomingFields';
 

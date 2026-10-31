@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { cardStatusOf, isCronShapeValid, rowMetaParts, triggerShortOf } from './cardStatus';
 

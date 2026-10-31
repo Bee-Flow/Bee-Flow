@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, expect, it } from 'vitest';
 import { clearDrafts, draftKey, readDraft, writeDraft } from './drafts';
 import { rememberFirstAnswer, takeFirstAnswer } from './firstAnswer';

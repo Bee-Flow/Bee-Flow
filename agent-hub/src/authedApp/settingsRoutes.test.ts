@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * FROZEN_LEGACY (F2) — the /app/settings/* segment space.
  *
