@@ -14,7 +14,7 @@ const mfa = require('../mfa');
 const { recordAuthEvent } = require('../../telemetry/metrics');
 const { auditLoginFailure } = require('../loginAudit');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { completePendingLogin } = require('./pendingMfa');
+const { completePendingLogin, isPendingLoginExpired, PENDING_EXPIRED } = require('./pendingMfa');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -57,6 +57,10 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
     const startedAt = Date.now();
     const pending = req.session.mfaPending;
     if (!pending) return res.status(401).json({ error: 'No pending MFA login', code: 'no_pending_login' });
+    if (isPendingLoginExpired(pending)) {
+        delete req.session.mfaPending;
+        return res.status(PENDING_EXPIRED.status).json({ ...PENDING_EXPIRED.body });
+    }
     const userRow = await userStore.getUser(pending.userId);
     if (!userRow || !userRow.mfa_enabled) {
         delete req.session.mfaPending;

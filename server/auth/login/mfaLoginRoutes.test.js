@@ -230,3 +230,25 @@ test('a password pending login still carries its password to finalizeLogin, now 
     assert.strictEqual(finalizeCalls[0].password, 'pw');
     assert.strictEqual(typeof finalizeCalls[0].sessionExtra.mfaVerifiedAt, 'number');
 });
+
+test('a parked login that waited too long is gone, and says so', async () => {
+    userRow = { id: 'u1', mfa_enabled: true, mfa_secret: 'enc', organizationId: null };
+    finalizeCalls = [];
+    currentSession = pendingSession({ pendingAt: Date.now() - 6 * 60 * 1000 });
+    const res = await verify(GOOD_CODE);
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(res.body.code, 'pending_login_expired');
+    assert.strictEqual(currentSession.mfaPending, undefined, 'spent');
+    assert.strictEqual(finalizeCalls.length, 0);
+});
+
+test('a parked password login carries the key it derived, not the password, to the finish', async () => {
+    userRow = { id: 'u1', mfa_enabled: true, mfa_secret: 'enc', organizationId: null };
+    finalizeCalls = [];
+    currentSession = { mfaPending: { userId: 'u1', user: { id: 'u1' }, isAdmin: false, derived: { encryptionKey: 'k', recoveryKey: 'rk' }, pendingAt: Date.now(), attempts: 0 } };
+    const res = await verify(GOOD_CODE);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(finalizeCalls.length, 1);
+    assert.strictEqual(finalizeCalls[0].password, undefined);
+    assert.deepStrictEqual(finalizeCalls[0].derived, { encryptionKey: 'k', recoveryKey: 'rk' });
+});

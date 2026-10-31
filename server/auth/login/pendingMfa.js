@@ -15,6 +15,45 @@ const { finalizeLogin } = require('./finalizeLogin');
 const { finalizeOpaqueLogin } = require('./finalizeOpaqueLogin');
 
 /**
+ * How long a parked first factor waits for its second. Five minutes is a
+ * person typing a code or touching a key; what waits in the session is the
+ * derived key, and a tab left on the code screen should not keep it there
+ * for the life of a cookie.
+ */
+const PENDING_MFA_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Park a verified first factor for the second: the blob the two second-factor
+ * routes read, stamped so it expires, with the cookie shortened to match so
+ * an abandoned attempt is gone from the store as soon as it is gone from use.
+ * Session establishment after the second factor regenerates the session and
+ * the cookie gets its full lifetime back.
+ * @param {import('express').Request} req
+ * @param {Record<string, unknown>} pending
+ */
+function parkPendingLogin(req, pending) {
+    req.session.mfaPending = { ...pending, pendingAt: Date.now() };
+    if (req.session.cookie) req.session.cookie.maxAge = PENDING_MFA_TTL_MS;
+}
+
+/**
+ * @param {{ pendingAt?: unknown } | null | undefined} pending
+ * @param {number} [now]
+ */
+function isPendingLoginExpired(pending, now = Date.now()) {
+    if (!pending) return true;
+    // A blob from before the stamp existed is honoured as it was.
+    if (typeof pending.pendingAt !== 'number') return false;
+    return now - pending.pendingAt > PENDING_MFA_TTL_MS;
+}
+
+/** What the second-factor routes answer for a parked login that waited too long. */
+const PENDING_EXPIRED = Object.freeze({
+    status: 401,
+    body: Object.freeze({ error: 'That took too long. Sign in again with your password.', code: 'pending_login_expired' }),
+});
+
+/**
  * Which second factors a pending login may offer: an authenticator app,
  * security keys (auth/securityKeys/), or both. Recovery codes always work and
  * are not listed. Whether a key works on THIS host is settled when the client
@@ -50,8 +89,8 @@ async function completePendingLogin(req, res, { pending, userRow, startedAt }) {
             sessionExtra,
         });
     }
-    const { user, isAdmin, password } = pending;
-    return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, startedAt, sessionExtra });
+    const { user, isAdmin, password, derived } = pending;
+    return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, derived, startedAt, sessionExtra });
 }
 
-module.exports = { mfaMethodsFor, completePendingLogin };
+module.exports = { mfaMethodsFor, completePendingLogin, parkPendingLogin, isPendingLoginExpired, PENDING_MFA_TTL_MS, PENDING_EXPIRED };

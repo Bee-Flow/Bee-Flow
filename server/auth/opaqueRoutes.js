@@ -24,7 +24,7 @@ const { requireAuth } = require('./permissions');
 const { recordAuthEvent } = require('../telemetry/metrics');
 const { establishSession } = require('./establishSession');
 const { finalizeOpaqueLogin } = require('./login/finalizeOpaqueLogin');
-const { mfaMethodsFor } = require('./login/pendingMfa');
+const { mfaMethodsFor, parkPendingLogin } = require('./login/pendingMfa');
 const { hasRecentAuth, REAUTH_REQUIRED } = require('./recentAuth');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
@@ -422,10 +422,10 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
                 id: user.id, displayName: user.displayName, role: user.role || 'user',
                 avatar: user.avatar || null, avatarType: user.avatarType || null,
             };
-            req.session.mfaPending = {
+            parkPendingLogin(req, {
                 userId: user.id, isAdmin: user.role === 'admin', user: sessionUser,
                 opaque: true, ...(dek !== null ? { encryptionKey: dek } : {}),
-            };
+            });
             const mfaMethods = await mfaMethodsFor(userStore, user);
             return req.session.save((err) => {
                 if (err) log.error('Session save error:', err);

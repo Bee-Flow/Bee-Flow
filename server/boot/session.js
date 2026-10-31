@@ -23,6 +23,11 @@
 const session = require('express-session');
 const defaultLog = require('../telemetry/log');
 
+/** @param {{ sessionSeal?: { defaultSealer: () => import('../auth/sessionSeal').SessionSealer } }} deps */
+function sealerFrom(deps) {
+    return (deps.sessionSeal || require('../auth/sessionSeal')).defaultSealer();
+}
+
 /**
  * @param {{ use: Function }} app
  * @param {any} [deps]
@@ -46,7 +51,10 @@ function applyCookieSession(app, deps = {}) {
     // client from db.js (TLS, reconnects and fail-fast are configured there). It
     // activates once that client is connected; without Redis, or when Redis is not
     // reachable at boot, sessions stay PG-only.
-    installRedisCacheWhenReady(sessionStore, pgStore, getRedis());
+    // The seal on what a session row holds (auth/sessionSeal.js), keyed by
+    // MASTER_ENCRYPTION_KEY — checked just below; the sealer is built from
+    // the same value and is the identity without one, which only a test runs.
+    installRedisCacheWhenReady(sessionStore, pgStore, getRedis(), { sealer: sealerFrom(deps) });
 
     // Session lifetime and whether it slides — see auth/sessionLifetime.js for
     // what these two values actually were versus what the docs claimed.

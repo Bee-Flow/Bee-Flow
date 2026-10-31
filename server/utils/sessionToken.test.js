@@ -294,3 +294,26 @@ test('a token revoked on its own leaves the index, so a later user-wide revoke d
     await deleteSessionToken(t1);
     assert.strictEqual(await revokeSessionTokensForUser('carol'), 1);
 });
+
+// ── What the token store holds is sealed ─────────────────────────────────
+
+test('a bridge payload rests sealed under its token, and reads back plain', async () => {
+    const { _resetDefaultSealerForTests } = require('../auth/sessionSeal');
+    const previous = process.env.MASTER_ENCRYPTION_KEY;
+    process.env.MASTER_ENCRYPTION_KEY = 'a-master-key-of-at-least-thirty-two-characters';
+    _resetDefaultSealerForTests();
+    try {
+        const { _storedForTests, revokeSessionTokensForUser } = require('./sessionToken');
+        const token = generateToken();
+        const data = { user: { id: 'sealed-user' }, accessToken: 'provider-token', appPassword: { password: 'app-pw' } };
+        await setSessionToken(token, data);
+        const stored = String(_storedForTests(token));
+        assert.ok(stored.startsWith('sealed:v1:'), 'not plain JSON');
+        assert.ok(!stored.includes('provider-token') && !stored.includes('app-pw'));
+        assert.deepStrictEqual(await getSessionToken(token), data);
+        assert.strictEqual(await revokeSessionTokensForUser('sealed-user'), 1, 'the per-user index still finds it');
+    } finally {
+        if (previous === undefined) delete process.env.MASTER_ENCRYPTION_KEY; else process.env.MASTER_ENCRYPTION_KEY = previous;
+        _resetDefaultSealerForTests();
+    }
+});

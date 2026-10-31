@@ -246,3 +246,30 @@ test('bustSessionsForUser revokes the user\'s bridge tokens as well', async () =
     await bustSessionsForUser('u1', { db: /** @type {any} */ ({ pool, getRedis: () => null }), sessionTokens });
     assert.deepEqual(revoked, ['u1']);
 });
+
+test('with a sealer the cache holds sealed rows: on write, and on the write-back of a miss', async () => {
+    const { createSessionSealer, isSealed } = require('./sessionSeal');
+    const sealer = createSessionSealer('a-master-key-of-at-least-thirty-two-characters');
+    const rows = {};
+    const pg = fakePgStore(rows);
+    const client = Object.assign(new EventEmitter(), fakeRedis(), { status: 'ready' });
+    installRedisCacheWhenReady(pg, pg, /** @type {any} */ (client), { sealer });
+
+    // A write: PG and Redis both get the sealed row; the object handed in stays plain.
+    const session = { cookie: { maxAge: 60_000 }, user: { id: 'u1' }, encryptionKey: 'dek' };
+    await new Promise((resolve) => pg.set('s1', session, resolve));
+    assert.equal(session.encryptionKey, 'dek');
+    assert.ok(isSealed(rows.s1.encryptionKey), 'PG row sealed');
+    const written = client.calls.find((c) => c[0] === 'set' && c[1] === 'bf:sess:s1');
+    assert.ok(written, 'cached');
+    assert.ok(isSealed(JSON.parse(String(written[2])).encryptionKey), 'cache sealed');
+
+    // A read through the cache miss path: what is written back is the sealed PG row.
+    client.calls.length = 0;
+    const read = await new Promise((resolve) => pg.get('s1', (/** @type {unknown} */ _e, /** @type {any} */ s) => resolve(s)));
+    assert.equal(read.encryptionKey, 'dek', 'the caller sees the key');
+    await tick();
+    const writeBack = client.calls.find((c) => c[0] === 'set' && c[1] === 'bf:sess:s1');
+    assert.ok(writeBack, 'written back');
+    assert.ok(isSealed(JSON.parse(String(writeBack[2])).encryptionKey), 'write-back sealed');
+});

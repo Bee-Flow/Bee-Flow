@@ -24,6 +24,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');
 const { saveChallenge } = require('./saveChallenge');
+const { isPendingLoginExpired, PENDING_EXPIRED } = require('../login/pendingMfa');
 
 const VerifyBody = z.object({ response: credentialJson }).strict();
 const OptionsBody = z.object({}).strict();
@@ -91,6 +92,10 @@ function createSecurityKeyLoginRouter(deps) {
         const startedAt = Date.now();
         const pending = req.session.mfaPending;
         if (!pending) throw noPendingLogin();
+        if (isPendingLoginExpired(pending)) {
+            delete req.session.mfaPending;
+            throw new HttpError(PENDING_EXPIRED.status, PENDING_EXPIRED.body.code, PENDING_EXPIRED.body.error);
+        }
 
         // No challenge is a broken flow (never asked, or asked too long ago),
         // not a wrong answer: it costs no attempt.

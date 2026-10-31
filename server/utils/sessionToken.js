@@ -23,6 +23,7 @@
 
 const crypto = require('crypto');
 const { getRedis } = require('../db');
+const { defaultSealer } = require('../auth/sessionSeal');
 
 const _sessionTokenFallback = new Map();
 const _pickupFallback = new Map();
@@ -70,11 +71,37 @@ const NATIVE_SESSION_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 /**
  * @param {string} token
  */
+/**
+ * What goes into the store for a token: the payload sealed under the token
+ * (auth/sessionSeal.js), so a copy of the store holds no provider tokens or
+ * app passwords in the clear. An entry from before the seal is plain JSON and
+ * is read as it is.
+ * @param {string} token
+ * @param {unknown} data
+ */
+function packPayload(token, data) {
+    const sealer = defaultSealer();
+    return sealer.enabled ? sealer.seal(token, data) : JSON.stringify(data);
+}
+
+/**
+ * @param {string} token
+ * @param {string | null | undefined} stored
+ */
+function unpackPayload(token, stored) {
+    if (!stored) return null;
+    const sealer = defaultSealer();
+    if (sealer.isSealed(stored)) return sealer.unseal(token, stored) ?? null;
+    return JSON.parse(stored);
+}
+
+/**
+ * @param {string} token
+ */
 async function getSessionToken(token) {
     const r = getRedis();
     if (r) {
-        const val = await r.get(`bf:stok:${token}`);
-        const data = val ? JSON.parse(val) : null;
+        const data = unpackPayload(token, await r.get(`bf:stok:${token}`));
         if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { await r.del(`bf:stok:${token}`); return null; }
         return data;
     }
@@ -84,8 +111,9 @@ async function getSessionToken(token) {
         _sessionTokenFallback.delete(token);
         return null;
     }
-    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(entry.data)) { _sessionTokenFallback.delete(token); return null; }
-    return entry.data;
+    const data = unpackPayload(token, entry.stored);
+    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { _sessionTokenFallback.delete(token); return null; }
+    return data;
 }
 
 /**
@@ -96,8 +124,9 @@ async function getSessionToken(token) {
 async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECONDS) {
     const r = getRedis();
     const userId = userIdOf(data);
+    const stored = packPayload(token, data);
     if (r) {
-        await r.set(`bf:stok:${token}`, JSON.stringify(data), 'EX', ttlSeconds);
+        await r.set(`bf:stok:${token}`, stored, 'EX', ttlSeconds);
         if (userId) {
             await r.sadd(`bf:utok:${userId}`, token);
             await r.expire(`bf:utok:${userId}`, USER_TOKEN_INDEX_TTL_SECONDS);
@@ -117,7 +146,7 @@ async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECON
     // hint, clamped so it can never misfire, and unref'd so a month-long timer
     // cannot hold the process open at shutdown.
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    _sessionTokenFallback.set(token, { data, expiresAt });
+    _sessionTokenFallback.set(token, { stored, expiresAt });
     armEviction(token, expiresAt);
 }
 
@@ -167,14 +196,13 @@ async function deleteSessionToken(token) {
     if (!token) return;
     const r = getRedis();
     if (r) {
-        const val = await r.get(`bf:stok:${token}`);
-        const userId = userIdOf(val ? JSON.parse(val) : null);
+        const userId = userIdOf(unpackPayload(token, await r.get(`bf:stok:${token}`)));
         await r.del(`bf:stok:${token}`);
         if (userId) await r.srem(`bf:utok:${userId}`, token);
         return;
     }
     const entry = _sessionTokenFallback.get(token);
-    const userId = userIdOf(entry && entry.data);
+    const userId = userIdOf(entry ? unpackPayload(token, entry.stored) : null);
     _sessionTokenFallback.delete(token);
     if (userId) _userTokensFallback.get(userId)?.delete(token);
 }
@@ -333,6 +361,8 @@ module.exports = {
     setSessionToken,
     deleteSessionToken,
     revokeSessionTokensForUser,
+    /** FOR TESTS: the entry as the fallback store holds it. */
+    _storedForTests: (/** @type {string} */ token) => _sessionTokenFallback.get(token)?.stored ?? null,
     SESSION_TOKEN_TTL_SECONDS,
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
     setPickup,

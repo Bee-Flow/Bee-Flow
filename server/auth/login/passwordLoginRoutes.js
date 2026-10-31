@@ -19,8 +19,8 @@ const { recordAuthEvent } = require('../../telemetry/metrics');
 const loginThrottle = require('../loginThrottle');
 const { auditLoginFailure, auditLoginBlocked } = require('../loginAudit');
 const { loginIpLimiter } = require('../authRateLimits');
-const { finalizeLogin } = require('./finalizeLogin');
-const { mfaMethodsFor } = require('./pendingMfa');
+const { finalizeLogin, prepareLoginDek } = require('./finalizeLogin');
+const { mfaMethodsFor, parkPendingLogin } = require('./pendingMfa');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -245,13 +245,21 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
 
     // ── MFA gate ──
     // If the account has TOTP enabled, hold off on establishing the
-    // authenticated session: stash a pending blob (incl. the password so the
-    // DEK can be derived after the second factor) and ask the client for a
-    // code. The OPAQUE path has the same gate (auth/opaqueRoutes.js
-    // /login/finish); both finish through login/pendingMfa.js.
+    // authenticated session: do the DEK step now, from the password that was
+    // just verified, park the result for the second factor and ask the client
+    // for a code. The password itself is kept nowhere. The OPAQUE path has
+    // the same gate (auth/opaqueRoutes.js /login/finish); both finish through
+    // login/pendingMfa.js.
     const mfaRow = storedUser || (isPlatformOperator(user) ? await userStore.getUser('admin') : null);
     if (mfaRow && mfaRow.mfa_enabled) {
-        req.session.mfaPending = { userId: user.id, isAdmin, user, password };
+        const derived = await prepareLoginDek(user, password);
+        if (derived === false) {
+            // The same refusal finalizeLogin gives when the key cannot be
+            // derived from a verified password.
+            await loginThrottle.padFailureResponse(startedAt);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        parkPendingLogin(req, { userId: user.id, isAdmin, user, derived });
         const mfaMethods = await mfaMethodsFor(userStore, { ...mfaRow, id: user.id });
         return req.session.save((err) => {
             if (err) log.error('Session save error:', err);
