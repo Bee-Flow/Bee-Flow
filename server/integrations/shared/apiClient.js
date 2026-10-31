@@ -22,6 +22,16 @@
 const { isPrivateTarget } = require('../../utils/isPrivateTarget');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 
+/**
+ * Test seam: the fetch every call uses while set. The guarded fetch does not
+ * go through the global, so a test that scripts upstream answers installs
+ * them here (and clears with null) instead of replacing `global.fetch`.
+ * @type {Function | null}
+ */
+let testFetch = null;
+/** @param {Function | null} fn */
+function _setFetchForTests(fn) { testFetch = fn || null; }
+
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_ERROR_CHARS = 500;
 
@@ -53,7 +63,7 @@ async function jsonApiRequest(url, opts = {}) {
         errorPrefix = 'API',
         maxErrorChars = DEFAULT_MAX_ERROR_CHARS,
         allowPrivate = false,
-        fetchImpl = allowPrivate ? fetch : safeFetch,
+        fetchImpl = testFetch || (allowPrivate ? fetch : safeFetch),
     } = opts;
 
     const refused = () => {
@@ -107,4 +117,4 @@ async function jsonApiRequest(url, opts = {}) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
-module.exports = { jsonApiRequest };
+module.exports = { jsonApiRequest, _setFetchForTests };

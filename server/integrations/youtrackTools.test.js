@@ -30,13 +30,17 @@ SECRETS[`youtrack_url_user_${USER}`] = 'https://yt.example.com';
 SECRETS[`youtrack_token_user_${USER}`] = 'perm:token';
 
 // ── fetch stub ─────────────────────────────────────────────────────────
+// The client fetches through jsonApiRequest's guarded fetch, which does not
+// read the global: the scripted fetch is installed through its test seam.
+const { _setFetchForTests } = require('./shared/apiClient');
+test.after(() => _setFetchForTests(null));
 let fetchCalls = [];
 function scriptFetch(responses) {
     // responses: one entry per expected request, in order.
     //   { status, body }        → HTTP response (body JSON-encoded)
     //   { throwName: 'TimeoutError' } → fetch itself throws (timeout/network)
     fetchCalls = [];
-    global.fetch = async (url, opts) => {
+    _setFetchForTests(async (url, opts) => {
         const r = responses[fetchCalls.length];
         fetchCalls.push({ url: String(url), opts });
         if (r === undefined) throw new Error(`Unexpected upstream request #${fetchCalls.length}: ${url}`);
@@ -50,7 +54,7 @@ function scriptFetch(responses) {
             status: r.status || 200,
             text: async () => (r.body === undefined ? '' : JSON.stringify(r.body)),
         };
-    };
+    });
 }
 
 const PROJECT_RESOLVE = { status: 200, body: { id: '0-1', shortName: 'PROJ' } };
