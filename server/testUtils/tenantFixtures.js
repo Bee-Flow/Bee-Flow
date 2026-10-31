@@ -44,8 +44,10 @@ const FIXTURES = [
         router: () => require('../routes/agents').router,
         create: async ({ orgId, userId, index }) => {
             const agentStore = require('../stores/agentStore');
-            // The store's JSDoc types the organisation parameter from its null default; the id is a string.
-            const agent = await agentStore.createAgent(`Agent ${index}`, 'matrix fixture', 'You are a test.', userId, null, [], true, true, false, {}, /** @type {any} */ (orgId));
+            // The store's JSDoc types the organisation parameter from its `= null` default,
+            // so the id (a string at runtime) is handed over through unknown.
+            const organizationId = /** @type {null} */ (/** @type {unknown} */ (orgId));
+            const agent = await agentStore.createAgent(`Agent ${index}`, 'matrix fixture', 'You are a test.', userId, null, [], true, true, false, {}, organizationId);
             return agent.id;
         },
         routes: ['GET /agents/:id', 'PUT /agents/:id', 'DELETE /agents/:id'],
