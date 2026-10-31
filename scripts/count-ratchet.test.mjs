@@ -928,3 +928,13 @@ test('instance-config-gate counts request-facing files that write instance confi
     assert.equal(r.code, 1);
     assert.match(r.stderr, /1 files that write instance-wide config/);
 });
+
+test('tenant-matrix-exemptions counts the entries of the exemption list, a JSON file the extension filter would skip', () => {
+    const dir = sandbox({
+        files: { 'tenantIsolation.exemptions.json': JSON.stringify({ routes: { 'GET /a/:id': 'reason one', 'GET /b/:id': 'reason two' } }), 'routes/x.js': '' },
+        metric: 'tenant-matrix-exemptions', budget: 1, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'tenant-matrix-exemptions', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /2 routes with a path parameter/);
+});

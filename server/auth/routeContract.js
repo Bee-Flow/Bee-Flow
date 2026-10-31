@@ -49,6 +49,7 @@
 /** @typedef {{ routes?: Record<string, { enforcement?: string, note?: string }>, untriaged?: string[] }} RegistryLike */
 /** @typedef {Map<string, string | { reden: string }>} OpenMap */
 
+/** @type {Readonly<Record<string, number>>} */
 const RANK = Object.freeze({
     unaccounted: -1,
     open: 0,

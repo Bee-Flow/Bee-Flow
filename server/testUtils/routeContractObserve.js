@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The observed route contract: the walked router classified against the static
  * sweep, the registry and the open-route list. Shared by routes.contract.test.js

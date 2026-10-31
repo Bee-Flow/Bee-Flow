@@ -888,8 +888,16 @@ const METRICS = {
         what: 'files that write instance-wide config (configStore setConfig / setSecret / deleteConfig) without a platform-admin gate',
         advice: 'gate the write with requirePlatformAdmin (super admin, or an admin permission only on a self-hosted install); an organisation-level permission may not change settings the whole install shares',
     },
-};
-// deep-imports parses with the TypeScript compiler API: loaded on demand, like the other parsers.
+    'tenant-matrix-exemptions': {
+        // One file: the routes with a path parameter that no fixture kind of the
+        // tenant-isolation matrix drives yet (server/tenantIsolation.matrix.test.js).
+        include: (rel) => rel === 'tenantIsolation.exemptions.json',
+        extraFiles: ['tenantIsolation.exemptions.json'],
+        measure: (text) => Object.keys(JSON.parse(text).routes || {}).length,
+        what: 'routes with a path parameter the tenant-isolation matrix does not drive yet',
+        advice: 'add the route to a kind in server/testUtils/tenantFixtures.js (or add the kind) and remove its entry from server/tenantIsolation.exemptions.json',
+    },
+};// deep-imports parses with the TypeScript compiler API: loaded on demand, like the other parsers.
 let deepSpecifiers;
 let isDeepImportsExcluded;
 const args = process.argv.slice(2);
@@ -937,7 +945,13 @@ if (!fs.existsSync(dir)) {
 
 const rows = [];
 let count = 0;
-for (const file of collect(srcDir, [])) {
+// A metric may name files the extension filter leaves out (a JSON list it counts).
+const files = collect(srcDir, []);
+for (const extra of metric.extraFiles || []) {
+    const full = path.join(srcDir, extra);
+    if (fs.existsSync(full)) files.push(full);
+}
+for (const file of files) {
     const rel = path.relative(dir, file).split(path.sep).join('/');
     const srcRel = path.relative(srcDir, file).split(path.sep).join('/');
     if (metric.include && !metric.include(srcRel)) continue;

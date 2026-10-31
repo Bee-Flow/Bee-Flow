@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login path inventory — every call site of establishSession, read from the
  * source with acorn (a dependency of the server install).

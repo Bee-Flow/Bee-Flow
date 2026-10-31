@@ -88,7 +88,8 @@
     "lint:multer-guard-ratchet": "node scripts/count-ratchet.mjs multer-guard server",
     "lint:env-parseint-ratchet": "node scripts/count-ratchet.mjs env-parseint-fallback server",
     "lint:secret-equality-ratchet": "node scripts/count-ratchet.mjs secret-equality server",
-    "lint:instance-config-gate-ratchet": "node scripts/count-ratchet.mjs instance-config-gate server"
+    "lint:instance-config-gate-ratchet": "node scripts/count-ratchet.mjs instance-config-gate server",
+    "lint:tenant-matrix-ratchet": "node scripts/count-ratchet.mjs tenant-matrix-exemptions server"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

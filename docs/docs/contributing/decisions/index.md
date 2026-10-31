@@ -24,3 +24,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0009](./platform-operator.md) | One built-in platform-operator account, by fixed id, in one module |
 | [0010](./release-notes.md) | Release notes live on GitHub Releases; the repository keeps no changelog file |
 | [0011](./tests-next-to-the-source.md) | Tests live next to the source and run one file per process |
+| [0012](./route-contract-and-tenant-matrix.md) | Every route declares its gate; tenant isolation is tested by matrix |

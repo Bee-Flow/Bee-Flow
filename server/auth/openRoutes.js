@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Routes that are deliberately reachable without a chain gate, each with the
  * reason a reviewer can check. One list, two readers: auth/accessRegistry.sweep.test.js
@@ -13,7 +13,10 @@
 
 'use strict';
 
-const OPEN_ROUTES = new Map([
+/** @typedef {string | { reden: string, bewijs?: { file: string, marker: string } }} OpenReason */
+
+/** @type {Map<string, OpenReason>} */
+const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
     // ── Health & API-naamkaartje ─────────────────────────────────────────
     ['GET /api/health', 'gezondheidsprobe — bewust anoniem, alleen status/buildstempel (index.js)'],
     ['GET /api', 'API-naamkaartje ({ name, status }) — geen data, geen sessie nodig'],
@@ -123,7 +126,7 @@ const OPEN_ROUTES = new Map([
     // en de eerder geschreven rijen zijn gewist (migrations/memory-guest-purge-2026-08.js).
     // De router draagt nu router.use(requireAuth); de sweep ziet die gate
     // zelf. Bewezen door routes/memory.guards.test.js + routes/memory.authz.test.js.
-]);
+]));
 
 /**
  * The same claim for routes the static sweep cannot see (a regex path, a router
@@ -132,7 +135,8 @@ const OPEN_ROUTES = new Map([
  * contract. The sweep test must not read this map: its stale-entry check would
  * find no sweep route behind these keys.
  */
-const OPEN_ROUTES_WALK_ONLY = new Map([
+/** @type {Map<string, OpenReason>} */
+const OPEN_ROUTES_WALK_ONLY = new Map(/** @type {Array<[string, OpenReason]>} */ ([
     // ── Pre-session login flow: the request IS the credential, or there is none yet ──
     ['GET /auth/setup-status', 'first-run probe for the setup screen: answers only whether an operator account exists yet; the login page needs it before any session'],
     ['POST /auth/setup', 'first-run operator setup: refused by the handler as soon as an operator account exists (auth/login/setupRoutes.js), after that the route is inert'],
@@ -170,6 +174,6 @@ const OPEN_ROUTES_WALK_ONLY = new Map([
     ['GET /^\\/(?:([a-z]{2,3})\\/)?search-index\\.json$/', 'the public site search index, built from published pages (routes/publicSearchIndexRender.js)'],
     ['GET /integrations/directory', 'server-rendered public integrations directory of the marketing site (routes/publicIntegrationsRender.js)'],
     ['GET /integrations/:id', 'server-rendered public page of one integration, same source as the directory (routes/publicIntegrationsRender.js)'],
-]);
+]));
 
 module.exports = { OPEN_ROUTES, OPEN_ROUTES_WALK_ONLY };

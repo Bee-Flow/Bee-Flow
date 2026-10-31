@@ -156,6 +156,34 @@ and `npm run lint:secrets`.
   largest cycle). A red gate means a new import closed a loop: move the shared piece down.
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
+- **Route contract**: `server/auth/routes.contract.json` records, per route the router mounts, the
+  class of the strongest gate in its chain (`server/auth/routeContract.js`: platform, permission,
+  scope, scoped, auth, middleware, handler, open). `server/routes.contract.test.js` fails on a route
+  that is not in the file and on a route whose gate got WEAKER than recorded. After a route change:
+  `npm run gen:routes-contract` (needs `server/node_modules`, like `gen:api-reference`), then read
+  the diff: a line whose class went down is the change to review. A route that is open on purpose
+  carries its reason in `server/auth/openRoutes.js`; a tagged gate (`auth/gateMeta.js` `tagGate` /
+  `lazyGate`) is what the walk can read, so a new identity gate is tagged.
+- **Tenant isolation matrix**: `server/tenantIsolation.matrix.test.js` creates one resource per kind
+  in `server/testUtils/tenantFixtures.js` in organisation B and calls every listed route as a member
+  of organisation A (403 or 404 only; the owner must get 200), against the real routers and stores
+  on PGlite. A route with a path parameter that no kind drives is listed with a reason in
+  `server/tenantIsolation.exemptions.json`; `lint:tenant-matrix-ratchet` only lets that list shrink.
+  A new `:id` route either joins a kind or says why it cannot.
+- **Login path inventory**: every call of `establishSession` is in `server/auth/loginPaths.inventory.json`
+  with `mfa: enforced | not-applicable:<why> | pending` (`auth/loginPaths.inventory.test.js`); a new
+  login path fails until it says where its second-factor step runs.
+- **Session shape**: every key written to `req.session` is declared in `server/auth/sessionShape.json`
+  (`auth/sessionShape.test.js`); a key that holds a secret is listed under `sealed`, and
+  `plaintextAllowed` (the sealed keys still written in clear) may only shrink.
+- **Boundary ratchets** (server, `scripts/count-ratchet.mjs`): `lint:bare-fetch-ratchet` (global
+  `fetch` outside the guard modules; use `safeFetch` / `nextcloudFetch`), `lint:static-mount-ratchet`
+  (`express.static` without `setHeaders`), `lint:multer-guard-ratchet` (`multer` without
+  `middleware/uploadGuard`), `lint:env-parseint-ratchet` (`parseInt(process.env.X) || n`),
+  `lint:secret-equality-ratchet` (`===` on a secret, key or signature; use `timingSafeEqual`) and
+  `lint:instance-config-gate-ratchet` (a request-facing file writing instance-wide config without a
+  platform-admin gate). The same shapes are semgrep rules in `.semgrep/security-gates.yml`, run by
+  `sast.yml` on pull requests (new findings only).
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.
 - `/quality-round` (`.claude/skills/quality-round/SKILL.md`): the next round of the quality programme
   (server strictness and loose JSDoc types, agent-hub TypeScript and i18n, the count ratchets) with
