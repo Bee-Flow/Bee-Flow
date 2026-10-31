@@ -1,5 +1,5 @@
 {
-  "_comment": "Highest number of multer instances in files that never use middleware/uploadGuard server may still carry. Lower it with `node scripts/count-ratchet.mjs multer-guard server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_comment": "Highest number of multer instances in files that never use middleware/uploadGuard or middleware/uploadedImage server may still carry. Lower it with `node scripts/count-ratchet.mjs multer-guard server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-10-31",
-  "count": 19
+  "count": 17
 }

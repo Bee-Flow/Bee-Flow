@@ -574,7 +574,8 @@ const BARE_FETCH_ALLOWED = /^(?:utils\/ssrfGuard\.js|utils\/nextcloudTarget\.js|
 // keeps an uploaded file from running as a page on the app origin.
 const STATIC_MOUNT = /\bexpress\s*\.\s*static\s*\(/g;
 // multer-guard: a multer(...) instance in a file that never references the
-// upload guard (middleware/uploadGuard.js sniffs the bytes and sanitises SVG);
+// upload guard (middleware/uploadGuard.js sniffs the bytes and sanitises SVG;
+// middleware/uploadedImage.js receives an image through it);
 // multer's fileFilter only sees the client's own mimetype.
 const MULTER_CALL = /(?<![\w$.])multer\s*\(/g;
 // env-parseint-fallback: parseInt(process.env.X) || n (or Number(...)): zero and
@@ -597,7 +598,9 @@ const SECRET_EQUALITY_NOT = /(?:type|kind|id|count|length|len|name|mode|status|u
 // multi-tenant deployment an organisation-level role may not write them.
 const CONFIG_WRITE = /\b(?:setSecret|setConfig|deleteConfig|setSecretIfAbsent)\s*\(/;
 const CONFIG_STORE_REF = /configStore/;
-const PLATFORM_GATE_REF = /requirePlatformAdmin|requireSuperAdmin|isSuperAdmin/;
+// requirePlatformAdmin / createPlatformAdminGate (auth/requirePlatformAdmin.js) and the
+// isAdminUser helper of routes/ai/config/shared.js, which is built on it.
+const PLATFORM_GATE_REF = /requirePlatformAdmin|createPlatformAdminGate|isAdminUser|requireSuperAdmin|isSuperAdmin/;
 
 function countSecretEquality(text) {
     const code = blankNonCode(text);
@@ -622,7 +625,7 @@ function countStaticMountsWithoutHeaders(text) {
 }
 
 function countMulterWithoutGuard(text) {
-    if (/uploadGuard/.test(text)) return 0;
+    if (/uploadGuard|uploadedImage|receiveImageMiddleware/.test(text)) return 0;
     return (blankNonCode(text).match(MULTER_CALL) || []).length;
 }
 
@@ -865,7 +868,7 @@ const METRICS = {
     'multer-guard': {
         include: (rel) => !TEST_FILE.test(rel),
         measure: (text) => countMulterWithoutGuard(text),
-        what: 'multer instances in files that never use middleware/uploadGuard',
+        what: 'multer instances in files that never use middleware/uploadGuard or middleware/uploadedImage',
         advice: 'run the upload through uploadGuard (sniffs the bytes, sanitises SVG) and derive the stored extension from the sniffed type, never from the client mimetype or file name',
     },
     'env-parseint-fallback': {

@@ -16,6 +16,7 @@ const route = (over) => ({ method: 'GET', path: '/x', gates: [], middleware: [],
 test('tagged gates win over everything, strongest first', () => {
     assert.equal(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'platform', kind: 'superAdmin' }] }), ctx()).gate, 'platform');
     assert.deepEqual(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'rbac', anyOf: ['b', 'a'] }] }), ctx()), { gate: 'permission', anyOf: ['a', 'b'] });
+    assert.deepEqual(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'rbac', anyOf: ['admin_ai_config', 'all'], platform: true }] }), ctx()), { gate: 'platform', via: 'platformAdmin' });
     assert.equal(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'scope', kind: 'orgAdminOfParam' }] }), ctx()).gate, 'scope');
     assert.equal(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'scoped', minGrade: 'editor' }] }), ctx()).gate, 'scoped');
     assert.equal(rc.classify(route({ gates: [{ axis: 'auth' }, { axis: 'capability', id: 'x' }] }), ctx()).gate, 'auth');

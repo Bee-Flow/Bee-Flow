@@ -142,7 +142,7 @@ function schemasOf(id) {
 const { readGate } = require(path.join(SERVER, 'auth', 'gateMeta.js'));
 
 /** Gate fields worth publishing: what is required, never the internal prose. */
-const GATE_FIELDS = ['axis', 'id', 'kind', 'anyOf', 'feature', 'licenseFeature', 'param', 'minGrade', 'orgAdminBypass'];
+const GATE_FIELDS = ['axis', 'id', 'kind', 'anyOf', 'feature', 'licenseFeature', 'param', 'minGrade', 'orgAdminBypass', 'platform'];
 
 /** @param {Record<string, unknown> | null} gate */
 function publicGate(gate) {

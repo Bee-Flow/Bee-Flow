@@ -882,6 +882,7 @@ test('multer-guard counts multer instances only in files that never touch upload
         files: {
             'routes/a.js': "const up = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 } });\nconst up2 = multer({});\n",
             'routes/b.js': "const { uploadGuard } = require('../middleware/uploadGuard');\nconst up = multer({});\n",
+            'routes/c.js': "const { receiveImageMiddleware } = require('../middleware/uploadedImage');\nconst up = multer({});\n",
         },
         metric: 'multer-guard', budget: 0, pkg: 'server', src: false,
     });

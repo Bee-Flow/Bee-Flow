@@ -158,7 +158,7 @@ const OPEN_ROUTES_WALK_ONLY = new Map(/** @type {Array<[string, OpenReason]>} */
     ['POST /auth/logout', 'ends the caller\'s own session; without a session it is a no-op answered 200 (auth/login/profileRoutes.js)'],
 
     // ── Nextcloud connector bootstrap: the Nextcloud instance proves itself in the handler ──
-    ['POST /auth/connector/bootstrap', 'connector pairing: the handler verifies the calling Nextcloud by its capabilities round trip and a pairing code or an existing binding before it answers anything (auth/connectorBootstrap.js)'],
+    ['POST /auth/connector/bootstrap', 'connector pairing: the handler verifies the calling Nextcloud by its capabilities round trip and, for an instance that is already bound, proof of that binding (the recorded base URL or a tenant-key signature, auth/connector/rebindProof.js) or a pairing code, before it answers anything (auth/connectorBootstrap.js)'],
     ['POST /auth/connector/diagnose', 'connector diagnostics: the same capabilities round trip as bootstrap, answers reachability and binding state only (auth/connectorBootstrap.js)'],
     ['GET /auth/connector/bootstrap/pending/:id', 'polls the approval state of a pending binding; the random id is the credential and yields status only, never the tenant key (auth/connectorBootstrap.js header)'],
     ['POST /auth/connector/bootstrap/pending/:id/verify', 'redeems the e-mailed verification code for a pending binding: the code is the credential, attempts are capped (auth/connectorBootstrap.js)'],

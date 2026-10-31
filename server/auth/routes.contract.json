@@ -884,11 +884,8 @@
       "reason": "API-naamkaartje ({ name, status }) — geen data, geen sessie nodig"
     },
     "GET /api/admin/guard/status": {
-      "gate": "permission",
-      "anyOf": [
-        "admin_security",
-        "all"
-      ]
+      "gate": "platform",
+      "via": "platformAdmin"
     },
     "GET /api/admin/licenses": {
       "gate": "platform",
@@ -899,11 +896,8 @@
       "via": "superAdmin"
     },
     "GET /api/admin/metrics": {
-      "gate": "permission",
-      "anyOf": [
-        "all",
-        "manage_users"
-      ]
+      "gate": "platform",
+      "via": "platformAdmin"
     },
     "GET /api/admin/modules": {
       "gate": "platform",
@@ -4151,18 +4145,12 @@
       "gate": "auth"
     },
     "POST /api/admin/guard/install": {
-      "gate": "permission",
-      "anyOf": [
-        "admin_security",
-        "all"
-      ]
+      "gate": "platform",
+      "via": "platformAdmin"
     },
     "POST /api/admin/guard/uninstall": {
-      "gate": "permission",
-      "anyOf": [
-        "admin_security",
-        "all"
-      ]
+      "gate": "platform",
+      "via": "platformAdmin"
     },
     "POST /api/admin/licenses/:id/extend": {
       "gate": "platform",
@@ -6252,7 +6240,7 @@
     },
     "POST /auth/connector/bootstrap": {
       "gate": "open",
-      "reason": "connector pairing: the handler verifies the calling Nextcloud by its capabilities round trip and a pairing code or an existing binding before it answers anything (auth/connectorBootstrap.js)"
+      "reason": "connector pairing: the handler verifies the calling Nextcloud by its capabilities round trip and, for an instance that is already bound, proof of that binding (the recorded base URL or a tenant-key signature, auth/connector/rebindProof.js) or a pairing code, before it answers anything (auth/connectorBootstrap.js)"
     },
     "POST /auth/connector/bootstrap/pending/:id/resend": {
       "gate": "open",

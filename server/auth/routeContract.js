@@ -42,7 +42,7 @@
 
 'use strict';
 
-/** @typedef {{ axis: string, kind?: string, anyOf?: string[], minGrade?: string, id?: string, param?: string }} GateTag */
+/** @typedef {{ axis: string, kind?: string, anyOf?: string[], minGrade?: string, id?: string, param?: string, platform?: boolean }} GateTag */
 /** @typedef {{ method: string, path: string, gates: GateTag[], middleware: Array<string | { name: string }>, probedHandler?: boolean }} WalkedRoute */
 /** @typedef {{ gate: string, anyOf?: string[], reason?: string, via?: string }} ContractEntry */
 /** @typedef {{ routes: Array<{ method: string, path: string, evidence: string[], file: string }> }} SurfaceLike */
@@ -84,8 +84,10 @@ function mwName(m) {
  */
 function chainClass(route) {
     const tags = route.gates || [];
-    const platform = tags.find((g) => g.axis === 'platform');
-    if (platform) return { gate: 'platform', via: platform.kind || 'platform' };
+    // The platform axis, or an rbac gate that marks itself platform-wide
+    // (auth/requirePlatformAdmin.js: `platform: true`).
+    const platform = tags.find((g) => g.axis === 'platform' || g.platform === true);
+    if (platform) return { gate: 'platform', via: platform.kind || (platform.platform ? 'platformAdmin' : 'platform') };
     const rbac = tags.filter((g) => g.axis === 'rbac');
     if (rbac.length) {
         // Several rbac gates AND together; the caller must satisfy each, so the
