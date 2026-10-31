@@ -30,11 +30,7 @@ const orgHealth = require('./orgHealth');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
-// Org-health code for "the full sync could not read the NC user list". Open
-// while the connection is broken; the backstop backs off on it
-// (jobs/ncSyncBackstop.js) and a successful sync, manual or scheduled,
-// resolves it.
-const NC_SYNC_FAILED = 'connector.nc_sync_failed';
+const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 
 /**
  * The organisation fields this module reads (an organizations row).
@@ -393,37 +389,6 @@ async function mirrorGroups(org) {
     return { created, total: ncGroupNames.length, errors };
 }
 
-/**
- * What an org-health row may say about a failed NC read. Built from an
- * allow-list of classified fields rather than from the error message: the
- * message names the proxy path, and a later change to ncProxyFetch could put
- * the callback URL (or worse) in it without anyone looking here.
- *
- * @param {Error & { status?: unknown, cause?: { code?: unknown } }} err
- * @returns {{ stage: string, reason: string, httpStatus?: number, errorCode?: string }}
- */
-function summarizeSyncError(err) {
-    /** @type {{ stage: string, reason: string, httpStatus?: number, errorCode?: string }} */
-    const summary = { stage: 'list_users', reason: 'error' };
-    const status = Number(err && err.status);
-    const message = String((err && err.message) || '');
-    if (Number.isInteger(status) && status >= 100 && status <= 599) {
-        summary.reason = `http_${status}`;
-        summary.httpStatus = status;
-    } else if (err && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
-        summary.reason = 'timeout';
-    } else if (/has no tenant key/.test(message)) {
-        summary.reason = 'no_tenant_key';
-    } else if (/has no connector_callback_url/.test(message)) {
-        summary.reason = 'no_callback_url';
-    } else if (message === 'fetch failed') {
-        summary.reason = 'unreachable';
-        const code = err && err.cause && err.cause.code;
-        if (typeof code === 'string' && /^[A-Z0-9_]{2,40}$/.test(code)) summary.errorCode = code;
-    }
-    return summary;
-}
-
 // Periodic backstop: list all NC users + groups, diff against Bee Flow
 // users.nc_uid, apply create/deactivate. Idempotent, safe to run on cron.
 //
@@ -455,7 +420,8 @@ async function runFullSync(org) {
     } catch (e) {
         // Returns before ncLastSyncAt is written, so without the health row
         // the backstop would retry (and log) this org on every tick.
-        await orgHealth.problem(NC_SYNC_FAILED, { orgId: org.id, meta: summarizeSyncError(e), source: 'ncSync' });
+        const { code, meta } = classifySyncFailure(e);
+        await orgHealth.problem(code, { orgId: org.id, meta, source: 'ncSync' });
         return { error: e.message };
     }
 
@@ -480,7 +446,7 @@ async function runFullSync(org) {
     }
 
     await userStore.updateOrganization(org.id, { ncLastSyncAt: new Date().toISOString() });
-    await orgHealth.resolve(org.id, [NC_SYNC_FAILED]);
+    await orgHealth.resolve(org.id, [NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE]);
     log.info(`[ncSync] Full sync for org ${org.id}: created=${result.created} deactivated=${result.deactivated} errors=${result.errors.length}`);
     return result;
 }
@@ -503,5 +469,7 @@ module.exports = {
     ncProxyFetch,
     summarizeSyncError,
     NC_SYNC_FAILED,
+    APP_REMOVED,
+    KEY_DIVERGENCE,
     _assertImpersonatable, // exported for tests — the impersonation allow-list
 };

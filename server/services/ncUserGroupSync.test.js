@@ -288,11 +288,11 @@ function failUsersList(status) {
 
 test('a full sync that cannot read the NC user list opens connector.nc_sync_failed, URL-free', async () => {
     const calls = stubHealthStore();
-    failUsersList(401);
+    failUsersList(503);
 
     const result = await sync.runFullSync(ORG);
 
-    assert.match(result.error, /HTTP 401/);
+    assert.match(result.error, /HTTP 503/);
     assert.equal(calls.upsert.length, 1);
     const p = calls.upsert[0];
     assert.equal(p.code, sync.NC_SYNC_FAILED);
@@ -301,19 +301,30 @@ test('a full sync that cannot read the NC user list opens connector.nc_sync_fail
     assert.equal(p.severity, 'warning', 'a failing user sync must not mark the org as unable to chat');
     assert.equal(p.organizationId, ORG.id);
     assert.equal(p.source, 'ncSync');
-    assert.deepEqual(p.meta, { stage: 'list_users', reason: 'http_401', httpStatus: 401 });
+    assert.deepEqual(p.meta, { stage: 'list_users', reason: 'http_503', httpStatus: 503 });
     const stored = JSON.stringify(p);
     assert.ok(!stored.includes('cloud.example.com') && !stored.includes('/nc/'),
         'the health row must not carry the proxy URL or path');
     assert.deepEqual(calls.resolve, [], 'a failure must not resolve anything');
 });
 
-test('a successful full sync resolves connector.nc_sync_failed', async () => {
+test('a 401 on the user list opens connector.key_divergence, a 404 connector.app_removed, a 503 connector.nc_sync_failed', async () => {
+    for (const [status, code] of [[401, 'connector.key_divergence'], [404, 'connector.app_removed'], [503, 'connector.nc_sync_failed']]) {
+        const calls = stubHealthStore();
+        failUsersList(status);
+        await sync.runFullSync(ORG);
+        assert.deepEqual(calls.upsert.map(p => p.code), [code], `HTTP ${status}`);
+        assert.equal(calls.upsert[0].severity, code === 'connector.key_divergence' ? 'critical' : 'warning');
+        assert.equal(calls.upsert[0].meta.httpStatus, status);
+    }
+});
+
+test('a successful full sync resolves all three sync failure codes', async () => {
     const calls = stubHealthStore();
     const result = await sync.runFullSync(ORG);
     assert.equal(result.error, undefined);
     assert.deepEqual(calls.upsert, []);
-    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed'] }]);
+    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence'] }]);
 });
 
 test('runFullSync has no backoff of its own: "Sync now" right after a failure still reaches Nextcloud', async () => {
@@ -330,7 +341,7 @@ test('runFullSync has no backoff of its own: "Sync now" right after a failure st
     const retry = await sync.runFullSync(ORG);
     assert.equal(retry.error, undefined);
     assert.ok(requests.some(r => r.url.includes(USERS_PATH)), 'the retry must actually ask Nextcloud');
-    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed'] }]);
+    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence'] }]);
 });
 
 test('summarizeSyncError classifies from an allow-list and never echoes the message', () => {

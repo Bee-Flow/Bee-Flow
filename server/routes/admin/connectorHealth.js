@@ -165,6 +165,10 @@ const CUSTOMER_SAFE_WORDING = {
         message: 'Bee Flow cannot read your Nextcloud users, so users and groups are no longer kept in sync.',
         remediation: 'Open the Bee Flow app settings in Nextcloud and run the connection check, or re-pair the instance. Then use "Sync now" in the Nextcloud sync settings.',
     },
+    'connector.app_removed': {
+        message: 'The Bee Flow app in Nextcloud is disabled or no longer installed, so users and groups are no longer kept in sync.',
+        remediation: 'Re-enable or re-install the Bee Flow app in Nextcloud, or remove the Nextcloud connection of this organisation.',
+    },
     'chat.provider_config_failed': {
         message: 'AI chat is temporarily unavailable for your organisation.',
         remediation: 'Please contact Bee Flow support if this persists.',
