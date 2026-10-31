@@ -35,6 +35,10 @@ let notebooksDown = false;
 before(async () => {
     await initDB();
     assert.strictEqual(await users.createUser({ id: 'leaver', username: 'leaver', passwordHash: '' }), true);
+    // The session store's table (connect-pg-simple creates it at boot), with a
+    // session for the leaver and one for somebody else.
+    await db.run('CREATE TABLE IF NOT EXISTS user_sessions (sid varchar PRIMARY KEY, sess json NOT NULL, expire timestamp NOT NULL)');
+    await db.run(`INSERT INTO user_sessions (sid, sess, expire) VALUES ('s-leaver', '{"user":{"id":"leaver"}}', NOW() + interval '1 day'), ('s-other', '{"user":{"id":"other"}}', NOW() + interval '1 day') ON CONFLICT (sid) DO NOTHING`);
     resetErasurePortsForTests();
     registerErasurePorts({
         notebooks: {
@@ -74,6 +78,9 @@ test('a failing erasure step rejects with erasure_incomplete and keeps the accou
 test('the retry erases the rest and removes the account; missing optional tables are no failure', async () => {
     assert.strictEqual(await users.deleteUser('leaver'), true);
     assert.strictEqual(await stillThere('leaver'), false);
+    // The sessions went with the account; another user's stayed.
+    const sids = (await db.getAll('SELECT sid FROM user_sessions ORDER BY sid')).map((r) => r.sid);
+    assert.deepStrictEqual(sids, ['s-other']);
 });
 
 test('an unknown account is false, nothing is erased', async () => {

@@ -389,6 +389,19 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
             if (orphaned) return refuseLastOrgAdmin(res, 'That change');
         }
 
+        // A status that ends the account's access ends its sessions with it,
+        // and so does a new password: whoever held the old one, or a cookie
+        // minted under it, is signed out everywhere. The person changing their
+        // own password keeps the session they did it from.
+        const becomesInactive = updates.status !== undefined && !isActiveUserStatus(updates.status);
+        if (becomesInactive || password) {
+            const self = id === req.session?.user?.id;
+            try {
+                const { bustSessionsForUser } = require('../sessionCache');
+                await bustSessionsForUser(id, self && !becomesInactive ? { keepSid: req.sessionID } : {});
+            } catch (err) { bestEffort('auth/admin/users:bustSessionsOnUpdate', err); }
+        }
+
         const changedFields = Object.keys(updates).filter(k => updates[k] !== undefined);
         log.info(`[Audit] ${req.session.user?.id || 'system'} updated user '${id}' — fields: ${changedFields.join(', ')}`);
         // Capture only the access-relevant changes for audit (role, orgRole,
@@ -590,6 +603,13 @@ router.post('/change-password', requireAuth, validate({ body: ChangePasswordBody
 
     const passwordHash = await passwords.hash(newPassword);
     await userStore.updateUser(userId, { passwordHash });
+
+    // Every other session of this account ends with the old password; the one
+    // the change was made from stays.
+    try {
+        const { bustSessionsForUser } = require('../sessionCache');
+        await bustSessionsForUser(userId, { keepSid: req.sessionID });
+    } catch (err) { bestEffort('auth/admin/users:bustSessionsOnPasswordChange', err); }
 
     // Update session encryption key
     if (result.encryptionKey) {

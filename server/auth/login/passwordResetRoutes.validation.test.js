@@ -48,6 +48,7 @@ const MOCKS = {
     '../../utils/appPaths': { clientHost: () => 'https://example.test', legacyLoginPath: (q) => `/login?${q}` },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../passwordHash': { hash: async () => 'hash' },
+    '../sessionCache': { bustSessionsForUser: async (...args) => { touched.push({ what: 'bustSessionsForUser', args }); return 0; } },
 };
 
 const MOCK_IDS = {};
@@ -117,4 +118,16 @@ test('a misspelled new-password key is refused rather than read as absent', asyn
 
 test('a numeric token is refused by name instead of being stringified into a hash', async () => {
     await refuses({ method: 'POST', url: '/reset-password', body: { token: 12345, newPassword: 'x' } }, 'body.token');
+});
+
+test('a completed reset ends every session the account had', async () => {
+    const store = MOCKS['../../stores/userStore'];
+    const real = store.getUserByPasswordResetToken;
+    store.getUserByPasswordResetToken = async () => ({ id: 'u1', username: 'u1', email: 'u@example.test', password_reset_expires_at: new Date(Date.now() + 60_000).toISOString() });
+    try {
+        const res = await dispatch({ method: 'POST', url: '/reset-password', body: { token: 'tok', newPassword: 'Correct-Horse-Battery-9' } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        assert.ok(touched.some((t) => t.what === 'updateUser'));
+        assert.deepStrictEqual(touched.filter((t) => t.what === 'bustSessionsForUser').map((t) => t.args), [['u1']]);
+    } finally { store.getUserByPasswordResetToken = real; }
 });

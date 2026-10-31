@@ -201,6 +201,12 @@ async function deleteUser(userId) {
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { fail('config keys', e); }
 
+    // The live sessions and bridge tokens, from here rather than from the one
+    // admin route that remembered to: a session store row is user data too,
+    // and a session that outlives its account is the one case the existence
+    // check in requireAuth should never have to catch.
+    await step('sessions', () => require('../../auth/sessionCache').bustSessionsForUser(userId));
+
     // Named MCP tokens. No FK to users, so they go explicitly.
     await step('mcp_tokens', () => run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]));
     await step('cms upload tickets', () => eraseCmsUploadTickets(userId));

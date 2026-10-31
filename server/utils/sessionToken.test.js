@@ -265,3 +265,32 @@ test('only a token-shaped challenge or secret is accepted', () => {
         assert.strictEqual(isPickupTokenShaped(bad), false, JSON.stringify(bad));
     }
 });
+
+// ── Ending every session of one user reaches the bridge tokens ───────────
+//
+// A native client holds a bridge token instead of a cookie; "sign this person
+// out everywhere" has to find those too, so every mint is indexed per user.
+
+test('revoking a user drops every token minted for them, and nobody else\'s', async () => {
+    const { revokeSessionTokensForUser } = require('./sessionToken');
+    const a1 = generateToken(); const a2 = generateToken(); const b1 = generateToken();
+    await setSessionToken(a1, { user: { id: 'alice' } });
+    await setSessionToken(a2, { user: { id: 'alice' } }, NATIVE_SESSION_TOKEN_TTL_SECONDS);
+    await setSessionToken(b1, { user: { id: 'bob' } });
+
+    assert.strictEqual(await revokeSessionTokensForUser('alice'), 2);
+    assert.strictEqual(await getSessionToken(a1), null);
+    assert.strictEqual(await getSessionToken(a2), null);
+    assert.deepStrictEqual(await getSessionToken(b1), { user: { id: 'bob' } });
+    assert.strictEqual(await revokeSessionTokensForUser('alice'), 0, 'nothing left to revoke');
+    assert.strictEqual(await revokeSessionTokensForUser(undefined), 0);
+});
+
+test('a token revoked on its own leaves the index, so a later user-wide revoke does not count it twice', async () => {
+    const { deleteSessionToken, revokeSessionTokensForUser } = require('./sessionToken');
+    const t1 = generateToken(); const t2 = generateToken();
+    await setSessionToken(t1, { user: { id: 'carol' } });
+    await setSessionToken(t2, { user: { id: 'carol' } });
+    await deleteSessionToken(t1);
+    assert.strictEqual(await revokeSessionTokensForUser('carol'), 1);
+});

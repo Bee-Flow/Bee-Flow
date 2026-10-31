@@ -26,6 +26,21 @@ const { getRedis } = require('../db');
 
 const _sessionTokenFallback = new Map();
 const _pickupFallback = new Map();
+/** userId -> the bridge tokens minted for that user (the no-Redis index). */
+const _userTokensFallback = new Map();
+
+/**
+ * The per-user index of bridge tokens: `bf:utok:<userId>`, a set of tokens.
+ * It is what lets "end every session of this user" reach the tokens too. The
+ * set outlives its longest member (the native TTL) and is pruned on revoke.
+ */
+const USER_TOKEN_INDEX_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/** @param {unknown} data */
+function userIdOf(data) {
+    const id = data && typeof data === 'object' && /** @type {any} */ (data).user && /** @type {any} */ (data).user.id;
+    return id ? String(id) : null;
+}
 
 /** Node fires any longer timer immediately — see setSessionToken. */
 const MAX_TIMER_MS = 2_147_483_647;
@@ -80,9 +95,18 @@ async function getSessionToken(token) {
  */
 async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECONDS) {
     const r = getRedis();
+    const userId = userIdOf(data);
     if (r) {
         await r.set(`bf:stok:${token}`, JSON.stringify(data), 'EX', ttlSeconds);
+        if (userId) {
+            await r.sadd(`bf:utok:${userId}`, token);
+            await r.expire(`bf:utok:${userId}`, USER_TOKEN_INDEX_TTL_SECONDS);
+        }
         return;
+    }
+    if (userId) {
+        if (!_userTokensFallback.has(userId)) _userTokensFallback.set(userId, new Set());
+        _userTokensFallback.get(userId).add(token);
     }
     // The fallback has to answer the same question Redis answers — "is this
     // still valid?" — and a bare setTimeout cannot. Node's timer delay is a
@@ -143,10 +167,39 @@ async function deleteSessionToken(token) {
     if (!token) return;
     const r = getRedis();
     if (r) {
+        const val = await r.get(`bf:stok:${token}`);
+        const userId = userIdOf(val ? JSON.parse(val) : null);
         await r.del(`bf:stok:${token}`);
+        if (userId) await r.srem(`bf:utok:${userId}`, token);
         return;
     }
+    const entry = _sessionTokenFallback.get(token);
+    const userId = userIdOf(entry && entry.data);
     _sessionTokenFallback.delete(token);
+    if (userId) _userTokensFallback.get(userId)?.delete(token);
+}
+
+/**
+ * Drop every bridge token minted for a user: the per-user half of ending that
+ * user's sessions (auth/sessionCache.js bustSessionsForUser). Returns how many
+ * were dropped.
+ * @param {string | null | undefined} userId
+ */
+async function revokeSessionTokensForUser(userId) {
+    if (!userId) return 0;
+    const r = getRedis();
+    if (r) {
+        const key = `bf:utok:${userId}`;
+        const tokens = await r.smembers(key);
+        if (tokens.length) await r.del(...tokens.map((/** @type {string} */ t) => `bf:stok:${t}`));
+        await r.del(key);
+        return tokens.length;
+    }
+    const tokens = _userTokensFallback.get(String(userId));
+    if (!tokens) return 0;
+    for (const token of tokens) _sessionTokenFallback.delete(token);
+    _userTokensFallback.delete(String(userId));
+    return tokens.size;
 }
 
 // ── Pickup tokens (popup → iframe handoff after OAuth) ───────────────
@@ -279,6 +332,7 @@ module.exports = {
     getSessionToken,
     setSessionToken,
     deleteSessionToken,
+    revokeSessionTokensForUser,
     SESSION_TOKEN_TTL_SECONDS,
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
     setPickup,

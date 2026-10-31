@@ -16,6 +16,7 @@ const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const { USER_CHECK_TTL, _makeBoundedMap, _userExistsCache } = require('./permissionsCache');
 const { bestEffort } = require('../utils/bestEffort');
+const { isLoginBlockedAccount } = require('./accountStatusGate');
 
 // ─── "Last seen" throttle (B15) ──────────────────────────────────────────────
 // users.last_seen_at is the single source for "when did we last see this
@@ -141,6 +142,15 @@ const requireAuth = async (req, res, next) => {
         // session has nothing to lose and carries on.
         try {
             const user = await userStore.getUser(userId);
+            // An account that may not START a session may not keep one either:
+            // the same gate every sign-in path applies (auth/accountStatusGate.js),
+            // asked again here so that suspending someone ends their access on
+            // their next request rather than when the cookie runs out. Same
+            // answer as a deleted account, and the session goes with it.
+            if (user && isLoginBlockedAccount(user)) {
+                req.session.destroy(() => { });
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
             if (user) {
                 const shouldBeAdmin = user.role === 'admin';
                 if (req.session.isAdmin !== shouldBeAdmin) {

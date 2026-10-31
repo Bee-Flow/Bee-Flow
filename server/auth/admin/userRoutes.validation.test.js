@@ -43,7 +43,7 @@ const MOCKS = {
         isOrgAdminRole: () => false,
     },
     './orgAdminGuards': {
-        requireOrgAdminForUser: pass, isActiveUserStatus: () => true, wouldOrphanOrg: async () => false,
+        requireOrgAdminForUser: pass, isActiveUserStatus: (s) => !s || s === 'active', wouldOrphanOrg: async () => false,
         orgsAdministeredBy: async () => new Set(['orgA']), repairIfOrphaned: async () => {},
         countOtherOrgAdmins: async () => 2, isOrgAdminForOrg: async () => true,
     },
@@ -66,6 +66,7 @@ const MOCKS = {
     '../../utils/htmlSanitizer': { sanitizePlainTextFields: (o) => o },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../passwordHash': { verify: async () => true, hash: async () => 'hash', needsRehash: () => false },
+    '../sessionCache': { bustSessionsForUser: async (...args) => { touched.push({ what: 'bustSessionsForUser', args }); return 0; } },
 };
 
 const MOCK_IDS = {};
@@ -168,4 +169,49 @@ test('POST /users/:id/avatar stores a PNG named x.html as .png and answers the s
         if (storedFile) fs.rmSync(storedFile, { force: true });
         await new Promise((resolve) => server.close(resolve));
     }
+});
+
+// ── Ending access ends the sessions ──────────────────────────────────────
+
+const bustCalls = () => touched.filter((t) => t.what === 'bustSessionsForUser').map((t) => t.args);
+
+/** The write lands (the default stub answers nothing, which the route reads as "no such user"). */
+async function withUpdateLanding(fn) {
+    const store = MOCKS['../../stores/userStore'];
+    const real = store.updateUser;
+    store.updateUser = async (...args) => { touched.push({ what: 'updateUser', args }); return true; };
+    try { return await fn(); } finally { store.updateUser = real; }
+}
+
+test('parking an account in a non-active status ends every session it has', async () => {
+    await withUpdateLanding(async () => {
+        const res = await dispatch({ method: 'PUT', url: '/users/u2', body: { status: 'suspended' } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        assert.deepStrictEqual(bustCalls(), [['u2', {}]], JSON.stringify(touched));
+    });
+});
+
+test('a password set by an administrator signs the account out everywhere', async () => {
+    await withUpdateLanding(async () => {
+        const res = await dispatch({ method: 'PUT', url: '/users/u2', body: { password: 'Correct-Horse-Battery-9' } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        assert.deepStrictEqual(bustCalls(), [['u2', {}]]);
+    });
+});
+
+test('an ordinary field change leaves the sessions alone', async () => {
+    await withUpdateLanding(async () => {
+        const res = await dispatch({ method: 'PUT', url: '/users/u2', body: { displayName: 'Ursula' } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        assert.deepStrictEqual(bustCalls(), []);
+    });
+});
+
+test('changing your own password keeps the session you did it from and ends the others', async () => {
+    const res = await dispatch({ method: 'POST', url: '/change-password', body: { oldPassword: 'old-pass-word-1', newPassword: 'Correct-Horse-Battery-9' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    const calls = bustCalls();
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0][0], 'root');
+    assert.ok('keepSid' in calls[0][1], 'the current session is named as the one to keep');
 });

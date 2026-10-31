@@ -206,23 +206,38 @@ async function evictCached(r, sids) {
  * revoked, their role is downgraded, or their account is deleted — without
  * this, the existing cookie still validates for up to 30 days.
  *
+ * Reaches the bridge tokens as well (utils/sessionToken.js): a native client
+ * holds one of those instead of a cookie, and it stands for the same session.
+ *
+ * `keepSid` spares one session — the caller's own, when they changed their
+ * own password and should stay signed in where they are.
+ *
  * Returns the number of sessions destroyed (PG row count).
  * `db` is the test seam (pool + getRedis, as db.js exports them).
  */
-async function bustSessionsForUser(userId, { db = require('../db') } = {}) {
+async function bustSessionsForUser(userId, { db = require('../db'), keepSid = null, sessionTokens = require('../utils/sessionToken') } = {}) {
     if (!userId) return 0;
     try {
         const { pool, getRedis } = db;
-        const result = await pool.query(
-            `DELETE FROM user_sessions
-                   WHERE sess::jsonb -> 'user' ->> 'id' = $1
-               RETURNING sid`,
-            [String(userId)]
-        );
+        const result = keepSid
+            ? await pool.query(
+                `DELETE FROM user_sessions
+                       WHERE sess::jsonb -> 'user' ->> 'id' = $1
+                         AND sid <> $2
+                   RETURNING sid`,
+                [String(userId), String(keepSid)]
+            )
+            : await pool.query(
+                `DELETE FROM user_sessions
+                       WHERE sess::jsonb -> 'user' ->> 'id' = $1
+                   RETURNING sid`,
+                [String(userId)]
+            );
         const sids = (result.rows || []).map(r => r.sid);
         await evictCached(getRedis(), sids);
-        if (sids.length) {
-            log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length}`);
+        const tokens = await sessionTokens.revokeSessionTokensForUser(userId);
+        if (sids.length || tokens) {
+            log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length} bridge_tokens=${tokens}`);
         }
         return sids.length;
     } catch (e) {

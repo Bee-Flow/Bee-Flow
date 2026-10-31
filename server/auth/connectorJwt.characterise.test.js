@@ -577,6 +577,14 @@ test('existing pending user: 403 Account is pending admin approval', async () =>
     assert.equal(req.session.isAuthenticated, undefined);
 });
 
+test('existing suspended user: 403 Account is not active', async () => {
+    userStore.getUserByEmail = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'suspended' });
+    const req = connectorReq(goodPayload());
+    assertRejected(await run(req), 403, { error: 'Account is not active' });
+    assert.deepEqual(rec.problems[0].opts.meta, { lastUserId: 'u9', reason: 'existing_user_suspended' });
+    assert.equal(req.session.isAuthenticated, undefined);
+});
+
 test('getUserByEmail throwing: 401 Invalid connector token + warn with method/url/message', async () => {
     userStore.getUserByEmail = async () => { throw new Error('db gone'); };
     assertRejected(await run(connectorReq(goodPayload())), 401, INVALID);
