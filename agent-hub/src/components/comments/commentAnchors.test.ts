@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { CommentAnchor } from '../../api/queries/comments';
 import { anchorState, clampAnchor, CONTEXT_MAX, inReadingOrder, isUsableAnchor, QUOTE_MAX, quoteExcerpt } from './commentAnchors';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The destination list as data: its rows, its region groups and its bars.
  *

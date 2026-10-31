@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DAY_MS, addCalendarMonths, clockState } from './deadlineMath';
 

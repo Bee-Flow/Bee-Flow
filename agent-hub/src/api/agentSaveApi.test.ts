@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * `adoptedPromptAfterSave`: the one rule that keeps persona and prompt together after
  * a save (A3 part B).

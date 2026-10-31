@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { duplicateInGraph, withNewStep } from './ActionFlowEditor.helpers';
 import { graphToSteps, stepsToGraph, stripStepIds, withStepIds, type FlowStep } from '../stepGraph';

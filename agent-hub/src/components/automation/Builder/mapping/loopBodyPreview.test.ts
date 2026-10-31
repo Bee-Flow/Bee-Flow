@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';

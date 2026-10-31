@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Find and replace in the model, links around the caret, and the text index
  * both are built on.

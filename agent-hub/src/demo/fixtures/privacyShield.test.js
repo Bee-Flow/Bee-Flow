@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The Privacy Shield demo shows an administrator two things a marketing page
  * cannot: the rules an organisation can actually enforce, and a month of what

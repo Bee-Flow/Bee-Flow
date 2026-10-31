@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { applyStepBindings, stepBindings } from './forEachBindings';
 import { pickLoopList } from './loopLists';

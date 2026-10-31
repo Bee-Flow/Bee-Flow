@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * What the user is told when an upload is refused.
  *

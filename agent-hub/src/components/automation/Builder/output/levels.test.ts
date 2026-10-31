@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
     PAGE_SIZE, canOpen, childPattern, crumbsOf, drill, jumpTo, levelPattern, openStack,

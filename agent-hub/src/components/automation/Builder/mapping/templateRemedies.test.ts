@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { templateRemediesFor, templateShapeAt, replaceLastToken, hasToken } from './templateRemedies';
 // The runtime's own renderer: every token a choice writes must resolve there.

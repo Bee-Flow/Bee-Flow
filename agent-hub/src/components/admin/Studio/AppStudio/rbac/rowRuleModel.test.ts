@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
 import { blankCondition, buildRowRule, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, operatorsForField, ownRowsCondition, parseRowRule, resolveAccessEntry, retypeCondition, ruleFields, scopeToEntry, serializeCondition } from './rowRuleModel';

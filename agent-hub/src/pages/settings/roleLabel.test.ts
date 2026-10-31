@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ORG_ROLES } from '../../config/orgRoles';
 import { roleLabel } from './roleLabel';

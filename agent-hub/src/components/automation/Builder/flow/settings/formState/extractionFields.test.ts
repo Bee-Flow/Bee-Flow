@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { coerceExtractionName, EXTRACTION_FIELD_TYPES, MAX_EXTRACTION_FIELDS, sanitizeExtractionFields } from './extractionFields';
 

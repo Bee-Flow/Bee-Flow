@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { assetSrcSet, columnSizes, ASSET_IMG_SIZES } from './assetUrl';
 

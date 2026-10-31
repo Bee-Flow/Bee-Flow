@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The order of a chat on screen never comes from a clock.
  *

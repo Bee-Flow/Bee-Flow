@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
     COL_MIN, INPUT_DEFAULT, INPUT_GROW_MAX, OUTPUT_DEFAULT, SETTINGS_MAX, SETTINGS_MIN,

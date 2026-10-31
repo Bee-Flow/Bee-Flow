@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { mergeRecent } from './overviewRecent';
 import { initialsOf, projectTileStyle, safeProjectColor } from './projectVisuals';

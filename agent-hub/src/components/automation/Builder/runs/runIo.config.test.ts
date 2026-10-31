@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { configFields } from './runIo';

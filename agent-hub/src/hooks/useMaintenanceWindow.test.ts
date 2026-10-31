@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Maintenance window hook — pure-helper tests.
  *

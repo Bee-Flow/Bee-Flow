@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { notebookRef } from '../pages/documents/notebookRef';
 import { studioRouteProps, type StudioRoute } from './studioRouteProps';

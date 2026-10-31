@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { allRuleMisses, bindingWarningsOf, bindingWarningLine, runStepTypeMap, stepBindingWarnings } from './bindingMisses';
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { buildLayout, DEFAULT_NOTE_SIZE, NOTE_Z_INDEX } from './layout';
 

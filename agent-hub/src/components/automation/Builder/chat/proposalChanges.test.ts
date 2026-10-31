@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { proposalChanges, proposalFields, reviewedProposal } from './proposalChanges';
 import type { FlowDefinition, FlowStep } from '../flow/types';

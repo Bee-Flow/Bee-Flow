@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { cardFromTrigger, cronFromWords, toggleDay, triggerFromChoice, withFrequency, wordsFromCron } from './startChoice';
 import { describeCron } from '../flow/scheduleBuilderUtils';

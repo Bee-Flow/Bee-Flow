@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * pullModel — the SSE reader behind the model-download progress bar.
  *

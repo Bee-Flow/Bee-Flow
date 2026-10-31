@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { BoundAgent } from '@/api/queries/automation/agentBindings';
 import { editableIds, pickableAgents, refusalText, withAgent, withoutAgent } from './agentBindingsModel';

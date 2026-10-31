@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The beacon is opt-in, and an operator can decide without a rebuild.
  *

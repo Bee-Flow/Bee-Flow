@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Does every lesson's gate cover every surface that lesson actually uses?
  *

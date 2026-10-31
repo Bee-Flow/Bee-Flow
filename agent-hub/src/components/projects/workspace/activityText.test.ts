@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { ProjectActivityItem } from '@/api/queries/projects';
 import { activityCategory, changeMeta, describeActivity, isContentChange, type ActivityNames } from './activityText';

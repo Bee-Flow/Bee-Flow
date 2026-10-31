@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The binding helpers read and write paths with the ONE grammar the runtime
  * resolves (shared/expr/path.mjs), so a path the builder previews, classifies

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * serverEntry — the API the server bundle (server/core/markdown/editorCollab.cjs)
  * exposes. The server's converter refuses a bundle that misses any of these,

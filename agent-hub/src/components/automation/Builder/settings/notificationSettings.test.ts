@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { NOTIFICATION_SETTINGS_DEFAULTS, normalizeNotificationSettings, toggleChannel } from './notificationSettings';
 

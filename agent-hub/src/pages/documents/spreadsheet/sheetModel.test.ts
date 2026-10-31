@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { clipToUsed, effectiveRange, kindOf, parseTsv, referencedNames, selectionFor, toTsv, usedColsOf, usedRowsOf } from './sheetModel';
 

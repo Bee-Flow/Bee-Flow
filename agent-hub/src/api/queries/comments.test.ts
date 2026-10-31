@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { commentKeys, mergeThreadComments, patchThread, shownThread, upsertThread, withComment, type CommentThread, type ProjectComment } from './comments';
 

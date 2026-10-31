@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * F47: a step that runs once per row of a flatten (or of a filter after one)
  * calls its item `attachment`, not `item`: the rows are named by what they

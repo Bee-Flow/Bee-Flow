@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MAX_SOON, deadlineRef, deadlineSubjectKind, emptyLines, splitDeadlines, targetOf } from './deadlineRows';
 

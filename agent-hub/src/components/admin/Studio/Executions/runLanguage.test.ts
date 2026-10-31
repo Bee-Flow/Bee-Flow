@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { outcomeLabel, whatHappened, triggerLabel, runTitle, errorClassLabel, runIdFromText, enteredTriggerLabel } from './runLanguage';
 import EN_DEFAULTS from '@/i18n/en-defaults';

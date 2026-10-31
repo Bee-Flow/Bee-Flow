@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { safeText } from './useAutomationApi';
 import { stub } from '@/test/mocks';

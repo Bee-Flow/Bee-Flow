@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * The English dictionary is also published one namespace at a time
  * (src/i18n/en/<ns>.generated.mjs) so the public feature demos can load a few

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../api/client';
 import { describeError, errorBody, errorBodyRecord, errorCode, errorMessage, errorName, errorStatus, isAbortError, messageOf } from './caughtError';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, test } from 'vitest';
 import { chartDataFrom, chartSize, parseA1Range, validateChart } from './sheetCharts';
 import { evaluateSheet } from './sheetEngine';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { listUnitKey, routeContextOf, routeNoteOf, routeOutputsOf, routeSentence, routeSummaryOf, routeUnit } from './routeNote';
 

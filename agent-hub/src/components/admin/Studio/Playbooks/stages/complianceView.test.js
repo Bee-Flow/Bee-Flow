@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { basisOptions, dateColumns, groupFindings, isResolvable, linkFor, methodLine, registrationDefaults, registrationSources, retentionWords, severityWord, subjectColumns, targetWords, verdictOf, writtenWords } from './complianceView';
 

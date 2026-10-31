@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { EXPR_FUNCTION_NAMES } from '@shared/expr/engine.mjs';
 import { compile } from '@shared/expr/engine.mjs';
 import { describe, it, expect } from 'vitest';

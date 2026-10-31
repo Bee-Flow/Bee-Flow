@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { resolveBinding } from './resolveBinding';
 import { partial, stub } from '@/test/mocks';

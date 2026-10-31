@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, test } from 'vitest';
 import { chartRows, chartSeriesFrom, kpiFrom, scatterPoints } from './sheetChartSeries';
 import { CHART_PALETTE, CHART_TYPES, chartColor, validateChart, type SheetChartConfig } from './sheetCharts';

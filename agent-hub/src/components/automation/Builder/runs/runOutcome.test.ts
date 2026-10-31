@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { RunRowData } from '@/api/queries/automation/runs';

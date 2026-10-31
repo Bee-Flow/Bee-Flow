@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { buildValue, describeDataPath, isDataPath, parseValue } from './valueParts';
 

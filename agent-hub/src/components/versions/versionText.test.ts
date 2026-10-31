@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { VersionRequestError, type VersionMeta } from '../../api/queries/versions';
 import {

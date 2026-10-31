@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { discoverColumns, isAside, isTechnicalKey, keptChoice, nameColumn, resolveShown, suggestColumns } from './columns';
 import { columnsOf } from './perItem';

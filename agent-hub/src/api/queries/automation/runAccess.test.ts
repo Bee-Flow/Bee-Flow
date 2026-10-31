@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { RUN_FORBIDDEN_CODE, mayStartRun, runStartRefusal, viewOnlyRunHint } from './runAccess';
 import { AutomationRequestError } from './http';
