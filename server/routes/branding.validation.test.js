@@ -41,7 +41,7 @@ const pass = (req, res, next) => next();
 const MOCKS = {
     '../auth/permissions': {
         requireAuth: pass,
-        requireAdmin: async (req, res, next) => {
+        requirePlatformAdmin: () => async (req, res, next) => {
             if (fx.authThrows) throw new Error('password authentication failed for user "beeflow"');
             next();
         },

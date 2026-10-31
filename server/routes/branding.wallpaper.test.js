@@ -36,7 +36,7 @@ const stored = [];
 const pass = (req, res, next) => next();
 
 const MOCKS = {
-    '../auth/permissions': { requireAuth: pass, requireAdmin: pass },
+    '../auth/permissions': { requireAuth: pass, requirePlatformAdmin: () => pass },
     '../stores/brandingStore': {
         getWallpaperFilename: async () => null,
         setWallpaperFilename: async (name) => { stored.push(name); return name; },

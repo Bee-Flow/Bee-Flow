@@ -349,10 +349,10 @@ app.get('/api/guard/health', async (req, res) => {
     res.json({ status: 'unavailable' });
 });
 // Operational metrics (route latency, slow-query / cache hit-miss counters).
-// Admin-gated — this is operational data, not public. `?format=prometheus`
-// returns the text exposition format; default is JSON.
-const { requireAdmin: _requireAdminForMetrics } = require('./auth/permissions');
-app.get('/api/admin/metrics', _requireAdminForMetrics, (req, res) => {
+// Platform-admin-gated — operational data of the whole instance, not public and
+// not one organisation's. `?format=prometheus` is the text exposition format.
+const { requirePlatformAdmin: _requirePlatformAdminForMetrics } = require('./auth/permissions');
+app.get('/api/admin/metrics', _requirePlatformAdminForMetrics('manage_users'), (req, res) => {
     const { getPoolStats } = require('./db');
     if (req.query.format === 'prometheus') {
         res.setHeader('Content-Type', 'text/plain; version=0.0.4');

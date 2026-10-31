@@ -165,14 +165,25 @@ test('an admin mutates normally: add, update, delete, set-default all reach the 
 
 // ═══ Reads stay member-reachable, and never hand out the real key ════
 
-test('GET /providers still works for a non-admin member — with masked secrets', async () => {
+test('GET /providers still works for a non-admin member — the catalogue, no endpoint or key material', async () => {
     const res = await dispatch({ method: 'GET', url: '/providers', session: MEMBER });
     assert.strictEqual(res.statusCode, 200, 'model pickers for ordinary users depend on this read');
+    assert.deepStrictEqual(res.body.providers[0], { id: 'p1', name: 'EU endpoint', type: 'openai-compatible', model: 'm' });
+    assert.ok(!JSON.stringify(res.body).includes('sk-supergeheim'), 'the real key never leaves the router');
+    assert.ok(!JSON.stringify(res.body).includes('1234'), 'nor its tail');
+    assert.ok(!JSON.stringify(res.body).includes('private_key'), 'nor the service-account blob');
+    assert.ok(!JSON.stringify(res.body).includes('llm.example.eu'), 'nor the endpoint');
+});
+
+test('GET /providers for an admin keeps the masked full record (the provider cards)', async () => {
+    fx.isAdmin = true;
+    const res = await dispatch({ method: 'GET', url: '/providers', session: ADMIN });
+    assert.strictEqual(res.statusCode, 200);
     const p = res.body.providers[0];
     assert.strictEqual(p.apiKey, '••••1234', 'masked to the last four');
     assert.strictEqual(p.serviceAccountKey, '••••(configured)');
+    assert.strictEqual(p.url, 'https://llm.example.eu/v1');
     assert.ok(!JSON.stringify(res.body).includes('sk-supergeheim'), 'the real key never leaves the router');
-    assert.ok(!JSON.stringify(res.body).includes('private_key'), 'nor the service-account blob');
 });
 
 test('GET /providers/:id/models still works for a non-admin member', async () => {

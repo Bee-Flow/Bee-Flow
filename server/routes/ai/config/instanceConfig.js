@@ -10,6 +10,7 @@ const router = express.Router();
 const { getAIConfig, saveAIConfig } = require('../../../core/aiAgent');
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
+const { memberConfigView } = require('./memberConfigView');
 const { safeFetch } = require('../../../utils/ssrfGuard');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
 const { validate } = require('../../../core/http/validate');
@@ -68,16 +69,14 @@ const { fallback } = require('../../../utils/bestEffort');
 
 // ─── General AI Config ───────────────────────────────────────────
 
-// requireAuth: the only route on this router that lacked it. The response is
-// an inventory of the installation — provider endpoint URLs, the internal
-// search-service URL, which API keys exist, the DLP/PII guardrail ruleset and
-// its bypass scope, the service mailbox address — and it was readable
-// anonymously. Every frontend caller is an authenticated admin surface, so no
-// pre-login consumer breaks. It also issues ~40 configStore round-trips per
-// request, which made it a cheap DB-pool amplifier for unauthenticated load.
+// requireAuth: the answer is an inventory of the installation (provider
+// endpoint URLs, the internal search-service URL, which API keys exist, the
+// DLP/PII ruleset and its bypass scope, the service mailbox) and costs ~40
+// configStore round-trips, so it is neither for anonymous callers nor, whole,
+// for members: a platform admin gets it all, a member memberConfigView's cut.
 router.get('/config', requireAuth, async (req, res) => {
     const config = await getAIConfig();
-    res.json({
+    const payload = {
         url: config.url,
         model: config.model,
         apiKey: !!config.apiKey,
@@ -197,7 +196,8 @@ router.get('/config', requireAuth, async (req, res) => {
         // Address that receives a notification email whenever a new
         // subscription is started (empty = notifications off).
         subscriptionNotifyEmail: await configStore.getConfig('subscription_notify_email') || '',
-    });
+    };
+    res.json(await isAdminUser(req) ? payload : memberConfigView(payload));
 });
 
 router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConfigBody>, import('qs').ParsedQs>} */ req, res) => {

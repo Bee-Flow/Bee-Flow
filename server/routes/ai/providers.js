@@ -100,15 +100,21 @@ const ModelsQuery = z.object({
 }).strict();
 
 // GET /ai/providers
+// The admin gets every provider with its endpoint and a masked key tail (the
+// provider cards). A member gets the catalogue only — id, name, type, model —
+// the endpoints and key material of a shared instance are not theirs to read.
 router.get('/providers', requireAuth, async (req, res) => {
     const providerData = await getProviders();
-    const maskedProviders = providerData.providers.map(p => ({
-        ...p,
-        apiKey: p.apiKey ? '••••' + p.apiKey.slice(-4) : '',
-        serviceAccountKey: p.serviceAccountKey ? '••••(configured)' : '',
-    }));
+    const admin = await isAdminUser(req);
+    const providers = providerData.providers.map(p => (admin
+        ? {
+            ...p,
+            apiKey: p.apiKey ? '••••' + p.apiKey.slice(-4) : '',
+            serviceAccountKey: p.serviceAccountKey ? '••••(configured)' : '',
+        }
+        : { id: p.id, name: p.name, type: p.type, model: p.model }));
     res.json({
-        providers: maskedProviders,
+        providers,
         defaultProvider: providerData.defaultProviderId
     });
 });

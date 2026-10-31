@@ -39,7 +39,7 @@ const adapter = {
 const MOCKS = {
     '../../auth/permissions': {
         requireAuth: (req, res, next) => (req.session?.user?.id ? next() : res.status(401).json({ error: 'Not authenticated' })),
-        hasPermission: async () => true,
+        hasPlatformAdminAccess: async () => true,
     },
     '../../core/aiAgent': {
         getProviders: async () => ({ providers: [{ id: 'p1', type: 'ollama', url: 'http://localhost:11434', apiKey: '' }] }),

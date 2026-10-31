@@ -22,7 +22,7 @@
  */
 
 const router = require('express').Router();
-const { requireAuth, hasPermission } = require('../../auth/permissions');
+const { requireAuth, hasPlatformAdminAccess } = require('../../auth/permissions');
 const { getProviders, invalidateModelCache } = require('../../core/aiAgent');
 const { getAdapter } = require('../../core/providers');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../../core/providers/localModels');
@@ -31,12 +31,12 @@ const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { requireAdminUser } = require('./requireAdminUser');
 
+// The same bar as config/shared.isAdminUser (instance-wide settings), kept as
+// a local copy so the tests that double that import still reach the gate.
 /** @param {import('express').Request} req */
 async function isAdminUser(req) {
-    if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
-    const userId = req.session?.user?.id;
-    if (!userId) return false;
-    return hasPermission(userId, 'admin_ai_config', req.session);
+    if (!req.session) return false;
+    return hasPlatformAdminAccess(req, 'admin_ai_config');
 }
 
 const requireAdmin = requireAdminUser(isAdminUser);

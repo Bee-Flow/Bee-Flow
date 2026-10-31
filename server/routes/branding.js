@@ -62,7 +62,7 @@ const path = require('path');
 const fs = require('fs');
 const { z, typeError } = require('../utils/zod');
 const { choice } = require('../core/http/schemaParts');
-const { requireAuth: _requireAuth, requireAdmin: _requireAdmin } = require('../auth/permissions');
+const { requireAuth: _requireAuth, requirePlatformAdmin } = require('../auth/permissions');
 const brandingStore = require('../stores/brandingStore');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
@@ -85,7 +85,11 @@ function safe(middleware) {
     };
 }
 const requireAuth = safe(_requireAuth);
-const requireAdmin = safe(_requireAdmin);
+// The admin routes below write the ONE branding of the instance (the default
+// theme, the wallpaper file), not an organisation's, so they take the
+// platform-admin gate: `manage_users` on a self-hosted install, as before, a
+// platform admin on a shared one.
+const requireAdmin = safe(requirePlatformAdmin('manage_users'));
 
 // ── The theme vocabulary ────────────────────────────────────────
 //

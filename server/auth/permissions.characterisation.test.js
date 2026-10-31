@@ -150,6 +150,8 @@ test('export keys are exactly the monolith\'s, in order', () => {
         'GROUP_GRANT_IMPLIED_PERMISSIONS', 'orgWideGrantImpliedPermissions', 'orgRoleImpliedFill',
         'OrgRoles', 'SystemRoles', 'Permissions', 'ORG_ADMIN_VARIANTS', 'isOrgAdminRole',
         'requireActiveOrg', 'requireActiveOrgForMutations', 'isPermissionLookupDegraded',
+        // The gate of instance-wide settings (auth/requirePlatformAdmin.js).
+        'hasPlatformAdminAccess', 'requirePlatformAdmin',
     ]);
 });
 

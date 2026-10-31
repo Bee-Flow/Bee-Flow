@@ -5,14 +5,17 @@
  * Admin routes for installing / uninstalling the optional PII guard service.
  * Mounted at /api/admin/guard.
  *
- * All endpoints require the `admin_security` permission (same bar as the
- * Guardrails panel that hosts the install card in the UI).
+ * The installer acts on the whole instance (one guard service for every
+ * organisation), so the gate is auth/requirePlatformAdmin: the
+ * `admin_security` permission on a self-hosted install (same bar as the
+ * Guardrails panel that hosts the install card in the UI), a platform admin
+ * elsewhere.
  */
 
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
-const { requirePermission } = require('../auth/permissions');
+const { requirePlatformAdmin } = require('../auth/permissions');
 const installer = require('../services/guardInstaller');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
@@ -49,7 +52,7 @@ const UninstallBody = bodyOf({
     removeVolume: z.boolean({ error: typeError({ invalid: 'removeVolume is true or false.' }) }).optional(),
 });
 
-router.use(requirePermission('admin_security'));
+router.use(requirePlatformAdmin('admin_security'));
 
 router.get('/status', async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     const status = await installer.getStatus();
