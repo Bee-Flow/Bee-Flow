@@ -141,8 +141,11 @@ services:
       # and an unreachable URL would fail CLOSED on a core-only install.
       - PII_SERVICE_URL=${PII_SERVICE_URL:-http://guard-service:8100}
       # The same key the sidecars below enforce; the server sends it as X-API-Key
-      # (falls back from PII_SERVICE_API_KEY / CLASSIFY_SERVICE_API_KEY).
-      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      # (falls back from PII_SERVICE_API_KEY / CLASSIFY_SERVICE_API_KEY) and
+      # requires it on its own /api/search (routes/search.js answers 503
+      # without one in production). Required, like DB_PASSWORD: the stack
+      # refuses to start on an empty value. Generate one: openssl rand -hex 24
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?SERVICES_API_KEY is required - generate one with openssl rand -hex 24}
       - PII_SERVICE_API_KEY=${PII_SERVICE_API_KEY:-}
       # Topic classifier for the "is about" rule. Empty by default: the
       # classify-service sits behind `--profile classify`, and a URL on a run

@@ -13,7 +13,14 @@
  *   - the 400 NAMES the field (`body.mode`), not just "invalid request";
  *   - a refused search never leaves the building (no Serper call);
  *   - the bodies the real callers send — web-search tool, KB search, ingest —
- *     still pass, including the Python-only keys this twin ignores.
+ *     still pass, including the Python-only keys this twin ignores;
+ *   - what the router requires before it answers at all (apiKeyAuth): every
+ *     route acts on the tenant and knowledge-base ids the body names, so the
+ *     services key is what ties a caller to this instance. Without one it is
+ *     503 "not configured" in production (never a search) and open only
+ *     outside it; with one, the comparison is constant-time and a wrong key
+ *     of any length is 401. The mode is read when the module loads, so those
+ *     cases load the router fresh with their own environment.
  *
  * Run: cd server && node --test routes/search.validation.test.js
  */
@@ -31,6 +38,7 @@ const Module = require('module');
 // `outbound`. A refused request must leave both empty.
 const touched = [];
 const outbound = [];
+const logged = [];
 
 const MOCKS = {
     '../core/embed/cpuEmbed': {
@@ -51,6 +59,11 @@ const MOCKS = {
         deleteChunksLocally: async (...args) => { touched.push({ what: 'deleteChunksLocally', args }); },
     },
     '../stores/configStore': { getSecret: async () => 'serper-key', getConfig: async () => null },
+    '../telemetry/log': {
+        info() {}, debug() {},
+        warn: (...a) => logged.push({ level: 'warn', text: a.join(' ') }),
+        error: (...a) => logged.push({ level: 'error', text: a.join(' ') }),
+    },
 };
 
 const MOCK_IDS = {};
@@ -70,7 +83,17 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const router = require('./search');
 const realFetch = globalThis.fetch;
-test.after(() => { Module._resolveFilename = originalResolve; globalThis.fetch = realFetch; });
+const ROUTER_PATH = require.resolve('./search');
+test.after(() => { Module._resolveFilename = originalResolve; globalThis.fetch = realFetch; delete require.cache[ROUTER_PATH]; });
+
+/** The router loaded under one environment (the key mode is decided at load). */
+function routerWith({ nodeEnv, key }) {
+    if (nodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = nodeEnv;
+    if (key === undefined) delete process.env.SERVICES_API_KEY; else process.env.SERVICES_API_KEY = key;
+    delete require.cache[ROUTER_PATH];
+    logged.length = 0;
+    return require('./search');
+}
 
 // Serper is the one outbound call this router makes; record it instead.
 globalThis.fetch = async (url, init) => {
@@ -86,7 +109,7 @@ globalThis.fetch = async (url, init) => {
 // harness has to answer one the way index.js does.
 const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
-function dispatch({ method, url, body }) {
+function dispatch({ method, url, body, headers = {} }, use = router) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
         const query = {};
@@ -94,7 +117,7 @@ function dispatch({ method, url, body }) {
         const req = {
             method, url, originalUrl: url, path: pathname, body, query,
             // No content-length: express.json() leaves the pre-set body alone.
-            headers: {}, get(name) { return this.headers[String(name).toLowerCase()]; },
+            headers, get(name) { return this.headers[String(name).toLowerCase()]; },
         };
         const res = {
             statusCode: 200, headersSent: false,
@@ -103,7 +126,7 @@ function dispatch({ method, url, body }) {
             send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
             end() { this.headersSent = true; resolve(this); return this; },
         };
-        router(req, res, (err) => {
+        use(req, res, (err) => {
             if (!err) return reject(new Error(`fell through: ${method} ${url}`));
             terminalErrorHandler(err, req, res, (e) => reject(e));
         });
@@ -229,4 +252,57 @@ test('a misspelled document id on ingest is refused by name', async () => {
 
 test('an unknown parameter on the delete is refused — it names what to delete', async () => {
     await refuses({ method: 'DELETE', url: '/kb/documents/d9?tenant_id=t1&kb_id=kb1' }, 'query');
+});
+
+// ═══ The services key — what the router requires before it answers ═══
+
+const KB_SEARCH = { method: 'POST', url: '/tools/kb-search', body: { tenant_id: 't1', kb_ids: ['kb1'], query: 'q' } };
+const KEY = 'k-right-0123456789';
+
+// The cases above hold NODE_ENV=test and no key; put that back after each.
+test.afterEach(() => { process.env.NODE_ENV = 'test'; delete process.env.SERVICES_API_KEY; });
+
+test('production without a key: 503 "not configured", nothing is searched or embedded', async () => {
+    const r = routerWith({ nodeEnv: 'production', key: undefined });
+    const res = await dispatch(KB_SEARCH, r);
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.code, 'search_service_not_configured');
+    const embed = await dispatch({ method: 'POST', url: '/embed', body: { texts: ['a'] } }, r);
+    assert.strictEqual(embed.statusCode, 503);
+    assert.deepStrictEqual(touched, []);
+});
+
+test('production without a key: /health still answers, and the log says so once', async () => {
+    const r = routerWith({ nodeEnv: 'production', key: undefined });
+    const health = await dispatch({ method: 'GET', url: '/health' }, r);
+    assert.strictEqual(health.statusCode, 200);
+    await dispatch(KB_SEARCH, r);
+    await dispatch(KB_SEARCH, r);
+    assert.strictEqual(logged.filter((l) => l.level === 'error' && /SERVICES_API_KEY/.test(l.text)).length, 1, JSON.stringify(logged));
+});
+
+test('outside production without a key: open, with one warning', async () => {
+    const r = routerWith({ nodeEnv: 'test', key: undefined });
+    const res = await dispatch(KB_SEARCH, r);
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.map((t) => t.what), ['searchLocally']);
+    assert.ok(logged.some((l) => l.level === 'warn' && /SERVICES_API_KEY/.test(l.text)));
+});
+
+test('with a key: the right X-API-Key reaches the handler', async () => {
+    const r = routerWith({ nodeEnv: 'production', key: KEY });
+    const res = await dispatch({ ...KB_SEARCH, headers: { 'x-api-key': KEY } }, r);
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.map((t) => t.what), ['searchLocally']);
+});
+
+test('with a key: a wrong X-API-Key is 401 whatever its length, and nothing is searched', async () => {
+    const r = routerWith({ nodeEnv: 'production', key: KEY });
+    for (const wrong of ['k-wrong-0123456789', 'short', '']) {
+        const res = await dispatch({ ...KB_SEARCH, headers: { 'x-api-key': wrong } }, r);
+        assert.strictEqual(res.statusCode, 401, `key ${JSON.stringify(wrong)}`);
+    }
+    assert.deepStrictEqual(touched, []);
+    const health = await dispatch({ method: 'GET', url: '/health' }, r);
+    assert.strictEqual(health.statusCode, 200);
 });
