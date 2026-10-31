@@ -1,9 +1,10 @@
 {
-  "_comment": "Every key the server writes on req.session (auth/sessionShape.test.js scans the assignments). A new key is declared here before it can land, so what the session row and its Redis copy hold is a reviewed list, not an accident. `sealed` names the keys that must never be stored in clear; `plaintextAllowed` is the set of those still written in clear today and may only shrink. `pendingPasswordAllowed` is true while the MFA-pending blob still carries the password; it flips to false when that stops.",
+  "_comment": "Every key the server writes on req.session (auth/sessionShape.test.js scans the assignments). A new key is declared here before it can land, so what the session row and its Redis copy hold is a reviewed list, not an accident. `sealed` names the keys that must never be stored in clear (auth/sessionSeal.js seals encryptionKey, accessToken, refreshToken and mfaPending at the store boundary); `plaintextAllowed` is the set of sealed keys still written in clear today and may only shrink. `pendingPasswordAllowed` is true while the MFA-pending blob still carries the password; it flips to false when that stops.",
   "keys": [
     "_bridgeTier",
     "accessToken",
     "adminSelectedOrgId",
+    "authenticatedAt",
     "connectorNcUid",
     "connectorOrgId",
     "encryptionKey",
@@ -32,6 +33,7 @@
     "oauthCodeVerifier",
     "oauthConnectionId",
     "oauthNonce",
+    "oauthPickupChallenge",
     "oauthPickupId",
     "oauthPopup",
     "oauthProvider",
@@ -43,6 +45,7 @@
     "pendingCheckoutPlanId",
     "pendingInviteToken",
     "pendingSignup",
+    "pinVerifiedAt",
     "refreshToken",
     "returnTo",
     "securityKeyRegistration",
@@ -56,17 +59,15 @@
     "encryptionKey",
     "accessToken",
     "refreshToken",
+    "mfaPending",
     "mfaSetupSecret"
   ],
   "plaintextAllowed": [
-    "encryptionKey",
-    "accessToken",
-    "refreshToken",
     "mfaSetupSecret"
   ],
   "forbidden": [
     "password",
     "passwordHash"
   ],
-  "pendingPasswordAllowed": true
+  "pendingPasswordAllowed": false
 }

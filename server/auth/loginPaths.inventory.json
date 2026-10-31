@@ -1,18 +1,22 @@
 {
-  "_comment": "Every call site of establishSession (auth/loginPaths.js scans them; auth/loginPaths.inventory.test.js holds this file to the scan) and what it does about a second factor. `mfa` is `enforced` (the second-factor step runs before this call for an account that has one), `not-applicable:<why>` (there is no second factor to ask for here), or `pending` (a known gap). `pendingAllowed` equals the number of pending entries and may only go down.",
-  "pendingAllowed": 1,
+  "_comment": "Every call site of establishSession (auth/loginPaths.js scans them; auth/loginPaths.inventory.test.js holds this file to the scan) and what it does about a second factor. `mfa` is `enforced` (the second-factor step runs before this call for an account that has one), `not-applicable:<why>` (there is no second factor to ask for here), or `pending` (a known gap). `pendingAllowed` equals the number of pending entries and may only go down (zero since the OPAQUE path gained its second-factor step).",
+  "pendingAllowed": 0,
   "paths": {
-    "auth/login/finalizeLogin.js#password{}": {
+    "auth/login/finalizeLogin.js#password{...,encryptionKey}": {
       "mfa": "enforced",
-      "note": "The TOTP / security-key gate in auth/login/passwordLoginRoutes.js runs before finalizeLogin: an account with mfa_enabled only reaches it through /auth/mfa/verify-login. Plan without encryption."
+      "note": "Same gate as above; the DEK is derived after the second factor and sealed at the store boundary (auth/sessionSeal.js)."
     },
-    "auth/login/finalizeLogin.js#password{encryptionKey}": {
+    "auth/login/finalizeLogin.js#password{...}": {
       "mfa": "enforced",
-      "note": "Same gate as above; the DEK is derived after the second factor."
+      "note": "Same gate as above; plan without encryption. The spread carries the sealed-session fields."
     },
     "auth/login/finalizeLogin.js#password{pendingApproval}": {
       "mfa": "enforced",
       "note": "Same gate as above; the session is flagged pendingApproval for a waitlisted or unapproved account."
+    },
+    "auth/login/finalizeOpaqueLogin.js#opaque{...,...,opaqueMode}": {
+      "mfa": "enforced",
+      "note": "The OPAQUE proof parks the login in mfaPending when the account has a second factor; finalizeOpaqueLogin runs only after /auth/mfa/verify-login (or at once for an account without one)."
     },
     "auth/login/signupRoutes.js#signup{encryptionKey}": {
       "mfa": "not-applicable:a new account has no second factor yet; enrolment happens after the first sign-in",
@@ -33,10 +37,6 @@
     "auth/opaqueRoutes.js#opaque_register{opaqueMode}": {
       "mfa": "not-applicable:re-establishes the session of a user who already passed requireAuth to set the OPAQUE credential; not a sign-in",
       "note": "/opaque/register/finish."
-    },
-    "auth/opaqueRoutes.js#opaque{...,opaqueMode}": {
-      "mfa": "pending",
-      "note": "/opaque/login/finish establishes the session on the OPAQUE proof alone; the second-factor step for OPAQUE accounts is open work. When it lands, set mfa to enforced and lower pendingAllowed."
     }
   }
 }

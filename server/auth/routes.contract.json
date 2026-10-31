@@ -3407,7 +3407,8 @@
     },
     "GET /auth/login": {
       "gate": "open",
-      "reason": "legacy Nextcloud login entry: starts the OAuth round trip for the Nextcloud app (auth/oauth/nextcloudLegacyRoutes.js); the provider is the authenticator"
+      "reason": "The legacy Nextcloud sign-in start — anonymous by necessity: the browser is sent to the identity provider from here. isPickupTokenShaped(req.query.pickup_challenge) in the body is INPUT SHAPE, not authorization: it decides whether the embedded client's claim challenge is well formed enough to file with the deposit (utils/sessionToken.js) and never who the caller is. A probe hit here is expected and is not a gate.",
+      "via": "registry"
     },
     "GET /auth/login-pickup": {
       "gate": "open",
@@ -3415,7 +3416,8 @@
     },
     "GET /auth/login/:provider": {
       "gate": "open",
-      "reason": "OAuth login start: writes state and PKCE to the pre-auth session and redirects to the identity provider (auth/oauth/providerLoginRoutes.js)"
+      "reason": "As GET /auth/login, for Google / Microsoft / Nextcloud OAuth. The same isPickupTokenShaped(...) shape check on the optional pickup challenge; the session it starts is pre-auth and carries only the state, PKCE verifier and handoff flags.",
+      "via": "registry"
     },
     "GET /auth/me/active-features": {
       "gate": "auth"
