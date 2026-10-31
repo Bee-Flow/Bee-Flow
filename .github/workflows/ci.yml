@@ -664,13 +664,22 @@ jobs:
         # is the runner's own: every process dumps V8 coverage and c8 turns them
         # into this shard's istanbul json, which `server-coverage` merges.
         # `--files-out` records which files this shard ran, for the aggregate.
-        run: npm test -- --shard ${{ matrix.shard }}/3 --files-out shard-files.json --coverage --coverage-json coverage-shard
+        # `--write-durations` records this shard's wall ms per file; the three
+        # together regenerate scripts/test-durations.json from real runner
+        # times (node scripts/merge-durations.mjs, see the file's comment).
+        run: npm test -- --shard ${{ matrix.shard }}/3 --files-out shard-files.json --write-durations shard-durations.json --coverage --coverage-json coverage-shard
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
           name: server-shard-files-${{ matrix.shard }}
           path: server/shard-files.json
           retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: server-shard-durations-${{ matrix.shard }}
+          path: server/shard-durations.json
+          retention-days: 14
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:

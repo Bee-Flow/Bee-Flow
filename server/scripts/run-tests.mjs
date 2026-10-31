@@ -359,7 +359,7 @@ if (durationsOut) {
     const sorted = Object.fromEntries(Object.entries(fileMs).sort(([a], [b]) => (a < b ? -1 : 1)));
     writeFileSync(
         durationsOut,
-        `${JSON.stringify({ _comment: 'Wall ms per test file from one real run; only used to balance shards (scripts/testShards.mjs). Regenerate: node scripts/run-tests.mjs --write-durations scripts/test-durations.json. A file missing here still runs (hash shard).', durations: sorted }, null, 1)}\n`,
+        `${JSON.stringify({ _comment: 'Wall ms per test file from a real run; only used to balance the CI shards (scripts/testShards.mjs). Regenerate from GitHub, where the PGlite-heavy files weigh differently than on a fast laptop: gh run download <ci.yml run id> -p "server-shard-durations-*" -D /tmp/d && node scripts/merge-durations.mjs scripts/test-durations.json /tmp/d/*/shard-durations.json. Locally: node scripts/run-tests.mjs --write-durations scripts/test-durations.json. A file missing here still runs (hash shard).', durations: sorted }, null, 1)}\n`,
     );
 }
 
