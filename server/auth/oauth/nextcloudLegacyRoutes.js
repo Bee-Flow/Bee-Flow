@@ -277,6 +277,7 @@ router.get('/callback', async (req, res) => {
                             // by search instead of listing them.
                             pendingApproval: req.session.pendingApproval || false,
                             noOrganization: req.session.noOrganization || false,
+                            authenticatedAt: req.session.authenticatedAt,
                         });
                         await setPickup(pickupId, pickupChallenge ? { sessionToken, challenge: pickupChallenge } : { sessionToken });
                         log.info(`[OAuth/legacy] Pickup deposited (bound: ${!!pickupChallenge})`);

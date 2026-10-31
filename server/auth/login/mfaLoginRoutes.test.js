@@ -51,6 +51,13 @@ const finalizeStub = {
         return res.json({ success: true, startedAtType: typeof args.startedAt });
     },
 };
+let finalizeOpaqueCalls = [];
+const finalizeOpaqueStub = {
+    async finalizeOpaqueLogin(req, res, args) {
+        finalizeOpaqueCalls.push(args);
+        return res.json({ success: true, opaque: true });
+    },
+};
 
 const origResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
@@ -61,7 +68,12 @@ Module._resolveFilename = function (request, parent, ...rest) {
         if (request === '../../telemetry/metrics') return path.join(__dirname, '__stub_met_mfalogin__.js');
         if (request === '../loginAudit') return path.join(__dirname, '__stub_aud_mfalogin__.js');
         if (request === '../../utils/perUserRateLimit') return path.join(__dirname, '__stub_rl_mfalogin__.js');
+    }
+    // The route finishes through login/pendingMfa.js, which is kept real so the
+    // branch it makes (password vs OPAQUE) is under test; its finalizers are stubbed.
+    if (from.endsWith(path.join('auth', 'login', 'pendingMfa.js'))) {
         if (request === './finalizeLogin') return path.join(__dirname, '__stub_fin_mfalogin__.js');
+        if (request === './finalizeOpaqueLogin') return path.join(__dirname, '__stub_fino_mfalogin__.js');
     }
     return origResolve.call(this, request, parent, ...rest);
 };
@@ -72,6 +84,7 @@ for (const [fname, exp] of Object.entries({
     '__stub_aud_mfalogin__.js': auditStub,
     '__stub_rl_mfalogin__.js': rateLimitStub,
     '__stub_fin_mfalogin__.js': finalizeStub,
+    '__stub_fino_mfalogin__.js': finalizeOpaqueStub,
 })) {
     const full = path.join(__dirname, fname);
     require.cache[full] = { id: full, filename: full, loaded: true, exports: exp };
@@ -185,4 +198,35 @@ test('an account with security keys only still signs in with a recovery code', a
     const res = await verify('recovery-1');
     assert.strictEqual(res.status, 200);
     assert.strictEqual(finalizeCalls.length, 1);
+});
+
+test('an OPAQUE pending login finishes through the OPAQUE tail, with the key the client handed over and no password', async () => {
+    userRow = { id: 'u1', mfa_enabled: true, mfa_secret: 'enc', organizationId: null };
+    finalizeCalls = [];
+    finalizeOpaqueCalls = [];
+    currentSession = {
+        mfaPending: { userId: 'u1', user: { id: 'u1' }, isAdmin: false, opaque: true, encryptionKey: 'dek-b64', attempts: 0 },
+    };
+    const res = await verify(GOOD_CODE);
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body, { success: true, opaque: true });
+    assert.strictEqual(finalizeCalls.length, 0, 'the password tail is not for an OPAQUE login');
+    assert.strictEqual(finalizeOpaqueCalls.length, 1);
+    assert.strictEqual(finalizeOpaqueCalls[0].user, userRow);
+    assert.strictEqual(finalizeOpaqueCalls[0].encryptionKey, 'dek-b64');
+    assert.strictEqual(typeof finalizeOpaqueCalls[0].sessionExtra.mfaVerifiedAt, 'number');
+    assert.strictEqual(currentSession.mfaPending, undefined, 'the pending login is spent');
+});
+
+test('a password pending login still carries its password to finalizeLogin, now with the second-factor mark', async () => {
+    userRow = { id: 'u1', mfa_enabled: true, mfa_secret: 'enc', organizationId: null };
+    finalizeCalls = [];
+    finalizeOpaqueCalls = [];
+    currentSession = pendingSession();
+    const res = await verify(GOOD_CODE);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(finalizeOpaqueCalls.length, 0);
+    assert.strictEqual(finalizeCalls.length, 1);
+    assert.strictEqual(finalizeCalls[0].password, 'pw');
+    assert.strictEqual(typeof finalizeCalls[0].sessionExtra.mfaVerifiedAt, 'number');
 });

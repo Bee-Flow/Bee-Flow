@@ -43,13 +43,16 @@ const { isPlatformOperator } = require('../platformOperator');
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @param {{ user: Record<string, any>, isAdmin: boolean, storedUser?: Record<string, any> | null, password: string, startedAt?: number }} opts
+ * @param {{ user: Record<string, any>, isAdmin: boolean, storedUser?: Record<string, any> | null, password: string, startedAt?: number, sessionExtra?: Record<string, unknown> }} opts
  */
 // `startedAt` is the timestamp the CALLER took at the top of its handler, so a
 // refusal here is padded to the same floor as a wrong password. Callers that
 // do not pass one still get a floor, measured from entry into this function —
 // shorter, but never zero.
-async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, startedAt = Date.now() }) {
+// `sessionExtra` lands on the established session of the success exits only
+// (a second factor's `mfaVerifiedAt`, see login/pendingMfa.js); a refusal or a
+// gate writes none of it.
+async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, startedAt = Date.now(), sessionExtra = {} }) {
     // Session establishment happens at the success exits via establishSession
     // (H11). Deliberately NO session writes here: the DEK path below can still
     // return 401, and pre-writing isAuthenticated=true let express-session
@@ -126,7 +129,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         // Encryption disabled for this user's plan — skip DEK
         try {
             await establishSession(req, {
-                user: sessionUser, isAdmin,
+                user: sessionUser, isAdmin, extra: { ...sessionExtra },
                 // The session-user shape has no organisation; the stored row does.
                 audit: { method: 'password', organizationId: storedUser?.organizationId || null },
             });
@@ -157,7 +160,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     await establishSession(req, {
-        user: sessionUser, isAdmin, extra: { encryptionKey: result.encryptionKey },
+        user: sessionUser, isAdmin, extra: { encryptionKey: result.encryptionKey, ...sessionExtra },
         audit: { method: 'password', organizationId: storedUser?.organizationId || null },
     });
     // Include recovery key in response if DEK was just created or migrated

@@ -17,9 +17,10 @@
  *   2. OPAQUE is a three-leg exchange with client-side key unwrapping in the
  *      middle; see opaqueLogin below.
  *
- * MFA does NOT apply to the OPAQUE path — server/auth/opaqueRoutes.js's
- * /login/finish establishes the session directly. Modelling that faithfully
- * matters: prompting for a code the server will not check would be a dead end.
+ * MFA applies to the OPAQUE path as well: /login/finish answers
+ * `mfaRequired` instead of a session when the account has a second factor,
+ * and the same POST /auth/mfa/verify-login completes it. The DEK the app
+ * unwrapped is kept in memory across that step.
  */
 
 import { api } from '@/core/api/client';
@@ -83,7 +84,11 @@ export async function verifyMfaLogin(code: string): Promise<LoginResponse> {
 
 export interface OpaqueLoginResult {
     success: boolean;
-    user: OpaqueLoginFinishResponse['user'];
+    /** Absent while the second factor is still owed. */
+    user: OpaqueLoginFinishResponse['user'] | null;
+    /** Password verified; the second factor is next (see mfaMethods). */
+    mfaRequired?: boolean;
+    mfaMethods?: string[];
     /**
      * The unwrapped data encryption key, base64. Held only in memory by the
      * vault; never written to disk in this form.
@@ -151,7 +156,17 @@ export async function opaqueLogin(
                 { retry: false },
             ),
         );
-        if (!result?.success) throw new InvalidCredentialsError();
+        if (result?.mfaRequired) {
+            return {
+                success: false,
+                mfaRequired: true,
+                mfaMethods: result.mfaMethods,
+                user: null,
+                dek: dek ? toBase64(dek) : null,
+                hasRecoveryKey: Boolean(start.recoveryWrappedDEK),
+            };
+        }
+        if (!result?.success || !result.user) throw new InvalidCredentialsError();
 
         return {
             success: true,

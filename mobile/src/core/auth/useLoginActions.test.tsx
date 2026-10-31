@@ -58,6 +58,22 @@ describe('useLoginActions', () => {
         expect(result.current.keyProgress).toBeNull();
     });
 
+    it('holds an OPAQUE sign-in that owes its second factor, and unlocks the vault only once the code passes', async () => {
+        (passwordLogin as jest.Mock).mockResolvedValue({ useOpaque: true });
+        (opaqueLogin as jest.Mock).mockResolvedValue({ success: false, mfaRequired: true, mfaMethods: ['totp'], user: null, dek: 'dek' });
+        const { result, setStage, onSignedIn } = await setup();
+        await act(() => result.current.signIn('ada', 'pw'));
+        expect(setStage).toHaveBeenCalledWith({ kind: 'mfa-required', username: 'ada', methods: ['totp'] });
+        expect(vault.setDek).not.toHaveBeenCalled();
+        expect(onSignedIn).not.toHaveBeenCalled();
+
+        (verifyMfaLogin as jest.Mock).mockResolvedValueOnce({ success: true, user: ADA });
+        await act(() => result.current.submitMfaCode('123456'));
+        expect(vault.setDek).toHaveBeenCalledWith('dek');
+        expect(setStage).toHaveBeenCalledWith({ kind: 'signed-in', user: ADA });
+        expect(onSignedIn).toHaveBeenCalled();
+    });
+
     it('says "Invalid credentials." for wrong credentials and rethrows', async () => {
         (passwordLogin as jest.Mock).mockRejectedValue(new InvalidCredentialsError());
         const { result } = await setup();

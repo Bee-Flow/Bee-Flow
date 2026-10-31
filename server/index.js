@@ -150,6 +150,9 @@ app.get('/api/session-token', async (req, res) => {
             // session it came from.
             pendingApproval: req.session.pendingApproval || false,
             noOrganization: req.session.noOrganization || false,
+            // When the session behind this token was signed in: a bridged
+            // session has no other proof for a step-up (auth/recentAuth.js).
+            authenticatedAt: req.session.authenticatedAt,
 
             // ── The other two gates are deliberately NOT here. ──────────────
             //

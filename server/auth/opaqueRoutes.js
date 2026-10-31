@@ -23,6 +23,9 @@ const userStore = require('../stores/userStore');
 const { requireAuth } = require('./permissions');
 const { recordAuthEvent } = require('../telemetry/metrics');
 const { establishSession } = require('./establishSession');
+const { finalizeOpaqueLogin } = require('./login/finalizeOpaqueLogin');
+const { mfaMethodsFor } = require('./login/pendingMfa');
+const { hasRecentAuth, REAUTH_REQUIRED } = require('./recentAuth');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const loginThrottle = require('./loginThrottle');
@@ -149,6 +152,15 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
             error: 'This account already has an encryption key. Replacing it makes existing encrypted data unreadable unless you re-wrapped the same DEK. Retry with confirmReplace: true.',
             code: 'dek_already_exists',
         });
+    }
+    // Replacing the credential itself is more than a session may do on its
+    // own: the person has to have proved who they are a moment ago (a
+    // sign-in, a second factor, an OPAQUE exchange — auth/recentAuth.js).
+    // A first registration (the migration from a legacy password, right after
+    // that password was verified) has no record yet and is not held to this.
+    if (user.opaqueRecord && !hasRecentAuth(req.session)) {
+        log.warn(`[OPAQUE] Refused to replace the credential of ${userId} without a recent proof`);
+        return res.status(REAUTH_REQUIRED.status).json({ ...REAUTH_REQUIRED.body });
     }
 
     // Store OPAQUE record and wrapped keys
@@ -377,16 +389,6 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
         recordAuthEvent({ kind: 'opaque_login', status: 'ok' });
         await loginThrottle.recordLoginSuccess(req, pending.username);
 
-        // Set session — H11: rotate the session id on establishment
-        // (session fixation).
-        const sessionUser = {
-            id: user.id,
-            displayName: user.displayName,
-            role: user.role || 'user',
-            avatar: user.avatar || null,
-            avatarType: user.avatarType || null
-        };
-
         // If client sent encrypted DEK for server-side use (Option B from plan):
         // The DEK is encrypted with the OPAQUE sessionKey — decrypt it for session storage
         /** @type {string | null} */
@@ -410,20 +412,33 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
             }
         }
 
-        try {
-            await establishSession(req, {
-                user: sessionUser,
-                isAdmin: user.role === 'admin',
-                extra: { opaqueMode: true, ...(dek !== null ? { encryptionKey: dek } : {}) },
-                audit: { method: 'opaque', organizationId: user.organizationId || null },
+        // ── MFA gate ──
+        // The same gate as the password path (login/passwordLoginRoutes.js):
+        // the first factor passed, so hold the session back, park what the
+        // second step needs, and ask for the code. The client already holds
+        // the OPAQUE session key from the protocol, so it is not repeated here.
+        if (user.mfa_enabled) {
+            const sessionUser = {
+                id: user.id, displayName: user.displayName, role: user.role || 'user',
+                avatar: user.avatar || null, avatarType: user.avatarType || null,
+            };
+            req.session.mfaPending = {
+                userId: user.id, isAdmin: user.role === 'admin', user: sessionUser,
+                opaque: true, ...(dek !== null ? { encryptionKey: dek } : {}),
+            };
+            const mfaMethods = await mfaMethodsFor(userStore, user);
+            return req.session.save((err) => {
+                if (err) log.error('Session save error:', err);
+                res.json({ mfaRequired: true, mfaMethods });
             });
-        } catch (err) {
-            log.error('Session save error:', err);
         }
-        res.json({
-            success: true,
-            user: sessionUser,
-            sessionKey // Client needs this for encrypting DEK to send back
+
+        // Set session — H11: rotate the session id on establishment
+        // (session fixation).
+        return await finalizeOpaqueLogin(req, res, {
+            user, encryptionKey: dek,
+            sessionExtra: { opaqueLoginAt: Date.now() },
+            response: { sessionKey }, // Client needs this for encrypting DEK to send back
         });
     } catch (err) {
         return await fail(`Login finish failed: ${/** @type {Error} */ (err).message}`);
@@ -471,6 +486,13 @@ router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate
             error: 'Encryption is already set up for this account. Replacing the key makes existing encrypted data unreadable. Retry with confirmReplace: true.',
             code: 'dek_already_exists',
         });
+    }
+    // Same step-up as /register/finish: a PIN already in place is replaced
+    // only on a recent proof (the SSO sign-in itself, or a PIN unlock —
+    // auth/recentAuth.js). First-time setup, right after sign-in, passes.
+    if (existing?.opaqueRecord && !hasRecentAuth(req.session)) {
+        log.warn(`[OPAQUE] Refused to replace the PIN of SSO user ${userId} without a recent proof`);
+        return res.status(REAUTH_REQUIRED.status).json({ ...REAUTH_REQUIRED.body });
     }
 
     // No password_changed_at here, unlike /register/finish above: this PIN
@@ -556,6 +578,8 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
         req.session.needsEncryptionPin = false;
         req.session.needsEncryptionSetup = false;
         req.session.opaqueMode = true;
+        // A PIN unlock is a proof of its own (auth/recentAuth.js).
+        req.session.pinVerifiedAt = Date.now();
 
         // Decrypt client-sent DEK for server session (Option B)
         if (encryptedDEK) {

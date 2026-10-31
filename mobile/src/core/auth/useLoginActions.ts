@@ -4,7 +4,7 @@
  * which stage a login answer leads to is decided in session.ts.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { InvalidCredentialsError, opaqueLogin, passwordLogin, verifyMfaLogin } from './api';
 import { stageForLoginResult } from './session';
@@ -33,6 +33,8 @@ export function useLoginActions({ setStage, setPendingRecoveryKey, onSignedIn }:
     const [busy, setBusy] = useState(false);
     const [keyProgress, setKeyProgress] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
+    /** The DEK of an OPAQUE sign-in that still owes its second factor. */
+    const pendingDek = useRef<string | null>(null);
 
     const enter = useCallback(
         (next: AuthStage) => {
@@ -60,8 +62,15 @@ export function useLoginActions({ setStage, setPendingRecoveryKey, onSignedIn }:
                     // The account moved to OPAQUE. The password above was never
                     // checked — run the real protocol now.
                     const result = await opaqueLogin(username, password, setKeyProgress);
+                    if (result.mfaRequired) {
+                        // Held back until the code is accepted: a key in the
+                        // vault with no session behind it is a key for nobody.
+                        pendingDek.current = result.dek;
+                        enter({ kind: 'mfa-required', username, methods: result.mfaMethods });
+                        return;
+                    }
                     if (result.dek) vault.setDek(result.dek);
-                    enter({ kind: 'signed-in', user: result.user });
+                    if (result.user) enter({ kind: 'signed-in', user: result.user });
                     return;
                 }
                 applyLoginResult(first, username);
@@ -88,6 +97,10 @@ export function useLoginActions({ setStage, setPendingRecoveryKey, onSignedIn }:
                 const result = await verifyMfaLogin(code);
                 if (result.recoveryKey) setPendingRecoveryKey(result.recoveryKey);
                 if (result.success && result.user) {
+                    // The key an OPAQUE first factor unwrapped, now that the
+                    // session exists.
+                    if (pendingDek.current) vault.setDek(pendingDek.current);
+                    pendingDek.current = null;
                     enter({ kind: 'signed-in', user: result.user });
                     return;
                 }

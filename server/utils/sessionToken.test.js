@@ -202,7 +202,10 @@ test('a native token is not evicted early by the clamped timer', async () => {
 
 const { setPickup, claimPickup, pickupChallengeOf, isPickupTokenShaped } = require('./sessionToken');
 
-/** A deposit with a live session token behind it, bound to `secret` when given. */
+/**
+ * A deposit with a live session token behind it, bound to `secret` when given.
+ * @param {string | null} secret
+ */
 async function deposit(secret) {
     const sessionToken = generateToken();
     const pickupId = generateToken();

@@ -158,7 +158,13 @@ export const readOpaqueLoginStart: (raw: unknown) => OpaqueLoginStartResponse | 
 );
 
 export const readOpaqueLoginFinish: (raw: unknown) => OpaqueLoginFinishResponse | null = nullable(
-    shapeOf({ success: field.bool(false), user: readUser, sessionKey: field.str('') }),
+    shapeOf({
+        success: field.bool(false),
+        user: optShape(readUser),
+        sessionKey: field.str(''),
+        mfaRequired: field.optBool,
+        mfaMethods: field.optStrArray,
+    }),
 );
 
 /** GET /api/session-token: a fresh bridge token and its lifetime in seconds. */

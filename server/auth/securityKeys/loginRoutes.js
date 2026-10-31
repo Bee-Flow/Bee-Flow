@@ -35,7 +35,7 @@ const CHALLENGE_FIELD = 'securityKeyChallenge';
  *   userStore: { getUser: Function, listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, recordSecurityKeyUse: Function },
  *   ceremony: typeof import('./ceremony'),
  *   relyingPartyOf: (req: any) => ({ rpID: string, origin: string } | null),
- *   finalizeLogin: Function,
+ *   completePendingLogin: Function,
  *   recordAuthEvent: Function,
  *   auditLoginFailure: Function,
  *   limiter: import('express').RequestHandler,
@@ -45,7 +45,7 @@ const CHALLENGE_FIELD = 'securityKeyChallenge';
  */
 function createSecurityKeyLoginRouter(deps) {
     const {
-        userStore, ceremony, relyingPartyOf, finalizeLogin,
+        userStore, ceremony, relyingPartyOf, completePendingLogin,
         recordAuthEvent, auditLoginFailure, limiter, maxAttempts, log,
     } = deps;
     const router = express.Router();
@@ -86,7 +86,7 @@ function createSecurityKeyLoginRouter(deps) {
     });
 
     router.post('/mfa/security-key/verify-login', limiter, validate({ body: VerifyBody }), async (req, res) => {
-        // Taken first, so the success path hands finalizeLogin the same floor
+        // Taken first, so the success path hands completePendingLogin the same floor
         // /mfa/verify-login does.
         const startedAt = Date.now();
         const pending = req.session.mfaPending;
@@ -132,9 +132,8 @@ function createSecurityKeyLoginRouter(deps) {
 
         await userStore.recordSecurityKeyUse(pending.userId, key.id, result.newCounter);
         recordAuthEvent({ kind: 'mfa', status: 'ok' });
-        const { user, isAdmin, password } = pending;
-        delete req.session.mfaPending;
-        return finalizeLogin(req, res, { user, isAdmin, storedUser: row, password, startedAt });
+        // Which first factor is pending (password or OPAQUE) is decided there.
+        return completePendingLogin(req, res, { pending, userRow: row, startedAt });
     });
 
     return router;

@@ -32,7 +32,7 @@ const router = createSecurityKeyLoginRouter({
     userStore: store,
     ceremony,
     relyingPartyOf: (req) => resolveRelyingParty(req.headers.origin, ENV),
-    finalizeLogin: async (_req, res, args) => { finalized.push(args); res.json({ success: true, user: args.user }); },
+    completePendingLogin: async (req, res, args) => { delete req.session.mfaPending; finalized.push(args); res.json({ success: true, user: args.pending.user }); },
     recordAuthEvent: (e) => events.push(e),
     auditLoginFailure: async (_req, row) => { audited.push(row); },
     limiter: (_req, _res, next) => next(),
@@ -87,9 +87,9 @@ test('a touch of the registered key completes the pending login', async () => {
     const res = await post('/verify-login', { response: authenticator.authenticate(options, { origin: ORIGIN }) });
     assert.equal(res.status, 200, JSON.stringify(res.body));
     assert.equal(finalized.length, 1);
-    assert.equal(finalized[0].password, 'pw', 'the password reaches the DEK derivation');
+    assert.equal(finalized[0].pending.password, 'pw', 'the password reaches the DEK derivation');
     assert.equal(typeof finalized[0].startedAt, 'number');
-    assert.equal(finalized[0].storedUser.id, 'u1');
+    assert.equal(finalized[0].userRow.id, 'u1');
     assert.equal(session.current.mfaPending, undefined, 'the pending login is spent');
     assert.deepEqual(store.state.used, [{ userId: 'u1', id: store.state.keys[0].id, signCount: 1 }]);
     assert.deepEqual(events, [{ kind: 'mfa', status: 'ok' }]);

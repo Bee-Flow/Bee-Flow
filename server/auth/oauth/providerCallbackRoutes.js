@@ -47,6 +47,63 @@ const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
  * Encryption is a paid feature — disabled by default unless plan explicitly includes it.
  */
 /**
+ * Mint the bridge token for an embedded or native sign-in and file it under
+ * the pickup id, bound to the client's challenge when it sent one. True when
+ * the deposit landed.
+ * @param {import('express').Request} req
+ * @param {string} provider
+ * @param {string} userId
+ * @param {string} pickupId
+ * @param {string | undefined} pickupChallenge
+ */
+async function depositPickup(req, provider, userId, pickupId, pickupChallenge) {
+    try {
+        const { setSessionToken, setPickup, generateToken } = require('../../utils/sessionToken');
+        const appPasswordData = await userStore.getAppPassword(userId);
+        const sessionToken = generateToken();
+        await setSessionToken(sessionToken, {
+            user: req.session.user,
+            accessToken: req.session.accessToken,
+            refreshToken: req.session.refreshToken,
+            oauthProvider: req.session.oauthProvider,
+            oauthConnectionId: req.session.oauthConnectionId,
+            microsoftIdentityVersion: req.session.microsoftIdentityVersion,
+            microsoftLoginIdentity: req.session.microsoftLoginIdentity,
+            nextcloudUid: req.session.nextcloudUid,
+            appPassword: appPasswordData,
+            isAuthenticated: true,
+            isAdmin: req.session.isAdmin || false,
+            // The gates /auth/user reads straight off the session
+            // (auth/login/currentUserRoutes.js:75-82). Without them
+            // a bridged client is told a user awaiting approval is
+            // approved, and — on a zero-knowledge product — never
+            // prompts for encryption setup, so the account silently
+            // runs without a DEK.
+            //
+            // Deliberately NOT `encryptionKey`: that would park key
+            // material in the bridge store, which is exactly what
+            // the zero-knowledge design exists to prevent. The
+            // client runs its own setup/PIN flow off these flags.
+            needsEncryptionSetup: req.session.needsEncryptionSetup || false,
+            needsEncryptionPin: req.session.needsEncryptionPin || false,
+            pendingApproval: req.session.pendingApproval || false,
+            noOrganization: req.session.noOrganization || false,
+            // The sign-in time, for the step-ups (auth/recentAuth.js).
+            authenticatedAt: req.session.authenticatedAt,
+        });
+        // The challenge rides along so the claim can be checked against it
+        // (utils/sessionToken.js claimPickup). The id is not logged: together
+        // with the deposit it names a live session.
+        await setPickup(pickupId, pickupChallenge ? { sessionToken, challenge: pickupChallenge } : { sessionToken });
+        log.info(`[OAuth/${provider}] Pickup deposited (bound: ${!!pickupChallenge})`);
+        return true;
+    } catch (pickupErr) {
+        log.error(`[OAuth/${provider}] Pickup deposit failed:`, /** @type {Error} */ (pickupErr).message);
+        return false;
+    }
+}
+
+/**
  * Save the session and respond with either the popup-close HTML (when the
  * OAuth flow was launched in a popup/iframe) or a normal redirect. Shared by
  * the org-signup path and the consumer-signup early-return path so the two
@@ -96,51 +153,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
             delete req.session.oauthAppRedirect;
             req.session.save();
 
-            let deposited = false;
-            if (pickupId) {
-                try {
-                    const { setSessionToken, setPickup, generateToken } = require('../../utils/sessionToken');
-                    const appPasswordData = await userStore.getAppPassword(userId);
-                    const sessionToken = generateToken();
-                    await setSessionToken(sessionToken, {
-                        user: req.session.user,
-                        accessToken: req.session.accessToken,
-                        refreshToken: req.session.refreshToken,
-                        oauthProvider: req.session.oauthProvider,
-                        oauthConnectionId: req.session.oauthConnectionId,
-                        microsoftIdentityVersion: req.session.microsoftIdentityVersion,
-                        microsoftLoginIdentity: req.session.microsoftLoginIdentity,
-                        nextcloudUid: req.session.nextcloudUid,
-                        appPassword: appPasswordData,
-                        isAuthenticated: true,
-                        isAdmin: req.session.isAdmin || false,
-                        // The gates /auth/user reads straight off the session
-                        // (auth/login/currentUserRoutes.js:75-82). Without them
-                        // a bridged client is told a user awaiting approval is
-                        // approved, and — on a zero-knowledge product — never
-                        // prompts for encryption setup, so the account silently
-                        // runs without a DEK.
-                        //
-                        // Deliberately NOT `encryptionKey`: that would park key
-                        // material in the bridge store, which is exactly what
-                        // the zero-knowledge design exists to prevent. The
-                        // client runs its own setup/PIN flow off these flags.
-                        needsEncryptionSetup: req.session.needsEncryptionSetup || false,
-                        needsEncryptionPin: req.session.needsEncryptionPin || false,
-                        pendingApproval: req.session.pendingApproval || false,
-                        noOrganization: req.session.noOrganization || false,
-                    });
-                    // The challenge rides along so the claim can be checked
-                    // against it (utils/sessionToken.js claimPickup). The id is
-                    // not logged: together with the deposit it names a live
-                    // session.
-                    await setPickup(pickupId, pickupChallenge ? { sessionToken, challenge: pickupChallenge } : { sessionToken });
-                    deposited = true;
-                    log.info(`[OAuth/${provider}] Pickup deposited (bound: ${!!pickupChallenge})`);
-                } catch (pickupErr) {
-                    log.error(`[OAuth/${provider}] Pickup deposit failed:`, pickupErr.message);
-                }
-            }
+            const deposited = pickupId ? await depositPickup(req, provider, userId, pickupId, pickupChallenge) : false;
 
             // A native client goes back to its own scheme. That 302 is not a
             // navigation anybody sees — it is what makes Android deliver an

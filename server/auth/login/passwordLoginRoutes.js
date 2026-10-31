@@ -20,6 +20,7 @@ const loginThrottle = require('../loginThrottle');
 const { auditLoginFailure, auditLoginBlocked } = require('../loginAudit');
 const { loginIpLimiter } = require('../authRateLimits');
 const { finalizeLogin } = require('./finalizeLogin');
+const { mfaMethodsFor } = require('./pendingMfa');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -246,19 +247,12 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     // If the account has TOTP enabled, hold off on establishing the
     // authenticated session: stash a pending blob (incl. the password so the
     // DEK can be derived after the second factor) and ask the client for a
-    // code. NOTE: OPAQUE logins don't pass through here yet — MFA enforcement
-    // for the OPAQUE path is a follow-up.
+    // code. The OPAQUE path has the same gate (auth/opaqueRoutes.js
+    // /login/finish); both finish through login/pendingMfa.js.
     const mfaRow = storedUser || (isPlatformOperator(user) ? await userStore.getUser('admin') : null);
     if (mfaRow && mfaRow.mfa_enabled) {
         req.session.mfaPending = { userId: user.id, isAdmin, user, password };
-        // Which second factors the next step may offer: an authenticator app,
-        // security keys (auth/securityKeys/), or both. Recovery codes always
-        // work and are not listed. Whether a key works on THIS host is settled
-        // when the client asks /mfa/security-key/options.
-        /** @type {string[]} */
-        const mfaMethods = [];
-        if (mfaRow.mfa_secret) mfaMethods.push('totp');
-        if ((await userStore.listSecurityKeys(user.id)).length > 0) mfaMethods.push('security_key');
+        const mfaMethods = await mfaMethodsFor(userStore, { ...mfaRow, id: user.id });
         return req.session.save((err) => {
             if (err) log.error('Session save error:', err);
             res.json({ mfaRequired: true, mfaMethods });

@@ -117,6 +117,10 @@ describe('the login answers', () => {
 
     it('reads the finish as failed unless it says success', () => {
         expect(readOpaqueLoginFinish({ user: { id: 'u1' } })?.success).toBe(false);
+        // The finish may ask for the second factor instead of signing in.
+        expect(readOpaqueLoginFinish({ mfaRequired: true, mfaMethods: ['totp'] })).toMatchObject({
+            success: false, mfaRequired: true, mfaMethods: ['totp'],
+        });
         expect(readOpaqueLoginFinish({ success: true, user: { id: 'u1' }, sessionKey: 'k' })).toMatchObject({
             success: true,
             sessionKey: 'k',

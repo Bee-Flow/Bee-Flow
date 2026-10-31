@@ -362,12 +362,24 @@ describe('the transparent hand-off to OPAQUE', () => {
         expect(screen.queryByText('Invalid credentials')).toBeNull();
     });
 
-    // wrat: the OPAQUE branch is checked before the mfaRequired branch, so an
-    // OPAQUE account is never asked for a second factor here — matching the
-    // server, which routes OPAQUE logins around its own MFA gate
-    // (auth/login/passwordLoginRoutes.js). Hoort in stage L16 te veranderen.
-    it('skips the second factor entirely for an OPAQUE account', async () => {
-        route('/auth/admin-login', () => ok({ useOpaque: true, mfaRequired: true }));
+    // The OPAQUE finish answers `mfaRequired` when the account has a second
+    // factor (auth/opaqueRoutes.js /login/finish): the same code step as the
+    // password path, completed by the same /auth/mfa/verify-login.
+    it('asks for the second factor when the OPAQUE finish says one is owed', async () => {
+        route('/auth/admin-login', () => ok({ useOpaque: true }));
+        opaqueLogin.mockResolvedValue({ mfaRequired: true, mfaMethods: ['totp'] });
+        route('/auth/mfa/verify-login', () => ok({ success: true, user: { id: 'u1' } }));
+        const { onLogin } = await renderLogin();
+        await signIn();
+        await screen.findByTestId('mfa-code-input');
+        expect(onLogin).not.toHaveBeenCalled();
+        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ id: 'u1' }, undefined));
+    });
+
+    it('signs in straight away when the OPAQUE finish owes no second factor', async () => {
+        route('/auth/admin-login', () => ok({ useOpaque: true }));
         opaqueLogin.mockResolvedValue({ success: true, user: { id: 'u1' } });
         const { onLogin } = await renderLogin();
         await signIn();

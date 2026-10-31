@@ -78,9 +78,14 @@ export function useLoginActions(deps: LoginActionsDeps) {
                 if (data.useOpaque) {
                     // User has migrated to OPAQUE: use OPAQUE flow transparently
                     try {
-                        const result: { useLegacy?: boolean; success?: boolean; user?: unknown } = await opaqueLogin(username, password);
+                        const result: { useLegacy?: boolean; success?: boolean; user?: unknown; mfaRequired?: boolean; mfaMethods?: string[] } = await opaqueLogin(username, password);
                         if (result.useLegacy) {
                             setError(t('login.auth_error_contact_admin'));
+                        } else if (result.mfaRequired) {
+                            // Password verified over OPAQUE: the same second
+                            // factor step as the password path.
+                            setMfaMethods(Array.isArray(result.mfaMethods) ? result.mfaMethods : ['totp']);
+                            setMfaRequired(true);
                         } else if (result.success) {
                             onLogin(result.user);
                         } else {
