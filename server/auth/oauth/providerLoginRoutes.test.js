@@ -158,3 +158,28 @@ test('an unknown or half-configured connection is refused, never silently the pr
         assert.strictEqual(session.oauthConnectionId, undefined, id);
     }
 });
+
+test('a popup attempt records the pickup challenge next to the id, for the callback to file with the deposit', async () => {
+    const session = newSession();
+    const challenge = 'Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw';
+    await navigate(`/login/google?popup=1&pickup=p-123&pickup_challenge=${challenge}`, session);
+    assert.strictEqual(session.oauthPickupId, 'p-123');
+    assert.strictEqual(session.oauthPickupChallenge, challenge);
+});
+
+test('a malformed challenge is dropped rather than stored, so the deposit stays claimable', async () => {
+    for (const bad of ['short', 'not%20base64url', 'x'.repeat(129)]) {
+        const session = newSession();
+        await navigate(`/login/google?popup=1&pickup=p-123&pickup_challenge=${bad}`, session);
+        assert.strictEqual(session.oauthPickupId, 'p-123', bad);
+        assert.strictEqual(session.oauthPickupChallenge, undefined, bad);
+    }
+});
+
+test('the next attempt starts from no challenge, like the other handoff keys', async () => {
+    const session = newSession();
+    await navigate('/login/google?popup=1&pickup=first&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw', session);
+    await navigate('/login/google?popup=1&pickup=second', session);
+    assert.strictEqual(session.oauthPickupId, 'second');
+    assert.strictEqual(session.oauthPickupChallenge, undefined, 'this attempt sent no challenge');
+});

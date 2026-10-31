@@ -20,7 +20,7 @@ const { requireAuth } = require('../permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { recordAuthEvent } = require('../../telemetry/metrics');
 const { auditLoginFailure } = require('../loginAudit');
-const { finalizeLogin } = require('../login/finalizeLogin');
+const { completePendingLogin } = require('../login/pendingMfa');
 const log = require('../../telemetry/log');
 const ceremony = require('./ceremony');
 const { resolveRelyingParty } = require('./relyingParty');
@@ -51,7 +51,7 @@ const loginRouter = createSecurityKeyLoginRouter({
     userStore,
     ceremony,
     relyingPartyOf,
-    finalizeLogin,
+    completePendingLogin,
     recordAuthEvent,
     auditLoginFailure,
     // Keyed by the pending user, like /mfa/verify-login, so an office behind

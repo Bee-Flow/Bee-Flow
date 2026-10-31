@@ -23,6 +23,8 @@ const userStore = require('../stores/userStore');
 const { requireAuth } = require('./permissions');
 const { recordAuthEvent } = require('../telemetry/metrics');
 const { establishSession } = require('./establishSession');
+const { settleOpaqueFirstFactor } = require('./login/pendingMfa');
+const { requireRecentAuth } = require('./recentAuth');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const loginThrottle = require('./loginThrottle');
@@ -150,6 +152,11 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
             code: 'dek_already_exists',
         });
     }
+    // Replacing the credential itself asks for a recent proof (a sign-in, a
+    // second factor, an OPAQUE exchange — auth/recentAuth.js). A first
+    // registration (the migration from a legacy password, right after that
+    // password was verified) has no record yet and is not held to this.
+    if (user.opaqueRecord && !requireRecentAuth(req, res, `the credential of ${userId}`)) return;
 
     // Store OPAQUE record and wrapped keys
     //
@@ -377,16 +384,6 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
         recordAuthEvent({ kind: 'opaque_login', status: 'ok' });
         await loginThrottle.recordLoginSuccess(req, pending.username);
 
-        // Set session — H11: rotate the session id on establishment
-        // (session fixation).
-        const sessionUser = {
-            id: user.id,
-            displayName: user.displayName,
-            role: user.role || 'user',
-            avatar: user.avatar || null,
-            avatarType: user.avatarType || null
-        };
-
         // If client sent encrypted DEK for server-side use (Option B from plan):
         // The DEK is encrypted with the OPAQUE sessionKey — decrypt it for session storage
         /** @type {string | null} */
@@ -410,21 +407,8 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
             }
         }
 
-        try {
-            await establishSession(req, {
-                user: sessionUser,
-                isAdmin: user.role === 'admin',
-                extra: { opaqueMode: true, ...(dek !== null ? { encryptionKey: dek } : {}) },
-                audit: { method: 'opaque', organizationId: user.organizationId || null },
-            });
-        } catch (err) {
-            log.error('Session save error:', err);
-        }
-        res.json({
-            success: true,
-            user: sessionUser,
-            sessionKey // Client needs this for encrypting DEK to send back
-        });
+        // The second factor, or the session (login/finalizeOpaqueLogin.js).
+        return await settleOpaqueFirstFactor(req, res, { user, encryptionKey: dek, sessionKey, userStore });
     } catch (err) {
         return await fail(`Login finish failed: ${/** @type {Error} */ (err).message}`);
     }
@@ -472,6 +456,10 @@ router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate
             code: 'dek_already_exists',
         });
     }
+    // Same step-up as /register/finish: a PIN already in place is replaced
+    // only on a recent proof (the SSO sign-in itself, or a PIN unlock).
+    // First-time setup, right after sign-in, passes.
+    if (existing?.opaqueRecord && !requireRecentAuth(req, res, `the PIN of SSO user ${userId}`)) return;
 
     // No password_changed_at here, unlike /register/finish above: this PIN
     // protects the encryption key of an account that signs in through SSO
@@ -556,6 +544,8 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
         req.session.needsEncryptionPin = false;
         req.session.needsEncryptionSetup = false;
         req.session.opaqueMode = true;
+        // A PIN unlock is a proof of its own (auth/recentAuth.js).
+        req.session.pinVerifiedAt = Date.now();
 
         // Decrypt client-sent DEK for server session (Option B)
         if (encryptedDEK) {

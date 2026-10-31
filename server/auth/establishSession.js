@@ -63,6 +63,10 @@ async function establishSession(req, { user, isAdmin = false, preserve = [], ext
     req.session.isAuthenticated = true;
     req.session.user = user;
     req.session.isAdmin = isAdmin;
+    // When this session became authenticated — what auth/recentAuth.js reads
+    // before a credential may be replaced. Written before `extra` so a call
+    // site can set a precise value of its own.
+    req.session.authenticatedAt = Date.now();
     for (const [k, v] of Object.entries(extra)) req.session[k] = v;
     await /** @type {Promise<void>} */ (new Promise((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve()))));
 

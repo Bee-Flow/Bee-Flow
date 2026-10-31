@@ -23,9 +23,27 @@
 
 const crypto = require('crypto');
 const { getRedis } = require('../db');
+const { defaultSealer } = require('../auth/sessionSeal');
+const { fallback } = require('./bestEffort');
 
 const _sessionTokenFallback = new Map();
 const _pickupFallback = new Map();
+/** userId -> the bridge tokens minted for that user (the no-Redis index). */
+const _userTokensFallback = new Map();
+
+/**
+ * The per-user index of bridge tokens: `bf:utok:<userId>`, a set of tokens.
+ * It is what lets "end every session of this user" reach the tokens too. The
+ * set outlives its longest member (the native TTL) and is pruned on revoke.
+ */
+const USER_TOKEN_INDEX_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/** @param {unknown} data */
+function userIdOf(data) {
+    const payload = /** @type {{ user?: { id?: unknown } } | null} */ (data && typeof data === 'object' ? data : null);
+    const id = payload && payload.user && payload.user.id;
+    return id ? String(id) : null;
+}
 
 /** Node fires any longer timer immediately — see setSessionToken. */
 const MAX_TIMER_MS = 2_147_483_647;
@@ -55,11 +73,37 @@ const NATIVE_SESSION_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 /**
  * @param {string} token
  */
+/**
+ * What goes into the store for a token: the payload sealed under the token
+ * (auth/sessionSeal.js), so a copy of the store holds no provider tokens or
+ * app passwords in the clear. An entry from before the seal is plain JSON and
+ * is read as it is.
+ * @param {string} token
+ * @param {unknown} data
+ */
+function packPayload(token, data) {
+    const sealer = defaultSealer();
+    return sealer.enabled ? sealer.seal(token, data) : JSON.stringify(data);
+}
+
+/**
+ * @param {string} token
+ * @param {string | null | undefined} stored
+ */
+function unpackPayload(token, stored) {
+    if (!stored) return null;
+    const sealer = defaultSealer();
+    if (sealer.isSealed(stored)) return sealer.unseal(token, stored) ?? null;
+    return JSON.parse(stored);
+}
+
+/**
+ * @param {string} token
+ */
 async function getSessionToken(token) {
     const r = getRedis();
     if (r) {
-        const val = await r.get(`bf:stok:${token}`);
-        const data = val ? JSON.parse(val) : null;
+        const data = unpackPayload(token, await r.get(`bf:stok:${token}`));
         if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { await r.del(`bf:stok:${token}`); return null; }
         return data;
     }
@@ -69,8 +113,9 @@ async function getSessionToken(token) {
         _sessionTokenFallback.delete(token);
         return null;
     }
-    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(entry.data)) { _sessionTokenFallback.delete(token); return null; }
-    return entry.data;
+    const data = unpackPayload(token, entry.stored);
+    if (require('../auth/microsoftIdentity').isLegacyMicrosoftSession(data)) { _sessionTokenFallback.delete(token); return null; }
+    return data;
 }
 
 /**
@@ -80,9 +125,19 @@ async function getSessionToken(token) {
  */
 async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECONDS) {
     const r = getRedis();
+    const userId = userIdOf(data);
+    const stored = packPayload(token, data);
     if (r) {
-        await r.set(`bf:stok:${token}`, JSON.stringify(data), 'EX', ttlSeconds);
+        await r.set(`bf:stok:${token}`, stored, 'EX', ttlSeconds);
+        if (userId) {
+            await r.sadd(`bf:utok:${userId}`, token);
+            await r.expire(`bf:utok:${userId}`, USER_TOKEN_INDEX_TTL_SECONDS);
+        }
         return;
+    }
+    if (userId) {
+        if (!_userTokensFallback.has(userId)) _userTokensFallback.set(userId, new Set());
+        _userTokensFallback.get(userId).add(token);
     }
     // The fallback has to answer the same question Redis answers — "is this
     // still valid?" — and a bare setTimeout cannot. Node's timer delay is a
@@ -93,7 +148,7 @@ async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECON
     // hint, clamped so it can never misfire, and unref'd so a month-long timer
     // cannot hold the process open at shutdown.
     const expiresAt = Date.now() + ttlSeconds * 1000;
-    _sessionTokenFallback.set(token, { data, expiresAt });
+    _sessionTokenFallback.set(token, { stored, expiresAt });
     armEviction(token, expiresAt);
 }
 
@@ -143,10 +198,38 @@ async function deleteSessionToken(token) {
     if (!token) return;
     const r = getRedis();
     if (r) {
+        const userId = userIdOf(unpackPayload(token, await r.get(`bf:stok:${token}`)));
         await r.del(`bf:stok:${token}`);
+        if (userId) await r.srem(`bf:utok:${userId}`, token);
         return;
     }
+    const entry = _sessionTokenFallback.get(token);
+    const userId = userIdOf(entry ? unpackPayload(token, entry.stored) : null);
     _sessionTokenFallback.delete(token);
+    if (userId) _userTokensFallback.get(userId)?.delete(token);
+}
+
+/**
+ * Drop every bridge token minted for a user: the per-user half of ending that
+ * user's sessions (auth/sessionCache.js bustSessionsForUser). Returns how many
+ * were dropped.
+ * @param {string | null | undefined} userId
+ */
+async function revokeSessionTokensForUser(userId) {
+    if (!userId) return 0;
+    const r = getRedis();
+    if (r) {
+        const key = `bf:utok:${userId}`;
+        const tokens = await r.smembers(key);
+        if (tokens.length) await r.del(...tokens.map((/** @type {string} */ t) => `bf:stok:${t}`));
+        await r.del(key);
+        return tokens.length;
+    }
+    const tokens = _userTokensFallback.get(String(userId));
+    if (!tokens) return 0;
+    for (const token of tokens) _sessionTokenFallback.delete(token);
+    _userTokensFallback.delete(String(userId));
+    return tokens.size;
 }
 
 // ── Pickup tokens (popup → iframe handoff after OAuth) ───────────────
@@ -163,8 +246,58 @@ async function deleteSessionToken(token) {
 // tinguishable from a failed sign-in. The token remains one-shot and is
 // deleted on the first claim.
 
+//
+// The claim is bound to the client that started the sign-in. That client mints
+// a secret along with the pickup id and sends only sha256(secret) — the
+// `challenge` — on /auth/login/:provider; the callback files it next to the
+// token, and the claim must present the secret itself. The id alone travels
+// in a URL the browser navigates to, so it cannot be the whole claim key.
+//
+// A pickup deposited WITHOUT a challenge — a client that predates the secret —
+// is claimable by id alone unless OAUTH_PICKUP_REQUIRE_CHALLENGE=1, which is
+// the switch to flip once every client sends one.
+
 /**
- * @param {{ sessionToken: string; }} data
+ * The challenge for a claim proof, as the clients compute it: base64url of
+ * the SHA-256 of the proof's UTF-8 bytes.
+ * @param {string} proof what the client presents on the claim
+ */
+function pickupChallengeOf(proof) {
+    return crypto.createHash('sha256').update(String(proof), 'utf8').digest('base64url');
+}
+
+/** What a challenge or a secret must look like to be stored or compared at all. */
+const PICKUP_TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,128}$/;
+
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function isPickupTokenShaped(value) {
+    return typeof value === 'string' && PICKUP_TOKEN_SHAPE.test(value);
+}
+
+function pickupChallengeRequired() {
+    return process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE === '1';
+}
+
+/**
+ * Whether `secret` is the one the deposit was bound to. A deposit with no
+ * challenge is open by id alone only while the compatibility switch allows it.
+ * @param {{ challenge?: string } | null | undefined} pickup
+ * @param {unknown} secret
+ */
+function pickupSecretMatches(pickup, secret) {
+    const challenge = pickup && pickup.challenge;
+    if (!challenge) return !pickupChallengeRequired();
+    if (!isPickupTokenShaped(secret)) return false;
+    const expected = Buffer.from(String(challenge));
+    const presented = Buffer.from(pickupChallengeOf(secret));
+    return expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+}
+
+/**
+ * @param {{ sessionToken: string; challenge?: string }} data
  * @param {number} [ttlSeconds]
  * @param {string} pickupId
  */
@@ -174,25 +307,52 @@ async function setPickup(pickupId, data, ttlSeconds = 300) {
         await r.set(`bf:pickup:${pickupId}`, JSON.stringify(data), 'EX', ttlSeconds);
     } else {
         _pickupFallback.set(pickupId, data);
-        setTimeout(() => _pickupFallback.delete(pickupId), ttlSeconds * 1000);
+        // An eviction hint only; it must not keep the process alive.
+        const timer = setTimeout(() => _pickupFallback.delete(pickupId), ttlSeconds * 1000);
+        if (typeof timer.unref === 'function') timer.unref();
     }
 }
 
 /**
- * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} pickupId
+ * Take the deposit out of the store in one step: a second claimant racing the
+ * first must find nothing, which get-then-del cannot promise.
+ * @param {string} key
+ * @param {import('ioredis').Redis} r
  */
-async function claimPickup(pickupId) {
-    const r = getRedis();
-    if (r) {
-        const key = `bf:pickup:${pickupId}`;
-        const val = await r.get(key);
-        if (val) await r.del(key);
-        const pickup = val ? JSON.parse(val) : null;
-        return pickup && await getSessionToken(pickup.sessionToken) ? pickup : null;
+async function takeFromRedis(r, key) {
+    if (typeof r.getdel === 'function') {
+        try {
+            return await r.getdel(key);
+        } catch (e) {
+            // A Redis older than 6.2: the two-step read below still answers.
+            fallback('sessionToken:getdel', e, null);
+        }
     }
-    const data = _pickupFallback.get(pickupId);
-    if (data) _pickupFallback.delete(pickupId);
-    return data && await getSessionToken(data.sessionToken) ? data : null;
+    const val = await r.get(key);
+    if (val) await r.del(key);
+    return val;
+}
+
+/**
+ * One-shot: the deposit is consumed whether or not the secret matches, so a
+ * claim with the wrong secret leaves nothing for a later one.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} pickupId
+ * @param {unknown} [secret]
+ */
+async function claimPickup(pickupId, secret) {
+    const r = getRedis();
+    /** @type {{ sessionToken: string; challenge?: string } | null} */
+    let pickup = null;
+    if (r) {
+        const val = await takeFromRedis(r, `bf:pickup:${pickupId}`);
+        pickup = val ? JSON.parse(val) : null;
+    } else {
+        pickup = _pickupFallback.get(String(pickupId)) || null;
+        if (pickup) _pickupFallback.delete(String(pickupId));
+    }
+    if (!pickup) return null;
+    if (!pickupSecretMatches(pickup, secret)) return null;
+    return await getSessionToken(pickup.sessionToken) ? pickup : null;
 }
 
 function generateToken() {
@@ -203,9 +363,14 @@ module.exports = {
     getSessionToken,
     setSessionToken,
     deleteSessionToken,
+    revokeSessionTokensForUser,
+    /** FOR TESTS: the entry as the fallback store holds it. */
+    _storedForTests: (/** @type {string} */ token) => _sessionTokenFallback.get(token)?.stored ?? null,
     SESSION_TOKEN_TTL_SECONDS,
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
     setPickup,
     claimPickup,
+    pickupChallengeOf,
+    isPickupTokenShaped,
     generateToken,
 };

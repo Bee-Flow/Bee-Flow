@@ -167,20 +167,31 @@ function wrapWithRedisCache(pgStore, redis) {
  * ioredis emits 'ready' again after every reconnect; the cache is installed
  * on the first one only.
  *
+ * With a `sealer` (auth/sessionSeal.js) the sensitive session fields are
+ * sealed at the store boundary: the seal is put on the live store at once, so
+ * rows written before Redis is up are sealed in PG, and put on again OVER the
+ * cache once that is in, so what Redis holds is sealed too. The cache itself
+ * wraps the store's unsealed methods, so a cache miss that is written back
+ * caches the sealed row PG returned, never an opened one.
+ *
  * @param {SessionStore} liveStore - the store object handed to express-session
  * @param {SessionStore} pgStore   - the connect-pg-simple store
  * @param {(SessionRedis & { status: string; once: (arg0: string, arg1: () => void) => void; }) | null} redis     - the shared ioredis client, or null without Redis
+ * @param {{ sealer?: import('./sessionSeal').SessionSealer | null }} [opts]
  * @returns {boolean} whether activation is pending or done
  */
-function installRedisCacheWhenReady(liveStore, pgStore, redis) {
+function installRedisCacheWhenReady(liveStore, pgStore, redis, { sealer = null } = {}) {
+    const { sealSessionStore, unsealedStoreView } = require('./sessionSeal');
+    if (sealer) sealSessionStore(liveStore, sealer);
     if (!redis) return false;
     const activate = () => {
         log.info('[Sessions] Redis connected — activating session read-through cache');
-        const cached = wrapWithRedisCache(pgStore, redis);
+        const cached = wrapWithRedisCache(sealer ? /** @type {SessionStore} */ (unsealedStoreView(pgStore)) : pgStore, redis);
         liveStore.get     = cached.get.bind(cached);
         liveStore.set     = cached.set.bind(cached);
         liveStore.touch   = cached.touch.bind(cached);
         liveStore.destroy = cached.destroy.bind(cached);
+        if (sealer) sealSessionStore(liveStore, sealer);
     };
     if (redis.status === 'ready') activate();
     else redis.once('ready', activate);
@@ -206,23 +217,38 @@ async function evictCached(r, sids) {
  * revoked, their role is downgraded, or their account is deleted — without
  * this, the existing cookie still validates for up to 30 days.
  *
+ * Reaches the bridge tokens as well (utils/sessionToken.js): a native client
+ * holds one of those instead of a cookie, and it stands for the same session.
+ *
+ * `keepSid` spares one session — the caller's own, when they changed their
+ * own password and should stay signed in where they are.
+ *
  * Returns the number of sessions destroyed (PG row count).
  * `db` is the test seam (pool + getRedis, as db.js exports them).
  */
-async function bustSessionsForUser(userId, { db = require('../db') } = {}) {
+async function bustSessionsForUser(userId, { db = require('../db'), keepSid = null, sessionTokens = require('../utils/sessionToken') } = {}) {
     if (!userId) return 0;
     try {
         const { pool, getRedis } = db;
-        const result = await pool.query(
-            `DELETE FROM user_sessions
-                   WHERE sess::jsonb -> 'user' ->> 'id' = $1
-               RETURNING sid`,
-            [String(userId)]
-        );
+        const result = keepSid
+            ? await pool.query(
+                `DELETE FROM user_sessions
+                       WHERE sess::jsonb -> 'user' ->> 'id' = $1
+                         AND sid <> $2
+                   RETURNING sid`,
+                [String(userId), String(keepSid)]
+            )
+            : await pool.query(
+                `DELETE FROM user_sessions
+                       WHERE sess::jsonb -> 'user' ->> 'id' = $1
+                   RETURNING sid`,
+                [String(userId)]
+            );
         const sids = (result.rows || []).map(r => r.sid);
         await evictCached(getRedis(), sids);
-        if (sids.length) {
-            log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length}`);
+        const tokens = await sessionTokens.revokeSessionTokensForUser(userId);
+        if (sids.length || tokens) {
+            log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length} bridge_tokens=${tokens}`);
         }
         return sids.length;
     } catch (e) {

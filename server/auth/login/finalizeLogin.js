@@ -43,13 +43,19 @@ const { isPlatformOperator } = require('../platformOperator');
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @param {{ user: Record<string, any>, isAdmin: boolean, storedUser?: Record<string, any> | null, password: string, startedAt?: number }} opts
+ * @param {{ user: Record<string, any>, isAdmin: boolean, storedUser?: Record<string, any> | null, password?: string, derived?: DerivedDek, startedAt?: number, sessionExtra?: Record<string, unknown> }} opts
  */
 // `startedAt` is the timestamp the CALLER took at the top of its handler, so a
 // refusal here is padded to the same floor as a wrong password. Callers that
 // do not pass one still get a floor, measured from entry into this function —
 // shorter, but never zero.
-async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, startedAt = Date.now() }) {
+// `sessionExtra` lands on the established session of the success exits only
+// (a second factor's `mfaVerifiedAt`, see login/pendingMfa.js); a refusal or a
+// gate writes none of it. `derived` is the DEK step already done — by the
+// password step before it parked the login for the second factor — so the
+// password itself does not have to be kept until then; without it the step
+// runs here, from `password`.
+async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, derived, startedAt = Date.now(), sessionExtra = {} }) {
     // Session establishment happens at the success exits via establishSession
     // (H11). Deliberately NO session writes here: the DEK path below can still
     // return 401, and pre-writing isAuthenticated=true let express-session
@@ -121,12 +127,12 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         return res.json({ success: true, pendingApproval: true, user: sessionUser });
     }
     // Derive and store encryption key — only when encryption is enabled for user's plan
-    const encryptionEnabled = await isEncryptionEnabledForUser(user.id);
-    if (!encryptionEnabled) {
+    const dek = derived !== undefined ? derived : await prepareLoginDek(user, password);
+    if (dek === null) {
         // Encryption disabled for this user's plan — skip DEK
         try {
             await establishSession(req, {
-                user: sessionUser, isAdmin,
+                user: sessionUser, isAdmin, extra: { ...sessionExtra },
                 // The session-user shape has no organisation; the stored row does.
                 audit: { method: 'password', organizationId: storedUser?.organizationId || null },
             });
@@ -135,6 +141,40 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         }
         return res.json({ success: true, user: sessionUser });
     }
+
+    if (dek === false) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    await establishSession(req, {
+        user: sessionUser, isAdmin, extra: { encryptionKey: dek.encryptionKey, ...sessionExtra },
+        audit: { method: 'password', organizationId: storedUser?.organizationId || null },
+    });
+    // Include recovery key in response if DEK was just created or migrated
+    /** @type {{ success: boolean, user: Record<string, any>, recoveryKey?: string }} */
+    const response = { success: true, user: sessionUser };
+    if (dek.recoveryKey) response.recoveryKey = dek.recoveryKey;
+    return res.json(response);
+}
+
+/**
+ * The DEK step of a password login: `null` when encryption is not enabled
+ * for this account (no key, no session field), `false` when the key could not
+ * be derived or created from the verified password (the login is refused),
+ * else the key and — when it was just created or migrated — the recovery key
+ * the person is shown once.
+ *
+ * Run by finalizeLogin, or by the password step BEFORE it parks the login
+ * for a second factor, so that what waits in the session is the key and not
+ * the password.
+ *
+ * @typedef {null | false | { encryptionKey: string, recoveryKey?: string }} DerivedDek
+ * @param {Record<string, any>} user
+ * @param {string | undefined} password
+ * @returns {Promise<DerivedDek>}
+ */
+async function prepareLoginDek(user, password) {
+    const encryptionEnabled = await isEncryptionEnabledForUser(user.id);
+    if (!encryptionEnabled) return null;
 
     // Ensure admin user exists in users table (for DEK storage)
     if (isPlatformOperator(user)) {
@@ -152,19 +192,9 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         }
     }
 
-    const result = await getOrCreateUserDEKCompat(user.id, password);
-    if (!result) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    await establishSession(req, {
-        user: sessionUser, isAdmin, extra: { encryptionKey: result.encryptionKey },
-        audit: { method: 'password', organizationId: storedUser?.organizationId || null },
-    });
-    // Include recovery key in response if DEK was just created or migrated
-    /** @type {{ success: boolean, user: Record<string, any>, recoveryKey?: string }} */
-    const response = { success: true, user: sessionUser };
-    if (result.recoveryKey) response.recoveryKey = result.recoveryKey;
-    return res.json(response);
+    const result = await getOrCreateUserDEKCompat(user.id, /** @type {string} */ (password));
+    if (!result) return false;
+    return { encryptionKey: result.encryptionKey, ...(result.recoveryKey ? { recoveryKey: result.recoveryKey } : {}) };
 }
 
-module.exports = { finalizeLogin };
+module.exports = { finalizeLogin, prepareLoginDek };

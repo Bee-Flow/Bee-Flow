@@ -155,9 +155,12 @@ export interface OpaqueLoginStartResponse {
 /** /auth/opaque/login/finish */
 export interface OpaqueLoginFinishResponse {
     success: boolean;
-    user: User;
+    user?: User;
     /** Needed to encrypt the DEK back to the server for the session's AI work. */
     sessionKey: string;
+    /** Password verified over OPAQUE, second factor still owed → /auth/mfa/verify-login. */
+    mfaRequired?: boolean;
+    mfaMethods?: string[];
 }
 
 /**

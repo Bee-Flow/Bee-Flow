@@ -13,7 +13,7 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges } = require('./userSupportRoutes');
+const { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -389,6 +389,10 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
             if (orphaned) return refuseLastOrgAdmin(res, 'That change');
         }
 
+        // A non-active status or a new password ends the account's sessions (the person changing their own keeps this one).
+        const becomesInactive = updates.status !== undefined && !isActiveUserStatus(updates.status);
+        if (becomesInactive || password) await endSessionsFor(id, id === req.session?.user?.id && !becomesInactive ? { keepSid: req.sessionID } : {});
+
         const changedFields = Object.keys(updates).filter(k => updates[k] !== undefined);
         log.info(`[Audit] ${req.session.user?.id || 'system'} updated user '${id}' — fields: ${changedFields.join(', ')}`);
         // Capture only the access-relevant changes for audit (role, orgRole,
@@ -511,9 +515,7 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
         try {
             const { invalidateUserExistenceCache } = require('../permissions');
             await invalidateUserExistenceCache(id);
-            const { bustSessionsForUser } = require('../sessionCache');
-            await bustSessionsForUser(id);
-        } catch (err) { bestEffort('auth/admin/users:bustSessions', err); } // the existence check refuses the deleted account anyway
+        } catch (err) { bestEffort('auth/admin/users:invalidateExistenceCache', err); }
         res.json({ success: true });
     } else {
         res.status(404).json({ error: 'User not found' });
@@ -590,6 +592,9 @@ router.post('/change-password', requireAuth, validate({ body: ChangePasswordBody
 
     const passwordHash = await passwords.hash(newPassword);
     await userStore.updateUser(userId, { passwordHash });
+
+    // Every other session of this account ends with the old password.
+    await endSessionsFor(userId, { keepSid: req.sessionID });
 
     // Update session encryption key
     if (result.encryptionKey) {

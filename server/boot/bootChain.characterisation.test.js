@@ -124,6 +124,7 @@ function sessionFakes() {
         connectPgSimple: (sessionLib) => { seen.sessionLib = sessionLib; return FakeStore; },
         db: { pool: { tag: 'pool' }, getRedis: () => 'redis-client' },
         sessionCache: { installRedisCacheWhenReady: (...a) => { seen.cache = a; } },
+        sessionSeal: { defaultSealer: () => 'the-sealer' },
         session: (opts) => { seen.sessionOpts = opts; return sessionMw; },
         documentCrypto: { withDocumentEncryptionSession: function withDocumentEncryptionSession() {} },
     };
@@ -139,9 +140,10 @@ test('cookie session: pg store, Redis read-through cache, then session → clien
 
     assert.equal(seen.sessionLib, require('express-session'));
     assert.deepEqual(seen.storeOpts, { pool: { tag: 'pool' }, tableName: 'user_sessions', createTableIfMissing: true, pruneSessionInterval: 900 });
-    assert.equal(seen.cache.length, 3);
+    assert.equal(seen.cache.length, 4);
     assert.equal(seen.cache[0], seen.cache[1], 'the pg store is both the session store and the cache\'s backing store');
     assert.equal(seen.cache[2], 'redis-client');
+    assert.deepEqual(seen.cache[3], { sealer: 'the-sealer' }, 'the seal on the session rows goes in with the cache');
 
     const { withRequestClient } = require('../telemetry/requestClient');
     assert.deepEqual(app.calls.map(c => c[1]), [sessionMw, withRequestClient, deps.documentCrypto.withDocumentEncryptionSession]);

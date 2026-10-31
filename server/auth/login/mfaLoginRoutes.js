@@ -14,7 +14,7 @@ const mfa = require('../mfa');
 const { recordAuthEvent } = require('../../telemetry/metrics');
 const { auditLoginFailure } = require('../loginAudit');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { finalizeLogin } = require('./finalizeLogin');
+const { completePendingLogin, isPendingLoginExpired, PENDING_EXPIRED } = require('./pendingMfa');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -57,6 +57,10 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
     const startedAt = Date.now();
     const pending = req.session.mfaPending;
     if (!pending) return res.status(401).json({ error: 'No pending MFA login', code: 'no_pending_login' });
+    if (isPendingLoginExpired(pending)) {
+        delete req.session.mfaPending;
+        return res.status(PENDING_EXPIRED.status).json({ ...PENDING_EXPIRED.body });
+    }
     const userRow = await userStore.getUser(pending.userId);
     if (!userRow || !userRow.mfa_enabled) {
         delete req.session.mfaPending;
@@ -91,7 +95,7 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
         });
         pending.attempts = (pending.attempts || 0) + 1;
         if (pending.attempts >= MFA_LOGIN_MAX_ATTEMPTS) {
-            // mfaPending also carries the password used for DEK derivation —
+            // mfaPending also carries what the DEK is derived from —
             // destroying it forces a clean re-entry of credentials.
             delete req.session.mfaPending;
             return res.status(401).json({
@@ -114,9 +118,8 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
     }
     recordAuthEvent({ kind: 'mfa', status: 'ok' });
 
-    const { user, isAdmin, password } = pending;
-    delete req.session.mfaPending;
-    return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, startedAt });
+    // Which first factor is pending (password or OPAQUE) is decided there.
+    return completePendingLogin(req, res, { pending, userRow, startedAt });
 });
 
 module.exports = router;

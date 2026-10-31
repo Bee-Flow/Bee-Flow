@@ -260,11 +260,11 @@ describe('the OAuth popup inside an iframe', () => {
         btn.click();
         expect(open).toHaveBeenCalledTimes(1);
         const [url, name, features] = open.mock.calls[0];
-        expect(url).toMatch(/^\/auth\/login\/google\?popup=1&pickup=/);
+        expect(url).toMatch(/^\/auth\/login\/google\?popup=1&pickup=[0-9a-f-]+(&pickup_challenge=[A-Za-z0-9_-]{43})?$/);
         expect(name).toBe('beeflow_oauth');
         expect(features).toContain('noopener,noreferrer');
         await vi.advanceTimersByTimeAsync(1600);
-        expect(fetchMock.mock.calls[0]).toEqual([expect.stringMatching(/^\/auth\/login-pickup\?id=/), { credentials: 'include' }]);
+        expect(fetchMock.mock.calls[0]).toEqual([expect.stringMatching(/^\/auth\/login-pickup\?id=[0-9a-f-]+$/), expect.objectContaining({ credentials: 'include' })]);
         expect(h.setSessionToken).toHaveBeenCalledWith('tok-1');
         expect(onLogin).toHaveBeenCalledWith({ id: 'sso' });
     });

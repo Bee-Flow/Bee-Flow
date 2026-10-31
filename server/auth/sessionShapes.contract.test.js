@@ -115,6 +115,19 @@ const REGISTRY = [
         }),
     },
     {
+        // The OPAQUE tail (direct, or after the second factor through
+        // login/pendingMfa.js): same user shape, plus the OPAQUE marks.
+        name: 'OPAQUE login (tail, incl. after the second factor)',
+        writerFile: 'login/finalizeOpaqueLogin.js',
+        build: () => ({
+            isAuthenticated: true,
+            user: { id: USER, displayName: 'Tom', role: 'user', avatar: null, avatarType: null },
+            isAdmin: false,
+            opaqueMode: true,
+            opaqueLoginAt: 1_700_000_000_000,
+        }),
+    },
+    {
         name: 'OAuth login (Google/Microsoft/Nextcloud OAuth)',
         writerFile: 'oauth/providerCallbackRoutes.js',
         build: () => ({

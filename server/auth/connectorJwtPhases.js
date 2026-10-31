@@ -26,6 +26,7 @@ const { suppressSessionPersistence } = require('./establishSession');
 const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { isLoginBlockedAccount } = require('./accountStatusGate');
 
 /** @typedef {{ kind: 'reject', status: number, body: object }} Reject */
 /** @typedef {{ kind: 'error', error: Error }} Fail */
@@ -94,8 +95,15 @@ function crossTenantGate(req, user, orgId) {
     });
 }
 
-/** Reject a user whose account still awaits admin approval; null = pass. */
+/** Reject a user whose account still awaits admin approval, or whose status bars it from signing in; null = pass. */
 function pendingApprovalGate(req, user, orgId) {
+    if (isLoginBlockedAccount(user)) {
+        orgHealth.problem('auth.blocked_account', {
+            orgId, source: 'connectorJwt', req,
+            meta: { lastUserId: user.id, reason: `existing_user_${user.status}` },
+        });
+        return reject(403, { error: 'Account is not active' });
+    }
     if (user.status !== 'pending') return null;
     orgHealth.problem('auth.blocked_pending_approval', {
         orgId, source: 'connectorJwt', req,

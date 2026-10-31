@@ -48,6 +48,7 @@ const userStore = require('../../stores/userStore');
 // in oauth/providerCallbackRoutes.js and stores/encryptionAvailability.js.
 const { isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
+const { isPickupTokenShaped } = require('../../utils/sessionToken');
 
 // Legacy Nextcloud login redirect
 router.get('/login', async (req, res) => {
@@ -65,13 +66,20 @@ router.get('/login', async (req, res) => {
     // flow never sets it, and the next /login/:provider must not find it.
     delete req.session.oauthPopup;
     delete req.session.oauthPickupId;
+    delete req.session.oauthPickupChallenge;
     delete req.session.oauthAppRedirect;
 
     // Mirror the new /login/:provider route's iframe support so that BeeFlow
     // installs whose Nextcloud OAuth client still points at the legacy
     // /auth/callback URI keep working in embedded mode.
     if (req.query.popup === '1') req.session.oauthPopup = true;
-    if (req.query.pickup) req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
+    if (req.query.pickup) {
+        req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
+        // The claim must answer this with the secret (utils/sessionToken.js).
+        if (isPickupTokenShaped(req.query.pickup_challenge)) {
+            req.session.oauthPickupChallenge = req.query.pickup_challenge;
+        }
+    }
 
     const host = req.get('host');
     const REDIRECT_URI = `${req.protocol}://${host}/auth/callback`;
@@ -110,7 +118,7 @@ router.get('/callback', async (req, res) => {
     const returnTo = req.session.returnTo || 'http://localhost:5173';
     delete req.session.returnTo;
 
-    log.info(`[OAuth/legacy] CALLBACK session: oauthPopup=${!!req.session.oauthPopup} oauthPickupId=${req.session.oauthPickupId || '(none)'}`);
+    log.info(`[OAuth/legacy] CALLBACK session: oauthPopup=${!!req.session.oauthPopup} oauthPickupId=${req.session.oauthPickupId ? '(present)' : '(none)'}`);
 
     const host = req.get('host');
     const REDIRECT_URI = `${req.protocol}://${host}/auth/callback`;
@@ -225,7 +233,7 @@ router.get('/callback', async (req, res) => {
                     user: req.session.user,
                     isAdmin: req.session.isAdmin || false,
                     preserve: [
-                        'oauthPopup', 'oauthPickupId',
+                        'oauthPopup', 'oauthPickupId', 'oauthPickupChallenge',
                         'accessToken', 'refreshToken', 'oauthProvider',
                         'nextcloudUid', 'nextcloudTokenExpiresAt',
                         'encryptionKey', 'needsEncryptionSetup', 'needsEncryptionPin',
@@ -239,8 +247,10 @@ router.get('/callback', async (req, res) => {
             // Embedded-iframe popup handoff (mirrors /callback/:provider).
             if (req.session.oauthPopup) {
                 const pickupId = req.session.oauthPickupId;
+                const pickupChallenge = req.session.oauthPickupChallenge;
                 delete req.session.oauthPopup;
                 delete req.session.oauthPickupId;
+                delete req.session.oauthPickupChallenge;
                 req.session.save();
 
                 if (pickupId) {
@@ -267,9 +277,10 @@ router.get('/callback', async (req, res) => {
                             // by search instead of listing them.
                             pendingApproval: req.session.pendingApproval || false,
                             noOrganization: req.session.noOrganization || false,
+                            authenticatedAt: req.session.authenticatedAt,
                         });
-                        await setPickup(pickupId, { sessionToken });
-                        log.info(`[OAuth/legacy] Pickup ${pickupId} deposited`);
+                        await setPickup(pickupId, pickupChallenge ? { sessionToken, challenge: pickupChallenge } : { sessionToken });
+                        log.info(`[OAuth/legacy] Pickup deposited (bound: ${!!pickupChallenge})`);
                     } catch (pickupErr) {
                         log.error(`[OAuth/legacy] Pickup deposit failed:`, pickupErr.message);
                     }

@@ -113,6 +113,12 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
         passwordResetExpiresAt: null,
         passwordResetRequired: 0,
     });
+    // Whoever was signed in with the old password is signed out everywhere:
+    // a reset is how a person takes an account back.
+    try {
+        const { bustSessionsForUser } = require('../sessionCache');
+        await bustSessionsForUser(user.id);
+    } catch (err) { bestEffort('passwordReset:bust-sessions', err); }
     // A completed reset proves the mailbox owner is back, so lift any
     // lockout the failed attempts that led them here had accumulated —
     // otherwise the recovery path dead-ends in a 429.

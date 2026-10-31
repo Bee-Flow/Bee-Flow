@@ -21,6 +21,36 @@ export function newPickupId(cryptoApi: Crypto = window.crypto): string {
 }
 
 /**
+ * What binds the pickup to THIS iframe. The id travels in the popup's URL,
+ * so it cannot be the whole claim key: the iframe also keeps a secret and
+ * sends only its SHA-256 (the challenge) along with the id. The callback
+ * files the challenge with the deposit, and the claim has to present the
+ * secret (server: utils/sessionToken.js claimPickup).
+ */
+export interface PickupClaim {
+    secret: string;
+    challenge: string;
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * A fresh secret and its challenge, or null where SubtleCrypto is absent (a
+ * non-secure context): the sign-in then runs unbound, as it did before, and
+ * the server decides whether that is still acceptable.
+ */
+export async function newPickupClaim(cryptoApi: Crypto = window.crypto): Promise<PickupClaim | null> {
+    if (!cryptoApi?.subtle || typeof cryptoApi.subtle.digest !== 'function' || typeof cryptoApi.getRandomValues !== 'function') return null;
+    const secret = toBase64Url(cryptoApi.getRandomValues(new Uint8Array(32)));
+    const digest = await cryptoApi.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+    return { secret, challenge: toBase64Url(new Uint8Array(digest)) };
+}
+
+/**
  * The login URL for one Microsoft button. `connectionId` names one of the
  * additional Microsoft tenants; absent (or 'default') is the primary app.
  */
@@ -30,6 +60,26 @@ export function microsoftLoginUrl(base: string, connectionId: string | undefined
     if (connectionId && connectionId !== 'default') params.set('connection', connectionId);
     const query = params.size > 0 ? `?${params.toString()}` : '';
     return `${base}/auth/login/microsoft${query}`;
+}
+
+/**
+ * One claim per attempt, prepared AHEAD of the click: window.open has to run
+ * inside the click handler or the browser blocks the popup, and the digest is
+ * async. `take()` hands out the prepared claim (null where none could be made)
+ * and starts preparing the next.
+ */
+function usePickupClaim(): () => PickupClaim | null {
+    const claimRef = useRef<PickupClaim | null>(null);
+    const prepare = useCallback(() => {
+        void newPickupClaim().then((claim) => { claimRef.current = claim; }).catch(() => { claimRef.current = null; });
+    }, []);
+    useEffect(() => { prepare(); }, [prepare]);
+    return useCallback(() => {
+        const claim = claimRef.current;
+        claimRef.current = null;
+        prepare();
+        return claim;
+    }, [prepare]);
 }
 
 /**
@@ -49,6 +99,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
     // Since `noopener` breaks window.opener (no postMessage), we poll
     // /auth/user to detect when login completes.
     const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const takeClaim = usePickupClaim();
 
     // Open the OAuth flow in a popup. In embedded mode (BeeFlow iframed under
     // Nextcloud / etc.), Chrome's storage partitioning blocks the iframe from
@@ -66,8 +117,10 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
         // Generate pickup id; append to URL so the OAuth callback can deposit
         // a token under it.
         const pickupId = newPickupId();
+        const claim = takeClaim();
         const sep = urlBase.includes('?') ? '&' : '?';
-        const url = `${urlBase}${sep}pickup=${encodeURIComponent(pickupId)}`;
+        const url = `${urlBase}${sep}pickup=${encodeURIComponent(pickupId)}`
+            + (claim ? `&pickup_challenge=${encodeURIComponent(claim.challenge)}` : '');
 
         // noopener severs the opener chain: Google won't see the iframe context.
         window.open(url, 'beeflow_oauth',
@@ -80,6 +133,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
                 // cookies are blocked).
                 const pickRes = await fetch(`${API_BASE}/auth/login-pickup?id=${encodeURIComponent(pickupId)}`, {
                     credentials: 'include',
+                    ...(claim ? { headers: { 'X-Pickup-Secret': claim.secret } } : {}),
                 });
                 if (pickRes.ok) {
                     const pickData: { sessionToken?: string } = await pickRes.json();
@@ -117,7 +171,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
                 pollTimerRef.current = null;
             }
         }, 5 * 60 * 1000);
-    }, [onLogin]);
+    }, [onLogin, takeClaim]);
 
     // Clean up polling on unmount
     useEffect(() => {

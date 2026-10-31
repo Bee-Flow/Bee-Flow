@@ -963,7 +963,7 @@ No request schema.
 
 ### `POST /auth/opaque/pin/register/finish`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 
@@ -987,7 +987,7 @@ No request schema.
 
 ### `POST /auth/opaque/register/finish`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 

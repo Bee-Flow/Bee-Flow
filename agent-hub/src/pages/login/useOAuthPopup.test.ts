@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { microsoftLoginUrl, newPickupId } from './useOAuthPopup';
+import { microsoftLoginUrl, newPickupClaim, newPickupId } from './useOAuthPopup';
+import { webcrypto } from 'node:crypto';
 
 describe('microsoftLoginUrl', () => {
     it('names the connection only for an additional tenant, and the popup only when embedded', () => {
@@ -40,5 +41,28 @@ describe('newPickupId', () => {
         const id = newPickupId({ getRandomValues: real.getRandomValues.bind(real) } as unknown as Crypto);
         expect(id).toMatch(/^[0-9a-f]{32}$/);
         expect(newPickupId({ getRandomValues: real.getRandomValues.bind(real) } as unknown as Crypto)).not.toBe(id);
+    });
+});
+
+// The claim binds the deposit to this iframe: the popup URL carries only the
+// challenge, the claim presents the secret, and the server compares
+// sha256(secret) with what it filed.
+describe('newPickupClaim', () => {
+    const real = webcrypto as unknown as Crypto;
+
+    it('is a 32-byte base64url secret and the base64url SHA-256 of its text', async () => {
+        const claim = await newPickupClaim(real);
+        expect(claim).not.toBeNull();
+        expect(claim!.secret).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        expect(claim!.challenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        const digest = new Uint8Array(await real.subtle.digest('SHA-256', new TextEncoder().encode(claim!.secret)));
+        const expected = Buffer.from(digest).toString('base64url');
+        expect(claim!.challenge).toBe(expected);
+        expect((await newPickupClaim(real))!.secret).not.toBe(claim!.secret);
+    });
+
+    it('is null without SubtleCrypto, so the sign-in runs unbound rather than not at all', async () => {
+        expect(await newPickupClaim({ getRandomValues: real.getRandomValues.bind(real) } as unknown as Crypto)).toBeNull();
+        expect(await newPickupClaim(null as unknown as Crypto)).toBeNull();
     });
 });

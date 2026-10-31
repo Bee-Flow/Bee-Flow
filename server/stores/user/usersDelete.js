@@ -200,7 +200,7 @@ async function deleteUser(userId) {
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { fail('config keys', e); }
-
+    await step('sessions', () => require('../../auth/sessionCache').bustSessionsForUser(userId));
     // Named MCP tokens. No FK to users, so they go explicitly.
     await step('mcp_tokens', () => run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]));
     await step('cms upload tickets', () => eraseCmsUploadTickets(userId));

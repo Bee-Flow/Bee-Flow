@@ -193,3 +193,127 @@ test('a native token is not evicted early by the clamped timer', async () => {
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepStrictEqual(await getSessionToken(token), { user: { id: 'u1' } });
 });
+
+// ── The claim is bound to the client that started the sign-in ────────────
+//
+// The pickup id travels in a URL the browser navigates to; the secret never
+// leaves the client until the claim. A deposit filed with a challenge answers
+// only to the secret behind it, once.
+
+const { setPickup, claimPickup, pickupChallengeOf, isPickupTokenShaped } = require('./sessionToken');
+
+/**
+ * A deposit with a live session token behind it, bound to `secret` when given.
+ * @param {string | null} secret
+ */
+async function deposit(secret) {
+    const sessionToken = generateToken();
+    const pickupId = generateToken();
+    await setSessionToken(sessionToken, { user: { id: 'u1' }, isAuthenticated: true });
+    await setPickup(pickupId, secret ? { sessionToken, challenge: pickupChallengeOf(secret) } : { sessionToken });
+    return { sessionToken, pickupId };
+}
+
+const SECRET = 'c2VjcmV0LXNlY3JldC1zZWNyZXQtc2VjcmV0LXNlY3JldA';
+
+test('a bound deposit is refused without the secret', async () => {
+    const { pickupId } = await deposit(SECRET);
+    assert.strictEqual(await claimPickup(pickupId), null);
+});
+
+test('a bound deposit is refused with the wrong secret, and is spent by that claim', async () => {
+    const { pickupId } = await deposit(SECRET);
+    assert.strictEqual(await claimPickup(pickupId, 'd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmctd3Jvbmc'), null);
+    assert.strictEqual(await claimPickup(pickupId, SECRET), null, 'one-shot: the wrong claim consumed it');
+});
+
+test('a bound deposit answers the right secret, once', async () => {
+    const { pickupId, sessionToken } = await deposit(SECRET);
+    const first = await claimPickup(pickupId, SECRET);
+    assert.strictEqual(first && first.sessionToken, sessionToken);
+    assert.strictEqual(await claimPickup(pickupId, SECRET), null);
+});
+
+test('a deposit without a challenge is claimable by id alone while the switch is off', async () => {
+    delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
+    const { pickupId, sessionToken } = await deposit(null);
+    const got = await claimPickup(pickupId);
+    assert.strictEqual(got && got.sessionToken, sessionToken);
+});
+
+test('a deposit without a challenge is refused once every client is expected to send one', async () => {
+    process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE = '1';
+    try {
+        const { pickupId } = await deposit(null);
+        assert.strictEqual(await claimPickup(pickupId), null);
+        assert.strictEqual(await claimPickup(pickupId, SECRET), null, 'nor with a secret nobody filed');
+    } finally {
+        delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
+    }
+});
+
+test('the challenge is base64url SHA-256 of the secret text, as the clients compute it', () => {
+    const expected = require('node:crypto').createHash('sha256').update(SECRET, 'utf8').digest('base64url');
+    assert.strictEqual(pickupChallengeOf(SECRET), expected);
+    assert.match(expected, /^[A-Za-z0-9_-]{43}$/);
+});
+
+test('only a token-shaped challenge or secret is accepted', () => {
+    assert.ok(isPickupTokenShaped(pickupChallengeOf(SECRET)));
+    assert.ok(isPickupTokenShaped(SECRET));
+    for (const bad of [undefined, null, '', 'short', 'has space ' + SECRET, 'x'.repeat(129), ['a'], { a: 1 }, 42]) {
+        assert.strictEqual(isPickupTokenShaped(bad), false, JSON.stringify(bad));
+    }
+});
+
+// ── Ending every session of one user reaches the bridge tokens ───────────
+//
+// A native client holds a bridge token instead of a cookie; "sign this person
+// out everywhere" has to find those too, so every mint is indexed per user.
+
+test('revoking a user drops every token minted for them, and nobody else\'s', async () => {
+    const { revokeSessionTokensForUser } = require('./sessionToken');
+    const a1 = generateToken(); const a2 = generateToken(); const b1 = generateToken();
+    await setSessionToken(a1, { user: { id: 'alice' } });
+    await setSessionToken(a2, { user: { id: 'alice' } }, NATIVE_SESSION_TOKEN_TTL_SECONDS);
+    await setSessionToken(b1, { user: { id: 'bob' } });
+
+    assert.strictEqual(await revokeSessionTokensForUser('alice'), 2);
+    assert.strictEqual(await getSessionToken(a1), null);
+    assert.strictEqual(await getSessionToken(a2), null);
+    assert.deepStrictEqual(await getSessionToken(b1), { user: { id: 'bob' } });
+    assert.strictEqual(await revokeSessionTokensForUser('alice'), 0, 'nothing left to revoke');
+    assert.strictEqual(await revokeSessionTokensForUser(undefined), 0);
+});
+
+test('a token revoked on its own leaves the index, so a later user-wide revoke does not count it twice', async () => {
+    const { deleteSessionToken, revokeSessionTokensForUser } = require('./sessionToken');
+    const t1 = generateToken(); const t2 = generateToken();
+    await setSessionToken(t1, { user: { id: 'carol' } });
+    await setSessionToken(t2, { user: { id: 'carol' } });
+    await deleteSessionToken(t1);
+    assert.strictEqual(await revokeSessionTokensForUser('carol'), 1);
+});
+
+// ── What the token store holds is sealed ─────────────────────────────────
+
+test('a bridge payload rests sealed under its token, and reads back plain', async () => {
+    const { _resetDefaultSealerForTests } = require('../auth/sessionSeal');
+    const previous = process.env.MASTER_ENCRYPTION_KEY;
+    process.env.MASTER_ENCRYPTION_KEY = 'a-master-key-of-at-least-thirty-two-characters';
+    _resetDefaultSealerForTests();
+    try {
+        const { _storedForTests, revokeSessionTokensForUser } = require('./sessionToken');
+        const token = generateToken();
+        const data = { user: { id: 'sealed-user' }, accessToken: 'provider-token', appPassword: { password: 'app-pw' } };
+        await setSessionToken(token, data);
+        const stored = String(_storedForTests(token));
+        assert.ok(stored.startsWith('sealed:v1:'), 'not plain JSON');
+        assert.ok(!stored.includes('provider-token') && !stored.includes('app-pw'));
+        assert.deepStrictEqual(await getSessionToken(token), data);
+        assert.strictEqual(await revokeSessionTokensForUser('sealed-user'), 1, 'the per-user index still finds it');
+    } finally {
+        if (previous === undefined) delete process.env.MASTER_ENCRYPTION_KEY; else process.env.MASTER_ENCRYPTION_KEY = previous;
+        _resetDefaultSealerForTests();
+    }
+});

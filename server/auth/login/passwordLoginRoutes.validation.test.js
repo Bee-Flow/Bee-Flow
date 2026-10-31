@@ -100,6 +100,9 @@ const MOCKS = {
     '../authRateLimits': { loginIpLimiter: pass },
     './finalizeLogin': {
         finalizeLogin: async (req, res, args) => { finalized.push(args); return res.json({ success: true, user: args.user }); },
+        // The DEK step the password step runs itself before parking a login
+        // for the second factor.
+        prepareLoginDek: async (user, password) => { touched.push({ what: 'prepareLoginDek', args: [user.id, password] }); return { encryptionKey: `dek-for-${user.id}` }; },
     },
     '../../telemetry/log': silent,
     '../passwordHash': {
@@ -295,4 +298,22 @@ test('a hash changed in between is not overwritten by the upgrade', async () => 
     } finally {
         userStoreDouble.getUser = realGet;
     }
+});
+
+// ── The second factor ──────────────────────────────────────────────────────
+
+test('with a second factor on the account, the password step parks the derived key, never the password', async () => {
+    const hash = await realPasswords.hash('Two-Factor-1');
+    users.set('dana', { id: 'dana', displayName: 'Dana', role: 'user', passwordHash: hash, mfa_enabled: true, mfa_secret: 'sealed' });
+    const session = { user: null, cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }, save: (cb) => cb() };
+    const res = await dispatch({ method: 'POST', url: '/admin-login', body: { username: 'dana', password: 'Two-Factor-1' }, session });
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepEqual(res.body, { mfaRequired: true, mfaMethods: ['totp'] });
+    assert.equal(finalized.length, 0, 'no session before the second factor');
+    assert.ok(session.mfaPending, 'parked');
+    assert.equal(session.mfaPending.password, undefined, 'the password is kept nowhere');
+    assert.deepEqual(session.mfaPending.derived, { encryptionKey: 'dek-for-dana' });
+    assert.equal(typeof session.mfaPending.pendingAt, 'number');
+    assert.equal(session.cookie.maxAge, 5 * 60 * 1000, 'the parked session lives five minutes');
+    assert.deepEqual(touched.filter((t) => t.what === 'prepareLoginDek').map((t) => t.args), [['dana', 'Two-Factor-1']]);
 });
