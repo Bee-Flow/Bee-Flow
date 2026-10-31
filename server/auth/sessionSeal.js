@@ -17,11 +17,12 @@
  * seal lives at the store boundary (boot/session.js, utils/sessionToken.js),
  * not at the twenty places that read the fields.
  *
- * A row written before this existed holds the plain value and is read as it
- * is; the next write seals it. Nothing has to be migrated.
+ * A row holding a plain value (no seal on it) is read as it is and sealed on
+ * its next write, so nothing has to be migrated.
  */
 
 const crypto = require('crypto');
+const { fallback } = require('../utils/bestEffort');
 
 const PREFIX = 'sealed:v1:';
 const SALT = 'beeflow-session-seal-v1';
@@ -38,6 +39,17 @@ const SEALED_FIELDS = Object.freeze(['encryptionKey', 'accessToken', 'refreshTok
  *   isSealed(value: unknown): boolean,
  *   enabled: boolean,
  * }} SessionSealer
+ */
+
+/**
+ * @typedef {(err: unknown, session?: Record<string, any> | null) => void} GetCallback
+ * @typedef {(err?: unknown) => void} DoneCallback
+ * @typedef {{
+ *   get: (sid: string, cb: GetCallback) => void,
+ *   set: (sid: string, session: Record<string, any>, cb: DoneCallback) => void,
+ *   touch?: (sid: string, session: Record<string, any>, cb: DoneCallback) => void,
+ *   destroy?: (sid: string, cb: DoneCallback) => void,
+ * }} SealableStore
  */
 
 /**
@@ -101,8 +113,10 @@ function createSessionSealer(masterKey) {
             decipher.setAuthTag(Buffer.from(tagB64, 'base64url'));
             const plain = Buffer.concat([decipher.update(Buffer.from(dataB64, 'base64url')), decipher.final()]);
             return JSON.parse(plain.toString('utf8'));
-        } catch (_) {
-            return undefined;
+        } catch (e) {
+            // Logged, not thrown: the field is dropped and the session goes on
+            // without it, which every reader already handles.
+            return fallback('sessionSeal:unseal', e, undefined);
         }
     }
 
@@ -151,7 +165,7 @@ function createSessionSealer(masterKey) {
  * place, the way the Redis cache is (auth/sessionCache.js), so express-session
  * keeps the store it was given. The context is the session id.
  *
- * @param {{ get: Function, set: Function, touch?: Function, destroy?: Function }} store
+ * @param {SealableStore} store
  * @param {SessionSealer} sealer
  */
 function sealSessionStore(store, sealer) {
@@ -170,30 +184,31 @@ function sealSessionStore(store, sealer) {
         });
     }
 
-    store.set = function set(/** @type {string} */ sid, /** @type {Record<string, any>} */ session, /** @type {Function} */ cb) {
+    store.set = function set(/** @type {string} */ sid, /** @type {Record<string, any>} */ session, /** @type {DoneCallback} */ cb) {
         return _set(sid, sealer.sealFields(sid, session), cb);
     };
-    store.get = function get(/** @type {string} */ sid, /** @type {(err: unknown, session?: Record<string, any> | null) => void} */ cb) {
+    store.get = function get(/** @type {string} */ sid, /** @type {GetCallback} */ cb) {
         return _get(sid, (/** @type {unknown} */ err, /** @type {Record<string, any> | null | undefined} */ session) => {
             if (err || !session) return cb(err, session);
             cb(null, sealer.unsealFields(sid, session));
         });
     };
     if (_touch) {
-        store.touch = function touch(/** @type {string} */ sid, /** @type {Record<string, any>} */ session, /** @type {Function} */ cb) {
+        store.touch = function touch(/** @type {string} */ sid, /** @type {Record<string, any>} */ session, /** @type {DoneCallback} */ cb) {
             return _touch(sid, sealer.sealFields(sid, session), cb);
         };
     }
     return store;
 }
 
-/** @type {WeakMap<object, { get: Function, set: Function, touch: Function | null, destroy?: Function }>} */
+/** @type {WeakMap<object, { get: SealableStore['get'], set: SealableStore['set'], touch: SealableStore['touch'] | null, destroy?: SealableStore['destroy'] }>} */
 const RAW = new WeakMap();
 
 /**
- * The store's methods from before it was sealed, as a store-shaped object —
- * or the store itself when it never was.
- * @param {{ get: Function, set: Function, touch?: Function, destroy?: Function }} store
+ * The store's methods as they were under the seal, as a store-shaped object —
+ * or the store itself when no seal is on it.
+ * @param {SealableStore} store
+ * @returns {SealableStore}
  */
 function unsealedStoreView(store) {
     const raw = RAW.get(store);

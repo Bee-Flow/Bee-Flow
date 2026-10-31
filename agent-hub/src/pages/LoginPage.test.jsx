@@ -373,8 +373,9 @@ describe('the transparent hand-off to OPAQUE', () => {
         await signIn();
         await screen.findByTestId('mfa-code-input');
         expect(onLogin).not.toHaveBeenCalled();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
-        fireEvent.click(screen.getByTestId('mfa-verify-button'));
+        const user = userEvent.setup();
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
+        await user.click(screen.getByTestId('mfa-verify-button'));
         await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ id: 'u1' }, undefined));
     });
 

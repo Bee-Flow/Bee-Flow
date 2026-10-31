@@ -150,12 +150,9 @@ app.get('/api/session-token', async (req, res) => {
             // session it came from.
             pendingApproval: req.session.pendingApproval || false,
             noOrganization: req.session.noOrganization || false,
-            // When the session behind this token was signed in: a bridged
-            // session has no other proof for a step-up (auth/recentAuth.js).
-            authenticatedAt: req.session.authenticatedAt,
+            authenticatedAt: req.session.authenticatedAt, // the sign-in time: a bridged session's only proof for a step-up (auth/recentAuth.js)
 
             // ── The other two gates are deliberately NOT here. ──────────────
-            //
             // `needsEncryptionSetup` and `needsEncryptionPin` are the opposite
             // kind of flag: they are meant to be CLEARED, by
             // auth/login/ssoEncryptionRoutes.js, once the user sets up or

@@ -24,6 +24,7 @@
 const crypto = require('crypto');
 const { getRedis } = require('../db');
 const { defaultSealer } = require('../auth/sessionSeal');
+const { fallback } = require('./bestEffort');
 
 const _sessionTokenFallback = new Map();
 const _pickupFallback = new Map();
@@ -39,7 +40,8 @@ const USER_TOKEN_INDEX_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 /** @param {unknown} data */
 function userIdOf(data) {
-    const id = data && typeof data === 'object' && /** @type {any} */ (data).user && /** @type {any} */ (data).user.id;
+    const payload = /** @type {{ user?: { id?: unknown } } | null} */ (data && typeof data === 'object' ? data : null);
+    const id = payload && payload.user && payload.user.id;
     return id ? String(id) : null;
 }
 
@@ -321,8 +323,9 @@ async function takeFromRedis(r, key) {
     if (typeof r.getdel === 'function') {
         try {
             return await r.getdel(key);
-        } catch (_) {
-            // A Redis older than 6.2: fall through to the two-step read.
+        } catch (e) {
+            // A Redis older than 6.2: the two-step read below still answers.
+            fallback('sessionToken:getdel', e, null);
         }
     }
     const val = await r.get(key);

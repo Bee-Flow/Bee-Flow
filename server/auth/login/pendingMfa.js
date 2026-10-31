@@ -11,6 +11,7 @@
  * HERE, once, and the second-factor routes do not have to know.
  */
 
+const log = require('../../telemetry/log');
 const { finalizeLogin } = require('./finalizeLogin');
 const { finalizeOpaqueLogin } = require('./finalizeOpaqueLogin');
 
@@ -93,4 +94,38 @@ async function completePendingLogin(req, res, { pending, userRow, startedAt }) {
     return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, derived, startedAt, sessionExtra });
 }
 
-module.exports = { mfaMethodsFor, completePendingLogin, parkPendingLogin, isPendingLoginExpired, PENDING_MFA_TTL_MS, PENDING_EXPIRED };
+/**
+ * What follows a passed OPAQUE proof: the same gate as the password path
+ * (login/passwordLoginRoutes.js) — hold the session back, park what the
+ * second step needs, ask for the code — or, with no second factor on the
+ * account, the session itself. The client already holds the OPAQUE session
+ * key from the protocol, so it is not repeated on the parked answer.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ user: { id: string } & Record<string, any>, encryptionKey: string | null, sessionKey: string, userStore: { listSecurityKeys(userId: string): Promise<unknown[]> } }} args
+ */
+async function settleOpaqueFirstFactor(req, res, { user, encryptionKey, sessionKey, userStore }) {
+    if (user.mfa_enabled) {
+        const sessionUser = {
+            id: user.id, displayName: user.displayName, role: user.role || 'user',
+            avatar: user.avatar || null, avatarType: user.avatarType || null,
+        };
+        parkPendingLogin(req, {
+            userId: user.id, isAdmin: user.role === 'admin', user: sessionUser,
+            opaque: true, ...(encryptionKey !== null ? { encryptionKey } : {}),
+        });
+        const mfaMethods = await mfaMethodsFor(userStore, user);
+        return req.session.save((err) => {
+            if (err) log.error('Session save error:', err);
+            res.json({ mfaRequired: true, mfaMethods });
+        });
+    }
+    // H11: rotate the session id on establishment (session fixation).
+    return finalizeOpaqueLogin(req, res, {
+        user, encryptionKey,
+        sessionExtra: { opaqueLoginAt: Date.now() },
+        response: { sessionKey }, // Client needs this for encrypting DEK to send back
+    });
+}
+
+module.exports = { mfaMethodsFor, completePendingLogin, parkPendingLogin, isPendingLoginExpired, settleOpaqueFirstFactor, PENDING_MFA_TTL_MS, PENDING_EXPIRED };

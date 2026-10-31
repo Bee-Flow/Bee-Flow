@@ -232,4 +232,17 @@ function accessChanges(prevUser, updates) {
     return { oldVals, newVals };
 }
 
-module.exports = { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges };
+/**
+ * End the sessions of an account whose access just changed hands or ended —
+ * every one, or every one but `keepSid` (the session the person made the
+ * change from). Best-effort: a failure is logged, the change itself stands.
+ * @param {string} userId
+ * @param {{ keepSid?: string }} [opts]
+ */
+async function endSessionsFor(userId, opts = {}) {
+    try {
+        await require('../sessionCache').bustSessionsForUser(userId, opts);
+    } catch (err) { require('../../utils/bestEffort').bestEffort('auth/admin/users:endSessions', err); }
+}
+
+module.exports = { stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor };

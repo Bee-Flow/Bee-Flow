@@ -41,4 +41,18 @@ const REAUTH_REQUIRED = Object.freeze({
     }),
 });
 
-module.exports = { hasRecentAuth, RECENT_AUTH_MAX_AGE_MS, REAUTH_REQUIRED };
+/**
+ * Answer the refusal when the session holds no recent proof; true when it
+ * does and the route may go on.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} what for the log line, e.g. "the credential of u1"
+ */
+function requireRecentAuth(req, res, what) {
+    if (hasRecentAuth(req.session)) return true;
+    require('../telemetry/log').warn(`[Auth] Refused to replace ${what} without a recent proof`);
+    res.status(REAUTH_REQUIRED.status).json({ ...REAUTH_REQUIRED.body });
+    return false;
+}
+
+module.exports = { hasRecentAuth, requireRecentAuth, RECENT_AUTH_MAX_AGE_MS, REAUTH_REQUIRED };
