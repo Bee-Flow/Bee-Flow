@@ -182,18 +182,24 @@ async function fetchUrlContent(url) {
 async function fetchWithPlaywright(url, opts = {}) {
     const browserProvider = featureModule('services/browserProvider');
     const { isPrivateHostname, isPrivateIp } = require('../../utils/ssrfGuard');
+    const { makeResolvedHostScreen } = require('../http/browserRouteGuard');
 
     return browserProvider.withContext(
         {
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
         async (context) => {
-            await context.route('**/*', (route) => {
+            // The literal screen plus a server-side resolution of every DNS
+            // name the page dials (the sidecar resolves on its own): one
+            // verdict per host for the life of this context.
+            const hostIsPublic = makeResolvedHostScreen();
+            await context.route('**/*', async (route) => {
                 /** @type {URL} */
                 let target;
                 try { target = new URL(route.request().url()); } catch (_) { return route.abort('blockedbyclient'); }
                 if (!['http:', 'https:'].includes(target.protocol)) return route.abort('blockedbyclient');
                 if (isPrivateHostname(target.hostname) || isPrivateIp(target.hostname)) return route.abort('blockedbyclient');
+                if (!(await hostIsPublic(target.hostname))) return route.abort('blockedbyclient');
                 return route.continue();
             });
 

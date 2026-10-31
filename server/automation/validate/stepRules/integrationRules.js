@@ -110,7 +110,7 @@ function checkHttpRequest(ctx, step, at) {
             pushE({ code: 'http_request.parse_response_invalid', severity: 'error', path: at + '.parseResponse', message: `Step ${step.id}: http_request.parseResponse must be auto, never or always.`, hint: 'Leave it out for auto — the response is parsed into `output.data` when its content-type says JSON.' });
         }
         if (step.blockPrivateTargets !== undefined && typeof step.blockPrivateTargets !== 'boolean') {
-            pushE({ code: 'http_request.block_private_targets_shape', severity: 'error', path: at + '.blockPrivateTargets', message: `Step ${step.id}: http_request.blockPrivateTargets must be a boolean.`, hint: 'true (recommended) blocks localhost/private-network/cloud-metadata targets; false allows them.' });
+            pushE({ code: 'http_request.block_private_targets_shape', severity: 'error', path: at + '.blockPrivateTargets', message: `Step ${step.id}: http_request.blockPrivateTargets must be a boolean.`, hint: 'true (recommended) blocks localhost/private-network/cloud-metadata targets; false allows them on a server whose operator enabled AUTOMATION_ALLOW_PRIVATE_TARGETS.' });
         }
         // step.auth — saved-credential reference: { connectionId } ONLY.
         // Absent/null = no injection (back-compat).

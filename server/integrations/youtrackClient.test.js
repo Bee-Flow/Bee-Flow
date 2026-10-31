@@ -19,6 +19,7 @@ const { useConfigRows } = require('../testUtils/configRows');
 // The real configStore over an empty config table.
 const config = useConfigRows();
 const ytc = require('./youtrackClient');
+const { _setFetchForTests } = require('./shared/apiClient');
 
 const CREDS = { baseUrl: 'https://yt.example.com', token: 'test-token' };
 
@@ -29,13 +30,17 @@ let reply = [];
 beforeEach(() => {
     requests = [];
     reply = [];
+    // jsonApiRequest fetches through the guard, not the global: install the
+    // stub through its seam (the global is kept for anything else).
     global.fetch = async (url) => {
         requests.push(new URL(String(url)));
         return { ok: true, status: 200, text: async () => JSON.stringify(reply) };
     };
+    _setFetchForTests(global.fetch);
 });
 
 after(() => {
+    _setFetchForTests(null);
     global.fetch = realFetch;
     config.restore();
 });

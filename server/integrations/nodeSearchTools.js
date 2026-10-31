@@ -21,6 +21,7 @@ const { getAdapter } = require('../core/providers');
 const { dispatchEmbedTexts } = require('../core/embed/dispatch');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { safeFetch } = require('../utils/ssrfGuard');
 
 const SERPER_URL = 'https://google.serper.dev/search';
 const PAGE_FETCH_TIMEOUT_MS = 12000;
@@ -78,7 +79,9 @@ function stripHtml(html) {
  */
 async function fetchPage(url) {
     try {
-        const res = await fetch(url, {
+        // A result URL is third-party data: fetched through the guard, every
+        // redirect hop re-checked at connect time.
+        const res = await safeFetch(url, {
             method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; BeeFlowSearchBot/1.0; +https://beeflow.nl)',

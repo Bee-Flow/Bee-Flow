@@ -74,6 +74,7 @@ function composeInlinedHtml({ html, css, js }) {
 
 const browserProvider = require('../services/browserProvider');
 const { sessionUser } = require('../core/http/sessionUser');
+const { makeResolvedHostScreen, requestAllowed } = require('../core/http/browserRouteGuard');
 
 router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
@@ -102,6 +103,13 @@ router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require(
     // A rejection here reaches the terminal error handler (Express 5 forwards
     // it): the operator's log gets the whole error, the client a generic 500.
     const pdfBuffer = await browserProvider.withContext({}, async (context) => {
+        // The page is the author's own HTML/CSS/JS. Its subresources (fonts,
+        // images, frames) may be fetched from public hosts, as in the editor;
+        // anything that resolves to a private address is refused.
+        const hostIsPublic = makeResolvedHostScreen();
+        await context.route('**/*', async (route) => (
+            await requestAllowed(route.request().url(), hostIsPublic) ? route.continue() : route.abort('blockedbyclient')
+        ));
         const page = await context.newPage();
         await page.setContent(exportHTML, { waitUntil: 'networkidle' });
         // Settle JS-driven content (animations, font loads, fetch-driven layouts).

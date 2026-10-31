@@ -61,7 +61,6 @@ const {
         '193.168.1.1',
         '2606:4700:4700::1111',                      // public v6
         '::ffff:8.8.8.8',                            // IPv4-mapped public
-        'fec0::1',                                   // outside fe80::/10
         'fbff::1',                                   // outside fc00::/7
     ];
     for (const ip of PUBLIC_IPS) {

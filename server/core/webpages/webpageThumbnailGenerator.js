@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const webpageStore = require('../../stores/webpageStore');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { makeResolvedHostScreen, requestAllowed } = require('../http/browserRouteGuard');
 
 const DEBOUNCE_MS = 2000;
 const RENDER_TIMEOUT_MS = 15000;
@@ -95,6 +96,12 @@ async function renderThumbnail({ userId, webpageId }) {
                 javaScriptEnabled: true,
             },
             async (/** @type {import('playwright').BrowserContext} */ context) => {
+                // Same rule as the PDF export: public subresources render as
+                // in the editor, a private address is refused.
+                const hostIsPublic = makeResolvedHostScreen();
+                await context.route('**/*', async (route) => (
+                    await requestAllowed(route.request().url(), hostIsPublic) ? route.continue() : route.abort('blockedbyclient')
+                ));
                 const page = await context.newPage();
                 // Cap navigation + JS so a broken page can't hang the worker forever.
                 page.setDefaultTimeout(RENDER_TIMEOUT_MS);

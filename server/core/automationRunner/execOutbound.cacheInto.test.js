@@ -429,8 +429,11 @@ test('nothing is remembered while private targets are allowed', async () => {
     reset();
     // With the guard off the step uses the BARE fetch, not safeFetch — which is
     // the whole reason this is a refusal: an answer fetched that way came from
-    // a target nobody screened.
+    // a target nobody screened. The step's switch only takes effect on an
+    // instance that allows it (AUTOMATION_ALLOW_PRIVATE_TARGETS=1).
     const realFetch = globalThis.fetch;
+    const realFlag = process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
+    process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS = '1';
     globalThis.fetch = async () => fakeResponse({
         status: 200, headers: { 'content-type': 'application/json' }, body: '{"rate":1.09}',
     });
@@ -441,6 +444,31 @@ test('nothing is remembered while private targets are allowed', async () => {
         assert.deepStrictEqual(result.output.data, { rate: 1.09 });
         assert.strictEqual(rows.size, 0);
         assert.strictEqual(result.cacheInto, undefined);
+    } finally {
+        globalThis.fetch = realFetch;
+        if (realFlag === undefined) delete process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
+        else process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS = realFlag;
+    }
+});
+
+test('without the instance flag the switch has no effect: the answer is screened AND remembered', async () => {
+    reset();
+    delete process.env.AUTOMATION_ALLOW_PRIVATE_TARGETS;
+    const realFetch = globalThis.fetch;
+    let bareFetches = 0;
+    globalThis.fetch = async () => { bareFetches++; return fakeResponse({ status: 200, body: '{}' }); };
+    safeFetchImpl = async () => fakeResponse({
+        status: 200, headers: { 'content-type': 'application/json' }, body: '{"rate":1.09}',
+    });
+    try {
+        const result = await execHttpRequest(
+            { ...STEP, blockPrivateTargets: false }, ctx(), baseState(), 'live',
+        );
+        assert.strictEqual(bareFetches, 0, 'the bare fetch is never reached');
+        assert.strictEqual(safeFetchCalls.length, 1, 'the guarded fetch answered');
+        assert.deepStrictEqual(result.output.data, { rate: 1.09 });
+        assert.strictEqual(rows.size, 1, 'a screened answer is remembered like any other');
+        assert.ok(result.cacheInto);
     } finally {
         globalThis.fetch = realFetch;
     }

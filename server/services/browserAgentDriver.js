@@ -394,15 +394,16 @@ async function runBrowseTask({ task, startUrl = null, userId = null, orgId = nul
         ctx = await browserProvider.newSharedContext({ viewport: { width: 1280, height: 800 } });
 
         // SSRF: block any request (main nav, redirect, subresource) to a
-        // private/loopback/link-local host or a non-http(s) scheme. Cross-origin
-        // to PUBLIC hosts is allowed (research follows links).
-        //
-        // With `allowedHosts`, NAVIGATION requests (main frame, redirects
-        // included — each redirect hop is its own navigation request here) are
-        // additionally confined to the allowlist. The SSRF checks stay
-        // unconditional and first: an allowlist must never widen them.
+        // private/loopback/link-local host or a non-http(s) scheme, by the URL
+        // text AND by what a DNS name resolves to (the sidecar resolves on its
+        // own, so the text alone says nothing about where it lands). Cross-
+        // origin to PUBLIC hosts is allowed (research follows links). With
+        // `allowedHosts`, NAVIGATION requests (main frame, redirects included:
+        // each hop is its own navigation request) are additionally confined to
+        // the allowlist. The SSRF checks stay first: an allowlist never widens them.
         const hosts = normalizeAllowedHosts(allowedHosts);
-        await ctx.route('**/*', (route) => {
+        const hostIsPublic = require('../core/http/browserRouteGuard').makeResolvedHostScreen();
+        await ctx.route('**/*', async (route) => {
             let u;
             try { u = new URL(route.request().url()); } catch (_) { return route.abort('blockedbyclient'); }
             if (!['http:', 'https:'].includes(u.protocol)) return route.abort('blockedbyclient');
@@ -410,6 +411,7 @@ async function runBrowseTask({ task, startUrl = null, userId = null, orgId = nul
             if (hosts && route.request().isNavigationRequest() && !hostAllowed(u.hostname, hosts)) {
                 return route.abort('blockedbyclient');
             }
+            if (!(await hostIsPublic(u.hostname))) return route.abort('blockedbyclient');
             return route.continue();
         });
 

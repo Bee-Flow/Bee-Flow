@@ -1,7 +1,7 @@
 // @typecheck strict
 /**
  * Numeric IP parsing for the SSRF guard (core/http/ssrfGuard.js): inet_aton IPv4 spellings, IPv6 groups
- * with an embedded IPv4 tail, and the IPv4 range table. Pure functions, no DNS.
+ * with an embedded IPv4 tail, and the IPv4 and IPv6 range tables. Pure functions, no DNS.
  */
 
 'use strict';
@@ -137,8 +137,60 @@ function isForbiddenIPv4Int(n) {
     if ((n >>> 16) === 0xa9fe) return true;                       // 169.254.0.0/16
     if (((n & 0xfff00000) >>> 0) === 0xac100000) return true;     // 172.16.0.0/12
     if ((n >>> 16) === 0xc0a8) return true;                       // 192.168.0.0/16
-    if (n === 0xffffffff) return true;                            // broadcast
+    if ((n >>> 8) === 0xc00000) return true;                      // 192.0.0.0/24 (IETF protocol assignments)
+    if (((n & 0xfffe0000) >>> 0) === 0xc6120000) return true;     // 198.18.0.0/15 (benchmarking)
+    if (top >= 224) return true;                                  // 224.0.0.0/4 multicast, 240.0.0.0/4 reserved, broadcast
     return false;
 }
 
-module.exports = { parseIPv4Numeric, formatIPv4, looksNumericLabel, parseIPv6, isForbiddenIPv4Int };
+/** The 32-bit IPv4 address at byte offset `i`. @param {number[]} bytes @param {number} i */
+function ipv4At(bytes, i) {
+    return ((bytes[i] << 24) | (bytes[i + 1] << 16) | (bytes[i + 2] << 8) | bytes[i + 3]) >>> 0;
+}
+
+/**
+ * The IPv4 address an IPv6 prefix carries, or null when it carries none.
+ * Mapped (::ffff:a.b.c.d), deprecated compat (::a.b.c.d), the well-known
+ * NAT64 prefix (64:ff9b::/96) and 6to4 (2002::/16): the host the bytes
+ * reach is that address, so it is the one screened against the IPv4 table.
+ * @param {number[]} bytes @param {number} leadingZeroBytes @returns {number | null}
+ */
+function embeddedIPv4(bytes, leadingZeroBytes) {
+    if (bytes[0] === 0x20 && bytes[1] === 0x02) return ipv4At(bytes, 2);                       // 2002::/16
+    const nat64 = bytes[0] === 0x00 && bytes[1] === 0x64 && bytes[2] === 0xff && bytes[3] === 0x9b;
+    if (nat64 && bytes.slice(4, 12).every(b => b === 0)) return ipv4At(bytes, 12);             // 64:ff9b::/96
+    if (leadingZeroBytes >= 10 && bytes[10] === 0xff && bytes[11] === 0xff) return ipv4At(bytes, 12); // ::ffff:a.b.c.d
+    if (leadingZeroBytes >= 12) return ipv4At(bytes, 12);                                       // ::a.b.c.d compat
+    return null;
+}
+
+// IPv6 prefixes that never name a public host, as [mask, value] on the first
+// two bytes: link-local fe80::/10, deprecated site-local fec0::/10, unique
+// local fc00::/7, multicast ff00::/8, and the local-use NAT64 block
+// 64:ff9b:1::/48 (checked on its first six bytes).
+const FORBIDDEN_V6_PREFIXES = [
+    [[0xff, 0xfe], [0xc0, 0x80]],
+    [[0xff, 0xfe], [0xc0, 0xc0]],
+    [[0xfe, 0xfc], [0x00, 0x00]],
+    [[0xff, 0xff], [0x00, 0x00]],
+];
+const LOCAL_USE_NAT64 = [0x00, 0x64, 0xff, 0x9b, 0x00, 0x01];
+
+/** @param {number[]} bytes @returns {boolean} */
+function hasForbiddenIPv6Prefix(bytes) {
+    if (LOCAL_USE_NAT64.every((b, i) => bytes[i] === b)) return true;
+    return FORBIDDEN_V6_PREFIXES.some(([[m0, v0], [m1, v1]]) => (bytes[0] & m0) === v0 && (bytes[1] & m1) === v1);
+}
+
+/** @param {number[]} bytes @returns {boolean} */
+function isForbiddenIPv6Bytes(bytes) {
+    let leadingZeroBytes = 0;
+    while (leadingZeroBytes < 16 && bytes[leadingZeroBytes] === 0) leadingZeroBytes++;
+    if (leadingZeroBytes === 16) return true;                     // :: unspecified
+    if (leadingZeroBytes === 15 && bytes[15] === 1) return true;  // ::1 loopback
+    if (hasForbiddenIPv6Prefix(bytes)) return true;
+    const v4 = embeddedIPv4(bytes, leadingZeroBytes);
+    return v4 !== null && isForbiddenIPv4Int(v4);
+}
+
+module.exports = { parseIPv4Numeric, formatIPv4, looksNumericLabel, parseIPv6, isForbiddenIPv4Int, isForbiddenIPv6Bytes };
