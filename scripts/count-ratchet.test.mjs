@@ -846,3 +846,85 @@ tsTest('deep-imports fails a new deep import over the budget and names the alias
     assert.match(r.stderr, /1 import specifiers climbing three or more levels .* budget is 0/);
     assert.match(r.stderr, /@\/<path from src>/);
 });
+
+// ── Outbound and input-boundary metrics (server) ─────────────────────
+
+test('bare-fetch counts global fetch calls in source, not in the guard modules, the provider adapters or tests', () => {
+    const dir = sandbox({
+        files: {
+            'routes/x.js': "const r = await fetch(url);\nconst s = await safeFetch(url);\nconst t = await fetchImpl(url);\n// fetch(commented)\nconst u = 'fetch(in a string)';\n",
+            'utils/ssrfGuard.js': 'return fetch(url, opts);\n',
+            'core/providers/claude.js': 'await fetch(api);\n',
+            'routes/x.test.js': 'fetch(a); fetch(b);\n',
+        },
+        metric: 'bare-fetch', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'bare-fetch', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /1 calls to the global fetch/);
+    assert.match(r.stderr, /safeFetch/);
+});
+
+test('static-mount counts express.static without setHeaders, and leaves a mount with headers alone', () => {
+    const dir = sandbox({
+        files: {
+            'boot/a.js': "app.use('/u', express.static(DIR));\napp.use('/v', express.static(DIR, { setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff') }));\n",
+        },
+        metric: 'static-mount', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'static-mount', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /1 express\.static mounts/);
+});
+
+test('multer-guard counts multer instances only in files that never touch uploadGuard', () => {
+    const dir = sandbox({
+        files: {
+            'routes/a.js': "const up = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1 } });\nconst up2 = multer({});\n",
+            'routes/b.js': "const { uploadGuard } = require('../middleware/uploadGuard');\nconst up = multer({});\n",
+        },
+        metric: 'multer-guard', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'multer-guard', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /2 multer instances/);
+});
+
+test('env-parseint-fallback counts parseInt/Number of an env var with a numeric || fallback', () => {
+    const dir = sandbox({
+        files: {
+            'index.js': "const hops = parseInt(process.env.TRUST_PROXY_HOPS || '1', 10) || 1;\nconst n = Number(process.env.N) || 5;\nconst ok = Number(process.env.M ?? 5);\nconst p = parseInt(process.env.P, 10);\n",
+        },
+        metric: 'env-parseint-fallback', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'env-parseint-fallback', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /2 numeric env vars/);
+});
+
+test('secret-equality counts a secret compared with === to a value, not to a literal, null or a shape field', () => {
+    const dir = sandbox({
+        files: {
+            'auth/a.js': "if (apiKey === expected) ok();\nif (req.get('X-Signature') !== signature) no();\nif (token === null) x();\nif (tokenType === other) y();\nif (secret === '') z();\nif (payload.secret !== stored.secret) w();\n",
+            'auth/a.test.js': 'if (apiKey === expected) ok();\n',
+        },
+        metric: 'secret-equality', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'secret-equality', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /2 === \/ !== comparisons/);
+});
+
+test('instance-config-gate counts request-facing files that write instance config without a platform gate', () => {
+    const dir = sandbox({
+        files: {
+            'routes/a.js': "const configStore = require('../stores/configStore');\nrouter.post('/x', requireAuth, async (req, res) => { await configStore.setSecret('k', req.body.v); });\n",
+            'routes/b.js': "const configStore = require('../stores/configStore');\nconst { requirePlatformAdmin } = require('../auth/requirePlatformAdmin');\nrouter.post('/x', requirePlatformAdmin, async (req, res) => { await configStore.setConfig('k', 1); });\n",
+            'core/c.js': "const configStore = require('../stores/configStore');\nawait configStore.setConfig('k', 1);\n",
+        },
+        metric: 'instance-config-gate', budget: 0, pkg: 'server', src: false,
+    });
+    const r = run(dir, 'instance-config-gate', [], 'server');
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /1 files that write instance-wide config/);
+});

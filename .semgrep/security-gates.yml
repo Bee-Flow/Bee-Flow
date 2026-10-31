@@ -1,0 +1,124 @@
+# Repository rules next to the registry rulesets sast.yml runs. Each names the
+# shape it refuses and what to write instead. The PR gate is new findings only
+# (--baseline-commit), so an existing site is a backlog entry, not a red PR;
+# the count ratchets in scripts/count-ratchet.mjs (bare-fetch, static-mount,
+# multer-guard, env-parseint-fallback, secret-equality, instance-config-gate)
+# hold the same shapes locally in check:fast.
+rules:
+  - id: beeflow-bare-fetch
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      A global fetch() in server code: the target is not resolved and checked.
+      Use safeFetch from utils/ssrfGuard.js (or nextcloudFetch for a Nextcloud
+      host) for any URL a user, document, model or admin can influence.
+    paths:
+      include: [server/]
+      exclude:
+        - server/utils/ssrfGuard.js
+        - server/utils/nextcloudTarget.js
+        - server/core/http/
+        - server/core/providers/
+        - server/telemetry/
+        - server/scripts/
+        - server/testUtils/
+        - '*.test.js'
+        - '*.test.mjs'
+    patterns:
+      - pattern: fetch($URL, ...)
+      - pattern-not-inside: |
+          function $F(..., fetch, ...) { ... }
+
+  - id: beeflow-static-mount-without-headers
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      express.static without setHeaders serves uploaded files as whatever their
+      extension says, on the app origin. Set X-Content-Type-Options: nosniff, a
+      sandbox Content-Security-Policy and Content-Disposition: attachment for
+      anything that is not an image (routes/branding.js, routes/icons.js).
+    paths:
+      include: [server/]
+      exclude: ['*.test.js']
+    patterns:
+      - pattern: express.static($DIR, ...)
+      - pattern-not: 'express.static($DIR, { ..., setHeaders: $H, ... })'
+
+  - id: beeflow-multer-without-upload-guard
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      multer's fileFilter sees the client's own mimetype and file name. Run the
+      upload through middleware/uploadGuard (sniffs the bytes, sanitises SVG) and
+      derive the stored extension from the sniffed type.
+    paths:
+      include: [server/]
+      exclude: ['*.test.js']
+    patterns:
+      - pattern: multer({ ... })
+      - pattern-not-inside: |
+          const { ..., uploadGuard, ... } = require('...');
+          ...
+      - pattern-not-inside: |
+          const $G = require('$M').uploadGuard;
+          ...
+
+  - id: beeflow-env-parseint-fallback
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      parseInt(process.env.X) || n turns a configured 0 into n. Parse with
+      Number(...) and Number.isFinite, and refuse to boot on a non-numeric value.
+    paths:
+      include: [server/]
+      exclude: ['*.test.js']
+    pattern-either:
+      - pattern: parseInt(process.env.$X, ...) || $N
+      - pattern: parseInt(process.env.$X || $D, ...) || $N
+      - pattern: Number(process.env.$X) || $N
+
+  - id: beeflow-secret-equality
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      A secret compared with ===/!== leaks, byte by byte, how much of it matched.
+      Compare with crypto.timingSafeEqual on equal-length buffers.
+    paths:
+      include: [server/]
+      exclude: ['*.test.js', server/testUtils/]
+    patterns:
+      - pattern-either:
+          - pattern: $A === $B
+          - pattern: $A !== $B
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?i)^(?!.*(type|kind|id|count|length|name|mode|status|used|exp|limit|url|path|ttl|scope)$)[\w.$]*(secret|apikey|api_key|signature|passcode|otp|sharedkey)[\w$]*$
+      - pattern-not: $A === null
+      - pattern-not: $A !== null
+      - pattern-not: $A === undefined
+      - pattern-not: $A !== undefined
+      - pattern-not: $A === ""
+      - pattern-not: $A !== ""
+
+  - id: beeflow-outbound-payload-from-row
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      An outbound payload built by spreading or serialising a whole row. Personal
+      data leaves Bee Flow by e-mail only; to any other destination send an
+      explicit allow-list of fields (support/issueEgress.js shows the shape), or a
+      column added next year leaks along.
+    paths:
+      include: [server/]
+      exclude: ['*.test.js']
+    patterns:
+      - pattern-either:
+          - pattern: '$FETCH($URL, { ..., body: JSON.stringify($ROW), ... })'
+          - pattern: '$FETCH($URL, { ..., body: JSON.stringify({ ...$ROW, ... }), ... })'
+          - pattern: '$FETCH($URL, { ..., json: { ...$ROW, ... }, ... })'
+      - metavariable-regex:
+          metavariable: $FETCH
+          regex: ^(fetch|safeFetch|jsonApiRequest|nextcloudFetch|postJson)$
+      - metavariable-regex:
+          metavariable: $ROW
+          regex: (?i)^(row|rows|user|users|record|ticket|thread|member|profile|contact|req\.body)$

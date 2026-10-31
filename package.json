@@ -82,7 +82,13 @@
     "check:fast": "node scripts/check-fast.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
     "gen:routes-contract": "node scripts/gen-routes-contract.mjs",
-    "lint:routes-contract": "node scripts/gen-routes-contract.mjs --check"
+    "lint:routes-contract": "node scripts/gen-routes-contract.mjs --check",
+    "lint:bare-fetch-ratchet": "node scripts/count-ratchet.mjs bare-fetch server",
+    "lint:static-mount-ratchet": "node scripts/count-ratchet.mjs static-mount server",
+    "lint:multer-guard-ratchet": "node scripts/count-ratchet.mjs multer-guard server",
+    "lint:env-parseint-ratchet": "node scripts/count-ratchet.mjs env-parseint-fallback server",
+    "lint:secret-equality-ratchet": "node scripts/count-ratchet.mjs secret-equality server",
+    "lint:instance-config-gate-ratchet": "node scripts/count-ratchet.mjs instance-config-gate server"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

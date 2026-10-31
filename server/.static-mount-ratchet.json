@@ -1,0 +1,5 @@
+{
+  "_comment": "Highest number of express.static mounts without a setHeaders option server may still carry. Lower it with `node scripts/count-ratchet.mjs static-mount server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-31",
+  "count": 2
+}
