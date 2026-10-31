@@ -29,6 +29,7 @@ const express = require('express');
 const agentStore = require('../stores/agentStore');
 const memoryStore = require('../stores/memoryStore');
 const { requireAuth, requirePermission } = require('../auth/permissions');
+const { orgScope } = require('../auth/orgScope');
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
 const { sessionUser } = require('../core/http/sessionUser');
@@ -88,6 +89,11 @@ router.get('/types', requireAuth, async (req, res) => {
 router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validate({ query: ReportQuery }), /** @param {import('express').Request<{ type: string }, any, any, import('qs').ParsedQs & { startDate?: string, endDate?: string }>} req */ async (req, res) => {
     const { type } = req.params;
     const userId = sessionUser(req).id;
+    // The report covers the caller's organisations and no other: the
+    // permission says they may read reports, the scope says about whom. A
+    // super admin's scope is null, every organisation.
+    const scope = await orgScope(req);
+    const orgIds = scope.orgIds === null ? null : [...scope.orgIds];
 
     let reportData;
     const { startDate, endDate } = req.query;
@@ -95,10 +101,10 @@ router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validat
 
     switch (type) {
         case 'system-overview':
-            reportData = await generateSystemOverview(userId, filters);
+            reportData = await generateSystemOverview(userId, filters, orgIds);
             break;
         case 'agent-performance':
-            reportData = await generateAgentPerformance(filters);
+            reportData = await generateAgentPerformance(filters, orgIds);
             break;
         default:
             return res.status(404).json({ error: 'Report type not found' });
@@ -112,10 +118,11 @@ router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validat
 /**
  * @param {string} userId
  * @param {{ startDate?: string | null, endDate?: string | null }} [filters]
+ * @param {string[] | null} [orgIds]  the caller's organisations; null = every organisation
  */
-async function generateSystemOverview(userId, filters = {}) {
+async function generateSystemOverview(userId, filters = {}, orgIds = null) {
     const { startDate, endDate } = filters;
-    const agentStats = await agentStore.getSystemStats(startDate, endDate);
+    const agentStats = await agentStore.getSystemStats(startDate, endDate, { orgIds });
     const memoryStats = await memoryStore.getMemoryStats(userId);
 
     const title = `System Overview${periodLabel(filters)}`;
@@ -208,10 +215,13 @@ async function generateSystemOverview(userId, filters = {}) {
     };
 }
 
-/** @param {{ startDate?: string | null, endDate?: string | null }} [filters] */
-async function generateAgentPerformance(filters = {}) {
+/**
+ * @param {{ startDate?: string | null, endDate?: string | null }} [filters]
+ * @param {string[] | null} [orgIds]  the caller's organisations; null = every organisation
+ */
+async function generateAgentPerformance(filters = {}, orgIds = null) {
     const { startDate = null, endDate = null } = filters;
-    const allAgents = await agentStore.getAllAgents();
+    const allAgents = await agentStore.getAllAgents({ orgIds });
 
     const rows = [];
 

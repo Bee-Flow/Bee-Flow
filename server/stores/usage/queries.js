@@ -186,37 +186,22 @@ async function getToolUsage(filters = {}) {
  */
 async function getRecentCalls(limit = 50, filters = {}) {
     await initDB();
+    // Built on the shared buildFilters ON PURPOSE (the same move as
+    // guardrailEventStore.getRecentGuardrailEvents): the hand-rolled WHERE
+    // here read organizationId, source and model and nothing else, so the
+    // filters.userId an org-less caller is scoped to never reached the SQL.
+    const base = buildFilters(filters);
     /** @type {string[]} */
-    const conditions = [];
+    const conditions = base.where ? [base.where.replace(/^WHERE /, '')] : [];
     /** @type {string[]} */
-    const params = [];
-    let idx = 1;
+    const params = [...base.params];
+    let idx = base.nextIdx;
 
-    if (filters?.organizationId) {
-        conditions.push(`organization_id = $${idx++}`);
-        params.push(filters.organizationId);
-    }
-    if (filters?.source) {
-        conditions.push(`source = $${idx++}`);
-        params.push(filters.source);
-    }
-    if (filters?.model) {
-        conditions.push(`model = $${idx++}`);
-        params.push(filters.model);
-    }
     if (filters?.search) {
         const term = `%${filters.search}%`;
         conditions.push(`(agent_name ILIKE $${idx} OR user_id ILIKE $${idx + 1} OR model ILIKE $${idx + 2})`);
         params.push(term, term, term);
         idx += 3;
-    }
-    if (filters?.startDate) {
-        conditions.push(`timestamp >= $${idx++}`);
-        params.push(filters.startDate);
-    }
-    if (filters?.endDate) {
-        conditions.push(`timestamp <= $${idx++}`);
-        params.push(filters.endDate);
     }
     // Phase 8: default 30-day guard when no date filter is set.
     // Without this, getRecentCalls with no filters scans the entire table

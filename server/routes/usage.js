@@ -100,61 +100,7 @@ async function maybeRedact(/** @type {import('express').Request} */ req, payload
     return payload;
 }
 
-// Helper to parse days filter
-/**
- * @param {string} [daysParam]
- */
-function getDateFilters(daysParam = '30') {
-    const days = parseInt(daysParam, 10) || 30;
-    const now = new Date();
-    const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    return { startDate: start.toISOString(), endDate: now.toISOString() };
-}
-
-// Resolve org filter for usage queries
-async function getOrgFilter(req) {
-    const orgIds = await resolveUserOrgIds(req);
-    if (orgIds === null) return null;
-    if (orgIds.size === 0) return '__none__';
-    return Array.from(orgIds)[0];
-}
-
-// Build filters from request query params
-function buildRequestFilters(req) {
-    // Prefer an explicit absolute window (startDate/endDate) when the client
-    // sends one — this makes custom / historical ranges accurate instead of the
-    // days-relative window anchored at "now". Falls back to ?days= otherwise.
-    // Mirrors the pattern already used in server/routes/terminations.js.
-    const filters = (req.query.startDate && req.query.endDate)
-        ? { startDate: req.query.startDate, endDate: req.query.endDate }
-        : { ...getDateFilters(req.query.days) };
-    if (req.query.user) filters.userId = req.query.user;
-    if (req.query.agent) filters.agentId = req.query.agent;
-    if (req.query.model) filters.model = req.query.model;
-    if (req.query.source) filters.source = req.query.source;
-    if (req.query.integration) filters.integrationType = req.query.integration;
-    if (req.query.pii) filters.piiCategory = req.query.pii;
-    return filters;
-}
-
-// Middleware: attach org filter
-/**
- * @param {NextFunction} next
- */
-async function attachOrgFilter(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
-    if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
-    const orgId = await getOrgFilter(req);
-    req.usageFilters = buildRequestFilters(req);
-    if (orgId === '__none__') {
-        // Consumer account — no org. Scope strictly to the caller's own
-        // usage so the personal "Usage & Monitoring" panel works, and so a
-        // ?user= query param can't be used to peek at someone else's rows.
-        req.usageFilters.userId = req.session.user.id;
-    } else if (orgId) {
-        req.usageFilters.organizationId = orgId;
-    }
-    next();
-}
+const { attachOrgFilter } = require('./usageScope');
 
 // The session first, so an anonymous caller hears 401 rather than 400.
 router.use((req, res, next) => (req.session?.isAuthenticated ? next() : res.status(401).json({ error: 'Not authenticated' })));

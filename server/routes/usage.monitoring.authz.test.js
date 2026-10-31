@@ -36,10 +36,14 @@ let avatarRows = [];                     // what userStore.getUserAvatarsByIds r
 let governsOrgs = true;                  // serverLicenseGovernsOrgs(): self-hosted, no redaction
 let planLookupFails = false;             // getOrgSubscription throws
 let planMarkup = null;                   // markup_percent of the org's plan
+let orgLookupFails = false;              // resolveUserOrgIds throws (strict: the store stumbled)
 
 // ── Stubs ──────────────────────────────────────────────────────────────
 const authStub = {
-    async resolveUserOrgIds() { return orgIdsResult; },
+    async resolveUserOrgIds() {
+        if (orgLookupFails) throw new Error('connection terminated');
+        return orgIdsResult;
+    },
     isOrgAdminRole: (role) => role === 'org_admin' || role === 'org_owner',
 };
 const userStoreStub = {
@@ -95,6 +99,7 @@ const integStoreStub = {
 const usageStoreStub = {
     async getUsageSummary(filters) { captured.usageSummary = filters; return { total_calls: 5, estimated_cost: 1 }; },
     async getUsageByModel() { return []; },
+    async getRecentCalls(limit, filters) { captured.recent = { limit, filters }; return []; },
 };
 
 const ROUTES_DIR = path.sep + 'routes' + path.sep;
@@ -208,6 +213,36 @@ test('consumer account is scoped to its OWN rows; ?user= cannot widen it', async
     assert.strictEqual(captured.egress.filters.userId, 'consumer-1', '?user= must not override the session scope');
     assert.strictEqual(captured.egress.filters.organizationId, undefined);
     assert.strictEqual(captured.egress.filters.excludeDryRun, true);
+});
+
+test('consumer account on /recent: the store is asked for the caller\'s OWN rows, ?user= cannot widen it', async () => {
+    // /recent is the one consumption read whose store function once built
+    // its WHERE by hand and dropped the userId — the ONLY scope a caller of
+    // no organisation has. The route side of that contract is pinned here;
+    // the store side in stores/usage/queries.recent.test.js.
+    orgIdsResult = new Set();
+    currentSession = { isAuthenticated: true, user: { id: 'consumer-1' } };
+    const r = await get('/api/usage/recent?user=victim-2&limit=5');
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(captured.recent.limit, 5);
+    assert.strictEqual(captured.recent.filters.userId, 'consumer-1', '?user= must not override the session scope');
+    assert.strictEqual(captured.recent.filters.organizationId, undefined);
+});
+
+test('an organisation that could not be READ is refused, not answered as "no organisation"', async () => {
+    // Both come back as an empty set from a lenient lookup; only a caller
+    // who truly has no organisation may be scoped to their own rows.
+    orgLookupFails = true;
+    delete captured.recent;
+    currentSession = { isAuthenticated: true, user: { id: 'u1', organizationId: 'org_a' } };
+    try {
+        const r = await get('/api/usage/recent');
+        assert.strictEqual(r.status, 403);
+        assert.strictEqual(r.body.code, 'org_scope_unavailable');
+        assert.strictEqual(captured.recent, undefined, 'no store read on a refused request');
+    } finally {
+        orgLookupFails = false;
+    }
 });
 
 test('limits clamp and the keyset cursor reaches the store', async () => {

@@ -108,9 +108,18 @@ async function getPublishedAgentsForUser(userGroups = [], userOrgId = null, reso
     return asLibraryAgents(filtered);
 }
 
-async function getAllAgents() {
+/**
+ * Every agent, or with `orgIds` only those of the named organisations (the
+ * narrowing in the WHERE, the way routes/studio/counts.js counts them). Left
+ * out, or null, it is the whole list: the super admin's scope.
+ * @param {{ orgIds?: string[] | null }} [scope]
+ */
+async function getAllAgents({ orgIds = null } = {}) {
     await initDB();
-    const agents = await getAll("SELECT * FROM agents WHERE owner_id NOT IN ('system', 'swarm') ORDER BY updated_at DESC");
+    const base = "SELECT * FROM agents WHERE owner_id NOT IN ('system', 'swarm')";
+    const agents = Array.isArray(orgIds)
+        ? await getAll(`${base} AND organization_id = ANY($1::text[]) ORDER BY updated_at DESC`, [orgIds.filter(Boolean).map(String)])
+        : await getAll(`${base} ORDER BY updated_at DESC`);
     const toolsByAgent = await getAgentToolsBatch(agents.map(a => a.id));
     return agents.map(agent => ({ ...parseConfig(agent), tools: toolsByAgent.get(agent.id) || [] }));
 }
