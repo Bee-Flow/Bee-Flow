@@ -66,6 +66,10 @@ const { requireAuth } = require('./permissionsRequireAuth');
 const resolve = require('./permissionsResolve');
 const orgGates = require('./permissionsOrgGates');
 const studioScope = require('./permissionsStudioScope');
+const platformAdmin = require('./requirePlatformAdmin').createPlatformAdminGate({
+    hasPermission: resolve.hasPermission,
+    isSuperAdmin: orgGates.isSuperAdmin,
+});
 
 module.exports = {
     SYSTEM_PERMISSIONS: catalog.SYSTEM_PERMISSIONS,
@@ -107,4 +111,8 @@ module.exports = {
     requireActiveOrg: orgGates.requireActiveOrg,
     requireActiveOrgForMutations: orgGates.requireActiveOrgForMutations,
     isPermissionLookupDegraded: resolve.isPermissionLookupDegraded,
+    // The gate of instance-wide settings (auth/requirePlatformAdmin.js), built
+    // here with the real collaborators.
+    hasPlatformAdminAccess: platformAdmin.hasPlatformAdminAccess,
+    requirePlatformAdmin: platformAdmin.requirePlatformAdmin,
 };

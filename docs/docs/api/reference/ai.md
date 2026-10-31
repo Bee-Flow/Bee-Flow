@@ -180,7 +180,7 @@ No request schema.
 
 ### `GET /ai/config`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 No request schema.
 
@@ -1174,7 +1174,7 @@ No request schema.
 
 ### `GET /ai/providers`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 No request schema.
 

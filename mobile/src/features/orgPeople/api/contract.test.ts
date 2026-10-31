@@ -123,7 +123,9 @@ describe('model tiers (routes/ai/config/modelTiers.js, routes/ai/providers.js)',
         expectAll(providers, [
             "router.get('/providers', requireAuth",
             "router.get('/providers/:id/models', requireAuth",
-            'providers: maskedProviders',
+            // Members get the catalogue (id, name, type, model); the reader uses id and name.
+            '{ id: p.id, name: p.name, type: p.type, model: p.model }',
+            'providers,',
             'res.json({ models, providerId: provider.id, providerName: provider.name })',
         ]);
     });

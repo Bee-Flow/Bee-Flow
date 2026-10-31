@@ -27,7 +27,7 @@ const touched = [];
 const pass = (req, res, next) => next();
 
 const MOCKS = {
-    '../auth/permissions': { requirePermission: () => pass },
+    '../auth/permissions': { requirePlatformAdmin: () => pass },
     '../services/guardInstaller': {
         getStatus: async () => ({ status: 'not-installed' }),
         install: (opts) => { touched.push({ what: 'install', args: [opts] }); },
