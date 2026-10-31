@@ -15,7 +15,8 @@
  *
  * Wire format mirrors `search-service/app/routers/*` so a customer can
  * swap their SEARCH_SERVICE_URL from the hosted Python service to this
- * URL with no other change.
+ * URL with no other change. An install that keeps the hosted service can
+ * take this path away with SEARCH_ROUTER_ENABLED=0 (index.js).
  *
  * ── What a caller may send ─────────────────────────────────────────────
  *
@@ -46,7 +47,9 @@
  */
 
 const express = require('express');
+const crypto = require('node:crypto');
 const router = express.Router();
+const log = require('../telemetry/log');
 
 const { cpuEmbed, CPU_EMBED_MODEL_ID, CPU_EMBED_DIM } = require('../core/embed/cpuEmbed');
 const { rerankCpu, CPU_RERANK_MODEL_ID } = require('../core/rerank/cpuCrossEncoder');
@@ -167,13 +170,35 @@ const DeleteQuery = z.object(scopeOf()).strict();
 const DeleteBody = bodyOf(scopeOf());
 
 // ─── Auth middleware ────────────────────────────────────────────
-// Mirrors the guard-service contract: if SERVICES_API_KEY is set,
-// callers must present it via X-API-Key. /health is always public.
+// Mirrors the guard-service contract: callers present SERVICES_API_KEY via
+// X-API-Key; /health is always public.
+//
+// The key is the only thing that ties a caller to this instance: every route
+// below acts on whatever tenant and knowledge-base ids the body names (the
+// callers are the server's own KB code, which has already authorised them).
+// So outside development an unset key does not mean "open", it means "not
+// configured": the router answers 503 until the operator sets one, and says
+// so once at boot rather than on every request. Read once here, like the
+// sidecars do, so the mode cannot flip under a running process.
+const SERVICES_KEY = (() => {
+    const expected = process.env.SERVICES_API_KEY || '';
+    if (expected) return { expected: Buffer.from(expected, 'utf8'), open: false };
+    if (process.env.NODE_ENV === 'production') {
+        log.error('[Search] SERVICES_API_KEY is not set; /api/search answers 503 until it is (openssl rand -hex 24).');
+        return { expected: null, open: false };
+    }
+    log.warn('[Search] SERVICES_API_KEY is not set; /api/search runs without a key (development only).');
+    return { expected: null, open: true };
+})();
+
 function apiKeyAuth(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     if (req.path === '/health') return next();
-    const expected = process.env.SERVICES_API_KEY;
-    if (!expected) return next(); // unset → open (dev / single-node)
-    if (req.get('X-API-Key') === expected) return next();
+    if (SERVICES_KEY.open) return next();
+    if (!SERVICES_KEY.expected) throw new HttpError(503, 'search_service_not_configured', 'search service not configured');
+    // timingSafeEqual throws on a length mismatch; a different length is just
+    // a wrong key.
+    const given = Buffer.from(String(req.get('X-API-Key') || ''), 'utf8');
+    if (given.length === SERVICES_KEY.expected.length && crypto.timingSafeEqual(given, SERVICES_KEY.expected)) return next();
     return res.status(401).json({ error: 'invalid or missing X-API-Key' });
 }
 

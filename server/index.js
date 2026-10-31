@@ -668,7 +668,7 @@ app.use('/api/support-inbox', requireModule('support'), requireCapability('suppo
 // It wrote to the table knowledge_metadata, which nothing in the product read. The Studio knowledge bases
 // live at /api/kb (below).
 app.use('/api/kb', requireTraining('knowledge'), require('./routes/knowledgeBases'));
-app.use('/api/search', require('./routes/search'));
+if (process.env.SEARCH_ROUTER_ENABLED !== '0') app.use('/api/search', require('./routes/search')); // see routes/search.js header
 app.use('/api/languages', require('./routes/admin/languageRoutes'));
 app.use('/api/icons', require('./routes/icons'));
 app.use('/api/branding', require('./routes/branding'));
