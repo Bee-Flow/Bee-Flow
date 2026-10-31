@@ -30,6 +30,7 @@ const {
     bindOrgToNcInstance,
 } = require('./provisioning');
 const { MAX_VERIFICATIONS_PER_ORG, generateVerificationCode, maskEmail } = require('./verificationCode');
+const { provesExistingBinding, refuseRebind } = require('./rebindProof');
 
 // Free/public email providers are defined once in utils/freeEmailDomains.js.
 // A shared domain there does NOT imply control of a Bee Flow org, so a
@@ -42,6 +43,7 @@ const { MAX_VERIFICATIONS_PER_ORG, generateVerificationCode, maskEmail } = requi
 // adoption) resolves them so the fleet view self-heals.
 const NC_SUBJECT_PROBLEM_CODES = [
     'bootstrap.verify_failed',
+    'bootstrap.rebind_proof_required',
     'bootstrap.pairing_required',
     'bootstrap.pairing_code_invalid',
     'bootstrap.org_create_failed',
@@ -58,6 +60,28 @@ const NC_SUBJECT_PROBLEM_CODES = [
  * }} BootstrapContext
  *   `nc`: what the capabilities round-trip reported; `provisioningMode`: 'open' | 'pairing_only'.
  */
+
+// The NC admin's address belongs to a user of ANOTHER org: ensureOrgAdminUser
+// threw 409. Record it and answer; any other error propagates.
+/**
+ * @param {BootstrapContext} ctx
+ * @param {OrgRow} org
+ * @param {unknown} e
+ * @param {string} reason
+ * @param {string} [remediation]
+ */
+function adminEmailConflict(ctx, org, e, reason, remediation) {
+    if (/** @type {{ statusCode?: number }} */ (e).statusCode !== 409) throw e;
+    orgHealth.problem('bootstrap.admin_email_conflict', {
+        orgId: org.id, source: 'connectorBootstrap', req: ctx.req,
+        meta: { maskedEmail: maskEmail(ctx.ncAdminEmail), reason },
+    });
+    return ctx.res.status(409).json({
+        error: /** @type {Error} */ (e).message,
+        code: 'admin_email_conflict',
+        ...(remediation ? { remediation } : {}),
+    });
+}
 
 // 0. Pairing-code branch — wins over auto-detect when present. The org
 //    admin has handed out a one-shot code; whoever holds it gets to bind
@@ -128,17 +152,7 @@ async function redeemPairingCode(ctx) {
     try {
         await ensureOrgAdminUser(boundOrg, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
     } catch (e) {
-        if (e.statusCode === 409) {
-            orgHealth.problem('bootstrap.admin_email_conflict', {
-                orgId: boundOrg.id, source: 'connectorBootstrap', req,
-                meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'pairing_code_branch' },
-            });
-            return res.status(409).json({
-                error: /** @type {Error} */ (e).message,
-                code: 'admin_email_conflict',
-            });
-        }
-        throw e;
+        return adminEmailConflict(ctx, boundOrg, e, 'pairing_code_branch');
     }
     await ensureAdditionalOrgAdmins(boundOrg, req.body?.ncAdmins, ncAdminUid);
     const tenantKey = await getOrMintTenantKey(boundOrg.id);
@@ -158,37 +172,40 @@ async function redeemPairingCode(ctx) {
     });
 }
 
-// 1. Returning bind — instance id already mapped → idempotent return.
+// 1. Returning bind — instance id already mapped → idempotent return, once
+//    the caller has proved the existing binding (rebindProof.js). The NC
+//    admin is created or promoted here only when the proof is the tenant
+//    key, or when the address already belongs to a member of this org;
+//    otherwise the admin's first signed connector request provisions them
+//    (connectorJwtProvision's nc_admin carve-out), with the same result.
 /**
  * @param {BootstrapContext} ctx
  * @param {OrgRow} org
  */
 async function returningBind(ctx, org) {
     const { req, res, nc, ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl } = ctx;
-    try {
-        await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-    } catch (e) {
-        if (e.statusCode === 409) {
-            orgHealth.problem('bootstrap.admin_email_conflict', {
-                orgId: org.id, source: 'connectorBootstrap', req,
-                meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'returning_bind_branch' },
-            });
-            return res.status(409).json({
-                error: /** @type {Error} */ (e).message,
-                code: 'admin_email_conflict',
-                remediation: 'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.',
-            });
+    const proof = await provesExistingBinding(ctx, org);
+    if (!proof) return refuseRebind(ctx, org);
+    const existingAdmin = await userStore.getUserByEmail(ncAdminEmail);
+    const adminIsMember = !!(existingAdmin && existingAdmin.organizationId === org.id);
+    if (proof === 'tenant_key' || adminIsMember) {
+        try {
+            await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
+        } catch (e) {
+            return adminEmailConflict(ctx, org, e, 'returning_bind_branch',
+                'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.');
         }
-        throw e;
+        await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
+    } else {
+        log.info(`[ConnectorBootstrap] returning_bind org=${org.id}: the NC admin is not a member yet; provisioned on their first connector request`);
     }
-    await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
     const tenantKey = await getOrMintTenantKey(org.id);
     if (connectorCallbackUrl && org.connector_callback_url !== connectorCallbackUrl) {
         await userStore.updateOrganization(org.id, { connectorCallbackUrl });
     }
-    log.info(`[ConnectorBootstrap] returning_bind org=${org.id} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl}`);
+    log.info(`[ConnectorBootstrap] returning_bind org=${org.id} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl} proof=${proof}`);
     orgHealth.event('bootstrap.returning_bind', {
-        orgId: org.id, actorKind: 'connector', req, meta: { ncInstanceId },
+        orgId: org.id, actorKind: 'connector', req, meta: { ncInstanceId, proof },
     });
     orgHealth.touchLiveness(org.id, 'bootstrap');
     orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
@@ -338,17 +355,7 @@ async function createFreshOrg(ctx) {
             try {
                 await ensureOrgAdminUser(raced, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
             } catch (e) {
-                if (e.statusCode === 409) {
-                    orgHealth.problem('bootstrap.admin_email_conflict', {
-                        orgId: raced.id, source: 'connectorBootstrap', req,
-                        meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_race_branch' },
-                    });
-                    return res.status(409).json({
-                        error: /** @type {Error} */ (e).message,
-                        code: 'admin_email_conflict',
-                    });
-                }
-                throw e;
+                return adminEmailConflict(ctx, raced, e, 'fresh_org_race_branch');
             }
             await ensureAdditionalOrgAdmins(raced, req.body?.ncAdmins, ncAdminUid);
             const tenantKey = await getOrMintTenantKey(raced.id);
@@ -389,18 +396,8 @@ async function createFreshOrg(ctx) {
     try {
         await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
     } catch (e) {
-        if (e.statusCode === 409) {
-            orgHealth.problem('bootstrap.admin_email_conflict', {
-                orgId: org.id, source: 'connectorBootstrap', req,
-                meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_branch' },
-            });
-            return res.status(409).json({
-                error: /** @type {Error} */ (e).message,
-                code: 'admin_email_conflict',
-                remediation: 'The Nextcloud admin email is already used by a user in another Bee Flow organization. Use a different admin user on Nextcloud, or contact support.',
-            });
-        }
-        throw e;
+        return adminEmailConflict(ctx, org, e, 'fresh_org_branch',
+            'The Nextcloud admin email is already used by a user in another Bee Flow organization. Use a different admin user on Nextcloud, or contact support.');
     }
     await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
     const tenantKey = await getOrMintTenantKey(org.id);

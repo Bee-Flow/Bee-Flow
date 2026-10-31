@@ -69,22 +69,27 @@ function _resolveSessionNcUid(user, req, payload) {
 const _encKeyCache = new Map();
 
 /**
- * Defence in depth: the JWT was signed with org X's key, so the user it
- * identifies must belong to org X. Returns a reject outcome for a user bound
- * to a different org, null otherwise (no org, or the same org).
+ * The JWT was signed with org X's key, so the EXISTING user it names must be
+ * a member of org X: the key speaks for that org's Nextcloud and for nobody
+ * else. Returns a reject outcome for a user bound to a different org, for a
+ * user bound to no org (membership is what the key vouches for; an unbound
+ * account is not a member of anything), and for a platform admin (that role
+ * is never reached through a tenant's key); null = pass.
  */
 function crossTenantGate(req, user, orgId) {
-    if (!(user.organizationId && user.organizationId !== orgId)) return null;
-    // Defence in depth: the JWT was signed with org X's key, so the user
-    // it identifies must belong to org X. Refusing here prevents a stolen
-    // tenant key from being used to act on users in other tenants.
-    log.warn(`[ConnectorJWT] Cross-tenant rejection: user ${user.id} (org=${user.organizationId}) presented org=${orgId}'s key`);
+    if (user.organizationId === orgId && user.role !== 'admin') return null;
+    const reason = user.role === 'admin' ? 'platform_admin_account'
+        : user.organizationId ? 'user_bound_to_other_org'
+            : 'user_not_bound_to_org';
+    log.warn(`[ConnectorJWT] Cross-tenant rejection: user ${user.id} (org=${user.organizationId || 'none'}) presented org=${orgId}'s key (${reason})`);
     orgHealth.problem('auth.blocked_org_mismatch', {
         orgId, source: 'connectorJwt', req,
-        meta: { userOrgId: user.organizationId, reason: 'user_bound_to_other_org' },
+        meta: { userOrgId: user.organizationId || null, reason },
     });
     return reject(403, {
-        error: 'This Nextcloud is connected to a different Bee Flow organisation than your account. Ask an admin of your organisation to generate a pairing code (Settings → Organisation → Nextcloud Sync → "Pair a new Nextcloud") and re-pair this Nextcloud with it.',
+        error: reason === 'user_bound_to_other_org'
+            ? 'This Nextcloud is connected to a different Bee Flow organisation than your account. Ask an admin of your organisation to generate a pairing code (Settings → Organisation → Nextcloud Sync → "Pair a new Nextcloud") and re-pair this Nextcloud with it.'
+            : 'Your Bee Flow account is not a member of the organisation this Nextcloud is connected to. Sign in to Bee Flow directly, or ask an admin of that organisation to add your account.',
         code: 'NC_ORG_MISMATCH',
     });
 }
@@ -100,30 +105,13 @@ function pendingApprovalGate(req, user, orgId) {
 }
 
 /**
- * Keep the DB row and the session coherent: backfill a missing org pointer,
- * log data anomalies, repair a stale nc_uid. Each step swallows its own
- * failure (warn, or silently for the read-only anomaly lookup).
+ * Keep the DB row and the session coherent: log data anomalies, repair a
+ * stale nc_uid. Each step swallows its own failure (warn, or silently for
+ * the read-only anomaly lookup). The user reaching here is a member of
+ * `orgId` (crossTenantGate), or was just provisioned into it, so the org
+ * pointer needs no reconciling.
  */
 async function reconcileUserRecord(user, orgId, payload) {
-    // Reconcile a missing org pointer. We reach here only when the user
-    // either already belongs to `orgId` or has no org at all (the
-    // cross-tenant guard above rejects a user bound to a *different* org).
-    // The session below would otherwise fall back to `orgId` while the DB
-    // row keeps a falsy organizationId — so embedded (session-org) and
-    // standalone (`/auth/user` reads the DB row) would resolve different
-    // orgs for the same person, and org-scoped queries that read the DB
-    // (resolveUserOrgIds) would exclude them. Persist the org so DB and
-    // session agree everywhere. Idempotent.
-    if (!user.organizationId && orgId) {
-        try {
-            await userStore.updateUser(user.id, { organizationId: orgId });
-            user.organizationId = orgId;
-            log.info(`[ConnectorJWT] Backfilled organizationId=${orgId} for user ${user.id}`);
-        } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${/** @type {Error} */ (e).message}`);
-        }
-    }
-
     // Observability: surface data-corruption — a user marked as connector-
     // sourced should always live under an NC-bound org. If we ever see
     // provider=nextcloud_connector under an org without nc_instance_id,

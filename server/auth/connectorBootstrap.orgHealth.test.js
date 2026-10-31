@@ -49,9 +49,18 @@ const MOCKS = {
         resetNcVerificationCode: async (id) => { fx.calls.push(['resetNcVerificationCode', id]); return fx.sendResult; },
         retargetNcVerification: async (id) => { fx.calls.push(['retargetNcVerification', id]); return fx.sendResult; },
         getPendingNcBinding: async () => fx.pendingRow,
-        getUserByEmail: async () => null,
+        getUserByEmail: async () => fx.userByEmail || null,
         findUnboundOrgByEmailDomain: async () => ({ id: 'org-v' }),
         getOrganization: async (id) => ({ id, name: 'Acme' }),
+        // Returning bind (POST /connector/bootstrap for a bound instance id).
+        getOrganizationByNcInstanceId: async (id) => (fx.boundOrg && fx.boundOrg.nc_instance_id === id ? fx.boundOrg : null),
+        updateOrganization: async (id, patch) => { fx.calls.push(['updateOrganization', id, patch]); return true; },
+        updateUser: async (id, patch) => { fx.calls.push(['updateUser', id, patch]); return true; },
+        getUser: async () => fx.userByEmail || null,
+        createUserWithSeatCheck: async (u) => { fx.calls.push(['createUserWithSeatCheck', u]); return { created: true }; },
+    },
+    './connectorSig': {
+        verifyConnectorSig: async (req) => { fx.calls.push(['verifyConnectorSig', req.headers['x-beeflow-sig'] || null]); return fx.signedFor || null; },
     },
     '../stores/configStore': {
         getConfig: async () => null,
@@ -134,6 +143,9 @@ function resetFx() {
     fx.resolvedTenant = null;
     fx.sendResult = null;
     fx.pendingRow = null;
+    fx.boundOrg = null;
+    fx.userByEmail = null;
+    fx.signedFor = null;
     fx.calls = [];
 }
 
@@ -310,4 +322,112 @@ test('retarget: within budget mails the code to the new admin', async () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.expiresAt, SENT_ROW.expiresAt);
     assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'setup@acme.test');
+});
+
+// ═══ POST /connector/bootstrap: returning bind and the callback URL ═══════
+// A bootstrap for an instance id that is already bound answers with the tenant
+// key only when the caller proves the binding (connector/rebindProof.js): the
+// recorded base URL, or a request signed with the current tenant key. The
+// capabilities round-trip is skipped here (BEEFLOW_BOOTSTRAP_SKIP_VERIFY) — it
+// is the subject of connector/ncVerify.test.js.
+
+const BOUND_ORG = { id: 'org-a', name: 'Acme', nc_instance_id: 'inst-a', nc_base_url: 'https://cloud.acme.example', connector_callback_url: 'https://cloud.acme.example/proxy' };
+
+function bootstrapHeaders({ ncBaseUrl, sig, email = 'admin@acme.example', callback = 'https://cloud.acme.example/proxy' }) {
+    return {
+        'x-beeflow-nc-instance-id': 'inst-a',
+        'x-beeflow-nc-base-url': ncBaseUrl,
+        'x-beeflow-nc-admin-uid': 'admin',
+        'x-beeflow-nc-admin-email': email,
+        'x-beeflow-nc-admin-display-name': 'Admin',
+        'x-beeflow-connector-callback-url': callback,
+        ...(sig ? { 'x-beeflow-sig': sig } : {}),
+    };
+}
+
+async function withSkipVerify(fn) {
+    const prev = process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY;
+    process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY = 'true';
+    try { return await fn(); } finally {
+        if (prev === undefined) delete process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY;
+        else process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY = prev;
+    }
+}
+
+const bootstrap = (opts) => withSkipVerify(() => dispatch({ url: '/connector/bootstrap', headers: bootstrapHeaders(opts) }));
+
+test('returning bind from a different base URL without a signature: 403, no key, no admin, no callback write', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    const res = await bootstrap({ ncBaseUrl: 'https://other.example' });
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.code, 'NC_REBIND_PROOF_REQUIRED');
+    assert.equal('tenantKey' in res.body, false);
+    assert.deepEqual(callsOf('problem').map(c => c[1]), ['bootstrap.rebind_proof_required']);
+    assert.equal(callsOf('problem')[0][2].orgId, 'org-a');
+    assert.equal(callsOf('createUserWithSeatCheck').length, 0);
+    assert.equal(callsOf('updateUser').length, 0);
+    assert.equal(callsOf('updateOrganization').length, 0);
+});
+
+test('returning bind from the recorded base URL: 200 with the key, as before (URL compared normalised)', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    fx.userByEmail = { id: 'u1', email: 'admin@acme.example', organizationId: 'org-a', orgRole: 'org_admin', nc_uid: 'admin', provider: 'nextcloud_connector' };
+    const res = await bootstrap({ ncBaseUrl: 'HTTPS://cloud.acme.example/' });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.code, 'returning_bind');
+    assert.equal(typeof res.body.tenantKey, 'string');
+    assert.equal(res.body.organizationId, 'org-a');
+    assert.equal(callsOf('verifyConnectorSig').length, 0, 'the URL proof needs no signature check');
+    assert.deepEqual(callsOf('event').map(c => [c[1], c[2].meta]), [['bootstrap.returning_bind', { ncInstanceId: 'inst-a', proof: 'base_url' }]]);
+});
+
+test('URL proof + admin address unknown here: key returned, no user created at bootstrap', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    const res = await bootstrap({ ncBaseUrl: 'https://cloud.acme.example', email: 'new-admin@acme.example' });
+    assert.equal(res.statusCode, 200);
+    assert.equal(typeof res.body.tenantKey, 'string');
+    assert.equal(callsOf('createUserWithSeatCheck').length, 0);
+});
+
+test('different base URL + request signed with this org\'s tenant key: 200, admin provisioned', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    fx.signedFor = { id: 'org-a' };
+    const res = await bootstrap({ ncBaseUrl: 'https://moved.acme.example', sig: '1700000000.abcd', email: 'new-admin@acme.example' });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.code, 'returning_bind');
+    assert.deepEqual(callsOf('verifyConnectorSig').map(c => c[1]), ['1700000000.abcd']);
+    assert.equal(callsOf('createUserWithSeatCheck').length, 1);
+    assert.equal(callsOf('createUserWithSeatCheck')[0][1].orgRole, 'org_admin');
+    assert.equal(callsOf('event')[0][2].meta.proof, 'tenant_key');
+});
+
+test('different base URL + signature that verifies for ANOTHER org: 403', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    fx.signedFor = { id: 'org-z' };
+    const res = await bootstrap({ ncBaseUrl: 'https://moved.acme.example', sig: '1700000000.abcd' });
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.code, 'NC_REBIND_PROOF_REQUIRED');
+});
+
+test('a callback URL this server may not connect to is refused before any branch runs', async () => {
+    resetFx();
+    fx.boundOrg = { ...BOUND_ORG };
+    const prev = process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+    delete process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+    try {
+        for (const callback of ['http://169.254.169.254/latest', 'http://10.0.0.5/proxy', 'ftp://cloud.acme.example']) {
+            const res = await bootstrap({ ncBaseUrl: 'https://cloud.acme.example', callback });
+            assert.equal(res.statusCode, 400, callback);
+            assert.equal(res.body.code, 'invalid_callback_url');
+        }
+    } finally {
+        if (prev !== undefined) process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prev;
+    }
+    assert.equal(callsOf('updateOrganization').length, 0);
+    assert.equal(callsOf('event').length, 0);
 });

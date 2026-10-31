@@ -27,6 +27,12 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const crypto = require('crypto');
 
+// Connector calls go through nextcloudFetch (the Nextcloud host gate). With
+// the private-hosts switch on it uses the global fetch, which is what the
+// connector-mode tests below stub; without it the guarded undici client would
+// resolve the fake hosts for real.
+process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
+
 // ── require.cache fakes (must precede requiring the module under test) ──────
 
 const state = {

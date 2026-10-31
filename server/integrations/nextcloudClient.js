@@ -441,11 +441,10 @@ async function resolveConnectorAuth(session, userId) {
             ...signedConnectorHeaders({ tenantKey, method, path: pathOnly, ncUid, body: options.body }),
             ...(needsTunnel ? { 'X-HTTP-Method-Override': method } : {}),
         });
-        // Plain fetch here, unlike the OAuth/Basic paths: this targets the
-        // org's connector callback URL (admin-configured, not user-supplied),
-        // carries no credentials — the connector signs with the tenant key —
-        // and self-host connectors legitimately live on a private network.
-        const doOnce = () => fetch(connectorWireUrl(url, baseUrl), {
+        // The callback URL is stored from the connector's bootstrap headers,
+        // so it passes the Nextcloud host gate at use time (nextcloudFetch);
+        // a private-network connector is covered by NEXTCLOUD_ALLOW_PRIVATE_HOSTS.
+        const doOnce = () => nextcloudFetch(connectorWireUrl(url, baseUrl), {
             ...options,
             method: wireMethod,
             headers: signedHeaders(),

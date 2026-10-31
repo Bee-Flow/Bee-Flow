@@ -26,6 +26,7 @@
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
+const { nextcloudFetch } = require('../utils/nextcloudTarget');
 const orgHealth = require('./orgHealth');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
@@ -67,7 +68,9 @@ async function ncProxyFetch(org, ncPath, ncUid = '') {
     const allowedUid = _assertImpersonatable(org, ncUid);
     const path = ncPath.startsWith('/') ? `/nc${ncPath}` : `/nc/${ncPath}`;
     const url = `${callbackUrl.replace(/\/+$/, '')}${path}`;
-    const res = await fetch(url, {
+    // The callback URL is stored from the connector's bootstrap headers, so
+    // it passes the Nextcloud host gate at use time like every other target.
+    const res = await nextcloudFetch(url, {
         headers: {
             // v2 (body-bound) signing via the shared signer. The connector
             // still accepts the pre-body-hash v1 form "for one release" —

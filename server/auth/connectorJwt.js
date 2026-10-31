@@ -27,9 +27,10 @@
  * endpoint added in server/routes/adminRoutes.js (see relatedconnector PR).
  */
 
-const crypto = require('crypto');
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
+// The token checks (HS256 verification, the unverified-domain read).
+const { _verifyHs256, _unverifiedEmailDomain } = require('./connectorJwtVerify');
 // Phases that run after the tenant key verified the token live in
 // connectorJwtPhases.js / connectorJwtProvision.js (outcome contract
 // documented in the former).
@@ -102,45 +103,6 @@ async function _listTenantOrgIds({ fresh = false } = {}) {
     _orgIdList = orgIds;
     _orgIdListAt = now;
     return orgIds;
-}
-
-function _b64urlDecode(str) {
-    const pad = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
-    return Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
-}
-
-function _timingSafeEq(a, b) {
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-}
-
-/**
- * Verify an HS256 JWT against a candidate key. Returns the decoded payload
- * on success, throws on any failure (signature mismatch, expired, malformed).
- */
-function _verifyHs256(token, key) {
-    const parts = token.split('.');
-    if (parts.length !== 3) throw new Error('malformed JWT');
-    const [hB64, pB64, sB64] = parts;
-
-    const header = JSON.parse(_b64urlDecode(hB64).toString('utf8'));
-    if (header.alg !== 'HS256') throw new Error(`unexpected alg: ${header.alg}`);
-    if (header.typ && header.typ !== 'JWT') throw new Error(`unexpected typ: ${header.typ}`);
-
-    const expected = crypto.createHmac('sha256', key)
-        .update(`${hB64}.${pB64}`)
-        .digest();
-    const provided = _b64urlDecode(sB64);
-    if (!_timingSafeEq(expected, provided)) throw new Error('signature mismatch');
-
-    const payload = JSON.parse(_b64urlDecode(pB64).toString('utf8'));
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && now >= payload.exp) throw new Error('token expired');
-    if (payload.nbf && now < payload.nbf) throw new Error('token not yet valid');
-    if (payload.iss && payload.iss !== 'nextcloud-connector') throw new Error(`unexpected iss: ${payload.iss}`);
-    if (payload.aud && payload.aud !== 'beeflow.nl') throw new Error(`unexpected aud: ${payload.aud}`);
-
-    return payload;
 }
 
 /**
@@ -219,23 +181,6 @@ async function _listOrgIdsFallback() {
     return Object.keys(all || {})
         .filter(k => k.startsWith(TENANT_KEY_PREFIX))
         .map(k => k.slice(TENANT_KEY_PREFIX.length));
-}
-
-/**
- * Best-effort email-DOMAIN extraction from an UNVERIFIED JWT payload. Used
- * only to attribute 'no matching tenant key' failures to a customer bucket
- * (subject `domain:<d>`); the token did not verify, so the value is spoofable
- * and is stored domain-only with meta.unverified=true. Never throws.
- */
-function _unverifiedEmailDomain(token) {
-    try {
-        const payload = JSON.parse(_b64urlDecode(String(token).split('.')[1]).toString('utf8'));
-        const email = String(payload?.email || '');
-        const domain = email.includes('@') ? email.split('@')[1].trim().toLowerCase() : '';
-        return domain || null;
-    } catch (_) {
-        return null;
-    }
 }
 
 /**
