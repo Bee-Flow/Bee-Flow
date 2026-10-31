@@ -160,8 +160,9 @@ and `npm run lint:secrets`.
   class of the strongest gate in its chain (`server/auth/routeContract.js`: platform, permission,
   scope, scoped, auth, middleware, handler, open). `server/routes.contract.test.js` fails on a route
   that is not in the file and on a route whose gate got WEAKER than recorded. After a route change:
-  `npm run gen:routes-contract` (needs `server/node_modules`, like `gen:api-reference`), then read
-  the diff: a line whose class went down is the change to review. A route that is open on purpose
+  `npm run gen:routes-contract` (needs `server/node_modules`, like `gen:api-reference`; for the
+  same reason `lint:routes-contract` is left out of `check:fast` and runs in ci.yml's
+  `server-checks` job), then read the diff: a line whose class went down is the change to review. A route that is open on purpose
   carries its reason in `server/auth/openRoutes.js`; a tagged gate (`auth/gateMeta.js` `tagGate` /
   `lazyGate`) is what the walk can read, so a new identity gate is tagged.
 - **Tenant isolation matrix**: `server/tenantIsolation.matrix.test.js` creates one resource per kind
