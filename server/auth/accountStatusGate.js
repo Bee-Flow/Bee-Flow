@@ -86,6 +86,45 @@ function isActiveAccount(storedUser) {
 }
 
 /**
+ * Is this account still waiting to be let in?
+ *
+ * A sign-in for such an account gets a session with `pendingApproval` on it
+ * (login/finalizeLogin.js) and the client shows the waiting screen. The
+ * session alone is not the gate — an org founder is let past approval and
+ * never gets the flag — so the question is asked of the stored row, and the
+ * flag says whether the sign-in path decided this account is held.
+ *
+ * @param {any|null|undefined} storedUser row from userStore
+ */
+function isAwaitingApproval(storedUser) {
+    if (!storedUser || typeof storedUser !== 'object') return false;
+    return storedUser.status === 'pending' || storedUser.status === 'waitlist';
+}
+
+/**
+ * What a held session may still call: the waiting screen reads who it is,
+ * what it may do (nothing yet) and the sign-out. Everything else answers the
+ * refusal below until an administrator approves the account.
+ */
+const PENDING_APPROVAL_ALLOWED_PATHS = Object.freeze(new Set([
+    '/auth/user',
+    '/auth/my-permissions',
+    '/auth/logout',
+    '/auth/setup-status',
+]));
+
+/** @param {{ originalUrl?: string, url?: string }} req */
+function allowedWhilePendingApproval(req) {
+    const path = String(req.originalUrl || req.url || '').split('?')[0];
+    return PENDING_APPROVAL_ALLOWED_PATHS.has(path);
+}
+
+const PENDING_REFUSAL = Object.freeze({
+    status: 403,
+    body: Object.freeze({ error: 'Account is pending admin approval', code: 'pending_approval' }),
+});
+
+/**
  * The single refusal shape, so the four paths cannot answer differently.
  *
  * Deliberately the SAME body as a wrong password ("Invalid credentials", 401).
@@ -97,4 +136,7 @@ function isActiveAccount(storedUser) {
  */
 const REFUSAL = Object.freeze({ status: 401, body: Object.freeze({ error: 'Invalid credentials' }) });
 
-module.exports = { HARD_BLOCKED_STATUSES, isLoginBlockedAccount, isActiveAccount, REFUSAL };
+module.exports = {
+    HARD_BLOCKED_STATUSES, isLoginBlockedAccount, isActiveAccount, REFUSAL,
+    isAwaitingApproval, PENDING_APPROVAL_ALLOWED_PATHS, allowedWhilePendingApproval, PENDING_REFUSAL,
+};

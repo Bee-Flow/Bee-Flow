@@ -74,3 +74,44 @@ test('a suspended platform admin is no exception', async () => {
     assert.equal(nexted, false);
     assert.equal(res.statusCode, 401);
 });
+
+// ── Held for approval ────────────────────────────────────────────────────
+//
+// The waiting screen was the only thing between a held account and the API.
+// Held means the sign-in path flagged the session AND the row still waits.
+
+ROWS.held = { id: 'held', role: 'user', status: 'pending' };
+ROWS.waitlisted = { id: 'waitlisted', role: 'user', status: 'waitlist' };
+ROWS.founder = { id: 'founder', role: 'user', status: 'pending', orgRole: 'org_admin' };
+ROWS.approved = { id: 'approved', role: 'user', status: 'active' };
+
+async function callAt(userId, url, flagged) {
+    const req = {
+        originalUrl: url, url,
+        session: { isAuthenticated: true, isAdmin: false, user: { id: userId, role: 'user' }, ...(flagged ? { pendingApproval: true } : {}), destroy(cb) { if (cb) cb(); } },
+    };
+    const res = { statusCode: 200, body: undefined, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    let nexted = false;
+    await requireAuth(req, res, () => { nexted = true; });
+    return { res, nexted };
+}
+
+test('a held account may read who it is and sign out, and nothing else', async () => {
+    for (const id of ['held', 'waitlisted']) {
+        for (const url of ['/auth/user', '/auth/my-permissions?x=1', '/auth/logout', '/auth/setup-status']) {
+            assert.equal((await callAt(id, url, true)).nexted, true, `${id} ${url}`);
+        }
+        const { res, nexted } = await callAt(id, '/api/agents', true);
+        assert.equal(nexted, false, id);
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'pending_approval');
+    }
+});
+
+test('a founder let past approval (no flag on the session) is not held', async () => {
+    assert.equal((await callAt('founder', '/api/agents', false)).nexted, true);
+});
+
+test('an account approved since it signed in goes through, flag or no flag', async () => {
+    assert.equal((await callAt('approved', '/api/agents', true)).nexted, true);
+});
