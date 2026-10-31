@@ -82,27 +82,47 @@ function callSitesIn(text, rel) {
     walk(ast, (node) => {
         if (node.type !== 'CallExpression' || calleeName(node.callee) !== 'establishSession') return;
         const opts = node.arguments[1];
-        let method = 'unknown';
-        /** @type {string[]} */
-        let extra = [];
-        if (opts && opts.type === 'ObjectExpression') {
-            const audit = propertyValue(opts, 'audit');
-            if (audit && audit.type === 'ObjectExpression') {
-                const m = propertyValue(audit, 'method');
-                if (m && m.type === 'Literal' && typeof m.value === 'string') method = m.value;
-                else if (m && m.type === 'Identifier') method = '$' + m.name; // a variable: named, not resolved
-                // `oauth:${provider}` → oauth:${}: the fixed text, the holes left as holes
-                else if (m && m.type === 'TemplateLiteral') method = m.quasis.map((/** @type {Node} */ q, /** @type {number} */ i) => q.value.raw + (i < m.expressions.length ? '${}' : '')).join('');
-            }
-            const ex = propertyValue(opts, 'extra');
-            if (ex && ex.type === 'ObjectExpression') extra = ex.properties.map((/** @type {Node} */ p) => (p.type === 'Property' ? propName(p) || '?' : '...')).sort();
-        }
+        const method = methodOf(opts);
+        const extra = extraKeysOf(opts);
         const base = `${rel}#${method}{${extra.join(',')}}`;
         const n = (seen.get(base) || 0) + 1;
         seen.set(base, n);
         out.push({ key: n === 1 ? base : `${base}#${n}`, file: rel, method, extra, line: node.loc.start.line });
     });
     return out;
+}
+
+/**
+ * The audit method a call declares: a string literal as is, a variable as
+ * `$name` (named, not resolved), a template as its fixed text with the holes
+ * left as holes (`oauth:${provider}` → `oauth:${}`), anything else `unknown`.
+ * @param {Node | undefined} opts  the second argument of the call
+ */
+function methodOf(opts) {
+    if (!opts || opts.type !== 'ObjectExpression') return 'unknown';
+    const audit = propertyValue(opts, 'audit');
+    if (!audit || audit.type !== 'ObjectExpression') return 'unknown';
+    const m = propertyValue(audit, 'method');
+    if (!m) return 'unknown';
+    if (m.type === 'Literal' && typeof m.value === 'string') return m.value;
+    if (m.type === 'Identifier') return '$' + m.name;
+    if (m.type === 'TemplateLiteral') {
+        return m.quasis.map((/** @type {Node} */ q, /** @type {number} */ i) => q.value.raw + (i < m.expressions.length ? '${}' : '')).join('');
+    }
+    return 'unknown';
+}
+
+/**
+ * The sorted property names of `extra`, `...` for a spread and `?` for a
+ * computed name; empty when the call writes no extra keys.
+ * @param {Node | undefined} opts  the second argument of the call
+ * @returns {string[]}
+ */
+function extraKeysOf(opts) {
+    if (!opts || opts.type !== 'ObjectExpression') return [];
+    const ex = propertyValue(opts, 'extra');
+    if (!ex || ex.type !== 'ObjectExpression') return [];
+    return ex.properties.map((/** @type {Node} */ p) => (p.type === 'Property' ? propName(p) || '?' : '...')).sort();
 }
 
 /**
