@@ -80,7 +80,9 @@
     "gen:row-types": "node scripts/gen-row-types.mjs",
     "count:source-text": "node scripts/source-text-tests.mjs server",
     "check:fast": "node scripts/check-fast.mjs",
-    "test:scripts": "node --test scripts/*.test.mjs"
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "gen:routes-contract": "node scripts/gen-routes-contract.mjs",
+    "lint:routes-contract": "node scripts/gen-routes-contract.mjs --check"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

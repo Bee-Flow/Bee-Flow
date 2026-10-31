@@ -643,7 +643,7 @@ No request schema.
 
 ### `POST /ai/firebird/test`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 **Body**
 

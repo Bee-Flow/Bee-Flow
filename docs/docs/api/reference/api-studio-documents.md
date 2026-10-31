@@ -293,31 +293,31 @@ No request schema.
 
 ### `GET /api/studio-documents/:id/suggestions`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
 ### `POST /api/studio-documents/:id/suggestions/:sid/accept`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
 ### `POST /api/studio-documents/:id/suggestions/:sid/reject`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
 ### `POST /api/studio-documents/:id/suggestions/batch/:batchId/accept`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
 ### `POST /api/studio-documents/:id/suggestions/batch/:batchId/reject`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
