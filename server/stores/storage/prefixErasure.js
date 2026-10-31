@@ -18,7 +18,23 @@ const fs = require('fs');
 const path = require('path');
 const log = require('../../telemetry/log');
 
-const PREFIX_SHAPE = /^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)+\/$/;
+/** One path segment: the characters a key may carry, nothing that steers a path. */
+const SEGMENT_SHAPE = /^[A-Za-z0-9_.-]+$/;
+
+/** `.` or `..` (or any run of dots): a segment that names a directory, not an object. @param {string} seg */
+const isDotsOnly = (seg) => seg.length > 0 && seg.split('.').join('') === '';
+
+/**
+ * A directory-shaped prefix: two or more plain segments, ending in '/'.
+ * Checked segment by segment, so the pattern stays an anchored character class.
+ * @param {unknown} prefix
+ */
+function isDirectoryPrefix(prefix) {
+    if (typeof prefix !== 'string' || !prefix.endsWith('/')) return false;
+    const segments = prefix.slice(0, -1).split('/');
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored character class without quantifier nesting
+    return segments.length >= 2 && segments.every((seg) => SEGMENT_SHAPE.test(seg) && !isDotsOnly(seg));
+}
 
 /**
  * @typedef {{
@@ -36,7 +52,7 @@ const PREFIX_SHAPE = /^[A-Za-z0-9_.-]+(\/[A-Za-z0-9_.-]+)+\/$/;
  * @returns {Promise<number>} objects removed
  */
 async function deletePrefix(prefix, { mode, localPathFor, listKeys, s3, bucket }) {
-    if (typeof prefix !== 'string' || !PREFIX_SHAPE.test(prefix) || prefix.split('/').some((seg) => /^\.+$/.test(seg))) {
+    if (!isDirectoryPrefix(prefix)) {
         throw new Error('StorageStore: deletePrefix needs a directory-shaped prefix of two or more segments');
     }
     if (mode === 'local') {

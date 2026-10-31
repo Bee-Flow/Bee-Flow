@@ -108,6 +108,15 @@ const restore = installResolveStub({
 after(restore);
 
 const organizations = require('./organizations');
+// The org cascade reaches the content erasure port (meeting notes); the
+// boot wiring that registers it is not loaded here, and the port fails
+// closed, so this test registers a stand-in that erases nothing.
+require('./erasurePorts').registerErasurePorts({
+    content: {
+        eraseTranscriptions: async () => 0, eraseOrgTranscriptions: async () => 0, eraseWebpages: async () => 0,
+        eraseStudioApps: async () => 0, eraseSkills: async () => 0, eraseStoragePrefix: async () => 0,
+    },
+});
 
 const ORG = 'orgA';
 const idx = (pred) => events.findIndex(pred);
