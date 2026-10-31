@@ -160,6 +160,7 @@ async function deleteUser(userId) {
     // Before anything is dropped: an account that runs a Solution stage stays.
     await assertNotStageRunAs(userId);
     const { notebooks: notebookPort, teardown: projectTeardown } = require('./erasurePorts').resolveErasurePorts();
+    const contentPort = require('./erasurePorts').erasurePort('content'); const content = require('./contentErasure');
     // Capture the org now so we can sync Stripe seat quantity afterwards.
     // NULL orgId users (consumer accounts) skip the sync.
     const owner = await getOne('SELECT id, "organizationId" FROM users WHERE id = $1', [userId]);
@@ -226,8 +227,7 @@ async function deleteUser(userId) {
     // vault", there is no surviving message left to hold a stale token.
     await step('pii_vault_entries', () => run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]));
     await step('pii_vault_counters', () => run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]));
-    await step('agent_conversations', () => run('DELETE FROM agent_conversations WHERE user_id = $1', [userId]));
-    await step('direct_conversations', () => run('DELETE FROM direct_conversations WHERE user_id = $1', [userId]));
+    await content.eraseConversations(userId, step);
     await step('execution_history', () => run('DELETE FROM execution_history WHERE user_id = $1', [userId]));
     // Two tables that record what a person did and were never in this cascade.
     //
@@ -300,9 +300,16 @@ async function deleteUser(userId) {
     // cascade: drop each agent's conversations first, then the agents.
     await step('agents', async () => {
         const ownedAgents = await getAll('SELECT id FROM agents WHERE owner_id = $1', [userId]);
-        for (const agent of ownedAgents) await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]);
+        for (const agent of ownedAgents) {
+            await run('DELETE FROM conversation_messages WHERE conversation_id IN (SELECT id FROM agent_conversations WHERE agent_id = $1)', [agent.id])
+                .catch((e) => { if (!isMissingTable(e)) throw e; });
+            await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]);
+        }
         await run('DELETE FROM agents WHERE owner_id = $1', [userId]);
     });
+
+    // Everything else that names the person: erasureCoverage.js (held against the schema by the footprint test).
+    await content.eraseContent(userId, step, { content: contentPort, oldestOrgAdmin });
 
     // Datatables. Two different things wear the same shape here, so they get
     // different answers:

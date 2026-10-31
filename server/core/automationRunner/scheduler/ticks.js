@@ -37,6 +37,30 @@ const log = require('../../../telemetry/log');
 
 // ── Schedule tick ───────────────────────────────────────
 
+/**
+ * May this owner's schedules still fire? Only for an account that exists and
+ * is plainly active (auth/accountStatusGate.isActiveAccount, the rule a
+ * bearer credential is held to): a routine keeps acting with its owner's
+ * standing, so a suspended or removed owner's routines stop with them. Then
+ * the organisation's entitlement, as before. A lookup failure is a refusal.
+ * `seen` keeps one log line per owner per tick.
+ * @param {{ userId: string, organizationId?: string | null }} a
+ * @param {Set<string>} seen
+ */
+async function ownerMayRun(a, seen) {
+    const { isActiveAccount } = require('../../../auth/accountStatusGate');
+    const { hasCapability } = require('../../entitlements/entitlements');
+    const owner = await require('../../../stores/userStore').getUser(a.userId);
+    if (!isActiveAccount(owner)) {
+        if (!seen.has(a.userId)) {
+            seen.add(a.userId);
+            log.info(`[AutomationRunner] Schedules of owner ${a.userId} do not run: the account is ${owner ? owner.status : 'gone'}`);
+        }
+        return false;
+    }
+    return hasCapability('automations', { userId: a.userId, orgId: a.organizationId });
+}
+
 /** Does this claimed row's LIVE schedule (primary, or one extra trigger) skip holidays? */
 function skipsHolidays(a, triggerStepId) {
     const { definition } = require('../definitionForRun').definitionForRun(a, { mode: 'live', triggerKind: 'schedule' });
@@ -59,11 +83,11 @@ async function processDueSchedules() {
     catch (e) { log.error('[AutomationRunner] processDueSchedules claim error:', e.message); return; }
     if (!due || due.length === 0) return;
 
-    const { hasCapability } = require('../../entitlements/entitlements');
     const allowed = [];
+    const seen = new Set();
     for (const { automation: a, schedule: s } of due) {
         let ok = false;
-        try { ok = await hasCapability('automations', { userId: a.userId, orgId: a.organizationId }); }
+        try { ok = await ownerMayRun(a, seen); }
         catch (_) { ok = false; }
         if (ok) {
             // schedule.skipHolidays: a slot on a public holiday is not run;
@@ -121,18 +145,20 @@ async function processDuePrimarySchedules() {
         const due = await automationStore.claimDueAutomations(INSTANCE_ID, 20);
         if (due.length === 0) return;
 
-        // Filter by per-org beta access. If an org loses the 'automations'
-        // beta, their automations stop firing on schedule (but stay in the
-        // DB so re-enabling restores them instantly). Skipped rows are
-        // released so the schedule advances on the next tick.
-        const { hasCapability } = require('../../entitlements/entitlements');
+        // Filter by the owner's standing and per-org beta access. If an org
+        // loses the 'automations' beta, their automations stop firing on
+        // schedule (but stay in the DB so re-enabling restores them
+        // instantly); the same for an owner whose account is not active.
+        // Skipped rows are released so the schedule advances on the next
+        // tick.
         const allowed = [];
+        const seen = new Set();
         for (const a of due) {
             try {
                 // Resolve against the automation's OWN org (not the owner's
                 // primary org) via the unified resolver, so scheduled firing
                 // agrees with the requireCapability('automations') route gate.
-                const ok = await hasCapability('automations', { userId: a.userId, orgId: a.organizationId });
+                const ok = await ownerMayRun(a, seen);
                 const skip = ok && a.triggerType === 'schedule' && a.scheduleCron
                     ? holidaySkipFor(a, { cron: a.scheduleCron, tz: a.scheduleTz, scheduledFor: a.nextRunAt })
                     : null;

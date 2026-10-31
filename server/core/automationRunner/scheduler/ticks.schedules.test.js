@@ -54,6 +54,10 @@ mock('./reapers', {
 mock('../../integrations/integrationLogging', { flushEgressLogs: async () => {} });
 mock('../../entitlements/entitlements', { hasCapability: async () => capabilityOk });
 mock('../../../modules', { moduleGatedTick: (moduleId, fn) => fn });
+// The owner's account row: a schedule only fires for an owner who still has
+// an active account (null = the account is gone).
+let ownerRow = { id: 'u1', status: 'active' };
+mock('../../../stores/userStore', { getUser: async () => ownerRow });
 
 const ticks = require('./ticks');
 
@@ -61,6 +65,7 @@ beforeEach(() => {
     calls.exec.length = 0; calls.advance.length = 0; calls.release.length = 0; calls.update.length = 0; calls.claimPrimary = 0;
     dueSchedules = [];
     capabilityOk = true;
+    ownerRow = { id: 'u1', status: 'active' };
 });
 
 const AUTO = { id: 'auto-1', userId: 'u1', organizationId: 'org-1', title: 'Assistant' };
@@ -88,6 +93,24 @@ test('without the capability the row is released and advanced, never run', async
     assert.deepStrictEqual(calls.release, ['auto-1']);
     assert.ok(calls.update.some(u => u.id === 'auto-1' && u.lastStatus === 'pending'));
     assert.deepStrictEqual(calls.advance, [{ id: 'sch_1', nextRunAt: NEXT, lastStatus: 'skipped' }]);
+});
+
+test('a suspended owner\'s additional schedule is released and advanced, never run', async () => {
+    ownerRow = { id: 'u1', status: 'suspended' };
+    dueSchedules = [{ automation: AUTO, schedule: ROW }];
+    await ticks.processDueAutomations();
+    assert.deepStrictEqual(calls.exec, [], 'the owner\'s standing is gone, so the routine does not act');
+    assert.deepStrictEqual(calls.release, ['auto-1']);
+    assert.deepStrictEqual(calls.advance, [{ id: 'sch_1', nextRunAt: NEXT, lastStatus: 'skipped' }]);
+});
+
+test('a PRIMARY schedule whose owner account is gone is released and moved on, not run', async () => {
+    ownerRow = null;
+    duePrimary = [{ ...AUTO, triggerType: 'schedule', scheduleCron: '0 7 * * 1-5', scheduleTz: 'Europe/Amsterdam', nextRunAt: '2026-04-28T05:00:00.000Z' }];
+    await ticks.processDueAutomations();
+    assert.deepStrictEqual(calls.exec, []);
+    assert.deepStrictEqual(calls.release, ['auto-1']);
+    assert.deepStrictEqual(calls.update, [{ id: 'auto-1', lastStatus: 'pending', nextRunAt: NEXT }], 'advanced to the next slot, not left in the past');
 });
 
 test('nothing due → nothing dispatched, and a claim error never breaks the tick', async () => {

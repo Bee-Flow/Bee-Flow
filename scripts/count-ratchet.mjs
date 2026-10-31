@@ -234,7 +234,7 @@ const TEST_FILE = /\.test\.[jt]sx?$/;
 const MODULE_MOCK_HELPERS = [
     'mockModule', 'stubRequire', 'installResolveStub', 'preloadStubs', 'evictModule',
     'serverStubber', 'installAiStepHarness', 'installAiAnswerCacheKit',
-    'installRunnerIdentityStubs', 'installCrudRouteStubs', 'createBuilderStream',
+    'installRunnerIdentityStubs', 'installCrudRouteStubs', 'createBuilderStream', 'usePgliteLadder',
 ];
 const MODULE_MOCK_PATTERN = new RegExp(
     `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`
