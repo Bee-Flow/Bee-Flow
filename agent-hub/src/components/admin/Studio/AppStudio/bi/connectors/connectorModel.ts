@@ -123,6 +123,20 @@ export const kinds = (t: TranslateFn): KindOption[] => [
 
 export const PARAM_TYPES = ['text', 'number', 'boolean'];
 
+/**
+ * The fields a mailbox connector carries that FOLLOW from the provider and are
+ * never chosen by the author: the integration a viewer must have connected,
+ * and how a "shared" mailbox is reached (Outlook opens a real delegated
+ * mailbox; the Gmail API can only read the signed-in user's own, so "shared"
+ * there means a team alias delivered into it). The server refuses a model
+ * whose derived values disagree with its provider, so every provider change
+ * has to rewrite them in the same edit.
+ */
+export function mailboxProviderFields(provider: string | undefined): { integrationId: string | undefined; sharedMode: string | undefined } {
+    if (provider !== 'gmail' && provider !== 'outlook') return { integrationId: undefined, sharedMode: undefined };
+    return { integrationId: provider, sharedMode: provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias' };
+}
+
 export const INPUT = 'w-full rounded-md px-2 py-1.5 text-sm bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)]';
 export const LABEL = 'text-xs font-medium text-[var(--text-secondary)]';
 

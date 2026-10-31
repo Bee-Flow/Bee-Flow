@@ -2,7 +2,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { postConnector } from '@/api/connectorHttp';
 import { TextField } from './ConnectorFields';
-import { INPUT, LABEL } from './connectorModel';
+import { INPUT, LABEL, mailboxProviderFields } from './connectorModel';
 import type { Connector } from './connectorModel';
 import useTranslation from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
@@ -70,6 +70,8 @@ function VerifyAccess({ connector, disabled, state }: { connector: Connector; di
 interface MailboxFieldsProps {
     connector: Connector;
     setOpt: SetOpt;
+    /** Several keys in one edit; `undefined` removes a key. */
+    patch: (p: Record<string, unknown>) => void;
     disabled?: boolean;
     appId: string | null;
     saved?: boolean;
@@ -88,7 +90,7 @@ interface MailboxFieldsProps {
  * else's mailbox at all, so there it means mail delivered to a team address
  * inside your own.
  */
-export default function MailboxFields({ connector, setOpt, disabled, appId, saved }: MailboxFieldsProps) {
+export default function MailboxFields({ connector, setOpt, patch, disabled, appId, saved }: MailboxFieldsProps) {
     const { t } = useTranslation();
     const shared = connector.mode === 'shared';
     const isGmail = connector.provider === 'gmail';
@@ -102,7 +104,7 @@ export default function MailboxFields({ connector, setOpt, disabled, appId, save
                     <select
                         className={INPUT}
                         value={connector.provider || ''}
-                        onChange={(e) => setOpt('provider', e.target.value || undefined)}
+                        onChange={(e) => { const provider = e.target.value || undefined; patch({ provider, ...mailboxProviderFields(provider) }); }}
                         disabled={disabled}
                         aria-label={t('studio_apps_bi.connectors.mail_provider', 'Mail provider')}
                     >
