@@ -51,6 +51,8 @@ const MOCKS = {
         },
     },
     '../auth/permissions': { requireAuth: pass, requirePermission: () => pass },
+    // The super admin's scope: the period is what this file is about, not the organisation.
+    '../auth/orgScope': { orgScope: async () => ({ orgIds: null, isSuperAdmin: true }) },
 };
 
 const MOCK_IDS = {};
@@ -118,7 +120,7 @@ test('a start without an end is a report, not a 500 from the title', async () =>
     const res = await dispatch('/system-overview?startDate=2026-09-01T00:00:00.000Z');
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.title, 'System Overview (from 2026-09-01)');
-    assert.deepStrictEqual(touched.find((t) => t.what === 'getSystemStats').args, ['2026-09-01T00:00:00.000Z', null]);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'getSystemStats').args, ['2026-09-01T00:00:00.000Z', null, { orgIds: null }]);
 });
 
 test('the system overview answers, with the memory numbers in it — it was a TypeError on every request', async () => {

@@ -10063,11 +10063,6 @@
       "count": 1
     }
   },
-  "stores/usage/queries.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "stores/usage/schema.js": {
     "max-lines-per-function": {
       "count": 1

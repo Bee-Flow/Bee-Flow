@@ -251,6 +251,11 @@ test('golden trace of every public path', async () => {
     await step('getRecentCalls default', () => store.getRecentCalls());
     await step('getRecentCalls all filters', () => store.getRecentCalls(7, { organizationId: 'o', source: 's', model: 'm', search: 'bob', startDate: 'a', endDate: 'b' }));
     await step('getRecentCalls end only', () => store.getRecentCalls(3, { endDate: 'b' }));
+    // The scopes the route sets — the caller's own rows for a caller of no
+    // organisation, ?agent= — must reach the SQL; the test below the trace
+    // says so in words, the golden holds the statement.
+    await step('getRecentCalls user scope', () => store.getRecentCalls(20, { userId: 'consumer-1', startDate: 'a', endDate: 'b' }));
+    await step('getRecentCalls agent scope', () => store.getRecentCalls(5, { organizationId: 'o', agentId: 'agent-1', startDate: 'a', endDate: 'b' }));
     await step('getUsageSources', () => store.getUsageSources());
     await step('getUsageModels', () => store.getUsageModels());
     await step('numericAggregates', () => store.numericAggregates([{ calls: '2', total_cost: '1.5', avg_duration_ms: 'x', other: '9' }, { calls: null }]));
@@ -279,4 +284,33 @@ test('golden trace of every public path', async () => {
     const golden = JSON.parse(fs.readFileSync(GOLDEN, 'utf8'));
     for (let i = 0; i < Math.min(actual.length, golden.length); i++) assert.deepStrictEqual(actual[i], golden[i], `trace entry ${i}`);
     assert.strictEqual(actual.length, golden.length, 'same number of trace entries');
+});
+
+// The statement a step sent: the first db call recorded after the step marker.
+/** @param {string} name */
+function statementOf(name) {
+    const at = TRACE.findIndex((e) => e.step === name);
+    assert.notStrictEqual(at, -1, `step "${name}" is in the trace`);
+    const call = TRACE.slice(at + 1).find((e) => e.via === 'getAll' || e.via === 'getOne');
+    assert.ok(call, `step "${name}" sent a statement`);
+    return call;
+}
+
+test('getRecentCalls: every scope the route can set is in the WHERE, bound as a parameter', () => {
+    // routes/usage.js scopes a caller of no organisation to filters.userId and
+    // nothing else. This function once built its WHERE by hand from
+    // organizationId, source, model, search and the dates, so that one scope
+    // never reached the SQL and the read ran over every organisation's rows.
+    const user = statementOf('getRecentCalls user scope');
+    assert.match(user.sql, /user_id = \$\d/);
+    assert.deepStrictEqual(user.params, ['a', 'b', 'consumer-1', 20]);
+    const agent = statementOf('getRecentCalls agent scope');
+    assert.match(agent.sql, /organization_id = \$\d/);
+    assert.match(agent.sql, /agent_id = \$\d/);
+    assert.deepStrictEqual(agent.params, ['a', 'b', 'o', 'agent-1', 5]);
+    // The hand-written parts survived the move to the shared filters.
+    const all = statementOf('getRecentCalls all filters');
+    assert.match(all.sql, /agent_name ILIKE \$\d OR user_id ILIKE \$\d OR model ILIKE \$\d/);
+    const bare = statementOf('getRecentCalls default');
+    assert.match(bare.sql, /WHERE timestamp >= NOW\(\) - INTERVAL '30 days' ORDER BY timestamp DESC LIMIT \$1$/);
 });

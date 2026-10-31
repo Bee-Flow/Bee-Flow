@@ -2944,16 +2944,16 @@
  },
  {
   "via": "getAll",
-  "sql": "SELECT * FROM ai_usage_log WHERE organization_id = $1 AND source = $2 AND model = $3 AND (agent_name ILIKE $4 OR user_id ILIKE $5 OR model ILIKE $6) AND timestamp >= $7 AND timestamp <= $8 ORDER BY timestamp DESC LIMIT $9",
+  "sql": "SELECT * FROM ai_usage_log WHERE timestamp >= $1 AND timestamp <= $2 AND organization_id = $3 AND model = $4 AND source = $5 AND (agent_name ILIKE $6 OR user_id ILIKE $7 OR model ILIKE $8) ORDER BY timestamp DESC LIMIT $9",
   "params": [
-   "o",
-   "s",
-   "m",
-   "%bob%",
-   "%bob%",
-   "%bob%",
    "a",
    "b",
+   "o",
+   "m",
+   "s",
+   "%bob%",
+   "%bob%",
+   "%bob%",
    7
   ]
  },
@@ -2977,6 +2977,55 @@
   "params": [
    "b",
    3
+  ]
+ },
+ {
+  "result": [
+   {
+    "model": "gpt-4o",
+    "calls": "3",
+    "total_tokens": "120",
+    "estimated_cost": "0.5",
+    "note": "x"
+   }
+  ]
+ },
+ {
+  "step": "getRecentCalls user scope"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT * FROM ai_usage_log WHERE timestamp >= $1 AND timestamp <= $2 AND user_id = $3 ORDER BY timestamp DESC LIMIT $4",
+  "params": [
+   "a",
+   "b",
+   "consumer-1",
+   20
+  ]
+ },
+ {
+  "result": [
+   {
+    "model": "gpt-4o",
+    "calls": "3",
+    "total_tokens": "120",
+    "estimated_cost": "0.5",
+    "note": "x"
+   }
+  ]
+ },
+ {
+  "step": "getRecentCalls agent scope"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT * FROM ai_usage_log WHERE timestamp >= $1 AND timestamp <= $2 AND organization_id = $3 AND agent_id = $4 ORDER BY timestamp DESC LIMIT $5",
+  "params": [
+   "a",
+   "b",
+   "o",
+   "agent-1",
+   5
   ]
  },
  {

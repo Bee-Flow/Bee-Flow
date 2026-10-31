@@ -7,20 +7,52 @@ const { getOne, getAll, pool } = require('../../db');
 const { initDB } = require('./initSchema');
 const { fallback } = require('../../utils/bestEffort');
 
-async function getSystemStats(startDate = null, endDate = null) {
+/**
+ * The organisations a read is narrowed to, as the WHERE fragments and the
+ * parameter they share. `orgIds` null (the super admin's scope) narrows
+ * nothing; an array narrows agents on their own column and conversations
+ * through the agent they belong to (agent_conversations has no org column).
+ * A caller of no organisation sees no agent, like the studio counts.
+ *
+ * @param {string[] | null | undefined} orgIds
+ * @param {number} idx  the placeholder number the fragments may use
+ */
+function orgNarrowing(orgIds, idx) {
+    if (!Array.isArray(orgIds)) return { agents: '', conversations: '', params: [] };
+    const ids = orgIds.filter(Boolean).map(String);
+    return {
+        agents: ` AND organization_id = ANY($${idx}::text[])`,
+        conversations: ` AND agent_id IN (SELECT id FROM agents WHERE organization_id = ANY($${idx}::text[]))`,
+        params: [ids],
+    };
+}
+
+/**
+ * @param {string | null} [startDate]
+ * @param {string | null} [endDate]
+ * @param {{ orgIds?: string[] | null }} [scope]  the caller's organisations; null = every organisation
+ */
+async function getSystemStats(startDate = null, endDate = null, { orgIds = null } = {}) {
     await initDB();
     let totalAgents, totalConversations, activeConversations, allConvs;
 
     if (!startDate && !endDate) {
-        totalAgents = (await getOne("SELECT COUNT(*) as count FROM agents WHERE owner_id NOT IN ('system', 'swarm')")).count;
-        totalConversations = (await getOne('SELECT COUNT(*) as count FROM agent_conversations')).count;
-        activeConversations = (await getOne("SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days'")).count;
-        allConvs = await getAll('SELECT agent_id, messages_json FROM agent_conversations');
+        const org = orgNarrowing(orgIds, 1);
+        totalAgents = (await getOne(`SELECT COUNT(*) as count FROM agents WHERE owner_id NOT IN ('system', 'swarm')${org.agents}`, org.params)).count;
+        totalConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE TRUE${org.conversations}`, org.params)).count;
+        activeConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days'${org.conversations}`, org.params)).count;
+        allConvs = await getAll(`SELECT agent_id, messages_json FROM agent_conversations WHERE TRUE${org.conversations}`, org.params);
     } else {
-        totalAgents = (await getOne("SELECT COUNT(*) as count FROM agents WHERE ($1::text IS NULL OR created_at >= $1) AND ($2::text IS NULL OR created_at <= $2)", [startDate, endDate])).count;
-        totalConversations = (await getOne('SELECT COUNT(*) as count FROM agent_conversations WHERE ($1::text IS NULL OR created_at >= $1) AND ($2::text IS NULL OR created_at <= $2)', [startDate, endDate])).count;
-        activeConversations = (await getOne("SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days' AND ($1::text IS NULL OR created_at >= $1) AND ($2::text IS NULL OR created_at <= $2)", [startDate, endDate])).count;
-        allConvs = await getAll('SELECT agent_id, messages_json FROM agent_conversations WHERE ($1::text IS NULL OR created_at >= $1) AND ($2::text IS NULL OR created_at <= $2)', [startDate, endDate]);
+        const org = orgNarrowing(orgIds, 3);
+        const params = [startDate, endDate, ...org.params];
+        // The bounds are timestamps, cast as such: as `$1::text` the comparison
+        // `created_at >= $1` has no operator (timestamptz against text) and
+        // Postgres refuses the statement.
+        const period = '($1::timestamptz IS NULL OR created_at >= $1::timestamptz) AND ($2::timestamptz IS NULL OR created_at <= $2::timestamptz)';
+        totalAgents = (await getOne(`SELECT COUNT(*) as count FROM agents WHERE ${period}${org.agents}`, params)).count;
+        totalConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE ${period}${org.conversations}`, params)).count;
+        activeConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days' AND ${period}${org.conversations}`, params)).count;
+        allConvs = await getAll(`SELECT agent_id, messages_json FROM agent_conversations WHERE ${period}${org.conversations}`, params);
     }
 
     let totalMessages = 0;
