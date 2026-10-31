@@ -5,8 +5,10 @@
  * On first start, the Bee Flow Nextcloud ExApp connector calls this endpoint
  * with metadata about its NC instance. We split the trust model by branch:
  *
- *   - **Returning bind** (instance id already known): retourneer cached
- *     tenantKey direct. Bewijs: same instance id round-trips capabilities.
+ *   - **Returning bind** (instance id already known): return the cached
+ *     tenantKey. Proof: the capabilities round-trip AND the caller's base URL
+ *     is the one recorded at bind time (or the request is signed with the
+ *     current tenant key); a moved Nextcloud re-pairs with a pairing code.
  *   - **Fresh org** (no SaaS user matches the NC admin email): create a new
  *     Bee Flow org keyed off this NC instance, mint a tenantKey, return it.
  *     One-click. There is no victim — the org is brand new.
@@ -59,6 +61,7 @@ const {
     bindOrgToNcInstance,
 } = require('./connector/provisioning');
 const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
+const { readBootstrapHeaders, callbackUrlRefusal } = require('./connector/bootstrapHeaders');
 const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
 const { NC_SUBJECT_PROBLEM_CODES, runBootstrapBranches } = require('./connector/bootstrapBranches');
 const { resolveConnectorBearer, registerRotateKeyRoute } = require('./connector/rotateKey.mts');
@@ -115,19 +118,6 @@ const verificationResendLimiter = rateLimit({
     validate: { trustProxy: false },
 });
 
-/** @param {import('express').Request} req */
-function readBootstrapHeaders(req) {
-    return {
-        ncInstanceId: String(req.headers['x-beeflow-nc-instance-id'] || '').trim(),
-        ncBaseUrl: String(req.headers['x-beeflow-nc-base-url'] || '').trim().replace(/\/+$/, ''),
-        ncAdminUid: String(req.headers['x-beeflow-nc-admin-uid'] || '').trim(),
-        ncAdminEmail: String(req.headers['x-beeflow-nc-admin-email'] || '').trim().toLowerCase(),
-        ncAdminDisplayName: String(req.headers['x-beeflow-nc-admin-display-name'] || '').trim(),
-        connectorCallbackUrl: String(req.headers['x-beeflow-connector-callback-url'] || '').trim().replace(/\/+$/, ''),
-        pairingCode: String(req.headers['x-beeflow-pairing-code'] || '').trim().toUpperCase(),
-    };
-}
-
 router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
     const { ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl, pairingCode } = readBootstrapHeaders(req);
     if (!ncInstanceId || !ncBaseUrl || !ncAdminUid || !ncAdminEmail) {
@@ -144,6 +134,10 @@ router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
             remediation: 'Configure an email address on your Nextcloud admin user and re-deploy the connector.',
         });
     }
+    // Checked ahead of the capabilities round-trip (the expensive step) so no
+    // branch can store a callback URL this server may not connect to.
+    const callbackRefusal = callbackUrlRefusal(connectorCallbackUrl);
+    if (callbackRefusal) return res.status(400).json(callbackRefusal);
 
     // Resolve the provisioning policy once, up front and OUTSIDE the
     // skip-verify shortcut below, so the dev bypass can never open the gate.

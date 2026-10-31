@@ -51,6 +51,7 @@
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
+const { nextcloudFetch } = require('../utils/nextcloudTarget');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
@@ -127,10 +128,12 @@ async function pushOnce(target, meta) {
         studioAppId: meta.appId || null,
         sentAt: new Date().toISOString(),
     });
-    /** @type {Response} */
+    /** @type {Awaited<ReturnType<typeof nextcloudFetch>>} */
     let res;
     try {
-        res = await fetch(`${target.callbackUrl}${HOOK_PATH}`, {
+        // The callback URL is stored from the connector's bootstrap headers,
+        // so it passes the Nextcloud host gate at use time (nextcloudFetch).
+        res = await nextcloudFetch(`${target.callbackUrl}${HOOK_PATH}`, {
             method: 'POST',
             headers: {
                 ...signedConnectorHeaders({ tenantKey: target.tenantKey, method: 'POST', path: HOOK_PATH, ncUid: '', body }),

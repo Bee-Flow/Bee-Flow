@@ -98,6 +98,18 @@ test('payload without iss/aud claims still verifies (legacy / strict-only check)
     assert.strictEqual(payload.email, 'a@b.c');
 });
 
+test('rejects a token without exp (every connector mint sets one)', () => {
+    assert.throws(() => _verifyHs256(mintToken({ email: 'a@b.c' }), KEY), /no expiry/);
+    assert.throws(() => _verifyHs256(mintToken({ email: 'a@b.c', exp: 'soon' }), KEY), /no expiry/);
+});
+
+test('rejects a token whose exp is further ahead than the 15-minute ceiling; accepts the connector TTLs', () => {
+    assert.throws(() => _verifyHs256(mintToken({ email: 'a@b.c', exp: NOW + 3600 }), KEY), /lifetime/);
+    for (const ttl of [60, 300, 900]) {
+        assert.strictEqual(_verifyHs256(mintToken({ email: 'a@b.c', exp: NOW + ttl }), KEY).email, 'a@b.c', `ttl ${ttl}`);
+    }
+});
+
 // ── Onboarding-gate admin carve-out predicate ──────────────────────────────
 // The org's NC admin must always pass the NC_ONBOARDING_PENDING gate (so they
 // can complete the wizard); everyone else must not. Match is an exact uid

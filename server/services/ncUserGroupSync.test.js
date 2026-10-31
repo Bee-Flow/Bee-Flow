@@ -22,6 +22,12 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const crypto = require('crypto');
 
+// The proxy call goes through nextcloudFetch (the Nextcloud host gate). With
+// the private-hosts switch on it uses the global fetch, which is what this
+// file stubs; without it the guarded undici client would resolve the fake
+// host for real.
+process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
+
 const TENANT_KEY = 'k'.repeat(64);
 const ORG = {
     id: 'org-1',

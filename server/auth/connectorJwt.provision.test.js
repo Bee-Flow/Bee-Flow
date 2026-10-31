@@ -33,7 +33,8 @@ const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 function token(payload) {
-    const head = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(payload)}`;
+    // Every connector mint carries `exp`; the verifier requires it.
+    const head = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ exp: Math.floor(Date.now() / 1000) + 300, ...payload })}`;
     return `${head}.${crypto.createHmac('sha256', KEY).update(head).digest('base64url')}`;
 }
 

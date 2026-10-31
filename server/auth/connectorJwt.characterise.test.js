@@ -40,11 +40,13 @@ const connectorJwtMiddleware = require('./connectorJwt');
 const KEY = 'tenant-secret-characterise';
 const ORG = 'org1';
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+const NOW = Math.floor(Date.now() / 1000);
+// Every connector mint carries `exp`, so the helper adds one; a payload with
+// `exp: undefined` is the "no expiry" case.
 function token(payload, { key = KEY, header = { alg: 'HS256', typ: 'JWT' } } = {}) {
-    const head = `${b64(header)}.${b64(payload)}`;
+    const head = `${b64(header)}.${b64({ exp: NOW + 300, ...payload })}`;
     return `${head}.${crypto.createHmac('sha256', key).update(head).digest('base64url')}`;
 }
-const NOW = Math.floor(Date.now() / 1000);
 const goodPayload = (extra = {}) => ({ email: 'ann@acme.example', sub: 'ann', ...extra });
 
 let rec; // recorded side effects
@@ -562,7 +564,7 @@ test('existing user bound to ANOTHER org: 403 NC_ORG_MISMATCH, no session mutati
     assert.match(out.body.error, /^This Nextcloud is connected to a different Bee Flow organisation/);
     assert.deepEqual(problemCodes(), ['auth.blocked_org_mismatch']);
     assert.deepEqual(rec.problems[0].opts.meta, { userOrgId: 'otherOrg', reason: 'user_bound_to_other_org' });
-    assert.ok(rec.warns.includes("[ConnectorJWT] Cross-tenant rejection: user u9 (org=otherOrg) presented org=org1's key"));
+    assert.ok(rec.warns.includes("[ConnectorJWT] Cross-tenant rejection: user u9 (org=otherOrg) presented org=org1's key (user_bound_to_other_org)"));
     assert.equal(req.session.isAuthenticated, undefined);
     assert.equal(rec.liveness.length, 0);
 });
@@ -594,27 +596,48 @@ test('org-health recorder throwing inside the try: 401 (pins that orgHealth must
     assertRejected(await run(connectorReq({ sub: 'x', email: '' })), 401, INVALID);
 });
 
-test('org backfill: user without org gets organizationId persisted; failure is warned and swallowed', async () => {
+test('existing user bound to NO org: 403 NC_ORG_MISMATCH, the row is not written, no session', async () => {
     const id = `u${++uid}`;
     const updates = [];
-    const user = { id, email: 'ann@acme.example' };
-    userStore.getUserByEmail = async () => user;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example' });
     userStore.updateUser = async (...a) => { updates.push(a); };
     const req = connectorReq(goodPayload());
-    assertNextOnce(await run(req));
-    assert.deepEqual(updates, [[id, { organizationId: ORG }]]);
-    assert.equal(user.organizationId, ORG);
-    assert.equal(req.session.user.organizationId, ORG);
-    assert.ok(rec.infos.includes(`[ConnectorJWT] Backfilled organizationId=${ORG} for user ${id}`));
+    const out = await run(req);
+    assert.equal(out.statusCode, 403);
+    assert.equal(out.body.code, 'NC_ORG_MISMATCH');
+    assert.match(out.body.error, /not a member of the organisation this Nextcloud is connected to/);
+    assert.deepEqual(updates, [], 'no org pointer is written for a user the key does not vouch for');
+    assert.deepEqual(rec.problems[0].opts.meta, { userOrgId: null, reason: 'user_not_bound_to_org' });
+    assert.equal(req.session.isAuthenticated, undefined);
+    assert.equal(rec.liveness.length, 0);
+});
 
-    reset();
-    const id2 = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id: id2, email: 'ann@acme.example' });
-    userStore.updateUser = async () => { throw new Error('write failed'); };
-    const req2 = connectorReq(goodPayload());
-    assertNextOnce(await run(req2));
-    assert.ok(rec.warns.includes(`[ConnectorJWT] Failed to backfill organizationId for ${id2}: write failed`));
-    assert.equal(req2.session.user.organizationId, ORG, 'session still falls back to the token org');
+test('existing platform admin in this org: 403 NC_ORG_MISMATCH, no session', async () => {
+    const id = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, role: 'admin' });
+    const req = connectorReq(goodPayload());
+    const out = await run(req);
+    assert.equal(out.statusCode, 403);
+    assert.equal(out.body.code, 'NC_ORG_MISMATCH');
+    assert.deepEqual(rec.problems[0].opts.meta, { userOrgId: ORG, reason: 'platform_admin_account' });
+    assert.equal(req.session.isAuthenticated, undefined);
+});
+
+test('existing member of this org (any provider): authenticated, one next()', async () => {
+    const id = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, provider: 'local', role: 'user' });
+    const req = connectorReq(goodPayload());
+    assertNextOnce(await run(req));
+    assert.equal(req.session.user.organizationId, ORG);
+    assert.equal(req.session.isAdmin, false);
+});
+
+test('token without exp, or with an exp further ahead than the ceiling: 401 no matching tenant key', async () => {
+    userStore.getUserByEmail = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG });
+    const noExp = connectorReq({}, { tok: token(goodPayload({ exp: undefined })) });
+    assertRejected(await run(noExp), 401, { error: 'Connector token rejected: no matching tenant key' });
+    const longLived = connectorReq(goodPayload({ exp: NOW + 24 * 3600 }));
+    assertRejected(await run(longLived), 401, { error: 'Connector token rejected: no matching tenant key' });
 });
 
 test('data-anomaly log: connector user under an org without nc_instance_id warns; lookup failure is swallowed', async () => {
@@ -666,7 +689,9 @@ test('stale nc_uid is repaired only when the email matches; failure is warned an
 
 test('success: session shape, connectorAuth, persistence suppressed, liveness touched, next() once with no args', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', role: 'admin', orgRole: 'org_admin', organizationId: ORG, nc_uid: 'ann', provider: 'nextcloud_connector' });
+    // An org admin, not a platform admin: the tenant key never yields a
+    // platform-admin session (see crossTenantGate), so isAdmin is false here.
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', role: 'user', orgRole: 'org_admin', organizationId: ORG, nc_uid: 'ann', provider: 'nextcloud_connector' });
     userStore.getOrganization = async () => ({ id: ORG, nc_instance_id: 'nc1' });
     const req = connectorReq(goodPayload());
     const out = await run(req);
@@ -674,8 +699,8 @@ test('success: session shape, connectorAuth, persistence suppressed, liveness to
     assert.equal(out.ret, undefined);
     const s = req.session;
     assert.equal(s.isAuthenticated, true);
-    assert.deepEqual(s.user, { id, email: 'ann@acme.example', displayName: id, role: 'admin', orgRole: 'org_admin', organizationId: ORG, ncUid: 'ann', provider: 'nextcloud_connector' });
-    assert.equal(s.isAdmin, true);
+    assert.deepEqual(s.user, { id, email: 'ann@acme.example', displayName: id, role: 'user', orgRole: 'org_admin', organizationId: ORG, ncUid: 'ann', provider: 'nextcloud_connector' });
+    assert.equal(s.isAdmin, false);
     assert.equal(s.connectorOrgId, ORG);
     assert.equal(s.connectorNcUid, 'ann');
     assert.equal(s.encryptionKey, 'sso-key');

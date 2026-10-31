@@ -23,6 +23,11 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const crypto = require('crypto');
 
+// The push goes through nextcloudFetch (the Nextcloud host gate). With the
+// private-hosts switch on it uses the global fetch, which is what this file
+// stubs; without it the guarded undici client would resolve the fake host.
+process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
+
 const TENANT_KEY = 't'.repeat(64);
 const CALLBACK = 'https://cloud.example.com/index.php/apps/app_api/proxy/bee_flow';
 const orgs = new Map();
