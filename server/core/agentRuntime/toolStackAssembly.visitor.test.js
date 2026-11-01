@@ -10,44 +10,29 @@
  * a tool OUT of a visitor's stack and forgets its parameters, unless the owner
  * opened that for this agent (`config.tools.publicVisitorsMayCallAutomations`).
  *
- * Same harness as toolStackAssembly.sandbox.test.js; the store returns the
- * pinned parameters this file hands it.
+ * The agent's tools and the store's pinned parameters are patched on the real
+ * modules; everything else is the shipped code.
  *
  * Run: cd server && node --test core/agentRuntime/toolStackAssembly.visitor.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 const fx = { tools: [], params: [] };
 
-const MOCKS = {
-    './agentTools': {
-        getAgentTools: async () => fx.tools.map(t => ({ ...t })),
-    },
-    '../../stores/agentStore': {
-        getConversationMeta: async () => ({}),
-        getAgentToolsWithParams: async () => fx.params,
-    },
-};
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:toolstack-visitor:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agentRuntime[\\/]toolStackAssembly\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+// The two collaborators the stack reads, patched on the real modules before
+// toolStackAssembly binds them: the agent's own tools, and the store that
+// holds the parameters the owner pinned.
+const agentTools = require('./agentTools');
+const agentStore = require('../../stores/agentStore');
+const originals = { getAgentTools: agentTools.getAgentTools, getAgentToolsWithParams: agentStore.getAgentToolsWithParams, getConversationMeta: agentStore.getConversationMeta };
+agentTools.getAgentTools = async () => fx.tools.map(t => ({ ...t }));
+agentStore.getAgentToolsWithParams = async () => fx.params;
+agentStore.getConversationMeta = async () => ({});
+test.after(() => { Object.assign(agentTools, { getAgentTools: originals.getAgentTools }); Object.assign(agentStore, { getAgentToolsWithParams: originals.getAgentToolsWithParams, getConversationMeta: originals.getConversationMeta }); });
 
 const { assembleToolStack } = require('./toolStackAssembly');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
 const tool = (name) => ({ type: 'function', function: { name } });
 const names = (tools) => tools.map(t => t.function && t.function.name).sort();

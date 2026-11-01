@@ -13,7 +13,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { resolveNativeAppRedirect } = require('./shared');
+const { resolveNativeAppRedirect, getReturnUrl } = require('./shared');
 
 test('resolves the known key to its fixed target', () => {
     assert.strictEqual(resolveNativeAppRedirect('beeflow'), 'beeflow://oauth');
@@ -54,3 +54,48 @@ test('ignores non-strings rather than coercing them', () => {
         assert.strictEqual(resolveNativeAppRedirect(key), null);
     }
 });
+
+// ── Where the browser goes after the callback ──────────────────────────
+/** @param {Record<string, string>} headers */
+const reqWith = (headers, { protocol = 'https', host = 'bee.example' } = {}) => /** @type {any} */ ({
+    protocol,
+    /** @param {string} name */
+    get(name) {
+        const key = String(name).toLowerCase();
+        if (key === 'host') return host;
+        return Object.prototype.hasOwnProperty.call(headers, key) ? headers[key] : undefined;
+    },
+});
+/** @param {Record<string, string | undefined>} patch @param {() => void | Promise<void>} fn */
+const withEnv = async (patch, fn) => {
+    /** @type {Record<string, string | undefined>} */
+    const before = {};
+    for (const [k, v] of Object.entries(patch)) { before[k] = process.env[k]; if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    try { await fn(); } finally {
+        for (const [k, v] of Object.entries(before)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    }
+};
+
+test('getReturnUrl: the configured client host wins everywhere', () => withEnv(
+    { CLIENT_PUBLIC_HOST: 'app.example', CLIENT_PROTOCOL: 'https', NODE_ENV: 'production' },
+    () => { assert.strictEqual(getReturnUrl(reqWith({ referer: 'https://attacker.example/' })), 'https://app.example'); },
+));
+
+test('getReturnUrl: outside production the Referer decides when nothing is configured', () => withEnv(
+    { CLIENT_PUBLIC_HOST: undefined, NODE_ENV: 'test' },
+    () => {
+        assert.strictEqual(getReturnUrl(reqWith({ referer: 'http://localhost:5276/login?x=1' })), 'http://localhost:5276');
+        assert.strictEqual(getReturnUrl(reqWith({})), 'http://localhost:5173');
+    },
+));
+
+test('getReturnUrl: in production the Referer is never a target', () => withEnv(
+    { CLIENT_PUBLIC_HOST: undefined, SERVER_PUBLIC_HOST: undefined, NODE_ENV: 'production' },
+    async () => {
+        assert.strictEqual(getReturnUrl(reqWith({ referer: 'https://attacker.example/' })), 'https://bee.example',
+            'the server\'s own origin, not the page that sent the browser');
+        await withEnv({ SERVER_PUBLIC_HOST: 'hub.example', SERVER_PROTOCOL: 'https' }, () => {
+            assert.strictEqual(getReturnUrl(reqWith({ referer: 'https://attacker.example/' })), 'https://hub.example');
+        });
+    },
+));

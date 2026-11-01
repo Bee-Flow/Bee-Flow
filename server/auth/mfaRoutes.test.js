@@ -48,6 +48,7 @@ const MOCKS = {
         otpauthUrl: (secret) => `otpauth://totp/x?secret=${secret}`,
         qrDataUrl: async () => 'data:image/png;base64,QR',
         verifyTotp: (secret, _code) => !!secret && fx.totpOk,
+        verifyTotpStep: (secret, _code) => (!!secret && fx.totpOk ? { ok: true, timeStep: 7 } : { ok: false }),
         decryptSecret: () => fx.decrypted,
         encryptSecret: (v) => `enc:${v}`,
         consumeRecoveryCode: async () => (fx.recoveryOk ? [{ hash: 'h', usedAt: 'now' }] : null),

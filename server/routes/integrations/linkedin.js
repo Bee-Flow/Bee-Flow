@@ -19,6 +19,7 @@ const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { sessionUser, requireSessionUser } = require('../../core/http/sessionUser');
+const { oauthStatesMatch } = require('../../auth/oauth/shared');
 
 const SCOPES = ['openid', 'profile', 'w_member_social'];
 
@@ -85,8 +86,15 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         return res.send(callbackHTML('Not authenticated. Please log in first.', false));
     }
 
-    // CSRF check
-    if (state !== req.session.linkedinState) {
+    // CSRF check: one shot. The expected state leaves the session before it is
+    // compared, so a second callback with the same state, or one with no state
+    // against a session that holds none, is refused like the other providers'
+    // (auth/oauth/shared.js oauthStatesMatch).
+    const expectedState = req.session.linkedinState;
+    delete req.session.linkedinState;
+    if (!oauthStatesMatch(state, expectedState)) {
+        delete req.session.linkedinRedirectUri;
+        req.session.save?.();
         return res.send(callbackHTML('Invalid state parameter. Please try again.', false));
     }
 

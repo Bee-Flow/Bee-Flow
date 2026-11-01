@@ -44,6 +44,7 @@ function createMemoryStore() {
             const COLUMNS = {
                 mfaEnabled: 'mfa_enabled', mfaSecret: 'mfa_secret', mfaEnrolledAt: 'mfa_enrolled_at',
                 mfaRecoveryCodes: 'mfa_recovery_codes', mfaRecoveryCodesGeneratedAt: 'mfa_recovery_codes_generated_at',
+                mfaLastStep: 'mfa_last_step',
             };
             for (const [k, v] of Object.entries(updates)) row[COLUMNS[k] || k] = v;
             return true;

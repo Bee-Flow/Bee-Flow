@@ -37,6 +37,7 @@ const MOCKS = {
         MFA_LOGIN_MAX_ATTEMPTS: 5,
         decryptSecret: () => 'secret',
         verifyTotp: (s, code) => { touched.push({ what: 'verifyTotp', args: [code] }); return false; },
+        verifyTotpStep: (s, code) => { touched.push({ what: 'verifyTotp', args: [code] }); return { ok: false }; },
         consumeRecoveryCode: async (stored, code) => { touched.push({ what: 'consumeRecoveryCode', args: [code] }); return null; },
     },
     '../../telemetry/metrics': { recordAuthEvent() {} },

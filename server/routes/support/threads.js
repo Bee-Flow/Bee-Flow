@@ -212,7 +212,7 @@ async function checkThreadAccess(/** @type {import('express').Request} */ req, /
     const cookieToken = queryToken ? null : requesterSession.readCookieToken(req, thread.id);
     const presented = queryToken || cookieToken;
     const tokenOK = presented
-        && supportStore.verifyAccessToken(thread.id, thread.requester_email, presented);
+        && supportStore.verifyAccessToken(thread.id, thread.requester_email, presented, { threadCreatedAt: thread.created_at });
     if (tokenOK && queryToken) requesterSession.setRequesterCookie(req, res, thread.id, queryToken);
     return { userId, staff, allowed: !!(staff || isOwner || tokenOK) };
 }
@@ -236,7 +236,7 @@ async function openFromMail(/** @type {import('express').Request} */ req, /** @t
     requesterSession.setNoLeakHeaders(res);
     const thread = await supportStore.getThread(req.params.id); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- target is the configured client host plus a URI-encoded id
     const token = req.query.token;
-    if (!thread || !token || !supportStore.verifyAccessToken(thread.id, thread.requester_email, token)) {
+    if (!thread || !token || !supportStore.verifyAccessToken(thread.id, thread.requester_email, token, { threadCreatedAt: thread.created_at })) {
         return res.status(404).json({ error: 'Not found' });
     }
     requesterSession.setRequesterCookie(req, res, thread.id, token);

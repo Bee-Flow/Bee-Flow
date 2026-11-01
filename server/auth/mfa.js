@@ -58,23 +58,55 @@ async function qrDataUrl(otpauth) {
     return QRCode.toDataURL(otpauth, { margin: 1, width: 220 });
 }
 
-/** @param {string | null | undefined} secretPlain @param {string} token */
-function verifyTotp(secretPlain, token) {
-    if (!secretPlain || !token) return false;
+/**
+ * Verify a code and say which 30-second step it belongs to.
+ *
+ * A code is good for one sign-in. The step it was generated for is handed
+ * back so the caller can store it on the account (`mfa_last_step`) and pass it
+ * in next time as `afterStep`: a code from that step or an earlier one is
+ * then refused, so a code read over someone's shoulder cannot be replayed
+ * inside the drift window.
+ *
+ * @param {string | null | undefined} secretPlain
+ * @param {string} token
+ * @param {{ afterStep?: number | null }} [opts]
+ * @returns {{ ok: true, timeStep: number } | { ok: false }}
+ */
+function verifyTotpStep(secretPlain, token, { afterStep = null } = {}) {
+    if (!secretPlain || !token) return { ok: false };
     const clean = String(token).replace(/\s+/g, '');
-    if (!/^\d{6}$/.test(clean)) return false;
+    if (!/^\d{6}$/.test(clean)) return { ok: false };
     try {
         // otplib 12 accepted lower-case and "="-padded secrets; 13 only canonical ones.
         const secret = String(secretPlain).toUpperCase().replace(/=+$/, '');
-        return verifySync({
+        const result = verifySync({
             token: clean,
             secret,
             epochTolerance: EPOCH_TOLERANCE_SECONDS,
             guardrails: GUARDRAILS,
-        }).valid;
+        });
+        if (!result.valid) return { ok: false };
+        // `timeStep` is the step of the clock; `delta` says how many steps away
+        // the code that matched was. The step the code BELONGS to is what is
+        // stored and compared, so a code read a step early is spent as such.
+        // Checked here rather than through otplib's `afterTimeStep`, which also
+        // refused the step after the stored one in its current version.
+        const valid = /** @type {{ timeStep: number, delta?: number }} */ (result);
+        const codeStep = valid.timeStep + (valid.delta || 0);
+        if (Number.isInteger(afterStep) && codeStep <= /** @type {number} */ (afterStep)) return { ok: false };
+        return { ok: true, timeStep: codeStep };
     } catch (_) {
-        return false;
+        return { ok: false };
     }
+}
+
+/**
+ * The yes/no form, for a secret that is not yet on an account (enrolment).
+ * A signed-in second factor goes through verifyTotpStep so the step is kept.
+ * @param {string | null | undefined} secretPlain @param {string} token
+ */
+function verifyTotp(secretPlain, token) {
+    return verifyTotpStep(secretPlain, token).ok;
 }
 
 // Encrypt / decrypt the TOTP secret at rest using the configStore envelope.
@@ -153,6 +185,7 @@ module.exports = {
     otpauthUrl,
     qrDataUrl,
     verifyTotp,
+    verifyTotpStep,
     encryptSecret,
     decryptSecret,
     generateRecoveryCodes,

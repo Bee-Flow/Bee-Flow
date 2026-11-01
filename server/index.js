@@ -29,13 +29,12 @@ const log = require('./telemetry/log');
 
 const app = express();
 // Trust proxy: how many reverse-proxy hops sit in front of us. Default `1`
-// matches the standard nginx-in-front production deploy. Override via
-// `TRUST_PROXY_HOPS` (positive integer) if you have multiple proxies (e.g.
-// CDN → load balancer → app). Setting this to `true` works for IP detection
-// but causes express-rate-limit to refuse to start with ERR_ERL_PERMISSIVE_TRUST_PROXY
-// because anyone could spoof X-Forwarded-For; the numeric value pins down
-// exactly how many forwarded IPs to peel off.
-const TRUST_PROXY_HOPS = Math.max(0, parseInt(process.env.TRUST_PROXY_HOPS || '1', 10) || 1);
+// matches the standard nginx-in-front production deploy; `TRUST_PROXY_HOPS`
+// (a whole number, `0` = no proxy; anything else refuses to boot, see
+// boot/trustProxyHops.js) overrides it for CDN → load balancer → app setups.
+// `true` would work for IP detection but makes express-rate-limit refuse to
+// start (ERR_ERL_PERMISSIVE_TRUST_PROXY): anyone could spoof X-Forwarded-For.
+const TRUST_PROXY_HOPS = require('./boot/trustProxyHops').parseTrustProxyHops(process.env.TRUST_PROXY_HOPS);
 app.set('trust proxy', TRUST_PROXY_HOPS);
 const PORT = process.env.SERVER_PORT || process.env.PORT || 3001;
 

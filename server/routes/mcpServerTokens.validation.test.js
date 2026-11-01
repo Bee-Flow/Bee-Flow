@@ -69,6 +69,7 @@ test.after(() => { Module._resolveFilename = originalResolve; });
 const { createTerminalErrorHandler } = require('../core/http/terminalErrorHandler');
 const terminalErrorHandler = createTerminalErrorHandler({ log: { warn() {}, error() {} } });
 
+let staleBy = 0; // how long ago the session's sign-in was, for the recent-proof check
 function dispatch({ method, url, body }) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
@@ -76,7 +77,7 @@ function dispatch({ method, url, body }) {
         for (const [k, v] of new URLSearchParams(search)) query[k] = v;
         const req = {
             method, url, originalUrl: url, path: pathname, body, query, headers: {},
-            session: { user: { id: 'admin1' } }, get() { return undefined; },
+            session: { user: { id: 'admin1' }, authenticatedAt: Date.now() - staleBy }, get() { return undefined; },
         };
         const res = {
             statusCode: 200, headersSent: false,
@@ -121,6 +122,16 @@ test("a colleague's id in the query of revoke is refused, not read as \"revoke m
 
 test("a colleague's id in the body of revoke is refused too", async () => {
     await refuses({ method: 'DELETE', url: '/token', body: { userId: 'u2' } }, 'body');
+});
+
+test('minting takes a recent sign-in: a session older than ten minutes is refused and no secret is written', async () => {
+    staleBy = 11 * 60 * 1000;
+    try {
+        const res = await dispatch({ method: 'POST', url: '/token' });
+        assert.strictEqual(res.statusCode, 403);
+        assert.strictEqual(res.body.code, 'reauth_required');
+        assert.ok(!touched.some((t) => t.what === 'setSecret'), 'nothing minted');
+    } finally { staleBy = 0; }
 });
 
 test('revoking the way the app does — no query, no body — still revokes the caller', async () => {

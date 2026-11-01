@@ -45,7 +45,7 @@ Postgres instance.
 |----------|---------|---------|
 | `SERVER_PORT` | `3001` | HTTP port the server listens on (`PORT` is honoured as a fallback). |
 | `SERVER_BIND_HOST` | `127.0.0.1` | Interface that publishes `SERVER_PORT`. Loopback on purpose: the API is meant to be reached through the agent-hub nginx, where the rate limits and security headers live. Set to `0.0.0.0` only when something off-machine must talk to the API port itself. |
-| `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server. Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. |
+| `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server (a whole number; `0` means none). Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. A value that is not a number refuses to boot. |
 | `PUBLIC_BASE_URL` | (none) | Public base URL of the API (`https://api.example.com`). Used for outgoing webhooks and callback URLs — and it is the switch that decides whether MS-Graph subscriptions get provisioned at all. |
 | `SERVER_PUBLIC_HOST` / `SERVER_PROTOCOL` | `localhost:3001` / `http` | How the API is addressed externally. |
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |

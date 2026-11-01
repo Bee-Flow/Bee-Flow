@@ -51,16 +51,27 @@ async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
     }
 }
 
-// Helper to get return URL from referer or environment
-/** @param {import('express').Request} req */
+/**
+ * Where the browser goes after the callback: the configured client host, or
+ * on a developer's machine the page the sign-in started from. In production
+ * the Referer is not consulted: it is whatever the sender put there, and a
+ * sign-in that returned to it would be an open redirect. Without a configured
+ * client host the server's own origin is the fallback there.
+ * @param {import('express').Request} req
+ */
 function getReturnUrl(req) {
-    const referer = req.get('Referer');
-
     if (process.env.CLIENT_PUBLIC_HOST) {
         const clientProtocol = process.env.CLIENT_PROTOCOL || process.env.SERVER_PROTOCOL || 'https';
         return `${clientProtocol}://${process.env.CLIENT_PUBLIC_HOST}`;
     }
 
+    if (process.env.NODE_ENV === 'production') {
+        if (process.env.SERVER_PUBLIC_HOST) return `${process.env.SERVER_PROTOCOL || 'https'}://${process.env.SERVER_PUBLIC_HOST}`;
+        log.warn('[OAuth] CLIENT_PUBLIC_HOST is not set; returning to this server\'s own origin');
+        return `${req.protocol}://${req.get('host')}`;
+    }
+
+    const referer = req.get('Referer');
     if (referer) {
         try {
             const url = new URL(referer);

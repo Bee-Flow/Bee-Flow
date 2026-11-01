@@ -3673,6 +3673,7 @@ declare namespace DbRow {
         masterWrappedDEK: string | null;
         mfa_enabled: boolean | null;
         mfa_enrolled_at: Date | null;
+        mfa_last_step: number | null;
         mfa_recovery_codes: string | null;
         mfa_recovery_codes_generated_at: Date | null;
         mfa_secret: string | null;

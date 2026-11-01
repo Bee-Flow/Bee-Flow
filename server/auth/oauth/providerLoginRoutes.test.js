@@ -74,7 +74,7 @@ function newSession() {
     return { save(cb) { if (cb) cb(); } };
 }
 
-function navigate(url, session) {
+function navigate(url, session, headers = {}) {
     return new Promise((resolve, reject) => {
         const [pathname, search = ''] = String(url).split('?');
         const query = {};
@@ -82,7 +82,11 @@ function navigate(url, session) {
         const req = {
             method: 'GET', url, originalUrl: url, path: pathname, query, headers: {}, session,
             sessionID: 'sid-1', protocol: 'https',
-            get(name) { return String(name).toLowerCase() === 'host' ? 'bee.example' : undefined; },
+            get(name) {
+                const key = String(name).toLowerCase();
+                if (key === 'host') return 'bee.example';
+                return Object.prototype.hasOwnProperty.call(headers, key) ? headers[key] : undefined;
+            },
         };
         const res = {
             statusCode: 200, headersSent: false,
@@ -182,4 +186,33 @@ test('the next attempt starts from no challenge, like the other handoff keys', a
     await navigate('/login/google?popup=1&pickup=second', session);
     assert.strictEqual(session.oauthPickupId, 'second');
     assert.strictEqual(session.oauthPickupChallenge, undefined, 'this attempt sent no challenge');
+});
+
+// ── Where the provider sends the browser back ──────────────────────────
+// Without SERVER_PUBLIC_HOST the redirect_uri is built from the request. The
+// Referer is a fine guess on a developer's machine and, in production, a
+// target the sender chose.
+const redirectUriOf = (res) => new URL(res.location).searchParams.get('redirect_uri');
+
+test('outside production the Referer still decides the redirect_uri when no public host is configured', async () => {
+    delete process.env.SERVER_PUBLIC_HOST;
+    const res = await navigate('/login/google', newSession(), { referer: 'http://localhost:5276/login' });
+    assert.strictEqual(redirectUriOf(res), 'http://localhost:5276/auth/callback/google');
+});
+
+test('in production the Referer is ignored: the redirect_uri is this server\'s own host', async () => {
+    delete process.env.SERVER_PUBLIC_HOST;
+    process.env.NODE_ENV = 'production';
+    try {
+        const res = await navigate('/login/google', newSession(), { referer: 'https://attacker.example/x' });
+        assert.strictEqual(redirectUriOf(res), 'https://bee.example/auth/callback/google');
+    } finally { process.env.NODE_ENV = 'test'; }
+});
+
+test('a configured public host wins everywhere', async () => {
+    process.env.SERVER_PUBLIC_HOST = 'hub.example';
+    try {
+        const res = await navigate('/login/google', newSession(), { referer: 'https://attacker.example/x' });
+        assert.strictEqual(redirectUriOf(res), 'https://hub.example/auth/callback/google');
+    } finally { delete process.env.SERVER_PUBLIC_HOST; }
 });

@@ -30,8 +30,8 @@ const PROOF_FIELD = 'securityKeyProof';
 
 /**
  * @param {{
- *   userStore: { listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, recordSecurityKeyUse: Function },
- *   mfa: { decryptSecret: Function, verifyTotp: Function, consumeRecoveryCode: Function },
+ *   userStore: { listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, recordSecurityKeyUse: Function, updateUser: Function },
+ *   mfa: { decryptSecret: Function, verifyTotpStep: Function, consumeRecoveryCode: Function },
  *   ceremony: typeof import('./ceremony'),
  * }} deps
  */
@@ -54,7 +54,7 @@ function createSecondFactorProof({ userStore, mfa, ceremony }) {
 
     /**
      * @param {import('express').Request['session']} session
-     * @param {{ id: string, mfa_secret?: string|null, mfa_recovery_codes?: any }} row
+     * @param {{ id: string, mfa_secret?: string|null, mfa_recovery_codes?: any, mfa_last_step?: number|null }} row
      * @param {ProofBody} body
      * @returns {Promise<ProofResult>}
      */
@@ -80,7 +80,11 @@ function createSecondFactorProof({ userStore, mfa, ceremony }) {
         // codes this account has.
         const hasTotp = !!row.mfa_secret;
         const secret = hasTotp ? mfa.decryptSecret(row.mfa_secret) : null;
-        if (secret && mfa.verifyTotp(secret, code)) return { ok: true };
+        const totp = secret ? mfa.verifyTotpStep(secret, code, { afterStep: row.mfa_last_step }) : { ok: false };
+        if (totp.ok) {
+            await userStore.updateUser(row.id, { mfaLastStep: totp.timeStep });
+            return { ok: true };
+        }
         const spent = await mfa.consumeRecoveryCode(row.mfa_recovery_codes, code);
         if (spent) return { ok: true, recoveryCodes: spent };
         return { ok: false, code: hasTotp && !secret ? 'mfa_secret_unreadable' : 'invalid_code' };

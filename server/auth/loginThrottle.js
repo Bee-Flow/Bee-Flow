@@ -386,27 +386,11 @@ if (_slotSweep.unref) _slotSweep.unref();
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
-/**
- * Normalise the submitted identifier so `Admin`, `admin` and ` admin ` share one
- * counter — otherwise case alone multiplies an attacker's budget.
- * @param {string} identifier
- */
-function normalizeIdentifier(identifier) {
-    return String(identifier || '').trim().toLowerCase().slice(0, 254);
-}
-
-/**
- * @param {string} id
- */
-const kAcctFail = (id) => `lt:af:${id}`;
-/**
- * @param {string} id
- */
-const kAcctLock = (id) => `lt:al:${id}`;
-/**
- * @param {string} id
- */
-const kAcctLockRounds = (id) => `lt:ar:${id}`;
+// The identifier and account keys, and the per-key failure bookkeeping,
+// live next door; they need only the storage primitives above.
+const { normalizeIdentifier, accountKeys, kAcctFail, kAcctLock, kAcctLockRounds, recordAccountFailure } = require('./loginThrottleAccount');
+/** What recordAccountFailure reads and writes through. */
+const ACCOUNT_STORE = { incr, set, del, ttl, config: CONFIG, lockStepsMs: LOCK_STEPS_MS, lockHistoryTtlMs: LOCK_HISTORY_TTL_MS };
 /**
  * @param {string} ip
  */
@@ -454,16 +438,17 @@ const kFanSeen = (ns, ip, target) => `lt:fs:${ns}:${ip}:${target}`;
  *
  * @param {object} req
  * @param {string} identifier the submitted username / e-mail, as typed
+ * @param {{ accountId?: string | null }} [resolved] the account the identifier names, once the route knows
  * @returns {Promise<{allowed: boolean, retryAfterSec?: number, scope?: 'account'|'ip'}>}
  */
-async function checkLoginAllowed(req, identifier) {
+async function checkLoginAllowed(req, identifier, resolved = {}) {
     if (!CONFIG.enabled) return { allowed: true };
-    const id = normalizeIdentifier(identifier);
+    const accountId = resolved.accountId || null;
     const { ip } = sourceAddress(req);
 
     try {
-        if (id) {
-            const lockMs = await ttl(kAcctLock(id));
+        for (const key of accountKeys(identifier, accountId)) {
+            const lockMs = await ttl(kAcctLock(key));
             if (lockMs > 0) {
                 return { allowed: false, retryAfterSec: Math.ceil(lockMs / 1000), scope: 'account' };
             }
@@ -487,13 +472,17 @@ async function checkLoginAllowed(req, identifier) {
  * The returned delay is applied by the caller BEFORE it answers, so an attacker
  * grinding one account pays an increasing cost per guess long before the hard
  * lock lands. It is symmetric across existing and non-existing accounts by
- * construction (the key is the submitted string), so it adds no oracle.
+ * construction (the key is the submitted string), so it adds no oracle. With
+ * `accountId` the failure also counts against the account itself, whatever
+ * spelling of it was submitted (see accountKeys).
  *
  * @returns {Promise<{delayMs: number, locked: boolean, retryAfterSec: number}>}
  * @param {string} identifier
+ * @param {{ accountId?: string | null }} [resolved]
  */
-async function recordLoginFailure(req, identifier) {
+async function recordLoginFailure(req, identifier, resolved = {}) {
     if (!CONFIG.enabled) return { delayMs: 0, locked: false, retryAfterSec: 0 };
+    const accountId = resolved.accountId || null;
     const id = normalizeIdentifier(identifier);
     const { ip, trusted } = sourceAddress(req);
 
@@ -502,38 +491,11 @@ async function recordLoginFailure(req, identifier) {
         let locked = false;
         let retryAfterSec = 0;
 
-        if (id) {
-            const fails = await incr(kAcctFail(id), CONFIG.accountWindowMs);
-            if (fails > CONFIG.delayAfter) {
-                delayMs = Math.min(CONFIG.delayMaxMs, (fails - CONFIG.delayAfter) * CONFIG.delayStepMs);
-            }
-            if (fails >= CONFIG.accountMaxFailures) {
-                // How many times has this identifier been locked recently?
-                // Escalate rather than handing out the same 60 seconds forever.
-                const rounds = await incr(kAcctLockRounds(id), LOCK_HISTORY_TTL_MS);
-                const lockMs = LOCK_STEPS_MS[Math.min(rounds - 1, LOCK_STEPS_MS.length - 1)];
-                await set(kAcctLock(id), 1, lockMs);
-                await del(kAcctFail(id));   // the lock replaces the counter
-                locked = true;
-                retryAfterSec = Math.ceil(lockMs / 1000);
-                recordAuthEvent({ kind: 'login_lockout', status: 'blocked' });
-                log.warn(`[LoginThrottle] identifier locked for ${Math.round(lockMs / 1000)}s after ${fails} failed attempts (round ${rounds})`);
-            } else {
-                // The counter alone is not authoritative, because the branch
-                // above DELETES it: a request already in flight when the lock
-                // was set increments a fresh counter, sees 1, and would be
-                // answered 401 as though nothing had happened. A pentest fired
-                // 20 at once and got 11 through against a threshold of 10 —
-                // that surplus is bounded only by the attacker's concurrency.
-                //
-                // The lock is what is authoritative once it exists, so ask.
-                // One extra read, on the failure path only.
-                const lockTtl = await ttl(kAcctLock(id));
-                if (lockTtl > 0) {
-                    locked = true;
-                    retryAfterSec = Math.ceil(lockTtl / 1000);
-                }
-            }
+        for (const key of accountKeys(identifier, accountId)) {
+            const account = await recordAccountFailure(ACCOUNT_STORE, key);
+            delayMs = Math.max(delayMs, account.delayMs);
+            locked = locked || account.locked;
+            retryAfterSec = Math.max(retryAfterSec, account.retryAfterSec);
         }
 
         // ── Breadth: what is this SOURCE doing, across all identifiers? ──
@@ -667,15 +629,18 @@ async function recordFanOut(req, namespace, target) {
 }
 
 /**
- * A successful authentication clears the identifier's failure counter.
+ * A successful authentication clears the identifier's failure counter, and
+ * the account's.
  * @param {string} identifier
+ * @param {{ accountId?: string | null }} [resolved]
  */
-async function recordLoginSuccess(req, identifier) {
+async function recordLoginSuccess(req, identifier, resolved = {}) {
     if (!CONFIG.enabled) return;
-    const id = normalizeIdentifier(identifier);
-    if (!id) return;
+    const accountId = resolved.accountId || null;
+    const keys = accountKeys(identifier, accountId);
+    if (keys.length === 0) return;
     try {
-        await del(kAcctFail(id), kAcctLock(id));
+        await del(...keys.flatMap((key) => [kAcctFail(key), kAcctLock(key)]));
         // The escalation history is deliberately NOT cleared: an attacker who
         // eventually guesses right should not also get to reset the ladder for
         // the next account they try from the same identifier.

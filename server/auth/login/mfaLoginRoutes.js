@@ -73,7 +73,11 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
     // are recovery codes. Only a secret that is there and does not decrypt
     // is "unreadable".
     const unreadable = !!userRow.mfa_secret && !secret;
-    let ok = mfa.verifyTotp(secret, code);
+    // A code from the step of the last accepted one, or earlier, is refused:
+    // one code, one sign-in, even inside the drift window.
+    const totp = mfa.verifyTotpStep(secret, code, { afterStep: userRow.mfa_last_step });
+    let ok = totp.ok;
+    if (totp.ok) await userStore.updateUser(pending.userId, { mfaLastStep: totp.timeStep });
     if (!ok) {
         // Fall back to a one-time recovery code (consumes it).
         const updated = await mfa.consumeRecoveryCode(userRow.mfa_recovery_codes, code);

@@ -197,3 +197,25 @@ test('otpauthUrl is byte-identical to otplib 12 keyuri (captured)', () => {
         assert.strictEqual(mfa.otpauthUrl(RFC_SECRET, label), expected, JSON.stringify(label));
     }
 });
+
+test('verifyTotpStep: the same code is refused the second time, a later step is accepted', () => {
+    const secret = mfa.generateSecret();
+    const now = Date.now();
+    const at = (offsetMs) => generateSync({ secret, epoch: Math.floor((now + offsetMs) / 1000) });
+    const first = mfa.verifyTotpStep(secret, at(0));
+    assert.strictEqual(first.ok, true);
+    assert.strictEqual(typeof first.timeStep, 'number');
+    // The person signs in again with the SAME code, still inside the window.
+    const replay = mfa.verifyTotpStep(secret, at(0), { afterStep: first.timeStep });
+    assert.strictEqual(replay.ok, false, 'one code, one sign-in');
+    // The previous step's code, which the drift window would otherwise accept.
+    assert.strictEqual(mfa.verifyTotpStep(secret, at(-30_000), { afterStep: first.timeStep }).ok, false);
+    // The next step is a new code.
+    const next = mfa.verifyTotpStep(secret, at(30_000), { afterStep: first.timeStep });
+    assert.strictEqual(next.ok, true);
+    assert.ok(next.timeStep > first.timeStep);
+    // A row that never stored a step (every account before this existed) is not locked out.
+    assert.strictEqual(mfa.verifyTotpStep(secret, at(0), { afterStep: null }).ok, true);
+    assert.strictEqual(mfa.verifyTotpStep(secret, at(0), { afterStep: undefined }).ok, true);
+    assert.strictEqual(mfa.verifyTotpStep(null, at(0)).ok, false);
+});

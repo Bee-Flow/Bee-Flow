@@ -398,3 +398,45 @@ describe('fan-out breadth control', () => {
         assert.strictEqual(r.delayMs, 0);
     });
 });
+
+describe('one account, several spellings', () => {
+    test('failures under the id, the name and the address share the account\'s counter and lock', async () => {
+        process.env.LOGIN_MAX_FAILURES_PER_ACCOUNT = '6';
+        const req = publicReq();
+        const resolved = { accountId: 'u-77' };
+        // Two wrong passwords under each spelling: six against the account, two per identifier.
+        for (const spelling of ['u-77', 'ann', 'Ann@Example.org']) {
+            await throttle.recordLoginFailure(req, spelling, resolved);
+            await throttle.recordLoginFailure(req, spelling, resolved);
+        }
+        const perName = await throttle.checkLoginAllowed(req, 'ann');
+        assert.strictEqual(perName.allowed, true, 'the name alone has only two failures');
+        const asAccount = await throttle.checkLoginAllowed(req, 'ann', resolved);
+        assert.strictEqual(asAccount.allowed, false, 'the account has six, whatever it was called');
+        assert.strictEqual(asAccount.scope, 'account');
+        const fourth = await throttle.checkLoginAllowed(req, 'a-fourth-spelling', resolved);
+        assert.strictEqual(fourth.allowed, false, 'a spelling never tried before is refused too');
+    });
+
+    test('a success under one spelling clears the account for every spelling', async () => {
+        process.env.LOGIN_MAX_FAILURES_PER_ACCOUNT = '3';
+        const req = publicReq();
+        const resolved = { accountId: 'u-78' };
+        for (let i = 0; i < 3; i++) await throttle.recordLoginFailure(req, 'bob', resolved);
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'bob@example.org', resolved)).allowed, false);
+        await throttle.recordLoginSuccess(req, 'bob@example.org', resolved);
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'bob@example.org', resolved)).allowed, true);
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'robert', resolved)).allowed, true, 'the account is clear under any spelling');
+        // The name "bob" itself failed three times and keeps its own lock, as it always did.
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'bob')).allowed, false);
+    });
+
+    test('an unknown name keeps its own counter and nothing else', async () => {
+        process.env.LOGIN_MAX_FAILURES_PER_ACCOUNT = '2';
+        const req = publicReq();
+        await throttle.recordLoginFailure(req, 'nobody', { accountId: null });
+        await throttle.recordLoginFailure(req, 'nobody');
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'nobody')).allowed, false);
+        assert.strictEqual((await throttle.checkLoginAllowed(req, 'somebody', { accountId: 'u-1' })).allowed, true);
+    });
+});
