@@ -353,6 +353,25 @@ test('an automation granted without a confirm runs exactly as before', async () 
     assert.strictEqual(S.dispatched[0].confirmLayer, true, 'the streaming round vouches for its confirm layer');
 });
 
+test('a visitor of a public embed is not a confirm layer: the round does not vouch for it', async () => {
+    // The chat route hands a visitor without an account a `guest_…` id. Whatever
+    // such a visitor clicks, it is not the owner's approval, so the dispatcher is
+    // told no confirm layer stood in front of the call and refuses a grant on "ask"
+    // on its own (toolDispatcher). This file pins the flag; the refusal is the
+    // dispatcher's own test.
+    reset({
+        drive: callThenAnswer('automation_send_invoice'),
+        tools: [...TOOLS, AUTOMATION],
+        config: { tools: { automations: { 'auto-1': {} } } },
+    });
+    const guest = 'guest_0123456789abcdef01234567';
+    await kit.chatWithAgentStream('agent-1', guest, 'hi', { userId: guest, encryptionKey: null, session: {} },
+        (type, data) => S.events.push([type, data]), null, { ephemeral: true });
+
+    assert.deepStrictEqual(S.dispatched.map(d => d.name), ['automation_send_invoice']);
+    assert.strictEqual(S.dispatched[0].confirmLayer, false, 'a visitor\'s turn carries no confirm layer');
+});
+
 test('nobody watching: the automation set to "ask" is withheld, and naming it anyway is refused', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),

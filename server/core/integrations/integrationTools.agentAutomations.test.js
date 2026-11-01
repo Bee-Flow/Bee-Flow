@@ -157,3 +157,25 @@ test('with the grants unreadable, a curated agent gets no automations at all', a
         policy.automationGrantsOf = real;
     }
 });
+
+// ── A visitor of a public embed ─────────────────────────────────────
+// A bound automation runs on the OWNER's connections whoever asks. The chat
+// route hands a visitor without an account a `guest_…` id, so that id is the
+// one signal that the asker is not one of the owner's colleagues.
+
+test('a visitor of a public embed is offered no automation bound to the agent', async () => {
+    lookups.length = 0;
+    const res = await getIntegrationTools({ userId: 'guest_0123456789abcdef01234567', session: {}, isAdmin: false,
+        agentConfig: { enabledIntegrations: ['gmail'] }, agentId: 'agt-bound' });
+    assert.deepStrictEqual(automationsOf(res), [], 'the owner never opened these to the public');
+    assert.deepStrictEqual(lookups, [], 'nothing was even looked up');
+    const curated = await getIntegrationTools({ userId: 'guest_0123456789abcdef01234567', session: {}, isAdmin: false,
+        agentConfig: { tools: { automations: { 'auto-1': {} } } }, agentId: 'agt-bound' });
+    assert.deepStrictEqual(automationsOf(curated), [], 'a grant to the agent is not a grant to the public');
+});
+
+test('the owner can open the bound automations to visitors for this one agent', async () => {
+    const res = await getIntegrationTools({ userId: 'guest_0123456789abcdef01234567', session: {}, isAdmin: false,
+        agentConfig: { tools: { automations: { 'auto-1': {} }, publicVisitorsMayCallAutomations: true } }, agentId: 'agt-bound' });
+    assert.deepStrictEqual(automationsOf(res), ['automation_send_invoice'], 'and the grant list still narrows what they get');
+});

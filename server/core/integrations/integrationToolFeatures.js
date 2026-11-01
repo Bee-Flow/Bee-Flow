@@ -258,7 +258,18 @@ function capabilityOrgId(userOrgId) {
  * the normalisation keeps an empty section on purpose (see
  * toolPolicy.normaliseToolsConfig).
  */
-async function addAgentCallableAutomations(tools, { userId, userOrgId, agentId, agentConfig, D }) {
+async function addAgentCallableAutomations(tools, opts) {
+    // A bound automation runs with its OWNER's connections whoever asks
+    // (automation/agentCallableTools.js, run policy `connections: 'owner'`).
+    // A visitor of a public embed is not offered it unless the owner opened
+    // that for this agent (core/agentRuntime/guestAsker.js).
+    const { withholdOwnerToolsFrom } = require('../agentRuntime/guestAsker');
+    if (withholdOwnerToolsFrom({ userId: opts.userId, agentConfig: opts.agentConfig })) return;
+    await offerBoundAutomations(tools, opts);
+}
+
+/** The bound set, narrowed to the owner's grant list. See addAgentCallableAutomations. */
+async function offerBoundAutomations(tools, { userId, userOrgId, agentId, agentConfig, D }) {
     const _plainObjectLike = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
     const _automationGrants = (() => {
         try {
