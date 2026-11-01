@@ -19,6 +19,7 @@ const {
     DATATABLE_ID_RE,
 } = require('./vocabulary');
 const { validateConnectors } = require('./connectorValidate');
+const { computedExprShapeError } = require('./computedExprGuard');
 
 /**
  * The SHAPE of `table.source` — where the rows of this table live.
@@ -59,16 +60,18 @@ function tableSourceErrors(source, where) {
     return errors;
 }
 
-// Conservative computed-expression guard: string, bounded, no statement
-// terminators or comment sequences that could smuggle extra SQL into DDL.
+// The computed expression lands inside `GENERATED ALWAYS AS (…) STORED`, so it
+// is read as the tokens an expression is made of (computedExprGuard.js): a
+// string that is bounded, balanced, and holds nothing but literals, column
+// names, expression keywords and listed functions.
 /**
  * @param {string} expr
  */
 function computedExprError(expr) {
     if (typeof expr !== 'string' || !expr.trim()) return 'computed.expr must be a non-empty string';
     if (expr.length > DATA_LIMITS.MAX_COMPUTED_EXPR) return `computed.expr exceeds ${DATA_LIMITS.MAX_COMPUTED_EXPR} chars`;
-    if (/;|--|\/\*|\*\//.test(expr)) return 'computed.expr may not contain ";", "--", or block comments';
-    return null;
+    const shape = computedExprShapeError(expr);
+    return shape ? `computed.expr is not an expression: ${shape}` : null;
 }
 
 /**
