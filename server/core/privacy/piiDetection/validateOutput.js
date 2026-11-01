@@ -158,10 +158,15 @@ function _report(report, status, entities, decision) {
  */
 function _warnLikelyPii(inputText, confidenceThreshold) {
     if (confidenceThreshold < 0.85) return;
+    // A log hint only: the first 4 KiB are enough, and the cap bounds the scan.
+    const sample = String(inputText).slice(0, 4096);
     const hints = [
-        /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(inputText) && 'email',
-        /(?:\+?\d[\s-]?){8,}/.test(inputText) && 'phone',
-        /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/.test(inputText) && 'IBAN',
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
+        /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(sample) && 'email',
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
+        /(?:\+?\d[\s-]?){8,}/.test(sample) && 'phone',
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
+        /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/.test(sample) && 'IBAN',
     ].filter(Boolean);
     if (!hints.length) return;
     log.warn(`[PiiDetection] Input contains likely PII (${hints.join(', ')}) but threshold is ${confidenceThreshold}. Detectors typically return 0.70–0.85 confidence for short texts; lower the threshold to 0.70 if you expect detections. (Org Privacy Shield → PII Detection → Confidence Threshold)`);
