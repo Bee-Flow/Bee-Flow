@@ -82,6 +82,9 @@ function safeInstallGrants(entity, refMap, unresolved = []) {
         integrations: [],
         tables,
         agent,
+        // Readers writing the page's database is the author's decision on the
+        // installed page, never a file's.
+        db: { viewersMayWrite: false },
     };
 }
 

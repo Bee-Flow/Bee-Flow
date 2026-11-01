@@ -6118,11 +6118,11 @@
     },
     "POST /api/webpages-preview/:id/db/batch": {
       "gate": "middleware",
-      "via": "requirePreviewToken"
+      "via": "requireDbWrite,requirePreviewToken"
     },
     "POST /api/webpages-preview/:id/db/exec": {
       "gate": "middleware",
-      "via": "requirePreviewToken"
+      "via": "requireDbWrite,requirePreviewToken"
     },
     "POST /api/webpages-preview/:id/db/query": {
       "gate": "middleware",
@@ -7148,6 +7148,9 @@
       "gate": "auth"
     },
     "PUT /api/webpages/:id/files": {
+      "gate": "auth"
+    },
+    "PUT /api/webpages/:id/grants/db": {
       "gate": "auth"
     },
     "PUT /apps/:id": {

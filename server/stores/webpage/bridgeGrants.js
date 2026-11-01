@@ -8,6 +8,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { parseJSON } = require('./shared');
 const managedParts = require('../managedPartsDefault');
+const { DEFAULT_BRIDGE_GRANTS, normalizeBridgeGrants, mergeGrantPatch } = require('./bridgeGrantsShape');
 
 // ── The managed-part guard for webpage writes ─────────────────────────
 //
@@ -63,153 +64,6 @@ function changedManagedGrants(before, after) {
     return keys;
 }
 
-// ── Bridge grants (runtime API allowlist) ─────────────────────────────
-//
-// The webpage iframe's window.beeflowAI / .beeflowAutomations /
-// .beeflowIntegrations bridges run acts-as-author. This column is the
-// single source of truth for what the author has explicitly enabled.
-
-// Default per-webpage public-share AI spend cap (rolling 24h, USD), overridable
-// per webpage via bridge_grants.ai.publicSpendCapUsd. Clamped to PUBLIC_AI_CAP_MAX.
-const PUBLIC_AI_DAILY_CAP_DEFAULT = (() => {
-    const v = parseFloat(process.env.PUBLIC_SHARE_AI_DAILY_CAP_USD || '');
-    return Number.isFinite(v) && v >= 0 ? v : 2.0;
-})();
-const PUBLIC_AI_CAP_MAX = 50;
-
-const DEFAULT_BRIDGE_GRANTS = {
-    // In-app defaults are permissive (author is authenticated). The `public*`
-    // fields govern ANONYMOUS external-share viewers and default OFF — spending
-    // the author's LLM budget for strangers must be opted into explicitly.
-    /** @type {{enabled: boolean, groundOnPage: boolean, publicEnabled: boolean, publicGroundOnPage: boolean, publicSpendCapUsd: number, publicDefaultTier: string, defaultTier?: string}} */
-    ai: {
-        enabled: true,
-        groundOnPage: true,
-        publicEnabled: false,
-        publicGroundOnPage: false,
-        publicSpendCapUsd: PUBLIC_AI_DAILY_CAP_DEFAULT,
-        publicDefaultTier: 'fast',
-    },
-    automations: [],
-    integrations: [],
-    // W3: table bindings (window.beeflowTables) and the Agent block. Both start at "nothing": no table
-    // bound, no agent chosen. As long as a key is NOT listed here, normalizeBridgeGrants silently throws
-    // it away — the column is rebuilt from this fixed shape on every read and write.
-    tables: [],
-    agent: null,
-};
-
-// ── table bindings ────────────────────────────────────────────────────
-//
-// One binding = one datatable that the page may read via window.beeflowTables (and write with
-// mode 'readwrite'). `publicColumns` is a SEPARATE, always narrower gate: the snapshot writer
-// renders bf-table server-side from exactly that list, so a column that is not in it never
-// leaves /w/<slug>.
-//
-// Every unreadable value NARROWS, never the other way round:
-//   - a mode that is not literally 'readwrite' becomes 'read';
-//   - unreadable `columns` become the EMPTY list — and empty here means NO column, not "all".
-//     There is deliberately no value that says "everything";
-//   - `publicColumns` is trimmed to a subset of `columns`.
-const TABLE_WRITE_MODE = 'readwrite';
-
-/** Column keys: only non-empty strings, de-duplicated, order preserved. */
-function normalizeColumnKeys(raw) {
-    if (!Array.isArray(raw)) return [];
-    /** @type {string[]} */
-    const out = [];
-    for (const c of raw) {
-        if (typeof c !== 'string') continue;
-        const key = c.trim();
-        if (!key || out.includes(key)) continue;
-        out.push(key);
-    }
-    return out;
-}
-
-function normalizeTableGrant(raw) {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-    const datatableId = typeof raw.datatableId === 'string' ? raw.datatableId.trim() : '';
-    if (!datatableId) return null;
-    const columns = normalizeColumnKeys(raw.columns);
-    return {
-        datatableId,
-        // Only the literal string 'readwrite' widens: 'write', 'RW', true, 1, undefined and a missing
-        // field are all 'read'.
-        mode: raw.mode === TABLE_WRITE_MODE ? TABLE_WRITE_MODE : 'read',
-        columns,
-        // Never wider than the binding itself. A column that the page does not even read internally
-        // cannot be public; with `columns` empty this list is by definition empty too.
-        publicColumns: normalizeColumnKeys(raw.publicColumns).filter(c => columns.includes(c)),
-    };
-}
-
-/**
- * The Agent block: ONE agent, by id, or nothing.
- *
- * Deliberately WITHOUT a `public*` counterpart. ai.ask is deliberately kept out of the anonymous
- * bridge (services/publicShareBridge.js only knows /ai/chat and /ai/stream), so no shape should
- * exist here in which an author could set "public agent". A public agent bridge first requires
- * the A1 confirmation policy and then gets its own explicit field.
- */
-function normalizeAgentGrant(raw) {
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-    const agentId = typeof raw.agentId === 'string' ? raw.agentId.trim() : '';
-    return agentId ? { agentId } : null;
-}
-
-function normalizeBridgeGrants(raw) {
-    const out = {
-        ai: { ...DEFAULT_BRIDGE_GRANTS.ai },
-        automations: [],
-        integrations: [],
-        tables: [],
-        agent: null,
-    };
-    if (raw && typeof raw === 'object') {
-        if (raw.ai && typeof raw.ai === 'object') {
-            out.ai.enabled = raw.ai.enabled !== false;
-            out.ai.groundOnPage = raw.ai.groundOnPage !== false;
-            if (typeof raw.ai.defaultTier === 'string') out.ai.defaultTier = raw.ai.defaultTier;
-            // Public-share (anonymous) AI — default OFF unless explicitly true.
-            out.ai.publicEnabled = raw.ai.publicEnabled === true;
-            out.ai.publicGroundOnPage = raw.ai.publicGroundOnPage === true;
-            if (typeof raw.ai.publicDefaultTier === 'string') out.ai.publicDefaultTier = raw.ai.publicDefaultTier;
-            const cap = parseFloat(raw.ai.publicSpendCapUsd);
-            if (Number.isFinite(cap) && cap >= 0) {
-                out.ai.publicSpendCapUsd = Math.min(cap, PUBLIC_AI_CAP_MAX);
-            }
-        }
-        if (Array.isArray(raw.automations)) {
-            out.automations = raw.automations
-                .filter(e => e && typeof e.automationId === 'string')
-                .map(e => ({ automationId: e.automationId, ...(e.label ? { label: String(e.label) } : {}) }));
-        }
-        if (Array.isArray(raw.integrations)) {
-            out.integrations = raw.integrations
-                .filter(e => e && typeof e.tool === 'string')
-                .map(e => ({
-                    tool: e.tool,
-                    ...(e.fixedArgs && typeof e.fixedArgs === 'object' ? { fixedArgs: e.fixedArgs } : {}),
-                    ...(e.label ? { label: String(e.label) } : {}),
-                }));
-        }
-        if (Array.isArray(raw.tables)) {
-            // De-duplicated on datatableId. Two bindings for the same table make "which one applies?"
-            // depend on whether a reader uses .find() or .filter() — and then sometimes the broader of
-            // the two wins. The last entry wins, just like the atomic upsert below.
-            const byId = new Map();
-            for (const e of raw.tables) {
-                const clean = normalizeTableGrant(e);
-                if (clean) byId.set(clean.datatableId, clean);
-            }
-            out.tables = [...byId.values()];
-        }
-        out.agent = normalizeAgentGrant(raw.agent);
-    }
-    return out;
-}
-
 /**
  * @param {string} webpageId
  */
@@ -221,7 +75,7 @@ async function getBridgeGrants(webpageId) {
 
 /**
  * Owner-only write. `patch` is a partial — any kind (`ai` / `automations` / `integrations` /
- * `tables` / `agent`) you supply replaces the corresponding slice wholesale. To incrementally
+ * `tables` / `agent` / `db`) you supply replaces the corresponding slice wholesale. To incrementally
  * add/remove a single grant, read first, mutate, write.
  *
  * `agent: null` is a valid value (clears the agent); only `undefined` leaves the current one in
@@ -229,16 +83,11 @@ async function getBridgeGrants(webpageId) {
  * @param {string} webpageId
  * @param {string} userId
  */
+
 async function updateBridgeGrants(webpageId, userId, patch, opts = {}) {
     await initDB();
     const current = await getBridgeGrants(webpageId);
-    const merged = normalizeBridgeGrants({
-        ai: patch?.ai !== undefined ? patch.ai : current.ai,
-        automations: patch?.automations !== undefined ? patch.automations : current.automations,
-        integrations: patch?.integrations !== undefined ? patch.integrations : current.integrations,
-        tables: patch?.tables !== undefined ? patch.tables : current.tables,
-        agent: patch?.agent !== undefined ? patch.agent : current.agent,
-    });
+    const merged = normalizeBridgeGrants(mergeGrantPatch(current, patch));
     // Only a change to a carried pointer is a managed write: narrowing a
     // table's public columns (the public share) or the AI switches is not.
     const managedKeys = changedManagedGrants(current, merged);
@@ -422,16 +271,11 @@ module.exports = {
     checkGrant,
 };
 
-/** @typedef {{enabled: boolean, groundOnPage: boolean, publicEnabled: boolean, publicGroundOnPage: boolean, publicSpendCapUsd: number, publicDefaultTier: string, defaultTier?: string}} AiGrant */
-
-/** @typedef {{ automationId: string, label?: string }} AutomationGrant */
-
-/** @typedef {{ tool: string, fixedArgs?: Record<string, any>, label?: string }} IntegrationGrant */
-
-/** @typedef {{ datatableId: string, mode: string, columns: string[], publicColumns: string[] }} TableGrant */
-
-/** @typedef {{ agentId: string }} AgentGrant */
-
-/** @typedef {{ ai: AiGrant, automations: AutomationGrant[], integrations: IntegrationGrant[], tables: TableGrant[], agent: AgentGrant | null }} BridgeGrants */
+/** @typedef {import('./bridgeGrantsShape').AiGrant} AiGrant */
+/** @typedef {import('./bridgeGrantsShape').AutomationGrant} AutomationGrant */
+/** @typedef {import('./bridgeGrantsShape').IntegrationGrant} IntegrationGrant */
+/** @typedef {import('./bridgeGrantsShape').TableGrant} TableGrant */
+/** @typedef {import('./bridgeGrantsShape').AgentGrant} AgentGrant */
+/** @typedef {import('./bridgeGrantsShape').BridgeGrants} BridgeGrants */
 
 /** @typedef {'integrations' | 'automations' | 'tables'} GrantList */

@@ -198,3 +198,24 @@ test('GET /:id/bindings turns an unexpected failure into a generic 500', async (
         assert.strictEqual(/10\.0\.0\.9/.test(JSON.stringify(body)), false);
     }));
 });
+
+test('PUT /:id/grants/db flips the readers-may-write switch for the owner only', async () => {
+    const written = [];
+    await withPatches([
+        [webpageStore, 'getWebpage', async (id, userId) => (userId === OWNER.id ? { id, userId } : null)],
+        [webpageStore, 'updateBridgeGrants', async (id, userId, patch) => { written.push([id, userId, patch]); return { db: patch.db }; }],
+    ], () => withServer(test, async (base) => {
+        const res = await fetch(`${base}/wp1/grants/db`, {
+            method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ viewersMayWrite: true }),
+        });
+        assert.strictEqual(res.status, 200);
+        assert.deepStrictEqual(await res.json(), { success: true, db: { viewersMayWrite: true } });
+        assert.deepStrictEqual(written, [['wp1', OWNER.id, { db: { viewersMayWrite: true } }]]);
+
+        const bad = await fetch(`${base}/wp1/grants/db`, {
+            method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ viewersMayWrite: 'yes' }),
+        });
+        assert.strictEqual(bad.status, 400);
+        assert.strictEqual(written.length, 1, 'a refused body writes nothing');
+    }));
+});

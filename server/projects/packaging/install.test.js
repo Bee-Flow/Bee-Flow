@@ -26,7 +26,7 @@ const {
     studioAppStorePath, blueprintStorePath,
 } = require('./installTestHarness');
 
-const { installBlueprint, collectGrantRequires, safeInstallGrants } = require('./install');
+const { installBlueprint, collectGrantRequires } = require('./install');
 const { buildManifest } = require('../../core/packaging/manifest');
 // The REAL normalizer and the REAL default. What install hands the store is
 // only half the proof — these two turn a patch into the row that would actually
@@ -443,6 +443,8 @@ test('A BLUEPRINT FROM ANOTHER ORG CANNOT PRE-ARM ANYTHING', async () => {
                     { tool: 'nextcloud_upload_file', fixedArgs: { token: 'LEAK-CANARY-ARGS' } },
                     { tool: 'gmail_send' },
                 ],
+                // A file may not open the page database to readers either.
+                db: { viewersMayWrite: true },
                 // An id from the installation this file came FROM. It is a
                 // plain string, so no $ref rewriting ever looks at it.
                 automations: [{ automationId: 'aut_from_their_instance', label: 'Send invoices' }],
@@ -479,9 +481,10 @@ test('A BLUEPRINT FROM ANOTHER ORG CANNOT PRE-ARM ANYTHING', async () => {
     //    normalizer knows, and the two kinds this file DOES name by their real
     //    names land on their empty starting value instead of on what was
     //    asked. A kind the normalizer does not know yet starts absent.
-    assert.deepStrictEqual(Object.keys(row).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
+    assert.deepStrictEqual(Object.keys(row).sort(), ['agent', 'ai', 'automations', 'db', 'integrations', 'tables']);
     assert.deepStrictEqual(row.tables, [], 'a file may not pre-bind one of the installer\'s tables');
     assert.strictEqual(row.agent, null, 'nor aim the page at an agent in the installer\'s account');
+    assert.deepStrictEqual(row.db, { viewersMayWrite: false }, 'nor let readers write the page database');
     assert.ok(!JSON.stringify(row).includes('tbl_theirs'));
     assert.ok(!JSON.stringify(row).includes('agt_theirs'));
 
@@ -611,110 +614,6 @@ test('collectGrantRequires survives a file that is not shaped like a Blueprint',
     assert.deepStrictEqual(collectGrantRequires({}), []);
     assert.deepStrictEqual(collectGrantRequires({ solution: { entities: { webpages: 'nope' } } }), []);
     assert.deepStrictEqual(collectGrantRequires({ solution: { entities: { webpages: [{ ref: 'w', bridgeGrants: 'nope' }] } } }), []);
-});
-
-// ═══ safeInstallGrants, on its own — belt and braces ═════════════════
-//
-// The install path above is protected TWICE, and the outer layer hides the
-// inner one: sanitizeManifest strips every `ai.public*` key before install ever
-// sees the manifest, so an end-to-end test cannot tell whether install's own
-// rule is doing anything. It is the same argument as the agent test above —
-// capture already writes `actAs: 'viewer'`, and the install re-applies it
-// anyway, because a rule that is only enforced upstream is a rule that
-// disappears the day somebody adds a second way in (upgrade, a script, a repair
-// tool). So the rule is asserted HERE, against a raw entity that still carries
-// everything a hand-made file could carry.
-
-test('safeInstallGrants writes the store default over ANY public-AI request', () => {
-    const patch = safeInstallGrants(
-        { bridgeGrants: { ai: { enabled: true, publicEnabled: true, publicGroundOnPage: true, publicSpendCapUsd: 50 } } },
-        new Map(),
-    );
-    assert.deepStrictEqual(patch.ai, { ...DEFAULT_BRIDGE_GRANTS.ai });
-    const row = normalizeBridgeGrants(patch);
-    assert.strictEqual(row.ai.publicEnabled, false);
-    assert.strictEqual(row.ai.publicGroundOnPage, false);
-    assert.strictEqual(row.ai.publicSpendCapUsd, DEFAULT_BRIDGE_GRANTS.ai.publicSpendCapUsd);
-});
-
-test('safeInstallGrants never carries an integration grant, fixedArgs or not', () => {
-    const patch = safeInstallGrants(
-        { bridgeGrants: { integrations: [{ tool: 'gmail_send' }, { tool: 'nextcloud_upload_file', fixedArgs: { path: '/x' } }] } },
-        new Map(),
-    );
-    assert.deepStrictEqual(patch.integrations, [],
-        'the bridge runs as the page author — a tool name IS the authority being asked for');
-});
-
-test('safeInstallGrants keeps an in-bundle ref and drops everything else', () => {
-    const refMap = new Map([['aut_1', 'real_aut_1']]);
-    const unresolved = [];
-    const patch = safeInstallGrants({
-        bridgeGrants: {
-            automations: [
-                { automationId: { $ref: 'aut_1' }, label: 'Run' },   // in bundle → kept
-                { automationId: { $ref: 'aut_gone' } },              // in file, never landed → dropped + named
-                { automationId: 'aut_from_their_instance' },         // another installation's row → dropped
-                { automationId: null },
-                'not-even-an-object',
-            ],
-        },
-    }, refMap, unresolved);
-
-    assert.deepStrictEqual(patch.automations, [{ automationId: 'real_aut_1', label: 'Run' }]);
-    assert.deepStrictEqual(unresolved, ['aut_gone'], 'a grant that could not be connected is named, not silently gone');
-});
-
-test('safeInstallGrants writes its five keys and only those', () => {
-    // updateBridgeGrants replaces the WHOLE column, so a grant kind install does
-    // not vouch for starts EMPTY on an installed page rather than arriving from
-    // a file. A table or agent named by a bare id (another installation's row)
-    // is such a grant; a kind the normalizer does not know (somethingNew) too.
-    const patch = safeInstallGrants(
-        { bridgeGrants: {
-            tables: [{ datatableId: 't', mode: 'readwrite' }],
-            agent: { agentId: 'a' },
-            somethingNew: true,
-        } },
-        new Map(),
-    );
-    assert.deepStrictEqual(Object.keys(patch).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
-
-    const column = normalizeBridgeGrants(patch);
-    assert.deepStrictEqual(Object.keys(column).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
-    assert.deepStrictEqual(column.tables, [], 'a bare table id names nothing in this bundle');
-    assert.strictEqual(column.agent, null);
-    assert.strictEqual(column.somethingNew, undefined);
-});
-
-test('safeInstallGrants carries an in-bundle table and agent, never public columns (F14)', () => {
-    const unresolved = [];
-    const patch = safeInstallGrants(
-        { bridgeGrants: {
-            tables: [
-                { datatableId: { $ref: 'dt_1' }, mode: 'readwrite', columns: ['name', 7], publicColumns: ['name'] },
-                { datatableId: { $ref: 'dt_gone' }, mode: 'read' },
-                { datatableId: null, mode: 'read' },
-            ],
-            agent: { agentId: { $ref: 'agt_1' } },
-        } },
-        new Map([['dt_1', 'tbl_real'], ['agt_1', 'agt_real']]),
-        unresolved,
-    );
-    assert.deepStrictEqual(patch.tables, [{ datatableId: 'tbl_real', mode: 'readwrite', columns: ['name'], publicColumns: [] }]);
-    assert.deepStrictEqual(patch.agent, { agentId: 'agt_real' });
-    assert.deepStrictEqual(unresolved, ['dt_gone']);
-    // And it survives the store's normaliser as written.
-    assert.deepStrictEqual(normalizeBridgeGrants(patch).tables, patch.tables);
-});
-
-test('safeInstallGrants treats a page with no grants and a page with junk grants alike', () => {
-    const empty = safeInstallGrants({}, new Map());
-    assert.deepStrictEqual(empty, {
-        ai: { ...DEFAULT_BRIDGE_GRANTS.ai }, automations: [], integrations: [], tables: [], agent: null,
-    });
-    assert.deepStrictEqual(safeInstallGrants({ bridgeGrants: 'nope' }, new Map()), empty);
-    assert.deepStrictEqual(safeInstallGrants({ bridgeGrants: { automations: 'nope', integrations: 'nope', tables: 'nope', agent: 'nope' } }, new Map()), empty);
 });
 
 // ═══ Where a Solution came from ══════════════════════════════════════

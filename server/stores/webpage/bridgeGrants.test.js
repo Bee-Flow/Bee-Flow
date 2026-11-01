@@ -158,7 +158,8 @@ test('a column written before W3 reads back as "nothing granted"', async () => {
     const back = await getBridgeGrants('wp1');
     assert.deepStrictEqual(back.tables, [], 'ontbrekend is geen tabelbinding, niet "alle tabellen"');
     assert.strictEqual(back.agent, null);
-    assert.deepStrictEqual(Object.keys(back).sort(), ['agent', 'ai', 'automations', 'integrations', 'tables']);
+    assert.deepStrictEqual(Object.keys(back).sort(), ['agent', 'ai', 'automations', 'db', 'integrations', 'tables']);
+    assert.deepStrictEqual(back.db, { viewersMayWrite: false }, 'a row from before the switch keeps readers read-only');
 });
 
 test('a write by someone who does not own the page changes nothing', async () => {
@@ -192,4 +193,20 @@ test('the fallback shape in shared.js mirrors the normalizer, key for key', () =
     const narrowed = normalizeBridgeGrants(fallback);
     assert.deepStrictEqual(narrowed.tables, []);
     assert.strictEqual(narrowed.agent, null);
+});
+
+test('db.viewersMayWrite is off unless literally true, and a partial patch keeps it', async () => {
+    reset();
+    assert.deepStrictEqual(normalizeBridgeGrants(null).db, { viewersMayWrite: false });
+    for (const raw of [{ db: {} }, { db: { viewersMayWrite: 'true' } }, { db: { viewersMayWrite: 1 } }, { db: null }]) {
+        assert.strictEqual(normalizeBridgeGrants(raw).db.viewersMayWrite, false, JSON.stringify(raw));
+    }
+    assert.strictEqual(normalizeBridgeGrants({ db: { viewersMayWrite: true } }).db.viewersMayWrite, true);
+
+    const on = await updateBridgeGrants('wp1', OWNER, { db: { viewersMayWrite: true } });
+    assert.strictEqual(on.db.viewersMayWrite, true);
+    const untouched = await updateBridgeGrants('wp1', OWNER, { ai: { enabled: false } });
+    assert.strictEqual(untouched.db.viewersMayWrite, true, 'a patch that does not name db leaves it');
+    const off = await updateBridgeGrants('wp1', OWNER, { db: { viewersMayWrite: false } });
+    assert.strictEqual(off.db.viewersMayWrite, false);
 });

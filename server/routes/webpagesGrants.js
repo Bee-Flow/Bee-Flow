@@ -75,6 +75,11 @@ const AutomationGrantBody = z.object({
     label: worded(LABEL_TEXT).optional(),
 }).strict();
 
+const DB_TEXT = 'viewersMayWrite is true or false.';
+const DbGrantBody = z.object({
+    viewersMayWrite: z.boolean({ error: typeError({ required: DB_TEXT, invalid: DB_TEXT }) }),
+}).strict();
+
 /**
  * Flatten a grantError (or unexpected throw) into the HTTP contract.
  * @param {import('express').Response} res
@@ -171,6 +176,37 @@ router.delete('/:id/grants/automations/:automationId', requireAuth, /** @param {
         res.json({ success: result.success, removed: result.removed, grants: result.grants });
     } catch (err) {
         sendError(res, err, 'Failed to revoke automation');
+    }
+});
+
+// The page database: whether readers admitted by audience may also WRITE through the raw SQL
+// bridges (beeflowDB.exec / batch). Off by default; the author decides, and only the author
+// can flip it. The owner lookup comes before the body check so that someone else's page
+// answers 404 whatever the body says.
+/**
+ * @typedef {import('express').Request<{ id: string }> & { ownedWebpage?: Awaited<ReturnType<typeof webpageStore.getWebpage>> }} OwnedReq
+ */
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function requireOwnedWebpage(req, res, next) {
+    const wp = await ownedWebpage(req, res);
+    if (!wp) return;
+    /** @type {OwnedReq} */ (req).ownedWebpage = wp;
+    next();
+}
+
+router.put('/:id/grants/db', requireAuth, requireOwnedWebpage, validate({ body: DbGrantBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
+    try {
+        const wp = /** @type {OwnedReq} */ (req).ownedWebpage;
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const saved = await webpageStore.updateBridgeGrants(wp.id, sessionUser(req).id, { db: { viewersMayWrite: req.body.viewersMayWrite } });
+        if (!saved) return res.status(404).json({ error: 'Webpage not found' });
+        res.json({ success: true, db: saved.db });
+    } catch (err) {
+        sendError(res, err, 'Failed to update the page database grant');
     }
 });
 

@@ -1,9 +1,16 @@
 /**
+ * What the signed preview claims decide in the bridge.
+ *
  * A webpage button that starts an automation names the logged-in visitor as
- * the run's starter (taken from the signed preview claims, never the request),
- * so an automation on runPolicy.connections = 'caller' acts for THEM. An
- * anonymous visitor has no starter. The run routes answer only for runs THIS
- * page started.
+ * the run's starter (taken from the claims, never the request), so an
+ * automation on runPolicy.connections = 'caller' acts for THEM. An anonymous
+ * visitor has no starter. The run routes answer only for runs THIS page
+ * started.
+ *
+ * The page database's write bridges (beeflowDB.exec / batch) belong to the
+ * author: a reader holds a viewer token, reads, and writes only when the
+ * author opted the page in (bridge_grants.db.viewersMayWrite), read at the
+ * moment of use.
  *
  * Run: cd server && node --test routes/webpagesPreview.callerStart.test.js
  */
@@ -21,6 +28,8 @@ const { serveRouter } = require('../testUtils/toolPiiGateHarness');
 const pass = (req, res, next) => next();
 let claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1' };
 const executions = [];
+let grants = { db: { viewersMayWrite: false } };
+const writes = [];
 let cancelled = [];
 const RUN_9 = { id: 'run-9', userId: 'author-1', status: 'success', output: { v: 'zebra' }, error: null, connectionsMode: 'caller', startedByUserId: 'viewer-1', triggerPayload: { _webpageId: 'wp-1' } };
 const runs = {
@@ -39,8 +48,13 @@ const restore = installResolveStub({
         llmBridgeLimiter: pass, sideEffectBridgeLimiter: pass, integrationBridgeLimiter: pass, dbBridgeLimiter: pass,
     },
     './webpagesPreviewTables': express.Router(),
-    '../stores/webpageDbStore': {},
-    '../stores/webpageStore': {},
+    '../stores/webpageDbStore': {
+        query: async () => ({ rows: [{ a: 1 }], columns: ['a'], truncated: false }),
+        exec: async (...args) => { writes.push(['exec', ...args]); return { changes: 1, lastInsertRowid: 1 }; },
+        batch: async (...args) => { writes.push(['batch', ...args]); return [{ changes: 1 }]; },
+        schema: async () => ({ tables: [] }),
+    },
+    '../stores/webpageStore': { getBridgeGrants: async () => grants },
     '../stores/automationStore': {
         getAutomation: async () => ({ id: 'auto-1', userId: 'author-1', definition: {} }),
         getRun: async (id) => runs[id] || null,
@@ -109,8 +123,56 @@ test('polling a run on the starter\'s own connections: the starter sees its valu
     assert.deepStrictEqual([hidden.stepId, hidden.status, 'input' in hidden, 'output' in hidden], ['s1', 'success', false, false]);
 });
 
-test('run status, steps and cancel answer only for runs this page started', async () => {
+async function post(route, body) {
+    const res = await fetch(`${base()}/wp-1${route}`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    return { status: res.status, body: await res.json() };
+}
+
+test('a viewer token reads the page database but may not write through exec or batch', async () => {
+    claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1', role: 'viewer' };
+    grants = { db: { viewersMayWrite: false } };
+    writes.length = 0;
+    const read = await post('/db/query', { sql: 'SELECT 1' });
+    assert.strictEqual(read.status, 200);
+    for (const [route, body] of [['/db/exec', { sql: 'DROP TABLE t' }], ['/db/batch', { statements: [{ sql: 'DROP TABLE t' }] }]]) {
+        const res = await post(route, body);
+        assert.strictEqual(res.status, 403, route);
+        assert.strictEqual(res.body.code, 'db_write_forbidden');
+    }
+    assert.deepStrictEqual(writes, [], 'nothing reached the store');
+});
+
+test('a token without any role claim is a viewer', async () => {
     claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1' };
+    grants = { db: { viewersMayWrite: false } };
+    assert.strictEqual((await post('/db/exec', { sql: 'DELETE FROM t' })).status, 403);
+});
+
+test('the author opting the page in lets a viewer write, read at the moment of use', async () => {
+    claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1', role: 'viewer' };
+    grants = { db: { viewersMayWrite: true } };
+    writes.length = 0;
+    assert.strictEqual((await post('/db/exec', { sql: 'INSERT INTO t VALUES (1)' })).status, 200);
+    assert.strictEqual((await post('/db/batch', { statements: [{ sql: 'INSERT INTO t VALUES (2)' }] })).status, 200);
+    assert.strictEqual(writes.length, 2);
+    // Switched off again: the next call is refused without a new token.
+    grants = { db: { viewersMayWrite: false } };
+    assert.strictEqual((await post('/db/exec', { sql: 'INSERT INTO t VALUES (3)' })).status, 403);
+    assert.strictEqual(writes.length, 2);
+});
+
+test('the owner token writes without consulting the grant', async () => {
+    claims = { viewerUserId: 'author-1', webpageId: 'wp-1', role: 'owner' };
+    grants = null; // a store that answers nothing must not matter for the author
+    writes.length = 0;
+    assert.strictEqual((await post('/db/exec', { sql: 'CREATE TABLE t (a)' })).status, 200);
+    assert.strictEqual(writes.length, 1);
+});
+
+test('run status, steps and cancel answer only for runs this page started', async () => {
+    claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1', role: 'viewer' };
     cancelled = [];
     const get = async (runId, tail = '') => (await fetch(`${base()}/wp-1/automations/runs/${runId}${tail}`)).status;
     assert.strictEqual(await get('run-9'), 200);

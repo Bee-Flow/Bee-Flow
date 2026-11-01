@@ -61,7 +61,7 @@ const FIXTURES = [
             const page = await webpageStore.createWebpage({ userId, name: `Page ${index}`, description: '', instructions: '', knowledgeBaseIds: [], settings: {} });
             return page.id;
         },
-        routes: ['GET /api/webpages/:id', 'PUT /api/webpages/:id', 'DELETE /api/webpages/:id'],
+        routes: ['GET /api/webpages/:id', 'PUT /api/webpages/:id', 'DELETE /api/webpages/:id', 'PUT /api/webpages/:id/grants/db'],
     },
     {
         kind: 'automation',

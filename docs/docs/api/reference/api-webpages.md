@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/webpages`
 
-50 routes, 45 with a request schema. Back to the [endpoint reference](../reference.md).
+51 routes, 46 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -271,6 +271,16 @@ No request schema.
 **Access:** Signed-in user · Capability `webpages` · middleware `trainingGate`
 
 No request schema.
+
+### `PUT /api/webpages/:id/grants/db`
+
+**Access:** Signed-in user · Capability `webpages` · middleware `trainingGate`, `requireOwnedWebpage`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `viewersMayWrite` | boolean | yes |  |
 
 ### `POST /api/webpages/:id/grants/integrations`
 

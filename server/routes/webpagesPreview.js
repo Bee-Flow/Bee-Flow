@@ -11,8 +11,8 @@
  *
  * Endpoints:
  *   POST /:id/db/query                      read-only SELECT
- *   POST /:id/db/exec                       INSERT/UPDATE/DELETE/CREATE/etc.
- *   POST /:id/db/batch                      array of statements in a transaction
+ *   POST /:id/db/exec                       INSERT/UPDATE/DELETE/CREATE/etc.  (author, or readers when opted in)
+ *   POST /:id/db/batch                      array of statements in a transaction  (same)
  *   GET  /:id/db/schema                     list tables + columns
  *
  *   POST /:id/ai/chat                       single-shot LLM call (text or JSON schema)
@@ -76,7 +76,7 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 
 /**
  * Request after requirePreviewToken, which stashes the verified token claims on it.
- * @typedef {import('express').Request<Record<string, string>> & { previewClaims: { userId: string, webpageId: string, viewerUserId: string | null, expiresAt?: number } }} PreviewReq
+ * @typedef {import('express').Request<Record<string, string>> & { previewClaims: { userId: string, webpageId: string, viewerUserId: string | null, role?: 'owner' | 'viewer', expiresAt?: number } }} PreviewReq
  */
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. A file
@@ -97,7 +97,22 @@ router.post('/:id/db/query', requirePreviewToken, dbBridgeLimiter, /** @param {P
     }
 });
 
-router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
+// Raw SQL writes are the author's. A reader admitted by audience holds a viewer token (the
+// claim is absent or anything but 'owner'); it writes only when the author opted the page in
+// (bridge_grants.db.viewersMayWrite). Read here, at the moment of use, not at token time.
+/**
+ * @param {PreviewReq} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function requireDbWrite(req, res, next) {
+    if (req.previewClaims.role === 'owner') return next();
+    const grants = await webpageStore.getBridgeGrants(req.previewClaims.webpageId);
+    if (grants?.db?.viewersMayWrite === true) return next();
+    return res.status(403).json({ error: 'Only the page author can write to the page database', code: 'db_write_forbidden' });
+}
+
+router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, requireDbWrite, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     const { sql, params } = req.body || {};
     try {
@@ -108,7 +123,7 @@ router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, /** @param {Pr
     }
 });
 
-router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
+router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, requireDbWrite, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     const { statements } = req.body || {};
     try {
