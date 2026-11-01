@@ -31,8 +31,17 @@ function classifyStreamError(error) {
 
     // Permanent errors — do not retry
     if (httpStatus === 413) return { retryable: false, errorType: 'payload_too_large', userMessage: 'Message too large — try sending fewer or smaller images' };
-    if (httpStatus === 400 && /failed to parse JSON|Invalid body/i.test(msg)) return { retryable: false, errorType: 'invalid_request_body', userMessage: msg };
-    if (httpStatus === 400) return { retryable: false, errorType: 'bad_request', userMessage: msg };
+    // The provider's own text goes to the log; what the client sees is fixed,
+    // so an upstream body, an internal path or a SQL fragment never crosses
+    // into the stream.
+    if (httpStatus === 400 && /failed to parse JSON|Invalid body/i.test(msg)) {
+        log.warn('[Stream] request body rejected by the AI service:', msg);
+        return { retryable: false, errorType: 'invalid_request_body', userMessage: 'The AI service did not accept the request body' };
+    }
+    if (httpStatus === 400) {
+        log.warn('[Stream] request rejected by the AI service:', msg);
+        return { retryable: false, errorType: 'bad_request', userMessage: 'The AI service rejected this request' };
+    }
     if (httpStatus === 401 || httpStatus === 403) return { retryable: false, errorType: 'auth', userMessage: 'Authentication error with AI service' };
 
     // Context overflow patterns (various providers)
@@ -40,8 +49,9 @@ function classifyStreamError(error) {
         return { retryable: false, errorType: 'context_overflow', userMessage: 'Message too large for the AI model — try a shorter conversation or fewer images' };
     }
 
-    // Unknown — don't retry
-    return { retryable: false, errorType: 'unknown', userMessage: msg || 'An unexpected error occurred' };
+    // Unknown — don't retry. The text stays in the log.
+    if (msg) log.warn('[Stream] unclassified error:', msg);
+    return { retryable: false, errorType: 'unknown', userMessage: 'An unexpected error occurred' };
 }
 
 /**

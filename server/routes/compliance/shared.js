@@ -16,6 +16,8 @@ const soaStore = require('../../stores/soaStore');
 const ismsDocStore = require('../../stores/ismsDocStore');
 const registry = require('../../compliance/registry');
 const { orgScope } = require('../../auth/orgScope');
+const { deploymentMode } = require('../../license');
+const { HttpError } = require('../../core/http/errors');
 const { fallback } = require('../../utils/bestEffort');
 
 // The HOME org, read through auth/orgScope.js. 'default' is the single-tenant
@@ -25,7 +27,12 @@ const { fallback } = require('../../utils/bestEffort');
  * @param {OrgScopeRequest | null} req
  */
 async function resolveOrgId(req) {
-    return (await orgScope(req)).homeOrgId || 'default';
+    const home = (await orgScope(req)).homeOrgId;
+    if (home) return home;
+    // On a shared instance a caller without a home organisation (a group-only
+    // membership) has no bucket of their own; the shared one is nobody's.
+    if (deploymentMode() === 'self-hosted') return 'default';
+    throw new HttpError(403, 'org_required', 'This action needs a home organisation.');
 }
 
 // Regulation id → response/report key ('GDPR' → overview.gdpr etc.).

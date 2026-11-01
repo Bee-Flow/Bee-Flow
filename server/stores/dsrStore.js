@@ -31,6 +31,7 @@ const db = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { addCalendarMonths } = require('../utils/calendarMonths');
+const { StoreInputError } = require('./lib/storeInputError');
 
 const initDB = makeStoreInit('DsrStore', _initDB);
 
@@ -94,11 +95,10 @@ const OPEN_STATUSES = ['pending', 'in_progress'];
 const SLA_MONTHS = 1;
 const EXTENDED_SLA_MONTHS = 3;
 
+// Art. 12(3): the period "may be extended by two further months where necessary"; extend applies that once.
 class AlreadyExtendedError extends Error {
     /** @param {number|string} id */
     constructor(id) {
-        // Art. 12(3): the period "may be extended by two further months where
-        // necessary"; dsrStore.extend applies that once, as one step.
         super(`DSR request ${id} was already extended — Art. 12(3) allows one extension by two further months`);
         this.name = 'AlreadyExtendedError';
         this.code = 'dsr_already_extended';
@@ -124,7 +124,7 @@ function _dueFrom(receivedAt, months) {
  */
 function _channel(v) {
     const c = String(v || 'public_form').toLowerCase();
-    if (!VALID_CHANNELS.has(c)) throw new Error(`invalid channel "${c}"`);
+    if (!VALID_CHANNELS.has(c)) throw new StoreInputError(`invalid channel "${c}"`);
     return c;
 }
 
@@ -163,9 +163,9 @@ function _withTimeline(row) {
  */
 async function createRequest(input) {
     await initDB();
-    if (!input || !input.subject_email) throw new Error('subject_email is required');
+    if (!input || !input.subject_email) throw new StoreInputError('subject_email is required');
     const type = String(input.request_type || 'access').toLowerCase();
-    if (!VALID_TYPES.has(type)) throw new Error(`invalid request_type "${type}"`);
+    if (!VALID_TYPES.has(type)) throw new StoreInputError(`invalid request_type "${type}"`);
     const channel = _channel(input.channel);
     const createdAt = input.received_at ? new Date(input.received_at) : new Date();
     const timeline = [_event('received', { at: createdAt, by: input.created_by || null, channel, text: null })];
@@ -200,15 +200,15 @@ async function createRequest(input) {
  */
 async function createManual(orgId, { subject_email, request_type, channel, notes, received_at, created_by } = {}) {
     await initDB();
-    if (!orgId) throw new Error('organization_id is required');
-    if (!subject_email) throw new Error('subject_email is required');
-    if (!created_by) throw new Error('created_by is required');
+    if (!orgId) throw new StoreInputError('organization_id is required');
+    if (!subject_email) throw new StoreInputError('subject_email is required');
+    if (!created_by) throw new StoreInputError('created_by is required');
     const type = String(request_type || 'access').toLowerCase();
-    if (!VALID_TYPES.has(type)) throw new Error(`invalid request_type "${type}"`);
+    if (!VALID_TYPES.has(type)) throw new StoreInputError(`invalid request_type "${type}"`);
     const ch = _channel(channel || 'other');
     const receivedAt = received_at ? new Date(received_at) : new Date();
-    if (Number.isNaN(receivedAt.getTime())) throw new Error('received_at is not a date');
-    if (receivedAt.getTime() > Date.now() + 60_000) throw new Error('received_at cannot be in the future');
+    if (Number.isNaN(receivedAt.getTime())) throw new StoreInputError('received_at is not a date');
+    if (receivedAt.getTime() > Date.now() + 60_000) throw new StoreInputError('received_at cannot be in the future');
     const now = new Date();
     const timeline = [
         _event('received', { at: receivedAt, by: created_by, channel: ch, text: notes ? String(notes).slice(0, 2000) : null }),
@@ -311,7 +311,7 @@ const STATUS_EVENT = { fulfilled: 'fulfilled', rejected: 'rejected', in_progress
  */
 async function updateStatus(orgId, id, status, { fulfilledBy, resultSummary, resultPayload } = {}) {
     await initDB();
-    if (!VALID_STATUSES.has(status)) throw new Error(`invalid status "${status}"`);
+    if (!VALID_STATUSES.has(status)) throw new StoreInputError(`invalid status "${status}"`);
     const fulfilledAt = status === 'fulfilled' ? new Date() : null;
     const payloadJson = resultPayload === undefined ? null : JSON.stringify(resultPayload);
     const kind = STATUS_EVENT[status];
@@ -338,7 +338,7 @@ async function updateStatus(orgId, id, status, { fulfilledBy, resultSummary, res
  */
 async function start(orgId, id, userId) {
     await initDB();
-    if (!userId) throw new Error('userId is required');
+    if (!userId) throw new StoreInputError('userId is required');
     const event = _event('started', { by: userId });
     await db.run(`
         UPDATE dsr_requests SET
@@ -363,11 +363,11 @@ async function start(orgId, id, userId) {
 async function extend(orgId, id, { reason, by } = {}) {
     await initDB();
     const text = String(reason || '').trim();
-    if (!text) throw new Error('reason is required');
+    if (!text) throw new StoreInputError('reason is required');
     const existing = await getRequest(orgId, id);
     if (!existing) return null;
     if (existing.extended_at) throw new AlreadyExtendedError(id);
-    if (!OPEN_STATUSES.includes(existing.status)) throw new Error(`cannot extend a ${existing.status} request`);
+    if (!OPEN_STATUSES.includes(existing.status)) throw new StoreInputError(`cannot extend a ${existing.status} request`);
     const extendedUntil = _dueFrom(existing.created_at, EXTENDED_SLA_MONTHS);
     const event = _event('extended', { by: by || null, text: text.slice(0, 2000), until: extendedUntil.toISOString() });
     const r = await db.run(`
@@ -394,8 +394,8 @@ async function extend(orgId, id, { reason, by } = {}) {
 async function verifyIdentity(orgId, id, { method, by } = {}) {
     await initDB();
     const status = method === 'email_link' ? 'verified_email_link' : method === 'manual' ? 'verified_manual' : null;
-    if (!status) throw new Error(`invalid identity method "${method}"`);
-    if (status === 'verified_manual' && !by) throw new Error('by is required for a manual verification');
+    if (!status) throw new StoreInputError(`invalid identity method "${method}"`);
+    if (status === 'verified_manual' && !by) throw new StoreInputError('by is required for a manual verification');
     const event = _event('identity_verified', { by: by || null, method });
     await db.run(`
         UPDATE dsr_requests SET
@@ -415,7 +415,7 @@ async function verifyIdentity(orgId, id, { method, by } = {}) {
  */
 async function appendTimeline(orgId, id, event) {
     await initDB();
-    if (!event || typeof event.kind !== 'string' || !event.kind.trim()) throw new Error('event.kind is required');
+    if (!event || typeof event.kind !== 'string' || !event.kind.trim()) throw new StoreInputError('event.kind is required');
     const safe = _event(event.kind.trim(), {
         ...event,
         text: event.text != null ? String(event.text).slice(0, 2000) : null,
@@ -436,7 +436,7 @@ async function appendTimeline(orgId, id, event) {
  */
 async function setVerifyTokenHash(orgId, id, hash) {
     await initDB();
-    if (!hash) throw new Error('hash is required');
+    if (!hash) throw new StoreInputError('hash is required');
     const r = await db.run(`
         UPDATE dsr_requests SET verify_token_hash = $3
         WHERE organization_id = $1 AND id = $2

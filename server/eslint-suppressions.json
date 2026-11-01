@@ -7544,7 +7544,7 @@
   },
   "routes/automation/events.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     }
   },
   "routes/automation/formPublic/page.js": {

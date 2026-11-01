@@ -484,14 +484,16 @@ nonce, a newline and the JSON body:
 X-BeeFlow-Signature: sha256=hex(HMAC_SHA256(secret, nonce + "\n" + body))
 ```
 
-- **Sign compact JSON.** The server parses the body and checks the signature
-  against `JSON.stringify(parsedBody)`, so sign the body in exactly that form:
-  no spaces or line breaks, and nothing `JSON.stringify` would write
-  differently (`1.0` comes back as `1`, and integer-like keys such as `"10"`
-  move to the front). A pretty-printed body fails with `Bad signature`.
-  Building the body with `JSON.stringify` and sending that same string, as in
-  the Node.js example below, always matches. A request without a JSON body is
-  checked as `{}`.
+- **Sign the bytes you send.** The server checks the signature over the
+  request body exactly as it arrived, so a pretty-printed body is fine as
+  long as the signed text and the sent text are the same bytes. (It also
+  accepts a signature over `JSON.stringify(parsedBody)`, the form older
+  senders used; a request without a JSON body is checked as `{}`.)
+- **Add a timestamp when you can.** With `X-BeeFlow-Timestamp: <unix seconds>`
+  the signed text becomes `nonce + "\n" + timestamp + "\n" + body`, and the
+  request is refused when the timestamp is more than five minutes from the
+  server's clock (`Timestamp outside the accepted window`). A captured
+  request then stops working on its own, before the nonce check.
 - **Use every nonce once.** A nonce is remembered per webhook for at least 24
   hours, and a repeat is refused. A random hex string per request is enough.
 - **The secret is shown once**, when the webhook is created or rotated.

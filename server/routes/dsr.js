@@ -47,6 +47,7 @@ const { maskRequest, maskTimeline, maskEmail, dossierRequest, dossierTimeline } 
 const verifyToken = require('../compliance/dsr/verifyToken');
 const signedPayload = require('../auth/lib/signedPayload');
 const discovery = require('../compliance/dsr/discovery');
+const { resolveAdminOrgId, requestError } = require('../compliance/dsr/routeHelpers');
 
 /** @typedef {import('pg').QueryResultRow} DsrRow a raw dsr_requests row */
 /** @typedef {import('express').Request & { dsrVerified?: { id: number, row: DsrRow } }} VerifyRequest */
@@ -202,15 +203,6 @@ async function _resolveOrgIdFromSubject(email) {
     }
 }
 
-/** @param {import('express').Request} req */
-// A failed lookup is a 503: 'default' would show this admin another tenant's requests.
-async function resolveAdminOrgId(req) {
-    const userId = req.session?.user?.id;
-    if (!userId) return 'default';
-    const u = await userStore.getUser(userId).catch((e) => { throw new HttpError(503, 'org_unavailable', `organisation lookup failed (${e?.code || 'error'})`); });
-    return u?.organizationId || 'default';
-}
-
 /** Org name + DPO address + locale for the letters. Best-effort, never throws. @param {string} orgId */
 async function letterContext(orgId) {
     /** @type {{ orgName: string | null, dpoEmail: string | null, locale: string }} */
@@ -310,7 +302,7 @@ async function sendAck(orgId, created, email, requestType) {
         log.warn('[DSR] could not mint verify token:', e.message);
     }
     try {
-        if (!emailService?.sendDsrAckEmail) throw new Error('email service unavailable');
+        if (!emailService?.sendDsrAckEmail) throw new HttpError(503, 'email_unavailable', 'email service unavailable');
         await emailService.sendDsrAckEmail({
             to: email,
             requestId: created.id,
@@ -367,7 +359,7 @@ router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody 
             ack: 'Your request has been received. We will respond within one month, as GDPR Art. 12(3) requires.',
         });
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
@@ -534,7 +526,7 @@ router.post('/requests/manual', requireAuth, requirePermission('admin_compliance
         const row = await dsrStore.getRequest(orgId, created.id);
         res.status(201).json(listRow(row));
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
@@ -558,7 +550,7 @@ router.get('/requests/:id', requireAuth, requirePermission('admin_compliance'), 
     // so a failure to record it is a failure to export."). The payload is
     // an explicit allow-list: ids and the request type, never the address.
     try {
-        if (typeof userStore.logAccessAudit !== 'function') throw new Error('access audit unavailable on this build');
+        if (typeof userStore.logAccessAudit !== 'function') throw new HttpError(503, 'audit_unavailable', 'access audit unavailable on this build');
         await userStore.logAccessAudit(
             'dsr.subject_viewed', 'dsr_request', String(row.id), actorId, null,
             { request_type: row.request_type }, orgId,
@@ -581,7 +573,7 @@ router.post('/requests/:id/start', requireAuth, requirePermission('admin_complia
         const updated = await dsrStore.start(orgId, id, actorId);
         res.json(listRow(updated));
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
@@ -611,7 +603,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
 
         // Tell the subject (Art. 12(3): within one month, with the reasons).
         try {
-            if (!emailService?.sendDsrExtensionEmail) throw new Error('email service unavailable');
+            if (!emailService?.sendDsrExtensionEmail) throw new HttpError(503, 'email_unavailable', 'email service unavailable');
             const letter = await letterContext(orgId);
             await emailService.sendDsrExtensionEmail({
                 to: updated.subject_email,
@@ -636,7 +628,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
         complianceEvents.emit(complianceEvents.EVENTS.DSR_EXTENDED, { orgId, requestType: updated.request_type, requestId: id });
         res.json(listRow(updated));
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
@@ -652,7 +644,7 @@ router.post('/requests/:id/verify-identity', requireAuth, requirePermission('adm
         if (note) updated = await dsrStore.appendTimeline(orgId, id, { kind: 'note', by: actorId, text: note });
         res.json(listRow(updated));
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
@@ -710,7 +702,7 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
 
         if (notify) {
             try {
-                if (!emailService?.sendDsrResultEmail) throw new Error('email service unavailable');
+                if (!emailService?.sendDsrResultEmail) throw new HttpError(503, 'email_unavailable', 'email service unavailable');
                 const letter = await letterContext(orgId);
                 await emailService.sendDsrResultEmail({
                     to: updated.subject_email,
@@ -736,7 +728,7 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
         complianceEvents.emit(complianceEvents.EVENTS.DSR_FULFILLED, { orgId, requestType: updated.request_type, requestId: id, status });
         res.json(listRow(updated));
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw requestError(e);
     }
 });
 
