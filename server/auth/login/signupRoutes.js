@@ -88,14 +88,37 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
     }
 
     // ── Handle invite token ──────────────────────────────────────
+    // The token comes either from the redeem link, which parked it on this
+    // pre-auth session and told the form to send the session marker, or in
+    // clear from the legacy `?invite=` link. The invitation is for one
+    // address: the account being made must carry it. It is claimed here,
+    // before anything is written, so one token makes one account; a claim
+    // whose signup then fails is handed back below.
     let inviteData = null;
+    let resolvedInviteToken = null;
     if (inviteToken) {
         const invitationStore = require('../../stores/invitationStore');
-        inviteData = await invitationStore.getInvitationByToken(inviteToken);
+        resolvedInviteToken = inviteToken === invitationStore.SESSION_INVITE_MARKER
+            ? (req.session?.pendingInviteToken || null)
+            : inviteToken;
+        inviteData = resolvedInviteToken ? await invitationStore.getInvitationByToken(resolvedInviteToken) : null;
         if (!inviteData) {
             return res.status(400).json({ error: 'Invalid or expired invitation. Please request a new one.' });
         }
+        if (!email || String(email).trim().toLowerCase() !== String(inviteData.email || '').toLowerCase()) {
+            return res.status(400).json({ error: 'This invitation was sent to a different e-mail address.', code: 'invite_email_mismatch' });
+        }
+        if (!(await invitationStore.markAccepted(resolvedInviteToken))) {
+            return res.status(400).json({ error: 'This invitation has already been used. Please request a new one.', code: 'invite_used' });
+        }
     }
+    /** Give a claimed invitation back when the account is not created after all. */
+    const releaseInvite = async () => {
+        if (!inviteData) return;
+        try { await require('../../stores/invitationStore').releaseClaim(inviteData.id); } catch (e) {
+            log.warn('[Signup] could not release the invitation claim:', /** @type {Error} */ (e).message);
+        }
+    };
 
     // ── Guards, account type, and placement ──────────────────────
     // Guards + org creation run BEFORE the user row exists, so a rejected signup
@@ -104,9 +127,11 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
     // identical path.
     let intent, placement;
     try {
-        intent = accountProvisioning.normalizeSignupIntent(req.body, { inviteData, inviteToken, channel: 'password' });
+        intent = accountProvisioning.normalizeSignupIntent(req.body, { inviteData, inviteToken: resolvedInviteToken, channel: 'password' });
+        if (intent.invite) intent.invite.claimed = true;
         placement = await accountProvisioning.prepareAccountPlacement(intent, { req });
     } catch (e) {
+        await releaseInvite();
         if (e instanceof accountProvisioning.SignupError) {
             // M-04: "that domain already has an organisation" is an answer only
             // the address owner is entitled to. When we can send mail, we send
@@ -155,6 +180,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
             await userStore.createUserWithSeatCheck(newUser, { strict: true }),
         );
     } catch (e) {
+        await releaseInvite();
         if (e instanceof accountProvisioning.SignupError) {
             return res.status(e.status).json(e.toResponse());
         }

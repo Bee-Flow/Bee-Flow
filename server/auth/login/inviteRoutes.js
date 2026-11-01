@@ -62,11 +62,13 @@ router.get('/redeem-invite/:token', async (req, res) => {
     }
 });
 
-// Read the invite token previously stashed by /redeem-invite. Returns the
-// resolved invitation payload (same shape as /invite/:token) plus the
-// underlying token so the signup flow can submit it. Reading does NOT clear
-// it — LoginPage reads it on every mount, and a refresh of the signup form
-// must not lose the invitation. The entry goes when it stops resolving (the
+// Read the invite previously stashed by /redeem-invite. Returns the resolved
+// invitation payload (same shape as /invite/:token) plus, as `token`, the
+// session marker the signup form sends back: the token itself stays on this
+// session and the signup resolves it from there, so it travels no further
+// than the redeem link already carried it. Reading does NOT clear it —
+// LoginPage reads it on every mount, and a refresh of the signup form must
+// not lose the invitation. The entry goes when it stops resolving (the
 // invitation was accepted, revoked or expired: see below), when login
 // regenerates the session (establishSession), or on POST /pending-invite/clear.
 router.get('/pending-invite', async (req, res) => {
@@ -81,7 +83,7 @@ router.get('/pending-invite', async (req, res) => {
     const org = await userStore.getOrganization(invitation.organization_id);
     res.json({
         valid: true,
-        token,
+        token: invitationStore.SESSION_INVITE_MARKER,
         email: invitation.email,
         organizationId: invitation.organization_id,
         orgName: org?.name || '',
