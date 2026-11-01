@@ -57,12 +57,12 @@ const ALL_TABLES = ['users', 'agents', 'automations', 'direct_conversations'];
 
 // ── Gezond schema ──────────────────────────────────────────────────────────
 
-test('alle sentinel-tabellen aanwezig ⇒ 200 { ok:true, schemaReady:true, build }', async () => {
+test('alle sentinel-tabellen aanwezig ⇒ 200 { ok:true, schemaReady:true } — en géén build-stempel', async () => {
     reset();
     getAllImpl = async () => ALL_TABLES.map((t) => ({ table_name: t }));
     const res = await fetch(base);
     assert.strictEqual(res.status, 200);
-    assert.deepStrictEqual(await res.json(), { ok: true, schemaReady: true, build: 'dev' });
+    assert.deepStrictEqual(await res.json(), { ok: true, schemaReady: true });
 });
 
 // ── Ongemigreerd schema ────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ test('ontbrekende kerntabel ⇒ ok:true maar schemaReady:false — en géén tab
     const res = await fetch(base);
     assert.strictEqual(res.status, 200);
     const raw = await res.text();
-    assert.deepStrictEqual(JSON.parse(raw), { ok: true, schemaReady: false, build: 'dev' });
+    assert.deepStrictEqual(JSON.parse(raw), { ok: true, schemaReady: false });
     for (const t of ALL_TABLES) {
         assert.ok(!raw.includes(t), `het ongeauthenticeerde endpoint mag tabelnaam "${t}" niet prijsgeven`);
     }
@@ -91,7 +91,7 @@ test('database onbereikbaar ⇒ 200 { ok:false, schemaReady:false } zonder foutt
     const res = await fetch(base);
     assert.strictEqual(res.status, 200, 'de probe degradeert, hij crasht niet');
     const raw = await res.text();
-    assert.deepStrictEqual(JSON.parse(raw), { ok: false, schemaReady: false, build: 'dev' });
+    assert.deepStrictEqual(JSON.parse(raw), { ok: false, schemaReady: false });
     for (const leak of ['ECONNREFUSED', '10.0.0.7', '5432', 'connect', ...ALL_TABLES]) {
         assert.ok(!raw.includes(leak), `responsedetail gelekt: ${leak}`);
     }
@@ -104,7 +104,7 @@ test('een synchroon werpende facade degradeert net zo netjes', async () => {
     getAllImpl = () => { throw new Error('pool is exhausted'); };
     const res = await fetch(base);
     assert.strictEqual(res.status, 200);
-    assert.deepStrictEqual(await res.json(), { ok: false, schemaReady: false, build: 'dev' });
+    assert.deepStrictEqual(await res.json(), { ok: false, schemaReady: false });
 });
 
 // ── De 30s-cache ───────────────────────────────────────────────────────────
@@ -136,5 +136,5 @@ test('gelijktijdige polls delen één in-flight query', async () => {
     release();
     const bodies = await Promise.all((await inflight).map((r) => r.json()));
     assert.strictEqual(dbCalls, 1);
-    for (const b of bodies) assert.deepStrictEqual(b, { ok: true, schemaReady: true, build: 'dev' });
+    for (const b of bodies) assert.deepStrictEqual(b, { ok: true, schemaReady: true });
 });

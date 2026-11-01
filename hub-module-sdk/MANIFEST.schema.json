@@ -117,6 +117,11 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "mv2. Route prefixes exempt from the host's per-request deadline (SSE / long-poll endpoints)."
+        },
+        "publicRoutes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Route prefixes (relative to the module's /api/mod/<id> mount) that answer WITHOUT a signed-in session: a webhook receiver, a public read. Every other module route requires one, before the capability gate; a module router gets no other gate from the host."
         }
       }
     },

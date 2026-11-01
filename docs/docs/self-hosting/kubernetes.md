@@ -146,7 +146,7 @@ tags:
    new replicas can coexist during the rollout.
 2. Verify with the same two endpoints:
    `GET /api/health` (check `appVersion`) and `GET /api/health/schema` (expect
-   `{"ok":true,"schemaReady":true,"build":"<commit>"}`).
+   `{"ok":true,"schemaReady":true}`).
 3. For positive proof — or if `schemaReady` stays `false` — run the migration runner to
    completion in one pod and check its exit code:
 

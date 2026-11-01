@@ -36,6 +36,7 @@ const { shieldNotebookPrompt } = require('../agents/notebooks/notebookAiShield')
 const { asEditor, text } = require('./notebooksShared');
 // requireAuth is the canonical gate from auth/permissions (see routes/notebooks.js).
 const { requireAuth } = require('../auth/permissions');
+const { spendLimiter } = require('../utils/perUserRateLimit');
 const { sessionUser } = require('../core/http/sessionUser');
 
 // ── What a caller may send ─────────────────────────────────────────
@@ -58,7 +59,11 @@ const VALID_GEN_TYPES = new Set([
 ]);
 const REMOVED_GEN_TYPES = new Set(['studyGuide', 'flashcards', 'quiz', 'audio_overview']);
 
-router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
+// Generations per user per minute (summary, quiz, ai-fill: each a model
+// call). NOTEBOOK_AI_RPM sets it (0 = no limit).
+const notebookAiLimiter = spendLimiter({ env: 'NOTEBOOK_AI_RPM', fallback: 30, name: 'notebook-ai' });
+
+router.post('/:id/generate/:type', requireAuth, notebookAiLimiter, validate({ body: GenerateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
         const userId = sessionUser(req).id;
         const notebookId = req.params.id;
@@ -250,7 +255,7 @@ ${shield.units[0]}${shield.addendum}`;
 // ── AI Fill Parameters ────────────────────────────────────────────
 // Extracts {{parameter}} placeholders from the document and fills them
 // using the notebook's attached sources.
-router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
+router.post('/:id/ai-fill', requireAuth, notebookAiLimiter, validate({ body: AiFillBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
         const userId = sessionUser(req).id;
         const nb = req.notebook;

@@ -109,6 +109,18 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `AUTOMATION_AI_CHECK_MAX_ERRORS` | `100` | The most problems collected while checking one AI answer. `0` = unlimited. |
 | `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
 
+## Per-user spend budgets
+
+Requests per minute one signed-in user may make on the routes that spend money or minutes on every call. Each is an integer with a generous default, counted fleet-wide when Redis is there, and `0` means no limit. A user over the budget gets a `429` with `Retry-After`.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DIRECT_CHAT_RPM` | `60` | Chat turns (each a model call). |
+| `IMAGE_GEN_RPM` | `30` | Images generated from the chat. |
+| `TRANSCRIPTION_UPLOAD_RPM` | `20` | Audio uploads for transcription. Checked before the file is read. |
+| `NOTEBOOK_AI_RPM` | `30` | Notebook generations (summary, quiz, ai-fill). |
+| `TEMPLATE_AI_RPM` | `20` | Template uploads, each of which starts the AI pipeline (context, knowledge base, parameters). |
+
 ## Redis
 
 | Variable | Default | Purpose |

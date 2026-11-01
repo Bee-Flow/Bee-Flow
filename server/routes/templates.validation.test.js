@@ -83,3 +83,8 @@ test('a valid update with a usable base reaches the store and answers as before'
     assert.strictEqual(writes().length, 1);
     assert.match(writes()[0], /UPDATE word_templates/);
 });
+
+test('a template upload is behind the template-ai spend limiter (TEMPLATE_AI_RPM)', () => {
+    const router = require('./templates');
+    assert.deepStrictEqual(h.limitersOn(router, 'post', '/upload'), ['template-ai']);
+});

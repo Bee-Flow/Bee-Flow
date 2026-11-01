@@ -33,3 +33,41 @@ test('degraded entitlement snapshot: 503 entitlement_unavailable, module router 
     assert.equal(res.body.error, 'entitlement_unavailable');
     assert.equal(reached, false);
 });
+
+// ── A session before anything else ─────────────────────────────────────────
+
+h.openGates(); // requireAuth becomes the harness's session check, read per request
+
+test('no session: 401 from the host, the module router is not reached', async () => {
+    let reached = false;
+    const router = express.Router();
+    router.get('/x', (_req, res) => { reached = true; res.json({ ok: true }); });
+    const handle = _composeHandler({ moduleId: 'm2', router, gateCapability: null });
+    const outer = express.Router();
+    outer.use(handle);
+    const api = h.serve('/', outer);
+    after(() => api.close());
+    const res = await api.call('GET', '/x', { user: null });
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error, 'Not authenticated');
+    assert.equal(reached, false);
+    const ok = await api.call('GET', '/x');
+    assert.equal(ok.status, 200);
+    assert.equal(reached, true);
+});
+
+test('a manifest publicRoutes prefix answers without a session; its siblings still need one', async () => {
+    const router = express.Router();
+    router.post('/hook/incoming', (_req, res) => res.json({ hook: true }));
+    router.get('/private', (_req, res) => res.json({ private: true }));
+    const handle = _composeHandler({ moduleId: 'm3', router, gateCapability: null, publicRoutes: ['/hook'] });
+    const outer = express.Router();
+    outer.use(handle);
+    const api = h.serve('/', outer);
+    after(() => api.close());
+    const hook = await api.call('POST', '/hook/incoming', { user: null, body: {} });
+    assert.equal(hook.status, 200);
+    assert.deepEqual(hook.body, { hook: true });
+    const priv = await api.call('GET', '/private', { user: null });
+    assert.equal(priv.status, 401);
+});

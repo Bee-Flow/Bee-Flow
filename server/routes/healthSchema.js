@@ -4,16 +4,16 @@
 /**
  * GET /api/health/schema — schema health probe that DEGRADES, never crashes.
  *
- * Always answers HTTP 200 with a small JSON object { ok, schemaReady, build }:
+ * Always answers HTTP 200 with a small JSON object { ok, schemaReady }:
  *   - ok          : the database answered the probe
  *   - schemaReady : all sentinel core tables exist according to information_schema
- *   - build       : the build stamp (utils/buildInfo), so that a deploy smoke check
- *                   can verify both version and schema in one call
  *
  * The endpoint is deliberately unauthenticated (deploy pipelines and orchestrators
  * poll it before any sessions exist), so the response NEVER contains table names
  * or error text — an unreachable database gives only ok:false plus a
- * log line server-side. Compare the sanity probe in boot/startupTasks.js, which historically did process.exit(1): this is the non-fatal variant.
+ * log line server-side. Nor the build stamp: the exact commit a public
+ * server runs is for signed-in callers (the version endpoints behind
+ * requireAuth), not for anyone who can reach the port. Compare the sanity probe in boot/startupTasks.js, which historically did process.exit(1): this is the non-fatal variant.
  *
  * The outcome is cached in-process for ~30 s (failures too), so that an aggressive poller or a liveness loop does not hammer the database.
  *
@@ -26,7 +26,6 @@
 
 const express = require('express');
 const db = require('../db');
-const { APP_BUILD_SHA } = require('../utils/buildInfo');
 const log = require('../telemetry/log');
 
 // Cheap sentinel: a cross-section of core tables from different store owners. If these four exist, the migration ladder has run.
@@ -76,7 +75,7 @@ const router = express.Router();
 
 router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { ok, schemaReady } = await getSchemaHealth();
-    res.json({ ok, schemaReady, build: APP_BUILD_SHA });
+    res.json({ ok, schemaReady });
 });
 
 module.exports = router;

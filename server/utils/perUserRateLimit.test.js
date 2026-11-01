@@ -197,3 +197,33 @@ test('check() resolves after the async Redis path decides (BFSF-459)', async () 
     assert.equal(await mw.check(req(), res), false);
     assert.equal(res.statusCode, 429);
 });
+
+// ── spendLimiter: the budget comes from the environment ───────────────────────
+
+const { spendLimiter } = require('./perUserRateLimit');
+
+test('spendLimiter: unset or junk in the environment means the fallback', async () => {
+    for (const env of [{}, { X_RPM: '' }, { X_RPM: 'lots' }, { X_RPM: '-3' }]) {
+        const mw = spendLimiter({ env: 'X_RPM', fallback: 2, name: 'spend-test', _env: env });
+        assert.equal(mw.max, 2);
+        assert.equal(mw.limiterName, 'spend-test');
+        const res = fakeRes();
+        assert.equal(await invoke(mw, req('a'), res), 'next');
+        assert.equal(await invoke(mw, req('a'), res), 'next');
+        assert.equal(await invoke(mw, req('a'), fakeRes()), 'denied');
+    }
+});
+
+test('spendLimiter: a value in the environment is the budget, and 0 switches the limit off', async () => {
+    const one = spendLimiter({ env: 'X_RPM', fallback: 50, name: 'spend-test', _env: { X_RPM: '1' } });
+    assert.equal(one.max, 1);
+    assert.equal(await invoke(one, req('b'), fakeRes()), 'next');
+    const denied = fakeRes();
+    assert.equal(await invoke(one, req('b'), denied), 'denied');
+    assert.equal(denied.statusCode, 429);
+
+    const off = spendLimiter({ env: 'X_RPM', fallback: 1, name: 'spend-test', _env: { X_RPM: '0' } });
+    assert.equal(off.max, 0);
+    assert.equal(off.limiterName, 'spend-test');
+    for (let i = 0; i < 5; i++) assert.equal(await invoke(off, req('c'), fakeRes()), 'next');
+});

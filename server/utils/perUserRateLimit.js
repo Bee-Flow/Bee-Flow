@@ -150,6 +150,8 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
     }
 
     function rateLimitMiddleware(req, res, next) { return run(req, res, next); }
+    // The name a route test can read off the chain (testUtils/routeHarness limitersOn).
+    rateLimitMiddleware.limiterName = ns;
 
     // Awaitable form for call sites that cannot be mounted as middleware: the
     // Redis path answers asynchronously, so reading a flag set by `next`
@@ -162,7 +164,31 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
     return rateLimitMiddleware;
 }
 
-module.exports = { perUserRateLimit };
+/**
+ * A per-user budget on a route that spends money or minutes (a model call, a
+ * transcription, an image), sized by the operator: `env` names the variable
+ * that holds the requests per window, `fallback` is the generous default when
+ * it is unset, and 0 switches the limit off. Always named, so the count is
+ * fleet-wide once Redis is there (`name` above).
+ *
+ *   const chatLimiter = spendLimiter({ env: 'DIRECT_CHAT_RPM', fallback: 60, name: 'direct-chat' });
+ *
+ * @param {{ env: string, fallback: number, name: string, windowMs?: number,
+ *   keyFn?: (req: Req) => string, costFn?: (req: Req) => number, _env?: Record<string, string | undefined> }} opts
+ * @returns {((req: Req, res: Res, next: Next) => unknown) & { limiterName: string, max: number }}
+ */
+function spendLimiter({ env, fallback, name, windowMs = 60_000, keyFn, costFn, _env = process.env }) {
+    const raw = _env[env];
+    const parsed = raw === undefined || raw === '' ? NaN : parseInt(raw, 10);
+    const max = Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+    if (max === 0) {
+        const open = (/** @type {Req} */ _req, /** @type {Res} */ _res, /** @type {Next} */ next) => next();
+        return Object.assign(open, { limiterName: name, max: 0 });
+    }
+    return Object.assign(perUserRateLimit({ windowMs, max, name, keyFn, costFn }), { max });
+}
+
+module.exports = { perUserRateLimit, spendLimiter };
 
 /** @typedef {{ session?: Partial<import('express').Request['session']>, ip?: string }} Req  the fields the limiter reads (also called outside Express with a bare carrier) */
 

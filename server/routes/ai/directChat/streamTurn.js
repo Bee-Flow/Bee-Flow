@@ -31,6 +31,7 @@ const { openSse } = require('../../../core/http/sseHelpers');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../../auth/permissions');
+const { spendLimiter } = require('../../../utils/perUserRateLimit');
 
 // The turn's pipeline phases. They share one mutable TurnState instead of
 // the handler's own bindings.
@@ -204,7 +205,11 @@ async function releaseTurn(turn) {
 
 // ─── Streaming Direct Chat ───────────────────────────────────────
 
-router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DirectTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+// Turns per user per minute: every one is a model call. DIRECT_CHAT_RPM sets
+// it (0 = no limit); the default is far above what a person types.
+const directChatLimiter = spendLimiter({ env: 'DIRECT_CHAT_RPM', fallback: 60, name: 'direct-chat' });
+
+router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ body: DirectTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DirectTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, sidePanelDocument, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
     const userId = sessionUser(req).id;
 

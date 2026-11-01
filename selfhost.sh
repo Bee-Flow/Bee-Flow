@@ -367,8 +367,8 @@ wait_for_health() { # returns 1 on timeout — caller decides how loud to be
     return 1
 }
 
-# /api/health/schema → {"ok":…,"schemaReady":…,"build":"<commit>"}. The result
-# is cached ~30s server-side, so poll rather than trusting a single read.
+# /api/health/schema → {"ok":…,"schemaReady":…}. The result is cached ~30s
+# server-side, so poll rather than trusting a single read.
 wait_for_schema() {
     local port; port="$(env_get SERVER_PORT)"; port="${port:-3001}"
     local url="http://localhost:${port}/api/health/schema"
@@ -377,8 +377,7 @@ wait_for_schema() {
     for _ in $(seq 1 24); do
         body="$(curl -fsS "$url" 2>/dev/null || true)"
         if printf '%s' "$body" | grep -Eq '"schemaReady"[[:space:]]*:[[:space:]]*true'; then
-            local build; build="$(printf '%s' "$body" | sed -n 's/.*"build"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
-            ok "Schema is ready${build:+ (build ${build})}"
+            ok "Schema is ready"
             return 0
         fi
         sleep 5

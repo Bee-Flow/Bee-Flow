@@ -17,6 +17,7 @@ const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { googleAdapter } = require('../../../core/providers');
 const { requireAuth } = require('../../../auth/permissions');
+const { spendLimiter } = require('../../../utils/perUserRateLimit');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
@@ -35,7 +36,10 @@ const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {
 
 // ─── Image Generation (Google Nano Banana 2) ──────────────────────
 
-router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateImageBody>, import('qs').ParsedQs>} */ req, res) => {
+// Images per user per minute, each a paid generation. IMAGE_GEN_RPM sets it (0 = no limit).
+const imageGenLimiter = spendLimiter({ env: 'IMAGE_GEN_RPM', fallback: 30, name: 'chat-image-gen' });
+
+router.post('/chat/generate-image', requireAuth, imageGenLimiter, validate({ body: GenerateImageBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateImageBody>, import('qs').ParsedQs>} */ req, res) => {
     const { prompt, aspectRatio, conversationId } = req.body;
     const userId = sessionUser(req).id;
 

@@ -35,6 +35,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { spendLimiter } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { contentDisposition, safeFileName } = require('../core/http/contentDisposition');
 const { z, worded, bodyOf, choice, idList, typeError } = require('../core/http/schemaParts');
@@ -105,7 +106,12 @@ async function authorizeKbIds(/** @type {import('express').Request} */ req, ids)
 
 // ── Upload template ──────────────────────────────────────────────
 
-router.post('/upload', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
+// Uploads per user per minute: each one starts the AI pipeline (context,
+// knowledge base, parameterisation). TEMPLATE_AI_RPM sets it (0 = no limit).
+// Before the multipart parser, so a refused request never buffers its file.
+const templateAiLimiter = spendLimiter({ env: 'TEMPLATE_AI_RPM', fallback: 20, name: 'template-ai' });
+
+router.post('/upload', requireAuth, templateAiLimiter, upload.single('file'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const knowledgeBaseIds = await authorizeKbIds(req, req.body.knowledgeBaseIds);
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });

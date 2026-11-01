@@ -87,14 +87,14 @@ const MODULES_DATA_ROOT = process.env.MODULES_DATA_DIR
  * @typedef {{ router: ModuleRouter, dispose?: () => unknown, tick?: () => unknown,
  *   tickIntervalMs?: number, initDBs?: () => Promise<unknown> }} ModuleInstance
  * @typedef {{ moduleId: string, version: string, router: ModuleRouter, instance: ModuleInstance,
- *   gateCapability: string | null, dir: string, inflight: number, draining: boolean, streamingRoutes: string[],
+ *   gateCapability: string | null, dir: string, inflight: number, draining: boolean, streamingRoutes: string[], publicRoutes: string[],
  *   handle?: import('express').RequestHandler }} DispatchEntry
  * @typedef {{ crashes: number[], lastActivationError: string | null, disposeTimeouts: number,
  *   capabilityConflicts: string[], healTerminal: string | null }} ModuleHealth
  * @typedef {{ phase: string, pct: number | null, error: string | null, detail: { missingPermissions?: string[] } | null }} InstallProgress
  */
 /** @type {Map<string, DispatchEntry>} */
-const _dispatch = new Map();          // moduleId → { router, handle, instance, gateCapability, version, dir, streamingRoutes }
+const _dispatch = new Map();          // moduleId → { router, handle, instance, gateCapability, version, dir, streamingRoutes, publicRoutes }
 /** @type {Map<string, ReturnType<typeof setInterval>>} */
 const _ticks = new Map();             // moduleId → interval timer
 /** @type {Map<string, ReturnType<typeof import('./packageRuntime')._projectDescriptors>>} */
