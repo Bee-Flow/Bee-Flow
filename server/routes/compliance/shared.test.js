@@ -102,11 +102,34 @@ test('activeResultsFilter falls back to the row column for a check the registry 
 
 // ── org resolution ─────────────────────────────────────────────────────────
 
-test('resolveOrgId: session org, the legacy `default` fallback, and a store failure that is not a crash', async () => {
-    assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u1' } } }), 'orgA');
-    assert.equal(await shared.resolveOrgId({}), 'default', 'no session');
-    assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u-orgless' } } }), 'default', 'user without an org');
-    assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u-boom' } } }), 'default', 'store error');
+// The `default` fallback is the single-tenant install's org key, so it exists
+// in self-hosted mode only; on a shared (cloud) instance a caller without a
+// home org is refused instead of being handed the shared bucket.
+test('resolveOrgId: session org, and the `default` fallback (no session, no org, store failure) in self-hosted mode', async () => {
+    const saved = process.env.DEPLOYMENT_MODE;
+    process.env.DEPLOYMENT_MODE = 'self-hosted';
+    try {
+        assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u1' } } }), 'orgA');
+        assert.equal(await shared.resolveOrgId({}), 'default', 'no session');
+        assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u-orgless' } } }), 'default', 'user without an org');
+        assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u-boom' } } }), 'default', 'store error');
+    } finally {
+        if (saved === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = saved;
+    }
+});
+
+test('resolveOrgId: on a shared instance the same three cases are a 403 org_required, never `default`', async () => {
+    const saved = process.env.DEPLOYMENT_MODE;
+    process.env.DEPLOYMENT_MODE = 'cloud';
+    const orgRequired = (e) => e?.status === 403 && e?.code === 'org_required';
+    try {
+        assert.equal(await shared.resolveOrgId({ session: { user: { id: 'u1' } } }), 'orgA', 'a home org still resolves');
+        await assert.rejects(shared.resolveOrgId({}), orgRequired, 'no session');
+        await assert.rejects(shared.resolveOrgId({ session: { user: { id: 'u-orgless' } } }), orgRequired, 'user without an org');
+        await assert.rejects(shared.resolveOrgId({ session: { user: { id: 'u-boom' } } }), orgRequired, 'store error');
+    } finally {
+        if (saved === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = saved;
+    }
 });
 
 test('resolveOrgIdStrict/requireOrgId refuse instead of falling back to `default`', async () => {

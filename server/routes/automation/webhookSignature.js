@@ -67,7 +67,7 @@ function bodyForms(rawBody, body) {
  * @param {number} now        milliseconds
  */
 function timestampIsFresh(timestamp, now) {
-    if (!/^\d{1,12}$/.test(timestamp)) return false;
+    if (!isDigits(timestamp, 12)) return false;
     return Math.abs(Math.floor(now / 1000) - Number(timestamp)) <= TIMESTAMP_SKEW_SECONDS;
 }
 
@@ -79,6 +79,17 @@ function rejectionMessage(reason) {
     if (reason === 'missing') return 'Missing signature or nonce';
     if (reason === 'stale_timestamp') return 'Timestamp outside the accepted window';
     return 'Bad signature';
+}
+
+/**
+ * One to `max` ASCII digits and nothing else (a plain loop: the input is a request header).
+ * @param {string} s
+ * @param {number} max
+ */
+function isDigits(s, max) {
+    if (s.length < 1 || s.length > max) return false;
+    for (const c of s) if (c < '0' || c > '9') return false;
+    return true;
 }
 
 module.exports = { checkWebhookSignature, rejectionMessage, hmacHeader, TIMESTAMP_SKEW_SECONDS };
