@@ -224,6 +224,10 @@ win:
   # Signing comes from the environment (CSC_LINK / CSC_KEY_PASSWORD, or an
   # Azure Trusted Signing profile). Unsigned builds still produce a working
   # installer — with a SmartScreen warning, which the release notes say.
+  # `publisherName` (the subject name of the signing certificate) is what
+  # makes the updater refuse an update that is not signed by us. Set it the
+  # moment Windows releases are signed; with it set, an unsigned update is
+  # refused outright, so it cannot go in while signing is optional.
   signtoolOptions:
     signingHashAlgorithms: [sha256]
 

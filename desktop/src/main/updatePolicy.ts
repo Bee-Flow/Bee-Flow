@@ -146,13 +146,18 @@ export function channelFor(choice: 'stable' | 'beta'): string {
  * the kind of organisation that self-hosts this product — points
  * BEEFLOW_UPDATE_FEED_URL at their own static file host, and gets the generic
  * provider instead.
+ *
+ * The feed names the binary the app installs next, so it travels over TLS: a
+ * plain-http feed is taken from a development build only, where it points at
+ * the developer's own machine.
  */
-export function feedFromEnv(env: NodeJS.ProcessEnv): { provider: 'generic'; url: string } | null {
+export function feedFromEnv(env: NodeJS.ProcessEnv, packaging: Packaging = 'unknown'): { provider: 'generic'; url: string } | null {
     const url = (env.BEEFLOW_UPDATE_FEED_URL ?? '').trim();
     if (!url) return null;
     try {
         const parsed = new URL(url);
-        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+        const insecureAllowed = parsed.protocol === 'http:' && packaging === 'dev';
+        if (parsed.protocol !== 'https:' && !insecureAllowed) return null;
         return { provider: 'generic', url: url.replace(/\/+$/, '') };
     } catch {
         return null;

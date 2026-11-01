@@ -187,6 +187,18 @@ describe('isServerUrl / isPackagedShellUrl', () => {
         assert.equal(isServerUrl('https://bee.example.com:8443/', context), false, 'a different port is a different origin');
     });
 
+    it('keeps the trust to the configured path when the server lives under one', () => {
+        const sub: PolicyContext = { serverUrl: 'https://intranet.example.com/beeflow' };
+        assert.equal(isServerUrl('https://intranet.example.com/beeflow', sub), true);
+        assert.equal(isServerUrl('https://intranet.example.com/beeflow/', sub), true);
+        assert.equal(isServerUrl('https://intranet.example.com/beeflow/app/chat?x=1', sub), true);
+        assert.equal(isServerUrl('https://intranet.example.com/beeflow-old/app', sub), false, 'a sibling path is another application');
+        assert.equal(isServerUrl('https://intranet.example.com/wiki/', sub), false);
+        assert.equal(isServerUrl('https://intranet.example.com/', sub), false);
+        assert.equal(permissionDecision('media', 'https://intranet.example.com/wiki/', sub), false);
+        assert.equal(senderTrust('https://intranet.example.com/wiki/', sub), 'other');
+    });
+
     it('recognises only the shipped pages', () => {
         assert.equal(isPackagedShellUrl('file:///opt/app/dist/ui/shell/index.html'), true);
         assert.equal(isPackagedShellUrl('file:///opt/app/dist/ui/shell/nested/deep.html'), false);

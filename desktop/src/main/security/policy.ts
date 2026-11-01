@@ -105,20 +105,43 @@ function schemeOf(url: string): string {
 /**
  * Is this URL the server the app is configured against?
  *
- * The main origin only. This is the test for everything that grants something
- * — the IPC channels meant for the server's pages, OS permissions, the client
- * header — so the single sign-on origin deliberately does not pass it.
+ * The main origin, and when the server is installed under a path
+ * (https://intranet.example/beeflow) that path too: another application on
+ * the same host is not the server. This is the test for everything that grants
+ * something — the IPC channels meant for the server's pages, OS permissions,
+ * the client header — so the single sign-on origin deliberately does not pass
+ * it.
  */
 export function isServerUrl(url: string, context: PolicyContext): boolean {
-    if (!context.serverUrl) return false;
+    return sameOrigin(url, context.serverUrl) && underPath(url, context.serverUrl);
+}
+
+function sameOrigin(url: string, serverUrl: string): boolean {
+    if (!serverUrl) return false;
     const target = originOf(url);
-    const server = originOf(context.serverUrl);
+    const server = originOf(serverUrl);
     return Boolean(target && server && target === server);
+}
+
+/** Does the URL's path sit at or under the server's configured path? A server at the root takes every path. */
+function underPath(url: string, serverUrl: string): boolean {
+    const base = pathOf(serverUrl);
+    if (!base) return true;
+    const target = pathOf(url);
+    return target === base || target.startsWith(`${base}/`);
+}
+
+function pathOf(url: string): string {
+    try {
+        return new URL(url).pathname.replace(/\/+$/, '');
+    } catch {
+        return '';
+    }
 }
 
 /** The server's main origin, or its single sign-on origin. For navigation only. */
 export function isServerOrigin(url: string, context: PolicyContext): boolean {
-    if (isServerUrl(url, context)) return true;
+    if (sameOrigin(url, context.serverUrl)) return true;
     const target = originOf(url);
     const api = context.apiOrigin ? originOf(context.apiOrigin) : null;
     return Boolean(target && api && target === api);

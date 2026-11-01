@@ -226,6 +226,24 @@ cat beeflow_core-YYYY-MM-DD.dump | docker exec -i beeflow-postgres \
 
 The `beeflow-data` volume holds short-lived state only — losing it is recoverable from Postgres on restart.
 
+## Encryption at rest
+
+What the application seals itself, and what it leaves to the storage layer:
+
+- **Chat content.** Messages are encrypted per user with a data key that only that
+  user's password, PIN or recovery key can unwrap (AES-256-GCM, Argon2id). The
+  server keeps no key material that can read them, so a database dump on its own
+  cannot either.
+- **Secrets the server uses itself.** OAuth tokens, stored API keys and organisation
+  vault entries are encrypted with `MASTER_ENCRYPTION_KEY`.
+- **Files are stored as received.** Uploads (audio recordings, knowledge-base and
+  notebook sources, attachments) go to the object-storage bucket (`S3_BUCKET`), or to
+  the local storage directory when no bucket is configured, without an application
+  layer of encryption. Give that layer its own: server-side encryption on the bucket,
+  or an encrypted volume under the local directory.
+- **Backups** carry the same split: sealed rows stay sealed in a `pg_dump`, a copy of
+  the files is plain. Encrypt the backup location.
+
 ## Swap Postgres for managed
 
 Bee Flow needs Postgres 15+ with `pgvector` (the bundled image is `pgvector/pgvector:pg15`) if you

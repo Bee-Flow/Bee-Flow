@@ -37,10 +37,13 @@ export class Updater {
             return;
         }
 
-        const feed = feedFromEnv(options.env ?? process.env);
+        const env = options.env ?? process.env;
+        const feed = feedFromEnv(env, options.packaging);
         if (feed) {
             autoUpdater.setFeedURL({ provider: 'generic', url: feed.url });
             options.log.info('Updater', `using the update feed at ${feed.url}`);
+        } else if ((env.BEEFLOW_UPDATE_FEED_URL ?? '').trim()) {
+            options.log.warn('Updater', 'BEEFLOW_UPDATE_FEED_URL is set but not an https:// address; updates come from the default feed');
         }
 
         autoUpdater.autoDownload = false; // decided per check, from settings
