@@ -114,13 +114,27 @@ test('the cache-hit variants report exactly what the fresh scan reported', async
 });
 
 test('no detector, a degraded detector and a failing detector', async () => {
+    // No guard installed: with the shield on and the mode fail_closed (the
+    // shield's default) the scan the org asked for cannot happen, so the turn
+    // is refused; under fail_open the feature is simply off, as before.
     fx.detect = () => null;
-    const absent = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
-    assert.deepEqual(absent.report, { status: 'guard_absent' });
+    const absentOpen = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report }));
+    assert.deepEqual(absentOpen.report, { status: 'guard_absent' });
+    const absentClosed = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
+    assert.equal(absentClosed.threw.privacyUnavailable, true);
+    assert.equal(absentClosed.threw.degradedReason, 'guard_not_installed');
+    assert.deepEqual(absentClosed.report, { status: 'failed_closed' });
+    // The global flag alone, mode unset: no shield asked for the scan.
+    fx.aiConfig = { piiDetectionEnabled: true, piiDetectionAction: 'block' };
+    const absentGlobal = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, null, null, null, { report }));
+    assert.deepEqual(absentGlobal.report, { status: 'guard_absent' });
+    fx.aiConfig = { piiDetectionEnabled: false, piiDetectionAction: 'block' };
 
     fx.detect = () => ({ hasPii: false, entities: [], guardAbsent: true });
-    const ownWordsOnly = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
+    const ownWordsOnly = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report }));
     assert.deepEqual(ownWordsOnly.report, { status: 'guard_absent' });
+    const ownWordsClosed = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
+    assert.deepEqual(ownWordsClosed.report, { status: 'failed_closed' });
 
     fx.detect = () => ({ hasPii: false, entities: [], degraded: true, degradedReason: 'guard_unreachable' });
     const open = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report }));
@@ -129,10 +143,16 @@ test('no detector, a degraded detector and a failing detector', async () => {
     assert.equal(closed.threw.privacyUnavailable, true);
     assert.deepEqual(closed.report, { status: 'failed_closed' });
 
+    // A detector that throws is a gate failure: the failure policy decides,
+    // not the catch-all on its own.
     fx.detect = () => { throw new Error('socket hang up'); };
-    const crashed = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
-    assert.equal(crashed.returned, null, 'the catch-all still fails open');
-    assert.deepEqual(crashed.report, { status: 'failed_open' });
+    const crashedOpen = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report }));
+    assert.equal(crashedOpen.returned, null, 'fail_open: the catch-all lets the text through');
+    assert.deepEqual(crashedOpen.report, { status: 'failed_open' });
+    const crashedClosed = await reportOf((report) => validateInputForPii(user(fresh('a@b.nl please')), false, SHIELD(), null, null, { report }));
+    assert.equal(crashedClosed.threw.privacyUnavailable, true);
+    assert.match(crashedClosed.threw.degradedReason, /^gate_error: socket hang up/);
+    assert.deepEqual(crashedClosed.report, { status: 'failed_closed' });
 });
 
 test('the statuses are distinct per exit', async () => {

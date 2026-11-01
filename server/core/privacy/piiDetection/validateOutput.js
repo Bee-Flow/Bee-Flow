@@ -228,6 +228,17 @@ async function validateOutputForPii(content) {
         // string, an undici cause object) would otherwise make the catch block
         // itself throw. The input path already guards this at :744.
         if (e?.message?.includes('PII Detected') || e?.privacyUnavailable) throw e;
+        // The gate itself failed. Same policy as a degraded scan above: an
+        // operator who set fail_closed gets the reply suppressed rather than a
+        // response nobody screened; the default stays fail-open.
+        if (aiConfig.piiFailureMode === 'fail_closed') {
+            log.warn('[PiiDetection] Output validation failed — fail_closed: suppressing response');
+            const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: PII detection is temporarily unavailable.'));
+            err.privacyUnavailable = true;
+            err.privacyUnavailableKind = 'unavailable';
+            err.degradedReason = `gate_error: ${e instanceof Error ? e.message : String(e)}`;
+            throw err;
+        }
         log.warn('[PiiDetection] Output validation unavailable, allowing (fail-open)');
     }
 }

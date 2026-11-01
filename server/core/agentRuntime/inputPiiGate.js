@@ -76,7 +76,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
             applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d);
         }
     } catch (piiError) {
-        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx });
+        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx, failureMode: orgShield?.piiFailureMode || null });
     }
     return out;
 }
@@ -182,12 +182,14 @@ function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
 
 /**
  * A thrown PII verdict as a `moderationViolation`, or null when the error is
- * not one (service unavailable etc. → fail-open, the turn continues).
+ * not one and the org's policy is fail-open (the turn continues). Under
+ * fail_closed any other error — the gate failed before it could answer — is
+ * a block as well: the org asked for the scan to be a precondition.
  * @param {Error & { piiEntities?: Array<{ label?: string, category?: string }>, privacyUnavailable?: boolean, degradedReason?: string, privacyUnavailableKind?: string }} piiError
- * @param {{ onEvent: import('./chatStream/turnState').OnEvent, eventCtx: GuardrailEventCtx }} opts
+ * @param {{ onEvent: import('./chatStream/turnState').OnEvent, eventCtx: GuardrailEventCtx, failureMode?: string | null }} opts
  * @returns {string | null}
  */
-function piiBlockFromError(piiError, { onEvent, eventCtx }) {
+function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null }) {
     if (piiError.message?.includes('PII Detected')) {
         log.warn('[GuardrailsRunner] PII detected in user input:', piiError.message);
         const entityLabels = piiError.piiEntities
@@ -238,6 +240,20 @@ function piiBlockFromError(piiError, { onEvent, eventCtx }) {
             action_taken: 'blocked',
         }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:piiBlockFromError#2', e));
         return violation;
+    }
+    if (failureMode === 'fail_closed') {
+        // The gate itself failed before it could give a verdict (the config
+        // read, the detector module...). The org chose fail_closed, so an
+        // error is a block, not a pass — the same block a degraded scan gets.
+        log.warn('[GuardrailsRunner] 🛑 PII gate failed — blocking (fail_closed):', piiError.message);
+        guardrailEventStore.logGuardrailEvent({
+            ...eventCtx,
+            violation_type: 'pii_unavailable',
+            violation_categories: 'privacy_protection_unavailable',
+            direction: 'input',
+            action_taken: 'blocked',
+        }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:piiBlockFromError#3', e));
+        return 'Privacy protection temporarily unavailable — please try again in a moment';
     }
     // Other errors (service unavailable etc.) → fail-open, log and continue
     return null;

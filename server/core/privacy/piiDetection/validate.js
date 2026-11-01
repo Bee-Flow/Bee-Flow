@@ -81,6 +81,14 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         orgShieldConfig?.piiFailureMode ||
         aiConfig.piiFailureMode ||
         'fail_closed';
+    // Whether a guard that is not installed at all is a refusal. With the
+    // Privacy Shield switched on the org asked for every message to be
+    // scanned, and under fail_closed "no detector" is as degraded as an
+    // unreachable one (the DLP runner has treated it that way all along). The
+    // global flag alone, with the mode left unset, keeps the old meaning: the
+    // guard is not installed, so the feature is simply off.
+    const guardRequired = (!!orgShieldConfig?.enabled && piiFailureMode === 'fail_closed')
+        || aiConfig.piiFailureMode === 'fail_closed';
 
     const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user');
     if (!lastUserMessage) {
@@ -89,6 +97,12 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         return null;
     }
 
+    // A user message is one text block plus attachments: the attachment
+    // pipeline appends extracted text to that first block (agentRuntime/
+    // attachmentKinds.js appendTextPart, after its own scan) and only pushes a
+    // new block when there is none, so the first text block IS the user-authored
+    // text. Later blocks are images and the hydrator's "[previously attached]"
+    // placeholders — nothing a person typed.
     const rawContent = lastUserMessage.content;
     /** @type {string | null | undefined} */
     let inputText;
@@ -170,7 +184,18 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         if (hit.hasPii) {
             const categoryList = [...new Set(hit.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
             if (MASKING_ACTIONS.has(piiAction)) {
-                const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, hit.entities, existingTokenMap, vaultUserId);
+                // The vault is a database read: a failure here, after PII was
+                // found, must take the failure policy, not slip past it as a
+                // plain exception the caller reads as "nothing to report".
+                let tokenised;
+                try {
+                    tokenised = await _tokenizeWithVault(inputText, hit.entities, existingTokenMap, vaultUserId);
+                } catch (e) {
+                    const err = _gateFailure(e, piiFailureMode, report);
+                    if (err) throw err;
+                    return null;
+                }
+                const { tokenizedText, tokenMap } = tokenised;
                 log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
                 _report(report, 'found', hit.entities, 'tokenised');
                 return { tokenizedText, tokenMap, entities: hit.entities };
@@ -192,11 +217,24 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         // options.onProgress lets the chat runtimes report "part 3/6" while a
         // multi-window scan runs — minutes of otherwise silent wait.
         let result = await detectPii(inputText, enabledCategories, confidenceThreshold, { onProgress: options.onProgress });
-        if (!result) { _report(report, 'guard_absent'); return null; } // Guard not installed → feature off, fail open
-        // No guard, but the org's own words/patterns ran in Node: same
-        // fail-open as null for what the guard would have found, and the
-        // custom matches are still acted on below.
-        if (result.guardAbsent && !result.hasPii) { _report(report, 'guard_absent'); return null; }
+        // null: the guard is not installed. `guardAbsent` without a find: no
+        // guard either, but the org's own words/patterns ran in Node and found
+        // nothing (a find is acted on below). Under `guardRequired` the scan
+        // the org asked for could not happen, which is a refusal; otherwise
+        // the feature is off and the text goes on, as it always did.
+        if (!result || (result.guardAbsent && !result.hasPii)) {
+            if (guardRequired) {
+                log.warn('[PiiDetection] guard not configured — fail_closed: blocking message');
+                const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: the PII Guard service is not installed. Ask your administrator to install it, or to switch the Privacy Shield off.'));
+                err.privacyUnavailable = true;
+                err.privacyUnavailableKind = 'unavailable';
+                err.degradedReason = 'guard_not_installed';
+                _report(report, 'failed_closed');
+                throw err;
+            }
+            _report(report, 'guard_absent');
+            return null;
+        }
 
         // Detection couldn't fully run (guard unreachable, or the GLiNER model
         // isn't ready so only the regex tier answered). Trusting this would
@@ -317,12 +355,39 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
     } catch (e) {
         // Propagate deliberate gate outcomes: the PII block and the
         // fail-closed "protection unavailable" block must not be swallowed.
-        if (e.message?.includes('PII Detected') || e.privacyUnavailable) throw e;
-        log.error('[PiiDetection] Validation failed:', e.message);
-        log.warn('[PiiDetection] Service unavailable, allowing content (fail-open)');
-        _report(report, 'failed_open');
+        if (e?.message?.includes('PII Detected') || e?.privacyUnavailable) throw e;
+        const err = _gateFailure(e, piiFailureMode, report);
+        if (err) throw err;
         return null;
     }
+}
+
+/**
+ * What a failure of the gate ITSELF means — the vault read during
+ * tokenisation, a detector that threw, anything that is not a verdict. The
+ * scan may already have found PII by then, so under fail_closed the message is
+ * refused with the same "protection unavailable" error a degraded scan gives;
+ * under fail_open it is logged and the text goes on unmasked, as before.
+ * @param {unknown} e
+ * @param {string} piiFailureMode
+ * @param {PiiGateReport | null} report
+ * @returns {PiiError | null}  the error to throw, or null to fail open
+ */
+function _gateFailure(e, piiFailureMode, report) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error('[PiiDetection] Validation failed:', message);
+    if (piiFailureMode === 'fail_closed') {
+        log.warn('[PiiDetection] Gate error — fail_closed: blocking message');
+        const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: PII detection is temporarily unavailable. Please try again shortly.'));
+        err.privacyUnavailable = true;
+        err.privacyUnavailableKind = 'unavailable';
+        err.degradedReason = `gate_error: ${message}`;
+        _report(report, 'failed_closed');
+        return err;
+    }
+    log.warn('[PiiDetection] Service unavailable, allowing content (fail-open)');
+    _report(report, 'failed_open');
+    return null;
 }
 
 module.exports = { validateInputForPii, validateOutputForPii };
