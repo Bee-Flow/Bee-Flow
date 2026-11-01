@@ -147,6 +147,12 @@ services:
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
+      # Self-registration and password login. The server reads both, so they
+      # have to reach the container: a value in .env that stops here would
+      # leave the server on its own default (signups open). The self-host
+      # template keeps signups off; admins create the accounts.
+      - ALLOW_SIGNUPS=${ALLOW_SIGNUPS:-false}
+      - ALLOW_PASSWORD_LOGIN=${ALLOW_PASSWORD_LOGIN:-true}
       # ── Licence validation ──
       # The server verifies licence-key JWTs against the licence public key
       # (server/license/verify.js: inline PEM env var, or a file path, or a

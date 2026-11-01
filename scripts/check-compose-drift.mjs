@@ -6,7 +6,7 @@
  * registry stack that selfhost.sh runs, the module-hub overlay, the security
  * override). Each repeats a few facts nobody keeps in one place, and a copy
  * that is bumped in one file only ships a stack that behaves differently
- * depending on how it was started. Two checks:
+ * depending on how it was started. Three checks:
  *
  *   1. images: the same third-party image (pgvector, redis, rustfs, umami,
  *      ollama, ...) carries the same tag in every file that names it. Bee Flow's
@@ -18,6 +18,11 @@
  *      docker-compose.from-registry.yml, the file selfhost.sh runs. A profile
  *      missing from the list leaves its containers running after --down. A
  *      profile of a file selfhost.sh never runs goes in OTHER_PROFILES, with why.
+ *   3. the self-host template: every variable .env.selfhost.example sets reaches
+ *      docker-compose.from-registry.yml as `${NAME...}`. A key the template
+ *      offers but no service reads is a setting the operator believes they made
+ *      and the container never sees (ALLOW_SIGNUPS=false was one). A key that
+ *      the compose file is not meant to read goes in COMPOSE_ONLY, with why.
  *
  * Reads the files as text (no YAML dependency, nothing to install). A file it
  * cannot read fails the check, it never skips. Run: npm run lint:compose-drift
@@ -49,6 +54,38 @@ export const OTHER_PROFILES = [
         why: 'the dev stack runs the private license-server beside the server; selfhost.sh never runs docker-compose.dev.yml',
     },
 ];
+
+/** The .env template selfhost.sh copies; its keys must reach SELFHOST_FILE. */
+export const ENV_TEMPLATE = '.env.selfhost.example';
+
+/** Template keys that SELFHOST_FILE is not meant to read: { key, why }. */
+export const COMPOSE_ONLY = [];
+
+/** The variables a .env template sets (uncommented `NAME=` lines), in order. */
+export function templateKeys(text) {
+    return [...text.matchAll(/^([A-Z_][A-Z0-9_]*)=/gm)].map((m) => m[1]);
+}
+
+/**
+ * @param {string} templateText  .env.selfhost.example
+ * @param {string} composeText   docker-compose.from-registry.yml
+ * @returns {string[]}
+ */
+export function envTemplateProblems(templateText, composeText, composeOnly = COMPOSE_ONLY) {
+    const problems = [];
+    const keys = templateKeys(templateText);
+    const reads = (key) => new RegExp(`\\$\\{${key}[:}]`).test(composeText);
+    for (const key of keys) {
+        if (reads(key)) continue;
+        if (composeOnly.some((o) => o.key === key)) continue;
+        problems.push(`${ENV_TEMPLATE} sets ${key}, which no service in ${SELFHOST_FILE} reads (pass it through as \${${key}:-...}, or add it to COMPOSE_ONLY with the reason)`);
+    }
+    for (const o of composeOnly) {
+        if (!keys.includes(o.key)) problems.push(`COMPOSE_ONLY names ${o.key}, which ${ENV_TEMPLATE} no longer sets; remove the entry`);
+        else if (reads(o.key)) problems.push(`COMPOSE_ONLY names ${o.key}, which ${SELFHOST_FILE} reads now; remove the entry`);
+    }
+    return problems;
+}
 
 const FIRST_PARTY = [/^\$\{/, /^ghcr\.io\/bee-flow\//, /^beeflow-/];
 
@@ -176,6 +213,15 @@ export function check(root = ROOT, files = FILES) {
         problems.push('selfhost.sh: cannot read');
     }
     if (all === null && !problems.some((p) => p.startsWith('selfhost.sh'))) problems.push('selfhost.sh: no ALL_PROFILES="..." line');
+    if (files.includes(SELFHOST_FILE)) {
+        try {
+            const template = fs.readFileSync(path.join(root, ENV_TEMPLATE), 'utf8');
+            const compose = fs.readFileSync(path.join(root, SELFHOST_FILE), 'utf8');
+            problems.push(...envTemplateProblems(template, compose));
+        } catch {
+            problems.push(`${ENV_TEMPLATE}: cannot read`);
+        }
+    }
     problems.push(...imageProblems(parsed));
     if (all) problems.push(...profileProblems(parsed, all));
     return problems;

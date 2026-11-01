@@ -117,6 +117,12 @@ services:
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.beeflow.nl}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-none}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
+      # Self-registration and password login. The server reads both, so they
+      # have to reach the container: a value in .env that stops here would
+      # leave the server on its own default (signups open). The self-host
+      # template keeps signups off; admins create the accounts.
+      - ALLOW_SIGNUPS=${ALLOW_SIGNUPS:-false}
+      - ALLOW_PASSWORD_LOGIN=${ALLOW_PASSWORD_LOGIN:-true}
       # Nextcloud integration (optional)
       - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
       - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
