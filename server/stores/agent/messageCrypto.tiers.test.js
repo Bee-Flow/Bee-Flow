@@ -205,7 +205,7 @@ test('a disabled surface stays plaintext even though a key resolved', async () =
 });
 
 // ── A read degrades, a write refuses ────────────────────────────────────────
-// The policy layer used to answer every failure with the plaintext context, so
+// Without this rule the policy layer answers every failure with the plaintext context, so
 // a transient database error on an encrypted org wrote cleartext rows with one
 // log line to show for it. A caller that is about to store rows now says so
 // (`purpose: 'write'`) and gets a 503 instead; reads keep today's fallback.

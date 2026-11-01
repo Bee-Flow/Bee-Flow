@@ -62,7 +62,7 @@ router.get('/redeem-invite/:token', async (req, res) => {
     }
 });
 
-// Read the invite previously stashed by /redeem-invite. Returns the resolved
+// Read the invite that /redeem-invite parked on the session. Returns the resolved
 // invitation payload (same shape as /invite/:token) plus, as `token`, the
 // session marker the signup form sends back: the token itself stays on this
 // session and the signup resolves it from there, so it travels no further

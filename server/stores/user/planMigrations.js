@@ -44,7 +44,7 @@ const SUBSCRIPTION_COLUMNS = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_recovery_codes TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_recovery_codes_generated_at TIMESTAMPTZ`,
     // The 30-second step of the last accepted authenticator code: a code is
-    // good once, so a step at or before this one is refused (auth/mfa.js).
+    // good once, so a step not newer than the stored one is refused (auth/mfa.js).
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_last_step INTEGER`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token_hash TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ`,

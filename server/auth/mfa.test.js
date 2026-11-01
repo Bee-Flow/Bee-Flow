@@ -214,7 +214,7 @@ test('verifyTotpStep: the same code is refused the second time, a later step is 
     const next = mfa.verifyTotpStep(secret, at(30_000), { afterStep: first.timeStep });
     assert.strictEqual(next.ok, true);
     assert.ok(next.timeStep > first.timeStep);
-    // A row that never stored a step (every account before this existed) is not locked out.
+    // A row that never stored a step (an account with no accepted code yet) is not locked out.
     assert.strictEqual(mfa.verifyTotpStep(secret, at(0), { afterStep: null }).ok, true);
     assert.strictEqual(mfa.verifyTotpStep(secret, at(0), { afterStep: undefined }).ok, true);
     assert.strictEqual(mfa.verifyTotpStep(null, at(0)).ok, false);
