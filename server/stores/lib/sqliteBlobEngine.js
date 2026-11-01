@@ -52,6 +52,7 @@
 const { createFlusher } = require('./sqliteBlobFlush');
 const { createHandleLoader } = require('./sqliteBlobHandles');
 const { createReadApi, createWriteApi, normalizeParams } = require('./sqliteBlobStatements');
+const { createStatementRunner } = require('./sqliteStatementRunner');
 const { createStorageOps, createCloseOps } = require('./sqliteBlobLifecycle');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -62,6 +63,7 @@ const { fallback } = require('../../utils/bestEffort');
  *   workDir: string, buildKey: (ownerId: string, id: string) => string, metaTable: string, logPrefix: string,
  *   entityLabel: string, storage: Pick<typeof import('../storageStore'), 'isAvailable' | 'streamFile' | 'uploadFile' | 'deleteFile'>,
  *   runQuery: typeof import('../../db').run, assertServable?: (ownerId: string, id: string) => Promise<unknown>,
+ *   statementTimeoutMs?: number,
  * }} config
  *   workDir: absolute dir for local .db materialisation (wrapper resolves its env-var fallback).
  *   buildKey: (ownerId, id) => RustFS object key. metaTable: Postgres table for the db_sha256/db_size
@@ -69,9 +71,10 @@ const { fallback } = require('../../utils/bestEffort');
  *   logPrefix: console tag, e.g. 'StudioAppDB' → `[StudioAppDB] …`. entityLabel: error noun, e.g.
  *   'Studio App DB' → `Studio App DB handle owned by another user — …`. storage: storageStore-shaped,
  *   injected — see header. runQuery: wrappers pass db.run. assertServable: optional guard run before
- *   a handle is served.
+ *   a handle is served. statementTimeoutMs: the deadline of one statement (default from
+ *   SQLITE_STATEMENT_TIMEOUT_MS, see sqliteStatementRunner.js; 0 = none, in-process).
  */
-function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery, assertServable } = /** @type {NonNullable<Parameters<typeof createSqliteBlobEngine>[0]>} */ ({})) {
+function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery, assertServable, statementTimeoutMs } = /** @type {NonNullable<Parameters<typeof createSqliteBlobEngine>[0]>} */ ({})) {
     if (!workDir || typeof buildKey !== 'function' || !metaTable || !logPrefix || !entityLabel
         || !storage || typeof runQuery !== 'function') {
         throw new Error('createSqliteBlobEngine requires workDir, buildKey, metaTable, logPrefix, entityLabel, storage, runQuery');
@@ -104,11 +107,22 @@ function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entit
     const { scheduleFlush, flushNow, maybeEvict } = createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix, entityLabel });
     const { getHandle, localPathFor } = createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQuery, metaTable, entityLabel, assertServable });
 
+    // Statements run in the engine's statement process under a deadline
+    // (./sqliteStatementRunner.js); the handles above stay the flusher's.
+    const runner = createStatementRunner({
+        ...(statementTimeoutMs !== undefined ? { timeoutMs: statementTimeoutMs } : {}), entityLabel, logPrefix,
+    });
+
     // ── Public API (module-internal — see security note at top) ─────
-    const { getReadHandle, query, schema } = createReadApi({ getHandle });
-    const { getWriteHandle, exec, batch, applyMigration } = createWriteApi({ getHandle, scheduleFlush, entityLabel });
+    const { getReadHandle, query, schema } = createReadApi({ getHandle, runner });
+    const { getWriteHandle, exec, batch, applyMigration } = createWriteApi({ getHandle, scheduleFlush, entityLabel, runner });
     const { sizeBytes, reset } = createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel });
-    const { flush, invalidate, closeAll } = createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabel });
+    const { flush, invalidate, closeAll: closeHandles } = createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabel });
+
+    /** Flush and close every handle, then end the statement process. */
+    async function closeAll() {
+        try { await closeHandles(); } finally { runner.stop(); }
+    }
 
     // Best-effort flush on shutdown. The handlers must not throw or the
     // process will exit non-zero on SIGTERM. Per-instance, exactly like the
@@ -144,6 +158,7 @@ function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entit
         // Test-only
         _handles: handles,
         _normalizeParams: normalizeParams,
+        _runner: runner,
     };
 }
 

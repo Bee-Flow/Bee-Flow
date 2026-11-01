@@ -19,7 +19,7 @@
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
 import { addToEpoch, epochDiff, requireDateUnit, validFields } from './dates.mjs';
-import { padStartCp, splitCp, substringCp } from './codePoints.mjs';
+import { joinTexts, padStartCp, splitCp, substringCp } from './codePoints.mjs';
 export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 
@@ -431,10 +431,10 @@ export const FUNCTIONS = {
 
     // ── String ────────────────────────────────────────────────────────────
     trim: (s) => (s == null ? '' : String(s).trim()),
-    concat: (...xs) => xs.map((x) => (x == null ? '' : String(x))).join(''),
-    replace: (s, find, repl) => (s == null ? '' : String(s).split(find == null ? '' : String(find)).join(repl == null ? '' : String(repl))),
+    concat: (...xs) => joinTexts(xs.map((x) => (x == null ? '' : String(x))), ''),
+    replace: (s, find, repl) => (s == null ? '' : joinTexts(String(s).split(find == null ? '' : String(find)), repl == null ? '' : String(repl))),
     split: (s, sep) => (s == null ? [] : splitCp(String(s), sep == null ? '' : String(sep))),
-    join: (arr, sep) => (Array.isArray(arr) ? arr.map((x) => (x == null ? '' : String(x))).join(sep == null ? '' : String(sep)) : ''),
+    join: (arr, sep) => (Array.isArray(arr) ? joinTexts(arr.map((x) => (x == null ? '' : String(x))), sep == null ? '' : String(sep)) : ''),
     substring: (s, a, b) => {
         if (s == null) return '';
         return substringCp(String(s), toNum(a) || 0, b == null ? null : toNum(b) || 0);

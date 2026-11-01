@@ -9663,11 +9663,6 @@
       "count": 1
     }
   },
-  "stores/lib/sqliteBlobStatements.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "stores/lib/sqliteStatementGuard.js": {
     "complexity": {
       "count": 2
