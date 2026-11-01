@@ -7,6 +7,7 @@
  */
 
 const { getAIConfig, saveAIConfig } = require('../core/aiAgent');
+const { compileUserPattern, findUserPatternMatches } = require('../core/text/userPattern');
 const log = require('../telemetry/log');
 
 /**
@@ -172,11 +173,11 @@ async function executeRegexGeneratorTool(toolName, args) {
             const added = [];
             const skipped = [];
             for (const rule of newRules) {
-                // Validate the pattern
-                try {
-                    new RegExp(rule.pattern);
-                } catch (e) {
-                    skipped.push({ name: rule.name, reason: `Invalid regex: ${/** @type {Error} */ (e).message}` });
+                // The pattern must run the way the guardrails run it (RE2, or the
+                // guarded fallback): a rule the engine refuses is not saved.
+                const compiled = compileUserPattern(rule.pattern);
+                if (!compiled.ok) {
+                    skipped.push({ name: rule.name, reason: `Invalid regex: ${compiled.message}` });
                     continue;
                 }
 
@@ -265,26 +266,11 @@ async function executeRegexGeneratorTool(toolName, args) {
             const { pattern, testText } = args;
             if (!pattern || !testText) return { error: 'Both pattern and testText are required' };
 
-            try {
-                const regex = new RegExp(pattern, 'gi');
-                /** @type {{ match: string; index: number; }[]} */
-                const matches = [];
-                /** @type {RegExpExecArray | null} */
-                let match;
-                while ((match = regex.exec(testText)) !== null) {
-                    matches.push({ match: match[0], index: match.index });
-                    if (matches.length >= 20) break; // Safety limit
-                }
-                return {
-                    pattern,
-                    testText,
-                    matchCount: matches.length,
-                    matches,
-                    isValid: true
-                };
-            } catch (e) {
-                return { error: `Invalid regex pattern: ${/** @type {Error} */ (e).message}`, isValid: false };
-            }
+            const compiled = compileUserPattern(String(pattern));
+            if (!compiled.ok) return { error: `Invalid regex: ${compiled.message}` };
+            const matches = findUserPatternMatches(compiled, String(testText), 20);
+            if (matches === null) return { error: 'The pattern could not be decided within its time budget on this text', isValid: true };
+            return { pattern, testText, matchCount: matches.length, matches, isValid: true };
         }
 
         default:

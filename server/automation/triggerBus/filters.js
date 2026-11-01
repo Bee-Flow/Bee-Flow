@@ -8,6 +8,7 @@ const { matchFilter } = require('../triggers/dslFilters');
 const { containsCI } = require('./matchUtil');
 const { matchNextcloudTablesRowFilter } = require('./filtersTables');
 const { matchNextcloudTagFilter, tagFilterNeedsNames } = require('./filtersNcTags');
+const { compileUserPattern, testUserPattern } = require('../../core/text/userPattern');
 
 function matchGmailMailFilter(payload, filter) {
     if (!filter || typeof filter !== 'object') return true;
@@ -25,15 +26,12 @@ function matchGmailMailFilter(payload, filter) {
     if (typeof filter.subjectContains === 'string' && filter.subjectContains && !containsCI(payload.subject, filter.subjectContains)) return false;
 
     if (typeof filter.subjectRegex === 'string' && filter.subjectRegex) {
-        const src = filter.subjectRegex.slice(0, 200);
-        try {
-            const re = new RegExp(src, 'i');
-            if (!re.test(String(payload.subject || ''))) return false;
-        } catch {
-            // Invalid pattern → fail-closed (don't fire) so a typo
-            // can't quietly match every email.
-            return false;
-        }
+        // The subject is the sender's text: the pattern runs under RE2 (or the
+        // guarded fallback), see core/text/userPattern.js. An invalid or
+        // undecidable pattern fails closed (does not fire), so a typo cannot
+        // quietly match every email.
+        const compiled = compileUserPattern(filter.subjectRegex.slice(0, 200));
+        if (testUserPattern(compiled, String(payload.subject || '')) !== true) return false;
     }
 
     const labelIds = Array.isArray(payload.labelIds) ? payload.labelIds : [];

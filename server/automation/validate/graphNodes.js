@@ -9,7 +9,7 @@
 const { SECONDARY_TRIGGER_KINDS, VALID_STEP_TYPES } = require('./constants');
 const { isObject, validatePosition } = require('./helpers');
 const { checkBindableStepId } = require('./fieldChecks');
-const { checkScheduleTrigger, checkMailboxTrigger } = require('./graphTrigger');
+const { checkScheduleTrigger, checkMailboxTrigger, checkTriggerFilterPatterns } = require('./graphTrigger');
 
 /** definition.triggers[]: extra entry points (root scope only). */
 function checkAdditionalTriggers({ graph, p, pushE, isContractScope, contractNoun, checkPinnedOutput }, ids, stepById) {
@@ -45,6 +45,7 @@ function checkAdditionalTriggers({ graph, p, pushE, isContractScope, contractNou
             // that cannot fire would sit "active" with next_run_at NULL.
             if (t.kind === 'schedule') checkScheduleTrigger(t, at, pushE);
             checkMailboxTrigger(t, at, pushE);
+            checkTriggerFilterPatterns(t, at, pushE);
             validatePosition(t.position, at, pushE);
             // Same pin rules as the primary trigger — an extra entry point
             // can be pinned too, and export strips both.

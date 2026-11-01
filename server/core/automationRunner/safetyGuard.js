@@ -2,6 +2,7 @@
 const log = require('../../telemetry/log');
 const { collectStringLeaves, collectStringLeafKeys, _isIdentifierKey, _isHandleValue, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _scanText, _degradationIsRelevant, _regexHits, _scanFailedMessage } = require('./safetyScan');
+const { compileUserPattern, replaceUserPattern } = require('../text/userPattern');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 class GuardrailBlockError extends Error {
@@ -208,10 +209,9 @@ async function _guardValue(value, policy, auditBase, { direction, scopeOn, mode,
     for (const { leaf, rHits, entities } of perLeaf) {
         let out = leaf;
         for (const h of rHits) {
-            try {
-                const safe = h.pattern.replace(/^\(\?i\)/, '').replace(/^\(\?-[a-z]+\)/, '');
-                out = out.replace(new RegExp(safe, 'gi'), `[REDACTED:${h.ruleName}]`);
-            } catch (err) { fallback('core/automationRunner/safetyGuard:_guardValue', err); /* skip bad pattern */ }
+            // The hit came through the same compiler (safetyScan → guardrails); an undecidable replace leaves the leaf.
+            const redacted = replaceUserPattern(compileUserPattern(h.pattern), out, `[REDACTED:${h.ruleName}]`);
+            if (redacted !== null) out = redacted;
         }
         if (entities.length) {
             // Regex redaction shifted the offsets, so re-derive the spans on the

@@ -1,6 +1,7 @@
 // @typecheck noImplicitAny
 const { resolveShieldFor, mergeWithOrgShield } = require('../privacy/orgShield');
 const { checkRegexPatterns } = require('../privacy/guardrails');
+const { compileUserPattern, replaceUserPattern } = require('../text/userPattern');
 const guardrailEventStore = require('../../stores/guardrailEventStore');
 const { sanitizeMessagesUnicode } = require('../../utils/unicodeSanitizer');
 const { runInputPiiGate } = require('./inputPiiGate');
@@ -15,7 +16,7 @@ const PII_GATE_DEPS = {
     dlpRunner: () => require('../dlp/dlpRunner'),
 };
 const log = require('../../telemetry/log');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @typedef {{ enabled?: boolean, scope?: Record<string, boolean>, action?: string, rulesWithNames?: Array<{ name: string, pattern: string }> }} RegexGuardConfig
@@ -213,10 +214,9 @@ function applyRegexGuardrails({ text, redactBase, regexConfig, scope, emit, audi
     if (regexConfig.action === 'redact') {
         let processedText = base;
         for (const rule of regexConfig.rulesWithNames) {
-            try {
-                const regex = new RegExp(rule.pattern, 'gi');
-                processedText = processedText.replace(regex, `[REDACTED: ${rule.name}]`);
-            } catch (e) { fallback('core/agentRuntime/guardrailsRunner:applyRegexGuardrails', e); /* skip invalid patterns */ }
+            // An invalid or undecidable pattern leaves the text as it is (it did not count as a match either).
+            const out = replaceUserPattern(compileUserPattern(rule.pattern), processedText, `[REDACTED: ${rule.name}]`);
+            if (out !== null) processedText = out;
         }
         emit?.('content_redact', { originalMessage: text, redactedMessage: processedText, rules: ruleNames, autoRedactSeconds: 5 });
         if (audit) {

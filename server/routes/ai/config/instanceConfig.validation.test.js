@@ -62,3 +62,13 @@ test('the session is checked before the body', async () => {
     assert.strictEqual(res.status, 401);
     assert.deepStrictEqual(db.queries, []);
 });
+
+test('a guardrail rule whose pattern the engine refuses is not saved, by name', async () => {
+    statements.length = 0;
+    const res = await post('/config', { regexGuardrails: { rules: [{ id: 'r1', name: 'ok', pattern: '\\d+' }, { id: 'r2', name: 'nested', pattern: '(a+)+(?=b)' }], collections: [] } });
+    h.assertRefused(assert, res, 'body.regexGuardrails', /rule "nested".*nest/i);
+    assert.deepStrictEqual(writes(), []);
+
+    const ok = await post('/config', { regexGuardrails: { rules: [{ id: 'r1', name: 'ok', pattern: '(?i)nl\\d{2}[a-z]{4}\\d{10}' }], collections: [] } });
+    assert.strictEqual(ok.status, 200, ok.text);
+});
