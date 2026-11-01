@@ -12,11 +12,14 @@ const XLSX = require('@e965/xlsx');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
+const PARSED_TYPE_MARKERS = ['officedocument', 'ms-excel', 'opendocument', 'csv', 'pdf'];
+const PARSED_EXTENSIONS = ['.docx', '.pptx', '.xlsx', '.xls', '.ods', '.csv', '.pdf'];
+
 /** Does this document go through a parser (as opposed to being read as text)? */
 function needsParser(mimeType, filename) {
     const type = (mimeType || '').toLowerCase();
     const name = (filename || '').toLowerCase();
-    return /officedocument|ms-excel|opendocument|csv|pdf/.test(type) || /\.(docx|pptx|xlsx|xls|ods|csv|pdf)$/.test(name);
+    return PARSED_TYPE_MARKERS.some((m) => type.includes(m)) || PARSED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
 /**
