@@ -21,7 +21,8 @@ them to activate a key; the bundled public key is enough (see
 | Variable | Default | What it does |
 |---|---|---|
 | `LICENSE_PUBLIC_KEY` / `LICENSE_PUBLIC_KEY_FILE` | `server/license/bundled-public-key.pem` | The public key licence JWTs are verified against: an inline PEM, or a path to one. Override only to verify keys from a different issuer. |
-| `LICENSE_JWKS_URL` | _(empty)_ | A JWKS endpoint (`/v1/jwks.json` on the license server). Verification picks the key whose `kid` matches the JWT, which is what makes key rotation possible without a release. Unset, the public key above is used alone. |
+| `LICENSE_JWKS_URL` | _(empty)_ | A JWKS endpoint (`/v1/jwks.json` on the license server). Verification picks the key whose `kid` matches the JWT, which is what makes key rotation possible without a release. Unset, the public key above is used alone. It must be an `https://` URL: a production server refuses to start with a plain-http one, because the key set is the trust root. |
+| `MODULES_PUBLIC_KEY` / `MODULES_PUBLIC_KEY_FILE` | _(empty)_ | A separate key family for Hub module (`.bfmod`) signatures: an inline PEM, or a path to one. Set, it is the only key a module is verified against (the licence key and the JWKS play no part). Unset, modules verify against the licence chain above. |
 | `LICENSE_REFRESH_URL` | _(empty, refresh is opt-in)_ | Where keys are re-checked for revocation, periodically. Unset means no pings at all; the JWT signature and `exp` stay authoritative either way. |
 | `LICENSE_ISSUE_URL` | `https://license.beeflow.nl/v1/issue` | Where the Stripe webhook asks for a key after a paid checkout. Only used by an install that sells subscriptions itself (Bee Flow's cloud). |
 | `LICENSE_ISSUE_API_KEY` | _(empty)_ | The shared secret for `LICENSE_ISSUE_URL`; it must match an API key configured on the license server. |

@@ -20,6 +20,7 @@
 'use strict';
 
 const path = require('path');
+const fs = require('fs');
 const telemetryLog = require('../telemetry/log');
 
 const _wired = Object.create(null);
@@ -127,10 +128,37 @@ function _logSystem(moduleId, msg) {
 }
 
 // ── Trust-root key resolvers (overridable in tests) ───────────────────────
+/**
+ * The key family a `.bfmod` signature is checked against. An operator who
+ * pins one (MODULES_PUBLIC_KEY as an inline PEM, or MODULES_PUBLIC_KEY_FILE
+ * as a path) makes it the only root: a module then verifies against that key
+ * and nothing else — not the licence key, not a key the JWKS serves. Read on
+ * every call so a test can set it; a PEM is a few hundred bytes.
+ * @returns {string | null}
+ */
+function pinnedModulePublicKey() {
+    const inline = process.env.MODULES_PUBLIC_KEY;
+    if (inline && inline.includes('BEGIN PUBLIC KEY')) return inline.replace(/\\n/g, '\n');
+    const file = process.env.MODULES_PUBLIC_KEY_FILE;
+    if (file) {
+        try { return fs.readFileSync(file, 'utf8'); } catch (e) {
+            telemetryLog.error('[Modules] MODULES_PUBLIC_KEY_FILE could not be read:', /** @type {Error} */ (e).message);
+            return null;
+        }
+    }
+    return null;
+}
 /** @param {string} kid */
 async function _defaultPackageKeyResolver(kid) {
-    // Hub `.bfmod` packages are signed by the same license.beeflow.nl key
-    // infrastructure as licences/grants, so we reuse its JWKS→bundled chain.
+    const pinned = pinnedModulePublicKey();
+    if (pinned) {
+        // A kid that names another key is a signature by another key: refused
+        // here rather than left to fail the RSA check with a less clear reason.
+        return !kid || licenseVerify().kidForPem(pinned) === kid ? pinned : null;
+    }
+    // No pinned family: hub `.bfmod` packages are signed by the same
+    // license.beeflow.nl key infrastructure as licences/grants, so the
+    // JWKS→bundled chain is the root, as before.
     return licenseVerify().resolvePublicKeyByKid(kid);
 }
 /** @param {string} kid */
@@ -170,6 +198,8 @@ module.exports = {
     _healthOf,
     _logSystem,
     packageKeyResolver,
+    _defaultPackageKeyResolver,
+    pinnedModulePublicKey,
     grantKeyResolver,
     __setKeyResolversForTest,
     __setDataRootForTest,
