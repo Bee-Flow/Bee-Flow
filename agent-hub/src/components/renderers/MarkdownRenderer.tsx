@@ -26,6 +26,7 @@ import 'highlight.js/styles/github-dark.min.css';
 import { PreContext, CodeRenderer } from './CodeRenderer';
 import WebpageLinkCard from '../webpages/WebpageLinkCard';
 import DocumentLinkCard from '../documents/DocumentLinkCard';
+import { guardedImage } from './remoteImages';
 import { DOCUMENT_CARD, WEBPAGE_CARD, WRAPPING_FENCE_CLOSE, WRAPPING_FENCE_OPEN, anchorKey, headingSlug, stripDirectiveBlocks } from './markdownRules';
 
 // Register languages
@@ -64,7 +65,7 @@ hljs.registerLanguage('md', markdown);
 // growing a block of its own inside a card.
 const INLINE_ELEMENTS = ['strong', 'em', 'del', 'code', 'a', 'br'];
 
-const MarkdownRenderer = ({ content, className = '', isLoading = false, inline = false, ...props }: import('./MarkdownRenderer.types').MarkdownRendererProps) => {
+const MarkdownRenderer = ({ content, className = '', isLoading = false, inline = false, allowRemoteImages = false, ...props }: import('./MarkdownRenderer.types').MarkdownRendererProps) => {
     // Throttle content updates to prevent flickering during streaming
     const THROTTLE_MS = 150;
     const [renderContent, setRenderContent] = useState<import('./MarkdownRenderer.types').MarkdownContent | null | undefined>(content);
@@ -150,7 +151,7 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     const Wrapper = inline ? 'span' : 'div';
     return (
         <Wrapper className={`markdown-content ${className}`}>
-            <MarkdownRendererReactMarkdown inline={inline} isLoading={isLoading} props={props} cleanContent={cleanContent} />
+            <MarkdownRendererReactMarkdown inline={inline} isLoading={isLoading} allowRemoteImages={allowRemoteImages} props={props} cleanContent={cleanContent} />
 
         </Wrapper>
     );
@@ -158,12 +159,15 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
 
 export default React.memo(MarkdownRenderer);
 
-function MarkdownRendererReactMarkdown({ inline, isLoading, props, cleanContent }: { inline: boolean; isLoading: boolean; props: { components?: Components; }; cleanContent: string; }) {
+function MarkdownRendererReactMarkdown({ inline, isLoading, allowRemoteImages, props, cleanContent }: { inline: boolean; isLoading: boolean; allowRemoteImages: boolean; props: { components?: Components; }; cleanContent: string; }) {
     return <ReactMarkdown
         remarkPlugins={inline ? [remarkGfm] : [remarkGfm, remarkMath]}
         rehypePlugins={inline ? [] : [rehypeKatex]}
         {...(inline ? { allowedElements: INLINE_ELEMENTS, unwrapDisallowed: true } : {})}
         components={{
+            // Images from another host wait for the reader (remoteImages.tsx);
+            // a view that renders what the reader wrote themselves opts out.
+            ...(allowRemoteImages ? {} : { img: guardedImage }),
             // Fenced/indented code arrives wrapped in a <pre>; mark the
             // subtree so the code component can tell block from inline
             // (see PreContext note above).

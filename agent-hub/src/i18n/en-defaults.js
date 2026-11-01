@@ -3471,6 +3471,8 @@ const EN_DEFAULTS = {
     "chat.renderers.tests_error": "Error",
     "chat.renderers.tests_recommendations": "Recommendations",
     "chat.renderers.chart_error": "Chart Error",
+    "chat.renderers.image_not_loaded": "Image not loaded",
+    "chat.renderers.load_image": "Load image",
     "chat_monitoring.title": "Chat signals (optional)",
     "chat_monitoring.purpose": "Check whether the Privacy Shield works in chat: per chat type, count how it handled each message, and optionally which kinds of personal data it found.",
     "chat_monitoring.not_people": "This measures the Privacy Shield, not people. It is never used to evaluate employees, their performance, absence or health.",
