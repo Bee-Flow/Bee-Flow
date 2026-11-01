@@ -16,7 +16,14 @@
  * a stylesheet without null checks.
  */
 
-const JSZip = require('jszip');
+const { openZipGuarded, readEntryCapped } = require('../documents/zipGuard');
+
+// A .docx is read for its styles only, yet it is an upload: refused on its
+// declarations when it holds more than a document does, each part cut off at
+// its cap while it inflates.
+const MAX_DOCX_ENTRIES = 10_000;
+const MAX_DOCX_INFLATED_BYTES = 256 * 1024 * 1024;
+const MAX_PART_BYTES = 64 * 1024 * 1024;
 const { XMLParser } = require('fast-xml-parser');
 const log = require('../../telemetry/log');
 
@@ -255,11 +262,18 @@ function extractTextFromPart(xml) {
 async function extract(docxBuffer) {
     const meta = JSON.parse(JSON.stringify(DEFAULTS));
     try {
-        const zip = await JSZip.loadAsync(docxBuffer);
+        // Refused on its declarations when it holds more than a document does;
+        // every part is inflated as a stream and cut off at its cap.
+        const { zip } = await openZipGuarded(docxBuffer, { maxEntries: MAX_DOCX_ENTRIES, maxTotalBytes: MAX_DOCX_INFLATED_BYTES });
+        /** @param {string} name */
+        const part = async (name) => {
+            const entry = zip.file(name);
+            return entry ? (await readEntryCapped(entry, { maxBytes: MAX_PART_BYTES })).toString('utf8') : undefined;
+        };
 
-        const stylesXml    = await zip.file('word/styles.xml')?.async('string');
-        const documentXml  = await zip.file('word/document.xml')?.async('string');
-        const docRelsXml   = await zip.file('word/_rels/document.xml.rels')?.async('string');
+        const stylesXml    = await part('word/styles.xml');
+        const documentXml  = await part('word/document.xml');
+        const docRelsXml   = await part('word/_rels/document.xml.rels');
 
         /** @type {Record<string, RunProps | null | undefined>} */
         const styles = stylesXml ? extractStylesXml(stylesXml) : {};
@@ -289,13 +303,13 @@ async function extract(docxBuffer) {
         // record the text so the export route can fall back to text-only.
         if (docInfo.headerRefId && rels[docInfo.headerRefId]) {
             const path = `word/${rels[docInfo.headerRefId].target}`;
-            const headerXml = await zip.file(path)?.async('string');
+            const headerXml = await part(path);
             const text = extractTextFromPart(headerXml);
             if (text) meta.header = { text };
         }
         if (docInfo.footerRefId && rels[docInfo.footerRefId]) {
             const path = `word/${rels[docInfo.footerRefId].target}`;
-            const footerXml = await zip.file(path)?.async('string');
+            const footerXml = await part(path);
             const text = extractTextFromPart(footerXml);
             if (text) meta.footer = { text };
         }

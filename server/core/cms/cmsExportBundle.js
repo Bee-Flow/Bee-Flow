@@ -28,6 +28,7 @@
  */
 
 const JSZip = require('jszip');
+const { openZipGuarded, readEntryCapped, createByteBudget, ZipLimitError } = require('../documents/zipGuard');
 const storageStore = require('../../stores/storageStore');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
 const { scheduleVariants } = require('./assetVariantStore');
@@ -90,6 +91,41 @@ async function buildZip(bundle, assets = []) {
     });
 }
 
+function totalLimitError() {
+    return new Error(`Archive exceeds the total size limit (${Math.round(MAX_TOTAL_BYTES / 1024 / 1024)} MB uncompressed)`);
+}
+
+/**
+ * Open the upload, refused on the zip's own declarations (entry count,
+ * declared total, compression ratio) before anything is inflated.
+ * @param {Buffer} buffer
+ */
+async function openBundleZip(buffer) {
+    try {
+        return await openZipGuarded(buffer, { maxEntries: MAX_ENTRIES, maxTotalBytes: MAX_TOTAL_BYTES });
+    } catch (e) {
+        if (e instanceof ZipLimitError && e.reason === 'too_many_entries') throw new Error(`Archive has too many entries (max ${MAX_ENTRIES})`);
+        if (e instanceof ZipLimitError && e.reason !== 'not_a_zip') throw totalLimitError();
+        throw new Error('Not a valid .zip file');
+    }
+}
+
+/**
+ * One part, inflated within its cap and the running budget; a cut-off read
+ * is reported with the caller's sentence (the budget's own error passes).
+ * @param {import('../documents/zipGuard').ZipEntry} entry
+ * @param {{ maxBytes: number, budget: ReturnType<typeof createByteBudget> }} limits
+ * @param {() => Error} tooLarge
+ */
+async function readBundlePart(entry, limits, tooLarge) {
+    try {
+        return await readEntryCapped(entry, limits);
+    } catch (e) {
+        if (e instanceof ZipLimitError) throw tooLarge();
+        throw e;
+    }
+}
+
 /**
  * Parse a .zip produced by buildZip (or hand-assembled by a user).
  *
@@ -101,28 +137,17 @@ async function buildZip(bundle, assets = []) {
 async function parseZip(buffer) {
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('Empty upload');
 
-    /** @type {JSZip} */
-    let zip;
-    try {
-        zip = await JSZip.loadAsync(buffer);
-    } catch (_) {
-        throw new Error('Not a valid .zip file');
-    }
-
-    const entries = Object.values(zip.files).filter(f => !f.dir);
-    if (entries.length > MAX_ENTRIES) {
-        throw new Error(`Archive has too many entries (max ${MAX_ENTRIES})`);
-    }
+    const { zip, entries } = await openBundleZip(buffer);
 
     const bundleEntry = zip.file(BUNDLE_ENTRY);
     if (!bundleEntry) {
         throw new Error(`Archive is missing ${BUNDLE_ENTRY} — is this a Bee Flow site export?`);
     }
 
-    const bundleText = await bundleEntry.async('string');
-    if (Buffer.byteLength(bundleText, 'utf8') > MAX_BUNDLE_JSON_BYTES) {
-        throw new Error(`${BUNDLE_ENTRY} exceeds the size limit`);
-    }
+    // Every part is inflated as a stream and cut off at its cap and at the
+    // running total; the declarations were checked in openBundleZip.
+    const budget = createByteBudget(MAX_TOTAL_BYTES, totalLimitError);
+    const bundleText = (await readBundlePart(bundleEntry, { maxBytes: MAX_BUNDLE_JSON_BYTES, budget }, () => new Error(`${BUNDLE_ENTRY} exceeds the size limit`))).toString('utf8');
     let bundle;
     try {
         bundle = JSON.parse(bundleText);
@@ -134,20 +159,12 @@ async function parseZip(buffer) {
     const assets = [];
     /** @type {string[]} */
     const skipped = [];
-    let total = Buffer.byteLength(bundleText, 'utf8');
     for (const entry of entries) {
         if (entry.name === BUNDLE_ENTRY) continue;
         const key = assetEntryToKey(entry.name);
         if (!key) { skipped.push(entry.name); continue; }
 
-        const buf = await entry.async('nodebuffer');
-        if (buf.length > MAX_ENTRY_BYTES) {
-            throw new Error(`Asset ${key} exceeds the per-file size limit`);
-        }
-        total += buf.length;
-        if (total > MAX_TOTAL_BYTES) {
-            throw new Error(`Archive exceeds the total size limit (${Math.round(MAX_TOTAL_BYTES / 1024 / 1024)} MB uncompressed)`);
-        }
+        const buf = await readBundlePart(entry, { maxBytes: MAX_ENTRY_BYTES, budget }, () => new Error(`Asset ${key} exceeds the per-file size limit`));
         assets.push({ key, buffer: buf });
     }
 

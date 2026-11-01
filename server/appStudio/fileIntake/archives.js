@@ -11,6 +11,22 @@ const { hasField, fileEntryAsAttachment } = require('./attachmentRows');
 const { MAX_ZIP_ENTRIES, MAX_ARCHIVE_DEPTH, MAX_ZIP_TOTAL_BYTES, MAX_TOTAL_FILES } = require('./limits');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * One entry's bytes, inflated within `remaining`. A read the guard cut off for
+ * size ends the archive (`stop`); any other failure skips the entry.
+ * @param {{ read: (limit?: number) => Promise<Buffer> }} entry
+ * @param {number} remaining
+ * @returns {Promise<{ bytes: Buffer, reason?: undefined, stop?: undefined } | { bytes?: undefined, reason: string, stop: boolean }>}
+ */
+async function readEntryWithin(entry, remaining) {
+    try {
+        return { bytes: await entry.read(remaining) };
+    } catch (e) {
+        const tooLarge = !!e && /** @type {{ code?: string }} */ (e).code === 'zip_rejected';
+        return { reason: tooLarge ? 'the zip is too large in total' : 'could not read the entry', stop: tooLarge };
+    }
+}
+
 async function expandArchives(app, model, state, { attTable, fileField, poRe, writeRecord, writeViewer, ctx, mailbox }) {
     const { files } = state;
     // ── 2b. Expand zip packages ─────────────────────────────────────────
@@ -123,17 +139,20 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
                     report.refusedEntries.push({ name: entryPath, reason: 'file limit for one intake reached' });
                     continue;
                 }
-                /** @type {Buffer<ArrayBufferLike>} */
-                let bytes;
-                try { bytes = await entry.read(); } catch {
-                    report.refusedEntries.push({ name: entryPath, reason: 'could not read the entry' });
-                    continue;
-                }
-                totalBytes += bytes.length;
-                if (totalBytes > MAX_ZIP_TOTAL_BYTES) {
+                // What the entry DECLARES is checked against the remaining budget
+                // before a byte is inflated, and the read itself stops at that
+                // budget: a part that lies about its size costs one chunk.
+                const remaining = MAX_ZIP_TOTAL_BYTES - totalBytes;
+                if ((entry.size || 0) > remaining) {
                     report.refusedEntries.push({ name: entryPath, reason: 'the zip is too large in total' });
                     break;
                 }
+                const got = await readEntryWithin(entry, remaining);
+                if (!got.bytes) report.refusedEntries.push({ name: entryPath, reason: got.reason });
+                if (got.stop) break;
+                if (!got.bytes) continue;
+                const bytes = got.bytes;
+                totalBytes += bytes.length;
                 try {
                     const descriptor = await mailbox.storeDerivedFile(app, {
                         buffer: bytes, name: entryName,

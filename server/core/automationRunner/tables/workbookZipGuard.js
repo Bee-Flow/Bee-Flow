@@ -24,6 +24,7 @@
 'use strict';
 
 const JSZip = require('jszip');
+const zipGuard = require('../../documents/zipGuard');
 
 const MAX_ENTRIES = 10_000;
 const MAX_RATIO = 200;
@@ -50,33 +51,10 @@ function rejected(message) {
     return sourceError('table_source_rejected', message);
 }
 
-/**
- * The entry count the zip's end-of-central-directory record declares, read
- * without opening the package: a count past the cap is refused before JSZip
- * allocates an entry for every one of them. null when no record is found (JSZip
- * then refuses the file by itself).
- * @param {Buffer} buffer
- */
-function declaredEntryCount(buffer) {
-    const lowest = Math.max(0, buffer.length - 22 - 0xffff);
-    for (let i = buffer.length - 22; i >= lowest; i -= 1) {
-        if (buffer.readUInt32LE(i) === 0x06054b50) return buffer.readUInt16LE(i + 10);
-    }
-    return null;
-}
-
-/**
- * @param {JSZip.JSZipObject & { _data?: { uncompressedSize: number, compressedSize: number } | null }} entry  a JSZip
- *   entry, with the private `_data` it carries once loaded
- * @returns {{ uncompressed: number, compressed: number }}
- */
-function declaredSizes(entry) {
-    const d = entry && entry._data;
-    return {
-        uncompressed: d && Number.isFinite(d.uncompressedSize) ? d.uncompressedSize : 0,
-        compressed: d && Number.isFinite(d.compressedSize) ? d.compressedSize : 0,
-    };
-}
+// The declaration readers and the streaming inflater are shared with the
+// other package readers (core/documents/zipGuard.js); the messages here stay
+// the workbook's own.
+const { declaredEntryCount, declaredSizes } = zipGuard;
 
 /**
  * The checks that need only the zip's own declarations.
@@ -107,51 +85,16 @@ const XML_REFUSED = 'This file declares an XML document type or entity, which a 
 const NEEDLE_TAIL = Math.max(...FORBIDDEN_BYTES.map(b => b.length)) - 1;
 
 /**
- * Inflate one part as a stream, never in full. `onChunk` sees every chunk the
- * moment it exists and may throw to stop the part: the stream is paused at once,
- * so a part that lies about its size is cut off after one chunk instead of
- * filling memory first.
- * @param {any} entry  a JSZip entry
+ * Inflate one part as a stream, never in full (zipGuard.inflateStreaming with
+ * the workbook's own refusals).
+ * @param {import('../../documents/zipGuard').ZipEntry} entry  a JSZip entry
  * @param {(chunk: Uint8Array) => void} onChunk
  * @returns {Promise<void>}
  */
 function inflateStreaming(entry, onChunk) {
-    return new Promise((resolve, reject) => {
-        let settled = false;
-        /** @type {import('jszip').JSZipStreamHelper<Uint8Array> | undefined} */
-        let helper;
-        /**
-         * @param {Error & { errorClass: string; }} err
-         */
-        const fail = (err) => {
-            if (settled) return;
-            settled = true;
-            if (helper) helper.pause();
-            reject(err);
-        };
-        try {
-            helper = entry.internalStream('uint8array');
-        } catch {
-            fail(rejected('This file is not a readable package (a damaged or incomplete upload?), so it was not opened.'));
-            return;
-        }
-        if (!helper) return; // unreachable: the catch above returned
-        helper
-            .on('data', (chunk) => {
-                if (settled) return;
-                try {
-                    onChunk(chunk);
-                } catch (err) {
-                    fail(err);
-                }
-            })
-            .on('error', () => fail(rejected('This file has a part that does not unpack to the size it declares, so it was not opened.')))
-            .on('end', () => {
-                if (settled) return;
-                settled = true;
-                resolve();
-            })
-            .resume();
+    return zipGuard.inflateStreaming(entry, onChunk, {
+        unreadable: () => rejected('This file is not a readable package (a damaged or incomplete upload?), so it was not opened.'),
+        broken: () => rejected('This file has a part that does not unpack to the size it declares, so it was not opened.'),
     });
 }
 

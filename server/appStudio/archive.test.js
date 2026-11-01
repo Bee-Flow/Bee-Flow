@@ -153,3 +153,24 @@ test('bytes that are no container at all are damaged, not mysteriously empty', a
         return true;
     });
 });
+
+test('a zip whose parts DECLARE more than the budget is refused before any part inflates', async () => {
+    const zip = new JSZip();
+    zip.file('huge.bin', Buffer.alloc(120 * 1024 * 1024)); // declares 120 MB, compresses to kilobytes
+    const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const t0 = Date.now();
+    await assert.rejects(openArchive(buf, { name: 'order.zip' }), (e) => /too large/.test(e.reason));
+    assert.ok(Date.now() - t0 < 1000, `refused in ${Date.now() - t0} ms`);
+});
+
+test('reading a zip entry stops at the limit the caller gives', async () => {
+    const zip = new JSZip();
+    zip.file('parts/plate.bin', Buffer.alloc(8 * 1024 * 1024, 1));
+    zip.file('parts/note.txt', 'ok');
+    const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const opened = await openArchive(buf, { name: 'order.zip' });
+    const plate = opened.entries.find((e) => e.path === 'parts/plate.bin');
+    assert.strictEqual(plate.size, 8 * 1024 * 1024, 'the declared size travels with the entry');
+    await assert.rejects(plate.read(1024 * 1024), (e) => e.code === 'zip_rejected');
+    assert.strictEqual((await opened.entries.find((e) => e.path === 'parts/note.txt').read(1024)).toString(), 'ok');
+});

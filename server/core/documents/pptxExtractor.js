@@ -121,7 +121,14 @@ async function readPart(zip, name, maxPartBytes) {
     if (size > maxPartBytes) {
         throw Object.assign(new Error(`${name} is ${Math.round(size / 1048576)} MB uncompressed; the limit is ${Math.round(maxPartBytes / 1048576)} MB.`), { errorClass: 'pptx_part_too_large' });
     }
-    return entry.async('string');
+    // The declared size is a claim: the part is inflated as a stream and cut
+    // off at the limit it declared to be under.
+    const { readEntryCapped } = require('./zipGuard');
+    try {
+        return (await readEntryCapped(entry, { maxBytes: maxPartBytes })).toString('utf8');
+    } catch (e) {
+        throw Object.assign(new Error(`${name} does not unpack within the ${Math.round(maxPartBytes / 1048576)} MB limit it declares.`), { errorClass: 'pptx_part_too_large', cause: e });
+    }
 }
 
 /** The notes part a slide links to, via its rels, or null. */
