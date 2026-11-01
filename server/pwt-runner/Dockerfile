@@ -16,7 +16,7 @@
 # the binary is swapped below. Drop this stage once a Playwright base ships
 # 24.22.1 or later, and keep the version assert in
 # scripts/check-release-container.sh in step.
-FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS node
+FROM node:24.22.2-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS node
 
 # IMPORTANT: this version MUST match the `playwright` version the server
 # installs (server/package.json). Playwright's connect() handshake rejects a
