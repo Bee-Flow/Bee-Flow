@@ -19,8 +19,13 @@ const { bestEffort } = require('../../utils/bestEffort');
  *   createVolume: (opts: { Name: string }) => Promise<unknown>,
  *   createContainer: (opts: Record<string, unknown>) => Promise<{ start(): Promise<unknown> }>,
  *   pull: (image: string, callback: (err: Error | null, stream: NodeJS.ReadableStream) => void) => void,
- *   modem: { followProgress(stream: NodeJS.ReadableStream, onFinished: (err: Error | null) => void, onProgress?: (event: { status?: string, id?: string }) => void): void },
+ *   modem: { followProgress(stream: NodeJS.ReadableStream, onFinished: (err: Error | null) => void, onProgress?: (event: PullEvent) => void): void },
  * }} DockerClient
+ */
+
+/**
+ * One line of a `docker pull` progress stream.
+ * @typedef {{ status?: string, id?: string, progressDetail?: { current?: number, total?: number } }} PullEvent
  */
 
 /**
@@ -60,7 +65,7 @@ async function imageExists(docker, image) {
  * caller.
  * @param {DockerClient} docker
  * @param {string} image
- * @param {(event: { status?: string, id?: string }) => void} [onProgress]
+ * @param {(event: PullEvent) => void} [onProgress]
  */
 function pullImage(docker, image, onProgress) {
     return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {

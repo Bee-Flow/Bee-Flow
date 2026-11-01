@@ -131,10 +131,11 @@ The full guide is in the [self-hosting documentation](./docs/docs/self-hosting/i
 
 The server image runs as `node` (uid 1000). Two consequences:
 
-- It still drives Docker over the mounted socket (installing the PII guard, the browser runner and the
-  security scan), so it must be in the socket's group. The published image is built with
-  `DOCKER_GID=999`, the usual gid on Debian and Ubuntu. If `stat -c %g /var/run/docker.sock` says
-  otherwise, add `group_add: ["<that gid>"]` to the `server` service, or rebuild with
+- The Docker socket is NOT mounted by default. If you opt in (`docker-compose.docker-socket.override.yml`,
+  or `DOCKER_SOCKET=1 ./selfhost.sh`) so the server can install the PII guard, start its own browser
+  runner or run Docker-backed modules, it must be in the socket's group. The published image is built
+  with `DOCKER_GID=999`, the usual gid on Debian and Ubuntu. If `stat -c %g /var/run/docker.sock` says
+  otherwise, add `group_add: ["<that gid>"]` to the `server` service in the override, or rebuild with
   `--build-arg DOCKER_GID=<that gid>`.
 - **Upgrading an install that ran the old root image:** its `beeflow-data` volume is root-owned, and so is
   whatever the old image wrote into `components/`. Hand both to the new user once before starting the new

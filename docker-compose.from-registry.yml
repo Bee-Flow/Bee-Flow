@@ -309,7 +309,9 @@ services:
     volumes:
       - beeflow-data:/app/data
       - ./components:/components
-      - /var/run/docker.sock:/var/run/docker.sock
+      # No Docker socket by default (the socket is the host). Opt in with
+      # DOCKER_SOCKET=1 ./selfhost.sh, which layers
+      # docker-compose.docker-socket.override.yml on top of this file.
 
     networks:
       - beeflow-network

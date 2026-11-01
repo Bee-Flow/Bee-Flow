@@ -1,0 +1,35 @@
+# Docker socket for the server — OPT-IN.
+#
+# The default stacks (docker-compose.yml, docker-compose.from-registry.yml) do
+# not hand the host's Docker socket to the server: whoever controls the socket
+# controls the host, and the server is the internet-facing process. The
+# features that drive Docker from inside the server are optional and say so in
+# the UI when the socket is absent:
+#
+#   - the PII guard installer (Admin → Guardrails → install the guard service;
+#     the `guard` profile runs the same service without any socket),
+#   - the browser runner fallback that starts its own Playwright container
+#     (the `browser` sidecar plus BROWSER_WS_ENDPOINT covers this without it),
+#   - the full-tier webpage runtime (WEBPAGE_FULL_RUNTIME_ENABLED),
+#   - Hub modules whose manifest requires Docker.
+#
+# To opt in, layer this file on top of the stack you run:
+#
+#   DOCKER_SOCKET=1 ./selfhost.sh          # saved to .env, reused by later runs
+#
+#   docker compose -f docker-compose.from-registry.yml \
+#                  -f docker-compose.docker-socket.override.yml up -d
+#
+# The server image runs as `node`, built into the group DOCKER_GID (999 on
+# Debian/Ubuntu). If `stat -c %g /var/run/docker.sock` says otherwise, add
+# `group_add: ["<that gid>"]` to the server service here.
+#
+# A docker-socket-proxy (for example tecnativa/docker-socket-proxy) that allows
+# only the container, image, network and volume endpoints is the safer shape
+# where the host must stay isolated; point the server at it with
+# DOCKER_HOST=tcp://docker-socket-proxy:2375 instead of this bind mount.
+
+services:
+  server:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

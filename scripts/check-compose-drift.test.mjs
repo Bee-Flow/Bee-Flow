@@ -17,7 +17,7 @@ import { REPO } from './lib/docker-stub.mjs';
 const svc = (name, image, profiles) =>
     `  ${name}:\n    image: ${image}\n${profiles ? `    profiles: ${profiles}\n` : ''}`;
 
-/** A repo of five agreeing compose files plus selfhost.sh; `patch` overrides files. */
+/** A repo of six agreeing compose files plus selfhost.sh; `patch` overrides files. */
 function sandbox(t, patch = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'composedrift-'));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -27,6 +27,7 @@ function sandbox(t, patch = {}) {
         'docker-compose.from-registry.yml': `services:\n  server:\n    environment:\n      - DB_PASSWORD=\${DB_PASSWORD:?err}\n      - ALLOW_SIGNUPS=\${ALLOW_SIGNUPS:-false}\n${svc('db', 'pgvector/pgvector:pg15', '[ "core" ]')}${svc('redis', 'redis:7-alpine', '[ "guard" ]')}${svc('umami', 'ghcr.io/umami-software/umami:3.4.0', '[ "analytics" ]')}`,
         'docker-compose.hub.local.yml': `services:\n${svc('license-server', '${REGISTRY:-ghcr.io/bee-flow}/license-server:${TAG:-dev}', '[ "core" ]')}`,
         'docker-compose.security.override.yml': 'services:\n  server:\n    environment:\n      - A=1\n',
+        'docker-compose.docker-socket.override.yml': 'services:\n  server:\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock\n',
         'selfhost.sh': '#!/bin/sh\nALL_PROFILES="core guard analytics"\n',
         '.env.selfhost.example': '# comment\nDB_PASSWORD=CHANGE_ME\n# UNSET_ONE=\nALLOW_SIGNUPS=false\n',
         ...patch,
@@ -91,7 +92,7 @@ test('an unreadable file or a missing ALL_PROFILES fails instead of skipping', (
     fs.rmSync(path.join(dir, 'docker-compose.hub.local.yml'));
     assert.match(check(dir).join('\n'), /docker-compose\.hub\.local\.yml: cannot read/);
     assert.match(check(sandbox(t, { 'selfhost.sh': '#!/bin/sh\n' })).join('\n'), /no ALL_PROFILES/);
-    assert.deepStrictEqual(FILES.length, 5);
+    assert.deepStrictEqual(FILES.length, 6);
 });
 
 test('image parsing', () => {

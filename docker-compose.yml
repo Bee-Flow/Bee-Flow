@@ -187,9 +187,10 @@ services:
       # Persist components - mount to /components to match code expectation (path.resolve(__dirname, '../components'))
       # In Docker, server is in /app, so ../components is /components
       - ./components:/components
-      # Docker socket — lets the server spawn terminal-agent and Tests Studio
-      # runner containers. The shared browser is the `browser` sidecar, not this.
-      - /var/run/docker.sock:/var/run/docker.sock
+      # No Docker socket by default: the server is the internet-facing process,
+      # and the socket is the host. The guard installer, the browser-runner
+      # fallback and Docker-backed modules say "not available on this install"
+      # without it; opt in with docker-compose.docker-socket.override.yml.
     networks:
       - beeflow-network
       - beeflow-browser-network

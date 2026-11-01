@@ -130,7 +130,7 @@ function buildRequirements(entry) {
             id: 'docker',
             label: 'Docker socket',
             met,
-            detail: met ? '/var/run/docker.sock' : (req.notes || 'Docker socket not found at /var/run/docker.sock'),
+            detail: met ? '/var/run/docker.sock' : (req.notes || 'Docker socket not mounted into the server (/var/run/docker.sock); opt in with docker-compose.docker-socket.override.yml'),
         });
     }
     // Image/env requirements are informational (met:true) — they are only

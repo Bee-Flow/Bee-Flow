@@ -95,7 +95,7 @@ function dockerUnavailableReason(err) {
     const code = err && err.code;
     if (code === 'ENOENT') {
         return `the Docker socket ${DOCKER_SOCKET} is not mounted into the server (ENOENT). Run the browser `
-            + `sidecar and set BROWSER_WS_ENDPOINT, or mount the socket.`;
+            + `sidecar and set BROWSER_WS_ENDPOINT, or opt in to the socket with docker-compose.docker-socket.override.yml.`;
     }
     if (code === 'EACCES' || code === 'EPERM') {
         return `the server user may not open ${DOCKER_SOCKET} (${code}): add the socket's group id to the `
