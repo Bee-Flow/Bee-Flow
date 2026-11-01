@@ -16,7 +16,7 @@
 // validateInputForPii runs (request time, not load time) aiAgent has long
 // finished initialising.
 const log = require('../../../telemetry/log');
-const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, validateOutputForPii } = require('./validateOutput');
+const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii } = require('./validateOutput');
 
 /**
  * The Error this module throws: the PII verdict (or the reason detection was
@@ -184,21 +184,11 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         if (hit.hasPii) {
             const categoryList = [...new Set(hit.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
             if (MASKING_ACTIONS.has(piiAction)) {
-                // The vault is a database read: a failure here, after PII was
-                // found, must take the failure policy, not slip past it as a
-                // plain exception the caller reads as "nothing to report".
-                let tokenised;
-                try {
-                    tokenised = await _tokenizeWithVault(inputText, hit.entities, existingTokenMap, vaultUserId);
-                } catch (e) {
-                    const err = _gateFailure(e, piiFailureMode, report);
-                    if (err) throw err;
-                    return null;
-                }
-                const { tokenizedText, tokenMap } = tokenised;
+                const tokenised = await _tokeniseOrFail(inputText, hit.entities, existingTokenMap, vaultUserId, { piiFailureMode, report });
+                if (!tokenised) return null;
                 log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
                 _report(report, 'found', hit.entities, 'tokenised');
-                return { tokenizedText, tokenMap, entities: hit.entities };
+                return { tokenizedText: tokenised.tokenizedText, tokenMap: tokenised.tokenMap, entities: hit.entities };
             }
             const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
             err.piiEntities = hit.entities;
@@ -295,25 +285,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
 
         if (!result.hasPii) {
             log.info(`[PiiDetection] Input clean | ${ms}ms | threshold ≥ ${confidenceThreshold}`);
-            // A very common misconfiguration: admin slid the confidence threshold
-            // to 0.9+ which filters out almost every detection for short prompts
-            // (typical confidence range: 0.70–0.85). Emit a loud hint when the
-            // prompt *looks* like it contains PII but the scan came back clean
-            // with a high threshold, so operators can diagnose the "PII works on
-            // dev but not on customer" class of tickets.
-            if (confidenceThreshold >= 0.85) {
-                const looksLikeEmail = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(inputText);
-                const looksLikePhone = /(?:\+?\d[\s-]?){8,}/.test(inputText);
-                const looksLikeIban  = /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/.test(inputText);
-                const looksLikePii   = looksLikeEmail || looksLikePhone || looksLikeIban;
-                if (looksLikePii) {
-                    const hints = [];
-                    if (looksLikeEmail) hints.push('email');
-                    if (looksLikePhone) hints.push('phone');
-                    if (looksLikeIban) hints.push('IBAN');
-                    log.warn(`[PiiDetection] Input contains likely PII (${hints.join(', ')}) but threshold is ${confidenceThreshold}. Detectors typically return 0.70–0.85 confidence for short texts; lower the threshold to 0.70 if you expect detections. (Org Privacy Shield → PII Detection → Confidence Threshold)`);
-                }
-            }
+            _warnLikelyPii(inputText, confidenceThreshold);
             _report(report, 'clean');
             return null;
         }
@@ -357,6 +329,27 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         // fail-closed "protection unavailable" block must not be swallowed.
         if (e?.message?.includes('PII Detected') || e?.privacyUnavailable) throw e;
         const err = _gateFailure(e, piiFailureMode, report);
+        if (err) throw err;
+        return null;
+    }
+}
+
+/**
+ * Tokenise after a find. The vault is a database read: a failure here, after
+ * PII was found, takes the failure policy instead of slipping past it as a
+ * plain exception the caller reads as "nothing to report".
+ * @param {string} inputText
+ * @param {PiiEntity[]} entities
+ * @param {Record<string, string> | null} existingTokenMap
+ * @param {string | null | undefined} vaultUserId
+ * @param {{ piiFailureMode: string, report: PiiGateReport | null }} gate
+ * @returns {Promise<{ tokenizedText: string, tokenMap: Record<string, string> } | null>}  null: fail open
+ */
+async function _tokeniseOrFail(inputText, entities, existingTokenMap, vaultUserId, gate) {
+    try {
+        return await _tokenizeWithVault(inputText, entities, existingTokenMap, vaultUserId);
+    } catch (e) {
+        const err = _gateFailure(e, gate.piiFailureMode, gate.report);
         if (err) throw err;
         return null;
     }

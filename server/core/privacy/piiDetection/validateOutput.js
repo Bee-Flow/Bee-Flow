@@ -148,6 +148,26 @@ function _report(report, status, entities, decision) {
 }
 
 /**
+ * A very common misconfiguration: admin slid the confidence threshold to 0.9+
+ * which filters out almost every detection for short prompts (typical
+ * confidence range: 0.70–0.85). Emit a loud hint when the prompt *looks* like
+ * it contains PII but the scan came back clean with a high threshold, so
+ * operators can diagnose the "PII works on dev but not on customer" tickets.
+ * @param {string} inputText
+ * @param {number} confidenceThreshold
+ */
+function _warnLikelyPii(inputText, confidenceThreshold) {
+    if (confidenceThreshold < 0.85) return;
+    const hints = [
+        /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(inputText) && 'email',
+        /(?:\+?\d[\s-]?){8,}/.test(inputText) && 'phone',
+        /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/.test(inputText) && 'IBAN',
+    ].filter(Boolean);
+    if (!hints.length) return;
+    log.warn(`[PiiDetection] Input contains likely PII (${hints.join(', ')}) but threshold is ${confidenceThreshold}. Detectors typically return 0.70–0.85 confidence for short texts; lower the threshold to 0.70 if you expect detections. (Org Privacy Shield → PII Detection → Confidence Threshold)`);
+}
+
+/**
  * Validate agent output for PII.
  * @param {string | null | undefined} content
  */
@@ -243,4 +263,4 @@ async function validateOutputForPii(content) {
     }
 }
 
-module.exports = { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, validateOutputForPii };
+module.exports = { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, _warnLikelyPii, validateOutputForPii };
