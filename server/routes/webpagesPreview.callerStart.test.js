@@ -2,7 +2,8 @@
  * A webpage button that starts an automation names the logged-in visitor as
  * the run's starter (taken from the signed preview claims, never the request),
  * so an automation on runPolicy.connections = 'caller' acts for THEM. An
- * anonymous visitor has no starter.
+ * anonymous visitor has no starter. The run routes answer only for runs THIS
+ * page started.
  *
  * Run: cd server && node --test routes/webpagesPreview.callerStart.test.js
  */
@@ -20,6 +21,13 @@ const { serveRouter } = require('../testUtils/toolPiiGateHarness');
 const pass = (req, res, next) => next();
 let claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1' };
 const executions = [];
+let cancelled = [];
+const RUN_9 = { id: 'run-9', userId: 'author-1', status: 'success', output: { v: 'zebra' }, error: null, connectionsMode: 'caller', startedByUserId: 'viewer-1', triggerPayload: { _webpageId: 'wp-1' } };
+const runs = {
+    'run-9': RUN_9,
+    'run-elsewhere': { id: 'run-elsewhere', userId: 'author-1', status: 'success', output: { v: 2 }, error: null, triggerPayload: { source: 'schedule' } },
+    'run-other-page': { id: 'run-other-page', userId: 'author-1', status: 'running', output: null, error: null, triggerPayload: { _webpageId: 'wp-2' } },
+};
 
 const CTX = {
     webpage: { name: 'Page' }, authorUserId: 'author-1', authorOrgId: 'org-1', authorSession: null,
@@ -35,7 +43,7 @@ const restore = installResolveStub({
     '../stores/webpageStore': {},
     '../stores/automationStore': {
         getAutomation: async () => ({ id: 'auto-1', userId: 'author-1', definition: {} }),
-        getRun: async (id) => ({ id, userId: 'author-1', status: 'success', output: { v: 'zebra' }, error: null, connectionsMode: 'caller', startedByUserId: 'viewer-1' }),
+        getRun: async (id) => runs[id] || null,
         getRunSteps: async () => [{ runId: 'run-9', stepId: 's1', stepType: 'integration_action', status: 'success', input: { q: 'zebra' }, output: { v: 'zebra' }, error: null }],
     },
     '../auth/webpagePreviewToken': {
@@ -50,6 +58,7 @@ const restore = installResolveStub({
     './webpagesPreviewAsk': { ask: pass },
     '../core/automationRunner': {
         executeAutomation: async (automation, opts) => { executions.push(opts); return { id: 'run-1', status: 'success' }; },
+        requestCancel: async (id) => { cancelled.push(id); },
     },
 });
 test.after(() => restore());
@@ -98,4 +107,23 @@ test('polling a run on the starter\'s own connections: the starter sees its valu
     assert.strictEqual((await poll('viewer-1', '/steps')).steps[0].output.v, 'zebra');
     const hidden = (await poll('viewer-2', '/steps')).steps[0];
     assert.deepStrictEqual([hidden.stepId, hidden.status, 'input' in hidden, 'output' in hidden], ['s1', 'success', false, false]);
+});
+
+test('run status, steps and cancel answer only for runs this page started', async () => {
+    claims = { viewerUserId: 'viewer-1', webpageId: 'wp-1' };
+    cancelled = [];
+    const get = async (runId, tail = '') => (await fetch(`${base()}/wp-1/automations/runs/${runId}${tail}`)).status;
+    assert.strictEqual(await get('run-9'), 200);
+    assert.strictEqual(await get('run-9', '/steps'), 200);
+    // The author's run from a schedule, and a run of another page: not this page's.
+    for (const id of ['run-elsewhere', 'run-other-page', 'run-missing']) {
+        assert.strictEqual(await get(id), 404, id);
+        assert.strictEqual(await get(id, '/steps'), 404, `${id} steps`);
+        const res = await fetch(`${base()}/wp-1/automations/runs/${id}/cancel`, { method: 'POST' });
+        assert.strictEqual(res.status, 404, `${id} cancel`);
+    }
+    assert.deepStrictEqual(cancelled, [], 'no foreign run was cancelled');
+    const own = await fetch(`${base()}/wp-1/automations/runs/run-9/cancel`, { method: 'POST' });
+    assert.strictEqual(own.status, 200);
+    assert.deepStrictEqual(cancelled, ['run-9']);
 });

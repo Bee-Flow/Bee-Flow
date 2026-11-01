@@ -239,13 +239,24 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
     res.json({ runId: run.id || null, status: run.status || 'pending', error: run.error || null });
 });
 
+// A run is this page's only when this page started it: the bridge stamps `_webpageId` into
+// every trigger payload it sends (see /:autoId/run and webpagesPreviewAsk). The author's other
+// runs are not visible through a page token, whichever automation they belong to.
+/**
+ * @param {{ userId?: string | null, triggerPayload?: { _webpageId?: string } | null } | null} run
+ * @param {{ authorUserId: string }} ctx
+ * @param {string} webpageId
+ */
+function runOfThisPage(run, ctx, webpageId) {
+    return !!run && run.userId === ctx.authorUserId && run.triggerPayload?._webpageId === webpageId;
+}
+
 router.get('/:id/automations/runs/:runId', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
     const run = await automationStore.getRun(req.params.runId);
-    if (!run) return res.status(404).json({ error: 'Run not found' });
-    if (run.userId !== ctx.authorUserId) return res.status(403).json({ error: 'Forbidden' });
+    if (!runOfThisPage(run, ctx, webpageId)) return res.status(404).json({ error: 'Run not found' });
     // A run on its starter's own connections shows its values to the starter only.
     const mine = canReadRunData(run, req.previewClaims.viewerUserId);
     res.json({ runId: run.id, status: run.status, error: mine ? (run.error || null) : null, output: mine ? (run.output ?? null) : null });
@@ -256,8 +267,7 @@ router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, /** @param
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
     const run = await automationStore.getRun(req.params.runId);
-    if (!run) return res.status(404).json({ error: 'Run not found' });
-    if (run.userId !== ctx.authorUserId) return res.status(403).json({ error: 'Forbidden' });
+    if (!runOfThisPage(run, ctx, webpageId)) return res.status(404).json({ error: 'Run not found' });
     const steps = await automationStore.getRunSteps(req.params.runId);
     res.json({ steps: redactStepsForViewer(run, steps, req.previewClaims.viewerUserId) });
 });
@@ -267,8 +277,7 @@ router.post('/:id/automations/runs/:runId/cancel', requirePreviewToken, /** @par
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
     const run = await automationStore.getRun(req.params.runId);
-    if (!run) return res.status(404).json({ error: 'Run not found' });
-    if (run.userId !== ctx.authorUserId) return res.status(403).json({ error: 'Forbidden' });
+    if (!runOfThisPage(run, ctx, webpageId)) return res.status(404).json({ error: 'Run not found' });
     const runner = require('../core/automationRunner');
     await runner.requestCancel(req.params.runId);
     res.json({ ok: true });
