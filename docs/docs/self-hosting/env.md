@@ -123,6 +123,7 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `PII_SERVICE_URL` | (none — opt-in) | Guard-service base URL, e.g. `http://guard-service:8100`. Unset means PII detection is disabled entirely. |
 | `PII_SERVICE_API_KEY` | falls back to `SERVICES_API_KEY` | Sent as `X-API-Key` to the guard; must match the guard's own `SERVICES_API_KEY`. |
 | `GUARD_SERVICE_URL` | (none — opt-in) | Sidecar health probe for `/api/guard/health`; returns `not-configured` when unset. |
+| `GUARD_MAX_BODY_BYTES` | `33554432` (32 MiB) | On the guard-service: the largest request body it reads, checked before the JSON is parsed (a `413` above it). Sized above `GUARD_PII_HARD_MAX_CHARS` with room for JSON escaping. `0` = no bound. |
 
 ## Observability
 

@@ -261,7 +261,9 @@ ensure_env() {
     fi
     [ -f "$ENV_TEMPLATE" ] || err "Missing $ENV_TEMPLATE next to this script."
     log "Creating .env from template and generating secrets"
-    cp "$ENV_TEMPLATE" "$ENV_FILE"
+    # Owner-only from the first byte: the file holds every secret of the stack.
+    (umask 077 && cp "$ENV_TEMPLATE" "$ENV_FILE")
+    chmod 600 "$ENV_FILE"
 
     set_env SESSION_SECRET        "$(gen_hex 32)"
     set_env MASTER_ENCRYPTION_KEY "$(gen_hex 32)"

@@ -23,6 +23,7 @@ from fastapi import FastAPI, Response
 
 from app.config import settings
 from app.dependencies import close_http, close_redis, init_http, init_redis
+from app.limits import BodySizeLimitMiddleware
 from app.models import HealthResponse
 from app.routers import disclosure, pii
 from app.shared.api_key_auth import APIKeyMiddleware
@@ -227,6 +228,9 @@ _SERVICES_API_KEY = require_api_key(
 )
 if _SERVICES_API_KEY:
     app.add_middleware(APIKeyMiddleware, api_key=_SERVICES_API_KEY)
+# A body over GUARD_MAX_BODY_BYTES is a 413 before it is parsed (0 = no bound).
+if settings.max_body_bytes > 0:
+    app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
 
 app.include_router(pii.router)
 app.include_router(disclosure.router)
