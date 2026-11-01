@@ -26,6 +26,7 @@
 const crypto = require('crypto');
 const RE2 = require('re2');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { hasNestedQuantifier } = require('./safePattern');
 
 const DEFAULT_BUDGET_MS = 250;
@@ -67,7 +68,7 @@ function compileUncached(source, flags) {
         return { ok: true, engine: 're2', re: new RE2(source, flags), global: null, source, flags };
     } catch (err) {
         // RE2 has no lookaround or backreference: the native engine, guarded, is next.
-        log.debug('[UserPattern] RE2 refused the pattern, trying the native engine', err);
+        bestEffort('userPattern:re2-refused', err); // RE2 has no lookaround or backreference: the native engine, guarded, is next
     }
     if (hasNestedQuantifier(source)) {
         return { ok: false, reason: 'nested_quantifier', message: 'A repeated group that itself repeats, such as (a+)+, can stall on crafted text. Rewrite the pattern without the nesting.' };
@@ -75,7 +76,7 @@ function compileUncached(source, flags) {
     try {
         void new RegExp(source, flags);
     } catch (err) {
-        return { ok: false, reason: 'does_not_compile', message: `Not a valid pattern: ${/** @type {Error} */ (err).message}` };
+        return fallback('userPattern:does-not-compile', err, { ok: false, reason: 'does_not_compile', message: `Not a valid pattern: ${/** @type {Error} */ (err).message}` });
     }
     const id = crypto.createHash('sha256').update(`${flags}:${source}`).digest('hex').slice(0, 24);
     return { ok: true, engine: 'native', id, source, flags };

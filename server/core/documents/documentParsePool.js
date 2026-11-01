@@ -24,6 +24,7 @@
 const path = require('path');
 const { Worker } = require('worker_threads');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_MEMORY_MB = 1024;
@@ -76,7 +77,7 @@ function spawnSlot() {
 /** @param {Slot} slot */
 function retireLater(slot) {
     if (slot.idleTimer) clearTimeout(slot.idleTimer);
-    slot.idleTimer = setTimeout(() => { slot.worker.terminate().catch(() => {}); }, IDLE_EXIT_MS);
+    slot.idleTimer = setTimeout(() => { slot.worker.terminate().catch((e) => bestEffort('documentParsePool:terminate', e)); }, IDLE_EXIT_MS);
     slot.idleTimer.unref();
 }
 
@@ -115,7 +116,7 @@ function runOn(slot, item, timeoutMs) {
     const onExit = () => finish(() => reject(new DocumentParseError('the parser stopped before answering', 'worker')));
     const timer = setTimeout(() => {
         log.warn(`[DocumentParser] parsing ${log.nameForLog(job.filename)} exceeded ${timeoutMs} ms; stopping its worker`);
-        slot.worker.terminate().catch(() => {});
+        slot.worker.terminate().catch((e) => bestEffort('documentParsePool:terminate', e));
         finish(() => reject(new DocumentParseError(`parsing took longer than ${Math.round(timeoutMs / 1000)} s`, 'timeout')));
     }, timeoutMs);
     slot.worker.on('message', onMessage);
@@ -149,7 +150,7 @@ function parseInWorker(job) {
 /** End every worker (tests, shutdown). */
 async function closeDocumentParsePool() {
     const all = slots.splice(0);
-    await Promise.all(all.map((s) => s.worker.terminate().catch(() => {})));
+    await Promise.all(all.map((s) => s.worker.terminate().catch((e) => bestEffort('documentParsePool:terminate', e))));
 }
 
 module.exports = { parseInWorker, parseTimeoutMs, closeDocumentParsePool, DocumentParseError, DEFAULT_TIMEOUT_MS, DEFAULT_MEMORY_MB };

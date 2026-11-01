@@ -17,7 +17,7 @@
  */
 
 const fs = require('fs');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { STATEMENT_OPS } = require('./sqliteBlobStatements');
 const { openPageDatabase } = require('./sqliteOpen');
 
@@ -28,7 +28,7 @@ const open = new Map();
 
 /** @param {ReturnType<typeof openPageDatabase>} db */
 function closeQuietly(db) {
-    try { db.close(); } catch (err) { log.debug('statement connection already closed', err); }
+    try { db.close(); } catch (err) { bestEffort('sqliteStatementChild:close', err); }
 }
 
 /** @param {string} localPath */
@@ -69,6 +69,7 @@ process.on('message', (/** @type {{ id: number, op: string, localPath: string, a
         process.send({ id, ok: true, result });
     } catch (err) {
         const e = /** @type {Error & { code?: string }} */ (err);
+        bestEffort('sqliteStatementChild:statement', e);
         process.send({ id, ok: false, error: { message: e?.message || String(err), code: e?.code } });
     }
 });
