@@ -67,8 +67,8 @@ async function _resolveAgentWriteContext(conversationId, callerUserId, encryptio
     }
 
     const ctx = row.crypto_scope === 'project' && row.project_id
-        ? await resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id } })
-        : await resolveCrypto({ userId: row.user_id || callerUserId, encryptionKey });
+        ? await resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id }, purpose: 'write' })
+        : await resolveCrypto({ userId: row.user_id || callerUserId, encryptionKey, purpose: 'write' });
 
     return { ownerId: row.user_id, ctx, isShared, projectId: row.project_id || null };
 }
@@ -81,11 +81,12 @@ async function _resolveAgentWriteContext(conversationId, callerUserId, encryptio
  * shared. `title` does NOT: listConversations, listAllConversations and
  * searchConversations each resolve ONE owner context for a whole page, so a
  * title that changed key on sharing would render null in the owner's own list.
+ * @param {'read'|'write'} [purpose] 'write' seals a row about to be stored: a missing key then refuses the write
  */
-function _rowCrypto(row, encryptionKey = null) {
+function _rowCrypto(row, encryptionKey = null, purpose = 'read') {
     return row.crypto_scope === 'project' && row.project_id
-        ? resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id } })
-        : resolveCrypto({ userId: row.user_id, encryptionKey });
+        ? resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id }, purpose })
+        : resolveCrypto({ userId: row.user_id, encryptionKey, purpose });
 }
 
 /**
@@ -192,11 +193,10 @@ async function updateConversationMeta(conversationId, partial) {
     const existing = await _getMetaRow(conversationId);
     if (!existing) return;
 
-    // This function is called with no key by design (compaction runs from the
-    // agent runtime with only a conversation id), so the key comes from the
-    // policy layer — the escrow on the managed tier, the PROJECT key once the
-    // conversation is shared, nothing on `none`.
-    const ctx = await _rowCrypto(existing);
+    // Called with no key by design (compaction runs from the agent runtime with
+    // only a conversation id), so the key comes from the policy layer: the escrow
+    // on the managed tier, the PROJECT key once shared, nothing on `none`.
+    const ctx = await _rowCrypto(existing, null, 'write');
     const merged = { ..._parseMeta(existing.meta_json, conversationId, ctx), ...partial };
 
     const stored = encryptField(JSON.stringify(merged), {
@@ -451,7 +451,7 @@ async function getConversationById(conversationId, encryptionKey = /** @type {st
 async function createConversation(agentId, userId, title = 'New Chat') {
     await initDB();
     const id = randomUUID();
-    const ctx = await resolveCrypto({ userId });
+    const ctx = await resolveCrypto({ userId, purpose: 'write' });
     await run("INSERT INTO agent_conversations (id, agent_id, user_id, title, messages_json, created_at, updated_at) VALUES ($1,$2,$3,$4,'[]',NOW(),NOW())",
         [id, agentId, userId, sealTitle(title, id, 'agent', ctx)]);
     // The caller gets the readable title back, not what went to disk.
@@ -469,7 +469,7 @@ async function updateConversationTitle(conversationId, title) {
     // the escrow key (ctx.backgroundKey) rather than the session DEK.
     const row = await getOne('SELECT user_id FROM agent_conversations WHERE id = $1', [conversationId]);
     if (!row) return;
-    const ctx = await resolveCrypto({ userId: row.user_id });
+    const ctx = await resolveCrypto({ userId: row.user_id, purpose: 'write' });
     await run('UPDATE agent_conversations SET title = $1 WHERE id = $2', [sealTitle(title, conversationId, 'agent', ctx), conversationId]);
 }
 

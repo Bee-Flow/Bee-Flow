@@ -134,7 +134,8 @@ const restoreStubs = installResolveStub({
     './initSchema': { async initDB() {} },
     './messageCrypto': {
         ...realMessageCrypto,
-        async resolveCrypto() { return ctx; },
+        // A function fixture sees the options the store passed (`purpose`).
+        async resolveCrypto(opts) { return typeof ctx === 'function' ? ctx(opts) : ctx; },
     },
     '../../auth/decryptAudit': {
         trackDecrypt() {},
@@ -336,4 +337,48 @@ test('a plaintext conversation is not affected by the guard', async () => {
     const convMessages = require('./conversationMessages');
     await convMessages.replaceMessages('c1', 'direct', [{ role: 'user', content: 'still fine' }], ZK_NO_SESSION);
     assert.strictEqual(messageRows.get('c1')[0].content, 'still fine');
+});
+
+// ── A write whose key cannot be produced is refused ─────────────────────────
+// The store asks for a WRITE context on every path that seals a row (messages,
+// meta, title); the policy layer refuses that one, never a read, when an
+// encrypted org's policy or key is not there. Pinned here: each write rejects,
+// the rows on disk are untouched, and the read path still opens the
+// conversation.
+
+test('a write whose crypto context cannot be resolved is refused and nothing is stored', async () => {
+    seed();
+    ctx = ZK_SESSION;
+    await store.updateDirectConversation('c1', MESSAGES, 'u1', null, { encryptionKey: DEK });
+    const before = messageRows.get('c1').map(r => r.content);
+    const metaBefore = convs.get('c1').meta_json;
+
+    const { storeError } = require('../lib/storeError');
+    ctx = (opts) => {
+        if (opts.purpose === 'write') throw storeError(503, 'ENCRYPTION_KEY_UNAVAILABLE', 'key unavailable');
+        return ZK_SESSION;
+    };
+    const refused = { status: 503, code: 'ENCRYPTION_KEY_UNAVAILABLE' };
+    await assert.rejects(
+        () => store.updateDirectConversation('c1', [...MESSAGES, { role: 'assistant', content: 'in the clear?' }], 'u1', null, { encryptionKey: DEK }),
+        refused,
+    );
+    await assert.rejects(() => store.updateDirectConversationMeta('c1', 'u1', { activeSkill: 'x' }, { encryptionKey: DEK }), refused);
+    await assert.rejects(() => store.updateDirectConversationTitle('c1', 'A new name', 'u1'), refused);
+
+    assert.deepStrictEqual(messageRows.get('c1').map(r => r.content), before, 'no row was rewritten');
+    assert.strictEqual(convs.get('c1').meta_json, metaBefore, 'meta is untouched');
+
+    const conv = await store.getDirectConversation('c1', 'u1', { encryptionKey: DEK });
+    assert.strictEqual(conv.messages[0].content, MESSAGES[0].content, 'a read is not gated');
+});
+
+test('with a key given, encryptMessages throws rather than handing back the plaintext', () => {
+    const { encryptMessages } = require('./messageEncryption');
+    const eightBytes = Buffer.from('tooshort').toString('base64');
+    assert.throws(
+        () => encryptMessages('[{"role":"user","content":"secret"}]', eightBytes, null, null),
+        { status: 503, code: 'MESSAGE_ENCRYPTION_FAILED' },
+    );
+    assert.strictEqual(encryptMessages('[]', null, 'c1', 'u1'), '[]', 'no key: the caller decided on plaintext');
 });

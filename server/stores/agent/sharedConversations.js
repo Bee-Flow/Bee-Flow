@@ -238,6 +238,7 @@ async function shareConversationToProject({ conversationId, type, projectId, own
         userId: ownerId,
         orgId,
         projectKeyFor: { projectId, orgId },
+        purpose: 'write',
     });
 
     // Only rewrite when the key actually changes. With encryption off entirely
@@ -290,7 +291,7 @@ async function unshareConversation({ conversationId, type, ownerId, orgId, encry
     const fromCtx = row.crypto_scope === 'project'
         ? await resolveCrypto({ userId: ownerId, orgId, projectKeyFor: { projectId: row.project_id, orgId } })
         : await resolveCrypto({ userId: ownerId, encryptionKey });
-    const toCtx = await resolveCrypto({ userId: ownerId, encryptionKey });
+    const toCtx = await resolveCrypto({ userId: ownerId, encryptionKey, purpose: 'write' });
 
     let rekeyed = 0;
     const needsRekey = (fromCtx.encryptMessages || toCtx.encryptMessages)

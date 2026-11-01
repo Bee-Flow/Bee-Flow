@@ -154,10 +154,10 @@ function keyHashCandidates(parts, ctx) {
 }
 
 /**
- * Resolve how to WRITE for this owner. Never throws for a missing key (plaintext
- * is recoverable, an undecryptable value is not); a shared project whose key
- * cannot be produced DOES throw, exactly as resolveCrypto does, because the
- * alternative is writing a project's memory in the clear on an encrypted org.
+ * Resolve how to WRITE for this owner. Plaintext when the policy says so; a
+ * key that cannot be produced on an org that asked for encryption throws,
+ * exactly as resolveCrypto does for a write, because the alternative is
+ * writing memory in the clear on an encrypted org.
  *
  * @param {{ userId: string, projectId?: string|null }} p
  * @returns {Promise<MemoryWriteContext>}
@@ -166,12 +166,12 @@ async function resolveWriteContext({ userId, projectId = null }) {
     try {
         const { resolveCrypto } = require('./agent/messageCrypto');
         const ctx = await resolveCrypto(projectId
-            ? { userId, projectKeyFor: { projectId } }
-            : { userId });
+            ? { userId, projectKeyFor: { projectId }, purpose: 'write' }
+            : { userId, purpose: 'write' });
         if (!ctx.backgroundKey) return PLAINTEXT_WRITE;
         return { encrypt: !!ctx.encryptMemories, keys: memoryKeys(ctx.backgroundKey) };
     } catch (err) {
-        if (err && err.code === 'PROJECT_KEY_UNAVAILABLE') throw err;
+        if (err && (err.code === 'PROJECT_KEY_UNAVAILABLE' || err.code === 'ENCRYPTION_KEY_UNAVAILABLE')) throw err;
         log.error('[MemoryCrypto] write context failed, writing plaintext:', /** @type {Error} */ (err).message);
         return PLAINTEXT_WRITE;
     }
