@@ -46,7 +46,7 @@ function hostOf(src: string): string {
 }
 
 /** The placeholder for an image on another host, with the control that loads it. */
-export function DeferredImage({ src, alt }: { src: string; alt?: string }) {
+function DeferredImage({ src, alt }: { src: string; alt?: string }) {
     const { t } = useTranslation();
     const [shown, setShown] = useState(false);
     if (shown) return <img src={src} alt={alt ?? ''} />;

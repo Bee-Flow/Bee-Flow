@@ -10,7 +10,7 @@ const path = require('node:path');
 
 /** @param {Record<string, string>} env */
 function loadVerify(env) {
-    return spawnSync(process.execPath, ['-e', "require('./license/verify.js'); process.stdout.write('loaded')"], {
+    return spawnSync(process.execPath, ['-e', `require(${JSON.stringify(path.join(__dirname, 'verify.js'))}); process.stdout.write('loaded')`], {
         cwd: path.join(__dirname, '..'),
         env: { ...process.env, LICENSE_JWKS_URL: '', NODE_ENV: 'test', ...env },
         encoding: 'utf8',
