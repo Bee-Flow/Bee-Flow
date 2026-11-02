@@ -171,4 +171,91 @@ function compileDeleteOrphans(tableMeta, accessFilter, {
     };
 }
 
-module.exports = { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans };
+/**
+ * "Rows of this table that go with their parent" — the DOOMED predicate of a
+ * cascade retention step, for a purge that deletes CHILD-FIRST.
+ *
+ * compileDeleteOrphans asks "is my parent already gone?", which only works when
+ * parents are deleted first. With a FOREIGN KEY on the relation (REFERENCES with
+ * no ON DELETE) a parent that still has children cannot be deleted at all, so
+ * the purge runs bottom-up and a child has to be recognised BEFORE its parent
+ * is deleted: it is doomed when its relation points at a row of the parent that
+ * is itself doomed (`parentDoomed`, the parent's own predicate, nested as many
+ * levels as the plan has), or when the parent is already gone (the orphan test
+ * of compileDeleteOrphans, kept as it was: NULL included unless `sweepNull` is
+ * false).
+ *
+ * Only the predicate: it is the input of compileRetentionDelete, and of the
+ * next level down.
+ */
+function compileDoomedUnderParent(tableMeta, accessFilter, {
+    relationField, parentTableMeta, parentDoomed, sweepNull = true,
+}) {
+    assertTableMeta(tableMeta);
+    assertTableMeta(parentTableMeta);
+    assertAccessFilter(accessFilter);
+    const column = resolveColumn(tableMeta, relationField);
+    const parent = qi(parentTableMeta.key);
+    const orphanTest = sweepNull
+        ? `(${column} IS NULL OR ${column} NOT IN (SELECT "id" FROM ${parent}))`
+        : `(${column} IS NOT NULL AND ${column} NOT IN (SELECT "id" FROM ${parent}))`;
+    const hasParentDoomed = parentDoomed && typeof parentDoomed.where === 'string';
+    const underDoomed = hasParentDoomed
+        ? `${column} IN (SELECT "id" FROM ${parent} WHERE ${parentDoomed.where}) OR `
+        : '';
+    return {
+        where: `${accessFilter.where} AND (${underDoomed}${orphanTest})`,
+        params: [...accessFilter.params, ...(hasParentDoomed ? parentDoomed.params || [] : [])],
+    };
+}
+
+/**
+ * The DELETE of one retention step, plus the SELECT that counts what it has to
+ * leave alone.
+ *
+ * `doomed` is the step's predicate (compileDeleteOlderThan's where, or
+ * compileDoomedUnderParent's). The final WHERE adds, for EVERY relation column
+ * in the model that targets this table (`referrers`: { tableMeta, field }), `id
+ * NOT IN (SELECT col FROM referrer WHERE col IS NOT NULL)`: a row something
+ * still points at is never deleted, so a constraint can never fail the purge.
+ * The purge deletes bottom-up inside one transaction, so rows that pointed at
+ * this one and were doomed themselves are already gone when this runs; only
+ * what stays (an app-owned reference) keeps its target.
+ *
+ * `keptSql` returns `kept` (doomed rows held back by any referrer) and one
+ * column per referrer (`r0`, `r1`, ...): how many that referrer holds back. Run it just before the DELETE.
+ */
+function compileRetentionDelete(tableMeta, accessFilter, { doomed, referrers = [], allowLockedRows = false }) {
+    assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
+    assertAccessFilter(accessFilter);
+    if (!doomed || typeof doomed.where !== 'string') throw new CompileError('retention delete needs a doomed predicate');
+    const table = qi(tableMeta.key);
+    const doomedParams = doomed.params || [];
+    const pointers = referrers.map((r) => {
+        assertTableMeta(r.tableMeta);
+        const col = resolveColumn(r.tableMeta, r.field);
+        return { col, from: qi(r.tableMeta.key) };
+    });
+    const guard = pointers
+        .map((p) => ` AND "id" NOT IN (SELECT ${p.col} FROM ${p.from} WHERE ${p.col} IS NOT NULL)`)
+        .join('');
+    const where = `(${doomed.where})${guard}`;
+    const whereParams = [...doomedParams];
+    // `kept`: doomed rows held back by ANY referrer; r0, r1, ...: by that referrer alone.
+    const inRef = (p) => `"id" IN (SELECT ${p.col} FROM ${p.from} WHERE ${p.col} IS NOT NULL)`;
+    const count = (cond) => `(SELECT COUNT(*) FROM ${table} WHERE (${doomed.where}) AND (${cond}))`;
+    const keptSql = pointers.length
+        ? `SELECT ${[`${count(pointers.map(inRef).join(' OR '))} AS kept`, ...pointers.map((p, i) => `${count(inRef(p))} AS r${i}`)].join(', ')}`
+        : null;
+    return {
+        sql: `DELETE FROM ${table} WHERE ${where}`,
+        params: whereParams,
+        where,
+        whereParams,
+        keptSql,
+        keptParams: keptSql ? [...doomedParams, ...pointers.flatMap(() => doomedParams)] : [],
+    };
+}
+
+module.exports = { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete };

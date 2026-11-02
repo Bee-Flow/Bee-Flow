@@ -65,7 +65,7 @@
     "appStudio/builderTools/actionNormalise.js": 593,
     "appStudio/canonicalize.test.js": 1021,
     "appStudio/connectorSchema.js": 772,
-    "appStudio/connectorSync.js": 714,
+    "appStudio/connectorSync.js": 633,
     "appStudio/dataModel/connectorValidate.js": 660,
     "appStudio/datatableSource.js": 567,
     "appStudio/fileIntake.test.js": 1525,

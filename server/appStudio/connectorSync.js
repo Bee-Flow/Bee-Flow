@@ -45,6 +45,7 @@ const connectorSchema = require('./connectorSchema');
 const { renderWatermark, highWatermark } = require('./connectorWatermark.mts');
 const dataModel = require('./dataModel');
 const { planRetention } = require('./dataModel/retentionPlan');
+const { runRetention } = require('./connectorRetention.mts');
 const log = require('../telemetry/log');
 
 // One sync never writes more than a connector run can return. The connector
@@ -224,7 +225,10 @@ function defaultDeps() {
         compileDeleteAll: (/** @type {Parameters<typeof import('./queryCompiler').compileDeleteAll>} */ ...a) => require('./queryCompiler').compileDeleteAll(...a),
         compileDeleteOlderThan: (/** @type {Parameters<typeof import('./queryCompiler').compileDeleteOlderThan>} */ ...a) => require('./queryCompiler').compileDeleteOlderThan(...a),
         compileDeleteOrphans: (/** @type {Parameters<typeof import('./queryCompiler').compileDeleteOrphans>} */ ...a) => require('./queryCompiler').compileDeleteOrphans(...a),
+        compileDoomedUnderParent: (/** @type {Parameters<typeof import('./queryCompiler').compileDoomedUnderParent>} */ ...a) => require('./queryCompiler').compileDoomedUnderParent(...a),
+        compileRetentionDelete: (/** @type {Parameters<typeof import('./queryCompiler').compileRetentionDelete>} */ ...a) => require('./queryCompiler').compileRetentionDelete(...a),
         exec: (/** @type {Parameters<typeof import('../stores/studioAppDbStore').exec>} */ ...a) => require('../stores/studioAppDbStore').exec(...a),
+        batch: (/** @type {Parameters<typeof import('../stores/studioAppDbStore').batch>} */ ...a) => require('../stores/studioAppDbStore').batch(...a),
         query: (/** @type {Parameters<typeof import('../stores/studioAppDbStore').query>} */ ...a) => require('../stores/studioAppDbStore').query(...a),
         claimSync: (/** @type {Parameters<typeof import('../stores/studioAppDataStore').claimSync>} */ ...a) => require('../stores/studioAppDataStore').claimSync(...a),
         finishSync: (/** @type {Parameters<typeof import('../stores/studioAppDataStore').finishSync>} */ ...a) => require('../stores/studioAppDataStore').finishSync(...a),
@@ -239,48 +243,6 @@ function defaultDeps() {
         adoptRecordedReplies: (/** @type {Parameters<typeof import('./mailboxRecordedReplies.mts').adoptRecordedReplies>} */ ...a) => require('./mailboxRecordedReplies.mts').adoptRecordedReplies(...a),
         ensureLabelColumns: (/** @type {Parameters<typeof import('./mailboxLabelColumn.mts').ensureLabelColumns>} */ ...a) => require('./mailboxLabelColumn.mts').ensureLabelColumns(...a),
     };
-}
-
-/**
- * The attachment ids referenced by the rows a retention purge is about to
- * delete. Read BEFORE the delete: afterwards the only pointer to the blob is
- * gone and it becomes unreachable garbage holding personal data.
- *
- * Returns [] whenever the table has no file columns, which is the common case
- * and costs one cheap check rather than a query.
- */
-async function collectExpiredFiles(app, table, where, whereParams, deps) {
-    const fileFields = (table.fields || []).filter((f) => f && f.type === 'file');
-    if (!fileFields.length) return [];
-
-    const cols = fileFields.map((f) => `"${f.key}"`).join(', ');
-    // The WHERE comes straight off the compiled DELETE, so this selects exactly
-    // the rows that are about to go — never an approximation of them.
-    const sql = `SELECT ${cols} FROM "${table.key}" WHERE ${where} LIMIT 5000`;
-    const { rows } = await deps.query(app.userId, app.id, sql, whereParams);
-
-    const ids = [];
-    for (const row of rows || []) {
-        for (const f of fileFields) {
-            const raw = row[f.key];
-            if (!raw) continue;
-            // Bounded unwrap: rows written while descriptors were double-encoded
-            // parse to a STRING first. Skipping them here would delete the row
-            // at retention but keep the blob and its ledger entry — the actual
-            // document living on forever behind a 90-day policy.
-            let parsed = raw;
-            for (let i = 0; i < 3 && typeof parsed === 'string'; i++) {
-                try { parsed = JSON.parse(parsed); } catch { parsed = null; break; }
-            }
-            if (!parsed || typeof parsed !== 'object') continue;
-            for (const d of (Array.isArray(parsed) ? parsed : [parsed])) {
-                // Only redeemed files own a blob; a pending mailbox descriptor
-                // points at the provider and leaves nothing of ours behind.
-                if (d && d.kind === 'studio_attachment' && d.fileId) ids.push(d.fileId);
-            }
-        }
-    }
-    return ids;
 }
 
 /**
@@ -442,36 +404,14 @@ async function purgePastRetention(app, model, connector, deps) {
             log.error(`[ConnectorSync] RETENTION GAP on ${app.id}/${connector.id}: ${plan.unreachable.join(', ')} keep data past ${plan.days} days`);
         }
 
-        // Parent-first: `steps` is ordered by grain, so a cascade child runs
-        // after the parent rows it inherits its age from are already gone.
-        for (const step of plan.steps) {
-            try {
-                const del = step.mode === 'cascade'
-                    ? deps.compileDeleteOrphans(step.table, OWNER_FILTER, {
-                        relationField: step.relationField,
-                        parentTableMeta: step.parentTable,
-                        sweepNull: step.sweepNull,
-                    })
-                    : deps.compileDeleteOlderThan(step.table, OWNER_FILTER, { field: step.column, cutoffIso: cutoff });
-
-                // Collect the FILES those rows point at before the rows go —
-                // afterwards there is nothing left to find them by. Deleting
-                // the row but keeping the blob and the ledger entry would
-                // leave the actual document (an invoice, an ID scan) in
-                // storage forever while the app reports a 90-day policy.
-                const doomedFiles = await collectExpiredFiles(app, step.table, del.where, del.whereParams, deps);
-
-                const res = await deps.exec(app.userId, app.id, del.sql, del.params);
-                purged += res?.changes || 0;
-
-                if (doomedFiles.length) await purgeAttachments(app, doomedFiles, deps);
-            } catch (e) {
-                // Retention is a background hygiene pass; failing it must not
-                // fail the sync that just succeeded.
-                log.warn(`[ConnectorSync] retention purge failed on ${app.id}/${connector.id} (${step.table.key}): ${e.message}`);
-            }
-        }
-        if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${app.id}/${connector.id}`);
+        // Child-first and in one transaction (connectorRetention.mts): a parent that still has
+        // children cannot be deleted (foreign keys), so every step's doomed rows are worked out
+        // top-down and deleted bottom-up. A failure is logged there, never thrown: retention is a
+        // background hygiene pass and must not fail the sync that just succeeded.
+        purged = await runRetention({
+            app, model, connectorId: connector.id, steps: plan.steps, cutoffIso: cutoff, deps,
+            purgeAttachments: (ids) => purgeAttachments(app, ids, deps),
+        });
     }
 
     return purged;
