@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AppFilePreview, { firstDescriptor } from './AppFilePreview';
@@ -20,6 +20,9 @@ vi.mock('@/utils/helpers', () => ({
     API_BASE: 'https://api.test',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
+
+const engine = vi.hoisted(() => ({ openPdf: vi.fn() }));
+vi.mock('./pdfCompare/pdfEngine', () => ({ openPdf: engine.openPdf, isRenderCancelled: () => false }));
 
 const STUDIO = { kind: 'studio_attachment', fileId: 'f1', name: 'invoice.pdf', mime: 'application/pdf', size: 10 };
 const PENDING = { kind: 'mailbox_attachment', connectorId: 'c1', messageId: 'm1', attachmentId: 'a1', name: 'invoice.pdf', mime: 'application/pdf', size: 10 };
@@ -45,6 +48,8 @@ function renderPreview(value, { mode = 'run', props = {}, style = { span: 12, he
 }
 
 beforeEach(() => {
+    engine.openPdf.mockReset();
+    engine.openPdf.mockImplementation(async () => fakeDoc());
     globalThis.__authFetch = vi.fn(async () => blobResponse('application/pdf'));
     globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-1');
     globalThis.URL.revokeObjectURL = vi.fn();
@@ -210,5 +215,65 @@ describe('AppFilePreview sizing', () => {
         const { container } = renderPreview(STUDIO, { style: { span: 12 } });
         await waitFor(() => expect(container.querySelector('iframe')).toBeTruthy());
         expect(container.querySelector('iframe').className).toContain('min-h-[20rem]');
+    });
+});
+
+function fakeDoc(numPages = 3) {
+    return {
+        numPages,
+        getPage: async () => ({
+            width: 600, height: 800,
+            render: (canvas) => { canvas.width = 10; canvas.height = 10; return { promise: Promise.resolve(), cancel: () => {} }; },
+        }),
+        destroy: vi.fn(),
+    };
+}
+
+const DESC = { kind: 'studio_attachment', fileId: 'f1', name: '811424.pdf', mime: 'application/pdf', size: 10 };
+const renderViewer = (props = {}) => renderPreview(DESC, { props });
+
+describe('AppFilePreview viewer "app"', () => {
+    beforeEach(() => {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 800 });
+        Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 600 });
+    });
+    afterEach(() => {
+        delete HTMLElement.prototype.clientWidth;
+        delete HTMLElement.prototype.clientHeight;
+    });
+
+    it('keeps the browser iframe by default', async () => {
+        const { container } = renderViewer();
+        await waitFor(() => expect(container.querySelector('iframe')).toBeTruthy());
+        expect(container.querySelector('iframe')?.getAttribute('title')).toBe('811424.pdf');
+        expect(screen.getByLabelText('Download 811424.pdf')).toBeTruthy();
+        expect(engine.openPdf).not.toHaveBeenCalled();
+    });
+
+    it('app viewer shows the file name, page x / y and changes zoom', async () => {
+        const user = userEvent.setup();
+        const { container } = renderViewer({ viewer: 'app' });
+        await waitFor(() => expect(screen.getByText('1 / 3')).toBeTruthy());
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(screen.getByText('811424.pdf')).toBeTruthy();
+        const before = screen.getByText(/%$/).textContent;
+        await user.click(screen.getByLabelText('Zoom in'));
+        expect(screen.getByText(/%$/).textContent).not.toBe(before);
+        expect(container.querySelectorAll('[data-pdf-viewer-page]').length).toBe(3);
+        expect(screen.getByLabelText('Download 811424.pdf')).toBeTruthy();
+    });
+
+    it('hides the download button when downloads are off', async () => {
+        renderViewer({ viewer: 'app', allowDownload: false });
+        await waitFor(() => expect(screen.getByText('1 / 3')).toBeTruthy());
+        expect(screen.queryByLabelText('Download 811424.pdf')).toBeNull();
+    });
+
+    it('falls back to the download card when pdf.js rejects', async () => {
+        engine.openPdf.mockRejectedValue(new Error('broken'));
+        const { container } = renderViewer({ viewer: 'app' });
+        await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Could not open this file.'));
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(screen.getByText('Download')).toBeTruthy();
     });
 });

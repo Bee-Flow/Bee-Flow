@@ -678,7 +678,7 @@ async function extractDocuments(app, descriptors, {
             continue;
         }
         const att = await loadAttachment(app, descriptor, { viewer, model });
-        const result = await extractAttachment(att, { modelSupportsVision: vision, documentMode: mode });
+        const result = await extractAttachment(att, { modelSupportsVision: vision, documentMode: mode, maxImages: MAX_TOTAL_DOC_IMAGES - totalImages });
 
         if (result.kind === 'text') {
             const text = (result.text || '').slice(0, Math.min(MAX_DOC_CHARS, MAX_TOTAL_DOC_CHARS - totalChars));

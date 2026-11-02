@@ -5,17 +5,17 @@ import { clampPage, MAX_ZOOM, MIN_ZOOM, stepZoom } from './pdfCompareMath';
 
 export type Mode = 'side' | 'swipe' | 'diff';
 
-const BTN = 'inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-1 rounded px-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:hover:bg-transparent aria-pressed:bg-[var(--bg-tertiary)] aria-pressed:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--app-accent,#2563eb)]';
+export const BTN = 'inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-1 rounded px-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:hover:bg-transparent aria-pressed:bg-[var(--bg-tertiary)] aria-pressed:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--app-accent,#2563eb)]';
 const ICON = 'h-4 w-4';
 
-function ToolButton({ label, onClick, pressed, disabled, children }: { label: string; onClick: () => void; pressed?: boolean; disabled?: boolean; children: ReactNode }) {
+export function ToolButton({ label, onClick, pressed, disabled, children }: { label: string; onClick: () => void; pressed?: boolean; disabled?: boolean; children: ReactNode }) {
     return (
         <button type="button" className={BTN} title={label} aria-label={label} aria-pressed={pressed} disabled={disabled} onClick={onClick}>
             {children}
         </button>
     );
 }
-const Sep = () => <span className="mx-0.5 h-4 w-px shrink-0 bg-[var(--border-default)]" aria-hidden="true" />;
+export const Sep = () => <span className="mx-0.5 h-4 w-px shrink-0 bg-[var(--border-default)]" aria-hidden="true" />;
 
 export interface DownloadLink { url: string | null; name: string; label: string }
 

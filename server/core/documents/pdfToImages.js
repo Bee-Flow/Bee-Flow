@@ -118,4 +118,69 @@ async function renderPdfPagesToImages(pdfBuffer, { maxPages = 20, scale = null, 
     }
 }
 
-module.exports = { renderPdfPagesToImages, computeRenderScale };
+/**
+ * A rectangle of a page, as fractions (0..1) of the page measured from the
+ * top-left of the page as displayed.
+ * @typedef {{ pageNumber: number, label: string, x: number, y: number, w: number, h: number }} PdfRegionRequest
+ */
+
+/**
+ * Render clipped regions of the first `maxPages` pages, each so that ITS long
+ * edge lands at `targetLongEdge` px (scale clamped to [1, 6]). The caller sees
+ * every page's size first (`plan`), so it can budget before anything is drawn.
+ * Regions are rendered strictly one at a time: the canvas is dropped before
+ * the next one is allocated, so memory stays at one region's bitmap.
+ *
+ * pdf.js clips by viewport: `offsetX/offsetY` shift the page so the region
+ * starts at the canvas origin, and the canvas is only as big as the region.
+ *
+ * @param {Buffer|Uint8Array} pdfBuffer
+ * @param {{ maxPages: number, targetLongEdge: number, filename?: string,
+ *   plan: (pages: Array<{ pageNumber: number, width: number, height: number }>) => PdfRegionRequest[] }} opts
+ * @returns {Promise<Array<{ pageNumber: number, label: string, base64: string, mimeType: 'image/png', width: number, height: number }> | null>}
+ */
+async function renderPdfRegions(pdfBuffer, { maxPages, targetLongEdge, filename = 'unknown', plan }) {
+    const canvasMod = loadCanvas();
+    if (!canvasMod) return null;
+    /** @type {{ destroy?: () => Promise<void> } | null} */
+    let task = null;
+    try {
+        const getDocument = await loadGetDocument();
+        const loading = getDocument({ data: new Uint8Array(pdfBuffer), useSystemFonts: true });
+        task = loading;
+        const doc = await loading.promise;
+        const sizes = [];
+        for (let i = 1; i <= Math.min(doc.numPages, maxPages); i++) {
+            const vp = (await doc.getPage(i)).getViewport({ scale: 1 });
+            sizes.push({ pageNumber: i, width: vp.width, height: vp.height });
+        }
+        const out = [];
+        for (const req of plan(sizes)) {
+            const size = sizes[req.pageNumber - 1];
+            if (!size) continue;
+            const page = await doc.getPage(req.pageNumber);
+            const regionLong = Math.max(req.w * size.width, req.h * size.height);
+            const s = Math.min(6, Math.max(1, targetLongEdge / regionLong));
+            const viewport = page.getViewport({ scale: s, offsetX: -req.x * size.width * s, offsetY: -req.y * size.height * s });
+            const width = Math.ceil(req.w * size.width * s);
+            const height = Math.ceil(req.h * size.height * s);
+            let canvas = canvasMod.createCanvas(width, height);
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            const png = canvas.toBuffer('image/png');
+            canvas = canvasMod.createCanvas(1, 1); // drop the big bitmap before the next region
+            page.cleanup();
+            out.push({ pageNumber: req.pageNumber, label: req.label, base64: png.toString('base64'), mimeType: /** @type {const} */ ('image/png'), width, height });
+        }
+        return out;
+    } catch (err) {
+        log.warn(`[PdfToImages] Region render failed for ${log.nameForLog(filename)}:`, /** @type {Error} */ (err).message);
+        return null;
+    } finally {
+        // The document is opened a second time for the crops; let its worker state go.
+        if (task && typeof task.destroy === 'function') {
+            await task.destroy().catch((e) => log.debug(`[PdfToImages] destroy after regions: ${/** @type {Error} */ (e).message}`));
+        }
+    }
+}
+
+module.exports = { renderPdfPagesToImages, renderPdfRegions, computeRenderScale };

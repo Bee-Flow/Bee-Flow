@@ -47,7 +47,7 @@ function utilitiesWithIndexCss() {
 }
 
 /**
- * pdf_compare's pdf.js engine (pdfEngine.ts) is swapped for a stub that throws:
+ * pdf_compare's and file_preview's pdf.js engine (pdfEngine.ts) is swapped for a stub that throws:
  * this page has no network and no worker, and pdf.js would add ~1 MB to a file
  * served on every render. The component shows a placeholder on that error.
  */
@@ -57,7 +57,9 @@ function stubPdfEngine() {
         enforce: 'pre',
         resolveId(source, importer) {
             if (!source.endsWith('/pdfEngine') || !importer) return null;
-            return path.resolve(path.dirname(importer), 'pdfEngine.stub.ts');
+            // The stub sits next to the engine the import points at, not next to the importer.
+            const base = source.startsWith('@/') ? path.resolve(import.meta.dirname, 'src', source.slice(2)) : path.resolve(path.dirname(importer), source);
+            return `${base}.stub.ts`;
         },
     };
 }

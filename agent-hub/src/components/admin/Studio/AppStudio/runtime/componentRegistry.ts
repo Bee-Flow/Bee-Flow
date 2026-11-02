@@ -132,7 +132,7 @@ export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
     },
     file_preview: {
         Component: AppFilePreview, label: 'File preview', icon: FileText, category: 'Content',
-        defaultProps: { source: { kind: 'static', value: null }, emptyText: 'No document selected.', allowDownload: true },
+        defaultProps: { source: { kind: 'static', value: null }, emptyText: 'No document selected.', allowDownload: true, viewer: 'browser', textLayer: false },
         defaultStyle: { span: 12, height: 'lg' },
     },
     pdf_compare: {

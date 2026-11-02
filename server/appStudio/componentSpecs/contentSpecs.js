@@ -73,11 +73,13 @@ const CONTENT_SPECS = {
     },
     file_preview: {
         label: 'File preview', category: 'Content',
-        description: 'Shows a PDF or image from a file column inline. Other types get a download link. Bind source to a file field.',
+        description: 'Shows a PDF or image from a file column inline. Other types get a download link. Bind source to a file field. viewer "app": own PDF reader.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: null } },
             emptyText: { type: 'string', maxLen: 200, default: 'No document selected.' },
             allowDownload: { type: 'boolean', default: true },
+            viewer: { type: 'enum', values: ['browser', 'app'], default: 'browser' },
+            textLayer: { type: 'boolean', default: false },
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },

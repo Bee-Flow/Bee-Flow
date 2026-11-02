@@ -380,7 +380,7 @@ A document is a page the OWNER drew by hand in Studio → Documents: an invoice,
 the company's letterhead. You never author one. A \`fill_document\` step names it by id and fills its
 placeholders: {kind:"fill_document", documentId, values:{"<placeholder>": <binding>}, resultVar}.
 The result is the same attachment descriptor generate_file returns, so a \`file_preview\` component
-shows it, \`download_file\` hands it over and a send_email attachment carries it. A placeholder listed
+shows it (set viewer "app" for the app's own PDF reader instead of the browser's: file name as title, zoom, fit, rotate, fullscreen; textLayer true makes the text selectable), \`download_file\` hands it over and a send_email attachment carries it. A placeholder listed
 as (list) must be bound to a binding that resolves to an ARRAY; anything else renders as nothing.
 A PRESENTATION needs no design: a \`generate_presentation\` step turns the outline an \`ai_generate\`
 step wrote ("# " title, "## " per slide, "- " bullets) — or records with title/content columns — into
