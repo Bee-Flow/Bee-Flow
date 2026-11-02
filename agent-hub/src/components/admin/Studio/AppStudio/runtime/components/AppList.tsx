@@ -32,7 +32,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         titleKey = 'title', subtitleKey = null, metaKey = null,
-        timestampKey = null, badgeKey = null, badgeToneMap = [], unreadKey = null,
+        timestampKey = null, badgeKey = null, tagsKey = null, badgeToneMap = [], unreadKey = null,
         badgePlacement = 'meta', selectedWhen = null, selectedDetailKey = null,
         groupKey = null, groupOrder = [], groupLabelMap = [],
         icon = null, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
@@ -97,6 +97,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
         const meta = metaKey ? walkPath(item, metaKey) : null;
         const stamp = timestampKey ? relativeTime(walkPath(item, timestampKey), t) : null;
         const badge = badgeKey ? walkPath(item, badgeKey) : null;
+        const tags = tagsKey ? walkPath(item, tagsKey) : null;
         const unread = unreadKey ? Boolean(walkPath(item, unreadKey)) : false;
         const toneHit = badge != null
             ? (Array.isArray(badgeToneMap) ? badgeToneMap : []).find((m) => m && String(m.value) === String(badge))
@@ -140,7 +141,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
         const body = (
             <ListRowBody
                 t={t} icon={icon} unread={unread} size={size} title={walkPath(item, titleKey)} stamp={stamp}
-                badgeInMeta={badgeInMeta} subtitle={subtitle} meta={meta} badge={badge} badgeEl={badgeEl} detail={detail}
+                badgeInMeta={badgeInMeta} subtitle={subtitle} meta={meta} badge={badge} badgeEl={badgeEl} tags={tags} detail={detail}
             />
         );
 

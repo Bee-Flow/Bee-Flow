@@ -508,6 +508,23 @@ test('attachments carry the conversation key they are filtered by', async () => 
     assert.strictEqual(res.grains[1].rows[0].thread_key, 'T7');
 });
 
+test('an Outlook conversation carries the categories of all its messages, each once', () => {
+    const grouped = mailboxConnector._groupIntoThreads([
+        { thread_key: 'T1', provider: 'outlook', direction: 'inbound', labels: 'Daniel', received_at: '2026-08-01T00:00:00Z' },
+        { thread_key: 'T1', provider: 'outlook', direction: 'outbound', labels: 'daniel, Urgent', received_at: '2026-08-02T00:00:00Z' },
+        { thread_key: 'T2', provider: 'outlook', direction: 'inbound', labels: '', received_at: '2026-08-01T00:00:00Z' },
+    ]);
+    assert.strictEqual(grouped.threads[0].labels, 'Daniel,Urgent');
+    assert.strictEqual(grouped.threads[1].labels, '', 'categories taken off in Outlook clear the conversation too');
+});
+
+test('a Gmail conversation carries no labels: they are ids, not names', () => {
+    const grouped = mailboxConnector._groupIntoThreads([
+        { thread_key: 'T1', provider: 'gmail', direction: 'inbound', labels: 'INBOX,Label_12', received_at: '2026-08-01T00:00:00Z' },
+    ]);
+    assert.ok(!('labels' in grouped.threads[0]));
+});
+
 // ── Roll-up honesty ──────────────────────────────────────────────────────────
 
 test('a thread we only hold a SLICE of keeps its stored counts', () => {
@@ -516,13 +533,14 @@ test('a thread we only hold a SLICE of keeps its stored counts', () => {
     // column leaves the previous complete answer alone (upsert writes only the
     // columns present).
     const grouped = mailboxConnector._groupIntoThreads([
-        { thread_key: 'A', direction: 'inbound', received_at: '2026-08-01T00:00:00Z' },
+        { thread_key: 'A', provider: 'outlook', direction: 'inbound', labels: 'Daniel', received_at: '2026-08-01T00:00:00Z' },
         { thread_key: 'B', direction: 'inbound', received_at: '2026-08-01T00:00:00Z' },
     ], new Set(['A']));
 
     const [a, b] = grouped.threads;
     assert.ok(!('message_count' in a), 'a partial thread claims no count');
     assert.ok(!('has_unread' in a));
+    assert.ok(!('labels' in a), 'nor the categories of the messages it is missing');
     assert.strictEqual(a.last_message_at, '2026-08-01T00:00:00Z', 'facts about the messages we DO have still land');
     assert.strictEqual(b.message_count, 1, 'a complete thread is measured as before');
 });

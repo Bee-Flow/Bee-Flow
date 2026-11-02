@@ -4,6 +4,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import type { PeekGroupLabel, PeekRow } from '../listPeek';
 import { walkPath } from '../resolveBinding';
 import { displayValue } from '../uiBits';
+import TagChips from './TagChips';
 import { PEEK_WIDTH, badgeStyle } from './AppList.helpers';
 
 // One row of the App Studio list (its body and its badge) and the pure layout
@@ -154,11 +155,12 @@ interface ListRowBodyProps {
     meta: unknown;
     badge: unknown;
     badgeEl: React.ReactNode;
+    tags?: unknown;
     detail: unknown;
 }
 
 /** A row's content: icon, unread dot, title and time, subtitle (with the badge when it sits there), meta line, open-row detail. */
-export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, subtitle, meta, badge, badgeEl, detail }: ListRowBodyProps) {
+export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, subtitle, meta, badge, badgeEl, tags, detail }: ListRowBodyProps) {
     return (
         <>
             {icon ? (
@@ -190,6 +192,7 @@ export function ListRowBody({ t, icon, unread, size, title, stamp, badgeInMeta, 
                 </div>
                 <RowSubtitle badgeInMeta={badgeInMeta} subtitle={subtitle} badgeEl={badgeEl} />
                 <RowMeta badgeInMeta={badgeInMeta} meta={meta} badge={badge} badgeEl={badgeEl} />
+                <TagChips value={tags} max={3} className="mt-1" />
                 {detail != null && detail !== '' ? (
                     <div className="mt-1 text-xs truncate [color:var(--app-primary)]!" data-app-list-detail="true">
                         {displayValue(detail)}

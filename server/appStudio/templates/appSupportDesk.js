@@ -149,7 +149,7 @@ module.exports = {
         modelVersion: 1,
         tables: [
             {
-                // Grain 0 of the mailbox connector. The first nine columns are
+                // Grain 0 of the mailbox connector. The first ten columns are
                 // written by the mailbox; everything after `status` belongs to
                 // the team and is never touched by a sync.
                 id: 'tbl_sdthr', key: 'tickets', name: 'Tickets', icon: 'Inbox',
@@ -163,6 +163,8 @@ module.exports = {
                     { id: 'fld_sdtun', key: 'has_unread', name: 'Unread', type: 'bool' },
                     { id: 'fld_sdtma', key: 'mailbox_address', name: 'Mailbox', type: 'text' },
                     { id: 'fld_sdtpv', key: 'provider', name: 'Provider', type: 'text' },
+                    // Outlook categories of the conversation, comma-separated.
+                    { id: 'fld_sdtlb', key: 'labels', name: 'Labels', type: 'text' },
                     // ── team-owned from here ──
                     // Column DEFAULTs, not an action. The connector INSERTs the
                     // ticket, and nothing of ours runs at that moment — so
@@ -216,6 +218,7 @@ module.exports = {
                     { id: 'fld_sdmab', key: 'is_auto_or_bulk', name: 'Auto/bulk', type: 'bool' },
                     { id: 'fld_sdmma', key: 'mailbox_address', name: 'Mailbox', type: 'text' },
                     { id: 'fld_sdmpr', key: 'provider', name: 'Provider', type: 'text' },
+                    { id: 'fld_sdmlb', key: 'labels', name: 'Labels', type: 'text' },
                 ],
                 access: ACCESS_MESSAGES,
             },
@@ -441,6 +444,8 @@ module.exports = {
                                             timestampKey: 'last_message_at',
                                             badgeKey: 'status',
                                             badgeToneMap: STATUS_TONES,
+                                            // Outlook categories as chips under the row.
+                                            tagsKey: 'labels',
                                             unreadKey: 'has_unread',
                                             // Which conversation is open. An inbox
                                             // that cannot show that is not an inbox.
@@ -469,6 +474,7 @@ module.exports = {
                                             title: 'Conversation', subtitle: null, icon: 'Mail', showDivider: true,
                                             titleFrom: { kind: 'formula', expr: 'vars.subject' },
                                             subtitleFrom: { kind: 'formula', expr: 'vars.requester' },
+                                            tagsFrom: { kind: 'formula', expr: 'vars.labels' },
                                         },
                                         style: { span: 12, gap: 2, padding: 0 },
                                         children: [
@@ -1052,6 +1058,7 @@ module.exports = {
                     { kind: 'set_variable', name: 'ticketId', value: { kind: 'formula', expr: 'form.id' } },
                     { kind: 'set_variable', name: 'requester', value: { kind: 'formula', expr: 'form.requester_email' } },
                     { kind: 'set_variable', name: 'subject', value: { kind: 'formula', expr: 'form.subject' } },
+                    { kind: 'set_variable', name: 'labels', value: { kind: 'formula', expr: 'form.labels' } },
                     // The triage bar reads these back through valueFrom. Without
                     // them the controls showed "Set status" on a ticket that had
                     // one — a bar that could write but never read.
