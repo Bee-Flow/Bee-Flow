@@ -196,7 +196,7 @@ export function VideoElementFields({ el, update, t }: ElementKindProps) {
     );
 }
 
-/** An embedded page: its URL, height, accessible label and scrolling. */
+/** An embedded page: its URL, height, accessible label, scrolling and width. */
 export function IframeElementFields({ el, update, t }: ElementKindProps) {
     return (
         <>
@@ -227,6 +227,11 @@ export function IframeElementFields({ el, update, t }: ElementKindProps) {
                 label={t('cms_site.blocks.content.allow_scrolling', 'Allow scrolling')}
                 value={!!el.scrolling}
                 onChange={v => update({ ...el, scrolling: v })}
+            />
+            <Toggle
+                label={t('cms_site.blocks.content.full_width_embed', 'Full width')}
+                value={!!el.fullBleed}
+                onChange={v => update({ ...el, fullBleed: v })}
             />
         </>
     );

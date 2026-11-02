@@ -497,6 +497,7 @@
     "cms_site.blocks.content.frame_browser": "Browservenster",
     "cms_site.blocks.content.frame_hairline": "Kader met haarlijn",
     "cms_site.blocks.content.frame_none": "Geen",
+    "cms_site.blocks.content.full_width_embed": "Volledige breedte",
     "cms_site.blocks.content.full_width_image": "Afbeelding over volledige breedte",
     "cms_site.blocks.content.heading": "Kop",
     "cms_site.blocks.content.heading_preview": "Voorbeeld van kop",

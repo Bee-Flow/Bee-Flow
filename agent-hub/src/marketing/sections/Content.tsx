@@ -318,8 +318,12 @@ function VideoElement({ el, pathBase }: ElementProps) {
 function IframeElement({ el }: ElementProps) {
     const heightPx = Number.isFinite(el.height) ? el.height : 480;
     const src = safeEmbedSrc(el.src);
+    // Full width breaks the frame out of its column to the content-container
+    // width, like a full-bleed image: a live product demo is an app surface
+    // that lays out cramped at the 800px reading column.
+    const bleed = el.fullBleed === true;
     return (
-        <div className="content-el content-el-iframe">
+        <div className={`content-el content-el-iframe${bleed ? ' content-el-iframe--bleed' : ''}`}>
             {src ? (
                 <iframe
                     src={src}
