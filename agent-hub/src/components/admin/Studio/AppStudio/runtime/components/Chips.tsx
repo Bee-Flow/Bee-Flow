@@ -66,7 +66,7 @@ export function Chips({ items, labelKey, testId, fileKey, onOpen }: ChipsProps) 
                     {expanded ? t('studio_apps_runtime.thread.show_less', 'Show less') : t('studio_apps_runtime.thread.more', '+{n} more', { n: hidden })}
                 </button>
             )}
-            {error && <span role="alert" className="w-full text-[11px] [color:var(--app-danger,#b42318)]!">{error}</span>}
+            {error && <span role="alert" className="w-full text-[11px] text-[var(--error-ink)]">{error}</span>}
         </div>
     );
 }
