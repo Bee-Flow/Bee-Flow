@@ -123,7 +123,7 @@ async function applyCreatePage(draftWrap, args) {
         return {
             error: /** @type {Error} */ (e).message,
             _fixHint: reserved
-                ? 'Pick a different slug — reserved slugs collide with app routes (e.g. app, api, admin, login, pricing, privacy, terms).'
+                ? 'Pick a different slug — reserved slugs collide with app routes and site paths (e.g. app, api, admin, login, settings, blog, nl).'
                 : 'Check the arguments and try again (templateId must be an existing tpl_… id).',
         };
     }
@@ -156,7 +156,7 @@ async function applyUpdatePageMeta(draftWrap, args) {
         return {
             error: /** @type {Error} */ (e).message,
             _fixHint: reserved
-                ? 'Pick a different slug — reserved slugs collide with app routes (e.g. app, api, admin, login, pricing, privacy, terms).'
+                ? 'Pick a different slug — reserved slugs collide with app routes and site paths (e.g. app, api, admin, login, settings, blog, nl).'
                 : pageIdsHint(draftWrap),
         };
     }

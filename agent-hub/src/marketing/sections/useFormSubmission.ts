@@ -2,15 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { TOKEN_BUSY, fetchFormToken, sendForm } from './formBlockApi';
 import type { FormToken, SendOutcome } from './formBlockApi';
-import { buildPayload, checkAnswers, emptyAnswers, pageLocale } from './formBlockModel';
-import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
+import { buildPayload, checkAnswers, emptyAnswers } from './formBlockModel';
 import { newFormNonce } from './formNonce';
+import { formText, localizeFieldErrors } from './formText';
+import { trackFormSuccess } from '../components/analyticsEvents';
 import type { FormAnswers, FormErrors, FormField } from './formBlockModel';
 
 export type FormPhase = 'idle' | 'sending' | 'done' | 'unavailable';
-
-const MESSAGES = { required: 'This field is required.', email: 'Enter a valid email address.' };
-
 
 interface Options {
     blockId: string | null;
@@ -19,6 +17,10 @@ interface Options {
     fields: FormField[];
     consentText: string;
     errorText: string;
+    /** The page's language: picks the fixed wording and is recorded with the consent. */
+    locale: string | undefined;
+    /** How analytics names this form (its accessible name), for form_success. */
+    formName: string;
 }
 
 const BUSY_RETRY_MS = 3000;
@@ -30,7 +32,8 @@ const pause = (ms: number) => new Promise<void>(resolve => { setTimeout(resolve,
  * submission did. The token is fetched when the form appears, so the server's
  * minimum-age check measures how long the visitor really had it open.
  */
-export function useFormSubmission({ blockId, active, preview, fields, consentText, errorText }: Options) {
+export function useFormSubmission({ blockId, active, preview, fields, consentText, errorText, locale, formName }: Options) {
+    const text = formText(locale);
     const [answers, setAnswers] = useState<FormAnswers>(() => emptyAnswers(fields));
     const [consent, setConsent] = useState(false);
     const [honeypot, setHoneypot] = useState('');
@@ -63,24 +66,24 @@ export function useFormSubmission({ blockId, active, preview, fields, consentTex
     }, [preview, blockId, active, loadToken]);
 
     const react = useCallback(async (outcome: SendOutcome) => {
-        if (outcome.kind === 'done') { setPhase('done'); return; }
+        if (outcome.kind === 'done') { setPhase('done'); trackFormSuccess(formName, blockId); return; }
         // Only a submission that went through uses its nonce up: whatever else
         // happened, the next attempt is a new one.
         nonce.current = newFormNonce();
         setPhase(outcome.kind === 'gone' ? 'unavailable' : 'idle');
-        if (outcome.kind === 'invalid') setErrors(outcome.errors);
+        if (outcome.kind === 'invalid') setErrors(localizeFieldErrors(outcome.errors, locale));
         if (outcome.kind === 'expired') {
             // The token aged out: take a fresh one, and let the visitor send again.
             await loadToken();
         }
         if (outcome.kind !== 'gone') setFormError(errorText);
-    }, [errorText, loadToken]);
+    }, [errorText, loadToken, locale, formName, blockId]);
 
     const submit = async (e: FormEvent) => {
         e.preventDefault();
         if (preview || phase === 'sending' || !blockId) return;
-        const found = checkAnswers(fields, answers, MESSAGES);
-        if (consentText && !consent) found.consent = MESSAGES.required;
+        const found = checkAnswers(fields, answers, { required: text.required, email: text.email });
+        if (consentText && !consent) found.consent = text.consent;
         setErrors(found);
         setFormError('');
         if (Object.keys(found).length) return;
@@ -95,7 +98,7 @@ export function useFormSubmission({ blockId, active, preview, fields, consentTex
             nonce: nonce.current,
             honeypot,
             consent: consentText ? consent : undefined,
-            locale: pageLocale(window.location.pathname, document.documentElement.lang || '', LOCALE_PREFIXES),
+            locale,
         });
         await react(await sendForm(blockId, payload));
     };

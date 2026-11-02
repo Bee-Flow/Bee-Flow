@@ -4,9 +4,11 @@ import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import type { SectionDataBase } from './sectionData.types';
-import { usableFields } from './formBlockModel';
+import { pageLocale, usableFields } from './formBlockModel';
 import FormBody from './FormBody';
+import { formText } from './formText';
 import { useFormSubmission } from './useFormSubmission';
+import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 
 /**
  * Form — a lead-capture form (demo request, newsletter, gated download) that
@@ -36,17 +38,31 @@ interface FormBlockData extends SectionDataBase {
 const isPreviewMode = () =>
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('preview');
 
-const DEFAULT_ERROR = 'Something went wrong. Please try again.';
-const UNAVAILABLE_TEXT = 'This form is not available right now.';
+// The page's language, by the path prefix (/nl/...) and else the document language.
+const visitorLocale = () => (typeof window === 'undefined'
+    ? undefined
+    : pageLocale(window.location.pathname, document.documentElement.lang || '', LOCALE_PREFIXES));
+
+/** The block's own wording where it has some, the page language's fixed wording where it does not. */
+function wordingOf(data: FormBlockData | undefined) {
+    const locale = visitorLocale();
+    const text = formText(locale);
+    return {
+        locale, text,
+        consentText: data?.consent?.enabled === true ? (data.consent.text || '').trim() : '',
+        errorText: data?.errorText || text.error,
+        formName: data?.title || text.form,
+    };
+}
 
 export default function FormBlock({ data }: { data?: FormBlockData }) {
     const blockId = useContext(BlockIdContext);
     const uid = useId();
     const preview = isPreviewMode();
     const fields = usableFields(data?.fields);
-    const consentText = data?.consent?.enabled === true ? (data.consent.text || '').trim() : '';
+    const { locale, text, consentText, errorText, formName } = wordingOf(data);
     const form = useFormSubmission({
-        blockId, active: !!data?.enabled, preview, fields, consentText, errorText: data?.errorText || DEFAULT_ERROR,
+        blockId, active: !!data?.enabled, preview, fields, consentText, errorText, locale, formName,
     });
 
     if (!data?.enabled) return null;
@@ -67,10 +83,10 @@ export default function FormBlock({ data }: { data?: FormBlockData }) {
                             {data.successBody ? <p>{data.successBody}</p> : null}
                         </div>
                     ) : form.phase === 'unavailable' ? (
-                        <p className="cms-form-card cms-form-note" role="status">{UNAVAILABLE_TEXT}</p>
+                        <p className="cms-form-card cms-form-note" role="status">{text.unavailable}</p>
                     ) : (
                         <FormBody uid={uid} title={data.title} submitLabel={data.submitLabel} fields={fields}
-                            consentText={consentText} preview={preview} form={form} />
+                            consentText={consentText} preview={preview} form={form} text={text} />
                     )}
                 </div>
             </section>

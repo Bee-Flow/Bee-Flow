@@ -76,7 +76,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_create_page',
-            description: 'Create a new page. The slug is normalized and de-duplicated automatically; reserved slugs (app, api, admin, pricing, …) are rejected. Returns { pageId, slug }. The new page starts empty — add blocks with cms_add_blocks.',
+            description: 'Create a new page. The slug is normalized and de-duplicated automatically; reserved slugs (app, api, admin, login, blog, nl, …) are rejected. Returns { pageId, slug }. The new page starts empty — add blocks with cms_add_blocks.',
             parameters: {
                 type: 'object',
                 properties: {

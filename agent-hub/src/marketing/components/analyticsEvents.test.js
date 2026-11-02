@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { startAnalyticsEvents, safeHref } from './analyticsEvents';
+import { startAnalyticsEvents, safeHref, trackFormSuccess } from './analyticsEvents';
 
 let stop;
 let tracked;
@@ -36,11 +36,20 @@ describe('analyticsEvents', () => {
     });
 
     it('tracks a CTA button click with its label', () => {
-        mountHtml('<button>Start free trial</button>');
-        click('button');
+        mountHtml('<a class="btn btn-primary" href="/contact">Plan a call</a>');
+        click('a');
         expect(tracked).toHaveLength(1);
         expect(tracked[0].name).toBe('cta_click');
-        expect(tracked[0].data.label).toBe('Start free trial');
+        expect(tracked[0].data.label).toBe('Plan a call');
+    });
+
+    // Tabs, accordions, carousel arrows and the cookie banner are page
+    // controls. Counting them put cta_click above the number of visits.
+    it('does not count page controls as calls to action', () => {
+        mountHtml('<section data-cms-block-id="blk_faq" data-cms-block-type="faq"><button>What does it cost?</button></section><button>Accept</button>');
+        click('section button');
+        click('body > button');
+        expect(tracked).toEqual([]);
     });
 
     // Attribute names must match what marketing/ProductWebsite.jsx actually
@@ -97,6 +106,21 @@ describe('analyticsEvents', () => {
         mountHtml('<a href="#section">Jump</a>');
         click('a');
         expect(tracked.filter(t => t.name !== 'cta_click')).toEqual([]);
+    });
+
+    it('counts a form as started once, on the first focus in a real field', () => {
+        mountHtml('<form aria-label="Plan a call"><input name="ref_code_2" tabindex="-1"><input name="name"><input name="email"></form>');
+        const focus = (sel) => document.querySelector(sel).dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        focus('[name="ref_code_2"]');
+        expect(tracked).toEqual([]);
+        focus('[name="name"]');
+        focus('[name="email"]');
+        expect(tracked).toEqual([{ name: 'form_start', data: { form: 'Plan a call' } }]);
+    });
+
+    it('sends form_success with the form name and block, nothing else', () => {
+        trackFormSuccess('Plan a call', 'blk_form');
+        expect(tracked).toEqual([{ name: 'form_success', data: { form: 'Plan a call', block: 'blk_form', blockType: 'form' } }]);
     });
 
     it('never calls identify()', () => {

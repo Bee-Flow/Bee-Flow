@@ -6,10 +6,12 @@ import { logger } from '../../utils/logger';
  * funnels and journeys empty by construction. This adds the four interactions
  * every marketing site cares about, with zero per-site configuration:
  *
- *   cta_click     — a button / CTA / nav link inside the rendered site
+ *   cta_click     — a button-styled control (the site's Button) or a link inside a block
  *   outbound_click— a link to another host
  *   file_download — a link to a document-ish file
- *   form_submit   — a form submission
+ *   form_start    — the first focus in a form, once per form per page view
+ *   form_submit   — a form submission attempt
+ *   form_success  — a submission the server accepted (sent by the form itself)
  *
  * Consent: this deliberately does NOT read consent itself. It calls
  * `window.umami.track`, which only exists once the tracker script has loaded —
@@ -120,6 +122,17 @@ function trackLink(href: string | null, label: string, block: { block?: string; 
     return false;
 }
 
+/**
+ * A call to action is a control styled as the site's Button (header and hero
+ * CTAs, CTA blocks) or a link inside a block. Tabs, accordions, carousel
+ * arrows, the cookie banner and the language switcher are page controls: they
+ * used to count too, which put cta_click above the number of visits.
+ */
+function isCta(el: Element, block: { block?: string }) {
+    if (el.classList?.contains('btn')) return true;
+    return el.tagName === 'A' && !!block.block;
+}
+
 function onClick(e: MouseEvent) {
     const el = (e.target as Element | null)?.closest?.('a[href], button, [role="button"]');
     if (!el) return;
@@ -130,20 +143,41 @@ function onClick(e: MouseEvent) {
 
     if (trackLink(href, label, block)) return;
 
-    // Buttons and internal links inside a block are the site's calls to action.
-    // A bare internal link with no block context is ordinary navigation and is
+    // A bare internal link outside a block is ordinary navigation and is
     // already captured as a pageview, so it is not worth an event.
-    const isButton = el.tagName === 'BUTTON' || el.getAttribute('role') === 'button';
-    if (!label || (!isButton && !block.block)) return;
+    if (!label || !isCta(el, block)) return;
     track('cta_click', { label, href: href ? safeHref(href) : undefined, ...block });
+}
+
+/** Identify a form, never its contents. */
+function formName(form: Element) {
+    return clean(form.getAttribute('name') || form.getAttribute('id') || form.getAttribute('aria-label') || 'form', 40);
 }
 
 function onSubmit(e: Event) {
     const form = e.target as HTMLFormElement | null;
     if (!form || form.tagName !== 'FORM') return;
-    // Identify the form, never its contents.
-    const name = clean(form.getAttribute('name') || form.getAttribute('id') || form.getAttribute('aria-label') || 'form', 40);
-    track('form_submit', { form: name, ...blockOf(form) });
+    track('form_submit', { form: formName(form), ...blockOf(form) });
+}
+
+// Forms already counted as started in this page view.
+let startedForms = new WeakSet<Element>();
+
+function onFocusIn(e: FocusEvent) {
+    const field = (e.target as Element | null)?.closest?.('input, select, textarea');
+    const form = field?.closest('form');
+    // The honeypot is out of the tab order; a focus there is not a person starting.
+    if (!field || !form || field.getAttribute('tabindex') === '-1' || startedForms.has(form)) return;
+    startedForms.add(form);
+    track('form_start', { form: formName(form), ...blockOf(form) });
+}
+
+/**
+ * A website form the server accepted. Only the form knows that answer, so it
+ * calls this itself; the name matches the form_submit / form_start label.
+ */
+export function trackFormSuccess(form: string, block: string | null) {
+    track('form_success', { form: clean(form || 'form', 40), ...(block ? { block: clean(block, 40), blockType: 'form' } : {}) });
 }
 
 /**
@@ -152,11 +186,14 @@ function onSubmit(e: Event) {
  */
 export function startAnalyticsEvents() {
     if (typeof document === 'undefined') return () => {};
+    startedForms = new WeakSet<Element>();
     document.addEventListener('click', onClick, true);
     document.addEventListener('submit', onSubmit, true);
+    document.addEventListener('focusin', onFocusIn, true);
     return () => {
         document.removeEventListener('click', onClick, true);
         document.removeEventListener('submit', onSubmit, true);
+        document.removeEventListener('focusin', onFocusIn, true);
     };
 }
 
