@@ -312,7 +312,8 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                     />
                 </AutomationSidebar>
             )}
-            <section className="flex-1 min-w-0 overflow-hidden">
+            {/* overflow-clip, not -hidden: a clipped box is no scroll container, so a focus jump (BFSF-491) cannot slide the whole builder out of view. */}
+            <section className="flex-1 min-w-0 overflow-clip">
                 <DesignerRightPane
                     designer={designer}
                     library={library}

@@ -151,4 +151,18 @@ describe('QuestionsCard — sending', () => {
         expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(true);
         expect(container.querySelector('fieldset[disabled]')).toBeTruthy();
     });
+
+    it('every hidden answer radio sits inside its own positioned row, so focusing it cannot scroll the builder (BFSF-491)', async () => {
+        const user = userEvent.setup();
+        render(<QuestionsCard questions={THREE} onAnswer={vi.fn()} />);
+        await user.click(screen.getByRole('button', { name: /next/i }));
+        await waitFor(() => expect(screen.getByText('Question 2 of 3')).toBeTruthy());
+        const radios = screen.getAllByRole('radio');
+        expect(radios).toHaveLength(3);
+        for (const radio of radios) {
+            expect(radio.closest('label')?.className).toMatch(/(^|\s)relative(\s|$)/);
+        }
+        await user.click(screen.getByRole('radio', { name: 'Signal' }));
+        await waitFor(() => expect(screen.getByText('Question 3 of 3')).toBeTruthy());
+    });
 });
