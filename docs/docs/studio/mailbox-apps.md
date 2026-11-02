@@ -101,8 +101,9 @@ edited after the connector was saved.
 - Rows are processed one at a time. A failing step ends that row's run; the next row still
   runs. An error never fails the sync.
 - Only **new** rows count. Mail already in the table when you switch the hook on is not
-  processed. The first sync of a new connector counts the whole lookback window as new,
-  within the caps below.
+  processed. The first sync of a new connector does not run the action either: it fills
+  the table with the mail of the lookback window, which was already there. From the next
+  sync on, every new row counts.
 
 ### Limits
 

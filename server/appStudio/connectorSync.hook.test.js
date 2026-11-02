@@ -44,13 +44,14 @@ const RUN = { rows: [], grains: [
 ] };
 
 /** A sync with the fake store: `existing` keys are updates, anything else an insert. */
-function harness(run, existing = []) {
+function harness(run, existing = [], { firstRun = false } = {}) {
     const log = { finish: null, order: [] };
     let next = 0;
     const store = new Map(existing.map((k) => [k, `rec_old_${k}`]));
     const _deps = {
         runConnector: async () => run,
-        claimSync: async () => ({ watermark: null }),
+        // A connector that synced before: its first run only fills the lookback window.
+        claimSync: async () => ({ watermark: null, lastRunAt: firstRun ? null : '2026-11-01T10:00:00.000Z' }),
         finishSync: async (_a, _c, payload) => { log.order.push('finish'); log.finish = payload; },
         compileKeyIndex: (_t, _k, keys) => ({ sql: 'SELECT', params: keys }),
         query: async (_o, _a, _s, keys) => ({ rows: (keys || []).filter((k) => store.has(String(k))).map((k) => ({ id: store.get(String(k)), k })) }),
@@ -102,4 +103,14 @@ test('hook: a hook that rejects does not fail the sync', async () => {
     const res = await connectorSync.syncConnector(app, MODEL, mailbox({ onNewRecord: HOOK }), { _deps: h._deps });
     assert.equal(res.inserted, 4);
     assert.equal(h.log.finish.status, 'ok');
+});
+
+test('hook: not on a connector\'s first run, which fills the lookback window with mail that was already there', async () => {
+    const h = harness(RUN, [], { firstRun: true });
+    let called = false;
+    h._deps.runNewRecordHook = async () => { called = true; return null; };
+    const res = await connectorSync.syncConnector(app, MODEL, mailbox({ onNewRecord: HOOK }), { _deps: h._deps });
+    assert.equal(called, false);
+    assert.equal(res.inserted, 4, 'the rows are still written');
+    assert.equal(res.hook, undefined);
 });

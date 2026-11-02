@@ -385,7 +385,7 @@ export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
             bodyField: 'body', htmlField: null, authorField: 'author', timestampField: 'created_at',
             sideField: null, sideMap: [],
             attachmentsField: null, attachmentLabelKey: 'filename',
-            attachmentsSource: null, attachmentMatchKey: null,
+            attachmentsSource: null, attachmentMatchKey: null, attachmentFileKey: null, inlineContentIdKey: null,
             citationsField: null, citationLabelKey: 'title',
             emailField: null, toField: null, subjectField: null, showAvatar: false, centerMeta: 'hidden',
             eventsSource: null, eventsBodyField: 'detail', eventsTimestampField: 'at',

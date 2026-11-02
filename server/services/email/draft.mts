@@ -18,10 +18,16 @@
  */
 
 import { createRequire } from 'node:module';
-import { graphAttachments } from './graphAttachments.mts';
-import type { MailAttachment } from './graphAttachments.mts';
 
 const nodeRequire = createRequire(import.meta.url);
+
+// Loaded, not imported: agent-hub's typecheck reaches this file through send.js
+// and refuses a `.mts` import path (TS5097). Same shape as graphAttachments.mts.
+type MailAttachment = { filename?: string | false; content?: unknown; contentType?: string };
+type GraphFileAttachment = { '@odata.type': string; name: string; contentType: string; contentBytes: string };
+const { graphAttachments } = nodeRequire('./graphAttachments.mts') as {
+    graphAttachments: (attachments: MailAttachment[] | null | undefined) => GraphFileAttachment[];
+};
 
 type HttpErrorCtor = new (status: number, code: string, message: string) => Error & { status: number; code: string };
 const { HttpError } = nodeRequire('../../core/http/errors.js') as { HttpError: HttpErrorCtor };

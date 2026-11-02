@@ -634,7 +634,8 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         });
 
         // After the claim is released (a slow model call must not hold the connector); the sync succeeded whatever it does.
-        const hook = connector.kind === 'mailbox' && connector.onNewRecord
+        // Not on a connector's first run: that fills the lookback window with mail that was already there, not new mail.
+        const hook = connector.kind === 'mailbox' && connector.onNewRecord && !(claim && !claim.lastRunAt)
             ? await deps.runNewRecordHook(app, model, connector, news).catch((e) => fallback('appStudio/connectorSync:runNewRecordHook', e, null))
             : null;
 
