@@ -320,10 +320,9 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                             const base64Data = att.content.split(',')[1] || att.content;
                             const docBuffer = Buffer.from(base64Data, 'base64');
                             try {
-                                const mammothLib = require('mammoth');
-                                const result = await mammothLib.extractRawText({ buffer: docBuffer });
-                                if (result.value) {
-                                    const safe = await _scanExtracted(result.value, att.name);
+                                const docText = await require('../templateAi').extractDocxText(docBuffer);
+                                if (docText) {
+                                    const safe = await _scanExtracted(docText, att.name);
                                     contentParts.push({ type: 'text', text: `[Word Document: ${att.name}]\n---\n${safe}\n---` });
                                 }
                             } catch (e) {
@@ -425,7 +424,8 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
             return;
         }
         log.error('[TemplateChat] Error:', err);
-        send('error', { error: `Chat error: ${/** @type {Error} */ (err).message}` });
+        const { errorType, userMessage } = err instanceof HttpError ? { errorType: err.code, userMessage: err.message } : require('../../core/agentRuntime/streamRetry').classifyStreamError(err);
+        send('error', { error: userMessage, code: errorType }); // the raw text stays in the log
         res.end();
     }
 });

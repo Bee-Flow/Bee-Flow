@@ -76,6 +76,8 @@ const publicAddress = require('../stores/webpage/publicAddress');
 const { buildPublicBridgeScript } = require('../services/publicBridgeScript');
 const userStore = require('../stores/userStore');
 const { sendServiceEmail } = require('../utils/emailService');
+const { mailedShareBaseUrl } = require('../utils/appPaths');
+const { CONTENT_SANDBOX, extraResponseHeaders } = require('./publicViewerSandbox.mts');
 
 // ── Rate limits ─────────────────────────────────────────────────────
 //
@@ -640,8 +642,8 @@ router.get('/:token/content', async (req, res) => {
                     const grants = await webpageStore.getBridgeGrants(share.webpageId);
                     if (grants?.ai?.publicEnabled) {
                         const token = publicShareToken.issueBridgeToken({ shareId: share.id, webpageId: share.webpageId });
-                        const apiBase = process.env.PUBLIC_SHARE_BASE_URL
-                            || `${req.protocol}://${req.get('host') || ''}`;
+                        // Relative unless configured: never a host taken from the request.
+                        const apiBase = process.env.PUBLIC_SHARE_BASE_URL || '';
                         const bridge = buildPublicBridgeScript({ token, apiBase });
                         doc = doc.replace('</head>', bridge + '</head>');
                     }
@@ -651,6 +653,7 @@ router.get('/:token/content', async (req, res) => {
             }
 
             const reactCsp = [
+                CONTENT_SANDBOX,
                 "default-src 'self' data: https: 'unsafe-inline'",
                 "script-src 'unsafe-inline' https://esm.sh",
                 "style-src 'unsafe-inline' https:",
@@ -679,6 +682,7 @@ router.get('/:token/content', async (req, res) => {
         // CSP belt-and-braces. Frame-ancestors limits it to our own origin
         // so other sites can't iframe-include the content document directly.
         const csp = [
+            CONTENT_SANDBOX,
             "default-src 'self' data: https:",
             "script-src 'none'",
             "style-src 'unsafe-inline'",
@@ -721,8 +725,7 @@ router.get('/:token/extras/*path', async (req, res) => {
         const obj = await webpageSnapshot.readSnapshotExtra(share.id, subPath);
         if (!obj) return res.status(404).end();
 
-        res.setHeader('Content-Type', obj.contentType || 'application/octet-stream');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
+        for (const [name, value] of Object.entries(extraResponseHeaders(obj.contentType))) res.setHeader(name, value);
         // Revalidate instead of blindly caching for 5 minutes: after an owner
         // re-snapshots an updated page, returning viewers were stuck with the old
         // extra assets (images/fonts) until the window lapsed. An
@@ -777,12 +780,12 @@ router.post('/:token/unlock', unlockLimiter, formParser, async (req, res) => {
             const email = String(req.body?.email || '').trim().toLowerCase();
             const allowed = publicShareStore.isEmailAllowed(share, email);
             // Always render the "check your email" page — don't leak whether
-            // the address was on the allow-list. Only actually send a mail
-            // when it is allowed.
-            if (allowed) {
+            // the address was on the allow-list. Only send a mail when it is
+            // allowed and a link base is configured (never the Host header).
+            const origin = allowed ? mailedShareBaseUrl(req) : null;
+            if (allowed && !origin) log.warn('[PublicViewer] magic link not sent: no public share base URL configured (PUBLIC_SHARE_BASE_URL / PUBLIC_APP_URL / CLIENT_PUBLIC_HOST)');
+            if (allowed && origin) {
                 const magic = publicShareToken.issueMagicLink({ shareId: share.id, email });
-                const origin = process.env.PUBLIC_SHARE_BASE_URL
-                    || `${req.protocol}://${req.get('host') || ''}`;
                 const link = `${origin.replace(/\/+$/, '')}${base}/${encodeURIComponent(addr)}?k=${encodeURIComponent(magic)}`;
                 sendServiceEmail({
                     to: email,

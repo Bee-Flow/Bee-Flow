@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { EXPORT_CSS, EXPORT_MERMAID_FALLBACK_SCRIPT } = require('./exportTemplateParts');
+const { sanitizeDocumentBody } = require('./documentSanitize.mts');
 
 // Load and cache the Bee Flow logo as base64 for PDF embedding
 let _logoDataUri = null;
@@ -96,34 +97,11 @@ function escapeHtml(str) {
  * images as data: URLs before sending). Anything it does need is inert markup.
  */
 function sanitizeContentForExport(html) {
-    let s = String(html || '');
-
-    // Executable / embedding elements, content and all.
-    s = s.replace(/<script[\s\S]*?<\/script\s*>/gi, '');
-    s = s.replace(/<style[\s\S]*?<\/style\s*>/gi, '');
-    s = s.replace(/<(iframe|frame|frameset|object|embed|applet|template|noscript)\b[\s\S]*?<\/\1\s*>/gi, '');
-    s = s.replace(/<(iframe|frame|frameset|object|embed|applet|link|meta|base|form|input|button|textarea|select|audio|video|source|track)\b[^>]*\/?>/gi, '');
-
-    // Inline event handlers, quoted and unquoted.
-    s = s.replace(/\s+on[a-z]+\s*=\s*"[^"]*"/gi, '');
-    s = s.replace(/\s+on[a-z]+\s*=\s*'[^']*'/gi, '');
-    s = s.replace(/\s+on[a-z]+\s*=\s*[^\s>]+/gi, '');
-
-    // Active URL schemes anywhere they can appear.
-    s = s.replace(/(href|src|xlink:href)\s*=\s*"(?:\s*)(?:javascript|vbscript|data:text\/html)[^"]*"/gi, '$1="#"');
-    s = s.replace(/(href|src|xlink:href)\s*=\s*'(?:\s*)(?:javascript|vbscript|data:text\/html)[^']*'/gi, "$1='#'");
-
-    // Remote asset loads. The client inlines images as data: URLs before
-    // exporting, so a remaining http(s) src is either a tracking pixel or an
-    // attempt to make the renderer fetch something for the caller.
-    s = s.replace(/(<img\b[^>]*?)\ssrc\s*=\s*"https?:\/\/[^"]*"/gi, '$1 src=""');
-    s = s.replace(/(<img\b[^>]*?)\ssrc\s*=\s*'https?:\/\/[^']*'/gi, "$1 src=''");
-
-    // CSS that can fetch or execute, in any surviving style="" attribute.
-    s = s.replace(/style\s*=\s*"([^"]*)"/gi, (m, css) => `style="${css.replace(/(url\s*\(|expression\s*\(|@import|behavior\s*:)/gi, '')}"`);
-    s = s.replace(/style\s*=\s*'([^']*)'/gi, (m, css) => `style='${css.replace(/(url\s*\(|expression\s*\(|@import|behavior\s*:)/gi, '')}'`);
-
-    return s;
+    // The DOM-based sanitiser the Documents composer uses: it parses the markup
+    // the way the browser will, so nested or unquoted constructs cannot survive
+    // a pass that only matched their quoted spelling. Remote src/href (except a
+    // plain link), srcset and CSS url() are dropped there as well.
+    return sanitizeDocumentBody(String(html ?? ''));
 }
 
 /**

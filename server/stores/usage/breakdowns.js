@@ -9,28 +9,47 @@ const { getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { buildFilters, numericAggregates } = require('./filters');
 
-async function getUsageSources() {
+/**
+ * The scope a filter value list runs under: the organisation, or one person.
+ * @param {{ organizationId?: string, userId?: string }} [filters]
+ * @returns {{ clause: string, params: string[] }}
+ */
+function valueListScope(filters = {}) {
+    /** @type {string[]} */
+    const conditions = [];
+    /** @type {string[]} */
+    const params = [];
+    if (filters?.organizationId) { params.push(filters.organizationId); conditions.push(`organization_id = $${params.length}`); }
+    if (filters?.userId) { params.push(filters.userId); conditions.push(`user_id = $${params.length}`); }
+    return { clause: conditions.map((c) => ` AND ${c}`).join(''), params };
+}
+
+/** @param {{ organizationId?: string, userId?: string }} [filters] */
+async function getUsageSources(filters = {}) {
     await initDB();
     // Phase 8: use the timestamp index to scan only recent data for the distinct list;
     // sources don't change often so last 90 days is representative
+    const { clause, params } = valueListScope(filters);
     const rows = await getAll(`
         SELECT DISTINCT source FROM ai_usage_log
         WHERE source IS NOT NULL
-          AND timestamp >= NOW() - INTERVAL '90 days'
+          AND timestamp >= NOW() - INTERVAL '90 days'${clause}
         ORDER BY source ASC
-    `);
+    `, ...(params.length ? [params] : []));
     return rows.map(r => r.source);
 }
 
-async function getUsageModels() {
+/** @param {{ organizationId?: string, userId?: string }} [filters] */
+async function getUsageModels(filters = {}) {
     await initDB();
     // Phase 8: same bounded approach as getUsageSources
+    const { clause, params } = valueListScope(filters);
     const rows = await getAll(`
         SELECT DISTINCT model FROM ai_usage_log
         WHERE model IS NOT NULL
-          AND timestamp >= NOW() - INTERVAL '90 days'
+          AND timestamp >= NOW() - INTERVAL '90 days'${clause}
         ORDER BY model ASC
-    `);
+    `, ...(params.length ? [params] : []));
     return rows.map(r => r.model);
 }
 

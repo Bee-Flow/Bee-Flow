@@ -117,3 +117,29 @@ test('a host with a scheme is refused by the same schema as Save', async () => {
     assert.strictEqual(r.status, 400);
     assert.strictEqual(attempts.length, 0);
 });
+
+test('a typed server that differs from the stored one never gets the stored password', async () => {
+    Object.assign(stored, {
+        firebird_host_user_u1: 'stored.internal', firebird_database_user_u1: 'atrium', firebird_user_user_u1: 'STORED', firebird_password_user_u1: 'stored-pw',
+    });
+    const r = await call({ firebirdHost: 'attacker.example' });
+    assert.strictEqual(r.json.ok, false);
+    assert.match(r.json.error, /Enter the password/);
+    assert.strictEqual(attempts.length, 0);
+
+    const same = await call({ firebirdHost: 'STORED.internal', firebirdDatabase: 'other' });
+    assert.strictEqual(same.json.ok, true, 'the stored server keeps its stored password');
+    assert.strictEqual(attempts[0].password, 'stored-pw');
+
+    const typed = await call({ firebirdHost: 'attacker.example', firebirdPassword: 'typed-pw' });
+    assert.strictEqual(typed.json.ok, true);
+    assert.strictEqual(attempts[1].password, 'typed-pw');
+});
+
+test('a thrown failure answers one generic sentence, not the driver text', async () => {
+    outcome = new Error('connect ECONNREFUSED 10.0.0.5:3050');
+    const r = await call(FORM);
+    assert.strictEqual(r.json.ok, false);
+    assert.ok(!r.json.error.includes('ECONNREFUSED'));
+    assert.match(r.json.error, /Could not connect to the Firebird database/);
+});

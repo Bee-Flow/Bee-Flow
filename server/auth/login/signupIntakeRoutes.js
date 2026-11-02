@@ -11,13 +11,15 @@ const router = express.Router();
 
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
-const { checkWebSignupAllowed } = require('../signupGuards');
+const signupGuards = require('../signupGuards');
 const loginThrottle = require('../loginThrottle');
 const signupCaptcha = require('../signupCaptcha');
 const { signupIpLimiter } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { SESSION_INVITE_MARKER } = require('../../stores/invitationStore');
+const { pendingInvitation } = require('../oauth/oauthInvite.mts');
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
@@ -58,6 +60,9 @@ const PendingSignupBody = z.object({
     selectedPlanId: worded('A plan id must be text.').trim().max(200, 'That plan id is too long.').nullable().optional(),
     locale: worded('A locale must be text.').trim().max(32, 'That locale is too long.').nullable().optional(),
     captchaToken: worded('A challenge token must be text.').max(4096, 'That challenge token is too long.').optional(),
+    // Only the session marker: the invitation token itself stays on the
+    // session that /auth/redeem-invite filled (login/inviteRoutes.js).
+    inviteToken: z.literal(SESSION_INVITE_MARKER, { error: () => 'An invitation is named by the session marker only.' }).optional(),
 }).strict();
 
 // Get organizations with signup enabled (public, no auth required)
@@ -94,17 +99,33 @@ router.get('/organizations/public', async (/** @type {import('express').Request}
 
 // Store pending signup data in session (for OAuth flows)
 router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
-    if (process.env.ALLOW_SIGNUPS === 'false') {
+    // An invitation into an existing organisation passes ALLOW_SIGNUPS=false,
+    // connector-only and geo, as on the password path (accountProvisioning
+    // assertSignupAllowed). The callback claims it for the provider's address.
+    const invited = req.body.inviteToken === SESSION_INVITE_MARKER;
+    if (invited && !(await pendingInvitation(req.session))) {
+        return res.status(400).json({ error: 'Invalid or expired invitation. Please request a new one.', code: 'invalid_invite' });
+    }
+    if (process.env.ALLOW_SIGNUPS === 'false' && !invited) {
         return res.status(403).json({ error: 'Account creation is disabled on this server.' });
     }
     // Connector-only + geo gating (OAuth signup entry point)
-    const gate = await checkWebSignupAllowed(req);
-    if (!gate.ok) return res.status(gate.status ?? 403).json({ error: gate.error, code: gate.code });
+    if (!invited) {
+        const gate = await signupGuards.checkWebSignupAllowed(req);
+        if (!gate.ok) return res.status(gate.status ?? 403).json({ error: gate.error, code: gate.code });
+    }
     // The OAuth signup entry point. Without the same bot gate as POST /signup,
     // the CAPTCHA would only cover half the ways a tenant can be created.
     const captcha = await signupCaptcha.verifyCaptcha(req.body.captchaToken, req);
     if (!captcha.ok) {
         return res.status(400).json({ error: captcha.error, code: captcha.code });
+    }
+    if (invited) {
+        req.session.pendingSignup = { invite: true, locale: req.body.locale ?? null, consent: { accepted: true, accountType: 'join_existing' } };
+        return req.session.save((err) => {
+            if (err) return next(err);
+            res.json({ ok: true });
+        });
     }
     const { signupType, authMethod, newOrgName, orgDetails } = req.body;
 

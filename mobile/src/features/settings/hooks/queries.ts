@@ -6,6 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { authHeaders } from '@/core/api/client';
 import { checkHealth, checkServerSupport, getServerUrl } from '@/core/api/server';
 
 import { getLocaleStrings, listLocales, listReleaseNotes } from '../api/endpoints';
@@ -54,14 +55,16 @@ export function useReleaseNotes() {
 /**
  * `/api/health` on the server this app is pointed at. Public, and it answers
  * `{status:'ok', appVersion}`, so it tells "wrong address" from "right
- * address, not signed in" — which a 401 from anywhere else would not.
+ * address, not signed in" — which a 401 from anywhere else would not. The
+ * server fills in appVersion only for a signed-in caller, hence the session
+ * headers.
  */
 export function useServerHealth(options: ProbeOptions = {}) {
     return useQuery({
         queryKey: settingsKeys.health,
         queryFn: () => {
             const server = getServerUrl();
-            return server ? checkHealth(server) : Promise.resolve(null);
+            return server ? checkHealth(server, undefined, authHeaders()) : Promise.resolve(null);
         },
         retry: false,
         ...given(options),

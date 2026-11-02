@@ -687,7 +687,7 @@ No request schema.
 
 ### `POST /auth/mfa/enable`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 
@@ -1067,13 +1067,13 @@ No request schema.
 
 ### `GET /auth/organizations/:id`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:id`
 
 No request schema.
 
 ### `PUT /auth/organizations/:id`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:id` · the handler also checks who the caller is
 
 No request schema.
 
@@ -1118,25 +1118,25 @@ No request schema.
 
 ### `POST /auth/organizations/:id/logo`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:id`
 
 No request schema.
 
 ### `DELETE /auth/organizations/:id/logo`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:id`
 
 No request schema.
 
 ### `GET /auth/organizations/:orgId/active-beta-features`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 No request schema.
 
 ### `PUT /auth/organizations/:orgId/active-beta-features`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 **Body**
 
@@ -1146,13 +1146,13 @@ No request schema.
 
 ### `GET /auth/organizations/:orgId/active-integrations`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 No request schema.
 
 ### `PUT /auth/organizations/:orgId/active-integrations`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 **Body**
 
@@ -1162,7 +1162,7 @@ No request schema.
 
 ### `PUT /auth/organizations/:orgId/beta-features`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 **Body**
 
@@ -1172,13 +1172,13 @@ No request schema.
 
 ### `GET /auth/organizations/:orgId/group-access`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 No request schema.
 
 ### `PUT /auth/organizations/:orgId/org-access`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId`
 
 **Body**
 
@@ -1188,13 +1188,13 @@ No request schema.
 
 ### `GET /auth/organizations/:orgId/org-availability`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId` · the handler also checks who the caller is
 
 No request schema.
 
 ### `PUT /auth/organizations/:orgId/org-availability`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Admin of the organisation in `:orgId` · the handler also checks who the caller is
 
 **Body**
 
@@ -1241,6 +1241,7 @@ No request schema.
 | `selectedPlanId` | string or null |  |  |
 | `locale` | string or null |  |  |
 | `captchaToken` | string |  | max length 4096 |
+| `inviteToken` | `"session"` |  |  |
 
 ## `permissions`
 

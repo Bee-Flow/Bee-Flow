@@ -33,6 +33,8 @@ const fx = {
     history: [],
     /** @type {[string, ...unknown[]][]} every conversation write, by store function */
     writes: [],
+    /** @type {string[] | null} the tool names offered this turn (null: the one the round asks for) */
+    offered: null,
 };
 
 // Round 1 asks for fx.toolCall; round 2 answers. Records what the model read.
@@ -74,7 +76,8 @@ const restore = installResolveStub({
     '../integrations/connectionResolution': { isLendingEnabled: () => false },
     './modelResolver': { resolveAgentModelWithTier: async () => ({ modelId: 'test-model', tierKey: 'fast' }) },
     '../llm/modelResolver': { getEUAwareTiers: async () => ({}), TIER_DEFAULTS: {}, findTierKeyForModel: () => null },
-    './agentTools': { getAgentTools: async () => [{ type: 'function', function: { name: 'tool', parameters: {} } }] },
+    // The tool the round asks for is offered, unless a test names the offer.
+    './agentTools': { getAgentTools: async () => (fx.offered || [fx.toolCall.name]).map((name) => ({ type: 'function', function: { name, parameters: {} } })) },
     './toolPolicy': { mayLendOwnerConnection: () => false },
     '../llm/promptUtils': { processSystemPrompt: (s) => s },
     '../privacy/piiDetection': { validateInputForPii: async () => null },
@@ -104,7 +107,8 @@ const OWN_SERVER_EMAIL = {
     toolPiiPolicy: { external: { blockCategories: [] }, internal: { blockCategories: ['Email'] } },
 };
 
-function reset({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: true }, history = [] }) {
+function reset({ shield = OWN_SERVER_EMAIL, toolCall, dispatchResult = { ok: true }, history = [], offered = null }) {
+    fx.offered = offered;
     fx.history = history;
     fx.writes = [];
     fx.shield = shield;
@@ -187,4 +191,12 @@ test('the turn saves only its own rows, after the last stored message it was ask
     assert.deepStrictEqual(rows.map(m => m.role), ['user', 'assistant', 'tool', 'assistant']);
     assert.strictEqual(rows[0].content, 'read it');
     assert.ok(rows.every(m => typeof m.id === 'string' && m.id), 'every row carries an id');
+});
+
+test('a tool name the model was not offered this turn is refused, not dispatched', async () => {
+    reset({ shield: null, toolCall: { name: 'memory_search', args: { query: 'x' } }, offered: ['kb_search'] });
+    const out = await chatWithAgent('agent-1', 'user-1', 'what do you know?');
+    assert.strictEqual(fx.dispatched.length, 0, 'not dispatched');
+    assert.match(JSON.parse(toolMessageSeen().content).error, /not available and was not called/);
+    assert.deepStrictEqual(out.toolCalls[0].result, { error: 'tool not offered' });
 });

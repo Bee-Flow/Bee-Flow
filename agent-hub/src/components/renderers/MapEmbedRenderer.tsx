@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { externalLinkUrl, trustedMapEmbedUrl } from './mapEmbedUrl';
 
 interface MapEmbedRendererProps {
     embedUrl?: string;
@@ -7,6 +8,23 @@ interface MapEmbedRendererProps {
     mapsLink?: string;
     height?: number;
 }
+
+/** The plain link shown instead of a map that is not a Google Maps embed. */
+const MapLink = ({ href, label }: { href: string | null; label: string }) => {
+    if (!href) return null;
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="map-embed-link"
+            className="[display:inline-flex] [gap:6px] [margin:12px_0] [color:var(--accent-primary,#818cf8)] [font-size:13px]"
+        >
+            <span>📍</span>
+            <span>{label}</span>
+        </a>
+    );
+};
 
 /**
  * MapEmbedRenderer — Renders a Google Maps Embed iframe in chat messages.
@@ -19,6 +37,11 @@ const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }: MapEmbedR
     const mapHeight = isMobile ? 220 : height;
 
     if (!embedUrl) return null;
+    const frameUrl = trustedMapEmbedUrl(embedUrl);
+    const linkUrl = externalLinkUrl(mapsLink);
+
+    // Not a Google Maps embed: no iframe, at most a link the reader opens.
+    if (!frameUrl) return <MapLink href={linkUrl || externalLinkUrl(embedUrl)} label={title || t('chat.renderers.map_open', 'Open in Maps ↗')} />;
 
     return (
         <div
@@ -33,9 +56,9 @@ const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }: MapEmbedR
                         <span>📍</span>
                         <span>{title}</span>
                     </span>
-                    {mapsLink && (
+                    {linkUrl && (
                         <a
-                            href={mapsLink}
+                            href={linkUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="[color:var(--accent-primary,#818cf8)] [text-decoration:none] [font-size:11px] [font-weight:500] [display:flex] [align-items:center] [gap:4px]"
@@ -68,7 +91,8 @@ const MapEmbedRenderer = ({ embedUrl, title, mapsLink, height = 300 }: MapEmbedR
 
             {/* Map iframe — use visibility instead of display:none so browser actually loads it */}
             <iframe
-                src={embedUrl}
+                src={frameUrl}
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 width="100%"
                 height={mapHeight}
                 style={{

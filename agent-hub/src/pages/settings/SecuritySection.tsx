@@ -1,6 +1,7 @@
 import { AuthenticationResponseJSON } from '@simplewebauthn/browser';
-import { ShieldCheck, ShieldOff, Loader2, RefreshCw, KeyRound, AlertCircle, Check, Smartphone, Usb } from 'lucide-react';
-import React, { useEffect, useId, useState } from 'react';
+import { ShieldCheck, ShieldOff, Loader2, RefreshCw, KeyRound, AlertCircle, Smartphone, Usb } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
+import ChangePassword from './ChangePassword';
 import PolicyAcknowledgements from './PolicyAcknowledgements';
 import TokenVaultSection from './TokenVaultSection';
 import { isUsableHere, proveWithSecurityKey, securityKeyErrorCode, securityKeysSupported } from '../../api/queries/securityKeys';
@@ -8,11 +9,12 @@ import McpTokensPanel from '../../components/mcpAccess/McpTokensPanel';
 import AuthenticatorAppSetup from '../../components/mfa/AuthenticatorAppSetup';
 import MfaHelpAssistant from '../../components/mfa/MfaHelpAssistant';
 import RecoveryCodes from '../../components/mfa/RecoveryCodes';
+import ReauthNotice, { isReauthRequired } from '../../components/mfa/ReauthNotice';
+import LinkSignInProviders from '../../components/mfa/LinkSignInProviders';
 import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';
-import { postForBody } from '../../api/postForBody';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
 interface MfaStatus {
@@ -30,68 +32,6 @@ interface ApiError { code?: string; message?: string }
  * Personal security settings — TOTP MFA enrollment & management.
  * Talks to /auth/mfa/{status,setup,enable,disable,recovery-codes/regenerate}.
  */
-const ChangePassword = () => {
-    const { t } = useTranslation();
-    const id = useId();
-    const [oldPassword, setOld] = useState('');
-    const [newPassword, setNew] = useState('');
-    const [confirm, setConfirm] = useState('');
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState('');
-    const [ok, setOk] = useState(false);
-
-    const submit = async (e: React.SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setErr(''); setOk(false);
-        if (newPassword.length < 8) { setErr(t('reset.min_length', 'Password must be at least 8 characters')); return; }
-        if (newPassword !== confirm) { setErr(t('login.passwords_no_match', 'Passwords do not match')); return; }
-        setBusy(true);
-        try {
-            const { ok, body: data } = await postForBody(`${API_BASE}/auth/change-password`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldPassword, newPassword }),
-            });
-            if (ok && data.success) {
-                setOk(true); setOld(''); setNew(''); setConfirm('');
-            } else {
-                setErr(data.error || t('changepw.failed', 'Failed to change password'));
-            }
-        } catch (e) { setErr(t('login.connection_error', 'Connection error. Please try again.')); }
-        finally { setBusy(false); }
-    };
-
-    const field = 'w-full px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]';
-    const label = 'block text-xs font-medium text-[var(--text-secondary)] mb-1';
-
-    return (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-5 space-y-4">
-            <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-[var(--accent-primary)]" />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('changepw.title', 'Change password')}</h3>
-            </div>
-            <form onSubmit={submit} className="space-y-3" autoComplete="off">
-                <div>
-                    <label htmlFor={`${id}-current`} className={label}>{t('changepw.current', 'Current password')}</label>
-                    <input id={`${id}-current`} type="password" value={oldPassword} onChange={e => setOld(e.target.value)} className={field} autoComplete="current-password" required />
-                </div>
-                <div>
-                    <label htmlFor={`${id}-new`} className={label}>{t('changepw.new', 'New password')}</label>
-                    <input id={`${id}-new`} type="password" value={newPassword} onChange={e => setNew(e.target.value)} className={field} autoComplete="new-password" minLength={8} required />
-                </div>
-                <div>
-                    <label htmlFor={`${id}-confirm`} className={label}>{t('changepw.confirm', 'Confirm new password')}</label>
-                    <input id={`${id}-confirm`} type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className={field} autoComplete="new-password" minLength={8} required />
-                </div>
-                {err && <p className="text-sm text-[var(--error-ink)] flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" /> {err}</p>}
-                {ok && <p className="text-sm text-[var(--success-ink)] flex items-center gap-1.5"><Check className="w-4 h-4 shrink-0" /> {t('changepw.success', 'Password changed successfully.')}</p>}
-                <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-2 bg-[var(--accent-primary)]">
-                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {t('changepw.update', 'Update password')}
-                </button>
-            </form>
-        </div>
-    );
-};
-
 export default function SecuritySection() {
     const { t } = useTranslation();
     const disarmId = useId();
@@ -103,6 +43,7 @@ export default function SecuritySection() {
     const [statusRetrying, setStatusRetrying] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    const [reauth, setReauth] = useState(false); // refused for want of a recent sign-in
 
     // Enrollment flow
     const [setupData, setSetupData] = useState<{ qr: string; secret: string; serverTime?: number; otpauthUrl?: string } | null>(null); // { otpauthUrl, qr, secret, serverTime }
@@ -196,7 +137,7 @@ export default function SecuritySection() {
     };
 
     const confirmEnable = async () => {
-        setError(''); setBusy(true);
+        setError(''); setReauth(false); setBusy(true);
         try {
             // Adding an app to an account whose 2FA is already on (security
             // keys only): prove one of those factors first.
@@ -209,7 +150,7 @@ export default function SecuritySection() {
             setNewCodes(data.recoveryCodes || []);
             setSetupData(null); setCode(''); setEnableProof('');
             await loadStatus();
-        } catch (e) { setError(msgFor(e)); }
+        } catch (e) { if (isReauthRequired(e)) setReauth(true); else setError(msgFor(e)); }
         finally { setBusy(false); }
     };
 
@@ -245,6 +186,7 @@ export default function SecuritySection() {
                 <p className="mt-1 text-sm text-[var(--text-muted)]">{t('mfa.section_desc', 'Add a second factor to protect your account at sign-in.')}</p>
             </div>
 
+            {reauth && <ReauthNotice />}
             {error && (
                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[var(--error-ink)] text-sm flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" /> {error}
@@ -380,6 +322,7 @@ export default function SecuritySection() {
                 <SecurityKeysCard mfaEnabled={!!status.enabled} totpEnabled={totpOn} onRecoveryCodes={setNewCodes} onChange={loadStatus} />
             )}
 
+            <LinkSignInProviders />
             {/* Change password — only for accounts that have a password */}
             {status.hasPassword && <ChangePassword />}
 

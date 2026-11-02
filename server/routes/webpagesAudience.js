@@ -62,6 +62,7 @@ const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
 const { bestEffort } = require('../utils/bestEffort');
+const { ownerShareBaseUrl } = require('../utils/appPaths');
 
 // ── What "public" may carry ───────────────────────────────────────
 //
@@ -119,9 +120,7 @@ const PublicBody = bodyOf({
  * @param {import('express').Request} req
  */
 function publicBaseUrl(req) {
-    const configured = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_BASE_URL || '';
-    if (configured) return configured.replace(/\/+$/, '');
-    return `${req.protocol}://${req.get('host') || ''}`.replace(/\/+$/, '');
+    return ownerShareBaseUrl(req).replace(/\/+$/, '');
 }
 
 /**

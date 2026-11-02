@@ -144,6 +144,51 @@ function publicBaseUrl(/** @type {string | null} */ override = null) {
 }
 
 /**
+ * The configured base for public share links (`/share/...`, `/w/...`), or null
+ * when none is configured. Reads only the environment, never a request header:
+ * `PUBLIC_SHARE_BASE_URL`, `PUBLIC_APP_URL`, `PUBLIC_BASE_URL`, then
+ * `CLIENT_PUBLIC_HOST` (with `CLIENT_PROTOCOL`). No trailing slash.
+ * @returns {string | null}
+ */
+function configuredShareBaseUrl() {
+    const candidates = [process.env.PUBLIC_SHARE_BASE_URL, process.env.PUBLIC_APP_URL, process.env.PUBLIC_BASE_URL];
+    for (const raw of candidates) {
+        if (typeof raw !== 'string' || !raw.trim()) continue;
+        try {
+            const u = new URL(raw.trim());
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+            return raw.trim().replace(/\/+$/, '');
+        } catch (err) { bestEffort('utils/appPaths:configuredShareBaseUrl', err); /* unusable → next candidate */ }
+    }
+    if (process.env.CLIENT_PUBLIC_HOST) return clientHost();
+    return null;
+}
+
+/**
+ * The base for a share link that goes out by e-mail. The configured base; the
+ * request origin only outside production (local dev); null in production
+ * without configuration, in which case the caller sends nothing.
+ * @param {import('express').Request} req
+ * @returns {string | null}
+ */
+function mailedShareBaseUrl(req) {
+    const configured = configuredShareBaseUrl();
+    if (configured) return configured;
+    if (process.env.NODE_ENV === 'production') return null;
+    return `${req.protocol}://${req.get('host') || ''}`;
+}
+
+/**
+ * The base for a share link shown to the signed-in owner who asked for it:
+ * the configured base, else the origin the owner reached us on.
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
+function ownerShareBaseUrl(req) {
+    return configuredShareBaseUrl() || `${req.protocol}://${req.get('host') || ''}`;
+}
+
+/**
  * A compliance admin section ('overview', 'gdpr', 'aia', 'iso', 'frameworks',
  * 'nis2', 'cra', 'data_act', 'pld', 'eaa', 'dora', 'machinery', 'custom',
  * 'dsr', 'incidents', 'vulnerabilities', 'ropa', 'dpia', 'risks', 'soa',
@@ -276,6 +321,9 @@ module.exports = {
     adminSupportTicketPath,
     adminSupportTabPath,
     publicBaseUrl,
+    configuredShareBaseUrl,
+    mailedShareBaseUrl,
+    ownerShareBaseUrl,
     complianceSectionPath,
     complianceIncidentPath,
     projectPath,

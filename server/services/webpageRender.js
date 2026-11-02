@@ -17,6 +17,7 @@ const { composeDoc } = require('../core/webpages/webpageThumbnailGenerator');
 const { composeReactDoc, buildStubBridgeScript } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { guardContextRequests } = require('../core/http/browserRouteGuard');
 
 const VIEWPORTS = {
     desktop: { width: 1280, height: 800 },
@@ -86,6 +87,10 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
     const shot = await browserProvider.withContext(
         { viewport: vp, deviceScaleFactor: 1, javaScriptEnabled: true },
         async (context) => {
+            // Everything off the preview origin (answered by the page route
+            // below) goes through the host screen: public CDNs load, private
+            // and metadata addresses are refused.
+            await guardContextRequests(context);
             const page = await context.newPage();
             page.setDefaultTimeout(RENDER_TIMEOUT_MS);
             page.on('console', (m) => {

@@ -6,7 +6,9 @@
  */
 
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-const { resolveUserOrgIds } = require('../auth');
+const auth = require('../auth');
+const { resolveUserOrgIds } = auth;
+const userStore = require('../stores/userStore');
 const log = require('../telemetry/log');
 
 // Helper to parse days filter
@@ -83,4 +85,52 @@ async function attachOrgFilter(req, res, next) {
     next();
 }
 
-module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter };
+// The consumption views that list or single out people.
+const PERSON_LEVEL_PATHS = new Set([
+    '/users', '/by-user', '/models-by-user', '/by-conversation', '/by-swarm-run', '/recent',
+    '/azure-services/by-user', '/azure-services/recent',
+]);
+
+/**
+ * Org admins and holders of admin_monitoring see the organisation per person;
+ * anyone else in the org sees only their own rows there. A failed lookup
+ * answers no.
+ * @param {import('express').Request} req
+ * @returns {Promise<boolean>}
+ */
+async function mayViewColleagues(req) {
+    const userId = req.session?.user?.id;
+    if (!userId) return false;
+    try {
+        const user = await userStore.getUser(userId);
+        if (user && auth.isOrgAdminRole(user.orgRole)) return true;
+        return !!(await auth.hasPermission(userId, 'admin_monitoring', req.session));
+    } catch (e) {
+        log.warn('[usage] colleague-view check failed:', /** @type {Error} */ (e).message);
+        return false;
+    }
+}
+
+/**
+ * Runs after attachOrgFilter. A member of an organisation who may not view
+ * colleagues keeps the organisation totals, but on the per-person views, and
+ * wherever ?user= names someone else, the filter is narrowed to the caller.
+ * Super admins and callers without an organisation are left as they are.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} _res
+ * @param {NextFunction} next
+ */
+async function narrowMembersToOwnRows(req, _res, next) {
+    const filters = req.usageFilters;
+    const me = req.session?.user;
+    if (!filters || !me || !filters.organizationId) return next();
+    if (req.session?.isAdmin || me.role === 'admin') return next();
+    const personLevel = PERSON_LEVEL_PATHS.has(req.path);
+    const otherPerson = !!filters.userId && filters.userId !== me.id;
+    if (!personLevel && !otherPerson) return next();
+    if (await mayViewColleagues(req)) return next();
+    filters.userId = me.id;
+    next();
+}
+
+module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter, narrowMembersToOwnRows, mayViewColleagues };

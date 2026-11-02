@@ -101,7 +101,7 @@ function register(router) {
         // Clean up auto-created KBs
         if (result.knowledgeBaseIds?.length > 0) {
             for (const kbId of result.knowledgeBaseIds) {
-                try { await kbStore.deleteKB(kbId); } catch (e) {
+                try { await deleteAutoKb(kbId); } catch (e) {
                     log.warn(`[Webpages] KB cleanup for ${kbId}:`, e.message);
                 }
             }
@@ -109,6 +109,20 @@ function register(router) {
 
         res.json({ success: true });
     });
+}
+
+/**
+ * A page's auto-created base: the stage guard first, so chunks are only
+ * removed from a base that will go; then its chunks; then the row.
+ * @param {string} kbId
+ */
+async function deleteAutoKb(kbId) {
+    const kb = await kbStore.getKB(kbId);
+    if (kb) {
+        if (typeof kbStore.assertKbWrite === 'function') await kbStore.assertKbWrite(kbId, ['delete']);
+        await require('../../core/kb/kbPurge.mts').purgeKbChunks(kb);
+    }
+    await kbStore.deleteKB(kbId);
 }
 
 module.exports = { register };

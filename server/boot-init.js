@@ -27,6 +27,38 @@
 const passwords = require('./auth/passwordHash');
 const log = require('./telemetry/log');
 
+/** The template value in .env.selfhost.example, never a real password. */
+const PLACEHOLDER_PASSWORD = /CHANGE[_-]?ME/i;
+
+/**
+ * INIT_ADMIN_PASSWORD gets the shared administrator policy that /setup runs
+ * (minimum length, deny-list, optional breach check), and the template's
+ * placeholder is refused outright.
+ * @param {string} password
+ * @param {string} username
+ * @returns {Promise<{ ok: boolean, error?: string, code?: string }>}
+ */
+async function checkInitAdminPassword(password, username) {
+    if (PLACEHOLDER_PASSWORD.test(password)) {
+        return { ok: false, code: 'password_placeholder', error: 'INIT_ADMIN_PASSWORD still holds the template placeholder' };
+    }
+    const { validatePasswordAsync } = require('./auth/passwordPolicy');
+    return validatePasswordAsync(password, { username, isAdmin: true });
+}
+
+/**
+ * A refused INIT_ADMIN_PASSWORD leaves no operator password. /setup stays
+ * closed while the variable is set (auth/login/setupRoutes.js), and the
+ * process stops so the deployment shows the failure instead of running
+ * without an operator.
+ * @param {{ code?: string, error?: string }} policy
+ * @param {(code: number) => void} [exit]
+ */
+function stopOnRefusedInitAdminPassword(policy, exit = (code) => { process.exit(code); }) {
+    log.error(`[boot-init] ❌ INIT_ADMIN_PASSWORD refused (${policy.code}): ${policy.error}. Set a stronger INIT_ADMIN_PASSWORD (at least the administrator minimum, not the template value) and restart. Stopping.`);
+    exit(1);
+}
+
 async function runBootInit() {
     const adminPassword = process.env.INIT_ADMIN_PASSWORD;
     const msClientId = process.env.INIT_MS_CLIENT_ID;
@@ -83,6 +115,11 @@ async function runBootInit() {
             await retry(async () => {
                 const config = await loadConfig();
                 if (!config.admin.passwordHash) {
+                    const policy = await checkInitAdminPassword(adminPassword, config.admin.username || 'admin');
+                    if (!policy.ok) {
+                        stopOnRefusedInitAdminPassword(policy);
+                        return;
+                    }
                     config.admin.passwordHash = await passwords.hash(adminPassword, { bcryptRounds: 12 });
                     if (await saveConfig({ admin: config.admin })) {
                         log.info('[boot-init] ✅ Admin password set');
@@ -232,4 +269,4 @@ async function runBootInit() {
     }
 }
 
-module.exports = { runBootInit };
+module.exports = { runBootInit, checkInitAdminPassword, stopOnRefusedInitAdminPassword };

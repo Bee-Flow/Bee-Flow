@@ -85,22 +85,9 @@ async function loggedInRequester(req, userId, r) {
     // The caller's organisation is resolved by the route itself (threads.js).
 }
 
-/**
- * Anonymous (marketing) submission, best-effort: if the email matches an
- * existing user, link the thread to their account + org + role. Otherwise
- * it stays truly anonymous and staff see "Guest".
- */
-async function anonymousRequester(r) {
-    try {
-        const match = await userStore.getUserByEmail(r.email);
-        if (match) {
-            r.userId = match.id;
-            r.orgRole = match.orgRole || null;
-            if (!r.orgId) r.orgId = match.organizationId || null;
-            if (!r.name) r.name = nameOf(match);
-        }
-    } catch (err) { fallback('routes/support/threadCreate:anonymousRequester', err); /* requester lookup by email failed, the thread keeps the supplied details */ }
-}
+// An anonymous (marketing) submission is never linked to an account by its
+// e-mail address: the address is unverified, so the thread keeps only what
+// the visitor typed and staff see a guest. Linking needs a signed-in session.
 
 /** Compute SLA due dates from the org/global policy (best-effort). */
 async function applyCreateSla(thread) {
@@ -269,7 +256,7 @@ async function openTicket(/** @type {import('express').Request} */ req, r, val) 
     return { ok: true, threadId: thread.id, accessToken, threadUrl: requesterUrl };
 }
 
-module.exports = { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket };
+module.exports = { _isLikelySpam, loggedInRequester, openTicket };
 
 /**
  * @typedef {{ userId: string | null, email: string, name: string | null, orgRole: string | null, orgId: string | null, orgName: string | null }} SupportRequester

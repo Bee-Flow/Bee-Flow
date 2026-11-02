@@ -21,18 +21,55 @@
  *   is handled by processAttachments() at send-time with live upload data.
  */
 const log = require('../../telemetry/log');
+const { isPersistedSidecar } = require('../conversation/historyMerge');
 
 function isTempStorageUrl(url) {
     return typeof url === 'string' && url.includes('/api/storage/tmp/');
 }
 
-function refreshTempUrl(url, storageKey) {
+/**
+ * Whether a storage key may be signed for this caller: a key under the
+ * caller's own users/<id>/ prefix, or one from a stored conversation sidecar
+ * (historyMerge.markPersistedSidecars). A key from anywhere else is not.
+ * @param {unknown} key
+ * @param {string | null} userId
+ * @param {boolean} persisted
+ */
+function maySignKey(key, userId, persisted) {
+    if (typeof key !== 'string' || !key) return false;
+    if (persisted) return true;
+    return !!userId && key.startsWith(`users/${userId}/`);
+}
+
+/**
+ * The storage key a temp URL names, when this caller may have it re-signed:
+ * a currently valid signature (we issued it), or the caller's own key.
+ * @param {string} url
+ * @param {string | null} userId
+ */
+function keyFromTempUrl(url, userId) {
+    const { resolveTempDownloadKey } = require('../../utils/tempDownloadUrl');
+    const verified = resolveTempDownloadKey(url);
+    if (verified) return verified;
+    try {
+        const key = new URL(url, 'http://internal.invalid').searchParams.get('key');
+        return maySignKey(key, userId, false) ? key : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * @param {string | null} url
+ * @param {string | null} storageKey  only a key maySignKey accepted
+ * @param {string | null} [userId]
+ */
+function refreshTempUrl(url, storageKey, userId = null) {
     try {
         const { generateTempDownloadUrl } = require('../../utils/tempDownloadUrl');
         if (storageKey) return generateTempDownloadUrl(storageKey, 900);
-        if (isTempStorageUrl(url)) {
-            const parsed = new URL(url);
-            const key = parsed.searchParams.get('key');
+        if (url && isTempStorageUrl(url)) {
+            const key = keyFromTempUrl(url, userId);
             if (key) return generateTempDownloadUrl(key, 900);
         }
     } catch (e) {
@@ -45,7 +82,7 @@ function refreshTempUrl(url, storageKey) {
  * Rebuild a message whose content blocks may contain stale image_url parts
  * (base64 or expired temp URLs). Mirrors the previous inline refresh block.
  */
-function refreshExistingContentArray(content) {
+function refreshExistingContentArray(content, userId) {
     return content.map(part => {
         if (part.type !== 'image_url') return part;
         const url = part.image_url?.url || '';
@@ -58,7 +95,7 @@ function refreshExistingContentArray(content) {
         }
 
         if (isTempStorageUrl(url)) {
-            const fresh = refreshTempUrl(url, null);
+            const fresh = refreshTempUrl(url, null, userId);
             if (fresh) {
                 return { type: 'image_url', image_url: { url: fresh, detail: 'auto' } };
             }
@@ -110,9 +147,10 @@ async function attachmentsToContentBlocks(attachments, userId) {
             /** @type {string | null} */
             let url = null;
             if (att.storageKey) {
-                url = refreshTempUrl(null, att.storageKey);
+                url = maySignKey(att.storageKey, userId, isPersistedSidecar(att))
+                    ? refreshTempUrl(null, att.storageKey) : null;
             } else if (isTempStorageUrl(att.url)) {
-                url = refreshTempUrl(att.url, null);
+                url = refreshTempUrl(att.url, null, userId);
             } else if (att.url) {
                 url = att.url;
             } else if (att.content && userId) {
@@ -188,7 +226,7 @@ async function hydrateHistoryAttachments(messages, opts = {}) {
         // Start with the existing content (refreshed if it already has image blocks)
         let content;
         if (contentIsArray) {
-            content = hasImageBlocks ? refreshExistingContentArray(msg.content) : msg.content.slice();
+            content = hasImageBlocks ? refreshExistingContentArray(msg.content, userId) : msg.content.slice();
         } else if (typeof msg.content === 'string' && msg.content.length > 0) {
             content = [{ type: 'text', text: msg.content }];
         } else {

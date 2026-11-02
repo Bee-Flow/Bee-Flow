@@ -42,6 +42,8 @@ const MOCKS = {
     '../auth/mcpToken': {
         SECRET_KEY: (userId) => `mcp_server_token_user_${userId}`,
         mintToken: (userId) => ({ token: `bfmcp.${userId}.fresh`, random: 'fresh' }),
+        recordIssued: async (userId, random) => { touched.push({ what: 'recordIssued', args: [userId, random] }); },
+        clearIssued: async (userId) => { touched.push({ what: 'clearIssued', args: [userId] }); },
     },
 };
 
@@ -162,6 +164,19 @@ test('minting the way the app does — no body at all — still mints for the ca
     assert.strictEqual(res.body.token, 'bfmcp.admin1.fresh');
     assert.strictEqual(secrets.get('mcp_server_token_user_admin1'), 'fresh');
     assert.strictEqual(secrets.get('mcp_server_token_user_admin1_revoked'), '0');
+});
+
+test('minting records the issue time of the new stored half, so its lifetime starts at mint', async () => {
+    const res = await dispatch({ method: 'POST', url: '/token' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(touched.some((t) => t.what === 'recordIssued' && t.args[0] === 'admin1' && t.args[1] === 'fresh'));
+});
+
+test('revoking clears the issue record', async () => {
+    const res = await dispatch({ method: 'DELETE', url: '/token' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(touched.some((t) => t.what === 'clearIssued' && t.args[0] === 'admin1'));
+    assert.ok(!touched.some((t) => t.what === 'recordIssued'));
 });
 
 test('an empty JSON object is the same as no body', async () => {

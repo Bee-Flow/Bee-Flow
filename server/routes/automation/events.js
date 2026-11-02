@@ -100,14 +100,16 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson,
     // body) triple lets an attacker replay the same body with a NEW nonce
     // (the signature still verifies, since it never covered the nonce) and
     // checkAndStoreNonce sees it as fresh.
+    const timestamp = req.get('X-BeeFlow-Timestamp') || null;
     const check = checkWebhookSignature({
-        secret: wh.secret, sigHeader, nonce,
-        timestamp: req.get('X-BeeFlow-Timestamp') || null,
+        secret: wh.secret, sigHeader, nonce, timestamp,
         rawBody: req.rawBody ?? null, body: req.body,
     });
     if (!check.ok) return res.status(401).json({ error: rejectionMessage(check.reason) });
 
-    const fresh = await automationStore.checkAndStoreNonce(`${slug}:${nonce}`);
+    // A delivery without a timestamp never expires on its own: its nonce is
+    // kept beyond the 24 h sweep so the same request cannot be sent again.
+    const fresh = await automationStore.checkAndStoreNonce(`${slug}:${nonce}`, { retain: !timestamp });
     if (!fresh) return res.status(401).json({ error: 'Replayed nonce' });
 
     await automationStore.touchWebhook(slug);

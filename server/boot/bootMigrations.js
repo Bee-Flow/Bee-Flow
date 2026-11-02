@@ -153,6 +153,13 @@ const LOOSE_MIGRATIONS = [
     // Renumbers conversation_messages rows that share a seq (in read order)
     // and builds the unique (conversation_id, seq) index CONCURRENTLY.
     'conversation-messages-seq-unique-2026-10',
+    // Strips from every organisation's default groups the ids that are not its
+    // own group or a plain global group (no admin permission, role or orgRole).
+    'org-default-groups-cleanup-2026-11',
+    // SSO sign-in resolves by (provider, subject): creates sso_identities and
+    // records the subject of accounts whose id already names it (no-credential
+    // rows only). ON CONFLICT DO NOTHING, so a rerun adds nothing.
+    'sso-identities-2026-11',
 ];
 
 /**

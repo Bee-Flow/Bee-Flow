@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React from 'react';
 import type { TestCase } from './TestReportRenderer.types';
+import { SafeImage } from './remoteImages';
 import { TranslateParams } from '../../hooks/useTranslation';
 
 export function TestReportRendererSection({ filteredTests, filter, t, statusConfig, categoryConfig, expandedTests, severityColors, toggleTest }: { filteredTests: TestCase[]; filter: string; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; statusConfig: Record<string, { color: string; bg: string; icon: React.JSX.Element; label: string; }>; categoryConfig: Record<string, { icon: React.JSX.Element; color: string; }>; expandedTests: Set<number>; severityColors: Record<string, string>; toggleTest: (index: number) => void; }) {
@@ -132,7 +133,7 @@ export function TestReportRendererSection({ filteredTests, filter, t, statusConf
                             {/* Screenshot */}
                             {test.screenshot && (
                                 <div className="[margin-bottom:0.5rem]">
-                                    <img
+                                    <SafeImage
                                         src={test.screenshot}
                                         alt={`Screenshot: ${test.name}`}
                                         className="[max-width:100%] [max-height:300px] [border-radius:0.5rem] [border:1px_solid_var(--border-subtle,_rgba(255,255,255,0.1))] [object-fit:contain]" />

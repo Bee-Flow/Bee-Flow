@@ -46,6 +46,11 @@ const EMPTY_ODS_STYLES =
  */
 async function readWorkbook(buffer) {
     if (!isZipPackage(buffer)) throw new Error('it is not an .xlsx/.ods package (no ZIP signature)');
+    // The workbook zip guard before SheetJS inflates the package in full; its
+    // refusal sentence becomes the reason the caller reports.
+    const { assertSafePackage } = require('../../core/automationRunner/tables/workbookZipGuard');
+    const { tableLimits } = require('../../core/automationRunner/tables/limits');
+    await assertSafePackage(buffer, { maxUncompressedBytes: tableLimits().maxUncompressedBytes });
     /** @type {XLSX.WorkBook} */
     let workbook;
     try {

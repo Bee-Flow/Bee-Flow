@@ -160,7 +160,7 @@ function _composeHandler(entry) {
         // The gate calls next() on success and next(err) on an entitlement outage;
         // a bare `run` would ignore the error and serve the module anyway.
         const gated = () => (gate ? gate(req, res, (err) => (err ? next(err) : run())) : run());
-        if (publicRoutes.some(p => p && url.startsWith(p))) return gated();
+        if (require('./publicRoutes.mts').isPublicRoute(publicRoutes, url)) return gated(); // segment boundary
         const { requireAuth } = require('../auth/permissions');
         return requireAuth(req, res, (err) => (err ? next(err) : gated()));
     };

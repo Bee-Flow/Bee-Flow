@@ -43,7 +43,9 @@ export function useLoginUrlParams({ t, setResetToken, setVerifiedBanner, setErro
     useEffect(() => {
         const err = new URLSearchParams(window.location.search).get('error');
         if (err === 'sso_link_required') {
-            setError(t('login.sso_link_required', 'Your Microsoft identity needs to be linked by a platform administrator. Contact your administrator, then sign in again.'));
+            setError(t('login.sso_link_required', 'This sign-in is not linked to an account yet. Sign in another way and link it under Account settings, or ask your administrator to link it.'));
+        } else if (err === 'sso_email_unverified') {
+            setError(t('login.sso_email_unverified', 'Your sign-in provider has not verified your e-mail address. Verify it there, then sign in again.'));
         } else if (err === 'seat_cap_exceeded') {
             setError(t('login.sso_seat_cap_exceeded', 'Your organisation has reached its user limit, so your account could not be created. Contact your administrator.'));
         } else if (err === 'signup_failed') {

@@ -96,4 +96,6 @@ export default {
     "mfa.confirm_with_recovery_or_key": "Enter a recovery code, or confirm with your security key",
     "mfa.confirm_with_key": "Confirm with security key",
     "mfa.authenticator_qr_alt": "MFA QR code",
+    "mfa.reauth_sign_in": "Sign in again",
+    "mfa.link_providers_title": "Sign-in providers",
 };

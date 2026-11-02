@@ -110,6 +110,30 @@ test('the JSON parser keeps the exact raw bytes on req.rawBody for a signed (con
     }
 });
 
+test('automation webhook/event paths are left to their route parser: its size limit and raw bytes apply', async () => {
+    const express = require('express');
+    const app = express();
+    httpMiddleware.applyBodyParsers(app);
+    const routeJson = express.json({ limit: '1kb', verify: (req, _res, buf) => { req.rawBody = buf; } });
+    app.post('/api/automation/events/github', routeJson, (req, res) => res.json({ isBuffer: Buffer.isBuffer(req.rawBody), raw: String(req.rawBody) }));
+    app.use((err, _req, res, _next) => res.status(err.status || 500).json({ type: err.type }));
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((r) => server.once('listening', r));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    try {
+        const sent = '{"a":  1}';
+        const small = await (await fetch(`${base}/api/automation/events/github`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: sent })).json();
+        assert.deepEqual(small, { isBuffer: true, raw: sent }, 'the route parser captured the exact bytes');
+        const big = JSON.stringify({ pad: 'x'.repeat(4096) });
+        for (const path of ['/api/automation/events/github', '/API/Automation/Events/github']) {
+            const res = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: big });
+            assert.equal(res.status, 413, `the route's own limit applies on ${path}`);
+        }
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});
+
 // ── Session layers ──────────────────────────────────────────────────────────
 
 const SECRET = 's'.repeat(32);

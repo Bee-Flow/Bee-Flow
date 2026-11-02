@@ -109,6 +109,60 @@ async function executeSystemTool(name, args) {
     return { error: `System tool ${name} not found` };
 }
 
+/**
+ * A subworkflow runs for its owner, or for a caller in the owner's
+ * organisation (the scope agent tools offer them in, agentTools.js).
+ * @param {{ owner_id?: string | null }} workflow
+ * @param {string | null} callerUserId
+ */
+async function subworkflowRunnableBy(workflow, callerUserId) {
+    if (!callerUserId || !workflow?.owner_id) return false;
+    if (workflow.owner_id === callerUserId) return true;
+    const userStore = require('../../stores/userStore');
+    const [caller, owner] = await Promise.all([userStore.getUser(callerUserId), userStore.getUser(workflow.owner_id)]);
+    return !!caller?.organizationId && caller.organizationId === owner?.organizationId;
+}
+
+/** @param {{ askerUserId?: string, userId?: string, user_id?: string } | null | undefined} userAuth */
+const callerOf = (userAuth) => userAuth?.askerUserId || userAuth?.userId || userAuth?.user_id || null;
+
+/**
+ * A subworkflow exposed as an agent tool, run for the caller
+ * (userAuth.askerUserId, else userAuth.userId) when subworkflowRunnableBy allows it.
+ * @param {string} workflowId
+ */
+async function runSubworkflowTool(workflowId, args, userAuth, fixedParams) {
+    const workflowStore = require('../../stores/workflowStore');
+    try {
+        const workflow = await workflowStore.getWorkflowById(workflowId);
+        if (!workflow || !(await subworkflowRunnableBy(workflow, callerOf(userAuth)))) {
+            return { error: `Subworkflow '${workflowId}' not found` };
+        }
+
+        const finalArgs = { ...(args || {}), ...(fixedParams || {}) };
+        const workflowCopy = JSON.parse(JSON.stringify(workflow));
+        const triggerNode = workflowCopy.nodes.find(n =>
+            n.type === 'trigger-subworkflow' ||
+            n.data?.componentId === 'trigger-subworkflow'
+        );
+
+        if (triggerNode) {
+            triggerNode.data = triggerNode.data || {};
+            triggerNode.data.inputValues = {
+                ...(triggerNode.data.inputValues || {}),
+                inputData: finalArgs.inputData || finalArgs,
+                _triggerType: 'agent',
+                _callerId: 'ai-agent'
+            };
+        }
+
+        const result = await executionEngine.executeWorkflow(workflowCopy, userAuth);
+        return { success: true, result };
+    } catch (error) {
+        return { error: /** @type {Error} */ (error).message };
+    }
+}
+
 // Execute a component as a tool
 // fixedParams are merged on top of AI-chosen args (fixed params override)
 /**
@@ -141,39 +195,7 @@ async function executeComponentTool(toolName, args, userAuth = {}, fixedParams =
     const componentId = toolName.replace(/_/g, '-');
 
     // Check if this is a subworkflow (virtual component)
-    if (componentId.startsWith('subworkflow-')) {
-        const workflowId = componentId.replace('subworkflow-', '');
-        const workflowStore = require('../../stores/workflowStore');
-
-        try {
-            const workflow = await workflowStore.getWorkflowById(workflowId);
-            if (!workflow) {
-                return { error: `Subworkflow '${workflowId}' not found` };
-            }
-
-            const finalArgs = { ...(args || {}), ...(fixedParams || {}) };
-            const workflowCopy = JSON.parse(JSON.stringify(workflow));
-            const triggerNode = workflowCopy.nodes.find(n =>
-                n.type === 'trigger-subworkflow' ||
-                n.data?.componentId === 'trigger-subworkflow'
-            );
-
-            if (triggerNode) {
-                triggerNode.data = triggerNode.data || {};
-                triggerNode.data.inputValues = {
-                    ...(triggerNode.data.inputValues || {}),
-                    inputData: finalArgs.inputData || finalArgs,
-                    _triggerType: 'agent',
-                    _callerId: 'ai-agent'
-                };
-            }
-
-            const result = await executionEngine.executeWorkflow(workflowCopy, userAuth);
-            return { success: true, result };
-        } catch (error) {
-            return { error: /** @type {Error} */ (error).message };
-        }
-    }
+    if (componentId.startsWith('subworkflow-')) return runSubworkflowTool(componentId.replace('subworkflow-', ''), args, userAuth, fixedParams);
 
     const components = componentManager.getComponents();
     const component = components.find(c => c.id === componentId);

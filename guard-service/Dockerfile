@@ -17,10 +17,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # PyTorch CPU (lightweight — GLiNER PII NER + the fp32 PyTorch fallback path)
 # Pinned like gliner in requirements.txt: the eval baselines record the torch
 # version, and an unpinned install moved it underneath them. The +cpu local
-# version exists only on the PyTorch index, so this can never resolve to the
-# CUDA build on PyPI.
+# version exists only on the PyTorch index, and torch and its dependencies come
+# from that index ONLY (--index-url, like classify-service), so no package on
+# this line resolves from PyPI.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch==2.15.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+    pip install torch==2.15.0+cpu --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \

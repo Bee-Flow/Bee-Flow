@@ -67,4 +67,8 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY entrypoint.js ./
 
+# Chromium and the runner need no root: run as the base image's unprivileged
+# user (scripts/check-release-container.sh asserts it).
+USER pwuser
+
 ENTRYPOINT ["node", "/runner/entrypoint.js"]

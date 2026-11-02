@@ -80,6 +80,7 @@ if (!ENABLED) {
         const {
             CompositePropagator, W3CTraceContextPropagator, W3CBaggagePropagator,
         } = require('@opentelemetry/core');
+        const { scrubSpanUrls } = require('./spanUrl.mts');
 
         // Exporter errors are logged here (ERROR level) and dropped — never thrown.
         diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
@@ -153,11 +154,14 @@ if (!ENABLED) {
                         const url = (req && req.url) || '';
                         return url.startsWith('/api/health') || url.startsWith('/api/admin/metrics');
                     },
+                    // No query string or token-like path segment in a span (spanUrl.mts).
+                    requestHook: (span) => scrubSpanUrls(span),
                 },
                 // Outbound LLM/provider fetch() spans + provider status codes.
                 // Set OTEL_DISABLE_UNDICI=1 if the trace volume is too high.
                 '@opentelemetry/instrumentation-undici': {
                     enabled: process.env.OTEL_DISABLE_UNDICI !== '1',
+                    requestHook: (span) => scrubSpanUrls(span),
                 },
                 '@opentelemetry/instrumentation-pg': { enabled: true },
                 '@opentelemetry/instrumentation-ioredis': { enabled: true },

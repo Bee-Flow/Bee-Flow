@@ -118,8 +118,30 @@ test('every npm invocation in componentManager goes through the gate', () => {
     const src = fs.readFileSync(path.join(__dirname, 'componentManager.js'), 'utf8');
     const execs = src.split('\n')
         .map((line, i) => ({ line, n: i + 1 }))
-        .filter(({ line }) => /exec\(\s*'npm install/.test(line) && !line.trim().startsWith('*'));
+        .filter(({ line }) => /\bexec\(/.test(line) && !line.trim().startsWith('*') && !line.trim().startsWith('//'));
     assert.strictEqual(execs.length, 1,
         `expected exactly one npm invocation (inside installDependencies); found ${execs.length} `
         + `at lines ${execs.map(e => e.n).join(', ')}`);
+});
+
+test('a component with a lockfile installs the locked tree without lifecycle scripts', () => {
+    const { installCommand } = require('./componentManager');
+    const dir = fixture({ name: 'locked', dependencies: { axios: '^1.6.0' } });
+    fs.writeFileSync(path.join(dir, 'package-lock.json'), '{}');
+    const cmd = installCommand(dir);
+    assert.match(cmd, /^npm ci\b/);
+    assert.match(cmd, /--ignore-scripts\b/);
+});
+
+test('every shipped component with dependencies has a lockfile', () => {
+    const { COMPONENTS_DIR, installCommand } = require('./componentManager');
+    if (!fs.existsSync(COMPONENTS_DIR)) return;
+    for (const entry of fs.readdirSync(COMPONENTS_DIR, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const dir = path.join(COMPONENTS_DIR, entry.name);
+        let deps = {};
+        try { deps = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies || {}; } catch { continue; }
+        if (Object.keys(deps).length === 0) continue;
+        assert.match(installCommand(dir), /^npm ci --ignore-scripts\b/, `${entry.name} installs without its lockfile`);
+    }
 });

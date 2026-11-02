@@ -287,7 +287,25 @@ async function bustSessionsForOrg(organizationId, { db = require('../db') } = {}
     }
 }
 
-module.exports = { wrapWithRedisCache, installRedisCacheWhenReady, bustSessionsForUser, bustSessionsForOrg };
+/**
+ * End every session of an organisation's members: the sessions that name the
+ * org, plus each member's own sessions and bridge tokens (a session user does
+ * not always carry organizationId). For a revocation that must sign the whole
+ * org out; bustSessionsForOrg stays the lighter cache bust.
+ * @param {string} organizationId
+ * @param {{ db?: any, sessionTokens?: any }} [opts]
+ */
+async function endSessionsForOrg(organizationId, { db = require('../db'), sessionTokens = require('../utils/sessionToken') } = {}) {
+    if (!organizationId) return 0;
+    let total = await bustSessionsForOrg(organizationId, { db });
+    const members = await db.pool.query('SELECT id FROM users WHERE "organizationId" = $1', [String(organizationId)]);
+    for (const row of members.rows || []) {
+        total += await bustSessionsForUser(row.id, { db, sessionTokens });
+    }
+    return total;
+}
+
+module.exports = { wrapWithRedisCache, installRedisCacheWhenReady, bustSessionsForUser, bustSessionsForOrg, endSessionsForOrg };
 
 /**
  * @typedef {Record<string, unknown> & { cookie?: { expires?: string | number | Date | null } }} SessionData  a stored session (JSON)

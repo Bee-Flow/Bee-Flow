@@ -38,13 +38,31 @@ const MERMAID_THEME = {
     todayLineColor: '#f472b6',
 };
 
+/**
+ * Diagram source comes from model output. Labels are drawn as SVG text, not
+ * HTML, so a label cannot carry an element that loads from another host; the
+ * keys that would undo that (and the free-form theme CSS) cannot be set from
+ * an `init` directive or front matter inside the diagram.
+ */
+const MERMAID_SECURE_KEYS = [
+    'secure', 'securityLevel', 'startOnLoad', 'maxTextSize', 'suppressErrorRendering', 'maxEdges',
+    'htmlLabels', 'themeCSS', 'dompurifyConfig',
+];
+
 export const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } } = {
     startOnLoad: false,
+    securityLevel: 'strict',
+    secure: MERMAID_SECURE_KEYS,
+    htmlLabels: false,
+    dompurifyConfig: {
+        FORBID_TAGS: ['style', 'img', 'image', 'picture', 'source', 'video', 'audio', 'iframe', 'object', 'embed', 'link', 'foreignObject'],
+        FORBID_ATTR: ['style', 'src', 'srcset', 'background', 'poster'],
+    },
     theme: 'dark',
     themeVariables: MERMAID_THEME,
     fontFamily: 'Inter, system-ui, sans-serif',
     fontSize: 14,
-    flowchart: { htmlLabels: true, curve: 'basis', padding: 15 },
+    flowchart: { curve: 'basis', padding: 15 },
     gantt: {
         titleTopMargin: 15, barHeight: 24, barGap: 6,
         topPadding: 40, sidePadding: 60, numberSectionStyles: 4,

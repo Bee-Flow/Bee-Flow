@@ -206,3 +206,19 @@ test('readSheet: a formula column whose every cached result is an error is still
     assert.deepEqual([...r.formulaCols], [2]);
     assert.deepEqual(r.rows, [['A', 10, null], ['B', 20, null]], 'the error values read as empty, as before');
 });
+
+test('readSheet / listSheets: the workbook zip guard runs first (inflated-size cap, XML entity declarations)', async (t) => {
+    const JSZip = require('jszip');
+    t.after(() => { delete process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES; });
+    process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES = String(2 * 1024 * 1024);
+    const zip = await JSZip.loadAsync(await facturenXlsx());
+    zip.file('xl/media/filler.bin', Buffer.alloc(8 * 1024 * 1024));
+    const padded = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    await assert.rejects(sheetjs.listSheets(padded, 'xlsx'), (e) => e.status === 422 && e.code === 'spreadsheet_rejected');
+    delete process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES;
+    const entity = await JSZip.loadAsync(await facturenXlsx());
+    entity.file('xl/extra.xml', '<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa">]><x>&a;</x>');
+    const withEntity = await entity.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    await assert.rejects(sheetjs.readSheet(withEntity, { format: 'xlsx', sheet: 'Facturen', headerRow: 1, maxRows: 100, maxCols: 100 }),
+        (e) => e.status === 422 && e.code === 'spreadsheet_rejected');
+});

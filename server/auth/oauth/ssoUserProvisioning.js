@@ -20,6 +20,8 @@ const { getEffectiveFreeEmailDomains } = require('../../utils/freeEmailDomains')
 const { checkWebSignupAllowed } = require('../signupGuards');
 const accountProvisioning = require('../accountProvisioning');
 const microsoftLogin = require('./microsoftLogin');
+const { ssoIdentities, SSO_IDENTITY_PROVIDERS } = require('../ssoIdentityStore.mts');
+const { claimSessionInvite, releaseInvite } = require('./oauthInvite.mts');
 
 /** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
 /** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} UserRow */
@@ -92,19 +94,9 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
         // stranded without an organisation (which is exactly what the
         // old create-user-then-create-org ordering did).
         delete req.session.pendingSignup;
-        try {
-            signupIntent = accountProvisioning.normalizeSignupIntent(
-                { ...pendingSignup, email: user.email },
-                { provider, channel: 'oauth' },
-            );
-            placement = await accountProvisioning.prepareAccountPlacement(signupIntent, { req });
-        } catch (e) {
-            if (e instanceof accountProvisioning.SignupError) {
-                log.warn(`[OAuth/${provider}] pending signup rejected (${e.code}): ${/** @type {Error} */ (e).message}`);
-                return { error: e.oauthCode };
-            }
-            throw e;
-        }
+        const wizard = await wizardPlacement({ req, provider, user, pendingSignup });
+        if ('error' in wizard) return { error: wizard.error };
+        ({ signupIntent, placement } = wizard);
     } else {
         // Pre-resolve the organisation by email domain so the record
         // isn't orphaned — never for a free/public email provider
@@ -120,10 +112,45 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
         // default groups on auto-approve; 'pending' status otherwise). This
         // is where the approval decision now lives — the later !userHasOrg
         // block only handles pre-existing org-less users.
-        placement = planNewSSOUserPlacement(preResolvedOrg);
+        placement = planNewSSOUserPlacement(preResolvedOrg, { allGroups: await userStore.getAllGroups() });
     }
 
     return { signupIntent, placement, preResolvedOrg, localId };
+}
+
+/**
+ * The wizard's placement. An invited signup claims the session's invitation
+ * for the provider's address first, as the password signup does
+ * (oauthInvite.mts); the claim is handed back when the placement fails.
+ * @param {{ req: import('express').Request, provider: string, user: OAuthUser, pendingSignup: Record<string, any> }} opts
+ * @returns {Promise<{ error: string } | { signupIntent: SignupIntent, placement: Placement }>}
+ */
+async function wizardPlacement({ req, provider, user, pendingSignup }) {
+    /** @type {import('./oauthInvite.mts').InvitationRow | null} */
+    let inviteData = null;
+    /** @type {string | null} */
+    let inviteToken = null;
+    if (pendingSignup.invite) {
+        const claim = await claimSessionInvite(req.session, user.email);
+        if ('error' in claim) return { error: claim.error };
+        ({ inviteData, inviteToken } = claim);
+    }
+    try {
+        const signupIntent = accountProvisioning.normalizeSignupIntent(
+            { ...pendingSignup, email: user.email },
+            { provider, channel: 'oauth', inviteData, inviteToken },
+        );
+        if (signupIntent.invite) signupIntent.invite.claimed = true;
+        const placement = await accountProvisioning.prepareAccountPlacement(signupIntent, { req });
+        return { signupIntent, placement };
+    } catch (e) {
+        await releaseInvite(inviteData);
+        if (e instanceof accountProvisioning.SignupError) {
+            log.warn(`[OAuth/${provider}] pending signup rejected (${e.code}): ${/** @type {Error} */ (e).message}`);
+            return { error: e.oauthCode };
+        }
+        throw e;
+    }
 }
 
 /**
@@ -233,6 +260,75 @@ async function finishNewSsoUser({ req, user, localId, placement, signupIntent, p
 }
 
 /**
+ * Whether this identity must be linked by an administrator instead of signing
+ * in: a Microsoft identity with no bound account that needs an admin link, or
+ * an account with this e-mail that this provider's identity may not sign in to
+ * (ssoUserResolver.emailLinkAllowed). Never a second account in either case.
+ * @param {{ provider: string, user: OAuthUser, existingUser: UserRow | null, branch: string }} opts
+ */
+async function linkRefused({ provider, user, existingUser, branch }) {
+    if (provider === 'microsoft' && !existingUser && await microsoftLogin.requireAdminLink(user, userStore)) return true;
+    if (branch === 'emailRefused') {
+        log.warn(`[OAuth/${provider}] Refused e-mail link to an existing account`);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * What the resolver gets to know about the provider identity.
+ * @param {string} provider
+ * @param {OAuthUser} user
+ * @param {string} localId
+ * @returns {import('../ssoUserResolver').SsoIdentity}
+ */
+function identityOf(provider, user, localId) {
+    return {
+        azureUserId: user.azureUserId || null, azureTenantId: user.azureTenantId || null, email: user.email, localId, provider,
+        subject: user.subject || null, emailVerified: user.emailVerified === true, ncBaseUrl: user.ncBaseUrl || null, legacyRawUid: user.legacyRawUid || null,
+    };
+}
+
+/**
+ * A new account: plan, create, record its subject, finish.
+ * @param {{ req: import('express').Request, provider: string, user: OAuthUser, msTenant?: string, identities: import('../ssoIdentityStore.mts').SsoIdentityStore | null }} opts
+ * @returns {Promise<{ error?: string, signupIntent?: SignupIntent | null }>}
+ */
+async function makeNewSsoUser({ req, provider, user, msTenant, identities }) {
+    const plan = await planNewSsoUser({ req, provider, user, msTenant });
+    if (plan.error) return { error: plan.error };
+    const { placement, preResolvedOrg, localId, signupIntent } = plan;
+    const created = await createSsoUser({ provider, user, localId, placement });
+    if (created.error) return created;
+    if (identities && !(await recordIdentity(identities, localId, provider, user))) return { error: 'sso_link_required' };
+    await finishNewSsoUser({ req, user, localId, placement, signupIntent, preResolvedOrg });
+    return { signupIntent };
+}
+
+/**
+ * Whether this provider's sign-ins are bound by (provider, subject).
+ * @param {string} provider
+ * @param {OAuthUser} user
+ */
+function boundBySubject(provider, user) {
+    return SSO_IDENTITY_PROVIDERS.includes(provider) && typeof user.subject === 'string' && user.subject !== '';
+}
+
+/**
+ * Record (provider, subject) for the account the sign-in resolved to. False
+ * when the subject already belongs to another account (never moved).
+ * @param {import('../ssoIdentityStore.mts').SsoIdentityStore} identities
+ * @param {string} userId
+ * @param {string} provider
+ * @param {OAuthUser} user
+ */
+async function recordIdentity(identities, userId, provider, user) {
+    const result = await identities.link(userId, provider, String(user.subject));
+    if (result === 'taken') log.warn(`[OAuth/${provider}] Refused: the provider identity belongs to another account`);
+    return result !== 'taken';
+}
+
+/**
  * Resolve (or create) the local account behind a provider identity. Mutates
  * `user.id` to the canonical local id. Returns { signupIntent, msTenant }
  * or { error }.
@@ -247,10 +343,8 @@ async function resolveSsoUser({ req, provider, user, config }) {
     // id is derived/resolved below.
     const provisionalLocalId = user.id || deriveLocalUserId(user.email, user.azureUserId);
 
-    let { user: existingUser, branch } = await resolveExistingSSOUser(
-        { azureUserId: user.azureUserId || null, azureTenantId: user.azureTenantId || null, email: user.email, localId: provisionalLocalId },
-        userStore,
-    );
+    const identities = boundBySubject(provider, user) ? ssoIdentities() : null;
+    let { user: existingUser, branch } = await resolveExistingSSOUser(identityOf(provider, user, provisionalLocalId), userStore, identities);
 
     // Installations from before tenant binding: link the old account on first login when the
     // verified token comes from the configured concrete tenant and the match is unambiguous.
@@ -261,11 +355,9 @@ async function resolveSsoUser({ req, provider, user, config }) {
         : undefined;
     if (provider === 'microsoft' && !existingUser && await microsoftLogin.autoLinkOnLogin(user, msTenant)) {
         ({ user: existingUser, branch } = await resolveExistingSSOUser(
-            { azureUserId: user.azureUserId, azureTenantId: user.azureTenantId, email: user.email, localId: provisionalLocalId }, userStore));
+            { azureUserId: user.azureUserId, azureTenantId: user.azureTenantId, email: user.email, localId: provisionalLocalId, provider }, userStore));
     }
-    if (provider === 'microsoft' && !existingUser && await microsoftLogin.requireAdminLink(user, userStore)) {
-        return { error: 'sso_link_required' };
-    }
+    if (await linkRefused({ provider, user, existingUser, branch })) return { error: 'sso_link_required' };
 
     // Set when this callback is completing a signup started in the wizard
     // (req.session.pendingSignup). Read further down to keep a personal
@@ -274,17 +366,14 @@ async function resolveSsoUser({ req, provider, user, config }) {
     let signupIntent = null;
 
     if (existingUser) {
+        if (identities && !(await recordIdentity(identities, existingUser.id, provider, user))) return { error: 'sso_link_required' };
         await updateMatchedUser({ provider, user, existingUser, branch });
     } else {
-        const plan = await planNewSsoUser({ req, provider, user, msTenant });
-        if (plan.error) return plan;
-        const { placement, preResolvedOrg, localId } = plan;
-        signupIntent = plan.signupIntent;
-        const created = await createSsoUser({ provider, user, localId, placement });
-        if (created.error) return created;
-        await finishNewSsoUser({ req, user, localId, placement, signupIntent, preResolvedOrg });
+        const made = await makeNewSsoUser({ req, provider, user, msTenant, identities });
+        if (made.error) return made;
+        signupIntent = made.signupIntent;
     }
     return { signupIntent, msTenant };
 }
 
-module.exports = { resolveSsoUser };
+module.exports = { resolveSsoUser, boundBySubject };

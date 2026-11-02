@@ -145,7 +145,8 @@ function normalizeSignupIntent(source = {}, { inviteData = null, inviteToken = n
  * @param {Request} req
  */
 async function assertSignupAllowed(intent, req) {
-    if (process.env.ALLOW_SIGNUPS === 'false') {
+    // ALLOW_SIGNUPS=false closes self-registration, not joining the inviting organisation (an invite for a new one does not count).
+    if (process.env.ALLOW_SIGNUPS === 'false' && !(intent.invite && intent.accountType === 'join_existing')) {
         throw new SignupError('SIGNUPS_DISABLED', 'Account creation is disabled on this server.');
     }
     // Invited users bypass connector-only and geo: an invite is an explicit,
@@ -401,7 +402,7 @@ async function joinOrgPlacement(intent) {
     return {
         organizationId: org.id,
         orgRole: intent.invite?.data?.role || intent.invite?.data?.org_role || '',
-        groups: (invited || org.allowSignup) ? (org.defaultGroups || []) : [],
+        groups: (invited || org.allowSignup) ? require('./admin/defaultGroupFilter.mts').applicableDefaultGroups(org.defaultGroups, await userStore.getAllGroups(), org.id) : [],
         status: (invited || org.allowSignup) ? 'active' : 'pending',
         orgCreated: false,
     };

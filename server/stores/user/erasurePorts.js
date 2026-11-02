@@ -30,6 +30,8 @@
  *     eraseStudioApps: (userId: string) => Promise<number>,
  *     eraseSkills: (userId: string) => Promise<number>,
  *     eraseStoragePrefix: (userId: string) => Promise<number>,
+ *     erasePersonalKnowledgeBases: (userId: string) => Promise<number>,
+ *     eraseOrgKnowledgeBases: (orgId: string) => Promise<number>,
  *   },
  * }} ErasurePorts
  */

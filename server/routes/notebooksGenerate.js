@@ -243,9 +243,9 @@ ${shield.units[0]}${shield.addendum}`;
         res.end();
 
     } catch (err) {
-        log.error(`[Notebooks] Generate ${req.params.type} failed:`, err);
+        const payload = require('../core/http/sseError.mts').sseErrorPayload(err, { tag: `[Notebooks] Generate ${req.params.type}`, req });
         try {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
             res.end();
         } catch { throw new HttpError(500, 'generation_failed', 'Generation failed'); }
     }
@@ -373,7 +373,7 @@ ${shieldedSources}${shield.addendum}`;
         if (!res.headersSent) {
             throw new HttpError(500, 'ai_fill_failed', 'AI Fill failed');
         } else {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify(require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[Notebooks] AI Fill', req }))}\n\n`);
             res.end();
         }
     }

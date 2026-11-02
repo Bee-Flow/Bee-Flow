@@ -385,8 +385,7 @@ async function ask(req, res) {
         stopHeartbeat();
         try { res.end(); } catch (err) { log.debug('already closed', err); }
     } catch (err) {
-        log.error(`[WebpagesPreview/ai/ask] ${/** @type {Error} */ (err).message}`);
-        send('error', { error: /** @type {Error} */ (err).message });
+        send('error', require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[WebpagesPreview/ai/ask]', req }));
         stopHeartbeat();
         try { res.end(); } catch (err) { log.debug('already closed', err); }
     }

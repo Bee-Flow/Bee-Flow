@@ -61,6 +61,20 @@ describe('parseDeepLink — navigation', () => {
         assert.equal(parseDeepLink('beeflow://go/app%2f..%2f..%2fadmin').kind, 'unknown');
     });
 
+    it('go/ opens only screens of the app, never public pages, files or the API', () => {
+        assert.deepEqual(parseDeepLink('beeflow://go/app'), { kind: 'navigate', path: '/app', needsConfirmation: false });
+        for (const link of [
+            'beeflow://go/share/abc/content',
+            'beeflow://go/w/some-page/content',
+            'beeflow://go/api/auth/me',
+            'beeflow://go/uploads/x.svg',
+            'beeflow://go/application',
+            'beeflow://go/%61pp%2f..%2fshare/x',
+        ]) {
+            assert.equal(parseDeepLink(link).kind, 'unknown', link);
+        }
+    });
+
     it('refuses control characters in a path', () => {
         assert.equal(parseDeepLink('beeflow://go/app/%00admin').kind, 'unknown');
     });

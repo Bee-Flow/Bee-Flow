@@ -55,3 +55,9 @@ test('validateDataModel reports a smuggled clause and keeps a plain expression',
     const bad = validateDataModel(model('a) STORED, x INT REFERENCES s.t(id')).errors;
     assert.ok(bad.some((e) => /computed\.expr is not an expression/.test(e)), bad.join('\n'));
 });
+
+test('a quoted name followed by ( is refused; a quoted column on its own still passes', () => {
+    assert.match(String(computedExprShapeError('"pg_sleep"(10)')), /cannot be called/);
+    assert.match(String(computedExprShapeError('price + "upper" (name)')), /cannot be called/);
+    assert.equal(computedExprShapeError('"price" * (1 + "vat")'), null);
+});

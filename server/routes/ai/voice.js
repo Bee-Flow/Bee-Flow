@@ -74,6 +74,7 @@ const voxtralStt = require('../../core/voice/voxtralStt');
 const voxtralTts = require('../../core/voice/voxtralTts');
 const { getIntegrationTools, buildToolHint } = require('../../core/integrations/integrationTools');
 const { executeTool: dispatchTool } = require('../../core/tools/toolDispatcher');
+const { filterVoiceTools, unofferedToolError } = require('./voiceTools.mts');
 const agentStore = require('../../stores/agentStore');
 
 // ─── Auth & gating ───────────────────────────────────────────────
@@ -214,25 +215,6 @@ const DEFAULT_SYSTEM_PROMPT =
     'You are BeeFlow Voice — a concise, warm, spoken assistant.\n\n' +
     VOICE_FORMATTING_RULES +
     DRAFT_FIRST_RULES;
-
-// Tools whose output only makes sense visually — filter them out of voice mode.
-const VOICE_TOOL_BLOCKLIST = [
-    /^generate_(image|video|music|song|sfx|tts)$/,
-    /^elevenlabs_(music|sfx|tts)$/,
-    /^gamma_/,
-    /^signrequest_/,
-    /^maps_/,
-    /^workspace_update$/,
-    /^notebook_write$/,
-    /^notebook_create$/,
-];
-
-function filterVoiceTools(tools) {
-    return (tools || []).filter(tool => {
-        const name = tool?.function?.name || '';
-        return !VOICE_TOOL_BLOCKLIST.some(rx => rx.test(name));
-    });
-}
 
 // Map BCP-47 codes → human name for the language directive injected into
 // the system prompt per turn.
@@ -585,6 +567,13 @@ router.post(
                 const toolOutcomes = await Promise.all(roundToolCalls.map(async (tc) => {
                     send('tool_use', { id: tc.id, name: tc.name, input: tc.input, round });
                     try {
+                        // Only a name offered this turn is dispatched.
+                        const notOffered = unofferedToolError(tc.name, voiceTools);
+                        if (notOffered) {
+                            log.warn(`[Voice turn] Refused tool '${tc.name}': not offered this turn`);
+                            send('tool_result', { id: tc.id, name: tc.name, ok: false, summary: 'Tool not available' });
+                            return { tc, result: { error: notOffered }, ok: false };
+                        }
                         const refusal = await toolPiiGate.refuseToolCall({
                             toolName: tc.name, args: tc.input || {}, shield,
                             logEvent: logShieldEvent, tag: 'Voice ToolPiiGuard',

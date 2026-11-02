@@ -25,6 +25,15 @@ function isGuestAsker({ userId }) {
 }
 
 /**
+ * Whether the person a tool call runs for (the asker, else the caller) is a guest.
+ * @param {{ askerUserId?: string | null, userId?: string | null } | null | undefined} ctx
+ */
+function isGuestCaller(ctx) {
+    const askerId = (ctx && (ctx.askerUserId || ctx.userId)) || null;
+    return !!askerId && isGuestAsker({ userId: askerId });
+}
+
+/**
  * Whether the agent's owner opened owner-standing tools to public visitors.
  * Read off the raw tools section: the flag is a per-agent choice, not a tool.
  * @param {unknown} agentConfig
@@ -44,4 +53,14 @@ function withholdOwnerToolsFrom({ userId, agentConfig }) {
     return isGuestAsker({ userId }) && !visitorsMayUseOwnerTools(agentConfig);
 }
 
-module.exports = { isGuestAsker, visitorsMayUseOwnerTools, withholdOwnerToolsFrom, VISITOR_TOOLS_FLAG };
+/**
+ * A public-embed visitor runs an automation (owner standing) only when the
+ * agent's owner opened owner tools to visitors.
+ * @param {boolean} guest
+ * @param {unknown} agentConfig
+ */
+function visitorRefused(guest, agentConfig) {
+    return guest && !visitorsMayUseOwnerTools(agentConfig);
+}
+
+module.exports = { isGuestAsker, isGuestCaller, visitorRefused, visitorsMayUseOwnerTools, withholdOwnerToolsFrom, VISITOR_TOOLS_FLAG };

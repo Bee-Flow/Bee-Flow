@@ -44,7 +44,9 @@ elif [[ "$service" == classify || "$service" == guard ]]; then
 elif [[ "$service" == pwt-runner ]]; then
     # npm is removed after the install (its bundled packages are the base's
     # advisories); the runner must still load Playwright and its test CLI.
+    [[ "$(docker image inspect --format '{{.Config.User}}' "$image")" == pwuser ]]
     docker run --rm --network none --read-only --tmpfs /tmp --entrypoint /bin/sh "$image" -ec '
+        test "$(id -un)" = pwuser
         test -z "$(command -v npm || true)"
         test -z "$(command -v npx || true)"
         test ! -e /usr/lib/node_modules/npm
@@ -59,6 +61,9 @@ elif [[ "$service" == connector ]]; then
         test -z "$(command -v npm || true)"
         node -e '\''require("assert/strict").equal(process.version,"v22.23.4")'\''
         frpc --version | grep -qx 0.61.1
+        # harp-start.sh runs the connector as the node user through su-exec.
+        command -v su-exec >/dev/null
+        id -u node >/dev/null
     '
 fi
 echo "Container runtime prerequisites verified: $service"

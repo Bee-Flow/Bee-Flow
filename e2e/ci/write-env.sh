@@ -58,6 +58,7 @@ MASTER_ENCRYPTION_KEY=$(openssl rand -hex 32)
 DB_PASSWORD=$(openssl rand -hex 24)
 RUSTFS_SECRET_KEY=$(openssl rand -hex 24)
 SERVICES_API_KEY=$(openssl rand -hex 24)
+BROWSER_WS_PATH=$(openssl rand -hex 24)
 INIT_ADMIN_PASSWORD=$ADMIN_PASSWORD
 INIT_AI_PROVIDER=claude
 INIT_GENERIC_API_KEY=${E2E_ANTHROPIC_API_KEY:-}

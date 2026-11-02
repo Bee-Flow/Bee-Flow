@@ -29,7 +29,25 @@ const USER_COLUMNS = Object.freeze([
     'owner_id', 'ownerId', 'owner_user_id', 'ownerUserId',
     'created_by', 'createdBy',
     'author_user_id', 'uploaded_by',
+    // A personal knowledge base is keyed by its creator; support threads,
+    // notification events and app view logs name the person they concern.
+    'tenant_id', 'requester_user_id', 'recipient_user_id', 'viewer_user_id',
 ]);
+
+/**
+ * Columns with a USER_COLUMNS name that do not hold a Bee Flow user id in that
+ * table: a Microsoft Entra directory tenant, or the partition key a row copies
+ * from its knowledge base (the base itself is counted and erased).
+ * @type {Readonly<Record<string, readonly string[]>>}
+ */
+const NOT_USER_COLUMNS = Object.freeze({
+    azure_sync_memberships: ['tenant_id'],
+    microsoft_sso_link_requests: ['tenant_id'],
+    microsoft_sso_binding_audit: ['tenant_id'],
+    documents: ['tenant_id'],
+    kb_document_versions: ['tenant_id'],
+    kb_chunks: ['tenant_id'],
+});
 
 const DISCOVER_SQL = `
     SELECT c.table_name AS table_name, c.column_name AS column_name
@@ -76,6 +94,7 @@ async function discoverUserTables(db) {
     /** @type {Map<string, Set<string>>} */
     const byTable = new Map();
     for (const { table_name: table, column_name: column } of rows) {
+        if (NOT_USER_COLUMNS[table]?.includes(column)) continue;
         if (!byTable.has(table)) byTable.set(table, new Set());
         /** @type {Set<string>} */ (byTable.get(table)).add(column);
     }

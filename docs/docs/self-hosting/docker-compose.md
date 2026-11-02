@@ -25,6 +25,14 @@ Pulls prebuilt **public** images from `ghcr.io/bee-flow` — no registry login, 
    It checks Docker, generates fresh secrets into `.env`, pulls the images, starts the **core** stack,
    waits for the server to report healthy, and prints your URL and the generated `admin` password.
 
+   :::note Writing `.env` by hand
+   `BROWSER_WS_PATH` is required: the compose file refuses every command without it
+   (`openssl rand -hex 24`). `selfhost.sh` adds it to an existing `.env` that lacks it, on install,
+   `--upgrade`, `--stop`, `--down` and `--logs`. `INIT_ADMIN_PASSWORD` must pass the administrator
+   password policy: a short, common or template value (`CHANGE_ME`) stops the server at first boot
+   with a log line, and the first-run setup page stays closed while the variable is set.
+   :::
+
 3. Open **http://localhost:5176**, sign in as `admin` with the printed password, and change it.
 
 Add optional sidecars by passing profiles:
@@ -103,6 +111,11 @@ You do **not** need to set any Nextcloud env vars on the server. Instead, point 
    reachable from another machine. Use the frontend URL (`http://<host>:5176`, or whatever you put
    in front of it) — nginx proxies `/auth` and `/api` to the backend. If you specifically need the
    API port exposed, set `SERVER_BIND_HOST=0.0.0.0` in `.env` and restart the stack.
+   :::
+   :::caution Embedded sign-in needs HTTPS on Nextcloud
+   Signing in to Bee Flow from inside Nextcloud uses the browser's Web Crypto API, which browsers
+   only offer on secure (HTTPS) pages. On a Nextcloud served over plain HTTP the embedded sign-in
+   fails; put Nextcloud behind TLS.
    :::
 4. Within ~60 s the connector re-bootstraps against your server (it provisions an organisation and a
    tenant key automatically). Nextcloud users can now open Bee Flow and sign in.
@@ -335,6 +348,8 @@ The download limits are also listed under [Environment variables](./env.md#downl
 
 - [ ] `SESSION_SECRET` and `MASTER_ENCRYPTION_KEY` set to fresh random values (`selfhost.sh` does this)
 - [ ] First admin password (`INIT_ADMIN_PASSWORD`) changed after first login
+- [ ] `BROWSER_WS_PATH` set to a random value (`selfhost.sh` does this)
+- [ ] Nextcloud served over HTTPS, so the embedded sign-in works
 - [ ] `DB_PASSWORD` / `RUSTFS_SECRET_KEY` set; Postgres and object storage not exposed publicly
 - [ ] HTTPS in front of the stack (`COOKIE_SECURE=true` once behind TLS)
 - [ ] `LICENSE_PUBLIC_KEY` set if you activate production licence keys

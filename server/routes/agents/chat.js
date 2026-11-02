@@ -525,7 +525,9 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             const isNewChat = !conv?.title || conv.title === 'New Chat';
             const isUpdateInterval = [6, 10, 20].includes(result.conversationLength);
 
-            const shouldUpdateTitle = !result.guardrailViolation && ((isNewChat && result.conversationLength >= 2) || isUpdateInterval);
+            // A turn whose user message was redacted does not name the chat.
+            const shouldUpdateTitle = !result.guardrailViolation && !result.userMessageRedacted
+                && ((isNewChat && result.conversationLength >= 2) || isUpdateInterval);
 
             log.info('[Title Gen] Conv length:', result.conversationLength, 'shouldUpdate:', shouldUpdateTitle, 'isNew:', isNewChat);
 
@@ -551,7 +553,9 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
                 log.info(`[Title Gen] Triggering title generation (${userMessages.length} chars of context)`);
                 // Use the System Agent's configured model (default behavior)
                 try {
-                    const title = await agentRuntime.generateChatTitle(userMessages, null, orgId, userId);
+                    // The title model is sent the Privacy Shield's tokens, like the chat model.
+                    const shielded = await require('../../core/dlp/titleShield.mts').shieldTitleContext(result.conversationId, userMessages);
+                    const title = shielded.restore(await agentRuntime.generateChatTitle(shielded.text, null, orgId, userId));
                     log.info(`[Title Gen] Generated title (${String(title || '').length} chars)`);
                     if (title && title !== 'New Chat') {
                         await agentStore.updateConversationTitle(result.conversationId, title);
@@ -576,11 +580,7 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             log.info('[agents] Agent execution aborted by client');
         } else {
             log.error('Agent streaming chat error:', error);
-            const classified = error._classified || {};
-            sendEvent('error', {
-                error: /** @type {Error} */ (error).message,
-                errorType: classified.retryable ? 'transient' : 'permanent'
-            });
+            sendEvent('error', require('../../core/http/sseError.mts').sseErrorPayload(error, { tag: '[agents/chat]', req }));
         }
         if (!res.writableEnded) {
             markEnded();

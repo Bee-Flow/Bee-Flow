@@ -22,6 +22,7 @@ const ROWS = {
     held: { id: 'held', role: 'user', status: 'pending' },
     waitlisted: { id: 'waitlisted', role: 'user', status: 'waitlist' },
     founder: { id: 'founder', role: 'user', status: 'pending', orgRole: 'org_admin' },
+    pendingAdmin: { id: 'pendingAdmin', role: 'admin', status: 'pending' },
     approved: { id: 'approved', role: 'user', status: 'active' },
 };
 
@@ -196,7 +197,8 @@ test('a suspended platform admin is no exception', async () => {
 // ── Held for approval ────────────────────────────────────────────────────
 //
 // The waiting screen was the only thing between a held account and the API.
-// Held means the sign-in path flagged the session AND the row still waits.
+// Held is decided from the row (pending or waitlist, no admin exemption),
+// whether or not the sign-in path flagged the session.
 
 
 async function callAt(userId, url, flagged) {
@@ -222,8 +224,20 @@ test('a held account may read who it is and sign out, and nothing else', async (
     }
 });
 
-test('a founder let past approval (no flag on the session) is not held', async () => {
-    assert.equal((await callAt('founder', '/api/agents', false)).nexted, true);
+test('a held account whose sign-in path set no flag is held all the same', async () => {
+    for (const id of ['held', 'waitlisted']) {
+        const { res, nexted } = await callAt(id, '/api/agents', false);
+        assert.equal(nexted, false, id);
+        assert.equal(res.statusCode, 403, id);
+        assert.equal(res.body.code, 'pending_approval', id);
+    }
+});
+
+test('a founder or a platform admin is let past approval, flag or no flag', async () => {
+    for (const id of ['founder', 'pendingAdmin']) {
+        assert.equal((await callAt(id, '/api/agents', false)).nexted, true, id);
+        assert.equal((await callAt(id, '/api/agents', true)).nexted, true, id);
+    }
 });
 
 test('an account approved since it signed in goes through, flag or no flag', async () => {

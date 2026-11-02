@@ -25,7 +25,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 async function executeAgentRun(task, { manual = false, store = require('../../stores/coworkStore') } = {}, deps) {
     const { scheduleText, resolveUserSession, isRepeating, failRun, NOTIFICATION } = deps;
     const startTime = Date.now();
-    log.info(`[AITaskRunner] Executing "${task.title}" (${task.id}) as agent ${task.agentId}`);
+    log.info(`[AITaskRunner] Executing ${task.id} as agent ${task.agentId}`);
 
     try {
         // coworkStore labels the history row it opens for this attempt with it.
@@ -46,7 +46,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         }
 
         if (!finalResponse || !finalResponse.trim()) {
-            log.warn(`[AITaskRunner] Schedule "${task.title}" (${task.id}) produced no outcome text. ` +
+            log.warn(`[AITaskRunner] Schedule ${task.id} produced no outcome text. ` +
                 `result.message=${result?.message?.length || 0} chars, ` +
                 `streamed=${collected.length} chars, ` +
                 `replaced=${replaced?.length || 0} chars, ` +
@@ -88,15 +88,15 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         // Schedule advance — same rules as legacy tasks.
         if (isRepeating(task) && !manual) {
             const next = await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
-            log.info(`[AITaskRunner] Schedule "${task.title}" completed (${Date.now() - startTime}ms), next run: ${next}`);
+            log.info(`[AITaskRunner] Schedule ${task.id} completed (${Date.now() - startTime}ms), next run: ${next}`);
         } else if (isRepeating(task) && manual) {
-            log.info(`[AITaskRunner] Schedule "${task.title}" completed manually (${Date.now() - startTime}ms)`);
+            log.info(`[AITaskRunner] Schedule ${task.id} completed manually (${Date.now() - startTime}ms)`);
         } else {
             await store.updateTask(task.id, { isActive: false });
-            log.info(`[AITaskRunner] Schedule "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
+            log.info(`[AITaskRunner] Schedule ${task.id} completed (one-time, ${Date.now() - startTime}ms)`);
         }
     } catch (err) {
-        log.error(`[AITaskRunner] Schedule "${task.title}" failed:`, /** @type {Error} */ (err).message);
+        log.error(`[AITaskRunner] Schedule ${task.id} failed:`, /** @type {Error} */ (err).message);
         if (!err?._terminationLogged) {
             terminationStore.logTermination({
                 user_id: task.userId || null,

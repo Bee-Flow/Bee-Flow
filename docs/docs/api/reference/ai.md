@@ -53,7 +53,7 @@ No request schema.
 | `conversationId` | string or null |  |  |
 | `modelTier` | string or null |  |  |
 | `history` | array of any or null |  |  |
-| `attachments` | array of any or null |  |  |
+| `attachments` | array of object or null |  |  |
 | `timezone` | string or null |  |  |
 | `reasoningEffort` | string or null |  |  |
 | `webSearchEnabled` | boolean or null |  |  |
@@ -98,7 +98,7 @@ No request schema.
 | `conversationId` | string or null |  |  |
 | `modelTier` | string or null |  |  |
 | `history` | array of any or null |  |  |
-| `attachments` | array of any or null |  |  |
+| `attachments` | array of object or null |  |  |
 | `timezone` | string or null |  |  |
 | `reasoningEffort` | string or null |  |  |
 | `webSearchEnabled` | boolean or null |  |  |
@@ -161,7 +161,7 @@ No request schema.
 | `conversationId` | string or null |  |  |
 | `modelTier` | string or null |  |  |
 | `history` | array of any or null |  |  |
-| `attachments` | array of any or null |  |  |
+| `attachments` | array of object or null |  |  |
 | `timezone` | string or null |  |  |
 | `reasoningEffort` | string or null |  |  |
 | `webSearchEnabled` | boolean or null |  |  |

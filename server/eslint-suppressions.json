@@ -790,9 +790,6 @@
     "complexity": {
       "count": 2
     },
-    "max-depth": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
     }
@@ -6017,7 +6014,7 @@
   },
   "integrations/transcriptionTools.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -7868,11 +7865,6 @@
     }
   },
   "routes/knowledgeBases/create.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "routes/knowledgeBases/detail.js": {
     "complexity": {
       "count": 1
     }

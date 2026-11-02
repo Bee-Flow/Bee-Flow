@@ -56,6 +56,12 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
 
     if (userResponse.ok) {
         const userData = /** @type {Record<string, any>} */ (await userResponse.json()); // the provider's profile payload
+        // The e-mail is what links a Google sign-in to an account: only one
+        // Google says it verified.
+        if (userData.email_verified !== true) {
+            log.warn('[OAuth/google] Refused sign-in: e-mail not verified by Google');
+            return { error: 'sso_email_unverified' };
+        }
         user = /** @type {OAuthUser} */ ({
             id: userData.sub || userData.email,
             displayName: userData.name || userData.email,
@@ -63,7 +69,10 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
             lastName: userData.family_name || '',
             email: userData.email,
             picture: userData.picture,
-            provider: 'google'
+            provider: 'google',
+            // The stable subject the account is bound to (sso_identities).
+            subject: typeof userData.sub === 'string' ? userData.sub : null,
+            emailVerified: true,
         });
     }
 
@@ -204,7 +213,11 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
             id: `nextcloud-${ocs.id || ocs['display-name']}`,
             displayName: ocs['display-name'] || ocs.id,
             email: ocs.email || '',
-            provider: 'nextcloud'
+            provider: 'nextcloud',
+            // The uid is the subject; Nextcloud does not assert the e-mail.
+            subject: ocs.id ? String(ocs.id) : null,
+            emailVerified: false,
+            ncBaseUrl: nextcloudUrl || null,
         });
     }
 

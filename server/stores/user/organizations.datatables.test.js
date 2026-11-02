@@ -115,6 +115,7 @@ require('./erasurePorts').registerErasurePorts({
     content: {
         eraseTranscriptions: async () => 0, eraseOrgTranscriptions: async () => 0, eraseWebpages: async () => 0,
         eraseStudioApps: async () => 0, eraseSkills: async () => 0, eraseStoragePrefix: async () => 0,
+        erasePersonalKnowledgeBases: async () => 0, eraseOrgKnowledgeBases: async () => 0,
     },
 });
 

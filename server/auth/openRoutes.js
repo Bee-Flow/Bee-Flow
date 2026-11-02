@@ -68,13 +68,6 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
     ['GET /api/integrations/withings/callback', 'OAuth-callback, als google/callback'],
 
     // ── Zelf-gescoped op sessie-inhoud (geen gate nodig om te weigeren) ──
-    ['GET /api/integrations/gmail/messages', {
-        reden: 'leest uitsluitend via de OAuth-tokens ín de sessie (createGoogleApiClient(req.session)) — zonder sessie is het antwoord 401 NOT_CONNECTED; er is niets om van een ander te lezen.',
-        bewijs: { file: 'routes/integrations/gmail.js', marker: 'createGoogleApiClient' },
-    }],
-    ['GET /api/integrations/gmail/messages/:messageId', 'als GET /api/integrations/gmail/messages — sessie-token-gescoped'],
-    ['GET /api/integrations/gdrive/files', 'als gmail/messages: Drive-client komt uit req.session-tokens, anoniem → 401 NOT_CONNECTED (routes/integrations/googleDrive.js)'],
-    ['GET /api/integrations/gdrive/export/:fileId', 'als GET /api/integrations/gdrive/files — sessie-token-gescoped'],
     ['GET /api/support/csat/:threadId/done', {
         reden: 'tokenloze bedankpagina na een CSAT-stem: vaste tekst uit het score-getal in de query, leest en schrijft geen thread. Bestaat zodat de stem-URL (mét token) na gebruik wordt vervangen door een URL zonder.',
         bewijs: { file: 'routes/support/satisfaction.js', marker: "'/csat/:threadId/done'" },
@@ -97,7 +90,10 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
         reden: 'DSR-inname: een betrokkene zonder account moet een verzoek kunnen indienen (GDPR Art. 12); per-IP publicSubmitLimiter in de router, admin-kant zit achter requirePermission.',
         bewijs: { file: 'routes/dsr.js', marker: 'publicSubmitLimiter' },
     }],
-    ['GET /api/dsr/requests/:id/public', 'status-URL uit de ontvangstbevestiging van POST /api/dsr/requests — het request-id is de (onraadbare) credential van de indiener'],
+    ['GET /api/dsr/requests/:id/public', {
+        reden: 'status-URL uit de ontvangstbevestiging van POST /api/dsr/requests. Het request-id is een oplopend getal en dus geen geheim: een rij komt alleen terug bij id ÉN het e-mailadres van de indiener (WHERE id = $1 AND subject_email = $2), het antwoord bevat alleen status en termijnen, en per IP begrenst publicReadLimiter het aantal pogingen.',
+        bewijs: { file: 'routes/dsr.js', marker: 'publicReadLimiter' },
+    }],
     // file:routes/support.js stond hier tot de parser de register-helper leerde
     // lezen. De reden van die blanket-entry was letterlijk "registreert zijn
     // routes via register*(router)-helpers in routes/support/* en is dus

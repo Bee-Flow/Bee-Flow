@@ -73,3 +73,37 @@ test('a part that inflates past what it declared is stopped at the first chunk o
 test('not a zip at all is named as such', async () => {
     await assert.rejects(openZipGuarded(Buffer.from('plain text'), { maxEntries: 10, maxTotalBytes: 0 }), (e) => e.reason === 'not_a_zip');
 });
+
+test('scanPackage: a part that inflates past the part cap is refused, a small package passes', async () => {
+    const { scanPackage, officePackageLimits } = require('./zipGuard');
+    const bomb = await zipOf({ 'word/document.xml': Buffer.alloc(8 * MIB) });
+    await assert.rejects(scanPackage(bomb, { maxEntries: 100, maxTotalBytes: 0, maxPartBytes: 4 * MIB }),
+        (err) => err instanceof ZipLimitError && err.reason === 'part_too_large');
+    await assert.rejects(scanPackage(bomb, { maxEntries: 100, maxTotalBytes: 4 * MIB, maxPartBytes: 0 }),
+        (err) => err instanceof ZipLimitError && err.reason === 'total_too_large');
+    await scanPackage(await zipOf({ 'a.xml': '<a/>', 'b.xml': '<b/>' }), officePackageLimits({}));
+    await assert.rejects(scanPackage(Buffer.from('not a zip'), officePackageLimits({})),
+        (err) => err instanceof ZipLimitError && err.reason === 'not_a_zip');
+});
+
+test('scanPackage: a part that understates its size is cut off at the declaration', async () => {
+    const { scanPackage } = require('./zipGuard');
+    const buf = await zipOf({ 'word/document.xml': Buffer.alloc(2 * MIB) });
+    // Rewrite the declared uncompressed size (central directory and local header) to 1 KiB.
+    const patched = Buffer.from(buf);
+    for (let i = 0; i < patched.length - 4; i += 1) {
+        const sig = patched.readUInt32LE(i);
+        if (sig === 0x04034b50) patched.writeUInt32LE(1024, i + 22);
+        if (sig === 0x02014b50) patched.writeUInt32LE(1024, i + 24);
+    }
+    await assert.rejects(scanPackage(patched, { maxEntries: 100, maxTotalBytes: 0, maxPartBytes: 0 }),
+        (err) => err instanceof ZipLimitError);
+});
+
+test('officePackageLimits: environment caps, 0 = unlimited, garbage = default', () => {
+    const { officePackageLimits } = require('./zipGuard');
+    assert.deepStrictEqual(officePackageLimits({}), { maxEntries: 10_000, maxTotalBytes: 256 * MIB, maxPartBytes: 64 * MIB });
+    const l = officePackageLimits({ OFFICE_PACKAGE_MAX_INFLATED_BYTES: '0', OFFICE_PACKAGE_MAX_PART_BYTES: 'x' });
+    assert.strictEqual(l.maxTotalBytes, 0);
+    assert.strictEqual(l.maxPartBytes, 64 * MIB);
+});

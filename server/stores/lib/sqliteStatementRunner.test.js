@@ -19,7 +19,7 @@ const path = require('node:path');
 
 const { createRecordingDb } = require('../../testUtils/mockDb');
 const { createSqliteBlobEngine } = require('./sqliteBlobEngine');
-const { createStatementRunner, StatementTimeoutError, statementTimeoutMs } = require('./sqliteStatementRunner');
+const { createStatementRunner, StatementTimeoutError, statementTimeoutMs, DEFAULT_MAX_PROCESSES, DEFAULT_IDLE_MS } = require('./sqliteStatementRunner');
 const { maxPageCount, DEFAULT_MAX_PAGE_COUNT } = require('./sqliteOpen');
 
 const OWNER = 'owner-A';
@@ -85,18 +85,51 @@ test('a write stopped at the deadline leaves the file as it was', async (t) => {
     assert.deepStrictEqual(rows, [{ n: 1 }], 'the half-done transaction was rolled back');
 });
 
-test('every statement in flight when the process is stopped fails with the timeout error', async (t) => {
+test('a write in flight when the process is stopped fails with the timeout error', async (t) => {
     const engine = makeEngine({ statementTimeoutMs: 300 });
     t.after(() => engine.closeAll());
     const id = freshId();
     await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
     const results = await Promise.allSettled([
         engine.query(OWNER, id, ENDLESS),
-        engine.query(OWNER, id, 'SELECT 1 AS one'),
+        engine.exec(OWNER, id, 'INSERT INTO t VALUES (1)'),
     ]);
     assert.strictEqual(results[0].status, 'rejected');
     assert.strictEqual(results[1].status, 'rejected');
     assert.ok(results[1].reason instanceof StatementTimeoutError);
+});
+
+test('a read of another owner waiting behind a stopped statement is sent again and answers', async (t) => {
+    const engine = makeEngine({ statementTimeoutMs: 300 });
+    t.after(() => engine.closeAll());
+    const slow = freshId();
+    const other = freshId();
+    await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
+    await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
+    await engine.exec('owner-B', other, 'INSERT INTO u VALUES (7)');
+    const results = await Promise.allSettled([
+        engine.query(OWNER, slow, ENDLESS),
+        engine.query('owner-B', other, 'SELECT b FROM u'),
+        engine.schema('owner-B', other),
+    ]);
+    assert.strictEqual(results[0].status, 'rejected');
+    assert.ok(results[0].reason instanceof StatementTimeoutError);
+    assert.strictEqual(results[1].status, 'fulfilled');
+    assert.deepStrictEqual(results[1].value.rows, [{ b: 7 }]);
+    assert.strictEqual(results[2].status, 'fulfilled');
+});
+
+test('a read that is itself stopped after being sent again fails; it is not sent a third time', async (t) => {
+    const engine = makeEngine({ statementTimeoutMs: 300 });
+    t.after(() => engine.closeAll());
+    const id = freshId();
+    await engine.exec(OWNER, id, 'CREATE TABLE t (a)');
+    const results = await Promise.allSettled([
+        engine.query(OWNER, id, ENDLESS),
+        engine.query(OWNER, id, ENDLESS),
+    ]);
+    assert.ok(results[0].status === 'rejected' && results[0].reason instanceof StatementTimeoutError);
+    assert.ok(results[1].status === 'rejected' && results[1].reason instanceof StatementTimeoutError);
 });
 
 test('blob parameters and blob cells cross the process boundary as Buffers', async (t) => {
@@ -153,4 +186,37 @@ test('a page database cannot grow past the page ceiling', async (t) => {
         engine.exec(OWNER, id, 'INSERT INTO big VALUES (?)', ['x'.repeat(200_000)]),
         /full/i,
     );
+});
+
+test('a stop at the deadline leaves the statements of another owner alone, writes included', async (t) => {
+    const engine = makeEngine({ statementTimeoutMs: 300 });
+    t.after(() => engine.closeAll());
+    const slow = freshId();
+    const other = freshId();
+    await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
+    await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
+    const results = await Promise.allSettled([
+        engine.query(OWNER, slow, ENDLESS),
+        engine.exec('owner-B', other, 'INSERT INTO u VALUES (1)'),
+    ]);
+    assert.ok(results[0].status === 'rejected' && results[0].reason instanceof StatementTimeoutError);
+    assert.strictEqual(results[1].status, 'fulfilled', 'the other owner\'s write runs in its own process');
+    assert.deepStrictEqual((await engine.query('owner-B', other, 'SELECT b FROM u')).rows, [{ b: 1 }]);
+});
+
+test('the process count is capped and an idle process is retired', async (t) => {
+    const runner = createStatementRunner({ timeoutMs: 2000, entityLabel: 'x', logPrefix: 'x', maxProcesses: 2, idleMs: 150 });
+    const engine = makeEngine({ statementTimeoutMs: 2000 });
+    t.after(() => { runner.stop(); return engine.closeAll(); });
+    // Real files from the engine; statements sent through a runner with a small cap.
+    const ids = [freshId(), freshId(), freshId()];
+    const owners = ['o-1', 'o-2', 'o-3'];
+    for (let i = 0; i < 3; i++) await engine.exec(owners[i], ids[i], 'CREATE TABLE t (a)');
+    const handles = owners.map((o, i) => engine._handles.get(ids[i]));
+    for (const h of handles) assert.ok(h, 'handle is open');
+    for (const h of handles) await runner.run(h, 'query', ['SELECT 1 AS one', []]);
+    assert.ok(runner.lanes.size <= 2, `at most 2 processes (${runner.lanes.size})`);
+    await new Promise((r) => setTimeout(r, 400));
+    assert.strictEqual(runner.lanes.size, 0, 'idle processes are retired');
+    assert.strictEqual(DEFAULT_MAX_PROCESSES > 0 && DEFAULT_IDLE_MS > 0, true);
 });

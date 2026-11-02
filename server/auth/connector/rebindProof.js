@@ -4,16 +4,13 @@
  * instance id that is already bound to the Nextcloud the org is bound to.
  *
  * The capabilities round-trip (ncVerify.js) shows that the Nextcloud at the
- * caller's base URL reports this instance id; WHICH Nextcloud that is, is
- * what the binding records. Two proofs:
- *   'base_url'   the caller's base URL is the one recorded at bind time (the
- *                normal re-bootstrap: a restart that lost the key cache, or a
- *                reinstall on the same address);
+ * caller's base URL reports this instance id, but the instance id and the
+ * base URL are both public, so neither proves the caller is the connector.
+ * One proof releases the key:
  *   'tenant_key' the request is signed with the org's current tenant key
- *                (X-Beeflow-Sig, the scheme every other connector call uses),
- *                for a connector that still holds the key and moved address.
- * Neither: the Nextcloud re-pairs with a pairing code (bootstrap branch 0),
- * which is also what a changed address needs.
+ *                (X-Beeflow-Sig, the scheme every other connector call uses).
+ * Without it the Nextcloud re-pairs with a pairing code (bootstrap branch 0):
+ * a connector that lost its key cache, or one that moved address.
  */
 
 const log = require('../../telemetry/log');
@@ -50,11 +47,9 @@ function normaliseNcBaseUrl(url) {
 /**
  * @param {{ req: import('express').Request, ncBaseUrl: string }} ctx
  * @param {{ id: string, nc_base_url?: string | null }} org
- * @returns {Promise<'base_url' | 'tenant_key' | null>}
+ * @returns {Promise<'tenant_key' | null>}
  */
 async function provesExistingBinding(ctx, org) {
-    const bound = normaliseNcBaseUrl(org.nc_base_url);
-    if (bound && bound === normaliseNcBaseUrl(ctx.ncBaseUrl)) return 'base_url';
     const signedFor = await _deps.verifyConnectorSig(ctx.req).catch((err) => fallback('rebindProof:connector-sig', err, null));
     if (signedFor && signedFor.id === org.id) return 'tenant_key';
     return null;
@@ -64,19 +59,22 @@ async function provesExistingBinding(ctx, org) {
  * Answer a returning bootstrap that proved nothing: 403, with the org-health
  * problem that tells the operator which Nextcloud address knocked.
  * @param {{ req: import('express').Request, res: import('express').Response, ncInstanceId: string, ncBaseUrl: string }} ctx
- * @param {{ id: string }} org
+ * @param {{ id: string, nc_base_url?: string | null }} org
  */
 function refuseRebind(ctx, org) {
     const { req, res, ncInstanceId, ncBaseUrl } = ctx;
-    log.warn(`[ConnectorBootstrap] rebind_proof_required org=${org.id} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl}`);
+    const bound = normaliseNcBaseUrl(org.nc_base_url);
+    const sameAddress = !!bound && bound === normaliseNcBaseUrl(ncBaseUrl);
+    const reason = sameAddress ? 'tenant_key_required' : 'base_url_differs_from_binding';
+    log.warn(`[ConnectorBootstrap] rebind_proof_required org=${org.id} ncInstance=${ncInstanceId} ncBaseUrl=${ncBaseUrl} reason=${reason}`);
     orgHealth.problem('bootstrap.rebind_proof_required', {
         orgId: org.id, source: 'connectorBootstrap', req,
-        meta: { ncInstanceId, ncBaseUrl, reason: 'base_url_differs_from_binding' },
+        meta: { ncInstanceId, ncBaseUrl, reason },
     });
     return res.status(403).json({
-        error: 'This Nextcloud instance is already bound to a Bee Flow organisation from a different address.',
+        error: 'This Nextcloud instance is already bound to a Bee Flow organisation.',
         code: 'NC_REBIND_PROOF_REQUIRED',
-        remediation: 'The Nextcloud bound to this organisation lives at another address than the one this connector sent. If your Nextcloud moved, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as the BEEFLOW_PAIRING_CODE env var on this connector, and redeploy. Otherwise check BEEFLOW_NC_PUBLIC_URL on the connector.',
+        remediation: 'This Nextcloud is already bound to a Bee Flow organisation and the connector no longer holds its tenant key. Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as the BEEFLOW_PAIRING_CODE env var on this connector, and redeploy. If the address changed, also check BEEFLOW_NC_PUBLIC_URL on the connector.',
     });
 }
 

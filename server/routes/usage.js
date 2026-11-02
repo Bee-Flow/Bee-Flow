@@ -113,6 +113,8 @@ router.use(attachOrgFilter);
 const { requireMonitoringScope } = require('./usageMonitoringAuth');
 router.use('/guardrails', requireMonitoringScope);
 router.use('/integrations', requireMonitoringScope);
+// Per-person consumption views: a plain member sees only their own rows.
+router.use(require('./usageScope').narrowMembersToOwnRows);
 
 // ── Special categories (GDPR Art. 9) never next to a person ─────────────────
 // Health labels (the Art. 9 kind the Shield detects) appear in these views as
@@ -340,13 +342,13 @@ router.get('/recent', async (req, res) => {
 
 // 11. Filter options: distinct sources
 router.get('/filters/sources', async (req, res) => {
-    const sources = await usageStore.getUsageSources();
+    const sources = await usageStore.getUsageSources(req.usageFilters);
     res.json(sources || []);
 });
 
 // 12. Filter options: distinct models
 router.get('/filters/models', async (req, res) => {
-    const models = await usageStore.getUsageModels();
+    const models = await usageStore.getUsageModels(req.usageFilters);
     res.json(models || []);
 });
 

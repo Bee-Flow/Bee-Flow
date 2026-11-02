@@ -271,7 +271,7 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
                 completionTokens = data?.completion_tokens || 0;
                 streamUsage = data;
             }
-            else if (type === 'error') send('error', { error: data?.error || 'stream error' });
+            else if (type === 'error') send('error', require('../core/http/sseError.mts').sseErrorPayload(new Error(String(data?.error || 'stream error')), { tag: '[PublicShareBridge/ai/stream]', req }));
         });
 
         logPublicUsage(ctx, webpageId, modelId, streamUsage, t0);
@@ -279,8 +279,7 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
         stopHeartbeat();
         res.end();
     } catch (err) {
-        log.error(`[PublicShareBridge/ai/stream] ${/** @type {Error} */ (err).message}`);
-        send('error', { error: /** @type {Error} */ (err).message });
+        send('error', require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[PublicShareBridge/ai/stream]', req }));
         stopHeartbeat();
         res.end();
     }

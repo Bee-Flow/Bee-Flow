@@ -21,6 +21,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
+const { defaultGroupsUpdateRefusal } = require('./groupAssignGuards');
 const { HttpError } = require('../../core/http/errors');
 
 /**
@@ -389,9 +390,10 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
     const enteringZk = updates.encryptionTier === 'zk' && prevPolicy.tier !== 'zk';
     if (enteringZk) {
         try {
-            const { bustSessionsForOrg } = require('../sessionCache');
-            await bustSessionsForOrg(id);
-            log.info(`[Auth] Busted sessions for org '${id}' — zk tier requires a fresh login to derive each user's key`);
+            // Also ends each member's own sessions and bridge tokens.
+            const { endSessionsForOrg } = require('../sessionCache');
+            await endSessionsForOrg(id);
+            log.info(`[Auth] Ended sessions for org '${id}' — zk tier requires a fresh login to derive each user's key`);
         } catch (err) {
             // Surface loudly: without the bust, users silently write plaintext.
             log.error(`[Auth] FAILED to bust sessions for org '${id}' after switching to zk — existing sessions will write PLAINTEXT until they expire: ${err.message}`);
@@ -445,6 +447,12 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
 
     // authMethod can only be set once — if already set, ignore any change
     const existing = await userStore.getOrganization(id);
+
+    // Default groups are handed to every new member (groupAssignGuards.defaultGroupsUpdateRefusal).
+    if (defaultGroups !== undefined) {
+        const refusal = await defaultGroupsUpdateRefusal(req, id, defaultGroups, existing?.defaultGroups || []);
+        if (refusal) return res.status(refusal.status).json(refusal.body);
+    }
     const finalAuthMethod = (existing && existing.authMethod) ? undefined : authMethod;
 
     // enabledIntegrations: only super admins can change this

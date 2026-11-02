@@ -26,6 +26,7 @@ get effectively published.
 |----------|---------|---------|
 | **`SESSION_SECRET`** | — (boot fails) | Signs the session cookie and derives keys for feature-scoped vaults. Must be a random value of at least 32 characters; anything shorter throws at start-up. Generate: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Rotating invalidates existing sessions. |
 | **`MASTER_ENCRYPTION_KEY`** | — (boot fails) | Keys everything encrypted at rest (OAuth tokens, stored API keys). Must be random, at least 32 characters. Generate: `openssl rand -hex 32`. Rotating breaks decryption of already-stored tokens — re-link integrations after rotation. |
+| **`BROWSER_WS_PATH`** | — (compose refuses to start) | Private path of the headless-browser sidecar (`ws://browser:9222/<path>`). The sidecar has no other authentication, so treat it as a secret: `openssl rand -hex 24`. `selfhost.sh` generates it, also for an existing `.env`. |
 | **`WEBPAGE_PREVIEW_TOKEN_SECRET`** | auto-generated in dev only | HMAC key for the short-lived (4h) preview-iframe bearer tokens. In production you **must** set it explicitly. |
 
 ## Database
@@ -79,6 +80,20 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. A bigger page is refused, never indexed in part. |
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
 | `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
+
+## Inbound and integration limits
+
+Optional; empty means the default.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
+| `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
+| `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |
+| `OFFICE_PACKAGE_MAX_ENTRIES` | `10000` | Files inside one office package (.docx) before a parser opens it. `0` = unlimited. |
+| `OFFICE_PACKAGE_MAX_INFLATED_BYTES` | `268435456` (256 MB) | All parts of one office package together, unpacked. `0` = unlimited. |
+| `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |
+| `LEGACY_MCP_TOKEN_MAX_AGE_DAYS` | `365` | MCP access tokens that carry no expiry of their own stop working this many days after they were created. `0` = no limit. |
 
 ## Datatable storage limits
 

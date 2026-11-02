@@ -9,7 +9,8 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
-const { setupSSOUserDEK, unlockSSOUserDEK, unlockWithRecoveryKey, secureClear } = require('../encryption');
+const { setupSSOUserDEK, unlockSSOUserDEK, unlockWithRecoveryKey, secureClear, hasSSOUserPin } = require('../encryption');
+const { requireRecentAuth } = require('../recentAuth');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -60,6 +61,11 @@ router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (/** @
     }
     const { pin } = req.body;
     const userId = req.session.user.id;
+
+    // Replacing a PIN that is already set takes a recent proof, as replacing
+    // an OPAQUE credential does. A first-time setup needs none.
+    if (req.session.encryptionKey && await hasSSOUserPin(userId)
+        && !requireRecentAuth(req, res, `the SSO PIN of ${userId}`)) return;
 
     // Check if session already has a legacy DEK (from master-key unlock)
     /** @type {Buffer<ArrayBuffer> | null} */

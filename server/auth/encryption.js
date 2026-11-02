@@ -53,7 +53,7 @@ encryptionCompat.bindUserStore(userStore);
 
 const { createUserDEK, unlockUserDEK, unlockWithRecoveryKey, rewrapUserDEK, rotateRecoveryKey, adminResetUser } =
     encryptionUserDek;
-const { setupSSOUserDEK, unlockSSOUserDEK } = encryptionSsoDek;
+const { setupSSOUserDEK, unlockSSOUserDEK, hasSSOUserPin } = encryptionSsoDek;
 const { getOrCreateUserDEKCompat, getOrCreateSSOUserDEKCompat, rewrapUserDEKCompat, getFallbackEncryptionKey } =
     encryptionCompat;
 
@@ -69,6 +69,7 @@ const publicExports = {
     // SSO PIN flow
     setupSSOUserDEK,
     unlockSSOUserDEK,
+    hasSSOUserPin,
 
     // Backward-compatible wrappers (for gradual migration)
     getOrCreateUserDEKCompat,

@@ -303,41 +303,9 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), valida
         }
     }
 
-    // Delete chunks from the search-service (skip when admin chose local-only).
-    //
-    // There is no KB-wide chunk delete to call: the search-service exposes
-    // exactly one removal route, DELETE /kb/documents/{id}
-    // (search-service/app/routers/ingest.py), and so does the Node shim
-    // that production actually points SEARCH_SERVICE_URL at. The old
-    // DELETE /kb/{id}/chunks call here hit nothing on either, silently, so
-    // every deleted KB left its embeddings searchable. Walk the documents
-    // instead — purgeDocumentChunks speaks the route that exists.
-    try {
-        const { resolveKbProvider } = require('../../core/kb/resolveProvider');
-        const kbProvider = await resolveKbProvider();
-        if (kbProvider !== 'local') {
-            const { purgeDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
-            const PAGE = 200;
-            for (let offset = 0; offset < PAGE * 200; offset += PAGE) {
-                const docs = await kbStore.listDocuments(kb.id, { limit: PAGE, offset });
-                if (!docs || docs.length === 0) break;
-                for (const doc of docs) {
-                    await purgeDocumentChunks(kb.id, doc.id, kb.tenant_id);
-                }
-                if (docs.length < PAGE) break;
-            }
-        }
-    } catch (e) {
-        log.warn('[KB] Search-service chunk cleanup failed:', /** @type {Error} */ (e).message);
-    }
-
-    // Delete chunks from local vector store
-    try {
-        const { deleteChunksLocally } = require('../../core/kb/localKBIngest');
-        await deleteChunksLocally(kb.tenant_id, kb.id);
-    } catch (e) {
-        log.warn('[KB] Local chunk cleanup failed:', /** @type {Error} */ (e).message);
-    }
+    // Chunks in the search service (walked per document: its only removal
+    // route is DELETE /kb/documents/{id}) and in the local vector store.
+    await require('../../core/kb/kbPurge.mts').purgeKbChunks(kb);
 
     await kbStore.deleteKB(kb.id);
 

@@ -205,7 +205,18 @@ async function unlockSSOUserDEK(userId, encryptionPin) {
     return { dek };
 }
 
+/**
+ * Whether the SSO user already has a PIN-wrapped key, so a setup call would
+ * replace that PIN rather than set the first one.
+ * @param {string} userId
+ */
+async function hasSSOUserPin(userId) {
+    const user = await userStore.getUser(userId);
+    return !!(user?.ssoEncryptionSetup && user?.wrappedDEK);
+}
+
 module.exports = {
+    hasSSOUserPin,
     setupSSOUserDEK,
     unlockSSOUserDEK,
     bindUserStore,

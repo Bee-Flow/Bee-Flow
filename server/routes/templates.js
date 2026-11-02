@@ -18,7 +18,7 @@ const express = require('express');
 const fs = require('fs');
 const { sendStream } = require('../core/http/sendStream');
 const log = require('../telemetry/log');
-const { localTemplateFile, extractParameters, generateTemplateContext, autoCreateTemplateKB, autoParameterizeTemplate } = require('./templateAi');
+const { localTemplateFile, extractDocxText, extractParameters, generateTemplateContext, autoCreateTemplateKB, autoParameterizeTemplate } = require('./templateAi');
 const router = express.Router();
 const { requireBetaFeature } = require('../core/entitlements/betaFeatures');
 const multer = require('multer');
@@ -26,7 +26,6 @@ const multer = require('multer');
 // Gate all template routes behind the templates beta feature
 router.use(requireBetaFeature('templates'));
 const crypto = require('crypto');
-const mammoth = require('mammoth');
 const templateStore = require('../stores/templateStore');
 const storageStore = require('../stores/storageStore');
 
@@ -39,7 +38,7 @@ const { spendLimiter } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { contentDisposition, safeFileName } = require('../core/http/contentDisposition');
 const { z, worded, bodyOf, choice, idList, typeError } = require('../core/http/schemaParts');
-const { badRequest } = require('../core/http/errors');
+const { badRequest, HttpError } = require('../core/http/errors');
 const { usableKbIdsForRequest } = require('../support/kbAccess');
 
 const MAX_NAME = 200;
@@ -130,10 +129,11 @@ router.post('/upload', requireAuth, templateAiLimiter, upload.single('file'), va
     let parameters = [];
     let extractedText = '';
     try {
-        const result = await mammoth.extractRawText({ buffer });
-        extractedText = result.value || '';
+        extractedText = await extractDocxText(buffer);
         parameters = extractParameters(extractedText);
     } catch (err) {
+        // A package past the office caps is refused, not stored.
+        if (err instanceof HttpError) throw err;
         log.warn(`[Templates] Failed to extract text from ${log.nameForLog(fileName)}:`, /** @type {Error} */ (err).message);
     }
 

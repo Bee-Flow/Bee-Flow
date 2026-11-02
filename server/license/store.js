@@ -321,9 +321,9 @@ async function markRevoked(licenseId, reason = null) {
     // request, but the user remains technically authenticated. Forcing a
     // re-login closes that window and matches the operator's intent.
     try {
-        const { bustSessionsForOrg, bustSessionsForUser } = require('../auth/sessionCache');
+        const { endSessionsForOrg, bustSessionsForUser } = require('../auth/sessionCache');
         if (lic.scope === 'organization' && lic.organizationId) {
-            await bustSessionsForOrg(lic.organizationId);
+            await endSessionsForOrg(lic.organizationId);
         } else if (lic.scope === 'consumer' && lic.userId) {
             await bustSessionsForUser(lic.userId);
         }

@@ -233,11 +233,11 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
     if (!verdict.ok) {
         throw refuse(verdict.reason, 'This agent is not allowed to call this automation.');
     }
-    // The agent's own curation on top of the binding (granted? asks first?). The
-    // offer applies it too, but voice and the non-streaming chat dispatch any
-    // name the model emits, so it is decided again here.
+    // The agent's own curation on top of the binding (granted? asks first?), decided
+    // again here: voice and the non-streaming chat dispatch any name the model emits.
     const grant = await binding.agentGrantVerdict({
-        automation, agentId: trace.callerAgentId, confirmed: !!(ctx && ctx.confirmLayer === true), deps: { ...deps, store },
+        automation, agentId: trace.callerAgentId, confirmed: !!(ctx && ctx.confirmLayer === true),
+        guest: require('../core/agentRuntime/guestAsker').isGuestCaller(ctx), deps: { ...deps, store },
     });
     if (!grant.ok) {
         throw grant.reason === 'needs_confirmation'

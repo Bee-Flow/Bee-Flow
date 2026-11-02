@@ -13,6 +13,8 @@ This page walks an admin through installing the Bee Flow connector via the Nextc
 - A deployment daemon configured (HaRP **or** `manual-install`)
 - Admin permissions on the Nextcloud instance
 - Outbound HTTPS to `ghcr.io` (image pull) and `server.beeflow.nl` (or your self-hosted Bee Flow server)
+- Nextcloud served over HTTPS: the embedded Bee Flow sign-in uses the browser's Web Crypto API, which
+  browsers offer only on secure pages
 
 :::
 

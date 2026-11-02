@@ -244,3 +244,15 @@ test('append: an existing but EMPTY sheet is laid out like a fresh file', async 
     assert.strictEqual(res.appended, 1);
     assert.deepStrictEqual(rowsOf(putOf(calls).body), [['amount', 'vendor'], [20, 'Bee']]);
 });
+
+test('append: a workbook whose parts inflate past the table cap is refused before parsing, nothing uploaded', async (t) => {
+    t.after(() => { delete process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES; });
+    process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES = String(2 * 1024 * 1024);
+    const zip = await JSZip.loadAsync(await ledger());
+    zip.file('xl/media/filler.bin', Buffer.alloc(8 * 1024 * 1024));
+    const padded = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const { ctx, calls } = makeCtx({ existing: padded });
+    const res = await run({ path: '/l.xlsx', rows: [{ a: 1 }], ifExists: 'append' }, ctx);
+    assert.match(res.error, /not a spreadsheet this tool can append to: .*MB/);
+    assert.strictEqual(putOf(calls), undefined);
+});

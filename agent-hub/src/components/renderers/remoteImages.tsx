@@ -81,3 +81,14 @@ export const guardedImage: Components['img'] = ({ node: _node, src, alt, ...rest
     if (source === '' || isTrustedImageSource(source)) return <img src={source} alt={alt ?? ''} {...rest} />;
     return <DeferredImage src={source} alt={alt} />;
 };
+
+/**
+ * An `<img>` for an image URL taken from model or tool output outside the
+ * Markdown path (fenced page, research and test-report blocks): the same rule
+ * as `guardedImage`, with the element's own attributes kept when it loads.
+ */
+export function SafeImage({ src, alt, ...rest }: React.ImgHTMLAttributes<HTMLImageElement>) {
+    const source = typeof src === 'string' ? src : '';
+    if (source === '' || isTrustedImageSource(source)) return <img src={source} alt={alt ?? ''} {...rest} />;
+    return <DeferredImage src={source} alt={alt} />;
+}

@@ -43,6 +43,8 @@ const fx = {
     roles: [],
     updates: [],
     created: [],
+    perms: {},
+    orgUpdates: [],
 };
 
 const mw = (req, res, next) => next();
@@ -76,6 +78,14 @@ const MOCKS = {
         getAllGroups: async () => fx.groups.map((g) => ({ ...g })),
         getAllRoles: async () => fx.roles.map((r) => ({ ...r })),
         getAllOrganizations: async () => fx.orgs.map((o) => ({ ...o })),
+        getOrganization: async (id) => {
+            const o = fx.orgs.find((x) => x.id === id);
+            return o ? { ...o } : null;
+        },
+        updateOrganization: async (id, updates) => {
+            fx.orgUpdates.push([id, updates]);
+            return !!fx.orgs.find((x) => x.id === id);
+        },
         getUser: async (id) => {
             const u = fx.users.find((x) => x.id === id);
             return u ? { ...u } : null;
@@ -109,7 +119,7 @@ const MOCKS = {
         requirePrimaryOrgAdmin: () => mw,
         requireActiveOrg: mw,
         requireActiveOrgForMutations: () => mw,
-        getUserPermissions: async () => ['all'],
+        getUserPermissions: async (id) => fx.perms[id] || ['all'],
         hasPermission: async () => true,
         isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
         resolveUserOrgIds,
@@ -196,7 +206,14 @@ function resetFx() {
         { id: 'g_fin', name: 'Finance', organizationId: 'orgA' },
         { id: 'g_beta', name: 'Beta team', organizationId: 'orgB' },
         { id: 'g_global', name: 'Everyone', organizationId: null },
+        // The seeded global group that carries the wildcard.
+        { id: 'admins', name: 'Administrators', organizationId: null, permissions: ['all'] },
+        // A global group whose grant the org admin does not hold.
+        { id: 'g_billing', name: 'Billing', organizationId: null, permissions: ['manage_billing'] },
+        // A global group whose ROLE carries the wildcard.
+        { id: 'g_rolewide', name: 'Role wide', organizationId: null, roles: ['admin_light'] },
     ];
+    fx.perms = { jan: ['read', 'chat', 'manage_users'], kv: ['read', 'chat', 'manage_users'] };
     // The seeded roles, plus one a super admin has created that carries `all` —
     // the shape that turns `users.role` from an inert label into a real grant.
     fx.roles = [
@@ -213,6 +230,7 @@ function resetFx() {
     ];
     fx.updates.length = 0;
     fx.created.length = 0;
+    fx.orgUpdates.length = 0;
 }
 
 const user = (id) => fx.users.find((u) => u.id === id);
@@ -296,7 +314,7 @@ test('C-01b: a group that does not exist is refused, not silently dropped', asyn
     assert.deepStrictEqual(res.body.groups, ['g_does_not_exist']);
 });
 
-test('C-01b: groups in the caller\'s own org, and global groups, are still assignable', async () => {
+test('C-01b: groups in the caller\'s own org, and global groups within the caller\'s grant, are still assignable', async () => {
     resetFx();
     const res = await dispatch({
         method: 'PUT', url: '/users/eva', session: JAN,
@@ -304,6 +322,71 @@ test('C-01b: groups in the caller\'s own org, and global groups, are still assig
     });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(user('eva').groups, ['g_fin', 'g_global']);
+});
+
+test('Z-N1: an org admin cannot put THEMSELVES in the global admins group', async () => {
+    resetFx();
+    const res = await dispatch({
+        method: 'PUT', url: '/users/kv', session: KV,
+        body: { groups: ['admins'] },
+    });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'cross_org_group_denied');
+    assert.deepStrictEqual(res.body.groups, ['admins']);
+    assert.deepStrictEqual(fx.updates, []);
+});
+
+test('Z-N1: the wildcard is refused even to a caller who already holds it', async () => {
+    resetFx();
+    fx.perms.jan = ['all'];
+    const res = await dispatch({
+        method: 'PUT', url: '/users/eva', session: JAN,
+        body: { groups: ['g_fin', 'admins'] },
+    });
+    assert.strictEqual(res.statusCode, 403);
+    assert.deepStrictEqual(res.body.groups, ['admins']);
+});
+
+test('Z-N1: a global group granting more than the caller holds is refused, directly or through a role', async () => {
+    resetFx();
+    const res = await dispatch({
+        method: 'PUT', url: '/users/eva', session: JAN,
+        body: { groups: ['g_fin', 'g_billing', 'g_rolewide'] },
+    });
+    assert.strictEqual(res.statusCode, 403);
+    assert.deepStrictEqual(res.body.groups, ['g_billing', 'g_rolewide']);
+    assert.deepStrictEqual(fx.updates, []);
+});
+
+test('Z-N1: create refuses the admins group too', async () => {
+    resetFx();
+    const res = await dispatch({
+        method: 'POST', url: '/users', session: JAN,
+        body: { username: 'new', displayName: 'New', password: 'CorrectHorse!42', organizationId: 'orgA', groups: ['admins'] },
+    });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'cross_org_group_denied');
+    assert.deepStrictEqual(fx.created, []);
+});
+
+test('Z-N1: a global group already on the row is an echo, not an assignment', async () => {
+    resetFx();
+    user('eva').groups = ['g_fin', 'admins'];
+    const res = await dispatch({
+        method: 'PUT', url: '/users/eva', session: JAN,
+        body: { groups: ['g_fin', 'admins'], displayName: 'Eva B' },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+});
+
+test('Z-N1: a super admin may still assign the admins group', async () => {
+    resetFx();
+    const res = await dispatch({
+        method: 'PUT', url: '/users/eva', session: SUPER,
+        body: { groups: ['g_fin', 'admins'] },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(user('eva').groups, ['g_fin', 'admins']);
 });
 
 test('C-01b: create is guarded the same way', async () => {
@@ -315,6 +398,58 @@ test('C-01b: create is guarded the same way', async () => {
     assert.strictEqual(res.statusCode, 403);
     assert.strictEqual(res.body.code, 'cross_org_group_denied');
     assert.deepStrictEqual(fx.created, []);
+});
+
+// ═══ Z-N2: default groups ═════════════════════════════════════════════
+
+test('Z-N2: an org admin cannot make another org\'s group, or admins, a default group', async () => {
+    resetFx();
+    for (const bad of [['g_beta'], ['admins'], ['g_nope']]) {
+        const res = await dispatch({
+            method: 'PUT', url: '/organizations/orgA', session: JAN,
+            body: { defaultGroups: ['g_fin', ...bad] },
+        });
+        assert.strictEqual(res.statusCode, 403, `${bad} must be refused`);
+        assert.strictEqual(res.body.code, 'cross_org_group_denied');
+        assert.deepStrictEqual(res.body.groups, bad);
+    }
+    assert.deepStrictEqual(fx.orgUpdates, []);
+});
+
+test('Z-N2: own groups, a plain global group and an unchanged stored list are accepted', async () => {
+    resetFx();
+    fx.orgs.find((o) => o.id === 'orgA').defaultGroups = ['g_beta'];
+    const res = await dispatch({
+        method: 'PUT', url: '/organizations/orgA', session: JAN,
+        body: { defaultGroups: ['g_beta', 'g_fin', 'g_global'] },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(fx.orgUpdates[0][1].defaultGroups, ['g_beta', 'g_fin', 'g_global']);
+});
+
+test('Z-N2: defaultGroups must be a list of ids', async () => {
+    resetFx();
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', session: JAN, body: { defaultGroups: 'admins' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(fx.orgUpdates, []);
+});
+
+test('Z-N2: a super admin may set any default group', async () => {
+    resetFx();
+    const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', session: SUPER, body: { defaultGroups: ['admins'] } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+});
+
+test('Z-N2: a new user gets only the TARGET org\'s default groups, each re-checked', async () => {
+    resetFx();
+    fx.orgs.find((o) => o.id === 'orgA').defaultGroups = ['g_fin', 'admins', 'g_beta'];
+    fx.orgs.find((o) => o.id === 'orgB').defaultGroups = ['g_beta', 'admins'];
+    const res = await dispatch({
+        method: 'POST', url: '/users', session: JAN,
+        body: { username: 'new', displayName: 'New', password: 'CorrectHorse!42', organizationId: 'orgA', groups: [] },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(fx.created[0].groups, ['g_fin']);
 });
 
 // ═══ What must keep working ══════════════════════════════════════════

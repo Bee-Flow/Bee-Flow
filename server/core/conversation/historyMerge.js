@@ -24,6 +24,31 @@
 const { randomUUID } = require('crypto');
 const log = require('../../telemetry/log');
 
+// Attachment sidecars read from the stored conversation. Only these (and keys
+// under the caller's own users/<id>/ prefix) are re-signed by the history
+// hydrator; a sidecar that arrived in a request body is not in this set.
+/** @type {WeakSet<object>} */
+const persistedSidecars = new WeakSet();
+
+/**
+ * Record the attachment sidecars of stored messages as persisted.
+ * @param {HistoryMessage[] | null | undefined} messages
+ * @returns {HistoryMessage[] | null | undefined} the same array
+ */
+function markPersistedSidecars(messages) {
+    for (const m of Array.isArray(messages) ? messages : []) {
+        for (const att of Array.isArray(m?.attachments) ? m.attachments : []) {
+            if (att && typeof att === 'object') persistedSidecars.add(att);
+        }
+    }
+    return messages;
+}
+
+/** @param {unknown} att */
+function isPersistedSidecar(att) {
+    return !!att && typeof att === 'object' && persistedSidecars.has(att);
+}
+
 /** @typedef {{ role?: string, content?: unknown, attachments?: Array<{ name?: string }>, [k: string]: unknown }} HistoryMessage */
 
 /** @param {HistoryMessage | null | undefined} m */
@@ -114,6 +139,7 @@ function mergeAttachmentSidecars(clientHistory = [], dbMessages = []) {
                 return client;
             }
         }
+        markPersistedSidecars([dbMatch]);
         return { ...client, attachments: dbAtts };
     });
 }
@@ -195,4 +221,4 @@ function turnSaver(messages, storedHistory) {
     });
 }
 
-module.exports = { alignClientToDb, mergeAttachmentSidecars, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows, markOf, turnSaver };
+module.exports = { alignClientToDb, mergeAttachmentSidecars, markPersistedSidecars, isPersistedSidecar, shouldDisableResponsesChaining, historyAnchorId, placeTurnRows, markOf, turnSaver };

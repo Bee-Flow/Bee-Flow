@@ -3,7 +3,9 @@
 // PDF (A4 landscape), reusing the shared Playwright pool (browserProvider) and the
 // inline HTML template. Mirrors the webpageExport.js / webpageRender.js patterns.
 
+// The certificate HTML is self-contained: the render context gets no network.
 const browserProvider = require('./browserProvider');
+const { blockContextNetwork } = require('../core/http/browserRouteGuard');
 const { buildCertificateHtml } = require('./certificateTemplate');
 
 /**
@@ -15,6 +17,7 @@ async function renderCertificatePng(record, { verifyUrl = null } = {}) {
     return browserProvider.withContext(
         { viewport: { width: 1200, height: 630 }, deviceScaleFactor: 2 },
         async (context) => {
+            await blockContextNetwork(context);
             const page = await context.newPage();
             await page.setContent(html, { waitUntil: 'networkidle' });
             return page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1200, height: 630 } });
@@ -29,6 +32,7 @@ async function renderCertificatePng(record, { verifyUrl = null } = {}) {
 async function renderCertificatePdf(record, { verifyUrl = null } = {}) {
     const html = buildCertificateHtml(record, { verifyUrl, variant: 'print' });
     return browserProvider.withContext({}, async (context) => {
+        await blockContextNetwork(context);
         const page = await context.newPage();
         await page.setContent(html, { waitUntil: 'networkidle' });
         return page.pdf({ format: 'A4', landscape: true, printBackground: true });

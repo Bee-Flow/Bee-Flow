@@ -90,8 +90,7 @@ app.use(require('./auth/connectorJwt'));
 const {
     setSessionToken,
     generateToken,
-    SESSION_TOKEN_TTL_SECONDS,
-    NATIVE_SESSION_TOKEN_TTL_SECONDS,
+    sessionTokenGrant,
 } = require('./utils/sessionToken');
 
 // The bridge itself (an X-Session-Token rebuilds the session per request), then
@@ -99,27 +98,22 @@ const {
 // MINTS the tokens.
 sessionLayers.applySessionBridge(app);
 
-// Which client is asking — the native app gets a longer token.
-const { currentClient } = require('./telemetry/requestClient');
-
 app.get('/api/session-token', async (req, res) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
+    // A cookie session gets the bridge hour; a bridged request may only roll a
+    // native-app token (utils/sessionToken.js sessionTokenGrant).
+    const grant = sessionTokenGrant(req);
+    if (!grant) return res.status(403).json({ error: 'This session cannot mint a session token', code: 'SESSION_TOKEN_REMINT_REFUSED' });
 
     const userStore = require('./stores/userStore');
     const token = generateToken();
     const userId = req.session.user.id;
     const appPasswordData = await userStore.getAppPassword(userId);
 
-    // A native client gets the cookie's thirty days; everything else keeps the
-    // hour the iframe bridge was designed around. Keyed off the client header,
-    // which any caller can spell — and that is deliberately harmless, because
-    // minting one requires an already-authenticated session and that same
-    // session already carries a 30-day cookie in a browser. Nothing becomes
-    // reachable with the long token that was not reachable without it.
-    const ttlSeconds =
-        currentClient() === 'android'
-            ? NATIVE_SESSION_TOKEN_TTL_SECONDS
-            : SESSION_TOKEN_TTL_SECONDS;
+    // A native-app token keeps the cookie's thirty days; everything else keeps
+    // the hour the iframe bridge was designed around. The client header plays
+    // no part: the native marker comes from the sign-in that deposited it.
+    const ttlSeconds = grant.ttlSeconds;
 
     await setSessionToken(
         token,
@@ -150,6 +144,7 @@ app.get('/api/session-token', async (req, res) => {
             pendingApproval: req.session.pendingApproval || false,
             noOrganization: req.session.noOrganization || false,
             authenticatedAt: req.session.authenticatedAt, // the sign-in time: a bridged session's only proof for a step-up (auth/recentAuth.js)
+            nativeClient: grant.nativeClient,
 
             // ── The other two gates are deliberately NOT here. ──────────────
             // `needsEncryptionSetup` and `needsEncryptionPin` are the opposite
@@ -476,11 +471,12 @@ app.use('/api/integrations/google', require('./routes/integrations/googleWorkspa
 // The Microsoft counterpart. Without it, Outlook only ever worked for users who
 // logged in via Microsoft SSO, and nobody could grant the shared-mailbox scopes.
 app.use('/api/integrations/microsoft', require('./routes/integrations/microsoft365'));
-app.use('/api/integrations/gdrive', googleSessionHydration, require('./routes/integrations/googleDrive'));
-app.use('/api/integrations/gmail', googleSessionHydration, require('./routes/integrations/gmail'));
-app.use('/api/integrations/calendar', googleSessionHydration, require('./routes/integrations/calendar'));
-app.use('/api/integrations/contacts', googleSessionHydration, require('./routes/integrations/contacts'));
-app.use('/api/integrations/keep', googleSessionHydration, require('./routes/integrations/keep'));
+// requireAuthedUser first: the hydration reads the signed-in user's vault.
+app.use('/api/integrations/gdrive', requireAuthedUser, googleSessionHydration, require('./routes/integrations/googleDrive'));
+app.use('/api/integrations/gmail', requireAuthedUser, googleSessionHydration, require('./routes/integrations/gmail'));
+app.use('/api/integrations/calendar', requireAuthedUser, googleSessionHydration, require('./routes/integrations/calendar'));
+app.use('/api/integrations/contacts', requireAuthedUser, googleSessionHydration, require('./routes/integrations/contacts'));
+app.use('/api/integrations/keep', requireAuthedUser, googleSessionHydration, require('./routes/integrations/keep'));
 app.use('/api/storage', require('./routes/storageProxy'));
 app.use('/api/integrations/linkedin', require('./routes/integrations/linkedin'));
 app.use('/api/integrations/withings', require('./routes/integrations/withings'));

@@ -43,8 +43,9 @@ mv2 is additive over mv1 and unlocks the **permission manifest**:
 - Every route of the module's router requires a signed-in session (the host
   checks it before the capability gate). A route that must answer without one
   (a webhook receiver, a public read) goes in `server.publicRoutes[]` as a path
-  prefix relative to the module's mount, and the module authenticates it
-  itself.
+  prefix relative to the module's mount (matched on a segment boundary:
+  `/hook` covers `/hook` and `/hook/x`, not `/hookup`), and the module
+  authenticates it itself.
   Packages with native addons (or `restart:"always"`) are STAGED on update and
   activate at the next product restart.
 - `createModule(host)` must return the FLAT contract:

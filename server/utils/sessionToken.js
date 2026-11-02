@@ -253,9 +253,8 @@ async function revokeSessionTokensForUser(userId) {
 // token, and the claim must present the secret itself. The id alone travels
 // in a URL the browser navigates to, so it cannot be the whole claim key.
 //
-// A pickup deposited WITHOUT a challenge — a client that predates the secret —
-// is claimable by id alone unless OAUTH_PICKUP_REQUIRE_CHALLENGE=1, which is
-// the switch to flip once every client sends one.
+// A pickup deposited WITHOUT a challenge is never claimable: the login routes
+// set up no pickup without one, and a claim against such a deposit fails.
 
 /**
  * The challenge for a claim proof, as the clients compute it: base64url of
@@ -277,19 +276,15 @@ function isPickupTokenShaped(value) {
     return typeof value === 'string' && PICKUP_TOKEN_SHAPE.test(value);
 }
 
-function pickupChallengeRequired() {
-    return process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE === '1';
-}
-
 /**
  * Whether `secret` is the one the deposit was bound to. A deposit with no
- * challenge is open by id alone only while the compatibility switch allows it.
+ * challenge matches nothing.
  * @param {{ challenge?: string } | null | undefined} pickup
  * @param {unknown} secret
  */
 function pickupSecretMatches(pickup, secret) {
     const challenge = pickup && pickup.challenge;
-    if (!challenge) return !pickupChallengeRequired();
+    if (!challenge) return false;
     if (!isPickupTokenShaped(secret)) return false;
     const expected = Buffer.from(String(challenge));
     const presented = Buffer.from(pickupChallengeOf(secret));
@@ -355,6 +350,22 @@ async function claimPickup(pickupId, secret) {
     return await getSessionToken(pickup.sessionToken) ? pickup : null;
 }
 
+/**
+ * What GET /api/session-token may mint for this request. A cookie session
+ * gets the bridge hour, whatever client header it sends. A request that
+ * itself authenticated with X-Session-Token may only roll a token minted for
+ * the native app (`nativeClient`, set when a native sign-in deposits its
+ * pickup); that one keeps the native lifetime. Any other bridged request gets
+ * nothing: a bridge token does not mint its own successor.
+ * @param {{ headers?: Record<string, unknown>, session?: any }} req
+ * @returns {{ ttlSeconds: number, nativeClient: boolean } | null}
+ */
+function sessionTokenGrant(req) {
+    if (!req.headers?.['x-session-token']) return { ttlSeconds: SESSION_TOKEN_TTL_SECONDS, nativeClient: false };
+    if (req.session?.nativeClient === true) return { ttlSeconds: NATIVE_SESSION_TOKEN_TTL_SECONDS, nativeClient: true };
+    return null;
+}
+
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
@@ -368,6 +379,7 @@ module.exports = {
     _storedForTests: (/** @type {string} */ token) => _sessionTokenFallback.get(token)?.stored ?? null,
     SESSION_TOKEN_TTL_SECONDS,
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
+    sessionTokenGrant,
     setPickup,
     claimPickup,
     pickupChallengeOf,

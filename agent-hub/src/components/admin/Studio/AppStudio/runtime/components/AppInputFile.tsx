@@ -141,6 +141,9 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
     const fireChange = useInputChange(node, name);
 
     const { previewsRef, previewVersion, rememberPreview, forgetPreview } = useLocalPreviews();
+    // A public page's upload answer carries a delete token; discarding the
+    // upload later needs it. Kept here, never in the field value.
+    const deleteTokensRef = useRef(new Map<string, string>());
 
     const entries = multiple ? (Array.isArray(value) ? value : []) : (value ? [value] : []) as FileValue[];
     const canUpload = mode === 'run' && !!appId;
@@ -180,6 +183,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                     size: att.size ?? file.size ?? null,
                 });
                 rememberPreview(att.id, file);
+                if (data && typeof data.deleteToken === 'string') deleteTokensRef.current.set(att.id, data.deleteToken);
             }
         } catch (err) {
             setUploadError((err as Error).message || t('studio_apps_runtime.inputs.file_upload_failed', 'Upload failed.'));
@@ -211,9 +215,11 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
         fireChange(next);
         if (entry && typeof entry === 'object' && entry.fileId) forgetPreview(entry.fileId);
         if (!canUpload || !entry || typeof entry !== 'object' || !entry.fileId) return;
+        const deleteToken = deleteTokensRef.current.get(entry.fileId);
+        deleteTokensRef.current.delete(entry.fileId);
         mutate(
             `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments/${encodeURIComponent(entry.fileId)}`,
-            { method: 'DELETE' },
+            { method: 'DELETE', ...(deleteToken ? { headers: { 'X-Upload-Delete-Token': deleteToken } } : {}) },
         ).catch(() => { /* the field is already clear; the sweep can have the bytes */ });
     };
 

@@ -41,7 +41,8 @@ let established = [];
 const pendingLogin = { serverLoginState: 's', username: 'ada', absent: false, userId: 'u1' };
 
 const MOCKS = {
-    './permissions': { requireAuth: pass },
+    './permissions': { requireAuth: pass, loadConfig: async () => ({ admin: { username: 'admin' } }) },
+    './sessionCache': { bustSessionsForUser: async () => 0 },
     '../stores/userStore': {
         getUser: async (id) => userRow || ({ id, username: id, wrappedDEK: null, opaqueRecord: 'rec' }),
         updateUser: (...args) => { touched.push({ what: 'updateUser', args }); return true; },
@@ -93,7 +94,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename ? parent.filename : '';
-    const inScope = /auth[\\/]opaque(Routes|SupportRoutes)\.js$/.test(from)
+    const inScope = /auth[\\/]opaque(Routes|SupportRoutes|CredentialGuards)\.js$/.test(from)
         || /auth[\\/]login[\\/](finalizeOpaqueLogin|pendingMfa|finalizeLogin)\.js$/.test(from);
     if (inScope && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
@@ -271,11 +272,18 @@ test('with a recent second factor the replacement goes through', async () => {
     assert.strictEqual(updated()[0].args[1].opaqueRecord, 'rec2');
 });
 
-test('a first registration (the migration from a legacy password) is not held to it', async () => {
+test('a first registration needs a recent proof too; the migration right after a sign-in carries one', async () => {
     userRow = { ...ACCOUNT, opaqueRecord: null, kdfMode: 'legacy_argon2', wrappedDEK: null };
     session.user = { id: 'u1' };
+    const body = { registrationRecord: 'rec2', wrappedDEK: { iv: 'aa', authTag: 'bb', data: 'cc' } };
     // No proof mark at all on this session.
-    const res = await dispatch({ method: 'POST', url: '/register/finish', body: { registrationRecord: 'rec2', wrappedDEK: { iv: 'aa', authTag: 'bb', data: 'cc' } }, session });
+    const stale = await dispatch({ method: 'POST', url: '/register/finish', body, session });
+    assert.strictEqual(stale.statusCode, 403);
+    assert.strictEqual(stale.body.code, 'reauth_required');
+    assert.strictEqual(updated().length, 0);
+
+    session.authenticatedAt = Date.now() - 5_000;
+    const res = await dispatch({ method: 'POST', url: '/register/finish', body, session });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(updated().length, 1);
 });

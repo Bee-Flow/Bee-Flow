@@ -136,9 +136,10 @@ COPY --from=spa-build /spa/dist ./public
 # (busybox wget can't probe a unix socket, which HaRP mode requires). The
 # canonical HaRP ExApp pattern runs as root because HaRP writes into
 # /usr/local/share/ca-certificates, /etc/ssl/certs, and /certs/frp on first
-# start — paths that are root-owned. Container isolation comes from Docker's
-# namespace, not from a non-root UID inside the container.
-RUN apk add --no-cache bash curl ca-certificates tar
+# start — paths that are root-owned, so the image user stays root for those
+# steps. harp-start.sh then runs the connector itself as the unprivileged
+# `node` user through su-exec.
+RUN apk add --no-cache bash curl ca-certificates tar su-exec
 
 # The patched binary keeps the protocol expected by Nextcloud HaRP.
 COPY --from=frp-build /out/frpc /usr/local/bin/frpc

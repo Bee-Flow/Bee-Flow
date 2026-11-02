@@ -13,7 +13,8 @@
  *     identifiers (bare, or "quoted" for a column name), the operators and
  *     punctuation an expression uses;
  *   - parentheses that balance;
- *   - a word before `(` only when it is on the function list, any other word
+ *   - a word before `(` only when it is on the function list (a "quoted"
+ *     name never), any other word
  *     only when it is an expression keyword or a column name (a bare
  *     identifier). A `.` outside a number or a string is refused, so
  *     `schema.table` and `table.column` never pass.
@@ -101,6 +102,23 @@ function tokenize(expr) {
 }
 
 /**
+ * Why a token followed by `next` is not an allowed call, or null. A quoted
+ * name is a column; followed by `(` it would name a function the list never
+ * sees. A bare word before `(` must be on the function or keyword list.
+ * @param {Token} t
+ * @param {Token | undefined} next
+ * @returns {string | null}
+ */
+function callShapeError(t, next) {
+    if (!next || next.kind !== 'op' || next.text !== '(') return null;
+    if (t.kind === 'quoted') return `a quoted name ("${t.text}") cannot be called as a function`;
+    if (t.kind === 'word' && !FUNCTIONS.has(t.text.toLowerCase()) && !KEYWORDS.has(t.text.toUpperCase())) {
+        return `function ${t.text}() is not allowed in a computed expression`;
+    }
+    return null;
+}
+
+/**
  * Why `expr` is not an expression, or null when it is one.
  * @param {string} expr
  * @returns {string | null}
@@ -121,13 +139,8 @@ function computedExprShapeError(expr) {
             }
             continue;
         }
-        if (t.kind !== 'word') continue;
-        const next = tokens[k + 1];
-        if (next && next.kind === 'op' && next.text === '(') {
-            if (!FUNCTIONS.has(t.text.toLowerCase()) && !KEYWORDS.has(t.text.toUpperCase())) {
-                return `function ${t.text}() is not allowed in a computed expression`;
-            }
-        }
+        const callError = callShapeError(t, tokens[k + 1]);
+        if (callError) return callError;
         // A bare word that is neither a keyword nor a function is a column
         // name; nothing more to check for it.
     }

@@ -44,6 +44,7 @@ const {
     connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
 const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
+const { writeInsideWorkdir } = require('./webpageWorkdir.mts');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ function connectSelfToNetwork(docker) {
  */
 async function hydrateProject(webpageId, userId, workdir) {
     await fsp.mkdir(workdir, { recursive: true });
-    const workdirResolved = path.resolve(workdir);
+    const workdirReal = await fsp.realpath(workdir);
     let count = 0;
     // Belt-and-braces containment: webpageStore.listExtraFiles/readExtraFile
     // already reject `..` segments upstream, but a bind-mounted host directory
@@ -241,14 +242,10 @@ async function hydrateProject(webpageId, userId, workdir) {
      * @param {string | Buffer<ArrayBuffer> | undefined} content
      */
     const writeFile = async (rel, content) => {
-        const dest = path.resolve(workdir, rel);
-        if (dest !== workdirResolved && !dest.startsWith(workdirResolved + path.sep)) {
-            log.warn(`[WebpageRuntime] Refusing to hydrate path outside workdir: ${rel}`);
-            return;
-        }
-        await fsp.mkdir(path.dirname(dest), { recursive: true });
-        await fsp.writeFile(dest, content);
-        count++;
+        if (content === undefined) return;
+        const outcome = await writeInsideWorkdir(workdir, workdirReal, rel, content);
+        if (outcome === 'written') count++;
+        else log.warn(`[WebpageRuntime] Refusing to hydrate ${outcome === 'link' ? 'through a link' : 'path outside workdir'}: ${rel}`);
     };
 
     const slots = await webpageStore.readAllSlots(userId, webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject', e, {}));
@@ -363,11 +360,13 @@ async function createRuntime({ webpageId, userId, orgId }) {
     const inContainer = isServerInContainer();
     if (inContainer) await connectSelfToNetwork(docker);
 
-    const workdir = path.join(WORK_ROOT, String(webpageId));
-    await hydrateProject(webpageId, userId, workdir);
-
+    // The old container goes first: it has the workdir mounted read-write,
+    // and nothing may change the tree while the server writes into it.
     const name = containerName(webpageId);
     await removeContainerIfExists(docker, name);
+
+    const workdir = path.join(WORK_ROOT, String(webpageId));
+    await hydrateProject(webpageId, userId, workdir);
 
     const createOpts = {
         name,

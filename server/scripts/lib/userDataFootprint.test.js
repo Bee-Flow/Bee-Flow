@@ -101,3 +101,28 @@ test('identifiers are quoted, so an odd table name cannot break or extend the co
     assert.deepEqual(sent[0].params, ['u1']);
     assert.match(DISCOVER_SQL, /^\s*SELECT\b/);
 });
+
+test('a personal knowledge base, a support thread and a notification count; an Entra tenant id does not', async () => {
+    const { pg, db } = pgliteDb();
+    try {
+        await pg.exec(`
+            CREATE TABLE knowledge_bases (id SERIAL PRIMARY KEY, tenant_id TEXT);
+            CREATE TABLE support_threads (id SERIAL PRIMARY KEY, requester_user_id TEXT);
+            CREATE TABLE automation_notification_events (id SERIAL PRIMARY KEY, recipient_user_id TEXT);
+            CREATE TABLE studio_app_email_log (id SERIAL PRIMARY KEY, viewer_user_id TEXT);
+            CREATE TABLE azure_sync_memberships (user_id TEXT, tenant_id TEXT);
+            CREATE TABLE documents (id SERIAL PRIMARY KEY, tenant_id TEXT, created_by TEXT);
+        `);
+        const tables = await discoverUserTables(db);
+        assert.deepEqual(tables, [
+            { table: 'automation_notification_events', columns: ['recipient_user_id'] },
+            { table: 'azure_sync_memberships', columns: ['user_id'] },
+            { table: 'documents', columns: ['created_by'] },
+            { table: 'knowledge_bases', columns: ['tenant_id'] },
+            { table: 'studio_app_email_log', columns: ['viewer_user_id'] },
+            { table: 'support_threads', columns: ['requester_user_id'] },
+        ]);
+    } finally {
+        await pg.close();
+    }
+});

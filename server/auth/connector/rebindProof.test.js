@@ -1,9 +1,9 @@
 // @typecheck
 /**
  * Unit tests for connector/rebindProof.js: how a bootstrap for an already-
- * bound instance id proves the existing binding (recorded base URL, or a
- * request signed with the current tenant key), and the refusal when it does
- * not. The signature verifier is injected through the module's seam; no DB,
+ * bound instance id proves the existing binding (a request signed with the
+ * current tenant key; the recorded base URL alone is not enough), and the
+ * refusal when it does not. The signature verifier is injected through the module's seam; no DB,
  * no fetch. The returning-bind branch itself is covered through the router
  * in ../connectorBootstrap.orgHealth.test.js.
  *
@@ -40,9 +40,11 @@ test('normaliseNcBaseUrl: host case, trailing slashes, query and fragment do not
     assert.equal(normaliseNcBaseUrl(null), null);
 });
 
-test('the recorded base URL proves the binding without a signature check', async () => {
-    assert.equal(await provesExistingBinding(ctx('HTTPS://cloud.acme.example/'), BOUND), 'base_url');
-    assert.equal(sigCalls.length, 0);
+test('the recorded base URL alone proves nothing: a signature is still required', async () => {
+    assert.equal(await provesExistingBinding(ctx('HTTPS://cloud.acme.example/'), BOUND), null);
+    assert.equal(sigCalls.length, 1);
+    signedFor = { id: 'org-a' };
+    assert.equal(await provesExistingBinding(ctx('https://cloud.acme.example'), BOUND), 'tenant_key');
 });
 
 test('a different base URL needs a signature that verifies for THIS org', async () => {
@@ -54,8 +56,7 @@ test('a different base URL needs a signature that verifies for THIS org', async 
     assert.equal(await provesExistingBinding(ctx('https://moved.acme.example'), BOUND), 'tenant_key');
 });
 
-test('a binding without a recorded base URL cannot be proved by URL; a throwing verifier is no proof', async () => {
-    assert.equal(await provesExistingBinding(ctx('https://cloud.acme.example'), { id: 'org-a', nc_base_url: null }), null);
+test('a throwing verifier is no proof', async () => {
     _setDepsForTests({ verifyConnectorSig: async () => { throw new Error('store down'); } });
     assert.equal(await provesExistingBinding(ctx('https://moved.acme.example'), BOUND), null);
 });

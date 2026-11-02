@@ -123,6 +123,9 @@ async function assembleTurnHistory({
                     ? { attachments: client.attachments } : {}),
             }));
     } else {
+        // The stored rows are the thread's own, so their attachment sidecars
+        // may be re-signed by the hydrator (an ephemeral chat has none).
+        if (!isEphemeral) require('../../conversation/historyMerge').markPersistedSidecars(conversation.messages);
         messages = [...conversation.messages];
         durableMessages.push(...conversation.messages);
     }

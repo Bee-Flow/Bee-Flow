@@ -64,6 +64,19 @@ function disallowedDependencies(componentPath) {
 }
 
 /**
+ * The npm command for a component. With a lockfile the install is exactly the
+ * locked tree and runs no lifecycle scripts (none of the allowlisted packages
+ * a shipped component uses needs one); without a lockfile it stays a plain
+ * install, gated by the allowlist above.
+ * @param {string} componentPath
+ */
+function installCommand(componentPath) {
+    const locked = ['package-lock.json', 'npm-shrinkwrap.json']
+        .some(f => fs.existsSync(path.join(componentPath, f)));
+    return locked ? 'npm ci --ignore-scripts --no-audit --no-fund --silent' : 'npm install --silent';
+}
+
+/**
  * Install a component's dependencies, or refuse and say why.
  *
  * The boot scan is the one caller; a future caller goes through this gate
@@ -96,7 +109,7 @@ async function installDependencies(componentPath, id) {
     if (!hasDeps) return { installed: true, blocked: [] };
 
     await new Promise((/** @type {(value?: any) => void} */ resolve) => {
-        exec('npm install --silent', { cwd: componentPath }, (error, stdout, stderr) => {
+        exec(installCommand(componentPath), { cwd: componentPath }, (error, stdout, stderr) => {
             if (error) log.error(`Failed to install deps for ${id}:`, stderr);
             resolve();
         });
@@ -222,6 +235,7 @@ module.exports = {
     COMPONENTS_DIR,
     ALLOWED_DEPENDENCIES,
     disallowedDependencies,
+    installCommand,
     installDependencies,
     initialize,
     getComponents,

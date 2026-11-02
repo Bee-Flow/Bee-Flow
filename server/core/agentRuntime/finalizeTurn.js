@@ -5,8 +5,8 @@
  * Runs once the model stops calling tools: strip stray tool-call XML /
  * think tags, build the assistant message with its persisted metadata
  * (drafts, tool history, thinking parts, KB sources, tokenisation info),
- * persist the turn, kick off memory extraction, schedule the server-side
- * redaction re-write and emit the raw-payload transparency event. Returns
+ * persist the turn (with this turn's user message already in its redacted
+ * form), kick off memory extraction and emit the raw-payload transparency event. Returns
  * the turn's result object. The message's extras (markup strip, token
  * restore, thinking, tokenisation info) live in ./assistantMessageExtras.
  */
@@ -61,6 +61,9 @@ async function finalizeStreamTurn(turn) {
     if (_userPrivacyMeta && userSave) {
         Object.assign(userSave, _userPrivacyMeta);
     }
+    // The redacted form is part of the same write as the turn: the stored
+    // user message never holds the unredacted text.
+    if (!isEphemeral) applyStoredRedaction(userSave, turnRedactedContent(turn), '[RegexGuard]');
     durableMessages.push(assistantMsg);
     messages.push(assistantMsg);
     await persistDurable();
@@ -68,7 +71,6 @@ async function finalizeStreamTurn(turn) {
     // Skip for ephemeral embed chats.
     if (!isEphemeral) {
         await scheduleMemoryExtraction(turn);
-        scheduleRedactionRewrite(turn);
     }
 
     // Transparency: emit the accumulated raw (pre-un-tokenise) LLM
@@ -88,6 +90,8 @@ async function finalizeStreamTurn(turn) {
         conversationLength: durableMessages.length,
         conversationId: conversation.id,
         guardrailViolation: guardrailViolation || null,
+        // The stored user message is the redacted form, not what was typed.
+        userMessageRedacted: turn.processedUserMessage !== turn.userMessage,
         model: modelToUse,
     };
 }
@@ -193,50 +197,36 @@ async function scheduleMemoryExtraction(turn) {
 }
 
 /**
- * SERVER-SIDE PERSISTENCE FOR REDACTION — for both delete mode
- * (guardrailViolation) and redact mode (processedUserMessage changed), this
- * turn's user message is re-written right after the current event-loop tick
- * (was setTimeout(5000), which raced with the conversation save).
- *
- * It rewrites THIS turn's user row and saves the turn again (persistDurable
- * replaces the turn's own rows by id). Re-reading the conversation and
- * redacting its LAST user message would hit another turn's question when that
- * turn finished in between, and replacing the re-read array whole would drop
- * a turn that landed between the read and the write.
+ * REDACTION OF THE STORED USER MESSAGE — for both delete mode
+ * (guardrailViolation) and redact mode (processedUserMessage changed): the
+ * content this turn's user row is stored with, or null when it is stored as
+ * typed.
+ * @param {{ guardrailViolation?: unknown, processedUserMessage: string, userMessage: string }} turn
+ * @returns {string | null}
  */
-function scheduleRedactionRewrite(turn) {
-    const { guardrailViolation, processedUserMessage, userMessage, conversation, userSave, persistDurable } = turn;
-    const needsServerPersistence = guardrailViolation || processedUserMessage !== userMessage;
-    if (!needsServerPersistence) return;
-    const redactedContent = processedUserMessage !== userMessage
-        ? processedUserMessage  // Use redacted version (with [REDACTED: RuleName])
-        : '[Message removed - policy violation]';  // Full replacement for delete mode
-
-    setImmediate(() => redactTurnUserMessage({ userSave, persistDurable, redactedContent, conversationId: conversation.id, tag: '[RegexGuard]' }));
+function turnRedactedContent({ guardrailViolation, processedUserMessage, userMessage }) {
+    if (processedUserMessage !== userMessage) return processedUserMessage; // redacted version (with [REDACTED: RuleName])
+    return guardrailViolation ? '[Message removed - policy violation]' : null; // full replacement for delete mode
 }
 
 /**
- * Redact this turn's stored user message and save the turn again. Shared with
- * the guardrail hard block (./guardrailHardBlock.js).
- * @param {{ userSave: Record<string, unknown> | null | undefined, persistDurable: () => Promise<unknown>, redactedContent: string, conversationId: string, tag: string }} p
+ * Put the redacted content on this turn's user row BEFORE the turn is
+ * persisted, so the redaction lands in the same write as the turn instead of a
+ * second write after it. This turn's own row, never "the last user message" of
+ * a re-read conversation, which may be another turn's. Shared with the
+ * guardrail hard block (./guardrailHardBlock.js).
+ * @param {Record<string, unknown> | null | undefined} userSave
+ * @param {string | null} redactedContent
+ * @param {string} tag
  */
-async function redactTurnUserMessage({ userSave, persistDurable, redactedContent, conversationId, tag }) {
-    try {
-        if (!userSave) {
-            log.warn(`${tag} No user message found for redaction`);
-            return;
-        }
-        userSave.content = redactedContent;
-        userSave.isRedacted = true;
-        await persistDurable();
-        log.info(`${tag} Server-side persistence completed for conversation ${conversationId}`);
-    } catch (redactErr) {
-        log.error(`${tag} Server-side persistence failed:`, /** @type {Error} */ (redactErr).message);
+function applyStoredRedaction(userSave, redactedContent, tag) {
+    if (redactedContent === null) return;
+    if (!userSave) {
+        log.warn(`${tag} No user message found for redaction`);
+        return;
     }
+    userSave.content = redactedContent;
+    userSave.isRedacted = true;
 }
 
-module.exports = { finalizeStreamTurn, redactTurnUserMessage };
-
-/**
- * @typedef {Pick<import('./chatStream/turnLoop').LoopTurn, 'onEvent' | 'messageMetadata' | 'conversation' | '_ut' | '_captureRaw' | '_userPrivacyMeta' | 'userSave' | 'durableMessages' | 'messages' | 'persistDurable' | 'isEphemeral' | 'agent' | 'agentId' | 'userId' | 'processedUserMessage' | 'userMessage' | 'userAuth' | 'extractMemoriesEnabled' | 'validProjectId' | 'modelToUse' | 'memoryPolicy' | 'memoryUsed' | '_kbSources' | '_assistantTokenisationInfo' | 'guardrailViolation'> & { fullResponse: string, useNativeAdapter: boolean, _emailDrafts: Record<string, unknown>[], _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[], _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[], _generatedFiles?: Record<string, unknown>[], _pendingToolCalls?: Record<string, unknown>[], _toolHistory: import('./assistantMessageExtras').ToolHistoryEntry[], _thinkingParts: import('./assistantMessageExtras').ThinkingPart[], _thinking: string, _rawResponseBuffer: string, toolCalls: Record<string, unknown>[] }} FinalizeTurn  the final answer and everything the turn collected
- */
+module.exports = { finalizeStreamTurn, applyStoredRedaction, turnRedactedContent };

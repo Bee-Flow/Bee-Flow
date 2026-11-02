@@ -61,6 +61,13 @@ function startPruneSchedulers() {
                 .then(n => { if (n > 0) log.info(`[Server] Startup: purged ${n} orphaned KB chunks`); })
                 .catch(err => log.warn('[Server] Orphan purge error:', err.message));
         } catch (err) { bestEffort('boot/startupPrunes:orphanPurge', err); }
+        // Chat messages whose conversation is gone (stores/agent/orphanMessages.mts).
+        try {
+            const { purgeOrphanedMessages } = require('../stores/agent/orphanMessages.mts');
+            purgeOrphanedMessages()
+                .then((/** @type {number} */ n) => { if (n > 0) log.info(`[Server] Startup: purged ${n} orphaned conversation messages`); })
+                .catch((/** @type {Error} */ err) => log.warn('[Server] Orphaned message purge error:', err.message));
+        } catch (err) { bestEffort('boot/startupPrunes:orphanMessagePurge', err); }
         // An embedding model switched while the server was down (or a
         // migration interrupted by a restart) is picked up here.
         require('../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'boot' });

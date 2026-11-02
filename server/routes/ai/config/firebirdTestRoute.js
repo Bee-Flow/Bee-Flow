@@ -3,8 +3,10 @@
  * POST /ai/firebird/test — can Bee Flow attach to the database with these
  * values? Accepts the unsaved values of the settings form; anything left out
  * falls back to the stored secret. Answers { ok, server_version, table_count }
- * or { ok: false, error }. The password is never echoed: the driver's error text
- * is scrubbed of it before it leaves.
+ * or { ok: false, error }. The stored password is only used for the stored
+ * server: a typed server that differs needs its password typed too. A failure
+ * that is not about the values themselves answers one generic sentence; the
+ * password is never echoed.
  *
  * Mounted by routes/ai/config/integrations.js. The collaborators are parameters
  * (a test passes fakes), defaulting to the real ones on first use.
@@ -19,6 +21,8 @@ const { firebirdFields } = require('./firebirdFields');
 const FirebirdTestBody = bodyOf(Object.fromEntries(Object.entries(firebirdFields).map(([k, v]) => [k, v.optional()])));
 const FIREBIRD_TEST_TIMEOUT_MS = 10000;
 const FIREBIRD_NOT_CONFIGURED = 'Firebird database not configured. Add the server, database and account in Settings → Connections.';
+const FIREBIRD_PASSWORD_FOR_NEW_HOST = 'Enter the password to test a different Firebird server.';
+const FIREBIRD_CONNECT_FAILED = 'Could not connect to the Firebird database. Check the server, port, database path and account.';
 
 /**
  * @typedef {{ host: string, port: string, database: string, user: string, password: string, charset: string }} TestCreds
@@ -33,7 +37,7 @@ const FIREBIRD_NOT_CONFIGURED = 'Firebird database not configured. Add the serve
 /**
  * @param {import('express').Request<{}, unknown, import('zod').infer<typeof FirebirdTestBody>, import('qs').ParsedQs>} req
  * @param {(key: string) => Promise<string | null | undefined>} getSecret
- * @returns {Promise<TestCreds>}
+ * @returns {Promise<TestCreds & { passwordNeeded?: boolean }>}
  */
 async function credsFor(req, getSecret) {
     const userId = req.session?.user?.id;
@@ -41,6 +45,12 @@ async function credsFor(req, getSecret) {
     const body = req.body || {};
     /** @param {string} field @param {string | number | null | undefined} typed */
     const pick = async (field, typed) => (typed ? String(typed) : '') || (await getSecret(`firebird_${field}_user_${userId}`)) || '';
+    const typedHost = body.firebirdHost ? String(body.firebirdHost).trim().toLowerCase() : '';
+    const storedHost = String((await getSecret(`firebird_host_user_${userId}`)) || '').trim().toLowerCase();
+    // The stored password goes only to the stored server.
+    if (typedHost && typedHost !== storedHost && !body.firebirdPassword) {
+        return { host: typedHost, port: '', database: '', user: '', password: '', charset: '', passwordNeeded: true };
+    }
     return {
         host: await pick('host', body.firebirdHost),
         port: await pick('port', body.firebirdPort),
@@ -64,7 +74,8 @@ function createFirebirdTestRouter(deps = {}) {
     const testConnection = deps.testConnection || ((/** @type {TestCreds} */ creds) => require('../../../integrations/firebirdTools').testFirebirdConnection(creds));
 
     router.post('/firebird/test', auth, validate({ body: FirebirdTestBody }), /** @param {import('express').Request<{}, unknown, import('zod').infer<typeof FirebirdTestBody>, import('qs').ParsedQs>} req */ async (req, res) => {
-        const creds = await credsFor(req, getSecret);
+        const { passwordNeeded, ...creds } = await credsFor(req, getSecret);
+        if (passwordNeeded) return res.json({ ok: false, error: FIREBIRD_PASSWORD_FOR_NEW_HOST });
         if (!creds.host || !creds.database || !creds.user || !creds.password) {
             return res.json({ ok: false, error: FIREBIRD_NOT_CONFIGURED });
         }
@@ -82,8 +93,8 @@ function createFirebirdTestRouter(deps = {}) {
             const outcome = /** @type {TestOutcome | null | undefined} */ (result);
             if (!outcome || !outcome.ok) return res.json({ ok: false, error: scrub(outcome && outcome.error) });
             res.json({ ok: true, server_version: outcome.server_version, table_count: outcome.table_count });
-        } catch (err) {
-            res.json({ ok: false, error: scrub(/** @type {Error} */ (err).message) });
+        } catch {
+            res.json({ ok: false, error: FIREBIRD_CONNECT_FAILED });
         } finally {
             clearTimeout(timer);
         }

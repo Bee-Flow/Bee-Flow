@@ -224,6 +224,17 @@ describe('confirming the first code', () => {
         expect(screen.getByAltText('MFA QR code')).toBeInTheDocument();
     });
 
+    it('offers signing in again when the enable needs a recent sign-in', async () => {
+        const user = userEvent.setup();
+        route('/auth/mfa/enable', () => fail(403, { error: 'Sign in again before changing this.', code: 'reauth_required' }));
+        await arrive();
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
+        await user.click(screen.getByText('Enable'));
+        expect(await screen.findByRole('alert')).toHaveTextContent('For your security, sign in again before making this change.');
+        expect(screen.getByRole('button', { name: 'Sign in again' })).toBeInTheDocument();
+        expect(screen.queryByText('Sign in again before changing this.')).toBeNull();
+    });
+
     // wrat: a successful enable that returns no `recoveryCodes` still switches
     // to the codes panel — with an empty list and a button that says the user
     // saved codes they were never shown. Hoort in stage L16 te veranderen.

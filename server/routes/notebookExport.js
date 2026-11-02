@@ -172,9 +172,9 @@ function exportFailure(what, err, next) {
 async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     const safeTitle = String(title).replace(/"/g, '&quot;').replace(/</g, '&lt;');
     return browserProvider.withContext({}, async (context) => {
+        // Self-contained HTML (system fonts, images inlined): no network at all, and 'load' is enough.
+        await require('../core/http/browserRouteGuard').blockContextNetwork(context);
         const page = await context.newPage();
-        // The export HTML has no external resources (system fonts, images inlined),
-        // so 'load' is enough; 'networkidle' never settled on servers without internet.
         await page.setContent(exportHTML, { waitUntil: 'load', timeout: PDF_LOAD_TIMEOUT_MS });
         // Let fonts and decoded images settle before printing.
         await page.evaluate(() => document.fonts && document.fonts.ready).catch((e) => bestEffort('routes/notebookExport:renderNotebookPdf', e));

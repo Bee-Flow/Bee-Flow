@@ -181,6 +181,44 @@ function fail(error) {
  */
 
 /**
+ * One entry inflated as a stream and cut off at `maxBytes` (too_large) or at
+ * its own declared size (bad_zip), so a part is never inflated past a cap.
+ * @param {JSZip.JSZipObject} entry
+ * @param {number} maxBytes
+ * @returns {Promise<{ data: Buffer } | { error: 'too_large' | 'bad_zip' }>}
+ */
+function readEntryBounded(entry, maxBytes) {
+    const declared = /** @type {{ _data?: { uncompressedSize?: number } }} */ (/** @type {unknown} */ (entry))._data?.uncompressedSize;
+    if (typeof declared !== 'number') return Promise.resolve({ error: 'bad_zip' });
+    if (declared > maxBytes) return Promise.resolve({ error: 'too_large' });
+    return new Promise((resolve) => {
+        /** @type {Buffer[]} */
+        const chunks = [];
+        let seen = 0;
+        let settled = false;
+        /** @type {import('jszip').JSZipStreamHelper<Uint8Array>} */
+        let helper;
+        try {
+            helper = /** @type {{ internalStream: (t: 'uint8array') => import('jszip').JSZipStreamHelper<Uint8Array> }} */ (/** @type {unknown} */ (entry)).internalStream('uint8array');
+        } catch {
+            resolve({ error: 'bad_zip' });
+            return;
+        }
+        /** @param {{ data: Buffer } | { error: 'too_large' | 'bad_zip' }} v */
+        const done = (v) => { if (!settled) { settled = true; helper.pause(); resolve(v); } };
+        helper
+            .on('data', (chunk) => {
+                seen += chunk.length;
+                if (seen > declared) return done({ error: 'bad_zip' });
+                chunks.push(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.length));
+            })
+            .on('error', () => done({ error: 'bad_zip' }))
+            .on('end', () => done({ data: Buffer.concat(chunks) }))
+            .resume();
+    });
+}
+
+/**
  * Verify a `.bfmod` ZIP buffer in memory.
  *
  * @param {Buffer} buf
@@ -209,23 +247,18 @@ async function verifyPackage(buf, opts = {}) {
     const fileEntries = Object.values(zip.files).filter((e) => !e.dir);
     if (fileEntries.length > MAX_ENTRIES) return fail('too_large');
 
-    // Decompress one at a time; path + size caps bound memory to ~one file.
+    // Decompress one at a time as a stream, cut off at the per-file cap, the
+    // entry's declared size and the running total: an entry is never
+    // inflated past a cap before it is refused.
     const files = new Map(); // relpath -> Buffer
     let total = 0;
     for (const entry of fileEntries) {
         const name = entry.name;
         if (isBadPath(name)) return fail('bad_path');
-        /** @type {Buffer<ArrayBufferLike>} */
-        let data;
-        try {
-            data = await entry.async('nodebuffer');
-        } catch (_) {
-            return fail('bad_zip');
-        }
-        if (data.length > MAX_FILE_BYTES) return fail('too_large');
-        total += data.length;
-        if (total > MAX_TOTAL_BYTES) return fail('too_large');
-        files.set(name, data);
+        const read = await readEntryBounded(entry, Math.min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - total));
+        if ('error' in read) return fail(read.error);
+        total += read.data.length;
+        files.set(name, read.data);
     }
 
     // ── manifest.json ────────────────────────────────────────────────────

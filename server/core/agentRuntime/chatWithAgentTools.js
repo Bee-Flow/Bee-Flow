@@ -116,6 +116,15 @@ async function executeChatToolCall(toolCall, ctx) {
         toolArgs = {};
     }
 
+    // Only a name offered this turn is dispatched (the streaming route's name gate).
+    if (ctx.offeredNames && !ctx.offeredNames.has(toolName)) {
+        log.warn(`[Agent] Refused tool '${toolName}': not offered this turn`);
+        return {
+            toolCallInfo: { name: toolName, args: toolArgs, result: { error: 'tool not offered' } },
+            message: { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: `Tool '${toolName}' is not available and was not called. Use only the tools you were given.` }) },
+        };
+    }
+
     // Get fixed params for this tool if any
     const fixedParams = toolParamsMap[toolName] || null;
 

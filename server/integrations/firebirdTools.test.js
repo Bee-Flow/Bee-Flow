@@ -12,7 +12,7 @@ const tools = require('./firebirdTools');
 const { _setDriverForTests } = require('./firebirdClient');
 
 const {
-    FIREBIRD_TOOLS, FIREBIRD_TOOL_NAMES, executeFirebirdTool, isFirebirdTool, testFirebirdConnection,
+    FIREBIRD_TOOLS, FIREBIRD_TOOL_NAMES, executeFirebirdTool, isFirebirdTool, testFirebirdConnection, _setHostLookupForTests, CONNECT_FAILED,
     getFirebirdCredentials, HOST_RE, PORT_RE, DATABASE_RE, USER_RE, PASSWORD_RE, CHARSET_RE,
 } = tools;
 
@@ -63,11 +63,29 @@ function install(script, options) {
     return made.rec;
 }
 
-test.beforeEach(() => { config.reset(); setCreds('u1'); });
+// Host names the tests use, resolved without DNS. db.internal is public here so
+// the tool tests do not depend on DEPLOYMENT_MODE; the host-check tests below
+// use the private and link-local names.
+const DNS = {
+    'db.internal': ['93.184.216.34'],
+    'lan.internal': ['10.0.0.9'],
+    'meta.internal': ['169.254.169.254'],
+    'mixed.internal': ['93.184.216.34', '192.168.1.5'],
+};
+const fakeLookup = async (host) => {
+    const list = DNS[host];
+    if (!list) throw Object.assign(new Error(`getaddrinfo ENOTFOUND ${host}`), { code: 'ENOTFOUND' });
+    return list.map((address) => ({ address, family: address.includes(':') ? 6 : 4 }));
+};
+
+test.beforeEach(() => { config.reset(); setCreds('u1'); _setHostLookupForTests(fakeLookup); });
 test.afterEach(() => {
     _setDriverForTests(null);
     delete process.env.FIREBIRD_MAX_ROWS;
     delete process.env.FIREBIRD_ALLOWED_HOSTS;
+    delete process.env.FIREBIRD_ALLOW_PRIVATE_HOSTS;
+    delete process.env.DEPLOYMENT_MODE;
+    _setHostLookupForTests(null);
 });
 test.after(config.restore);
 
@@ -362,7 +380,7 @@ test('testFirebirdConnection: failures carry a message without the password', as
     install(() => [], { attachError: Object.assign(new Error(`bad ${PASSWORD}`), { gdscode: 335544472 }) });
     const login = await testFirebirdConnection(RAW);
     assert.equal(login.ok, false);
-    assert.match(login.error, /wrong user name or password/);
+    assert.equal(login.error, CONNECT_FAILED, 'the driver text is not answered back');
     assertNoPassword(login);
 
     const rec = install(() => []);
@@ -371,5 +389,53 @@ test('testFirebirdConnection: failures carry a message without the password', as
     assert.match(invalid.error, /server name/);
     assert.equal((await testFirebirdConnection({})).ok, false);
     assert.equal((await testFirebirdConnection(undefined)).ok, false);
+    assert.equal(rec.attach.length, 0);
+});
+
+// ── Host check ────────────────────────────────────────────────────────
+
+test('cloud mode: a host that resolves to a private address is refused before any connection', async () => {
+    const rec = install(() => [{ SERVER_VERSION: '5.0.1', TABLE_COUNT: 1 }]);
+    for (const host of ['lan.internal', 'mixed.internal', '10.1.2.3', '127.0.0.1', '[::1]']) {
+        const out = await testFirebirdConnection({ ...RAW, host });
+        assert.equal(out.ok, false, host);
+        assert.match(out.error, /private network address/, host);
+        setCreds('u5', { host });
+        assert.match((await executeFirebirdTool('firebird_whoami', {}, 'u5')).error, /private network address/, host);
+    }
+    assert.equal(rec.attach.length, 0);
+});
+
+test('a private host is allowed self-hosted, with FIREBIRD_ALLOW_PRIVATE_HOSTS=1, or when listed', async () => {
+    const rec = install(() => [{ SERVER_VERSION: '5.0.1', TABLE_COUNT: 1 }]);
+    process.env.DEPLOYMENT_MODE = 'self-hosted';
+    assert.equal((await testFirebirdConnection({ ...RAW, host: 'lan.internal' })).ok, true);
+    delete process.env.DEPLOYMENT_MODE;
+    process.env.FIREBIRD_ALLOW_PRIVATE_HOSTS = '1';
+    assert.equal((await testFirebirdConnection({ ...RAW, host: 'lan.internal' })).ok, true);
+    delete process.env.FIREBIRD_ALLOW_PRIVATE_HOSTS;
+    process.env.FIREBIRD_ALLOWED_HOSTS = 'lan.internal';
+    assert.equal((await testFirebirdConnection({ ...RAW, host: 'lan.internal' })).ok, true);
+    assert.equal(rec.attach.at(-1).host, '10.0.0.9', 'the checked address is the one dialled');
+});
+
+test('link-local and metadata addresses are refused in every mode', async () => {
+    const rec = install(() => [{ SERVER_VERSION: '5.0.1', TABLE_COUNT: 1 }]);
+    process.env.DEPLOYMENT_MODE = 'self-hosted';
+    process.env.FIREBIRD_ALLOW_PRIVATE_HOSTS = '1';
+    for (const host of ['meta.internal', '169.254.169.254', '[fe80::1]', '[::ffff:a9fe:a9fe]']) {
+        const out = await testFirebirdConnection({ ...RAW, host });
+        assert.equal(out.ok, false, host);
+        assert.equal(out.error, 'This Firebird server address is not allowed.', host);
+    }
+    process.env.FIREBIRD_ALLOWED_HOSTS = 'meta.internal';
+    assert.equal((await testFirebirdConnection({ ...RAW, host: 'meta.internal' })).error, 'This Firebird server address is not allowed.', 'listing does not open it');
+    assert.equal(rec.attach.length, 0);
+});
+
+test('a name that does not resolve is refused without a connection', async () => {
+    const rec = install(() => []);
+    const out = await testFirebirdConnection({ ...RAW, host: 'nowhere.internal' });
+    assert.match(out.error, /could not be resolved/);
     assert.equal(rec.attach.length, 0);
 });

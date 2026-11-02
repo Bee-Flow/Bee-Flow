@@ -196,7 +196,7 @@ describe('6. the unknown surface does not grow', () => {
     // Frozen at today's value: 24 /auth routes whose real gate lives in a handler
     // body. Lower it as you triage; NEVER raise it. Raising it is how a registry
     // quietly stops describing the app.
-    const FROZEN_MAX = 24;
+    const FROZEN_MAX = 21;
     test(`untriaged has at most ${FROZEN_MAX} entries`, () => {
         assert.ok(
             registry.untriaged.length <= FROZEN_MAX,

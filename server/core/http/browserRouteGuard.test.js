@@ -92,3 +92,70 @@ test('requestAllowed: http(s) to a public host only', async () => {
     assert.equal(await requestAllowed('file:///etc/passwd', screen), false);
     assert.equal(await requestAllowed('not a url', screen), false);
 });
+
+// ── Context helpers ─────────────────────────────────────────────
+
+const { guardContextRequests, guardContextWebSockets, blockContextNetwork } = require('./browserRouteGuard');
+
+/** A context that records its route / routeWebSocket handlers. */
+function fakeContext() {
+    const ctx = {
+        routes: /** @type {Function[]} */ ([]),
+        sockets: /** @type {Function[]} */ ([]),
+        route: async (_m, h) => { ctx.routes.push(h); },
+        routeWebSocket: async (_m, h) => { ctx.sockets.push(h); },
+    };
+    return ctx;
+}
+
+/** Run the route handler for one url; answers 'continue' | 'abort'. */
+async function verdictFor(handler, url) {
+    let out = null;
+    await handler({
+        request: () => ({ url: () => url }),
+        continue: async () => { out = 'continue'; },
+        abort: async () => { out = 'abort'; },
+    });
+    return out;
+}
+
+/** Run the ws handler for one url; answers 'connect' | 'close'. */
+async function wsVerdictFor(handler, url) {
+    let out = null;
+    await handler({ url: () => url, connectToServer: () => { out = 'connect'; }, close: async () => { out = 'close'; } });
+    return out;
+}
+
+test('guardContextRequests: public continues, private and metadata names are aborted', async () => {
+    const ctx = fakeContext();
+    const { lookup } = makeLookup(ANSWERS);
+    await guardContextRequests(/** @type {any} */ (ctx), makeResolvedHostScreen({ lookup }));
+    assert.equal(ctx.routes.length, 1);
+    assert.equal(await verdictFor(ctx.routes[0], 'https://public.test/x.js'), 'continue');
+    assert.equal(await verdictFor(ctx.routes[0], 'http://meta.test/latest/meta-data/'), 'abort');
+    assert.equal(await verdictFor(ctx.routes[0], 'http://169.254.169.254/'), 'abort');
+    assert.equal(await verdictFor(ctx.routes[0], 'http://127.0.0.1:9222/json'), 'abort');
+    assert.equal(await verdictFor(ctx.routes[0], 'file:///etc/passwd'), 'abort');
+});
+
+test('guardContextWebSockets: a socket to a private host is closed, a public one connects', async () => {
+    const ctx = fakeContext();
+    const { lookup } = makeLookup(ANSWERS);
+    await guardContextWebSockets(/** @type {any} */ (ctx), makeResolvedHostScreen({ lookup }));
+    assert.equal(ctx.sockets.length, 1);
+    assert.equal(await wsVerdictFor(ctx.sockets[0], 'ws://127.0.0.1:9222/beeflow-browser'), 'close');
+    assert.equal(await wsVerdictFor(ctx.sockets[0], 'wss://meta.test/'), 'close');
+    assert.equal(await wsVerdictFor(ctx.sockets[0], 'wss://public.test/socket'), 'connect');
+});
+
+test('blockContextNetwork: only data:, about: and blob: continue; every socket is closed', async () => {
+    const ctx = fakeContext();
+    await blockContextNetwork(/** @type {any} */ (ctx));
+    const [handler] = ctx.routes;
+    assert.equal(await verdictFor(handler, 'data:image/png;base64,AAAA'), 'continue');
+    assert.equal(await verdictFor(handler, 'about:blank'), 'continue');
+    assert.equal(await verdictFor(handler, 'blob:https://x/abc'), 'continue');
+    assert.equal(await verdictFor(handler, 'https://cdn.example.com/a.png'), 'abort');
+    assert.equal(await verdictFor(handler, 'http://169.254.169.254/'), 'abort');
+    assert.equal(await wsVerdictFor(ctx.sockets[0], 'wss://public.test/'), 'close');
+});

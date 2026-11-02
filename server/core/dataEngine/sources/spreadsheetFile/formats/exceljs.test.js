@@ -145,3 +145,14 @@ test('hasValue knows rich text, formulas and empties', () => {
     assert.equal(hasValue({ value: { formula: 'A1', result: null } }), true);
     assert.equal(hasValue({ value: new Date() }), true);
 });
+
+test('inspect / editInPlace: the workbook zip guard runs before exceljs loads the package', async (t) => {
+    const JSZip = require('jszip');
+    t.after(() => { delete process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES; });
+    process.env.AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES = String(2 * 1024 * 1024);
+    const zip = await JSZip.loadAsync(await facturen());
+    zip.file('xl/media/filler.bin', Buffer.alloc(8 * 1024 * 1024));
+    const padded = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    await assert.rejects(inspect(padded, { sheet: null, headerRow: 1 }), (e) => e.status === 422 && e.code === 'spreadsheet_rejected');
+    await assert.rejects(editInPlace(padded, { sheet: null, headerRow: 1, ops: [] }), (e) => e.status === 422 && e.code === 'spreadsheet_rejected');
+});

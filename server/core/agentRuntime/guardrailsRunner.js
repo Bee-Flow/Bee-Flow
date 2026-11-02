@@ -82,7 +82,7 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     /** @type {import('./inputPiiGate').PiiGateOut} */
     let pii = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     if (!dlpWillHandle && (globalConfig?.piiDetectionEnabled || orgPiiEnabled)) {
-        pii = await runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, PII_GATE_DEPS);
+        pii = await runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage, globalFailureMode: globalConfig?.piiFailureMode || null }, PII_GATE_DEPS);
     }
     processedUserMessage = pii.processedUserMessage;
 

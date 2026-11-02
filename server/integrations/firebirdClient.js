@@ -16,7 +16,8 @@ const NETWORK_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTF
 const MAX_ERROR_CHARS = 300;
 
 /**
- * @typedef {{ host: string, port: number, database: string, user: string, password: string, charset: string }} FirebirdCreds
+ * @typedef {{ host: string, port: number, database: string, user: string, password: string, charset: string, address?: string }} FirebirdCreds
+ *   `address`: the checked address to dial (firebirdTools.assertReachableHost); `host` when absent
  * @typedef {{ rows: Record<string, unknown>[], columns: string[], truncated: boolean }} QueryResult
  * @typedef {{ limit?: number, timeoutMs?: number }} QueryOptions
  * @typedef {{
@@ -64,7 +65,7 @@ const STOP = new Error('stop streaming');
  */
 function attachOptions(creds) {
     return {
-        host: creds.host,
+        host: creds.address || creds.host,
         port: creds.port,
         database: creds.database,
         user: creds.user,

@@ -379,3 +379,44 @@ test('renderAppScreenshot never throws, even on garbage input', async () => {
     assert.strictEqual(r.unavailable, true);
     assert.strictEqual(typeof r.reason, 'string');
 });
+
+// ── Browser edge: requests off the preview origin are screened ──────
+
+test('captureDocument screens every request off the preview origin before the page opens', async () => {
+    const browserProvider = require('./browserProvider');
+    const original = browserProvider.withContext;
+    const seen = { contextRoutes: [], routesBeforePage: -1 };
+    browserProvider.withContext = async (_opts, fn) => fn({
+        route: async (_m, h) => { seen.contextRoutes.push(h); },
+        routeWebSocket: async () => {},
+        newPage: async () => {
+            seen.routesBeforePage = seen.contextRoutes.length;
+            return {
+                setDefaultTimeout() {}, on() {}, route: async () => {}, goto: async () => {},
+                waitForFunction: async () => {}, waitForTimeout: async () => {},
+                evaluate: async () => null, $: async () => null,
+                screenshot: async () => Buffer.from('png'),
+            };
+        },
+    });
+    try {
+        const out = await _test.captureDocument({ doc: '<p>x</p>', assets: {}, viewport: { width: 10, height: 10 } });
+        assert.ok(out.png);
+    } finally {
+        browserProvider.withContext = original;
+    }
+    assert.strictEqual(seen.routesBeforePage, 1, 'a context route is installed before newPage');
+    const verdict = async (url) => {
+        let out = null;
+        await seen.contextRoutes[0]({
+            request: () => ({ url: () => url }),
+            continue: async () => { out = 'continue'; },
+            abort: async () => { out = 'abort'; },
+        });
+        return out;
+    };
+    assert.strictEqual(await verdict('http://169.254.169.254/latest/meta-data/'), 'abort');
+    assert.strictEqual(await verdict('http://127.0.0.1:3101/api/health'), 'abort');
+    assert.strictEqual(await verdict('http://10.1.2.3/'), 'abort');
+    assert.strictEqual(await verdict('https://93.184.216.34/x.js'), 'continue');
+});

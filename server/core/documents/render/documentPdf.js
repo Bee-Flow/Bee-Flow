@@ -2,6 +2,7 @@
 const { featureModule } = require('../../featureModules');
 const { escapeHtml } = require('../../../templates/exportTemplate');
 const log = require('../../../telemetry/log');
+const { blockContextNetwork } = require('../../http/browserRouteGuard');
 const { AI_MARK_SUBJECT, AI_MARK_PRODUCER, markingText, markingKeywords } = require('./documentMarking');
 const { deckToSlidesHtml, deckToPlainText } = require('./deckHtml');
 
@@ -104,6 +105,8 @@ async function applyPdfMarkingMetadata(buffer, marking, { title = '' } = {}) {
 async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'document', marking = null } = {}) {
     const browserProvider = featureModule('services/browserProvider');
     return browserProvider.withContext({}, async (context) => {
+        // The HTML is self-contained: the render gets no network at all.
+        await blockContextNetwork(context);
         const page = await context.newPage();
         page.setDefaultTimeout(timeoutMs);
         // 'load', not 'networkidle': every remote src has already been blanked
@@ -177,6 +180,7 @@ async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeout
     try {
         const browserProvider = featureModule('services/browserProvider');
         rendered = await browserProvider.withContext({}, async (context) => {
+            await blockContextNetwork(context);
             const page = await context.newPage();
             page.setDefaultTimeout(timeoutMs);
             // 'load', not 'networkidle': documentCompose has already stripped

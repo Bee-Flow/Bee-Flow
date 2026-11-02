@@ -73,6 +73,26 @@ function assertPackage(buffer, format) {
 }
 
 /**
+ * The workbook zip guard (automationRunner/tables/workbookZipGuard.js) before
+ * a parser inflates the package in full: entry count, inflated size against
+ * AUTOMATION_TABLE_MAX_UNCOMPRESSED_BYTES, compression ratio, no DOCTYPE or
+ * ENTITY in an XML part. A refusal is a 422, a zip that holds no workbook a 415.
+ * @param {Buffer} buffer
+ */
+async function assertSafeWorkbookPackage(buffer) {
+    const { assertSafePackage } = require('../../../../automationRunner/tables/workbookZipGuard');
+    const { tableLimits } = require('../../../../automationRunner/tables/limits');
+    try {
+        await assertSafePackage(buffer, { maxUncompressedBytes: tableLimits().maxUncompressedBytes });
+    } catch (e) {
+        const err = /** @type {Error & { errorClass?: string }} */ (e);
+        if (err.errorClass === 'table_source_unsupported') throw new SpreadsheetSourceError(415, 'format_unsupported', err.message);
+        if (err.errorClass === 'table_source_rejected') throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', err.message);
+        throw e;
+    }
+}
+
+/**
  * XLSX.read with the ODS styles.xml retry.
  * @param {Buffer} buffer
  * @param {string} format
@@ -80,6 +100,7 @@ function assertPackage(buffer, format) {
  */
 async function readWorkbook(buffer, format, options) {
     assertPackage(buffer, format);
+    if (ZIP_FORMATS.has(format)) await assertSafeWorkbookPackage(buffer);
     try {
         return XLSX.read(buffer, { type: 'buffer', ...options });
     } catch (e) {
@@ -305,4 +326,4 @@ function headerMissing(name) {
         `Worksheet "${name}" has no header row there — pick the row that holds the column names.`, { ref: { sheet: name } });
 }
 
-module.exports = { listSheets, readSheet, readWorkbook, isZipPackage, isCfbPackage, cellValue };
+module.exports = { listSheets, readSheet, readWorkbook, assertSafeWorkbookPackage, isZipPackage, isCfbPackage, cellValue };

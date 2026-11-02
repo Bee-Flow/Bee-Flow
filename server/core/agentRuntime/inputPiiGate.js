@@ -17,7 +17,7 @@ const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
- * @typedef {{ validateInputForPii: typeof import('../privacy/piiDetection').validateInputForPii, startPrivacyScanPhase: typeof import('./phaseEvents').startPrivacyScanPhase, messageText: typeof import('./phaseEvents').messageText, dlpRunner: () => typeof import('../dlp/dlpRunner') }} PiiGateDeps
+ * @typedef {{ validateInputForPii: typeof import('../privacy/piiDetection').validateInputForPii, startPrivacyScanPhase: typeof import('./phaseEvents').startPrivacyScanPhase, messageText: typeof import('./phaseEvents').messageText, dlpRunner: () => typeof import('../dlp/dlpRunner'), logGuardrailEvent?: typeof guardrailEventStore.logGuardrailEvent }} PiiGateDeps
  * @typedef {{ organization_id: string | null, user_id: string | null, agent_id: string | null, agent_name: string | null, conversation_id: string | null, source: string, model: string | null, is_dry_run: boolean }} GuardrailEventCtx  the identity fields every guardrail event row of the turn carries
  * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null, automatic: boolean, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} PiiTokenisationInfo
  * @typedef {{ moderationViolation: string | null, processedUserMessage: string, userPrivacyMeta: { piiTokenizedCount: number, piiCategories: string[] } | null, assistantTokenisationInfo: PiiTokenisationInfo | null }} PiiGateOut
@@ -37,11 +37,11 @@ const PRIVACY_MODE_RULES = `
  * `{ moderationViolation, processedUserMessage, userPrivacyMeta, assistantTokenisationInfo }`
  * (each null/unchanged when the gate had nothing to say). `piiReport` is
  * filled in place (validate.js `options.report`).
- * @param {{ messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, orgPiiEnabled: boolean, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx, piiReport: import('../privacy/piiDetection/validate').PiiGateReport, processedUserMessage: string }} opts
+ * @param {{ messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, orgPiiEnabled: boolean, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx, piiReport: import('../privacy/piiDetection/validate').PiiGateReport, processedUserMessage: string, globalFailureMode?: string | null }} opts
  * @param {PiiGateDeps} d
  * @returns {Promise<PiiGateOut>}
  */
-async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, d) {
+async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage, globalFailureMode = null }, d) {
     /** @type {PiiGateOut} */
     const out = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     try {
@@ -76,7 +76,9 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
             applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d);
         }
     } catch (piiError) {
-        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx, failureMode: orgShield?.piiFailureMode || null });
+        // The mode validateInputForPii applies (org, then global, then the
+        // fail_closed default), so a failure before it gave a verdict blocks too.
+        out.moderationViolation = piiBlockFromError(piiError, { onEvent, eventCtx, failureMode: orgShield?.piiFailureMode || globalFailureMode || 'fail_closed', logEvent: d.logGuardrailEvent });
     }
     return out;
 }
@@ -186,10 +188,10 @@ function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
  * fail_closed any other error — the gate failed before it could answer — is
  * a block as well: the org asked for the scan to be a precondition.
  * @param {Error & { piiEntities?: Array<{ label?: string, category?: string }>, privacyUnavailable?: boolean, degradedReason?: string, privacyUnavailableKind?: string }} piiError
- * @param {{ onEvent: import('./chatStream/turnState').OnEvent, eventCtx: GuardrailEventCtx, failureMode?: string | null }} opts
+ * @param {{ onEvent: import('./chatStream/turnState').OnEvent, eventCtx: GuardrailEventCtx, failureMode?: string | null, logEvent?: typeof guardrailEventStore.logGuardrailEvent }} opts
  * @returns {string | null}
  */
-function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null }) {
+function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null, logEvent = guardrailEventStore.logGuardrailEvent }) {
     if (piiError.message?.includes('PII Detected')) {
         log.warn('[GuardrailsRunner] PII detected in user input:', piiError.message);
         const entityLabels = piiError.piiEntities
@@ -208,7 +210,7 @@ function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null }) 
         }
 
         // Log PII event (fire-and-forget)
-        guardrailEventStore.logGuardrailEvent({
+        logEvent({
             ...eventCtx,
             violation_type: 'pii',
             violation_categories: labelList,
@@ -232,7 +234,7 @@ function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null }) 
         const violation = piiError.privacyUnavailableKind === 'too_large'
             ? 'This message is too large to scan for personal data — please split it into smaller parts'
             : 'Privacy protection temporarily unavailable — please try again in a moment';
-        guardrailEventStore.logGuardrailEvent({
+        logEvent({
             ...eventCtx,
             violation_type: 'pii_unavailable',
             violation_categories: 'privacy_protection_unavailable',
@@ -246,7 +248,7 @@ function piiBlockFromError(piiError, { onEvent, eventCtx, failureMode = null }) 
         // read, the detector module...). The org chose fail_closed, so an
         // error is a block, not a pass — the same block a degraded scan gets.
         log.warn('[GuardrailsRunner] 🛑 PII gate failed — blocking (fail_closed):', piiError.message);
-        guardrailEventStore.logGuardrailEvent({
+        logEvent({
             ...eventCtx,
             violation_type: 'pii_unavailable',
             violation_categories: 'privacy_protection_unavailable',

@@ -707,3 +707,15 @@ test('the turn\'s document scope reaches the document tools through the call con
         documentTools.on = false;
     }
 });
+
+test('a tool name that was not offered this turn is refused before dispatch and before the DLP restore', async () => {
+    dlp.map = { '[email_1]': 'a@b.example' };
+    const { ctx } = mkCtx({ getOfferedToolNames: () => new Set(['my_tool']) });
+    const refused = await executeDirectChatToolCall(mkToolCall('kb_fetch', { ids: ['1'] }), ctx);
+    assert.strictEqual(dispatcher.calls.length, 0, 'not dispatched');
+    assert.strictEqual(untok.calls.length, 0, 'no real values restored');
+    assert.match(JSON.parse(refused.content).error, /not available/);
+
+    await executeDirectChatToolCall(mkToolCall('my_tool', { a: 1 }), ctx);
+    assert.strictEqual(dispatcher.calls.length, 1, 'an offered name runs');
+});

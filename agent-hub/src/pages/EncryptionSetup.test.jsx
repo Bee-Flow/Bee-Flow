@@ -110,6 +110,14 @@ describe('choosing an encryption PIN for the first time', () => {
 
     // wrat: same fallback, quieter trigger — OPAQUE reported success but no key.
     // Hoort in stage L16 te veranderen.
+    it('offers signing in again, and does not fall back, when replacing the PIN needs a recent sign-in', async () => {
+        opaquePinRegister.mockRejectedValue(Object.assign(new Error('Sign in again before changing this.'), { code: 'reauth_required' }));
+        renderGate({ mode: 'setup' });
+        await typePin('correct-pin');
+        expect(await screen.findByRole('alert')).toHaveTextContent('For your security, sign in again before making this change.');
+        expect(callTo('/auth/sso-encryption-setup')).toBeFalsy();
+    });
+
     it('posts the PIN to the server when OPAQUE succeeded but returned no key', async () => {
         opaquePinRegister.mockResolvedValue({ success: true });
         route('/auth/sso-encryption-setup', () => ok({ success: true, recoveryKey: 'LEGACY-KEY' }));

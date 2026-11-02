@@ -19,6 +19,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { listMicrosoftLogins } = require('../oauth/microsoftConnections.mts');
+const { HttpError } = require('../../core/http/errors');
 
 const PASSWORD_TEXT = 'Choose a password for the operator account.';
 // Only the password, and it must be a string: the policy check below reads
@@ -111,6 +112,12 @@ router.get('/setup-status', async (/** @type {import('express').Request} */ req,
 
 // Initial admin setup (set password for first time)
 router.post('/setup', validate({ body: SetupBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    // INIT_ADMIN_PASSWORD hands the operator password to boot-init. While it
+    // is set, that is the only way to claim the account: /setup stays closed,
+    // also when boot-init refused the value or has not run yet.
+    if (process.env.INIT_ADMIN_PASSWORD) {
+        throw new HttpError(409, 'setup_managed_by_env', 'The operator password is set through INIT_ADMIN_PASSWORD. Check the server log.');
+    }
     const config = await loadConfig();
 
     // Only allow if password not set yet

@@ -67,3 +67,9 @@ test('a turn is behind the direct-chat spend limiter (DIRECT_CHAT_RPM), after th
     const router = require('./streamTurn');
     assert.deepStrictEqual(h.limitersOn(router, 'post', '/chat/direct/stream'), ['direct-chat']);
 });
+
+test('an attachment carries no server file path, and a non-object attachment is refused', async () => {
+    const parsed = DirectTurnBody.parse({ message: 'hi', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', path: '/etc/passwd', content: 'AAAA' }] });
+    assert.deepStrictEqual(parsed.attachments, [{ name: 'a.mp3', type: 'audio/mpeg', content: 'AAAA' }]);
+    h.assertRefused(assert, await post({ message: 'hi', attachments: ['/etc/passwd'] }), 'body.attachments.0', /attachment is an object/);
+});

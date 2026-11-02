@@ -26,5 +26,7 @@ registerErasurePorts({
         eraseStudioApps: (userId) => require('./accountContentErasure').eraseStudioApps(userId),
         eraseSkills: (userId) => require('./accountContentErasure').eraseSkills(userId),
         eraseStoragePrefix: (userId) => require('./accountContentErasure').eraseStoragePrefix(userId),
+        erasePersonalKnowledgeBases: (userId) => require('./accountContentErasure').erasePersonalKnowledgeBases(userId),
+        eraseOrgKnowledgeBases: (orgId) => require('./accountContentErasure').eraseOrgKnowledgeBases(orgId),
     },
 });

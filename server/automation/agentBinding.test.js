@@ -53,6 +53,7 @@ const AGENTS = {
     a_curated: published({ id: 'a_curated', name: 'Curated', owner_id: 'owner', config: { tools: { automations: { auto2: { confirm: 'ask' } } } } }),
     a_all_off: published({ id: 'a_all_off', name: 'All off', owner_id: 'owner', config: { tools: { automations: {} } } }),
     a_other_org: published({ id: 'a_other_org', name: 'Other org', owner_id: 'other', organization_id: 'org2' }),
+    a_open_embed: published({ id: 'a_open_embed', name: 'Open embed', owner_id: 'owner', config: { tools: { publicVisitorsMayCallAutomations: true } } }),
 };
 
 let automations;
@@ -353,6 +354,13 @@ test('agentGrantVerdict: uncurated agents are untouched; a curated one runs only
     assert.deepStrictEqual(await ask('a_all_off'), { ok: false, reason: 'not_granted' });
     assert.deepStrictEqual(await ask('a_curated'), { ok: false, reason: 'needs_confirmation' });
     assert.deepStrictEqual(await ask('a_curated', automations.auto2, true), { ok: true });
+});
+
+test('agentGrantVerdict: a public-embed visitor runs a bound automation only where the owner opened owner tools to visitors', async () => {
+    const ask = (agentId, guest) => binding.agentGrantVerdict({ automation: automations.auto1, agentId, confirmed: false, guest, deps: makeDeps() });
+    assert.deepStrictEqual(await ask('a_own', true), { ok: false, reason: 'visitor_not_allowed' });
+    assert.deepStrictEqual(await ask('a_own', false), { ok: true }, 'a signed-in asker as before');
+    assert.deepStrictEqual(await ask('a_open_embed', true), { ok: true });
 });
 
 test('agentGrantVerdict fails closed: no agent, a missing agent, an unreadable store', async () => {

@@ -9,6 +9,7 @@ const { initDB } = require('./initSchema');
 const managedParts = require('../managedPartsDefault');
 const { getAgentToolsWithParams } = require('./agentTools');
 const log = require('../../telemetry/log');
+const { deleteAgentConversations } = require('./agentConversationsDelete.mts');
 const { _notifySync } = require('./agentSync');
 const { isSplitActive, projectRuntime, projectDraft } = require('./agentRows');
 const { getAgents, _loadAgentRow, getAgent } = require('./agentReads');
@@ -348,6 +349,7 @@ async function deleteAgent(id, ownerId, opts = {}) {
     // Grab org_id before deleting so we can notify sync
     const agent = await getOne('SELECT organization_id FROM agents WHERE id = $1', [id]);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1 AND owner_id = $2', [id, ownerId]);
+    if (rowCount > 0) await deleteAgentConversations(run, id);
     if (rowCount > 0) await dropAutomationBindings(id);
     if (rowCount > 0 && agent?.organization_id) _notifySync(agent.organization_id, id, 'deleted');
     return rowCount > 0;
@@ -379,7 +381,7 @@ async function forceDeleteAgent(id, opts = {}) {
     await initDB();
     await assertAgentDeletable(id, opts);
     await run('DELETE FROM agent_tools WHERE agent_id = $1', [id]);
-    await run('DELETE FROM agent_conversations WHERE agent_id = $1', [id]);
+    await deleteAgentConversations(run, id);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1', [id]);
     if (rowCount > 0) await dropAutomationBindings(id);
     return rowCount > 0;

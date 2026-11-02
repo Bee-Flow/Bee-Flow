@@ -60,7 +60,7 @@ const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedN
  * The dispatcher's context, with the fields these families read named.
  * @typedef {import('../core/tools/toolFamilyRegistry').ToolContext & {
  *   session?: Express.Session, attachments?: unknown[], supportThreadId?: string,
- *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown,
+ *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown, askerUserId?: string,
  *   userAuth?: { supportThreadId?: string, supportActionPolicy?: import('./supportTools').ActionPolicy },
  * }} ToolCtx
  */
@@ -277,9 +277,9 @@ async function executeNotebook(toolName, toolArgs, context) {
  * @param {ToolCtx} context
  */
 async function executeMemory(toolName, toolArgs, context) {
-    const { userId, orgId, agentId, session } = context;
+    const { orgId, agentId, session } = context;
     return await require('./memoryTools').executeMemoryTool(toolName, toolArgs, {
-        userId, orgId, agentId, session,
+        userId: context.askerUserId || context.userId, orgId, agentId, session, // the asker's memories, never an acting identity's
         // Provenance: the memory_remember tool stores source_conversation_id from this.
         conversationId: context.conversationId || null,
         // Agent chat puts the per-chat flags on the context; direct chat only has the request.

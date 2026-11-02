@@ -45,6 +45,7 @@ const { cloneRunValue, resolveUserSession } = engine;
 // Not routed through engine.js's re-export list: only the dispatcher calls it.
 const { execFlatten } = require('./execCollections');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../http/errors');
 const { isManagedAutomation } = require('./stageVars');
 const { notifyRunEvent } = require('./runNotifications');
 const { resolveRunPolicy } = require('./runPolicy');
@@ -143,6 +144,19 @@ function resolveTriggerPayload({ trigger = null, triggerPayload = null, triggerK
     return cloneRunValue(pin) ?? pin;
 }
 
+/**
+ * Every trigger kind runs only for an owner whose account is active and
+ * entitled to automations (ownerGate.mts); refused before a run row exists.
+ * @param {{ id?: string, userId: string, organizationId?: string | null }} automation
+ * @param {string} triggerKind
+ */
+async function assertOwnerMayRun(automation, triggerKind) {
+    const reason = await require('./ownerGate.mts').ownerRefusal(automation);
+    if (!reason) return;
+    log.info(`[AutomationRunner] ${triggerKind} run of automation ${automation.id} refused: owner ${automation.userId} is ${reason}`);
+    throw new HttpError(409, 'automation_owner_inactive', 'The owner of this automation can no longer run it.');
+}
+
 /** See runHeartbeat.acquireRunMarker (exported for the scheduler and tests). */
 function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
@@ -155,6 +169,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
     // copy this run executes.
     let testRun;
     ({ automation, testRun } = await selectRunCopy(RUN_DEPS, automation, { mode, triggerKind, isTest }));
+    await assertOwnerMayRun(automation, triggerKind);
     const runPolicy = resolveRunPolicy(automation.definition);
     const session = await resolveUserSession(automation.userId);
     const runOrgId = runOrgFor(automation, session);

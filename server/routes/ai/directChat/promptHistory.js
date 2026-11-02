@@ -53,7 +53,10 @@ async function resolveHistory({ req, userId, conversationId, history }) {
             // UI fetch paths still default to restore:true.
             const persisted = await agentStore.getDirectConversation(conversationId, userId, { restore: false, ...encryptionOpts(req) });
             if (persisted && Array.isArray(persisted.messages) && persisted.messages.length > 0) {
-                resolvedHistory = persisted.messages;
+                // Rows read from the conversation itself: their attachment
+                // sidecars may be re-signed by the hydrator.
+                const { markPersistedSidecars } = require('../../../core/conversation/historyMerge');
+                resolvedHistory = /** @type {HistoryMessage[]} */ (markPersistedSidecars(persisted.messages));
                 log.info(`[DirectChat] No client history — loaded ${resolvedHistory.length} persisted messages from DB`);
             }
         } catch (loadErr) {

@@ -30,6 +30,7 @@ const {
     formatTime, maxSegmentEnd, finalizeTranscript,
 } = require('./transcription/finalize');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { resolveAudioAttachment, tempSafeName } = require('./transcription/audioAttachment.mts');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
@@ -74,59 +75,6 @@ const TRANSCRIPTION_TOOLS = [
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Resolve the active audio attachment from the context.
- * Returns { audioData: Buffer, audioFileName: string } or throws an error string.
- */
-async function resolveAudioAttachment(context) {
-    const { attachments } = context;
-    if (!attachments || attachments.length === 0) {
-        throw 'No audio file found. Please upload an audio file (MP3, WAV, M4A, OGG, WEBM, FLAC) as an attachment to your message.';
-    }
-
-    const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.flac', '.mp4', '.mpeg'];
-    const audioAttachment = attachments.find((a) => {
-        const ext = (a.name || a.filename || '').toLowerCase();
-        return (
-            AUDIO_EXTENSIONS.some((e) => ext.endsWith(e)) ||
-            (a.type && a.type.startsWith('audio/'))
-        );
-    });
-
-    if (!audioAttachment) {
-        throw 'No audio file found. Please upload an audio file (MP3, WAV, M4A, OGG, WEBM, FLAC) as an attachment to your message.';
-    }
-
-    const audioFileName = audioAttachment.name || audioAttachment.filename || 'audio.mp3';
-    /** @type {NonSharedBuffer | Buffer<ArrayBuffer> | Buffer<ArrayBufferLike> | null} */
-    let audioData = null;
-
-    if (audioAttachment.path) {
-        try {
-            audioData = await fs.promises.readFile(audioAttachment.path);
-        } catch (readErr) {
-            throw `Could not read audio file: ${/** @type {Error} */ (readErr).message}`;
-        }
-    } else if (audioAttachment.url) {
-        try {
-            const resp = await fetch(audioAttachment.url);
-            if (!resp.ok) throw new Error(resp.statusText);
-            audioData = Buffer.from(await resp.arrayBuffer());
-        } catch (fetchErr) {
-            throw `Could not download audio file: ${/** @type {Error} */ (fetchErr).message}`;
-        }
-    } else if (audioAttachment.data || audioAttachment.content) {
-        const raw = audioAttachment.data || audioAttachment.content;
-        audioData = Buffer.isBuffer(raw) ? raw : Buffer.from(raw, 'base64');
-    }
-
-    if (!audioData) {
-        throw 'Could not read audio data from the attachment. Please try re-uploading the file.';
-    }
-
-    return { audioData, audioFileName };
-}
 
 /**
  * Use the configured fast-tier LLM to map speaker IDs → real names.
@@ -599,7 +547,7 @@ async function handleScalewayTranscription(args, context) {
 
     const language = args.language || 'nl';
     // transcribeWithScaleway works from a file path (it may transcode); stage the buffer.
-    const tmpPath = path.join(os.tmpdir(), `scaleway-tool-${Date.now()}-${audioFileName}`);
+    const tmpPath = path.join(os.tmpdir(), `scaleway-tool-${Date.now()}-${tempSafeName(audioFileName)}`);
     try {
         fs.writeFileSync(tmpPath, audioData);
         const { transcribeWithScaleway } = require('../core/meetingNotes/summaryHelpers');
@@ -653,7 +601,7 @@ async function handleLocalTranscription(args, context) {
     const language = args.language || 'nl';
     // transcribeLocally works from a file path (it transcodes with ffmpeg);
     // stage the buffer exactly as the Scaleway handler does.
-    const tmpPath = path.join(os.tmpdir(), `local-tool-${Date.now()}-${audioFileName}`);
+    const tmpPath = path.join(os.tmpdir(), `local-tool-${Date.now()}-${tempSafeName(audioFileName)}`);
     try {
         fs.writeFileSync(tmpPath, audioData);
         const { transcribeLocally } = require('../core/voice/localWhisper');

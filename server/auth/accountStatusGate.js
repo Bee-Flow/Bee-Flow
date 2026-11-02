@@ -102,6 +102,20 @@ function isAwaitingApproval(storedUser) {
 }
 
 /**
+ * Is this account held at the approval step right now? Awaiting approval and
+ * not exempt from it: a system admin or an org admin has nobody above them to
+ * approve (signupGuards.canSkipApproval, the rule every sign-in path uses).
+ * Asked of the stored row on every request, so a sign-in path that forgot the
+ * session flag still cannot open the API.
+ *
+ * @param {any|null|undefined} storedUser row from userStore
+ */
+function isHeldForApproval(storedUser) {
+    if (!isAwaitingApproval(storedUser)) return false;
+    return storedUser.role !== 'admin' && storedUser.orgRole !== 'org_admin';
+}
+
+/**
  * What a held session may still call: the waiting screen reads who it is,
  * what it may do (nothing yet) and the sign-out. Everything else answers the
  * refusal below until an administrator approves the account.
@@ -138,5 +152,5 @@ const REFUSAL = Object.freeze({ status: 401, body: Object.freeze({ error: 'Inval
 
 module.exports = {
     HARD_BLOCKED_STATUSES, isLoginBlockedAccount, isActiveAccount, REFUSAL,
-    isAwaitingApproval, PENDING_APPROVAL_ALLOWED_PATHS, allowedWhilePendingApproval, PENDING_REFUSAL,
+    isAwaitingApproval, isHeldForApproval, PENDING_APPROVAL_ALLOWED_PATHS, allowedWhilePendingApproval, PENDING_REFUSAL,
 };

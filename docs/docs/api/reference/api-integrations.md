@@ -15,7 +15,7 @@ toc_max_heading_level: 2
 
 ### `POST /api/integrations/calendar/execute`
 
-**Access:** middleware `googleSessionHydration`, `requireOAuthSession`
+**Access:** Signed-in user · middleware `googleSessionHydration`, `requireOAuthSession`
 
 **Body**
 
@@ -136,7 +136,7 @@ No request schema.
 
 ### `POST /api/integrations/contacts/execute`
 
-**Access:** middleware `googleSessionHydration`, `requireOAuthSession`
+**Access:** Signed-in user · middleware `googleSessionHydration`, `requireOAuthSession`
 
 **Body**
 
@@ -174,7 +174,7 @@ No request schema.
 
 ### `GET /api/integrations/gdrive/export/:fileId`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Path parameters**
 
@@ -184,7 +184,7 @@ No request schema.
 
 ### `GET /api/integrations/gdrive/files`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Query**
 
@@ -273,7 +273,7 @@ No request schema.
 
 ### `POST /api/integrations/gmail/draft`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Body**
 
@@ -291,7 +291,7 @@ No request schema.
 
 ### `GET /api/integrations/gmail/messages`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Query**
 
@@ -304,7 +304,7 @@ No request schema.
 
 ### `GET /api/integrations/gmail/messages/:messageId`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Path parameters**
 
@@ -314,7 +314,7 @@ No request schema.
 
 ### `POST /api/integrations/gmail/send`
 
-**Access:** middleware `googleSessionHydration`
+**Access:** Signed-in user · middleware `googleSessionHydration`
 
 **Body**
 
@@ -366,7 +366,7 @@ No request schema.
 
 ### `POST /api/integrations/keep/execute`
 
-**Access:** middleware `googleSessionHydration`, `requireOAuthSession`
+**Access:** Signed-in user · middleware `googleSessionHydration`, `requireOAuthSession`
 
 **Body**
 

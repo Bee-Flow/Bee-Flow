@@ -111,6 +111,12 @@ const { executeTool } = require('./toolDispatcher');
     out = await executeTool('send_invoice', {}, { userId: 'owner', agentId: 'agt-bound', conversationId: 'c' });
     assert.equal(runs.length, 0, 'a removed binding stops the next call');
 
+    // ── Reusable Steps are looked up for the asker, not an acting identity ──
+    const stepLookups = [];
+    automationStore.getCallableStepsForUser = async (uid) => { stepLookups.push(uid); return []; };
+    await executeTool('step_anything', {}, { userId: 'operator', askerUserId: 'asker' });
+    assert.deepEqual(stepLookups, ['asker'], 'an operator identity does not select whose Steps run');
+
     console.log('toolDispatcher.agentCall: ok');
     process.exit(0);
 })().catch((e) => {

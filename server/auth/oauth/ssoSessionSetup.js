@@ -11,7 +11,7 @@ const userStore = require('../../stores/userStore');
 const { getOrCreateSSOUserDEKCompat } = require('../encryption');
 const { resolveOrgByEmailDomain, planNewSSOUserPlacement } = require('../ssoUserResolver');
 const { parseGroupIds, orgIdsForUser } = require('../orgMembership');
-const { getEffectiveFreeEmailDomains } = require('../../utils/freeEmailDomains');
+const freeEmailDomains = require('../../utils/freeEmailDomains');
 // Shared with loginRoutes and the admin gate — this was a verbatim copy that
 // read `allowed_features` alone, i.e. only the plan-grant half of entitlement,
 // so an org entitled via its licence tier failed it and `zk` silently wrote
@@ -59,13 +59,13 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     if (!userHasOrg && !isPersonalAccount && (provider === 'microsoft' || (user.email && user.email.includes('@')))) {
         const matchingOrg = provider === 'microsoft'
             ? await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore)
-            : resolveOrgByEmailDomain(user.email ?? '', await userStore.getAllOrganizations(), await getEffectiveFreeEmailDomains());
+            : resolveOrgByEmailDomain(user.email ?? '', await userStore.getAllOrganizations(), await freeEmailDomains.getEffectiveFreeEmailDomains());
 
         if (matchingOrg) {
             // Same auto-approve/pending decision the create path makes, from
             // the same helper — this block only differs in that it merges the
             // groups the pre-existing account already had.
-            const bind = planNewSSOUserPlacement(matchingOrg, { existingGroups: userGroups || [] });
+            const bind = planNewSSOUserPlacement(matchingOrg, { existingGroups: userGroups || [], allGroups: await userStore.getAllGroups() });
             await userStore.updateUser(user.id, {
                 groups: bind.groups,
                 organizationId: bind.organizationId,
@@ -79,10 +79,10 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
         }
     }
 
-    // Check if existing user is pending — but never gate an org founder/owner
+    // Check if existing user is pending or waitlisted — but never gate an org founder/owner
     // or system admin (they are the org's approver; no one above them).
     const isOrgOwnerOrAdmin = freshUser?.orgRole === 'org_admin' || freshUser?.role === 'admin';
-    if (freshUser?.status === 'pending' && !isOrgOwnerOrAdmin) {
+    if ((freshUser?.status === 'pending' || freshUser?.status === 'waitlist') && !isOrgOwnerOrAdmin) {
         pendingApproval = true;
     }
     return { freshUser, userHasOrg, pendingApproval, isPersonalAccount };

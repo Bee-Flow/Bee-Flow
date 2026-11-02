@@ -18,6 +18,9 @@ const { isOrgAdminRole, invalidatePermissionCache } = require('../permissions');
 const { tagGate } = require('../gateMeta');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const {
+    orgsAdministeredBy, normaliseOrgId, groupsOutsideCallerOrg, globalGroupWithinCaller, defaultGroupsRefused,
+} = require('./groupAssignGuards');
 
 /**
  * @typedef {import('express').Request} Request
@@ -111,38 +114,6 @@ async function wouldOrphanOrg(orgId, excludeUserId) {
     if (!orgId) return false;
     const { admins, members } = await countOrgMembers(orgId, excludeUserId);
     return members > 0 && admins === 0;
-}
-
-/**
- * Every organisation this user can administer — not just the one in their
- * `organizationId` column.
- *
- * countOrgMembers counts an admin who belongs to an org only through one of its
- * GROUPS, because isOrgAdminForOrg lets that person administer it. Resolving the
- * guard's target org from `organizationId` alone therefore disagreed with the
- * counter in both directions: an admin whose primary org is orgB but who
- * administers orgA through a group could be demoted with only orgB's admin count
- * consulted, silently orphaning orgA; and an admin with no primary org at all
- * skipped the guard entirely. Ask the same question the counter answers.
- * @param {Record<string, any> | null | undefined} user
- * @returns {Promise<string[]>}
- */
-async function orgsAdministeredBy(user) {
-    if (!user || !isOrgAdminRole(user.orgRole)) return [];
-    const orgIds = new Set();
-    if (user.organizationId) orgIds.add(user.organizationId);
-    /** @type {string[]} */
-    let gids = [];
-    try { gids = Array.isArray(user.groups) ? user.groups : JSON.parse(user.groups || '[]'); } catch (_) { gids = []; }
-    if (gids.length) {
-        try {
-            const groups = await userStore.getAllGroups();
-            for (const g of groups || []) {
-                if (g?.organizationId && gids.includes(g.id)) orgIds.add(g.organizationId);
-            }
-        } catch (e) { log.warn('[adminRoutes] group lookup for org-admin guard failed:', /** @type {Error} */ (e).message); }
-    }
-    return [...orgIds];
 }
 
 /**
@@ -243,7 +214,8 @@ async function isOrgAdminForOrg(req, orgId) {
  * @param {string} [paramName]
  */
 function requireOrgAdmin(paramName = 'id') {
-    return async (/** @type {Request} */ req, /** @type {Response} */ res, /** @type {NextFunction} */ next) => {
+    // Tagged like permissions.js's requireOrgAdmin so the route walk sees it.
+    return tagGate(async (/** @type {Request} */ req, /** @type {Response} */ res, /** @type {NextFunction} */ next) => {
         if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
         const orgId = req.params[paramName];
         if (!orgId) return res.status(400).json({ error: 'Organization ID required' });
@@ -251,19 +223,7 @@ function requireOrgAdmin(paramName = 'id') {
             return res.status(403).json({ error: 'Organization admin access required' });
         }
         next();
-    };
-}
-
-/**
- * Tenant ids are compared, not just read, so `''`, `null` and `undefined` have to
- * collapse to one value first — otherwise "no organisation" spelled two ways
- * reads as a change and a plain profile edit starts 403ing.
- * @param {unknown} v
- */
-function normaliseOrgId(v) {
-    if (v === undefined || v === null) return null;
-    const s = String(v).trim();
-    return s === '' ? null : s;
+    }, { axis: 'scope', kind: 'orgAdminOfParam', param: paramName, paramDependent: true });
 }
 
 /**
@@ -355,7 +315,9 @@ async function _requireOrgAdminForUser(req, res, next) {
     // reciprocal route (POST /groups/:id/members) already refuses this; the
     // forward one, which its own comment calls the same operation, did not.
     if (Array.isArray(req.body?.groups)) {
-        const denied = await groupsOutsideCallerOrg(req, req.body.groups);
+        const denied = await groupsOutsideCallerOrg(req, req.body.groups, {
+            existing: Array.isArray(targetUser?.groups) ? targetUser.groups : [],
+        });
         if (denied.length > 0) {
             return res.status(403).json({
                 error: `You can only assign groups in your organisation: ${denied.join(', ')}`,
@@ -367,42 +329,6 @@ async function _requireOrgAdminForUser(req, res, next) {
     next();
 }
 
-/**
- * Which of `groupIds` belong to an organisation the caller does not administer?
- * Groups with no organizationId are global (platform-wide roles) and are left to
- * the permission checks that already guard them.
- *
- * Unknown ids are reported as denied rather than ignored: a group that does not
- * exist cannot be one of the caller's, and silently dropping it would let a
- * probe distinguish "no such group" from "not yours".
- * @param {Request} req
- * @param {unknown[]} groupIds
- * @returns {Promise<string[]>}
- */
-async function groupsOutsideCallerOrg(req, groupIds) {
-    const wanted = groupIds.map(g => String(g ?? '').trim()).filter(Boolean);
-    if (wanted.length === 0) return [];
-
-    const me = await userStore.getUser(req.session?.user?.id);
-    // Not just me.organizationId: an admin can administer an org through a
-    // group rather than a primary assignment (the same asymmetry orgsAdministeredBy
-    // exists for), and keying on the primary org alone would refuse them their
-    // own groups.
-    const myOrgIds = new Set(await orgsAdministeredBy(me));
-    const allGroups = await userStore.getAllGroups();
-
-    /** @type {string[]} */
-    const denied = [];
-    for (const gid of wanted) {
-        const group = (allGroups || []).find(g => g?.id === gid);
-        if (!group) { denied.push(gid); continue; }
-        const groupOrg = normaliseOrgId(group.organizationId);
-        if (groupOrg === null) continue;          // global group
-        if (!myOrgIds.has(groupOrg)) denied.push(gid);
-    }
-    return denied;
-}
-
 // Tagged so the route walk (auth/routeWalk.cli.js) can see what this enforces.
 // This is a LOCAL org-admin gate, deliberately distinct from permissions.js's
 // requireOrgAdmin — permissions.js:745-751 warns the two semantics must not be
@@ -412,7 +338,7 @@ const requireOrgAdminForUser = tagGate(_requireOrgAdminForUser, {
     axis: 'scope',
     kind: 'orgAdminOfTargetUser',
     paramDependent: true,
-    note: 'Resolves the target user\'s org from req.params.id (or req.body.organizationId on create), then requires org-admin over it. Also blocks org admins from assigning role=admin. BOTH ENDS are checked: for a non-super-admin the body may not change organizationId (403 cross_org_move_denied) and may not assign a group belonging to another org (403 cross_org_group_denied) — the source-only check let an org_admin walk their own account into another tenant.',
+    note: 'Resolves the target user\'s org from req.params.id (or req.body.organizationId on create), then requires org-admin over it. Also blocks org admins from assigning role=admin. BOTH ENDS are checked: for a non-super-admin the body may not change organizationId (403 cross_org_move_denied) and may not assign a group belonging to another org, nor a global group granting more than the caller holds or the all wildcard (403 cross_org_group_denied) — the source-only check let an org_admin walk their own account into another tenant.',
 });
 
 module.exports = {
@@ -427,4 +353,7 @@ module.exports = {
     requireOrgAdmin,
     normaliseOrgId,
     requireOrgAdminForUser,
+    groupsOutsideCallerOrg,
+    globalGroupWithinCaller,
+    defaultGroupsRefused,
 };

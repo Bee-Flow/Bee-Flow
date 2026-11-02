@@ -42,11 +42,26 @@ function makeMockStore(users) {
         async getUser(id) {
             return db.has(id) ? { ...db.get(id) } : null;
         },
+        async getOrganization(id) {
+            return id === 'nc-org' ? { id, nc_base_url: 'https://cloud.acme.example/' } : { id, nc_base_url: null };
+        },
         async updateUser(id, updates) {
             if (!db.has(id)) return false;
             db.set(id, { ...db.get(id), ...updates });
             return true;
         },
+    };
+}
+
+/**
+ * In-memory sso_identities.
+ * @param {string[][]} [rows] [provider, subject, userId]
+ */
+function makeIdentities(rows = []) {
+    return {
+        async findUserId(provider, subject) { return rows.find(r => r[0] === provider && r[1] === subject)?.[2] || null; },
+        async hasOtherSubject(userId, provider, subject) { return rows.some(r => r[2] === userId && r[0] === provider && r[1] !== subject); },
+        async listForUser(userId) { return rows.filter(r => r[2] === userId).map(r => ({ provider: r[0], createdAt: null })); },
     };
 }
 
@@ -157,6 +172,87 @@ async function run() {
         assert.strictEqual(user.id, 'nextcloud-123');
     });
 
+    // ── e-mail linking per provider ─────────────────────────
+    const ACCOUNT = { id: 'alice', email: 'alice@acme.example', role: 'user', azureUserId: null, organizationId: 'acme' };
+    for (const [label, extra] of /** @type {Array<[string, Record<string, unknown>]>} */ ([
+        ['a password', { passwordHash: '$2b$x' }],
+        ['an OPAQUE record', { opaqueRecord: 'rec' }],
+        ['MFA', { mfa_enabled: 1 }],
+        ['the platform admin role', { role: 'admin' }],
+        ['a Microsoft identity', { azureUserId: 'OID-9' }],
+        ['a connector row for another uid', { provider: 'nextcloud_connector', nc_uid: 'bob' }],
+    ])) await test(`a Nextcloud e-mail does not sign in to an account with ${label}`, async () => {
+        const store = makeMockStore([{ ...ACCOUNT, ...extra }]);
+        const result = await resolveExistingSSOUser(
+            { azureUserId: null, email: 'Alice@acme.example', localId: 'nextcloud-mallory', provider: 'nextcloud' }, store);
+        assert.deepStrictEqual(result, { user: null, branch: 'emailRefused' });
+    });
+
+    await test('an unverified (Nextcloud) e-mail does not sign in to an SSO-only account', async () => {
+        const store = makeMockStore([{ ...ACCOUNT }]);
+        const result = await resolveExistingSSOUser({ azureUserId: null, email: 'alice@acme.example', localId: 'nextcloud-alice', provider: 'nextcloud', subject: 'alice', emailVerified: false }, store, makeIdentities());
+        assert.deepStrictEqual(result, { user: null, branch: 'emailRefused' });
+    });
+
+    await test('a connector row of the same Nextcloud instance and uid is found; another instance is not', async () => {
+        const store = makeMockStore([{ ...ACCOUNT, organizationId: 'nc-org', provider: 'nextcloud_connector', nc_uid: 'alice' }]);
+        const identity = { azureUserId: null, email: 'alice@acme.example', localId: 'nextcloud-alice', provider: 'nextcloud', subject: 'alice', emailVerified: false };
+        let result = await resolveExistingSSOUser({ ...identity, ncBaseUrl: 'https://cloud.acme.example' }, store, makeIdentities());
+        assert.strictEqual(result.branch, 'email');
+        result = await resolveExistingSSOUser({ ...identity, ncBaseUrl: 'https://other.example' }, store, makeIdentities());
+        assert.strictEqual(result.branch, 'emailRefused');
+    });
+
+    await test('(provider, subject) resolves first, whatever the e-mail says', async () => {
+        const store = makeMockStore([{ ...ACCOUNT, passwordHash: '$2b$x' }, { id: 'bob', email: 'bob@acme.example' }]);
+        const result = await resolveExistingSSOUser({ azureUserId: null, email: 'bob@acme.example', localId: '1', provider: 'google', subject: 'sub-a', emailVerified: true }, store, makeIdentities([['google', 'sub-a', 'alice']]));
+        assert.strictEqual(result.branch, 'subject');
+        assert.strictEqual(result.user.id, 'alice');
+    });
+
+    await test('a verified e-mail finds an SSO-only account; not one bound to another subject of the provider', async () => {
+        const store = makeMockStore([{ ...ACCOUNT }]);
+        const identity = { azureUserId: null, email: 'alice@acme.example', localId: 'sub-new', provider: 'google', subject: 'sub-new', emailVerified: true };
+        assert.strictEqual((await resolveExistingSSOUser(identity, store, makeIdentities())).branch, 'email');
+        const bound = await resolveExistingSSOUser(identity, store, makeIdentities([['google', 'sub-old', 'alice']]));
+        assert.strictEqual(bound.branch, 'emailRefused');
+    });
+
+    await test('a provider-derived id with a credential of its own, or bound elsewhere, is not taken', async () => {
+        let store = makeMockStore([{ id: 'nextcloud-alice', email: '', passwordHash: '$2b$x' }]);
+        const identity = { azureUserId: null, email: '', localId: 'nextcloud-alice', provider: 'nextcloud', subject: 'alice' };
+        assert.strictEqual((await resolveExistingSSOUser(identity, store, makeIdentities())).branch, 'none');
+        store = makeMockStore([{ id: 'nextcloud-alice', email: '' }]);
+        assert.strictEqual((await resolveExistingSSOUser(identity, store, makeIdentities([['nextcloud', 'other', 'nextcloud-alice']]))).branch, 'none');
+        assert.strictEqual((await resolveExistingSSOUser(identity, store, makeIdentities())).branch, 'legacyId');
+    });
+
+    await test('a legacy raw-uid account is found only with the same e-mail and no SSO identity yet', async () => {
+        const row = { id: 'alice', email: 'alice@acme.example' };
+        const identity = { azureUserId: null, email: 'alice@acme.example', localId: 'nextcloud-alice', provider: 'nextcloud', subject: 'alice', emailVerified: false, legacyRawUid: 'alice' };
+        let result = await resolveExistingSSOUser(identity, makeMockStore([row]), makeIdentities());
+        assert.strictEqual(result.branch, 'legacyRawUid');
+        result = await resolveExistingSSOUser({ ...identity, email: 'mallory@evil.example' }, makeMockStore([row]), makeIdentities());
+        assert.strictEqual(result.branch, 'none', 'the raw uid alone is not enough');
+        result = await resolveExistingSSOUser(identity, makeMockStore([row]), makeIdentities([['google', 'g1', 'alice']]));
+        assert.strictEqual(result.branch, 'emailRefused', 'an account with an SSO identity is not claimed by uid');
+        result = await resolveExistingSSOUser(identity, makeMockStore([{ ...row, passwordHash: '$2b$x' }]), makeIdentities());
+        assert.strictEqual(result.branch, 'emailRefused');
+    });
+
+    await test('a refused e-mail still lets the provider-derived id match its own row', async () => {
+        const store = makeMockStore([{ ...ACCOUNT, passwordHash: '$2b$x' }, { id: 'nextcloud-alice', email: 'alice@acme.example', azureUserId: null }]);
+        const result = await resolveExistingSSOUser({ azureUserId: null, email: 'alice@acme.example', localId: 'nextcloud-alice', provider: 'nextcloud' }, store);
+        assert.strictEqual(result.branch, 'legacyId');
+        assert.strictEqual(result.user.id, 'nextcloud-alice');
+    });
+
+    await test('a verified Google e-mail does not sign in to an account with a password (link from settings instead)', async () => {
+        const store = makeMockStore([{ ...ACCOUNT, passwordHash: '$2b$x' }]);
+        const result = await resolveExistingSSOUser({ azureUserId: null, email: 'alice@acme.example', localId: '1234567890', provider: 'google', subject: '1234567890', emailVerified: true }, store, makeIdentities());
+        assert.strictEqual(result.branch, 'emailRefused');
+    });
+
     // ── resolveOrgByEmailDomain ─────────────────────────────
     await test('resolveOrgByEmailDomain matches via allowedDomains', () => {
         const orgs = [
@@ -237,6 +333,21 @@ async function run() {
         assert.strictEqual(placement.orgRole, 'user');
         assert.strictEqual(placement.status, 'active');
         assert.deepStrictEqual(placement.groups, ['g1', 'g2']);
+    });
+
+    await test('planNewSSOUserPlacement: with the group list, only the org\'s own and plain global defaults apply', () => {
+        const allGroups = [
+            { id: 'g1', organizationId: 'acme' },
+            { id: 'other', organizationId: 'beta' },
+            { id: 'admins', organizationId: null, permissions: ['all'] },
+            { id: 'roled', organizationId: null, roles: ['admin'] },
+            { id: 'users', organizationId: null, permissions: ['read', 'chat'] },
+        ];
+        const placement = planNewSSOUserPlacement(
+            { id: 'acme', autoApproveSSO: true, defaultGroups: ['g1', 'other', 'admins', 'roled', 'users', 'gone'] },
+            { allGroups },
+        );
+        assert.deepStrictEqual(placement.groups, ['g1', 'users']);
     });
 
     await test('planNewSSOUserPlacement: non-autoApprove org → pending, empty orgRole, no groups', () => {

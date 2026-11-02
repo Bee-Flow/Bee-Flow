@@ -8,6 +8,7 @@
 
 const { UUID_RE, PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
  * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
@@ -232,6 +233,14 @@ function makeCatalogFns(ctx) {
                     [id]
                 );
             } catch (e) { log.debug('projects table may not exist yet on first boot', e); }
+            // Rows derived from the base that no foreign key reaches: the local
+            // chunks and the pre-delete document snapshots go with it.
+            const ifPresent = (/** @type {unknown} */ e) => { if (!isMissingTable(e)) throw e; };
+            const owner = await getOne('SELECT tenant_id FROM knowledge_bases WHERE id = $1', [id]);
+            if (owner) {
+                await run('DELETE FROM kb_chunks WHERE tenant_id = $1 AND knowledge_base_id = $2', [owner.tenant_id, String(id)]).catch(ifPresent);
+            }
+            await run('DELETE FROM kb_document_versions WHERE knowledge_base_id = $1', [id]).catch(ifPresent);
             await run('DELETE FROM knowledge_bases WHERE id = $1', [id]);
             return true;
         },

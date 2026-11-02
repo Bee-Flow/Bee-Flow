@@ -465,6 +465,8 @@ const SAAS_CODE_TO_CATEGORY = {
     pending_admin_approval: 'awaiting_admin_approval',
     org_create_failed: 'saas_transient',
     pairing_required: 'pairing_required',
+    // An existing binding the connector can no longer prove: a pairing code rebinds it.
+    NC_REBIND_PROOF_REQUIRED: 'pairing_required',
 };
 
 // Categorise a thrown error into one of the well-known buckets that the
@@ -812,6 +814,31 @@ let _bootstrapInFlight = null;
 // answers, its result belongs to the abandoned target and is dropped instead
 // of overwriting the newer binding.
 let _provisionGeneration = 0;
+// The tenant key a re-bootstrap (invalidateAndRebootstrap) held before it
+// dropped its cache, with the server it belongs to. The server releases an
+// existing binding only to a bootstrap signed with that key (X-Beeflow-Sig);
+// it is used for that one server only and cleared when the re-bootstrap ends.
+/** @type {{ key: string, apiBaseUrl: string } | null} */
+let _rebindKey = null;
+
+const BOOTSTRAP_PATH = '/auth/connector/bootstrap';
+
+/** @param {string | null | undefined} url */
+const sameServer = (url) => String(url || '').replace(/\/+$/, '') === String(config.apiBaseUrl || '').replace(/\/+$/, '');
+
+/**
+ * X-Beeflow-Sig for a bootstrap body, the scheme every connector-to-server
+ * call uses: HMAC-SHA256 over `ts\nPOST\n<path>\n<body>` with the tenant key.
+ * Null when no key for the current server is held.
+ * @param {string} body
+ */
+function rebindSignature(body) {
+    if (!_rebindKey || !sameServer(_rebindKey.apiBaseUrl)) return null;
+    const ts = Math.floor(Date.now() / 1000);
+    const sig = require('crypto').createHmac('sha256', _rebindKey.key)
+        .update(`${ts}\nPOST\n${BOOTSTRAP_PATH}\n${body}`).digest('hex');
+    return `${ts}.${sig}`;
+}
 /**
  * @returns {Promise<void>}
  */
@@ -943,14 +970,18 @@ async function _provisionFlow() {
             headers['X-Beeflow-Pairing-Code'] = config.pairingCode;
             log.info(`[Bootstrap] Attaching pairing code ${config.pairingCode.slice(0, 4)}*** for redemption`);
         }
-        res = await fetch(`${config.apiBaseUrl}/auth/connector/bootstrap`, {
+        // ncAdmins carries EVERY NC admin (with email) so the SaaS can
+        // provision them all as org_admins. The X-Beeflow-NC-Admin-* headers
+        // above still carry the primary (admins[0]) for backward compat with
+        // SaaS versions that predate ncAdmins.
+        const body = JSON.stringify({ themingName: caps.themingName, version: caps.version, ncAdmins: admins });
+        // A re-bootstrap of an existing binding proves it with the key it held.
+        const sig = rebindSignature(body);
+        if (sig) headers['X-Beeflow-Sig'] = sig;
+        res = await fetch(`${config.apiBaseUrl}${BOOTSTRAP_PATH}`, {
             method: 'POST',
             headers,
-            // ncAdmins carries EVERY NC admin (with email) so the SaaS can
-            // provision them all as org_admins. The X-Beeflow-NC-Admin-* headers
-            // above still carry the primary (admins[0]) for backward compat with
-            // SaaS versions that predate ncAdmins.
-            body: JSON.stringify({ themingName: caps.themingName, version: caps.version, ncAdmins: admins }),
+            body,
             signal: AbortSignal.timeout(15_000),
         });
     } catch (err) {
@@ -1082,6 +1113,8 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
         cacheFile: null,
         pairingCode: config.pairingCode,
     };
+    const rebindKey = prev.tenantKey && prev.apiBaseUrl ? { key: prev.tenantKey, apiBaseUrl: prev.apiBaseUrl } : null;
+    _rebindKey = rebindKey;
     if (apiBaseUrl) config.apiBaseUrl = apiBaseUrl.replace(/\/+$/, '');
     const cachePath = path.join(config.persistentStorage, CACHE_FILE);
     try {
@@ -1134,6 +1167,8 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
             await fs.writeFile(cachePath, prev.cacheFile, { mode: 0o600 }).catch(() => {});
         }
         throw err;
+    } finally {
+        if (_rebindKey === rebindKey) _rebindKey = null;
     }
 }
 

@@ -320,14 +320,26 @@ module.exports = {
         'POST /auth/opaque/register/finish': {
             enforcement: 'handler',
             scope: { kind: 'selfOnly' },
-            note: 'opaqueRoutes.js — the account is the caller\'s own (taken from the session, never the body). requireRecentAuth(req, res, …) in the body (auth/recentAuth.js) is a STEP-UP, not a role check: when an OPAQUE record is already in place, replacing it needs a sign-in, second factor, OPAQUE password or PIN exchange within the last ten minutes; a first registration passes without it. confirmReplace stays as the explicit acknowledgement that existing encrypted data may become unreadable.',
+            note: 'opaqueRoutes.js — the account is the caller\'s own (taken from the session, never the body). requireCredentialProof(req, res, …) in the body (auth/opaqueCredentialGuards.js) is a STEP-UP, not a role check: never over a connector session or a bridge token, and always with a sign-in, second factor, OPAQUE password or PIN exchange within the last ten minutes (auth/recentAuth.js); the legacy migration and the signup run right after a sign-in. A replaced credential ends the account\'s other sessions. confirmReplace stays as the explicit acknowledgement that existing encrypted data may become unreadable.',
             verifiedBy: 'auth/opaqueRoutes.validation.test.js',
+        },
+        'POST /auth/mfa/enable': {
+            enforcement: 'handler',
+            scope: { kind: 'selfOnly' },
+            note: 'mfaRoutes.js — the account is the caller\'s own (taken from the session). Turning on a first second factor needs requireRecentAuth(req, res, …) in the body (auth/recentAuth.js), a STEP-UP rather than a role check; with a second factor already on, the caller proves one it has (auth/securityKeys/proof.js).',
+            verifiedBy: 'auth/mfaRoutes.test.js',
         },
         'POST /auth/opaque/pin/register/finish': {
             enforcement: 'handler',
             scope: { kind: 'selfOnly' },
             note: 'As POST /auth/opaque/register/finish, for the SSO encryption PIN: the same requireRecentAuth(req, res, …) step-up when a PIN is already in place (a PIN unlock counts as a proof); first-time setup right after the SSO sign-in passes.',
             verifiedBy: 'auth/opaqueRoutes.validation.test.js',
+        },
+        'POST /auth/sso-encryption-setup': {
+            enforcement: 'handler',
+            scope: { kind: 'selfOnly' },
+            note: 'ssoEncryptionRoutes.js — the account is the caller\'s own (taken from the session). Replacing a PIN that is already set needs requireRecentAuth(req, res, …) in the body (auth/recentAuth.js), the same step-up as POST /auth/opaque/pin/register/finish; a first-time setup right after the SSO sign-in passes.',
+            verifiedBy: 'auth/login/ssoEncryptionRoutes.validation.test.js',
         },
     },
 
@@ -354,10 +366,6 @@ module.exports = {
         'POST /auth/groups/:id/members',
         'DELETE /auth/groups/:id/members/:userId',
         'PUT /auth/groups/:id/access',
-        // Org mutation + availability
-        'PUT /auth/organizations/:id',
-        'GET /auth/organizations/:orgId/org-availability',
-        'PUT /auth/organizations/:orgId/org-availability',
         // Self-service org surfaces gated by requireOrgAdminLike(req) in the body
         'GET /auth/me/active-features',
         'PUT /auth/me/active-features',

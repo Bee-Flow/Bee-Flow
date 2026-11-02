@@ -40,6 +40,10 @@ const { oauthStatesMatch, knownNativeAppRedirect } = require('./shared');
 const { exchangeCodeForUser } = require('./providerTokenExchange');
 const { resolveSsoUser } = require('./ssoUserProvisioning');
 const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
+const { takeLinkIntent, completeLink, keepProviderSessionKeys } = require('./ssoLinkFlow.mts');
+
+/** A refused link-required sign-in also says that linking from settings is possible. */
+const LINK_HINT = '&hint=link_from_settings';
 
 /**
  * Check if encryption is enabled for a user based on their org's subscription plan.
@@ -48,15 +52,14 @@ const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
  */
 /**
  * Mint the bridge token for an embedded or native sign-in and file it under
- * the pickup id, bound to the client's challenge when it sent one. True when
- * the deposit landed.
+ * the pickup id, bound to the client's challenge. True when the deposit
+ * landed.
  * @param {import('express').Request} req
  * @param {string} provider
  * @param {string} userId
- * @param {string} pickupId
- * @param {string | undefined} pickupChallenge
+ * @param {{ pickupId: string, pickupChallenge: string | undefined, nativeClient: boolean }} pickup
  */
-async function depositPickup(req, provider, userId, pickupId, pickupChallenge) {
+async function depositPickup(req, provider, userId, { pickupId, pickupChallenge, nativeClient }) {
     try {
         const { setSessionToken, setPickup, generateToken } = require('../../utils/sessionToken');
         const appPasswordData = await userStore.getAppPassword(userId);
@@ -90,6 +93,9 @@ async function depositPickup(req, provider, userId, pickupId, pickupChallenge) {
             noOrganization: req.session.noOrganization || false,
             // The sign-in time, for the step-ups (auth/recentAuth.js).
             authenticatedAt: req.session.authenticatedAt,
+            // A native-app sign-in: only such a token may be rolled over
+            // /api/session-token (utils/sessionToken.js sessionTokenGrant).
+            nativeClient: !!nativeClient,
         });
         // The challenge rides along so the claim can be checked against it
         // (utils/sessionToken.js claimPickup). The id is not logged: together
@@ -153,7 +159,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
             delete req.session.oauthAppRedirect;
             req.session.save();
 
-            const deposited = pickupId ? await depositPickup(req, provider, userId, pickupId, pickupChallenge) : false;
+            const deposited = pickupId ? await depositPickup(req, provider, userId, { pickupId, pickupChallenge, nativeClient: !!appRedirect }) : false;
 
             // A native client goes back to its own scheme. That 302 is not a
             // navigation anybody sees — it is what makes Android deliver an
@@ -219,7 +225,8 @@ function callbackRedirectUri(req, provider) {
     let host = process.env.SERVER_PUBLIC_HOST;
     let protocol = process.env.SERVER_PROTOCOL || 'https';
     if (!host) {
-        const forwardedHost = req.get('X-Forwarded-Host');
+        // As on the login route: in production only the Host header decides.
+        const forwardedHost = process.env.NODE_ENV === 'production' ? undefined : req.get('X-Forwarded-Host');
         if (forwardedHost) {
             host = forwardedHost;
         } else {
@@ -256,6 +263,8 @@ router.get('/callback/:provider', async (req, res) => {
         || req.session.returnTo
         || 'http://localhost:5173';
     delete req.session.returnTo;
+    // A link started by ?intent=link is for this callback only (ssoLinkFlow.mts).
+    const linkUserId = takeLinkIntent(req.session);
 
     if (error) {
         log.error(`[OAuth/${provider}] ERROR from provider: ${error} — ${error_description || 'no description'}`);
@@ -289,10 +298,16 @@ router.get('/callback/:provider', async (req, res) => {
     delete req.session.oauthCodeVerifier;
 
     try {
-        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- exchange.error is one of providerTokenExchange's fixed codes and returnTo comes from the session (see above)
-        const exchange = await exchangeCodeForUser({
-            provider, config, code, redirectUri: REDIRECT_URI, codeVerifier, nonce, session: req.session,
-        });
+        // A link leaves the signed-in session as it was: the exchange's
+        // provider fields are put back once it has run.
+        const restoreSession = linkUserId ? keepProviderSessionKeys(req.session) : null;
+        let exchange;
+        try {
+            // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- exchange.error is one of providerTokenExchange's fixed codes and returnTo comes from the session (see above)
+            exchange = await exchangeCodeForUser({
+                provider, config, code, redirectUri: REDIRECT_URI, codeVerifier, nonce, session: req.session,
+            });
+        } finally { restoreSession?.(); }
         if (exchange.error) return res.redirect(`${returnTo}?error=${exchange.error}`);
         const { tokenData, user } = exchange;
 
@@ -301,8 +316,16 @@ router.get('/callback/:provider', async (req, res) => {
             return res.redirect(`${returnTo}?error=failed_to_get_user_info`);
         }
 
+        if (linkUserId) {
+            const linked = await completeLink({ session: req.session, linkUserId, provider, subject: user.subject });
+            // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- returnTo comes from the session (see above); the error is one of ssoLinkFlow's fixed codes
+            return req.session.save(() => res.redirect('error' in linked
+                ? `${returnTo}?error=${linked.error}`
+                : `${returnTo}?linked=${encodeURIComponent(provider)}`));
+        }
+
         const resolved = await resolveSsoUser({ req, provider, user, config });
-        if (resolved.error) return res.redirect(`${returnTo}?error=${resolved.error}`);
+        if (resolved.error) return res.redirect(`${returnTo}?error=${resolved.error}${resolved.error === 'sso_link_required' ? LINK_HINT : ''}`);
         const { freshUser, userHasOrg, pendingApproval, isPersonalAccount } = await resolveOrgStanding({
             provider, user, msTenant: resolved.msTenant, signupIntent: resolved.signupIntent,
         });

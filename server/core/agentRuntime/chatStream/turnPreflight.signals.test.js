@@ -186,3 +186,20 @@ test('nothing but the recorder\'s own keys travels: no agent, conversation or te
         assert.ok(!wire.includes(leak), `the recorder was handed "${leak}"`);
     }
 });
+
+test('a DLP-tokenised message is the stored copy from the first write on', async () => {
+    fx.shield = { ...fx.shield, dlpEnabled: true };
+    fx.piiReport = { status: 'deferred_to_dlp', decision: null, categories: [] };
+    fx.dlp = { outcome: 'redact', blocked: false, scanStatus: 'ok', categories: ['EmailAddress'], tooShort: false, redactedText: 'mail [EMAIL_1]' };
+    const userSave = { role: 'user', content: 'mail a@b.example' };
+    const out = await runTurnPreflight({
+        agent: AGENT, agentId: AGENT.id, userId: MEMBER, userMessage: 'mail a@b.example', userAuth: {},
+        messageMetadata: { orgId: 'org-1', chatSignals: MARKED },
+        globalConfig: {}, config: { providerType: 'openai', url: 'https://api.openai.com/v1' }, modelToUse: 'gpt-x',
+        conversation: { id: 'conv-99', messages: [] }, messages: [{ role: 'user', content: 'mail a@b.example' }],
+        tools: [], validProjectId: null, validProject: null, isStandardTier: false,
+        onEvent: () => {}, userSave, promptUserMsg: null,
+    });
+    assert.equal(userSave.content, 'mail [EMAIL_1]');
+    assert.equal(out.processedUserMessage, 'mail [EMAIL_1]');
+});
