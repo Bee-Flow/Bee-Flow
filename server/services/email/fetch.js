@@ -412,10 +412,10 @@ async function getAttachmentBytes({ provider, tokens, onRefresh, mailbox = {}, m
     if (provider === 'outlook') {
         // graphBase, not a hardcoded /me: a delegated shared mailbox is exactly
         // the case where attachments matter, and /me would silently read the
-        // agent's own mailbox instead.
+        // agent's own mailbox instead. No $select: Graph refuses contentBytes
+        // on the base `attachment` type (it is fileAttachment's own property).
         const att = await graphFetchFromTokens(tokens, onRefresh,
-            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`
-            + '?$select=id,name,contentType,size,contentBytes');
+            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`);
         // Item and reference attachments (a forwarded mail, a OneDrive link)
         // carry no contentBytes at all — refusing them by type beats handing a
         // caller an empty buffer.

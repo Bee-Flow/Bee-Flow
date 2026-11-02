@@ -31,6 +31,7 @@
 const crypto = require('crypto');
 const MailComposer = require('nodemailer/lib/mail-composer').default;
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
+const { graphAttachments } = require('./graphAttachments.mts');
 
 // ── Pure helpers (moved verbatim from supportMailer.js) ──────────────────────
 
@@ -309,15 +310,17 @@ async function sendViaGmail({
     };
 }
 
-/** @typedef {{ sourceProviderMessageId?: string | number | boolean }} SendViaOutlookArgs */
+/** @typedef {{ sourceProviderMessageId?: string | number | boolean, attachments?: MailComposerAttachment[] }} SendViaOutlookArgs */
 /**
  * @param {SendViaOutlookArgs} param0
  */
 async function sendViaOutlook({
     tokens, onRefresh, mailbox, to, cc, subject, htmlBody,
-    sourceProviderMessageId, providerThreadId, replyStrategy,
+    sourceProviderMessageId, providerThreadId, replyStrategy, attachments,
 }) {
     const html = sanitizeHtml(htmlBody);
+    // Built before the first call, so a refusal never leaves a half-sent draft.
+    const files = graphAttachments(attachments);
     // A shared mailbox is addressed by UPN/SMTP; `/me` is the signed-in user's own.
     const base = mailbox.mode === 'shared' && mailbox.address
         ? `/users/${encodeURIComponent(mailbox.address)}`
@@ -333,18 +336,25 @@ async function sendViaOutlook({
             method: 'PATCH',
             body: JSON.stringify({ body: { contentType: 'HTML', content: html } }),
         });
+        for (const file of files) {
+            await graphFetchFromTokens(tokens, onRefresh, `${base}/messages/${draftId}/attachments`, {
+                method: 'POST',
+                body: JSON.stringify(file),
+            });
+        }
         await graphFetchFromTokens(tokens, onRefresh, `${base}/messages/${draftId}/send`, { method: 'POST' });
         return { providerMessageId: draftId, providerThreadId: providerThreadId || null, rfc822MessageId: null };
     }
 
     if (sourceProviderMessageId) {
         // One call, and only Mail.Send / Mail.Send.Shared is required.
-        /** @type {{ toRecipients?: { emailAddress: { address: string; }; }[]; ccRecipients?: { emailAddress: { address: string; }; }[] }} */
+        /** @type {{ toRecipients?: { emailAddress: { address: string; }; }[]; ccRecipients?: { emailAddress: { address: string; }; }[], attachments?: import('./graphAttachments.mts').GraphFileAttachment[] }} */
         const message = {};
         const toList = graphRecipients(to);
         const ccList = graphRecipients(cc);
         if (toList.length) message.toRecipients = toList;
         if (ccList.length) message.ccRecipients = ccList;
+        if (files.length) message.attachments = files;
         await graphFetchFromTokens(tokens, onRefresh,
             `${base}/messages/${encodeURIComponent(sourceProviderMessageId)}/reply`,
             { method: 'POST', body: JSON.stringify({ message, comment: html }) });
@@ -358,6 +368,7 @@ async function sendViaOutlook({
     };
     const ccList = graphRecipients(cc);
     if (ccList.length) message.ccRecipients = ccList;
+    if (files.length) message.attachments = files;
     await graphFetchFromTokens(tokens, onRefresh, `${base}/sendMail`, {
         method: 'POST',
         body: JSON.stringify({ message, saveToSentItems: true }),
@@ -376,7 +387,8 @@ const PROVIDER_SENDERS = { gmail: sendViaGmail, outlook: sendViaOutlook };
  * References chain, `providerThreadId` the Gmail threadId / Graph
  * conversationId, `sourceProviderMessageId` the message being replied to,
  * `messageId` overrides the minted Message-ID, `messageIdSeed` is used when
- * minting one, `attachments` are MailComposer attachments (Gmail only),
+ * minting one, `attachments` are MailComposer attachments with their bytes in
+ * `content` (Outlook sends them as fileAttachments, at most 3 MB in total),
  * `replyStrategy` defaults to 'reply'.
  *
  * @param {{

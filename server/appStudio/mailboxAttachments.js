@@ -46,6 +46,7 @@ const { resolveMailboxIdentity } = require('./mailboxIdentity');
 const emailFetch = require('../services/email/fetch');
 const { viewerMayReadAttachment } = require('./attachmentAccess');
 const { bestEffort } = require('../utils/bestEffort');
+const { providerFailure, materializeErrorBody } = require('./mailboxProviderFailure.mts');
 
 // The formats an LLM or a browser can
 // actually do something with. Everything else is refused rather than stored.
@@ -315,7 +316,7 @@ async function materializeAttachment(app, model, {
         messageId: descriptor.messageId,
         attachmentId: descriptor.attachmentId,
         maxBytes: ceiling,
-    });
+    }).catch((err) => { throw providerFailure(err, identity.provider); });
     if (!buffer || !buffer.length) throw httpError(422, 'That attachment came back empty');
 
     // 6. Trust the BYTES, never the provider's content type — that header is
@@ -536,6 +537,7 @@ async function storeDerivedFile(app, { buffer, name, recordId, fieldKey, allowAr
 
 module.exports = {
     materializeAttachment,
+    materializeErrorBody,
     locateDescriptor,
     assertAttachmentTotalBytes,
     viewerMayReadAttachment,

@@ -535,7 +535,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
         const status = Number.isInteger(err?.status) ? err.status : 500;
         // 5xx is ours and gets logged; a 4xx is the caller being told no.
         if (status >= 500) log.error(`[StudioAppFiles/materialize] ${err.message}`);
-        res.status(status).json({ error: status >= 500 ? 'Failed to open attachment' : err.message });
+        res.status(status).json(mailboxAttachments.materializeErrorBody(err, status));
     }
 });
 

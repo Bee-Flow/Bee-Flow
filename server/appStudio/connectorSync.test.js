@@ -949,3 +949,25 @@ test('when the last reference falls — across two tables in one purge — the b
     assert.deepStrictEqual(deleted.ledger, ['f2', 'f1'], 'primary step first, dependent after');
     assert.deepStrictEqual(deleted.blobs, ['owner-1/app-1/shared'], 'gone exactly once, when the LAST reference fell');
 });
+
+// ── Recorded replies ────────────────────────────────────────────────
+// A reply send_email recorded under a `local-` key gives its row to the
+// provider's copy before anything is written (mailboxRecordedReplies.mts).
+
+test('a mailbox lets recorded replies be adopted before the write; a failure there does not stop the sync', async () => {
+    const order = [];
+    const h = harness({ runs: [{ rows: [{ id: 'm1' }], grains: [{ level: 0, rows: [{ id: 'm1' }] }] }] });
+    const seen = [];
+    h._deps.adoptRecordedReplies = async (_app, _model, conn, grains) => { order.push('adopt'); seen.push([conn.kind, grains.length]); throw new Error('boom'); };
+    const write = h._deps.writeRecordBatch;
+    h._deps.writeRecordBatch = (...a) => { order.push('write'); return write(...a); };
+
+    await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }, { kind: 'mailbox' }), { _deps: h._deps });
+    assert.deepStrictEqual(order, ['adopt', 'write']);
+    assert.deepStrictEqual(seen, [['mailbox', 1]]);
+    assert.strictEqual(h.log.inserts.length, 1, 'the batch is still written');
+
+    order.length = 0;
+    await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }), { _deps: h._deps });
+    assert.ok(!order.includes('adopt'), 'other kinds never ask');
+});
