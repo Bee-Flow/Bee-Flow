@@ -2,6 +2,7 @@ import React from 'react';
 import FormFieldRow from './FormFieldRow';
 import { HONEYPOT_FIELD } from './formBlockModel';
 import type { FormField } from './formBlockModel';
+import type { FormText } from './formText';
 import type { useFormSubmission } from './useFormSubmission';
 
 interface Props {
@@ -12,12 +13,13 @@ interface Props {
     consentText: string;
     preview: boolean;
     form: ReturnType<typeof useFormSubmission>;
+    text: FormText;
 }
 
 /** The form itself: fields, consent, the honeypot and the submit button. */
-export default function FormBody({ uid, title, submitLabel, fields, consentText, preview, form }: Props) {
+export default function FormBody({ uid, title, submitLabel, fields, consentText, preview, form, text }: Props) {
     return (
-        <form className="cms-form-card" onSubmit={form.submit} noValidate aria-label={title || 'Form'}>
+        <form className="cms-form-card" onSubmit={form.submit} noValidate aria-label={title || text.form}>
             {fields.map(f => (
                 <FormFieldRow key={f.id} field={f} inputId={`${uid}-${f.id}`}
                     value={form.answers[f.id]} error={form.errors[f.id]}
@@ -41,7 +43,7 @@ export default function FormBody({ uid, title, submitLabel, fields, consentText,
             </div>
             {form.formError ? <p className="cms-form-error" role="alert">{form.formError}</p> : null}
             <button type="submit" className="cms-form-submit" disabled={preview || form.phase === 'sending'}>
-                {submitLabel || 'Send'}
+                {submitLabel || text.send}
             </button>
         </form>
     );

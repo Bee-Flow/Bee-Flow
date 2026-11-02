@@ -15,6 +15,7 @@ const {
 } = require('./localeOverrides');
 const { getPublishedSnapshot } = require('./publishing');
 const { cleanOverrideMedia, applyOverrideMedia } = require('./localeMedia');
+const { LOCALE_PREFIXES } = require('./slugRules');
 
 // ── Effective content (preview-time render) ──────────────────────────
 
@@ -27,11 +28,18 @@ const { cleanOverrideMedia, applyOverrideMedia } = require('./localeMedia');
  * own URL space, not Bee Flow's. (For a live site published at a custom
  * domain, these become real navigation; in the admin iframe, they stay
  * inside the preview route.)
+ *
+ * `prefix` is the URL prefix of the page's language ('/nl', or '' for the
+ * default language): a Dutch page links to the Dutch version of the target,
+ * so a visitor who clicks on stays in Dutch and a shared link is Dutch too.
+ * @param {StoredLink | null | undefined} link
+ * @param {Array<{ id: string, slug: string, isHomepage?: boolean }>} pages
+ * @param {string} [prefix]
  */
-function resolveLink(link, pages) {
+function resolveLink(link, pages, prefix = '') {
     if (!link || typeof link !== 'object') return { href: '#' };
     if (link.kind === 'external') {
-        const out = { href: link.url || '#' };
+        const out = { href: localizePath(link.url || '#', prefix, pages) };
         if (link.newTab) { out.target = '_blank'; out.rel = 'noopener noreferrer'; }
         return out;
     }
@@ -41,26 +49,85 @@ function resolveLink(link, pages) {
     if (link.kind === 'app') {
         return { href: link.path || '/' };
     }
-    if (link.kind === 'page') {
-        const page = pages.find(p => p.id === link.pageId);
-        if (!page) return { href: '#', broken: true };
-        // The public site uses path-based routing: `/` for the homepage,
-        // `/<slug>` for everything else. AppRoot in App.jsx routes any
-        // non-reserved single-segment path into the marketing renderer.
-        const base = page.isHomepage ? '/' : `/${encodeURIComponent(page.slug)}`;
-        return { href: link.anchor ? `${base}#${link.anchor}` : base };
-    }
+    if (link.kind === 'page') return pageHref(link, pages, prefix);
     return { href: '#' };
 }
 
-function resolveLinksInTree(node, pages) {
-    if (Array.isArray(node)) return node.map(n => resolveLinksInTree(n, pages));
+/**
+ * A link to a page of the site. The public site uses path-based routing: `/`
+ * for the homepage, `/<slug>` for everything else, each behind the language
+ * prefix. AppRoot in App.jsx routes any non-reserved single-segment path into
+ * the marketing renderer.
+ * @param {StoredLink} link
+ * @param {Array<{ id: string, slug: string, isHomepage?: boolean }>} pages
+ * @param {string} prefix
+ */
+function pageHref(link, pages, prefix) {
+    const page = pages.find(p => p.id === link.pageId);
+    if (!page) return { href: '#', broken: true };
+    const base = page.isHomepage ? (prefix || '/') : `${prefix}/${encodeURIComponent(page.slug)}`;
+    return { href: link.anchor ? `${base}#${link.anchor}` : base };
+}
+
+/**
+ * The URL prefix of a language on the public site: '/nl' for a language with
+ * its own URL space, '' for the default language and for a language the
+ * router does not prefix (a regional tag falls back to its base language).
+ * @param {string} locale
+ * @param {string} defaultLocale
+ */
+function localePathPrefix(locale, defaultLocale) {
+    if (!locale || locale === defaultLocale) return '';
+    if (LOCALE_PREFIXES.has(locale)) return `/${locale}`;
+    const base = locale.split('-')[0];
+    return base !== defaultLocale && LOCALE_PREFIXES.has(base) ? `/${base}` : '';
+}
+
+/**
+ * Put a site path into the page's language: '/contact' becomes '/nl/contact'
+ * and '/' becomes '/nl'. Only a path to the homepage or to a page of this site
+ * moves; '/app', '/api', an asset, a path that already carries the prefix and
+ * anything that is not a site path (https:, mailto:, '#...') stay as they are.
+ * @param {string} href
+ * @param {string} prefix
+ * @param {Array<{ slug: string }>} pages
+ */
+function localizePath(href, prefix, pages) {
+    if (!prefix || typeof href !== 'string' || !href.startsWith('/') || href.startsWith('//')) return href;
+    const m = /^([^?#]*)(.*)$/.exec(href);
+    const path = m ? m[1] : href;
+    const tail = m ? m[2] : '';
+    if (path === '/') return `${prefix}${tail}`;
+    const first = path.split('/')[1];
+    if (`/${first}` === prefix) return href;
+    if (!pages.some(p => p.slug === first)) return href;
+    return `${prefix}${path}${tail}`;
+}
+
+// Block fields that hold a bare internal path instead of a Link object
+// (a features card's whole-card link).
+const RAW_PATH_KEYS = new Set(['cardUrl']);
+
+/**
+ * @param {unknown} node
+ * @param {Array<{ id: string, slug: string, isHomepage?: boolean }>} pages
+ * @param {string} [prefix] see resolveLink
+ * @returns {unknown}
+ */
+function resolveLinksInTree(node, pages, prefix = '') {
+    if (Array.isArray(node)) return node.map(n => resolveLinksInTree(n, pages, prefix));
     if (!isPlainObject(node)) return node;
-    if (typeof node.kind === 'string' && ['page', 'external', 'anchor', 'app'].includes(node.kind)) {
-        return resolveLink(node, pages);
+    const obj = /** @type {Record<string, unknown>} */ (node);
+    if (typeof obj.kind === 'string' && ['page', 'external', 'anchor', 'app'].includes(obj.kind)) {
+        return resolveLink(/** @type {StoredLink} */ (obj), pages, prefix);
     }
+    /** @type {Record<string, unknown>} */
     const out = {};
-    for (const [k, v] of Object.entries(node)) out[k] = resolveLinksInTree(v, pages);
+    for (const [k, v] of Object.entries(obj)) {
+        out[k] = RAW_PATH_KEYS.has(k) && typeof v === 'string'
+            ? localizePath(v, prefix, pages)
+            : resolveLinksInTree(v, pages, prefix);
+    }
     return out;
 }
 
@@ -165,8 +232,13 @@ async function resolveEffective(siteId, slug, locale, ctx) {
         if (siteOverride.header) header = mergeLocaleContent(header, cleanOverrideMedia(siteOverride.header));
         if (siteOverride.footer) footer = mergeLocaleContent(footer, cleanOverrideMedia(siteOverride.footer));
     }
-    header = resolveLinksInTree(header, site.pages);
-    footer = resolveLinksInTree(footer, site.pages);
+    // Links point into the page's own language (see resolveLink).
+    const prefix = localePathPrefix(reqLocale, defaultLocale);
+    header = resolveLinksInTree(header, site.pages, prefix);
+    footer = resolveLinksInTree(footer, site.pages, prefix);
+    if (isPlainObject(header.logo) && typeof header.logo.url === 'string') {
+        header.logo = { ...header.logo, url: localizePath(header.logo.url, prefix, site.pages) };
+    }
     // Cookie banner is global per site (no locale layer — text carries all
     // locales) and has no internal page-links, so no resolveLinksInTree.
     const cookieBanner = deepMerge(clone(SITE_DEFAULTS.cookieBanner), site.cookieBanner);
@@ -204,7 +276,7 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     let seo = pageDoc.seo;
     if (pageOverride?.seo) seo = mergeLocaleContent(pageDoc.seo, pageOverride.seo);
 
-    blocks = blocks.map(b => ({ ...b, content: resolveLinksInTree(b.content, site.pages) }));
+    blocks = blocks.map(b => ({ ...b, content: resolveLinksInTree(b.content, site.pages, prefix) }));
 
     const page = {
         id: entry.id,
@@ -222,7 +294,8 @@ async function resolveEffective(siteId, slug, locale, ctx) {
 }
 
 module.exports = {
-    resolveLink, resolveLinksInTree, getEffective, getEffectivePublished, resolveEffective,
+    resolveLink, resolveLinksInTree, localePathPrefix, localizePath, getEffective, getEffectivePublished, resolveEffective,
 };
 
+/** @typedef {{ kind?: string, url?: string, newTab?: boolean, anchor?: string, path?: string, pageId?: string }} StoredLink a Link as the CMS stores it */
 /** @typedef {{ getSite: () => Promise<import('./shared').SiteDoc | null>, getPage: (pageId: string) => Promise<import('./shared').PageDoc | null>, getSiteLocaleOverride: (loc: string) => Promise<import('./shared').CmsDoc | null>, getPageLocaleOverride: (pageId: string, loc: string) => Promise<import('./shared').CmsDoc | null> }} ResolveCtx */

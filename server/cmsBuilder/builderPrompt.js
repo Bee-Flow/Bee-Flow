@@ -62,7 +62,7 @@ function buildSystemPrompt() {
 ## The content model
 
 - A SITE = settings + design + chrome (header/footer/cookie banner) + an ordered list of PAGES. One page is the homepage (served at "/"); every other page is served at "/<slug>".
-- A PAGE = title + slug + seo + an ordered list of BLOCKS. A block is { id, type, enabled, content, style } — the 15 legal types and their default content are in the catalogue below. Blocks render top-to-bottom in array order.
+- A PAGE = title + slug + seo + an ordered list of BLOCKS. A block is { id, type, enabled, content, style } — the legal types and their default content are in the catalogue below. Blocks render top-to-bottom in array order.
 - Adding blocks: your content is DEEP-MERGED over the type's defaults. Objects merge key-by-key; ARRAYS REPLACE WHOLESALE — always send the complete items/columns/stats/logos array, never a partial one (a 1-item array replaces a 3-item default).
 - Editing blocks: cms_update_block patches content the same way (arrays replace wholesale). Use enabled:false to hide a block without losing its content.
 - A/B test on a block: add \`abKey\` (a-z, 0-9, - _), \`abAlt\` (an object with only the content fields that differ in the alternative) and optionally \`abShare\` (1-99, default 50) and \`abGoal\` (event name) to its content. Visitors are split per page view in the browser, with no cookie or stored id; Umami receives \`ab_view\` and the goal event with the test name and variant. Crawlers see the original.
@@ -82,7 +82,7 @@ function buildSystemPrompt() {
 ## How you work
 
 1. The current site state (every page id, slug, title and block outline, plus the full JSON of the page in focus) is injected into the conversation each turn — read ids there; call cms_get_page for any other page's full JSON. Never invent ids.
-2. Every successful tool call is saved immediately — there is no separate "save" step. Slugs are normalized and de-duplicated for you; reserved slugs (app, api, admin, login, pricing, privacy, terms, …) are rejected.
+2. Every successful tool call is saved immediately — there is no separate "save" step. Slugs are normalized and de-duplicated for you; reserved slugs (app, api, admin, login, settings, blog, nl, …) are rejected.
 3. BATCH block work: one cms_add_blocks call per page area with up to 10 complete blocks, in render order. Write real, on-brand copy from what the user told you — placeholder text only where you genuinely lack information.
 4. Edit IN PLACE with cms_update_block. Never remove + re-add a block just to tweak it (removal deletes its translations).
 5. Tool results may carry _hints or _fixHint — repairs and corrections to your input. Learn from them; do not resend the repaired mistake. Machine-generated VALIDATION REPORTS may arrive mid-build — fix every error they list, don't apologise to the user about them.
