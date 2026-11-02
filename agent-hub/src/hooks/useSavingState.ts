@@ -41,6 +41,9 @@ export default function useSavingState(
     const [state, setState] = useState<SavingStateKind>('idle');
     const [error, setErrorState] = useState<unknown>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // A save can settle after unmount; a flash timer armed then would outlive
+    // the cleanup below and fire into a document that is gone.
+    const mountedRef = useRef(false);
 
     const clearTimer = () => {
         if (timerRef.current != null) {
@@ -49,7 +52,13 @@ export default function useSavingState(
         }
     };
 
-    useEffect(() => () => clearTimer(), []);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            clearTimer();
+        };
+    }, []);
 
     const setSaving = useCallback(() => {
         clearTimer();
@@ -61,7 +70,7 @@ export default function useSavingState(
         clearTimer();
         setErrorState(null);
         setState('saved');
-        timerRef.current = setTimeout(() => setState('idle'), flashMs);
+        if (mountedRef.current) timerRef.current = setTimeout(() => setState('idle'), flashMs);
     }, [flashMs]);
 
     const setError = useCallback((err: unknown) => {
