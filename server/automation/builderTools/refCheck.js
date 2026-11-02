@@ -46,8 +46,9 @@
 'use strict';
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
-const { formatPath, appendKey, appendMatch, flattenShape } = require('../expr');
+const { formatPath, appendKey, flattenShape } = require('../expr');
 const S = require('./shapeTree');
+const { splice, indexFixes, firstIterationAdvice, pairIndexAdvice } = require('./pathAdvice.mts');
 const { normalizeAiPath } = require('./aiPaths');
 const { CODE_PAYLOAD_KEY, CODE_DIAGNOSTIC_KEYS } = require('../codeOutput');
 
@@ -375,7 +376,6 @@ function editDistance(a, b) {
 }
 
 const tokenKey = tok => (tok.type === 'wild' ? '*' : String(tok.key));
-const splice = (tokens, at, del, ...ins) => [...tokens.slice(0, at), ...ins, ...tokens.slice(at + del)];
 
 /** The fixes worth trying where a walk broke, each with the reason the model reads. */
 function candidateFixes(tokens, r, opts) {
@@ -383,8 +383,8 @@ function candidateFixes(tokens, r, opts) {
     const node = r.node;
     const out = [];
     const listPath = formatPath(tokens.slice(0, r.at));
-    const idx = opts.wantList ? { type: 'wild' } : { type: 'prop', key: 0 };
     const idxWord = opts.wantList ? '[*] takes it from every entry' : '[0] is the first entry, [*] every entry';
+    const indexed = (at, list, ins, why) => indexFixes(tokens, at, { list, ins, why, wantList: opts.wantList });
     if (r.reason === 'missing') {
         const key = String(tok.key);
         const ci = keyCi(node, key);
@@ -413,7 +413,7 @@ function candidateFixes(tokens, r, opts) {
             const lists = [...node.keys].filter(([, v]) => v && v.t === 'arr' && v.item && v.item.t === 'obj' && (v.item.keys.has(key) || keyCi(v.item, key)));
             if (lists.length === 1) {
                 const at = appendKey(listPath, lists[0][0]);
-                out.push({ tokens: splice(tokens, r.at, 0, { type: 'prop', key: lists[0][0] }, idx), why: `"${key}" sits on the entries of the list ${at} — ${idxWord}` });
+                out.push(...indexed(r.at, lists[0][1], [{ type: 'prop', key: lists[0][0] }], `"${key}" sits on the entries of the list ${at} — ${idxWord}`));
             }
         }
     } else if (r.reason === 'key-on-list') {
@@ -426,7 +426,7 @@ function candidateFixes(tokens, r, opts) {
             const ins = last && node.item && node.item.t === 'obj' && node.item.keys.has(vk) ? [m, { type: 'prop', key: vk }] : [m];
             out.push({ tokens: splice(tokens, r.at, 1, ...ins), why: `${listPath} is a list of ${node.pairs.nameKey}/${vk} pairs — ${formatPath([m])} picks the entry by its ${node.pairs.nameKey}` });
         } else {
-            out.push({ tokens: splice(tokens, r.at, 0, idx), why: `${listPath} is a list — ${idxWord}` });
+            out.push(...indexed(r.at, node, [], `${listPath} is a list — ${idxWord}`));
         }
     } else if (r.reason === 'not-list') {
         const lists = [...node.keys].filter(([, v]) => v && v.t === 'arr');
@@ -435,29 +435,6 @@ function candidateFixes(tokens, r, opts) {
         }
     }
     return out;
-}
-
-/**
- * Advice for a numeric index into a name/value list. The index is KEPT: it
- * is a path the run reads (`ranking[0]` is whoever ranks first, `headers[1]`
- * the second header even when two share a name), and a match would read
- * another entry — or freeze a sample value into the definition. Picking by
- * name is only SAID: when the lists seen disagree on their order, and when
- * the entry at the index had a name no other entry shares.
- */
-function pairIndexAdvice(tokens, hits) {
-    for (const h of hits || []) {
-        const { nameKey, valueKey, names, byIndex } = h.list.pairs;
-        const listPath = formatPath(tokens.slice(0, h.at));
-        if (!byIndex) {
-            return `${listPath} is a list of ${nameKey}/${valueKey} pairs whose order differs per record — [${h.index}] picks a different entry each time; select one by name, e.g. ${appendMatch(listPath, nameKey, names[0])}`;
-        }
-        const name = byIndex[h.index < 0 ? byIndex.length + h.index : h.index];
-        if (name === undefined || byIndex.indexOf(name) !== byIndex.lastIndexOf(name)) return null;
-        const byName = formatPath(splice(tokens, h.at, 1, { type: 'match', key: nameKey, value: name }));
-        return `${listPath}[${h.index}] reads whichever entry sits there (in the sample: "${name}"); if you mean the entry named "${name}" on every record, bind ${byName}`;
-    }
-    return null;
 }
 
 // How far a key may be from one the shape has to be named as "did you
@@ -517,6 +494,7 @@ function checkAgainst(root, tokens, from, opts = {}) {
     for (let round = 0; round < 5; round++) {
         const r = S.walk(root, cur, from, []);
         if (r.status === 'ok' || r.status === 'unknown') {
+            if (round === 0) advice.push(...firstIterationAdvice(root, cur, from));
             if (!pairsDone) {
                 pairsDone = true;
                 const a = pairIndexAdvice(cur, r.indexHits);
@@ -576,7 +554,7 @@ function checkAgainst(root, tokens, from, opts = {}) {
             fixes.push({ why: valid[0].why, envelope: valid[0].envelope });
             continue;
         }
-        if (valid.length > 1) return done({ problem: { kind: 'ambiguous', sure: !!r.sure, candidates: valid.map(v => v.tokens), envelope: valid.every(v => v.envelope) } });
+        if (valid.length > 1) return done({ problem: { kind: 'ambiguous', sure: !!r.sure, candidates: valid.map(v => v.tokens), envelope: valid.every(v => v.envelope), ...(valid.some(v => v.firstIteration) ? { firstIteration: true } : {}) } });
         const nodeType = r.node.t === 'num' ? 'number' : r.node.t === 'bool' ? 'boolean' : r.node.t === 'arr' ? 'list' : 'object';
         return done({ problem: { kind: 'broken', reason: r.reason, sure: !!r.sure, at: r.at, nodeType, ...suggestionsFor(root, cur, from, r, opts) } });
     }
@@ -586,7 +564,8 @@ function checkAgainst(root, tokens, from, opts = {}) {
 /** One readable sentence for a problem checkAgainst found. */
 function describeProblem(problem, path) {
     if (problem.kind === 'ambiguous') {
-        return `"${path}" could mean ${problem.candidates.map(t => formatPath(t)).join(' or ')} — bind the one you mean.`;
+        const first = problem.firstIteration ? ' A [0] reads only the first iteration of a step that runs once per item; [*] reads every iteration.' : '';
+        return `"${path}" could mean ${problem.candidates.map(t => formatPath(t)).join(' or ')} — bind the one you mean.${first}`;
     }
     if (problem.kind === 'not-a-list') {
         return `"${path}" is ${problem.nodeType === 'object' ? 'an object' : `a ${problem.nodeType}`}, not a list${problem.here && problem.here.length ? ` (it has: ${problem.here.join(', ')})` : ''} — point it at a list.`;

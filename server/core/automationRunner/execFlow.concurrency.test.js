@@ -106,6 +106,24 @@ test('every item failing still ends in foreach_all_failed', async () => {
     );
 });
 
+test('every item failing carries the first item\'s stepErrorCode, so the error card matches the step (BFSF-490)', async () => {
+    const leaf = async () => { throw Object.assign(new Error('You no longer have permission to use "nextcloud_upload_file".'), { stepErrorCode: 'tool_not_permitted' }); };
+    const step = { id: 's', type: 'integration_action', tool: 'nextcloud_upload_file', forEach };
+    await assert.rejects(execForEachStep(step, {}, STATE, 'live', leaf), (e) => {
+        assert.strictEqual(e.errorClass, 'foreach_all_failed');
+        assert.strictEqual(e.stepErrorCode, 'tool_not_permitted');
+        assert.strictEqual(e.foreachResults[0].stepErrorCode, 'tool_not_permitted');
+        return true;
+    });
+    // An item without a code leaves the aggregate without one, and the rows without the key.
+    const plain = async () => { throw new Error('nope'); };
+    await assert.rejects(execForEachStep(step, {}, STATE, 'live', plain), (e) => {
+        assert.strictEqual(e.stepErrorCode, undefined);
+        assert.ok(!('stepErrorCode' in e.foreachResults[0]));
+        return true;
+    });
+});
+
 test('a pause thrown by one item propagates after the items in flight have settled', async () => {
     const started = [];
     const finished = [];

@@ -116,11 +116,12 @@ function buildModelCall(ctx, { project, persona, knowledge, outbound, definition
     return { options, messagesOut };
 }
 
-/** Call the model (the tool loop when tools are offered); returns the result and what the tools made. */
+/** Call the model (the tool loop when tools are offered); returns the result, what the tools made and what they changed. */
 async function askModel(ctx, {
     definitions, model, messagesOut, options, outbound, shieldConfig, project, userId, orgId, session, persona, chat,
 }) {
     let made = [];
+    let edited = [];
     // withTimeout cannot stop the tool loop: once the answer is given up
     // on, a late tool call must not make anything nobody will be told about.
     let givenUp = false;
@@ -131,8 +132,9 @@ async function askModel(ctx, {
             const run = tools.forAnswer(a);
             return {
                 get created() { return run.created; },
+                get edited() { return run.edited; },
                 execute: async (/** @type {string} */ name, /** @type {Parameters<ReturnType<typeof tools.forAnswer>['execute']>[1]} */ args) => (givenUp
-                    ? JSON.stringify({ ok: false, error: 'This answer was given up on; nothing more can be made.' })
+                    ? JSON.stringify({ ok: false, error: 'This answer was given up on; nothing more can be made or changed.' })
                     : run.execute(name, args)),
             };
         },
@@ -142,10 +144,10 @@ async function askModel(ctx, {
             tools: guardedTools, definitions, runToolLoop: ctx.runToolLoop, shield: ctx.shield, shieldConfig, project, userId, orgId, session,
             modelId: model.modelId, messages: messagesOut, options, tokenMap: outbound.tokenMap,
             auditBase: { conversation_id: chat.id, model: model.modelId, agent_id: persona?.agentId || null },
-        }).then((r) => { made = r.created; return r.result; })
+        }).then((r) => { made = r.created; edited = r.edited || []; return r.result; })
         : Promise.resolve(ctx.llmChat(model.modelId, messagesOut, options)),
     ctx.timeoutMs * (definitions.length ? TOOL_TIMEOUT_FACTOR : 1)).catch((err) => { givenUp = true; throw err; });
-    return { result, made };
+    return { result, made, edited };
 }
 
 /** Log the usage row; a failure is logged and never blocks the answer. */
@@ -171,21 +173,39 @@ async function recordUsage(ctx, { result, userId, orgId, persona, model, auto, s
 }
 
 /**
+ * What the answer links to: the project items it made, then the ones it
+ * changed, each once (a template lives outside the project and gets no chip).
+ * @param {Array<{ kind: string, id: string }>} made
+ * @param {Array<{ kind: string, id: string }>} edited
+ */
+function answerRefs(made, edited) {
+    const seen = new Set();
+    const refs = [];
+    for (const { kind, id } of [...made, ...edited]) {
+        if ((kind !== 'document' && kind !== 'notebook') || seen.has(`${kind}:${id}`)) continue;
+        seen.add(`${kind}:${id}`);
+        refs.push({ kind, id });
+    }
+    return refs;
+}
+
+/**
  * Store the answer and announce it. Returns the outcome: 'skipped' (the model
  * had nothing to add), 'stale' (a member spoke after the gate read), or
  * 'answered'.
  * @returns {Promise<{ status: 'answered'|'failed'|'blocked'|'skipped'|'stale', messageId?: string, reason?: string }>}
  */
 async function storeAnswer(ctx, {
-    result, made, auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
+    result, made, edited = [], auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
     usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId,
 }) {
     let answer = typeof result?.content === 'string' ? result.content.trim() : '';
     if (auto && isSkip(answer)) {
         return { status: 'skipped', reason: 'skip_sentinel' };
     }
-    // A model that made something and said nothing still leaves a line saying what.
-    if (!answer && made.length) answer = made.map((m) => `“${m.name}”`).join(', ');
+    // A model that made or changed something and said nothing still leaves a line saying what.
+    const touched = [...made, ...edited].filter((m, i, all) => all.findIndex((o) => o.id === m.id) === i);
+    if (!answer && touched.length) answer = touched.map((m) => `“${m.name}”`).join(', ');
     if (!answer) throw Object.assign(new Error('The model returned an empty answer'), { code: 'AI_EMPTY' });
     const rawAnswer = answer;
     answer = ctx.shield.restore(answer, outbound.tokenMap);
@@ -205,7 +225,7 @@ async function storeAnswer(ctx, {
         threadId: threadId,
         aiMeta,
         aiTrace,
-        refs: made.filter((m) => m.kind === 'document' || m.kind === 'notebook').map(({ kind, id }) => ({ kind, id })),
+        refs: answerRefs(made, edited),
         aiTrigger,
         aiReason: auto ? reasonCode || null : null,
         unlessHumanAfterSeq: auto && Number.isFinite(gateLastSeq) ? gateLastSeq : null,
@@ -254,12 +274,12 @@ async function writeAnswer(ctx, { project, chat, trigger, triggerText, userId, o
         const definitions = auto ? [] : await ctx.projectTools().offered({ project, userId, orgId, session });
         const { options, messagesOut } = buildModelCall(ctx, { project, persona, knowledge, outbound, definitions, auto, reasonCode, model });
         const started = Date.now();
-        const { result, made } = await askModel(ctx, {
+        const { result, made, edited } = await askModel(ctx, {
             definitions, model, messagesOut, options, outbound, shieldConfig, project, userId, orgId, session, persona, chat,
         });
         await recordUsage(ctx, { result, userId, orgId, persona, model, auto, started, chat });
         outcome = await storeAnswer(ctx, {
-            result, made, auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
+            result, made, edited, auto, model, outbound, triggerText, box, chat, project, persona, trigger, threadId,
             usedSources, aiTrigger, reasonCode, gateLastSeq, userId, orgId,
         });
     } catch (err) {

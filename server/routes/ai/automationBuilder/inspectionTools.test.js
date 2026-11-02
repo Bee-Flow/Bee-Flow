@@ -72,3 +72,88 @@ test('run inspection inside a flowlet finds the step recorded under its caller',
     assert.equal(r.status, 'success');
     assert.deepEqual(r.values.output, { result: { count: 15 } });
 });
+
+// BFSF-487: the key names are the paths the model has to bind.
+const PII_NONE = { detectPii: async () => ({ hasPii: false, entities: [] }), tokenizeText };
+const forEachOutput = (n) => ({ results: Array.from({ length: n }, (_, i) => ({
+    index: i, status: 'success',
+    item: { id: `sheet-${i}`, name: `Sheet number ${i}`, owner: 'someone', notes: 'x'.repeat(40) },
+    output: { items: [{ title: `September ${i}`, gid: i }, { title: `Other ${i}`, gid: i + 1 }] },
+})) });
+
+function storeWith(row, run = { id: 'r1', mode: 'dry_run', isTest: true, startedAt: '2026-11-01T10:00:00.000Z', status: 'success' }) {
+    return {
+        getAutomation: async () => ({ userId: 'owner' }),
+        listRunsForAutomation: async () => ({ runs: [run] }),
+        getRunSteps: async () => [{ stepId: 's1', status: 'success', ...row }],
+    };
+}
+const WRAP = { automationId: 'a1', userId: 'owner', def: { steps: [{ id: 's1' }] } };
+
+test('an output over the limit keeps its key names and shortens lists instead of renaming keys', async () => {
+    const output = forEachOutput(200);
+    assert.ok(JSON.stringify(output).length > 24000);
+    const r = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output }), pii: PII_NONE });
+    assert.equal(r.valuesAvailable, true);
+    const text = JSON.stringify(r);
+    assert.ok(text.includes('"title"'));
+    assert.ok(!text.includes('field1'));
+    assert.ok(r.previewCut && Object.keys(r.previewCut).length > 0);
+    assert.ok(text.length < 24000, `result is ${text.length} chars`);
+});
+
+test('with the guard degraded the model gets keys and types in path grammar, never values', async () => {
+    const output = { results: [{ output: { items: [{ title: 'secret-title-x' }] } }] };
+    const { shapeHintOf } = require('../../../automation/shapeCache');
+    for (const detectPii of [async () => ({ degraded: true }), async () => null]) {
+        const r = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output }), pii: { detectPii, tokenizeText } });
+        assert.equal(r.valuesAvailable, false);
+        assert.equal(r.values, shapeHintOf({ input: null, output }));
+        assert.match(r.values, /results\[\*\]/);
+        assert.match(r.values, /title/);
+        assert.ok(!JSON.stringify(r).includes('secret-title-x'));
+        assert.ok(!JSON.stringify(r).includes('field1'));
+    }
+});
+
+test('the result says which run it comes from and whether the output was made up by a dry run', async () => {
+    const r = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output: { a: 1, _dryRunSynthesised: true } }), pii: PII_NONE });
+    assert.deepEqual(r.run, { id: 'r1', mode: 'dry_run', isTest: true, startedAt: '2026-11-01T10:00:00.000Z', status: 'success' });
+    assert.equal(r.synthesised, true);
+    const plain = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output: { a: 1 } }, { id: 'r2', mode: 'live', isTest: false }), pii: PII_NONE });
+    assert.equal(plain.run.mode, 'live');
+    assert.equal(plain.synthesised, undefined);
+    const other = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output: { dryRunSynthesised: true } }), pii: PII_NONE });
+    assert.equal(other.synthesised, true);
+});
+
+test('an output stored as a preview is read from its full copy', async () => {
+    const { fullOutputRefOf } = require('../../../core/automationModel/payloadTruncation');
+    const sentinel = { __truncated__: true, headSample: 'cut', preview: { stale: true }, fullOutputRef: { runId: 'r1', stepId: 's1', attempts: 1 } };
+    assert.ok(fullOutputRefOf(sentinel), 'the fixture is a sentinel with a kept copy');
+    const runFullOutputs = require('../../../stores/automationStore/runFullOutputs');
+    const original = runFullOutputs.getRunFullOutput;
+    runFullOutputs.getRunFullOutput = async () => ({ results: [{ output: { items: [{ title: 'from the full copy' }] } }] });
+    try {
+        const r = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output: sentinel }), pii: PII_NONE });
+        assert.equal(r.values.output.results[0].output.items[0].title, 'from the full copy');
+        assert.ok(!JSON.stringify(r.values).includes('stale'));
+    } finally { runFullOutputs.getRunFullOutput = original; }
+});
+
+test('paths lists every list with its fields as ready-to-bind [*] paths', async () => {
+    const r = await inspect('builder_inspect_run', { stepId: 's1' }, WRAP, { store: storeWith({ output: forEachOutput(3) }), pii: PII_NONE });
+    assert.ok(r.paths.includes('steps.s1.output.results'));
+    assert.ok(r.paths.includes('steps.s1.output.results[*].output.items'));
+    assert.ok(r.paths.includes('steps.s1.output.results[*].output.items[*].title'));
+    assert.ok(!r.paths.some(p => /results\[0\]/.test(p)));
+});
+
+test('a personal key over the limit is masked in previewCut as well as in the values', async () => {
+    const values = { output: { 'person@example.test': Array.from({ length: 400 }, (_, i) => ({ n: i, text: 'y'.repeat(60) })) } };
+    const detectPii = async () => ({ hasPii: true, entities: [{ text: 'person@example.test', label: 'Email', score: 1 }] });
+    const r = await maskedRunValues(values, { detectPii, tokenizeText });
+    assert.equal(r.valuesAvailable, true);
+    assert.ok(r.previewCut && Object.keys(r.previewCut).length > 0);
+    assert.ok(!JSON.stringify(r).includes('person@example.test'));
+});

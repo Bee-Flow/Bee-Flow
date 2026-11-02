@@ -5905,17 +5905,6 @@
       "count": 1
     }
   },
-  "integrations/notebookTextEdits.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 9
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/officeFileDelivery.js": {
     "complexity": {
       "count": 1

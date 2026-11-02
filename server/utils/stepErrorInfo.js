@@ -345,7 +345,6 @@ function genericCode(err, text, status, step) {
     const lower = text.toLowerCase();
     const errClass = err && typeof err === 'object' ? (err.errorClass || err.code || '') : '';
     if ((err && err.guardrailBlocked) || errClass === 'guardrail_blocked' || /privacy shield blocked|blocked by (the )?(privacy|guardrail)/i.test(text)) return 'guardrail_blocked';
-    if (/no longer have permission to use|could not verify your permission for this tool/i.test(text)) return 'tool_not_permitted';
     if (/(?:is|are) required\b|missing (?:required )?(?:param|field|input|value)|required (?:param|field|input)|no fields to extract|there is no text to read/i.test(text)) return 'missing_field';
     if (/prompt is too long|context[_ ]length|maximum context|context window|too many tokens|max(?:imum)?[_ ]tokens? .*exceed|input is too long/i.test(lower)) return 'model_context_too_long';
     if (/insufficient_quota|credit balance|quota (?:exceeded|reached)|exceeded your (?:current )?quota|billing/i.test(lower)) return 'model_quota';
@@ -376,6 +375,7 @@ function classify(err, text, status, step) {
     if (err && typeof err === 'object' && typeof err.stepErrorCode === 'string' && TEXTS[err.stepErrorCode]) {
         return err.stepErrorCode;
     }
+    if (/no longer have permission to use|could not verify your permission for this tool/i.test(text)) return 'tool_not_permitted'; // the runner's gate: ahead of the Nextcloud classifier, which reads "permission" as an app switched off
     if (isNextcloudError(err, step)) {
         const ncCode = (err && typeof err === 'object' && err.ncError?.code) || classifyNextcloudError(text).code;
         let code = NC_CODE_MAP[ncCode] || null;

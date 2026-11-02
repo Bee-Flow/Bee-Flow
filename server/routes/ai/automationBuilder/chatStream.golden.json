@@ -7824,7 +7824,7 @@
       "stepId": "s1"
      },
      "result": {
-      "error": "This tool is not permitted in discuss mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal."
+      "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Approve each change\" to have it staged."
      }
     }
    },
@@ -7918,7 +7918,7 @@
           "stepId": "s1"
          },
          "result": {
-          "error": "This tool is not permitted in discuss mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal."
+          "error": "Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \"Approve each change\" to have it staged."
          }
         }
        ]
@@ -8015,7 +8015,7 @@
      {
       "role": "tool",
       "tool_call_id": "call_0",
-      "content": "{\"error\":\"This tool is not permitted in discuss mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.\"}"
+      "content": "{\"error\":\"Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to \\\"Approve each change\\\" to have it staged.\"}"
      }
     ]
    }

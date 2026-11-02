@@ -33,7 +33,7 @@ const IDLE_ROW = 'border-transparent bg-[var(--bg-secondary)]/60 hover:bg-[var(-
 
 type Translate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 
-const rowClass = (selected: boolean) => `flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 transition-colors ${selected ? SELECTED_ROW : IDLE_ROW}`;
+const rowClass = (selected: boolean) => `relative flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 transition-colors ${selected ? SELECTED_ROW : IDLE_ROW}`;
 
 function Badge({ n, selected }: { n: number; selected: boolean }) {
     return <span aria-hidden="true" className={`mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold ${selected ? 'bg-[var(--type-ai)] text-white' : 'bg-[var(--bg-card)] text-[var(--text-tertiary)]'}`}>{selected ? <Check size={11} strokeWidth={3} /> : n}</span>;

@@ -39,7 +39,45 @@ function checkIntegrationAction(ctx, step, at) {
             }
         }
         checkOutlookMailbox(ctx, step, at);
+        checkUploadSource(ctx, step, at);
     }
+}
+
+// The upload tools that take the file EITHER from a handle (the bytes of an
+// attachment or a generated file) OR as inline text, and refuse a call that
+// passes both (integrations/nextcloudFiles/uploadFile.js, driveTools.js).
+const UPLOAD_SOURCE_TOOLS = new Set(['nextcloud_upload_file', 'drive_upload_file']);
+
+/**
+ * A binding that may carry a value: anything but absent, null or a valueless
+ * literal. An empty-string literal counts for `content`: the tool takes any
+ * string there as text (`typeof content === 'string'`), "" included.
+ * @param {unknown} b
+ * @param {boolean} [emptyCounts]
+ */
+function isFilledBinding(b, emptyCounts = false) {
+    if (b === undefined || b === null) return false;
+    if (!isObject(b)) return true;
+    const lit = /** @type {{ kind?: unknown, value?: unknown }} */ (b);
+    if (lit.kind !== 'literal') return true;
+    return !(lit.value === undefined || lit.value === null || (lit.value === '' && !emptyCounts));
+}
+
+/**
+ * An upload step that fills both `sourceHandle` and `content` fails every
+ * time both arrive, and where the handle comes up empty it quietly uploads
+ * the text instead of the file. Flagged on `content`: keeping the handle is
+ * what uploads the original bytes.
+ * @param {string} at
+ */
+function checkUploadSource(ctx, step, at) {
+    if (!UPLOAD_SOURCE_TOOLS.has(step.tool) || !isObject(step.inputs)) return;
+    if (!isFilledBinding(step.inputs.sourceHandle) || !isFilledBinding(step.inputs.content, true)) return;
+    ctx.pushW({
+        code: 'integration_action.upload_source_and_content', severity: 'warning', path: at + '.inputs.content',
+        message: `Step ${step.id}: "${step.tool}" takes the file from Source handle OR from Content, not both, and fails when both are filled.`,
+        hint: 'To upload the original file (an attachment, a generated document), keep Source handle and clear Content. To upload text, clear Source handle.',
+    });
 }
 
 /**

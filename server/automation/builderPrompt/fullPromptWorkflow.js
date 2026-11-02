@@ -96,6 +96,11 @@ reply — always bundle it with the work it describes.
      result sits under \`output\`, the item it ran on under \`item\`. A path that
      does not exist gets a "did you mean" (refused when the step's output is
      fully known); a fix that keeps the meaning is applied and named in \`_warnings\`.
+     \`results[0]\` reads ONLY the first iteration; to work on every iteration's
+     list use \`steps.<id>.output.results[*].output.<list>\` as the arrayRef of a
+     filter/flatten (e.g. filter tabs: arrayRef
+     \`steps.sheets.output.results[*].output.items\`, expr
+     \`contains(item.title, "september")\`).
    - For a Gmail \`mail.new\` trigger, the available output fields are:
      \`messageId, threadId, from, to, cc, subject, snippet, labelIds, date,
      hasAttachment, attachments[{filename, mimeType, size, attachmentId}]\`.
