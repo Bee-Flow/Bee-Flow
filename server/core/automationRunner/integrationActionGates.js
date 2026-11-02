@@ -15,7 +15,8 @@
 const log = require('../../telemetry/log');
 // The built-in step-type table is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
-const { permittedCatalog } = require('./toolIdentity');
+const { permittedCatalog, ownerIdentity } = require('./toolIdentity');
+const { featureModule } = require('../featureModules');
 const { fallback } = require('../../utils/bestEffort');
 
 /**
@@ -60,7 +61,44 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
                 + `is a built-in step type, not an integration. This step was built incorrectly — delete it and add `
                 + `a real "${step.tool}" step in its place. No integration setting can fix this.`);
         }
-        throw new Error(`You no longer have permission to use "${step.tool}". Ask your organisation admin to re-enable this integration, or remove the step from the automation.`);
+        if (await nextcloudMissingForOwner(step, ctx, deps)) {
+            /** @type {Error & { stepErrorCode?: string }} */
+            const err = new Error(`"${step.tool}" needs Nextcloud, but Nextcloud is not connected for the owner of this automation `
+                + `when it runs on its own: their Bee Flow account is not linked to a Nextcloud account. Open Bee Flow from inside `
+                + `Nextcloud once (that links the account), or connect Nextcloud under Settings → Connections, then run it again.`);
+            err.stepErrorCode = 'nextcloud_not_connected';
+            throw err;
+        }
+        /** @type {Error & { stepErrorCode?: string }} */
+        const err = new Error(`You no longer have permission to use "${step.tool}". Ask your organisation admin to re-enable this integration, or remove the step from the automation.`);
+        err.stepErrorCode = 'tool_not_permitted';
+        throw err;
+    }
+}
+
+/**
+ * True when a Nextcloud step is missing from the run's catalog because the
+ * OWNER has no Nextcloud connection here, not because anyone took the app
+ * away: the catalog holds no Nextcloud tool at all (a connection that exists
+ * offers at least one family), and the app the tool belongs to is still
+ * permitted at design time (the credential-free gate the builder palette and
+ * save use). Without this the run blamed the admin for what the owner can fix
+ * by opening Bee Flow from Nextcloud once (BFSF-490). Caller-only runs and any
+ * lookup failure keep the admin message: this only ever softens the wording.
+ */
+async function nextcloudMissingForOwner(step, ctx, deps) {
+    if (ctx.callerOnly || !String(step.tool).startsWith('nextcloud_')) return false;
+    for (const name of ctx.allowedToolNames || []) if (name.startsWith('nextcloud_')) return false;
+    try {
+        const appId = featureModule('automation/toolRegistry').findOwnerOfTool(step.tool)?.app;
+        if (!appId) return false;
+        const who = ownerIdentity(ctx);
+        return await deps.integrationTools().isIntegrationPermittedForUser({
+            userId: who.userId, appId, session: who.session, isAdmin: who.isAdmin,
+        });
+    } catch (err) {
+        fallback('core/automationRunner/integrationActionGates:nextcloudMissingForOwner', err);
+        return false;
     }
 }
 

@@ -203,6 +203,21 @@ test('guardrail, tool no longer permitted and unknown', () => {
     assert.deepStrictEqual(fixIds(u), ['retry']);
 });
 
+// BFSF-490: the runner's permission gate refused a Nextcloud step before it
+// reached Nextcloud, and the headline blamed an app switched off in Nextcloud.
+test('the permission gate on a Nextcloud step is tool_not_permitted, never nextcloud_app_disabled', () => {
+    const text = 'All 1 forEach iteration(s) failed (e.g. "You no longer have permission to use "nextcloud_upload_file". '
+        + 'Ask your organisation admin to re-enable this integration, or remove the step from the automation.").';
+    const step = { type: 'integration_action', tool: 'nextcloud_upload_file' };
+    assert.strictEqual(describeStepError(text, { step }).code, 'tool_not_permitted');
+    assert.strictEqual(describeStepError(new Error(text), { step }).code, 'tool_not_permitted');
+    assert.strictEqual(legacyStepErrorInfo(text, 'integration_action', {}).code, 'tool_not_permitted', 'a stored row, read back');
+    // The gate's not-connected refusal: by its code, and by its text alone.
+    const gate = Object.assign(new Error('"nextcloud_upload_file" needs Nextcloud, but Nextcloud is not connected for the owner of this automation when it runs on its own.'), { stepErrorCode: 'nextcloud_not_connected' });
+    assert.strictEqual(describeStepError(gate, { step }).code, 'nextcloud_not_connected');
+    assert.strictEqual(describeStepError(gate.message, { step }).code, 'nextcloud_not_connected');
+});
+
 test('the technical message is capped, never thrown on, and absent when empty', () => {
     const long = 'x'.repeat(5000);
     assert.ok(describeStepError(long).technical.length <= 2000);

@@ -67,6 +67,7 @@ function reset() {
         getOrganization: async () => ({ id: ORG, nc_instance_id: 'nc1', nc_onboarding_completed_at: 1, nc_sync_mode: 'mirror_all' }),
         createUserWithSeatCheck: async () => ({ created: true }),
         updateUser: async () => ({}),
+        getUserByNcUid: async () => null,
         logAccessAudit: async () => {},
     });
     Object.assign(encryption, {
@@ -691,6 +692,59 @@ test('stale nc_uid is repaired only when the email matches; failure is warned an
     userStore.updateUser = async () => { throw new Error('nope'); };
     assertNextOnce(await run(connectorReq(goodPayload())));
     assert.ok(rec.warns.includes(`[ConnectorJWT] Failed to repair nc_uid for ${id3}: nope`));
+});
+
+test('missing nc_uid is filled in from the signed sub for a member of this org with the same email', async () => {
+    const id = `u${++uid}`;
+    const updates = [];
+    const asked = [];
+    userStore.getUserByEmail = async () => ({ id, email: 'Ann@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
+    userStore.getUserByNcUid = async (...a) => { asked.push(a); return null; };
+    userStore.updateUser = async (...a) => { updates.push(a); };
+    const req = connectorReq(goodPayload());
+    assertNextOnce(await run(req));
+    assert.deepEqual(asked, [[ORG, 'ann']]);
+    assert.deepEqual(updates, [[id, { ncUid: 'ann' }]]);
+    assert.equal(req.session.user.ncUid, 'ann');
+    assert.equal(req.session.user.provider, 'google', 'the provider is left alone');
+    assert.ok(rec.infos.includes(`[ConnectorJWT] Bound nc_uid ann to user ${id}`));
+});
+
+test('missing nc_uid is NOT filled in when the email differs or another row in the org holds the uid', async () => {
+    const id = `u${++uid}`;
+    const updates = [];
+    userStore.getUserByEmail = async () => ({ id, email: 'other@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
+    userStore.updateUser = async (...a) => { updates.push(a); };
+    assertNextOnce(await run(connectorReq(goodPayload())));
+    assert.deepEqual(updates, [], 'email mismatch: no write');
+
+    reset();
+    const id2 = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id: id2, email: 'ann@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
+    userStore.getUserByNcUid = async () => ({ id: 'someone-else', organizationId: ORG, nc_uid: 'ann' });
+    userStore.updateUser = async (...a) => { updates.push(a); };
+    const req2 = connectorReq(goodPayload());
+    assertNextOnce(await run(req2));
+    assert.deepEqual(updates, [], 'uid already held: no write');
+    assert.ok(rec.warns.includes(`[ConnectorJWT] Not binding nc_uid ann to user ${id2}: user someone-else in org ${ORG} already holds it`));
+
+    reset();
+    const id3 = `u${++uid}`;
+    userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG, nc_uid: null });
+    userStore.getUserByNcUid = async () => ({ id: id3, organizationId: ORG, nc_uid: 'ann' });
+    userStore.updateUser = async () => { throw new Error('nope'); };
+    assertNextOnce(await run(connectorReq(goodPayload())));
+    assert.ok(rec.warns.includes(`[ConnectorJWT] Failed to bind nc_uid for ${id3}: nope`), 'a failed write is warned and swallowed');
+});
+
+test('missing nc_uid is NOT filled in for a user of another org (rejected before any write)', async () => {
+    const id = `u${++uid}`;
+    const updates = [];
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: 'org2', provider: 'google', nc_uid: null });
+    userStore.updateUser = async (...a) => { updates.push(a); };
+    const out = await run(connectorReq(goodPayload()));
+    assert.equal(out.statusCode, 403);
+    assert.deepEqual(updates, []);
 });
 
 // ── success path ─────────────────────────────────────────────────────────────

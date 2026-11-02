@@ -114,7 +114,7 @@ function pendingApprovalGate(req, user, orgId) {
 
 /**
  * Keep the DB row and the session coherent: log data anomalies, repair a
- * stale nc_uid. Each step swallows its own failure (warn, or silently for
+ * stale nc_uid, fill in a missing one. Each step swallows its own failure (warn, or silently for
  * the read-only anomaly lookup). The user reaching here is a member of
  * `orgId` (crossTenantGate), or was just provisioned into it, so the org
  * pointer needs no reconciling.
@@ -152,6 +152,36 @@ async function reconcileUserRecord(user, orgId, payload) {
         } catch (e) {
             log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
         }
+    }
+    await fillMissingNcUid(user, orgId, payload);
+}
+
+/**
+ * Bind an existing member with NO stored nc_uid (an account that signed up with
+ * Google or a password before the org paired its Nextcloud) to the signed
+ * `sub`. Without the row's nc_uid only the live session knew the Nextcloud
+ * identity: chat and the builder offered Nextcloud, yet every automation run
+ * (built from the row, see resolveNcBinding) had no binding and lost its
+ * Nextcloud steps. Same rules as the repair above (email matches, signed by
+ * this org's key), plus: the user is a member of this org, and no other row in
+ * the org already holds the uid, so two accounts never share one NC identity.
+ * A failure is warned and swallowed: the session still carries the uid.
+ */
+async function fillMissingNcUid(user, orgId, payload) {
+    if (user.nc_uid || !payload.sub || user.organizationId !== orgId) return;
+    // Case-insensitive, like the getUserByEmail lookup that found this row.
+    if (!user.email || !payload.email || String(user.email).toLowerCase() !== String(payload.email).toLowerCase()) return;
+    try {
+        const holder = await userStore.getUserByNcUid(orgId, payload.sub);
+        if (holder && holder.id !== user.id) {
+            log.warn(`[ConnectorJWT] Not binding nc_uid ${payload.sub} to user ${user.id}: user ${holder.id} in org ${orgId} already holds it`);
+            return;
+        }
+        await userStore.updateUser(user.id, { ncUid: payload.sub });
+        log.info(`[ConnectorJWT] Bound nc_uid ${payload.sub} to user ${user.id}`);
+        user.nc_uid = payload.sub;
+    } catch (e) {
+        log.warn(`[ConnectorJWT] Failed to bind nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 

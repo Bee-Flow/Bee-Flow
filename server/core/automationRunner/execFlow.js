@@ -20,6 +20,7 @@ const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
 const { coerceLayerInputs } = require('./layerParams');
 const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
+const { failedItemRow, allItemsFailedError } = require('./forEachFailure.mts');
 const { fallback } = require('../../utils/bestEffort');
 
 // ── Parallel branches ───────────────────────────────────
@@ -323,11 +324,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             results[i] = { index: i, item: items[i], output: out, status: 'success' };
         } else {
             failed++;
-            // `output: null` keeps the slot: `results[*].output` stays as long
-            // as `results[*].item` and lines up with it. Without the key the
-            // [*] walk skipped the failed item and every later output moved
-            // one row up against its item.
-            results[i] = { index: i, item: items[i], output: null, error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' };
+            results[i] = failedItemRow({ index: i, item: items[i], err: lastErr, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts });
         }
     };
     // A worker pool, not fixed batches: a slow item no longer holds the next
@@ -337,16 +334,8 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // §WS2.5 — a fan-out where EVERY item failed is a real step failure, not a
     // green 'success'. Throw so it routes the on_error edge / is recorded as an
     // error. Continue-on-error still applies for PARTIAL failures (those return
-    // fulfilled with a `failed` count). `foreachHandled` tells the outer dispatch
-    // retry loop NOT to re-run the whole fan-out — per-item retry already ran.
-    if (items.length > 0 && failed === items.length) {
-        /** @type {import('./runnerError.types').RunnerError} */
-        const err = new Error(`All ${items.length} forEach iteration(s) failed (e.g. "${results[0]?.error || 'unknown error'}").`);
-        err.errorClass = 'foreach_all_failed';
-        err.foreachHandled = true;
-        err.foreachResults = results;
-        throw err;
-    }
+    // fulfilled with a `failed` count). See forEachFailure.mts.
+    if (items.length > 0 && failed === items.length) throw allItemsFailedError(results);
     return {
         // `truncated`/`totalItems` are the same additive observability keys
         // execLoop emits, and mean the same thing: the fan-out stopped at its

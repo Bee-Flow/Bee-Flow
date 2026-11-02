@@ -45,6 +45,7 @@ try {
 } catch (_) { /* appendMcpTools fails closed on its own */ }
 
 const ncClient = require('../../integrations/nextcloudClient');
+const realResolveNcBinding = ncClient.resolveNcBinding;
 const ent = require('../entitlements/entitlements');
 const { getIntegrationTools } = require('./integrationTools');
 
@@ -92,6 +93,30 @@ const run = async () => {
     res = await getIntegrationTools({ userId: 'u1', session: connectorSession, isAdmin: false });
     assert.ok(hasNcFiles(res), 'connector session shape must keep its zero-lookup fast path');
     console.log('✓ connector-session fast path intact');
+
+    // (d) BFSF-490: the HEADLESS session an automation run builds for an owner
+    // who signed up with Google (provider stays 'google') but whose row carries
+    // the nc_uid the ExApp login filled in. The real resolveNcBinding reads the
+    // row, so the upload tool is offered without any connector session extras.
+    ncClient.resolveNcBinding = realResolveNcBinding;
+    const automationAuth = require('../../auth/automationAuth');
+    automationAuth.buildUserAuth = async () => ({ userId: 'u1', accessToken: 'g-token', refreshToken: null, expiresAt: null, oauthProvider: 'google', automationProviders: {} });
+    require('./enabledIntegrations').resolveEnabledIntegrations = async () => ['gmail'];
+    const { resolveUserSession } = require('../automationRunner/sessionResolution');
+    const googleRow = { id: 'u1', email: 'owner@example.com', organizationId: 'org-nc', groups: [], role: 'user', provider: 'google', nc_uid: 'owner' };
+    userStore.getUser = async () => googleRow;
+    const headless = await resolveUserSession('u1');
+    assert.equal(headless.user.provider, undefined, 'the owner keeps their own provider; no connector stamp');
+    assert.equal(headless.connectorNcUid, undefined);
+    res = await getIntegrationTools({ userId: 'u1', session: headless, isAdmin: false, automationStep: true });
+    assert.ok(res.tools.some(t => t.function.name === 'nextcloud_upload_file'), 'row nc_uid binds the headless session');
+    console.log('✓ headless session of a Google-provider owner with nc_uid on the row is offered nextcloud_upload_file');
+
+    // (e) …and the state BFSF-490 found: the same owner with nc_uid NULL gets none.
+    userStore.getUser = async () => ({ ...googleRow, nc_uid: null });
+    res = await getIntegrationTools({ userId: 'u1', session: await resolveUserSession('u1'), isAdmin: false, automationStep: true });
+    assert.ok(!res.tools.some(t => t.function.name === 'nextcloud_upload_file'), 'no nc_uid on the row: no NC tools headless');
+    console.log('✓ the same owner without nc_uid gets no NC tools headless (the gap the login fill-in closes)');
 
     console.log('\nALL NC-BINDING GATE TESTS PASSED');
 };
