@@ -814,6 +814,75 @@ test('a tool call that comes after the answer was given up on makes nothing', as
     assert.deepStrictEqual(made, []);
 });
 
+test('BFSF-489: "add this to our notebook" finds the existing notebook and changes it, within the rounds, and makes no second one', async () => {
+    const { makeProjectChatTools, MAX_ROUNDS } = require('./chatTools');
+    const NAME = 'Lead generation: market segments';
+    const made = [];
+    const writes = [];
+    const projectTools = makeProjectChatTools({
+        getProjectRole: async (userId) => (userId === 'ann' ? 'editor' : null),
+        getUser: async (id) => USERS[id] || null,
+        projectOrg: { ...require('./projectOrg'), projectOrgOf: async () => 'org1', belongsToProjectOrg: async () => true },
+        membership: { isAllowedIn: () => true },
+        notebooks: { createNotebook: async (i) => { made.push(i); return { id: 'nb-new', name: i.name }; }, updateNotebook: async () => true },
+        documents: { createDocument: async (i) => { made.push(i); return { id: 'doc-new', name: i.name }; } },
+        recordCreated: async () => {},
+        markdownToHtml: (md) => `<p>${md}</p>`,
+        notebooksAllowed: async () => true,
+        searchAvailable: async () => false,
+        items: {
+            notebooks: {
+                listProjectNotebooks: async () => [{ id: 'nb1', name: NAME, updatedAt: '2026-10-12T10:00:00.000Z' }],
+                getNotebook: async (id) => (id === 'nb1' ? { id: 'nb1', name: NAME, projectId: 'p1', role: 'editor', version: 3, documentContent: '<h1>Sectors</h1>', documentMd: '# Sectors' } : null),
+                recordVersion: async () => ({ id: 'v1' }),
+            },
+            documents: { listProjectDocuments: async () => [], getDocument: async () => null },
+            readCurrent: async (nb) => ({ html: nb.documentContent, markdown: nb.documentMd, live: false, active: false }),
+            makeWriter: (o) => ({ contributors: [{ userId: o.userId, kind: 'ai' }], write: async (html, md) => { writes.push({ id: o.notebookId, md }); return { ok: true }; } }),
+            feed: { contentChanged: async () => {} },
+        },
+    });
+    const loops = [];
+    const runToolLoop = async (modelId, messages, tools, options, executeTool, maxRounds) => {
+        loops.push({ messages, tools, maxRounds });
+        // One tool call per round, then the text answer: the loop must leave room for all four.
+        const listed = JSON.parse(await executeTool('list_project_items', { query: 'lead' }));
+        const id = listed.items[0].id;
+        await executeTool('read_project_item', { kind: 'notebook', id });
+        await executeTool('edit_notebook', { id, action: 'insert', content: '## Healthcare\n\nEarly adopters.' });
+        return { content: `I added a Healthcare section to "${NAME}".`, usage: {}, toolCallRounds: 3 };
+    };
+    const w = world({ projectTools, runToolLoop });
+    const reply = await ask(w, '@ai add healthcare to our leads notebook');
+    assert.strictEqual((await reply.done).status, 'answered');
+    assert.ok(loops[0].maxRounds >= 4 && loops[0].maxRounds === MAX_ROUNDS, 'list, read, edit and the answer fit in the rounds');
+    assert.ok(loops[0].tools.some((t) => t.function.name === 'edit_notebook'));
+    assert.match(loops[0].messages[0].content, /call list_project_items/);
+    assert.doesNotMatch(loops[0].messages[0].content, /cannot open, change/);
+    assert.deepStrictEqual(writes, [{ id: 'nb1', md: '# Sectors\n\n## Healthcare\n\nEarly adopters.' }]);
+    assert.deepStrictEqual(made, [], 'no second notebook, no document');
+    const stored = w.log.appended.find((m) => m.authorKind === 'assistant');
+    assert.deepStrictEqual(stored.refs, [{ kind: 'notebook', id: 'nb1' }], 'the changed notebook is linked to the answer');
+});
+
+test('what an answer made and what it changed are each linked once, and a silent model still says which', async () => {
+    const projectTools = {
+        offered: async () => [{ type: 'function', function: { name: 'edit_notebook' } }],
+        forAnswer: () => ({
+            created: [{ kind: 'notebook', id: 'n1', name: 'New' }],
+            edited: [{ kind: 'notebook', id: 'n1', name: 'New' }, { kind: 'notebook', id: 'n2', name: 'Old' }],
+            execute: async () => '{}',
+        }),
+    };
+    const w = world({ projectTools, runToolLoop: async () => ({ content: '', usage: {} }) });
+    const reply = await ask(w, '@ai tidy the notebooks');
+    assert.strictEqual((await reply.done).status, 'answered');
+    const stored = w.log.appended.find((m) => m.authorKind === 'assistant');
+    assert.deepStrictEqual(stored.refs, [{ kind: 'notebook', id: 'n1' }, { kind: 'notebook', id: 'n2' }]);
+    const box = await w.chatCrypto.forProject(PROJECT);
+    assert.strictEqual(box.openContent('c1', stored.id, stored.content), '“New”, “Old”');
+});
+
 // ── Threads ──────────────────────────────────────────────────────────────
 
 test('a thread answer loads its own conversation by root, so an old thread keeps its root', async () => {

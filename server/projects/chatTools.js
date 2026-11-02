@@ -8,6 +8,11 @@
  *                     document as a reusable TEMPLATE with {{fields}}
  *   create_notebook   a notebook in the project, optionally with a first text
  *
+ *   list_project_items, read_project_item, edit_notebook
+ *                     what the project already holds: find a notebook or document, read
+ *                     it, and change a notebook in place (projects/chatItemTools.mts),
+ *                     so an existing notebook is worked on, not made a second time
+ *
  *   agent_search      a web search, run the way the administrator configured search
  *                     (the same tool and provider routing a normal chat uses); it
  *                     reads the web, and makes nothing
@@ -29,7 +34,8 @@
  * project's documents (they are the person's or the organisation's to share), so
  * it is made in the asker's own library and the answer says where.
  *
- * A result gives the model ids and a link, never the text it wrote.
+ * What a create or an edit hands back gives the model ids and a link, never
+ * the text it wrote.
  */
 
 'use strict';
@@ -37,7 +43,8 @@
 const log = require('../telemetry/log');
 
 const MAX_ITEMS_PER_ANSWER = 3;
-const MAX_ROUNDS = 4;
+// Room for a lookup, a read, an edit and the answer, with a retry to spare.
+const MAX_ROUNDS = 6;
 const NAME_MAX = 200;
 const CONTENT_MAX = 60_000;
 const HTML_MAX = 150_000;
@@ -45,7 +52,9 @@ const CSS_MAX = 50_000;
 const DESIGNED_TYPES = Object.freeze(['document', 'invoice', 'quote', 'letter', 'report', 'security']);
 const DESCRIPTION_MAX = 1000;
 
-const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook', 'agent_search']);
+const { ITEM_TOOL_NAMES, ITEM_DEFINITIONS, makeProjectItemTools } = require('./chatItemTools.mts');
+
+const TOOL_NAMES = Object.freeze(['create_document', 'create_notebook', ...ITEM_TOOL_NAMES, 'agent_search']);
 const SEARCH_TOOL = 'agent_search';
 const MAX_SEARCHES = 4;
 const QUERY_MAX = 300;
@@ -119,7 +128,8 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
  *   searchDefinition?: () => import('../integrations/agentSearchTools').ToolDef,
  *   searchAvailable?: () => Promise<boolean>,
  *   runSearch?: (name: string, args: Record<string, unknown>) => Promise<unknown>,
- *   notebooksAllowed?: (p: { userId: string, orgId?: string|null, session?: unknown }) => Promise<boolean> }} [deps]
+ *   notebooksAllowed?: (p: { userId: string, orgId?: string|null, session?: unknown }) => Promise<boolean>,
+ *   items?: Partial<import('./chatItemTools.mts').ItemToolDeps> }} [deps]
  */
 function makeProjectChatTools(deps = {}) {
     const getProjectRole = deps.getProjectRole || ((userId, projectId) => require('../auth/projectAccess').getProjectRole(userId, projectId));
@@ -147,6 +157,8 @@ function makeProjectChatTools(deps = {}) {
         if (!(await hasCapability('notebooks', { userId, orgId: orgId || null, session: session || null }))) return false;
         return require('../auth/permissions').hasPermission(userId, 'use_notebooks', session || null);
     });
+    // The tools on what the project already holds run behind the same gates.
+    const itemTools = makeProjectItemTools({ getProjectRole, membership, notebooksAllowed, projectOrg, markdownToHtml, ...(deps.items || {}) });
 
     /** The tool definitions this asker may be offered right now. */
     async function offered({ project, userId, orgId, session }) {
@@ -155,7 +167,11 @@ function makeProjectChatTools(deps = {}) {
             const role = await getProjectRole(userId, project.id);
             if (role !== 'owner' && role !== 'editor') return [];
             if (membership().isAllowedIn('document', project.kind ?? null)) out.push(DEFINITIONS.create_document);
-            if (membership().isAllowedIn('notebook', project.kind ?? null) && await notebooksAllowed({ userId, orgId, session })) out.push(DEFINITIONS.create_notebook);
+            const notebooksHere = membership().isAllowedIn('notebook', project.kind ?? null) && await notebooksAllowed({ userId, orgId, session });
+            if (notebooksHere) out.push(DEFINITIONS.create_notebook);
+            // Whatever can be made can first be looked for; only a notebook can be changed.
+            if (out.length) out.push(ITEM_DEFINITIONS.list_project_items, ITEM_DEFINITIONS.read_project_item);
+            if (notebooksHere) out.push(ITEM_DEFINITIONS.edit_notebook);
             if (await searchAvailable()) out.push(searchDefinition());
         } catch (err) {
             log.warn(`[ProjectChatTools] tools not offered for ${project && project.id}: ${err && /** @type {Error} */ (err).message}`);
@@ -166,11 +182,14 @@ function makeProjectChatTools(deps = {}) {
 
     /**
      * One run of tools for one answer: `execute(name, args)` for the loop, and
-     * `created` (`{ kind, id, name }` in order) for the message that follows.
+     * `created` and `edited` (`{ kind, id, name }` in order) for the message
+     * that follows. An edit has its own budget: it never uses up the one for
+     * making things.
      */
     function forAnswer({ project, userId, orgId, session: authSession }) {
         /** @type {{ kind: 'document'|'notebook'|'template', id: string, name: string }[]} */
         const created = [];
+        const items = itemTools.forAnswer({ project, userId, orgId, session: authSession });
         let searches = 0;
         /**
          * @param {string} error
@@ -272,6 +291,7 @@ function makeProjectChatTools(deps = {}) {
             // The allow-list is enforced here, not only by what was offered: a model can name any tool.
             if (!TOOL_NAMES.includes(name)) return refuse('That tool is not available in a team chat.');
             const input = args && typeof args === 'object' ? args : {};
+            if (ITEM_TOOL_NAMES.includes(name)) return items.execute(name, input);
             if (name === SEARCH_TOOL) {
                 try {
                     return await search(input);
@@ -290,7 +310,7 @@ function makeProjectChatTools(deps = {}) {
             }
         }
 
-        return { execute, created };
+        return { execute, created, edited: items.edited };
     }
 
     return { offered, forAnswer };
