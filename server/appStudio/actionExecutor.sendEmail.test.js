@@ -45,7 +45,10 @@ stub('../stores/studioAppDataStore', {
     getAttachment: async () => attachment,
     logEmailSend: async (row) => { emailLog.push(row); },
 });
-stub('../stores/storageStore', { buildStudioAppAttachmentKey: (o, a, s) => `studio-apps/${o}/${a}/attachments/${s}` });
+stub('../stores/storageStore', {
+    buildStudioAppAttachmentKey: (o, a, s) => `studio-apps/${o}/${a}/attachments/${s}`,
+    streamFile: async (key) => ({ stream: [Buffer.from(`bytes of ${key}`)] }),
+});
 stub('../utils/tempDownloadUrl', { generateTempDownloadUrl: () => 'https://host/tmp' });
 stub('../stores/automationStore', { getAutomation: async () => null, getRunSteps: async () => [] });
 stub('../core/automationRunner', { executeAutomation: async () => ({ id: 'r', status: 'success' }) });
@@ -509,6 +512,10 @@ test('only ledger-verified, scanned attachments are attached', async () => {
     }), ctx());
     assert.strictEqual(sendCalls[0].attachments.length, 1);
     assert.strictEqual(sendCalls[0].attachments[0].filename, 'bon.pdf');
+    // The bytes, read from storage — never the storage key as `path`, which
+    // MailComposer would open as a local file.
+    assert.strictEqual(sendCalls[0].attachments[0].path, undefined);
+    assert.strictEqual(sendCalls[0].attachments[0].content.toString(), `bytes of studio-apps/${APP.userId}/${APP.id}/attachments/abc`);
 });
 
 test('a quarantined attachment is dropped', async () => {

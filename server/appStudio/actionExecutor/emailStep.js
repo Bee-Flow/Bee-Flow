@@ -334,7 +334,13 @@ async function mailAttachmentFor(app, desc) {
     const rawName = (desc && typeof desc === 'object' && typeof desc.name === 'string' && desc.name)
         ? desc.name : (typeof att.name === 'string' ? att.name : '');
     const filename = rawName.replace(/[/\\\r\n\0"]/g, '').trim().slice(0, 200) || 'bijlage';
-    return { filename, path: key, contentType: att.mimeType };
+    // The BYTES, not the key: MailComposer reads `path` as a local file path,
+    // so handing it the storage key failed every send with an attachment, and
+    // the Graph path needs the bytes for contentBytes anyway.
+    const { stream } = await storageStore.streamFile(key);
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    return { filename, content: Buffer.concat(chunks), contentType: att.mimeType };
 }
 
 /**

@@ -225,6 +225,36 @@ test('an empty response is an error, not an empty file', async () => {
     await assert.rejects(promise, (e) => e.status === 422);
 });
 
+test('a provider refusal reaches the viewer as a plain sentence, never the raw Graph body', async () => {
+    const graphError = (status, code) => Object.assign(
+        new Error(`Graph API ${status}: {"error":{"code":"${code}","innerError":{"request-id":"r-1"}}}`),
+        { status, graphCode: code },
+    );
+    const cases = [
+        [graphError(400, 'BadRequest'), 502, 'provider_error'],
+        [graphError(403, 'ErrorAccessDenied'), 502, 'mailbox_access_denied'],
+        [graphError(404, 'ErrorItemNotFound'), 404, 'attachment_gone'],
+        [graphError(429, 'TooManyRequests'), 503, 'provider_throttled'],
+        [new Error('Microsoft token refresh failed: 400 invalid_grant — reconnect the mailbox.'), 502, 'mailbox_access_denied'],
+    ];
+    for (const [thrown, status, code] of cases) {
+        const { promise } = run({ getAttachmentBytes: async () => { throw thrown; } });
+        await assert.rejects(promise, (e) => {
+            assert.strictEqual(e.status, status, thrown.message);
+            assert.strictEqual(e.code, code);
+            assert.strictEqual(e.expose, true);
+            assert.doesNotMatch(e.message, /Graph API|request-id|\{/);
+            return true;
+        });
+    }
+});
+
+test('the read layer\'s own refusals pass through untouched', async () => {
+    const own = Object.assign(new Error('That attachment is a link or an embedded item, not a file'), { status: 415 });
+    const { promise } = run({ getAttachmentBytes: async () => { throw own; } });
+    await assert.rejects(promise, (e) => e === own);
+});
+
 test('a descriptor naming a connector that no longer exists fails cleanly', async () => {
     state.rows = [{ id: 'rec_1', file: pending({ connectorId: 'conn_gone' }) }];
     const { calls, promise } = run();

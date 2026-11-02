@@ -165,6 +165,45 @@ test('outlook: createReply keeps the exact three-call sequence, shared or not', 
     ]);
 });
 
+test('outlook: attachments go along as fileAttachments on every path', async () => {
+    const PDF = Buffer.from('%PDF-1.7 offerte');
+    const attachments = [{ filename: 'offerte.pdf', content: PDF, contentType: 'application/pdf' }];
+    const expected = [{
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: 'offerte.pdf', contentType: 'application/pdf', contentBytes: PDF.toString('base64'),
+    }];
+    const base = { provider: 'outlook', tokens: TOKENS, mailbox: { address: 'ik@acme.nl' }, to: 'klant@example.com', subject: 's', htmlBody: '<p>x</p>', attachments };
+
+    await send.sendMailMessage({ ...base, sourceProviderMessageId: 'AAMk-1' });
+    assert.deepStrictEqual(graphCalls[0].body.message.attachments, expected);
+
+    graphCalls = [];
+    await send.sendMailMessage(base);
+    assert.deepStrictEqual(graphCalls[0].body.message.attachments, expected);
+
+    graphCalls = [];
+    await send.sendMailMessage({ ...base, sourceProviderMessageId: 'AAMk-1', replyStrategy: 'createReply' });
+    assert.deepStrictEqual(graphCalls.map((c) => `${c.method} ${c.path}`), [
+        'POST /me/messages/AAMk-1/createReply',
+        'PATCH /me/messages/draft-1',
+        'POST /me/messages/draft-1/attachments',
+        'POST /me/messages/draft-1/send',
+    ]);
+    assert.deepStrictEqual(graphCalls[2].body, expected[0]);
+});
+
+test('outlook: attachments past the inline limit refuse before any call, never send without them', async () => {
+    await assert.rejects(
+        () => send.sendMailMessage({
+            provider: 'outlook', tokens: TOKENS, mailbox: { address: 'ik@acme.nl' },
+            to: 'klant@example.com', subject: 's', htmlBody: '<p>x</p>', sourceProviderMessageId: 'AAMk-1',
+            attachments: [{ filename: 'groot.step', content: Buffer.alloc(4 * 1024 * 1024), contentType: 'model/step' }],
+        }),
+        (e) => e.status === 413,
+    );
+    assert.strictEqual(graphCalls.length, 0);
+});
+
 test('outlook: no source message falls back to sendMail', async () => {
     await send.sendMailMessage({
         provider: 'outlook', tokens: TOKENS, mailbox: { address: 'ik@acme.nl' },

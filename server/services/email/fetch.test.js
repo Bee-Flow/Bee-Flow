@@ -297,6 +297,29 @@ test('graph getMessage only asks for threading headers when told to', async () =
     assert.ok(graphPaths[0].includes('internetMessageHeaders'));
 });
 
+test('graph attachment bytes: no $select, which Graph refuses for contentBytes on the base type', async () => {
+    graphResult = {
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: 'tekening.pdf', contentType: 'application/pdf', size: 8,
+        contentBytes: Buffer.from('%PDF-1.7').toString('base64'),
+    };
+    const out = await fetchLayer.getAttachmentBytes({
+        provider: 'outlook', tokens: TOKENS, mailbox: SHARED, messageId: 'AAMk-1', attachmentId: 'AAMk-att=',
+    });
+    assert.strictEqual(graphPaths[0], '/users/support%40acme.nl/messages/AAMk-1/attachments/AAMk-att%3D');
+    assert.strictEqual(out.buffer.toString(), '%PDF-1.7');
+    assert.strictEqual(out.mimeType, 'application/pdf');
+    assert.strictEqual(out.filename, 'tekening.pdf');
+});
+
+test('graph attachment bytes: a forwarded mail or a cloud link is refused, not returned empty', async () => {
+    graphResult = { '@odata.type': '#microsoft.graph.itemAttachment', name: 'RE: offerte', size: 10 };
+    await assert.rejects(
+        () => fetchLayer.getAttachmentBytes({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, messageId: 'm', attachmentId: 'a' }),
+        (err) => err.status === 415,
+    );
+});
+
 // ── Shared-access probe ──────────────────────────────────────────────────────
 
 test('probe: outlook 403 reports a denied shared mailbox', async () => {
