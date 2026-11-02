@@ -57,9 +57,6 @@ const MAX_SYNC_UPDATES = 500;
 // Fallback cadence when a sync block carries no schedule: often enough to feel
 // live, rare enough that an idle app costs nothing.
 const DEFAULT_SYNC_MINUTES = 60;
-// Key values per existing-record lookup. Matches the query compiler's bound-
-// variable cap; a 500-row sync therefore costs three small indexed queries.
-const KEY_LOOKUP_CHUNK = 200;
 
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -92,6 +89,7 @@ function syncError(status, message, code) {
  */
 const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
 const { bestEffort } = require('../utils/bestEffort');
+const { existingKeyMap, OWNER_FILTER } = require('./connectorSyncKeys');
 
 /**
  * The cadence floor for a connector kind. A mailbox may poll every 2 minutes;
@@ -259,6 +257,7 @@ function defaultDeps() {
         deleteAttachment: (/** @type {Parameters<typeof import('../stores/studioAppDataStore').deleteAttachment>} */ ...a) => require('../stores/studioAppDataStore').deleteAttachment(...a),
         deleteFile: (/** @type {Parameters<typeof import('../stores/storageStore').deleteFile>} */ ...a) => require('../stores/storageStore').deleteFile(...a),
         buildAttachmentKey: (/** @type {Parameters<typeof import('../stores/storageStore').buildStudioAppAttachmentKey>} */ ...a) => require('../stores/storageStore').buildStudioAppAttachmentKey(...a),
+        adoptRecordedReplies: (/** @type {Parameters<typeof import('./mailboxRecordedReplies.mts').adoptRecordedReplies>} */ ...a) => require('./mailboxRecordedReplies.mts').adoptRecordedReplies(...a),
     };
 }
 
@@ -332,42 +331,11 @@ async function purgeAttachments(app, fileIds, deps) {
     }
 }
 
-// The owner sees the whole table — a sync is the owner's own refresh of their
-// own feed. Passed explicitly so the compilers stay un-callable unscoped.
-const OWNER_FILTER = Object.freeze({ where: '1=1', params: [] });
-
 // The identity the sync writes as. A connector is owner-scoped by construction
 // (its rows come from the OWNER's upstream account), so its rows are written as
 // the owner — which is also the only role with unconditional write access.
 function ownerViewer(app) {
     return { id: app.userId, role: 'owner' };
-}
-
-/**
- * Which of THESE key values already have a record, as (key → record id).
- *
- * Scoped to the incoming batch rather than the whole table: a full-table read is
- * capped by the storage engine at 10k rows, so a bigger table would hand back a
- * partial map and every unmatched row would be re-inserted as a duplicate on
- * every single sync. Chunked because a bound `IN (…)` list has a hard limit.
- */
-async function existingKeyMap(app, table, keyColumn, keys, deps) {
-    const map = new Map();
-    const wanted = [...new Set(keys.filter((k) => k !== null && k !== undefined && k !== '').map(String))];
-    for (let i = 0; i < wanted.length; i += KEY_LOOKUP_CHUNK) {
-        const chunk = wanted.slice(i, i + KEY_LOOKUP_CHUNK);
-        const { sql, params } = deps.compileKeyIndex(table, keyColumn, chunk, OWNER_FILTER);
-        const result = await deps.query(app.userId, app.id, sql, params);
-        // The storage engine answers { rows, columns, truncated }; a stub in a
-        // test may hand back the bare array.
-        const rows = Array.isArray(result) ? result : (result?.rows || []);
-        for (const r of rows) {
-            const k = r?.k;
-            if (k === null || k === undefined || k === '') continue;
-            if (!map.has(String(k))) map.set(String(k), r.id);
-        }
-    }
-    return map;
 }
 
 /**
@@ -525,6 +493,12 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             trace: children.length > 0,
         });
         const grains = Array.isArray(result?.grains) ? result.grains : null;
+        // A reply send_email recorded without a provider id gives its row to
+        // the provider's copy, instead of the copy landing as a second reply.
+        if (connector.kind === 'mailbox') {
+            await deps.adoptRecordedReplies(app, model, connector, grains, deps)
+                .catch((e) => bestEffort('appStudio/connectorSync:adoptRecordedReplies', e));
+        }
         // The primary table stores grain 0 (the source list), not the flattened
         // output — those differ the moment a step expands.
         const primaryRows = grains ? (grains[0]?.rows || []) : (result?.rows || []);
