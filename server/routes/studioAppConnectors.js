@@ -536,11 +536,10 @@ router.get('/:id/runtime/connectors/status', requireAuth, async (req, res) => {
             id: c.id,
             name: c.name || null,
             kind: c.kind || null,
-            provider: full?.provider || null,
+            provider: full?.provider || (full?.kind === 'mailbox' ? full.integrationId : null) || null,
+            integrationId: full?.integrationId || null,
             mode: full?.mode || null,
-            // A shared mailbox names its address in the model; a personal one
-            // is whatever account the token belongs to, which we do not open
-            // a connection to discover.
+            // Shared: the address is in the model. Personal: whatever the token is, never opened.
             address: full?.mode === 'shared' ? (full.address || null) : null,
             runAs: full?.runAs || 'owner',
             connected: await probeConnected(app, full || {}, req.session.user.id),

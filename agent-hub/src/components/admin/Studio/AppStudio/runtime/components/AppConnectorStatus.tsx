@@ -64,6 +64,7 @@ function Row({ icon, tone, title, detail }: RowProps) {
 interface ConnectorState {
     id?: string;
     provider: string;
+    integrationId?: string | null;
     connected: boolean;
     lastRunAt: string | number | Date | null;
     hasError: boolean;
@@ -156,7 +157,7 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
     // Editor preview / no runtime: show the shape, not an error.
     const preview = !isRun;
     const data = preview
-        ? { provider: 'gmail', connected: true, lastRunAt: null, hasError: false, syncable: true, status: 'idle' }
+        ? { provider: '', connected: true, lastRunAt: null, hasError: false, syncable: true, status: 'idle' }
         : state;
 
     if (loading && !preview) {
@@ -183,7 +184,8 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
         );
     }
 
-    const providerLabel = PROVIDER_LABELS[data.provider] || data.provider || t('studio_apps_runtime.connector.connection', 'Connection');
+    const providerKey = data.provider || data.integrationId || '';
+    const providerLabel = PROVIDER_LABELS[providerKey] || providerKey || t('studio_apps_runtime.connector.connection', 'Connection');
     const heading = title || `${providerLabel}${data.name ? ` · ${data.name}` : ''}`;
     const last = relativeTime(data.lastRunAt, t);
 
@@ -199,7 +201,9 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
             ? ROLE_COLORS.warning
             : ROLE_COLORS.success;
 
-    const detail = !connected
+    const detail = preview
+        ? t('studio_apps_runtime.connector.sample', 'Preview: the real account and the last check show here once the app runs.')
+        : !connected
         ? t('studio_apps_runtime.connector.not_connected', 'Not connected. Connect {provider} under Settings → Connections and this fills up by itself.', { provider: providerLabel })
         : [
             data.address

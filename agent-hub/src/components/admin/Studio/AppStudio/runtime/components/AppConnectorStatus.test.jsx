@@ -84,7 +84,32 @@ describe('AppConnectorStatus', () => {
         renderCard(node(), { appId: null, mode: 'edit' });
         expect(globalThis.__authFetch).not.toHaveBeenCalled();
         // No live state, so no live button either — but the card is visible.
-        expect(screen.getAllByText(/Gmail/).length).toBeGreaterThan(0);
+        // The sample must not claim a provider the app does not use.
+        expect(screen.queryByText(/Gmail/)).toBeNull();
+        expect(screen.getByText(/Preview: the real account/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Check now/ })).toBeNull();
+    });
+
+    it('an Outlook shared mailbox that has synced shows Outlook, its address and the last check', async () => {
+        globalThis.__authFetch = vi.fn(async () => reply({
+            provider: 'outlook', integrationId: 'outlook', mode: 'shared', address: 'info@shop.test',
+            connected: true, lastRunAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+            hasError: false, syncable: true,
+        }));
+        renderCard();
+        expect(await screen.findByText(/Reading info@shop.test/)).toBeInTheDocument();
+        expect(screen.getByText(/checked 3 h ago/)).toBeInTheDocument();
+        expect(screen.getByText(/Outlook/)).toBeInTheDocument();
+        expect(screen.queryByText(/Gmail/)).toBeNull();
+        expect(screen.queryByText(/not checked yet/)).toBeNull();
+    });
+
+    it('a personal Outlook mailbox with only an integrationId still says Outlook, and never synced says so', async () => {
+        globalThis.__authFetch = vi.fn(async () => reply({
+            provider: null, integrationId: 'outlook', connected: true, lastRunAt: null, hasError: false, syncable: true,
+        }));
+        renderCard();
+        expect(await screen.findByText(/Reading the Outlook account you signed in with/)).toBeInTheDocument();
+        expect(screen.getByText(/not checked yet/)).toBeInTheDocument();
     });
 });
