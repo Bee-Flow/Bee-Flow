@@ -53,6 +53,29 @@ stub('../utils/tempDownloadUrl', { generateTempDownloadUrl: () => 'https://host/
 stub('../stores/automationStore', { getAutomation: async () => null, getRunSteps: async () => [] });
 stub('../core/automationRunner', { executeAutomation: async () => ({ id: 'r', status: 'success' }) });
 
+// ── Provider mocks: every call is recorded, a send endpoint fails the test ───
+let graphCalls = [];
+let gmailCalls = [];
+let createReplyRecipients = [{ emailAddress: { address: 'klant@example.com' } }];
+const SEND_PATH = /\/(send|sendMail|reply|replyAll)$/;
+stub('../services/email/providerClients', {
+    gmailClientFromTokens: async () => ({
+        users: {
+            drafts: {
+                create: async (a) => { gmailCalls.push(['drafts.create', a]); return { data: { id: 'r-draft-9', message: { id: 'gm-draft-msg', threadId: a.requestBody.message.threadId || 'th-new' } } }; },
+            },
+            messages: { send: async (a) => { gmailCalls.push(['messages.send', a]); return { data: { id: 'x' } }; } },
+        },
+    }),
+    graphFetchFromTokens: async (_t, _r, path, opts = {}) => {
+        const method = opts.method || 'GET';
+        graphCalls.push({ path, method, body: opts.body ? JSON.parse(opts.body) : null });
+        if (path.endsWith('/createReply')) return { id: 'AAdraft1', webLink: 'https://outlook.office.com/mail/deeplink?ItemID=AAdraft1', conversationId: 'conv-1', toRecipients: createReplyRecipients, ccRecipients: [] };
+        if (method === 'POST' && path.endsWith('/messages')) return { id: 'AAdraft2', webLink: 'https://outlook.office.com/mail/deeplink?ItemID=AAdraft2', conversationId: 'conv-2' };
+        return {};
+    },
+});
+
 // ── Mail layer ───────────────────────────────────────────────────────────────
 const sendCalls = [];
 let sendThrows = null;
@@ -563,4 +586,150 @@ test('a thread holding only our own messages still threads — and answers the c
     const sent = sendCalls[0];
     assert.strictEqual(sent.inReplyTo, '<klant@example.com>', 'threaded, not detached');
     assert.deepStrictEqual(sent.to, ['klant@example.com'], 'answers the counterparty, not ourselves');
+});
+
+// ── mode "draft": saved in the mailbox, nothing is sent ──────────────────────
+
+function dstep(extra = {}) {
+    return step({ mode: 'draft', replyToRecordId: { kind: 'static', value: 'rec_1' }, ...extra });
+}
+const drun = (s, model = MODEL) => actionExecutor.executeDataStep(APP, model, s, ctx());
+const outlookModel = () => ({ ...MODEL, connectors: [{ ...MODEL.connectors[0], provider: 'outlook' }] });
+const graphSendCalls = () => graphCalls.filter((c) => SEND_PATH.test(c.path.split('?')[0]));
+
+function draftSetup() {
+    queryRows = [{ ...INBOUND_ROW, provider_message_id: 'AAorig' }];
+    graphCalls = [];
+    gmailCalls = [];
+    createReplyRecipients = [{ emailAddress: { address: 'klant@example.com' } }];
+    identity = {
+        userId: 'agent1', provider: 'outlook',
+        tokens: { accessToken: 'at', scope: 'openid Mail.Read Mail.Send Mail.ReadWrite' },
+        onRefresh: async () => {},
+        mailbox: { address: 'support@acme.nl', mode: 'personal', sharedMode: 'delivered_alias' },
+    };
+}
+
+const insertedValues = () => execCalls.filter((c) => /INSERT/i.test(c.sql)).map((c) => c.params);
+
+test('outlook reply draft: createReply with the body as comment, never a send endpoint', async () => {
+    draftSetup();
+    const res = await drun(dstep(), outlookModel());
+    assert.strictEqual(res.ok, true, res.error);
+    assert.strictEqual(graphCalls[0].path, '/me/messages/AAorig/createReply');
+    assert.match(graphCalls[0].body.comment, /Je pakket is onderweg/);
+    assert.strictEqual(graphSendCalls().length, 0, JSON.stringify(graphCalls));
+    assert.strictEqual(graphCalls.filter((c) => c.method === 'PATCH').length, 0, 'default recipients need no PATCH');
+    assert.strictEqual(res.result.sent, false);
+    assert.strictEqual(res.result.drafted, true);
+    assert.strictEqual(res.result.draftId, 'AAdraft1');
+    assert.strictEqual(res.result.webLinkKind, 'outlook_web');
+    assert.match(res.result.webLink, /^https:\/\/outlook\.office\.com\//);
+});
+
+test('outlook: a recipient override and an explicit subject are PATCHed onto the draft', async () => {
+    draftSetup();
+    const res = await drun(dstep({ to: { kind: 'static', value: 'ander@example.com' }, subject: { kind: 'static', value: 'Nieuw onderwerp' } }), outlookModel());
+    assert.strictEqual(res.ok, true, res.error);
+    const patch = graphCalls.find((c) => c.method === 'PATCH');
+    assert.strictEqual(patch.path, '/me/messages/AAdraft1');
+    assert.deepStrictEqual(patch.body.toRecipients, [{ emailAddress: { address: 'ander@example.com' } }]);
+    assert.strictEqual(patch.body.subject, 'Nieuw onderwerp');
+    assert.strictEqual(graphSendCalls().length, 0);
+});
+
+test('outlook shared mailbox draft uses /users/{address}', async () => {
+    draftSetup();
+    identity.mailbox = { address: 'team@acme.nl', mode: 'shared' };
+    identity.tokens.scope = 'Mail.ReadWrite.Shared Mail.Read.Shared';
+    const res = await drun(dstep(), outlookModel());
+    assert.strictEqual(res.ok, true, res.error);
+    assert.ok(graphCalls.every((c) => c.path.startsWith('/users/team%40acme.nl/')), JSON.stringify(graphCalls));
+});
+
+test('outlook without a reply target: a standalone draft via POST /messages', async () => {
+    draftSetup();
+    const res = await drun(dstep({ replyToRecordId: undefined, to: { kind: 'static', value: 'k@example.com' }, subject: { kind: 'static', value: 'Hallo' } }), outlookModel());
+    assert.strictEqual(res.ok, true, res.error);
+    assert.strictEqual(graphCalls[0].path, '/me/messages');
+    assert.strictEqual(graphCalls[0].method, 'POST');
+    assert.strictEqual(graphCalls[0].body.subject, 'Hallo');
+    assert.strictEqual(res.result.draftId, 'AAdraft2');
+    assert.strictEqual(graphSendCalls().length, 0);
+});
+
+test('outlook attachments are added to the draft, one POST each', async () => {
+    draftSetup();
+    attachment = { scanned: true, quarantined: false, sha256: 'abc', mimeType: 'application/pdf' };
+    const res = await drun(dstep({ attachments: { kind: 'static', value: [{ fileId: 'f1', name: 'offerte.pdf' }] } }), outlookModel());
+    assert.strictEqual(res.ok, true, res.error);
+    const att = graphCalls.filter((c) => c.path.endsWith('/attachments'));
+    assert.strictEqual(att.length, 1);
+    assert.strictEqual(att[0].path, '/me/messages/AAdraft1/attachments');
+    assert.strictEqual(att[0].body.name, 'offerte.pdf');
+    assert.strictEqual(graphSendCalls().length, 0);
+});
+
+test('gmail: users.drafts.create with threadId and reply headers, users.messages.send never', async () => {
+    draftSetup();
+    identity.provider = 'gmail';
+    identity.tokens.scope = 'openid https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.compose';
+    const res = await drun(dstep());
+    assert.strictEqual(res.ok, true, res.error);
+    assert.deepStrictEqual(gmailCalls.map((c) => c[0]), ['drafts.create']);
+    const msg = gmailCalls[0][1].requestBody.message;
+    assert.strictEqual(msg.threadId, 'gm-th-1');
+    const mime = Buffer.from(msg.raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    assert.match(mime, /In-Reply-To: <klant@example\.com>/i);
+    assert.match(mime, /References: <root@example\.com> <klant@example\.com>/i);
+    assert.strictEqual(res.result.draftId, 'r-draft-9');
+    assert.strictEqual(res.result.webLinkKind, 'gmail_compose');
+    assert.match(res.result.webLink, /#drafts\?compose=gm-draft-msg$/);
+    assert.strictEqual(res.result.sent, false);
+});
+
+test('the scope check fails before any call, with a clear code', async () => {
+    draftSetup();
+    identity.tokens.scope = 'openid Mail.Read Mail.Send';
+    const res = await drun(dstep(), outlookModel());
+    assert.strictEqual(res.ok, false);
+    assert.strictEqual(res.code, 'draft_scope_missing');
+    assert.match(res.error, /Mail\.ReadWrite/);
+    assert.strictEqual(graphCalls.length, 0);
+
+    identity.provider = 'gmail';
+    identity.tokens.scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send';
+    const g = await drun(dstep());
+    assert.strictEqual(g.code, 'draft_scope_missing');
+    assert.strictEqual(gmailCalls.length, 0);
+});
+
+test('a shared mailbox needs Mail.ReadWrite.Shared, the own one is not enough', async () => {
+    draftSetup();
+    identity.mailbox = { address: 'team@acme.nl', mode: 'shared' };
+    identity.tokens.scope = 'Mail.ReadWrite Mail.Send.Shared';
+    const res = await drun(dstep(), outlookModel());
+    assert.strictEqual(res.code, 'draft_scope_missing');
+    assert.strictEqual(graphCalls.length, 0);
+});
+
+test('a draft is recorded with direction "draft", never "outbound"; recordOutbound false skips it', async () => {
+    draftSetup();
+    const res = await drun(dstep(), outlookModel());
+    assert.strictEqual(res.result.recorded, true, res.result.recordError);
+    const params = insertedValues().flat();
+    assert.ok(params.includes('draft'), 'direction draft is written');
+    assert.ok(!params.includes('outbound'));
+    assert.ok(params.includes('AAdraft1'), 'keyed by the draft message id');
+
+    execCalls.length = 0;
+    const res2 = await drun(dstep({ recordOutbound: false }), outlookModel());
+    assert.strictEqual(res2.result.recorded, null);
+    assert.strictEqual(insertedValues().length, 0);
+});
+
+test('mode defaults to send: an absent mode never takes the draft path', () => {
+    const { SEND_EMAIL_FIELDS } = require('./componentSpecs/actionSpecsActionKinds');
+    assert.deepStrictEqual(SEND_EMAIL_FIELDS.mode.values, ['send', 'draft']);
+    assert.strictEqual(SEND_EMAIL_FIELDS.mode.default, 'send');
 });

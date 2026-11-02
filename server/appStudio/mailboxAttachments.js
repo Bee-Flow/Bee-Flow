@@ -48,8 +48,7 @@ const { viewerMayReadAttachment } = require('./attachmentAccess');
 const { bestEffort } = require('../utils/bestEffort');
 const { providerFailure, materializeErrorBody } = require('./mailboxProviderFailure.mts');
 
-// The formats an LLM or a browser can
-// actually do something with. Everything else is refused rather than stored.
+// The formats an LLM or a browser can actually do something with. Everything else is refused rather than stored.
 // CAD (STEP/DXF/DWG/IGES) is included because the mailbox is THE ingestion
 // route that matters for it — customers mail .step/.dxf to a quoting inbox.
 // Canonical mimes only; aliases are folded before this set is consulted.
@@ -89,6 +88,8 @@ const ARCHIVE_MIME_BY_EXT = Object.freeze({
 });
 const ARCHIVE_MIMES = new Set(Object.values(ARCHIVE_MIME_BY_EXT));
 
+// Inline images that may be redeemed on request: raster only, so svg (script) stays out.
+const INLINE_IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 /** Provider spellings for the archives, folded before ALLOWED_MIME is consulted. */
 const ARCHIVE_ALIAS_MIMES = Object.freeze({
     'application/x-7z-compressed': 'application/x-7z-compressed',
@@ -106,15 +107,13 @@ const ZIP_ALIAS_MIMES = new Set([
     'application/zip', 'application/x-zip-compressed', 'application/x-zip', 'multipart/x-zip',
 ]);
 
-// Never rendered or parsed, whatever the provider claims. uploadGuard sanitises
-// SVG on the upload path, but sanitising a stranger's inbound mail is not a
-// promise worth making — an app that renders attacker-authored markup is one
-// bug away from being a phishing host.
+// Never rendered or parsed, whatever the provider claims. uploadGuard sanitises SVG on the upload path,
+// but sanitising a stranger's inbound mail is not a promise worth making — an app that renders
+// attacker-authored markup is one bug away from being a phishing host.
 const REFUSED_MIME = new Set(['image/svg+xml', 'text/html', 'application/xml', 'text/xml', 'application/xhtml+xml']);
 
-// One mailed DOCUMENT: deliberately well under the platform ceiling. These
-// bytes are a stranger's, fetched over someone else's credentials, and a
-// drawing or a purchase order that needs more than this is not a drawing.
+// One mailed DOCUMENT: deliberately well under the platform ceiling. These bytes are a stranger's,
+// fetched over someone else's credentials, and a drawing or a purchase order that needs more is not a drawing.
 const MAX_ATTACHMENT_BYTES = Math.min(10 * 1024 * 1024, DATA_LIMITS.MAX_ATTACHMENT_BYTES);
 
 // An ARCHIVE is a container, and the same ten megabytes mean something else
@@ -237,14 +236,14 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  *
  * @param {{ userId: unknown; id: unknown; }} app    - studio app row (userId = owner)
  * @param {MailboxModel} model  - the canonical data model
- * @param {{ attachmentId: string, tableId?: string, recordId?: string, viewer: { id: string, role?: string, organizationId?: string | null },
+ * @param {{ attachmentId: string, tableId?: string, recordId?: string, inline?: boolean, viewer: { id: string, role?: string, organizationId?: string | null },
  *   deps?: { getAttachmentBytes?: typeof emailFetch.getAttachmentBytes, resolveMailboxIdentity?: typeof resolveMailboxIdentity,
  *   scanBuffer?: typeof scanBuffer } }} [opts]  `attachmentId` is the provider attachment id (or a fileId); `tableId`
  *   and `recordId` narrow the probe when the caller knows them; `deps` is the injection seam for tests
  * @returns {Promise<object>} a studio_attachment descriptor
  */
 async function materializeAttachment(app, model, {
-    attachmentId, tableId, recordId, viewer, deps = {},
+    attachmentId, tableId, recordId, viewer, inline = false, deps = {},
 } = {}) {
     const fetchBytes = deps.getAttachmentBytes || emailFetch.getAttachmentBytes;
     const identityFor = deps.resolveMailboxIdentity || resolveMailboxIdentity;
@@ -292,7 +291,8 @@ async function materializeAttachment(app, model, {
     }
     if (REFUSED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
     if (!ALLOWED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
-    if (descriptor.isInline) throw httpError(415, 'That is an inline image, not an attachment');
+    // An inline image (a signature logo) is no attachment unless asked for, and then only a raster one.
+    if (descriptor.isInline && !(inline && INLINE_IMAGE_MIMES.has(mime))) throw httpError(415, 'That is an inline image, not an attachment');
     const declared = Number(descriptor.size) || 0;
     const ceiling = ceilingFor(mime);
     if (declared > ceiling) throw httpError(413, 'That attachment is too large to open here');
@@ -314,7 +314,7 @@ async function materializeAttachment(app, model, {
         onRefresh: identity.onRefresh,
         mailbox: identity.mailbox,
         messageId: descriptor.messageId, attachmentId: descriptor.attachmentId,
-        relocate: { threadKey: descriptor.threadKey || row.thread_key, name: descriptor.name, size: descriptor.size },
+        relocate: { threadKey: descriptor.threadKey || row.thread_key, name: descriptor.name, size: descriptor.size, inline: Boolean(descriptor.isInline) },
         maxBytes: ceiling,
     }).catch((err) => { throw providerFailure(err, identity.provider); });
     if (!buffer || !buffer.length) throw httpError(422, 'That attachment came back empty');

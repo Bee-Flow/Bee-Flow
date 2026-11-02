@@ -419,6 +419,8 @@ async function sendMailMessage(p) {
 
 module.exports = {
     sendMailMessage,
+    // Save as a draft instead of sending (send_email mode "draft"); loaded on use.
+    createMailDraft: (p) => require('./draft.mts').createMailDraft(p),
     // Pure helpers, re-exported by supportMailer for its existing callers.
     sanitizeHtml,
     textToHtml,

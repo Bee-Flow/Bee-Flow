@@ -255,7 +255,8 @@ test('v2.1 limits and event additions are present', () => {
     // than a row of dropdowns behind a Save button. Text inputs deliberately
     // do NOT declare it: that would run an action per keystroke.
     // onDecided (v2 approvals): approval_list fires it after a decision lands.
-    assert.deepEqual(EVENT_NAMES, ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided']);
+    // onAttachmentClick (message_thread): a mail attachment chip, with { item: <attachment row> }.
+    assert.deepEqual(EVENT_NAMES, ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided', 'onAttachmentClick']);
     for (const t of ['input_select', 'input_checkbox', 'input_date', 'input_multiselect']) {
         assert.deepEqual(COMPONENT_SPECS[t].events, ['onChange'], `${t} applies on change`);
     }

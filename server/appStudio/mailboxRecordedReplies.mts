@@ -17,6 +17,10 @@
  * the real id is already stored as well, the recorded row is the duplicate
  * and is removed.
  *
+ * A draft saved by send_email (mode "draft", direction 'draft') is claimed the
+ * same way once someone sends it from the mailbox, without the time window:
+ * the copy may come hours later. Until then the draft row stays a draft.
+ *
  * Best effort by design: the caller logs a failure and syncs on, which at
  * worst leaves the duplicate this exists to prevent.
  */
@@ -101,8 +105,13 @@ function syncedOutbound(rows: unknown[]): Candidate[] {
     return out;
 }
 
-/** The unclaimed candidate nearest in time to this recorded reply, or null. */
-function nearest(local: Row, cols: Record<Column, string>, candidates: Candidate[], claimed: Set<string>): Candidate | null {
+/**
+ * The unclaimed candidate nearest in time to this recorded row, or null. A
+ * recorded reply was sent at once, so its copy is stamped within
+ * REPLY_MATCH_MS either way; a draft is sent whenever someone gets to it, so
+ * any copy stamped after it (less the same slack for clocks) will do.
+ */
+function nearest(local: Row, cols: Record<Column, string>, candidates: Candidate[], claimed: Set<string>, draft = false): Candidate | null {
     const at = stamp(local[cols.received_at]);
     const subject = normalizeSubject(local[cols.subject]);
     let best: Candidate | null = null;
@@ -110,7 +119,7 @@ function nearest(local: Row, cols: Record<Column, string>, candidates: Candidate
         if (claimed.has(c.id) || c.thread !== text(local[cols.thread_key])) continue;
         if (subject && c.subject && subject !== c.subject) continue;
         const gap = Math.abs(c.at - at);
-        if (!(gap <= REPLY_MATCH_MS)) continue;
+        if (draft ? !(c.at >= at - REPLY_MATCH_MS) : !(gap <= REPLY_MATCH_MS)) continue;
         if (!best || gap < Math.abs(best.at - at)) best = c;
     }
     return best;
@@ -143,15 +152,28 @@ export async function adoptRecordedReplies(
         limit: MAX_KEYS,
     }, OWNER_FILTER);
     const locals = rowsOf(await deps.query(app.userId, app.id, list.sql, list.params));
-    if (!locals.length) return done;
+    // A draft send_email saved (mode "draft") has the provider's DRAFT id; once
+    // someone sends it from the mailbox, the copy comes back under a new id.
+    const draftList = queryCompiler.compileRecordList(table, {
+        filters: [
+            { field: cols.direction, op: 'eq', value: 'draft' },
+            { field: cols.thread_key, op: 'in', value: threads },
+        ],
+        sort: [{ field: cols.received_at, dir: 'asc' }],
+        limit: MAX_KEYS,
+    }, OWNER_FILTER);
+    const drafts = rowsOf(await deps.query(app.userId, app.id, draftList.sql, draftList.params));
+    if (!locals.length && !drafts.length) return done;
 
     const index = queryCompiler.compileKeyIndex(table, cols.provider_message_id, candidates.map((c) => c.id), OWNER_FILTER);
     const stored = new Set(rowsOf(await deps.query(app.userId, app.id, index.sql, index.params)).map((r) => text(r.k)));
 
     const claimed = new Set<string>();
-    for (const local of locals) {
-        const match = nearest(local, cols, candidates, claimed);
-        if (!match) continue;
+    const rows: Array<[Row, boolean]> = [...locals.map((r): [Row, boolean] => [r, false]), ...drafts.map((r): [Row, boolean] => [r, true])];
+    for (const [local, draft] of rows) {
+        const match = nearest(local, cols, candidates, claimed, draft);
+        // The same id is the same row: the upsert updates it in place.
+        if (!match || match.id === text(local[cols.provider_message_id])) continue;
         claimed.add(match.id);
         const recordId = text(local.id);
         const write = stored.has(match.id)

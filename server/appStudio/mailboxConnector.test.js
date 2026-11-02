@@ -399,6 +399,7 @@ test('an attachment row carries a PENDING descriptor, never bytes', async () => 
         mime: 'application/pdf',
         size: 10,
         isInline: false,
+        contentId: null,
     });
 });
 

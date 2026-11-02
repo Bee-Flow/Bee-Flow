@@ -890,3 +890,12 @@ test('the data block shows field ids only when asked, so the in-product prompt i
     assert.ok(!renderDataBlock(model, [], {}).includes('fld_x'));
     assert.match(renderDataBlock(model, [], {}, null, { fieldIds: true }), /^ {4}x text id=fld_x$/m);
 });
+
+test('the full guide teaches mail apps: the hook tool, send_email refused, the content_id column; the core prompt stays off it', () => {
+    const full = buildSystemPrompt({ toolset: 'full' });
+    assert.match(full, /app_set_mailbox_hook/);
+    assert.match(full, /NEVER send_email/);
+    assert.match(full, /content_id/);
+    assert.match(full, /onAttachmentClick/);
+    assert.ok(!buildSystemPrompt({ toolset: 'core' }).includes('app_set_mailbox_hook'));
+});

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
-import EmailHtmlBody from '@/components/support/EmailHtmlBody';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -10,7 +9,7 @@ import type { NodeProps } from './appNode.types';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { MessageThreadProps } from './AppMessageThread.types';
 import { toneStyle, formatStamp, textOrNull, initials, resolveSide } from './AppMessageThread.helpers';
-import { Chips } from './Chips';
+import { BubbleBody } from './BubbleBody';
 
 /**
  * App Studio runtime — 'message_thread'. Spec: server/appStudio/componentSpecs.js.
@@ -93,7 +92,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
         bodyField = 'body', htmlField = null, authorField = 'author',
         timestampField = 'created_at', sideField = null, sideMap = [],
         attachmentsField = null, attachmentLabelKey = 'filename',
-        attachmentMatchKey = null,
+        attachmentMatchKey = null, attachmentFileKey = null, inlineContentIdKey = null,
         citationsField = null, citationLabelKey = 'title',
         emailField = null, toField = null, subjectField = null, showAvatar = false,
         centerMeta = 'hidden',
@@ -230,28 +229,32 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                             // capping it wastes the column while forcing the body
                             // to wrap early. Side survives as the accent edge.
                             maxWidth: side === 'center' || showHtml ? '100%' : '85%',
+                            // In a flex-col row an auto-width item shrinks to its
+                            // content, and an iframe's content is 300px wide: the
+                            // sheet must ask for the column.
+                            width: showHtml ? '100%' : undefined,
                         }}
                         data-app-thread-side={side}
                         data-app-thread-tone={tone}
                         data-app-thread-html={showHtml ? 'true' : undefined}
                     >
                         {headerInside ? meta : null}
-                        {showHtml ? (
-                            <EmailHtmlBody html={String(html)} />
-                        ) : (
+                        <BubbleBody
+                            html={showHtml ? String(html) : null}
+                            attachments={attachments}
+                            citations={citations}
+                            attachmentLabelKey={attachmentLabelKey}
+                            citationLabelKey={citationLabelKey}
+                            attachmentFileKey={attachmentFileKey}
+                            inlineContentIdKey={inlineContentIdKey}
+                            onAttachmentClick={isRun ? node.onAttachmentClick : undefined}
+                        >
                             <div className="whitespace-pre-wrap break-words">
                                 {/* System (center) rows can carry their time inline. */}
                                 {side === 'center' && centerMeta === 'inline' && stamp ? `${stamp} · ` : null}
                                 {displayValue(textOrNull(text))}
                             </div>
-                        )}
-
-                        {/* The card zeroes its own padding so the mail can bleed
-                            to the edge; the chips still need their gutter. */}
-                        <div className={showHtml ? 'px-3 pb-2' : ''}>
-                            <Chips items={attachments} labelKey={attachmentLabelKey} testId="attachments" />
-                            <Chips items={citations} labelKey={citationLabelKey} testId="citations" />
-                        </div>
+                        </BubbleBody>
                     </div>
                 );
 
@@ -265,7 +268,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                         {clickable ? (
                             <button
                                 type="button"
-                                className="text-left cursor-pointer max-w-full"
+                                className={`text-left cursor-pointer max-w-full${showHtml ? ' w-full' : ''}`}
                                 onClick={() => runAction(node.onRowClick as string, { formValues: row, item: row })}
                             >
                                 {bubble}

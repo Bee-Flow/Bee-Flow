@@ -401,3 +401,18 @@ test('retention refuses an unknown column or a missing cutoff', () => {
         /cutoff/i,
     );
 });
+
+// ── The new-record hook setting ──────────────────────────────────────────────
+
+test('onNewRecord: a hook on messages validates, one on threads needs groupIntoThreads', () => {
+    assert.deepStrictEqual(errorsFor([mailbox({ onNewRecord: { actionId: 'act_a', target: 'inbound_message' } })]), []);
+    assert.ok(errorsFor([mailbox({ onNewRecord: { actionId: 'act_a', target: 'thread' } })]).some((e) => /needs groupIntoThreads/.test(e)));
+    assert.ok(errorsFor([mailbox({ onNewRecord: { actionId: 'act_a' } })]).some((e) => /target must be one of/.test(e)));
+    assert.ok(errorsFor([mailbox({ onNewRecord: 'act_a' })]).some((e) => /must be \{ actionId, target \}/.test(e)));
+});
+
+test('onNewRecord survives canonicalisation untouched', () => {
+    const hook = { actionId: 'act_a', target: 'inbound_message' };
+    const { model } = dataModel.canonicalizeDataModel({ modelVersion: 1, tables: [TABLE], roles: [], connectors: [mailbox({ onNewRecord: hook })] });
+    assert.deepStrictEqual(model.connectors[0].onNewRecord, hook);
+});

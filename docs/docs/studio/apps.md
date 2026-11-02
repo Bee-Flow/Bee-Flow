@@ -96,6 +96,34 @@ credentials), behind an SSRF guard that blocks private/internal addresses. The A
 *wire* an existing connector into the app, but it never authors credentials — you set
 those up yourself.
 
+A **mailbox** connector (Gmail or Outlook) fills conversation, message and attachment tables and can run an
+action for each new mail; see [Mailbox apps](./mailbox-apps.md).
+
+## Mailbox replies as drafts
+
+A **send e-mail** step normally sends the reply at once. Set its `mode` to `"draft"`
+and the reply is saved as a **draft in the connected mailbox** instead: nothing is
+sent, and an employee reviews and sends it from Outlook or Gmail themselves. The default
+is `"send"`, so existing apps behave as before.
+
+- **Outlook** — with a message or conversation to reply to, the draft is a reply to
+  that message (the quoted history stays and the conversation is kept); otherwise it
+  is a standalone draft. A shared mailbox works the same way.
+- **Gmail** — the draft is filed in the right conversation with the reply headers.
+- **Attachments** — the same app files as for sending; for Outlook up to 3 MB in total.
+- **Result** — `resultVar` holds `drafted`, `draftId`, `webLink` and `webLinkKind`.
+  Bind an "Open in Outlook" button to `webLink`. Outlook returns the link itself
+  (`webLinkKind: outlook_web`); for Gmail it is a compose link built from the draft
+  (`gmail_compose`).
+- **In the app** — with `recordOutbound` on (the default) the draft is added to the
+  conversation with direction `draft`. It never counts as a sent reply: it does not
+  start a first-response time and does not mark the conversation as answered. Add
+  `draft` to the options of the table's `direction` column to filter on it.
+- **Permissions** — saving a draft writes to the mailbox. Outlook needs the
+  `Mail.ReadWrite` permission (`Mail.ReadWrite.Shared` for a shared mailbox), Gmail
+  the compose permission. When the connection is known to lack it, the step fails
+  before anything is called, with code `draft_scope_missing`.
+
 ## Documents in an app
 
 Studio documents (pages, designed documents, presentations and spreadsheets) can be

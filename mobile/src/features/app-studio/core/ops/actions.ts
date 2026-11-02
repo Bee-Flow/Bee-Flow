@@ -21,6 +21,7 @@ export const NODE_EVENTS: readonly NodeEvent[] = [
     'onCardMove',
     'onChange',
     'onDecided',
+    'onAttachmentClick',
 ];
 
 /** The four list surfaces that name an action per entry (collectReferencedActions order). */

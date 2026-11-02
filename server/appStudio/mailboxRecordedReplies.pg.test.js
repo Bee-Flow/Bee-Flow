@@ -104,3 +104,29 @@ test('a flat mailbox reads its messages from grain 0, and a missing table is a n
     assert.deepStrictEqual(await adoptRecordedReplies(APP, MODEL, flat, [{ level: 0, rows: [synced()] }], deps), { adopted: 1, removed: 0 });
     assert.deepStrictEqual(await adoptRecordedReplies(APP, { tables: [] }, THREADED, grains(synced()), deps), { adopted: 0, removed: 0 });
 });
+
+test('a saved draft is taken over by its sent copy, however much later it went out', async () => {
+    const draft = recorded({ provider_message_id: 'AAMk-draft-1', direction: 'draft', received_at: at(0) });
+    await seed([draft]);
+    const out = await adoptRecordedReplies(APP, MODEL, THREADED, grains(synced({ received_at: at(6 * 60 * 60 * 1000) })), deps);
+    assert.deepStrictEqual(out, { adopted: 1, removed: 0 });
+    assert.deepStrictEqual(await keys(), ['AAMk-sent-1']);
+});
+
+test('a draft is not claimed by a copy from before it, from another thread, or with another subject', async () => {
+    await seed([recorded({ provider_message_id: 'AAMk-draft-1', direction: 'draft', received_at: at(REPLY_MATCH_MS * 4) })]);
+    for (const other of [
+        synced({ received_at: at(0) }),
+        synced({ thread_key: 'outlook:conv-2', received_at: at(REPLY_MATCH_MS * 8) }),
+        synced({ subject: 'RE: Iets anders', received_at: at(REPLY_MATCH_MS * 8) }),
+    ]) {
+        assert.deepStrictEqual(await adoptRecordedReplies(APP, MODEL, THREADED, grains(other), deps), { adopted: 0, removed: 0 }, JSON.stringify(other));
+    }
+    assert.deepStrictEqual(await keys(), ['AAMk-draft-1']);
+});
+
+test('a draft whose sent copy keeps the same id is left to the upsert', async () => {
+    await seed([recorded({ provider_message_id: 'AAMk-same', direction: 'draft' })]);
+    const out = await adoptRecordedReplies(APP, MODEL, THREADED, grains(synced({ provider_message_id: 'AAMk-same' })), deps);
+    assert.deepStrictEqual(out, { adopted: 0, removed: 0 });
+});

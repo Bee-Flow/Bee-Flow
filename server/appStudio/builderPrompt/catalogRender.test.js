@@ -504,7 +504,7 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-10-21, the pdf_compare component type joined the catalog — 52_446 chars.
 // 2026-10-26, document_viewer, document_compare, input_document and the
 // copy_document step joined the catalog — 54_074 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '43c3ebfc8eb0a0b67adbbee439723e473aa3a5c75e790820caf00449870f4c8a';
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = '37aa5362333ba84b62eaed83506e8a22673a148f0cae1f4f6e78a4c20b913368';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

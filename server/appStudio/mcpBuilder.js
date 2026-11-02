@@ -156,29 +156,7 @@ const TOOL_NAMES = new Set([
     ...TOOL_SCHEMAS.map((t) => t.function?.name).filter((n) => n && !ROUTE_ONLY_TOOLS.has(n)),
 ]);
 
-// ── Screenshot budget ───────────────────────────────────────────────────────
-//
-// app_screenshot's own cap is per-TURN (draftWrap._screenshotsThisTurn), and a
-// stateless endpoint that reloads the draft every call would reset it to zero
-// every time — turning an 8-per-turn ceiling into no ceiling at all. Each
-// render is a headless browser page, so replace it with an equivalent rolling
-// per-user budget rather than dropping it.
-
-const SHOT_WINDOW_MS = 10 * 60 * 1000;
-const SHOT_MAX_PER_WINDOW = 24;
-const _shotBudget = new Map(); // userId → { count, resetAt }
-
-function takeScreenshotBudget(userId) {
-    const now = Date.now();
-    const entry = _shotBudget.get(userId);
-    if (!entry || entry.resetAt <= now) {
-        _shotBudget.set(userId, { count: 1, resetAt: now + SHOT_WINDOW_MS });
-        return true;
-    }
-    if (entry.count >= SHOT_MAX_PER_WINDOW) return false;
-    entry.count += 1;
-    return true;
-}
+const { SHOT_WINDOW_MS, SHOT_MAX_PER_WINDOW, takeScreenshotBudget, _shotBudget } = require('./mcpScreenshotBudget');
 
 // ── Draft loading ───────────────────────────────────────────────────────────
 
@@ -385,8 +363,26 @@ async function callTool(name, rawArgs, { userId }) {
     if (loaded.error) return { result: { error: loaded.error } };
     const { draftWrap } = loaded;
 
+    // A write that leaves the definition exactly as it was must not save: the
+    // CAS save bumps the version, and a caller that sees the number move
+    // believes something changed. Compared as JSON, before vs after the tool.
+    const defBefore = MUTATING_TOOLS.has(name) && !DATA_MODEL_TOOLS.has(name) ? JSON.stringify(draftWrap.def) : null;
+    // The span below holds the screenshot data-URL regex: linear, and it reads our own render, never caller input.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
     const result = await applyToolCall(name, args, draftWrap);
     const ok = !(result && typeof result === 'object' && result.error);
+
+    if (ok && defBefore !== null && JSON.stringify(draftWrap.def) === defBefore) {
+        return {
+            result: {
+                ...result,
+                changed: false,
+                note: 'No change: the app already had these values, so nothing was saved and the version stays the same.',
+                appId: draftWrap.appId,
+                version: draftWrap.version,
+            },
+        };
+    }
 
     // Persist on exactly the same condition the SSE route does. The data tools
     // (DATA_MODEL_TOOLS) and app_finalize/app_apply_template already persisted

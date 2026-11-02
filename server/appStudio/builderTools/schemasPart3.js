@@ -10,6 +10,37 @@ const TOOL_SCHEMAS_PART_3 = [
     {
         type: 'function',
         function: {
+            name: 'app_get_node',
+            description: 'Read the FULL content of components by id (read-only): props with bindings and filters, style, computed, visibleWhen, enabledWhen, events and the ids of their children, untruncated. app_get_draft cuts long texts with "…" and leaves props out; use this before you edit an existing text, filter or binding with app_update_component, so you change it from what is really there. Unknown ids are listed in `unknownIds`, not thrown.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    ids: { type: 'array', maxItems: 40, items: { type: 'string' }, description: 'Component ids to read (cmp_…), at most 40 per call.' },
+                },
+                required: ['ids'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'app_find_nodes',
+            description: 'Search the draft for the nodes that match a query instead of reading the whole tree: by component type, by the table an action or binding touches, by an action id, or by a variable name. Returns each hit with its id, type, screen and path. Use it to answer "where is this used" and "what breaks if I remove this" — deleting a table or renaming a variable without checking is how a draft ends up with dangling references.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    componentType: { type: 'string', description: 'Component type to find, e.g. "chart" or "data_grid".' },
+                    tableId: { type: 'string', description: 'Find components bound to this table and actions that read or write it (tbl_…).' },
+                    actionId: { type: 'string', description: 'Find components whose events run this action (act_…).' },
+                    variable: { type: 'string', description: 'Find components and actions that read or write this variable name.' },
+                    screenId: { type: 'string', description: 'Limit the search to one screen (scr_…).' },
+                },
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'app_list_automations',
             description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping. Returns at most 30 by default.',
             parameters: {

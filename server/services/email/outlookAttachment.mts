@@ -13,7 +13,7 @@
  */
 
 /** What the sync knew about the attachment, to find it again after a move. */
-export type Relocate = { threadKey?: string | null; name?: string | null; size?: number | null } | null | undefined;
+export type Relocate = { threadKey?: string | null; name?: string | null; size?: number | null; inline?: boolean } | null | undefined;
 
 type GraphGet = (path: string) => Promise<Record<string, unknown>>;
 type GraphAttachment = Record<string, unknown> & {
@@ -44,7 +44,7 @@ async function relocate(graph: GraphGet, base: string, hint: NonNullable<Relocat
     for (const message of messages) {
         if (!message.id || !message.hasAttachments) continue;
         const atts = await graph(`${base}/messages/${encodeURIComponent(message.id)}/attachments?$select=id,name,size,isInline`);
-        const found = ((Array.isArray(atts.value) ? atts.value : []) as GraphAttachment[]).find((a) => !a.isInline
+        const found = ((Array.isArray(atts.value) ? atts.value : []) as GraphAttachment[]).find((a) => Boolean(a.isInline) === Boolean(hint.inline)
             && a.name === hint.name && (!hint.size || Number(a.size) === Number(hint.size)));
         if (found?.id) return graph(attachmentPath(base, message.id, found.id)) as Promise<GraphAttachment>;
     }

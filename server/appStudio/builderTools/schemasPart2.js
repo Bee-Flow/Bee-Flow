@@ -5,6 +5,7 @@
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
 const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
+const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_2 = [
@@ -312,6 +313,22 @@ const TOOL_SCHEMAS_PART_2 = [
     {
         type: 'function',
         function: {
+            name: 'app_set_mailbox_hook',
+            description: "Make a mailbox connector run one of the app's actions for every NEW row after a sync: each new conversation (target \"thread\", needs a connector that groups into threads) or each new message that came IN (target \"inbound_message\"). It runs on the server as the app owner with { item: <the new row> } in scope, so e.g. an ai_generate step can summarise the mail and an update_record step file the result, without anyone pressing a button. The action may only hold steps that run unattended: create_record, update_record, ai_generate, ai_extract, kb_query, dataset_query, file_intake, generate_file, fill_document, generate_presentation, redact_pdf, plus condition/switch around them. send_email is NEVER allowed (nothing may mail by itself); a refused action comes back with what to change. Create the action with app_set_action first. Pass actionId null to switch the hook off. Only rows that arrive after the next sync are processed; there are caps per sync and per minute. Needs an existing mailbox connector (app_list_connectors); the owner sets those up.",
+            parameters: {
+                type: 'object',
+                properties: {
+                    connectorId: { type: 'string', description: 'The mailbox connector (conn_…) from app_list_connectors.' },
+                    actionId: { type: ['string', 'null'], description: 'The action (act_…) to run per new row, or null to switch the hook off.' },
+                    target: { type: 'string', enum: [...HOOK_TARGETS], description: '"thread": every new conversation. "inbound_message": every new message that came in (not the ones the team sent). Required when actionId is set.' },
+                },
+                required: ['connectorId', 'actionId'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'app_list_documents',
             description: "List the DESIGNED documents the app owner made in Studio → Documents (templates and ordinary documents with placeholders, at most 50) — an invoice, a quote, a letter on the company's letterhead — with the placeholders each one carries. Read-only, NO arguments. Returns [{ documentId, name, docType, kind, versionId, placeholders:[{key, kind, fields?}] }].\n\nCall it before writing a `fill_document` step: `documentId` must be one of these (never invent one, and you cannot create a document — the owner designs it), and the keys of `values` are the placeholder names EXACTLY as listed. A placeholder of kind \"list\" must be bound to a binding that resolves to an ARRAY; its `fields` are what each item needs. If the list comes back empty, say the owner has to design the document in Studio → Documents first — do not fall back to a text export and call it an invoice.",
             parameters: { type: 'object', properties: {} },
@@ -350,29 +367,12 @@ const TOOL_SCHEMAS_PART_2 = [
         type: 'function',
         function: {
             name: 'app_get_draft',
-            description: 'Read the current draft as a compact ID-bearing tree (screens → sections → components, plus actions). Use when you need to re-check ids or structure; the latest draft state is also injected into the conversation each turn. On a large app read it in parts — `screenId` for one screen, or `section` for just the actions / tables / meta — instead of pulling the whole tree.',
+            description: 'Read the current draft as a compact ID-bearing tree (screens → sections → components, plus actions). Use when you need to re-check ids or structure; the latest draft state is also injected into the conversation each turn. On a large app read it in parts — `screenId` for one screen, or `section` for just the actions / tables / meta — instead of pulling the whole tree. Long texts are cut with "…" and props such as bindings, filters and computed are left out: read the full content of a component with app_get_node before you edit it.',
             parameters: {
                 type: 'object',
                 properties: {
                     screenId: { type: 'string', description: 'Return only this screen\'s tree (scr_…). Implies section:"screens".' },
                     section: { type: 'string', enum: ['screens', 'actions', 'tables', 'meta'], description: 'Return only one part of the draft. Omit for everything.' },
-                },
-            },
-        },
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'app_find_nodes',
-            description: 'Search the draft for the nodes that match a query instead of reading the whole tree: by component type, by the table an action or binding touches, by an action id, or by a variable name. Returns each hit with its id, type, screen and path. Use it to answer "where is this used" and "what breaks if I remove this" — deleting a table or renaming a variable without checking is how a draft ends up with dangling references.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    componentType: { type: 'string', description: 'Component type to find, e.g. "chart" or "data_grid".' },
-                    tableId: { type: 'string', description: 'Find components bound to this table and actions that read or write it (tbl_…).' },
-                    actionId: { type: 'string', description: 'Find components whose events run this action (act_…).' },
-                    variable: { type: 'string', description: 'Find components and actions that read or write this variable name.' },
-                    screenId: { type: 'string', description: 'Limit the search to one screen (scr_…).' },
                 },
             },
         },

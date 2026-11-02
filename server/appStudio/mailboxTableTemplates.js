@@ -26,7 +26,7 @@ const MAILBOX_TABLE_TEMPLATE = Object.freeze({
         { key: 'rfc822_message_id', name: 'RFC822 message id', type: 'text' },
         { key: 'in_reply_to', name: 'In reply to', type: 'text' },
         { key: 'references', name: 'References', type: 'text' },
-        { key: 'direction', name: 'Direction', type: 'select', options: ['inbound', 'outbound'] },
+        { key: 'direction', name: 'Direction', type: 'select', options: ['inbound', 'outbound', 'draft'] },
         { key: 'from_email', name: 'From', type: 'text' },
         { key: 'from_name', name: 'From name', type: 'text' },
         { key: 'to_emails', name: 'To', type: 'text' },
@@ -82,6 +82,10 @@ const MAILBOX_ATTACHMENT_TABLE_TEMPLATE = Object.freeze({
         { key: 'mime_type', name: 'Type', type: 'text' },
         { key: 'size', name: 'Size', type: 'number' },
         { key: 'is_inline', name: 'Inline', type: 'bool' },
+        // The Content-ID a `cid:` image in the HTML body points at. An app whose
+        // attachment table predates this column keeps syncing without it; add the
+        // text column `content_id` to get inline images shown in message_thread.
+        { key: 'content_id', name: 'Content-ID', type: 'text' },
         // A PENDING descriptor (see mailboxAttachments.js). The bytes are not
         // downloaded here; the first viewer or AI step redeems this in place and
         // it becomes an ordinary studio_attachment.

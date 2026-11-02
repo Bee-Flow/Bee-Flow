@@ -165,6 +165,17 @@ function normalizeGmail(msg, { mailbox, includeBody }) {
     return out;
 }
 
+/**
+ * A Content-ID header value without its angle brackets: what a `cid:` URL in
+ * the HTML body refers to. Empty text is null.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function cleanContentId(value) {
+    const id = String(value ?? '').trim().replace(/^<+|>+$/g, '').trim();
+    return id || null;
+}
+
 /** Walk a Gmail payload tree for parts that are real attachments. */
 function gmailAttachments(payload) {
     const out = [];
@@ -179,6 +190,7 @@ function gmailAttachments(payload) {
                 is_inline: (part.headers || []).some(
                     (x) => x.name?.toLowerCase() === 'content-disposition' && /inline/i.test(x.value || ''),
                 ),
+                content_id: cleanContentId((part.headers || []).find((x) => x.name?.toLowerCase() === 'content-id')?.value),
             });
         }
         if (Array.isArray(part.parts)) part.parts.forEach(walk);
@@ -319,13 +331,14 @@ async function listAttachmentMeta({ provider, tokens, onRefresh, mailbox = {}, m
     }
     if (provider === 'outlook') {
         const res = await graphFetchFromTokens(tokens, onRefresh,
-            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`);
+            `${graphBase(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline,contentId`);
         return (res.value || []).map((a) => ({
             provider_attachment_id: a.id,
             filename: a.name || 'bijlage',
             mime_type: a.contentType || 'application/octet-stream',
             size: Number(a.size) || 0,
             is_inline: Boolean(a.isInline),
+            content_id: cleanContentId(a.contentId),
         }));
     }
     throw new Error(`Unknown provider: ${provider}`);
@@ -536,4 +549,4 @@ module.exports = {
  *   labels: string, raw_size: number, thread_key?: string }} MailRow
  */
 
-/** @typedef {{ provider_attachment_id: string, filename: string, mime_type: string, size: number, is_inline: boolean }} AttachmentMeta */
+/** @typedef {{ provider_attachment_id: string, filename: string, mime_type: string, size: number, is_inline: boolean, content_id: string | null }} AttachmentMeta */

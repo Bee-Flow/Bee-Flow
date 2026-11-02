@@ -59,3 +59,15 @@ test('dedupeAttachmentRows: one row per file per conversation, first kept, in or
     ];
     assert.deepEqual(dedupeAttachmentRows(rows).map((r) => r._parentIndex), [0, 2, 3, 4]);
 });
+
+test('listAttachmentRows: the Content-ID lands in the row and in the pending descriptor', async () => {
+    const fetcher = { listAttachmentMeta: async () => [
+        { provider_attachment_id: 'a1', filename: 'logo.png', mime_type: 'image/png', size: 5, is_inline: true, content_id: 'logo@acme' },
+        { provider_attachment_id: 'a2', filename: 'b.pdf', mime_type: 'application/pdf', size: 6, is_inline: false },
+    ] };
+    const rows = await listAttachmentRows([{ provider_message_id: 'm1', thread_key: 'k1', has_attachments: true }], IDENTITY, { id: 'c1' }, fetcher);
+    assert.equal(rows[0].content_id, 'logo@acme');
+    assert.equal(rows[0].file.contentId, 'logo@acme');
+    assert.equal(rows[1].content_id, null);
+    assert.equal(rows[1].file.contentId, null);
+});

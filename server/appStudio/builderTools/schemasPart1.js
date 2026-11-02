@@ -226,7 +226,7 @@ const TOOL_SCHEMAS_PART_1 = [
         type: 'function',
         function: {
             name: 'app_update_component',
-            description: `Edit existing components IN PLACE — props/style are shallow-MERGED (only the keys you pass change), keeping ids and wiring. Never remove + re-add a component just to tweak it. ${batchHint('updates', 'patch')}`,
+            description: `Edit existing components IN PLACE — props/style are shallow-MERGED (only the keys you pass change), keeping ids and wiring. Never remove + re-add a component just to tweak it. Read the current content first with app_get_node (app_get_draft truncates long texts). An update that changes nothing is answered with changed:false over MCP and is not saved. ${batchHint('updates', 'patch')}`,
             parameters: {
                 type: 'object',
                 properties: {
