@@ -310,6 +310,32 @@ test('graph list: with text next to a label, the label filters the $search resul
     assert.deepStrictEqual(out.messages.map((m) => m.provider_message_id), ['with']);
 });
 
+test('graph list: includeBody selects body, so a sync never writes an empty text over a real one', async () => {
+    graphResult = { value: [GRAPH_MSG] };
+    const out = await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL });
+    const select = new URLSearchParams(graphPaths[0].split('?')[1]).get('$select').split(',');
+    assert.ok(select.includes('body'));
+    assert.strictEqual(out.messages[0].body_html, '<p>Waar blijft mijn pakket?</p>');
+
+    graphPaths = [];
+    await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL, includeBody: false });
+    assert.ok(!new URLSearchParams(graphPaths[0].split('?')[1]).get('$select').split(',').includes('body'));
+});
+
+test('graph normalisation: a body that was not fetched is undefined, an empty mail is an empty string', () => {
+    const { body: _omit, ...noBody } = GRAPH_MSG;
+    const missing = fetchLayer._normalizeGraph(noBody, { mailbox: SHARED, includeBody: true });
+    assert.strictEqual(missing.body_text, undefined);
+    assert.strictEqual(missing.body_html, undefined);
+
+    const empty = fetchLayer._normalizeGraph({ ...GRAPH_MSG, body: { contentType: 'text', content: '' } }, { mailbox: SHARED, includeBody: true });
+    assert.strictEqual(empty.body_text, '');
+    assert.strictEqual(empty.body_html, '');
+
+    const optedOut = fetchLayer._normalizeGraph(noBody, { mailbox: SHARED, includeBody: false });
+    assert.strictEqual(optedOut.body_text, '');
+});
+
 test('graph list follows @odata.nextLink verbatim', async () => {
     graphResult = { value: [], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/me/messages?$skiptoken=abc' };
     const first = await fetchLayer.listMessages({ provider: 'outlook', tokens: TOKENS, mailbox: PERSONAL });
