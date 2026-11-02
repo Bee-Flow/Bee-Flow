@@ -3,11 +3,27 @@
   "permissions": {
     "allow": [
       "PowerShell",
-      "Bash"
+      "Bash",
+      "mcp__ci-local__ci_wait",
+      "mcp__ci-local__ci_findings",
+      "mcp__ci-local__ci_status",
+      "mcp__ci-local__ci_pr",
+      "mcp__ci-local__ci_plan",
+      "mcp__beeflow-cms__cms_screenshot",
+      "mcp__beeflow-cms__cms_get_locale_overrides",
+      "mcp__beeflow-cms__cms_get_page",
+      "mcp__beeflow-cms__cms_analytics_metrics",
+      "mcp__beeflow-cms__cms_list_site",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__youtrack__search_issues",
+      "mcp__youtrack__get_issue",
+      "mcp__beeflow-cms__cms_list_sites",
+      "mcp__beeflow-cms__cms_get_site_settings",
+      "mcp__beeflow-cms__cms_check_links",
+      "mcp__beeflow-automations__builder_inspect_tool",
+      "mcp__ci-local__ci_doctor"
     ],
     "ask": [
-      "Bash(git push:*)",
-      "PowerShell(git push:*)",
       "Bash(npm run push:prd)",
       "PowerShell(npm run push:prd)",
       "Bash(npm run build:prd)",
@@ -52,8 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/secret-guard.mjs"],
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret-guard.mjs\"",
             "timeout": 10,
             "statusMessage": "secret-guard"
           }
@@ -64,15 +79,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-secret-scan.mjs"],
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-secret-scan.mjs\"",
             "timeout": 130,
             "statusMessage": "secret-scan"
           },
           {
             "type": "command",
-            "command": "node",
-            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/push-branch-gate.mjs"],
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/push-branch-gate.mjs\"",
             "timeout": 10,
             "statusMessage": "push-gate"
           }
@@ -85,15 +98,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-lint.mjs"],
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-lint.mjs\"",
             "timeout": 30,
             "statusMessage": "eslint --fix"
           },
           {
             "type": "command",
-            "command": "node",
-            "args": ["$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-test.mjs"],
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-test.mjs\"",
             "timeout": 130,
             "async": true,
             "asyncRewake": true,
