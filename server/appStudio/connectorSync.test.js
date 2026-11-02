@@ -158,6 +158,32 @@ test('upsert: re-running updates matched rows instead of duplicating them', asyn
     assert.strictEqual(h.store.size, 3, 'three distinct records, not five');
 });
 
+test('upsert: a mail row fetched without its body keeps the body already stored; an empty mail still writes ""', async () => {
+    // normalizeGraph leaves body_text/body_html undefined when Graph returned
+    // no `body`; the UPDATE writes only the columns present, so the text a
+    // thread expansion stored earlier survives the next list pass.
+    const fetchLayer = require('../services/email/fetch');
+    const MAIL = {
+        id: 'tbl_mail01', key: 'messages', name: 'Messages',
+        fields: [{ id: 'fld_m00001', key: 'provider_message_id', name: 'id', type: 'text', unique: true, sourcePath: 'provider_message_id' }]
+            .concat(['subject', 'body_text', 'body_html'].map((k, i) => ({ id: `fld_m0000${i + 2}`, key: k, name: k, type: 'text', sourcePath: k }))),
+    };
+    const graphMsg = { id: 'AAMk-1', conversationId: 'c1', subject: 'Offerte', from: { emailAddress: { address: 'klant@example.com' } } };
+    const mailbox = { address: 'info@acme.nl', mode: 'personal' };
+    const withoutBody = fetchLayer._normalizeGraph(graphMsg, { mailbox, includeBody: true });
+    const emptyMail = fetchLayer._normalizeGraph({ ...graphMsg, id: 'AAMk-2', body: { contentType: 'text', content: '' } }, { mailbox, includeBody: true });
+
+    const h = harness({ runs: [{ rows: [withoutBody, emptyMail] }], existing: new Map([['AAMk-1', 'rec_a'], ['AAMk-2', 'rec_b']]) });
+    const c = connector({ tableId: MAIL.id, mode: 'upsert', keyField: 'provider_message_id' });
+    await connectorSync.syncConnector(app, { ...MODEL, tables: [MAIL] }, c, { _deps: h._deps });
+
+    const byId = new Map(h.log.updates.map((u) => [u.recordId, u.values]));
+    assert.strictEqual(byId.get('rec_a').subject, 'Offerte');
+    assert.ok(!('body_text' in byId.get('rec_a')) && !('body_html' in byId.get('rec_a')), 'no body column in the UPDATE');
+    assert.strictEqual(byId.get('rec_b').body_text, '');
+    assert.strictEqual(byId.get('rec_b').body_html, '');
+});
+
 test('upsert: the existing-record lookup is scoped to the batch, not the whole table', async () => {
     const h = harness({ runs: [{ rows: [{ id: 'm1' }, { id: 'm2' }] }] });
     await connectorSync.syncConnector(app, MODEL,
