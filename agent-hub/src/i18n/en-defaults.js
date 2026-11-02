@@ -4347,6 +4347,7 @@ const EN_DEFAULTS = {
     "cms_site.blocks.content.frame_browser": "Browser window",
     "cms_site.blocks.content.frame_hairline": "Hairline frame",
     "cms_site.blocks.content.frame_none": "None",
+    "cms_site.blocks.content.full_width_embed": "Full width",
     "cms_site.blocks.content.full_width_image": "Full width image",
     "cms_site.blocks.content.heading": "Heading",
     "cms_site.blocks.content.heading_preview": "Heading preview",

@@ -2921,13 +2921,13 @@
     object-fit: unset;
 }
 
-/* Full-bleed image — escapes the (narrower) grid column and renders at the
+/* Full-bleed image or embed — escapes the (narrower) grid column and renders at the
    full content-container width, matching the Live Component block's
    `.container` width (max-width var(--max-width), 24px side padding). The
-   centered-container breakout centres the image on its column's horizontal
-   centre, so it lines up exactly for single-column / lone-image rows (the
-   intended use). Column layout itself is untouched. */
-.marketing-root .content-el-image--bleed {
+   centered-container breakout centres it on its column's horizontal
+   centre, so it lines up exactly for single-column rows (the intended use). Column layout itself is untouched. */
+.marketing-root .content-el-image--bleed,
+.marketing-root .content-el-iframe--bleed {
     --bleed-w: min(calc(var(--max-width) - 48px), calc(100vw - 48px));
     width: var(--bleed-w);
     max-width: none;
