@@ -85,7 +85,7 @@ const RECORD_LIST_SPECS = {
     },
     list: {
         label: 'List', category: 'Data',
-        description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a field holding tags (array, JSON array or comma-separated text, e.g. mail categories) as small chips, at most 3 plus "+N".',
+        description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
             titleKey: { type: 'string', maxLen: 120, default: 'title' },
