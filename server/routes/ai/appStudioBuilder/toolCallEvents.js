@@ -31,6 +31,7 @@ const TOOL_LABELS = {
     app_remove_action: 'Remove action',
     app_bind_action: 'Wire action',
     app_get_draft: 'Read draft',
+    app_get_node: 'Read components',
     app_find_nodes: 'Search draft',
     app_inspect_catalog: 'Read catalog',
     app_list_automations: 'List automations',
@@ -193,6 +194,7 @@ function summariseToolResult(name, args, result) {
             if (result?.batch) return cap(`Wired ${result.applied} handler(s)`);
             return cap(args?.actionId === null ? `Cleared ${args?.event} on ${args?.nodeId}` : `${args?.event} → ${result?.actionId}`);
         case 'app_get_draft': return 'Read the current draft';
+        case 'app_get_node': return cap(`Read ${Array.isArray(result?.nodes) ? result.nodes.length : 0} component(s)`);
         case 'app_find_nodes': return cap(`${result?.hitCount ?? 0} match(es)${result?.truncated ? ' (truncated)' : ''}`);
         case 'app_list_automations': return cap(`${Array.isArray(result?.automations) ? result.automations.length : 0} automation(s) available`);
         case 'app_inspect_automation': return cap(`Inspected ${result?.automation?.title || args?.automationId}`);

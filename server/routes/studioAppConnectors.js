@@ -520,12 +520,6 @@ async function probeConnected(app, connector, viewerId) {
     }
 }
 
-/** @param {{ kind?: string, integrationId?: string } | null | undefined} c */
-function mailboxProviderFromIntegration(c) {
-    if (c?.kind !== 'mailbox') return null;
-    return c.integrationId === 'gmail' || c.integrationId === 'outlook' ? c.integrationId : null;
-}
-
 router.get('/:id/runtime/connectors/status', requireAuth, async (req, res) => {
     const app = await loadMemberApp(req, res);
     if (!app) return;
@@ -542,14 +536,10 @@ router.get('/:id/runtime/connectors/status', requireAuth, async (req, res) => {
             id: c.id,
             name: c.name || null,
             kind: c.kind || null,
-            // A mailbox names its provider; older/hand-written models may carry
-            // only the owning integration, so fall back to that before nothing.
-            provider: full?.provider || mailboxProviderFromIntegration(full) || null,
-            integrationId: (typeof full?.integrationId === 'string' && full.integrationId) || null,
+            provider: full?.provider || (full?.kind === 'mailbox' ? full.integrationId : null) || null,
+            integrationId: full?.integrationId || null,
             mode: full?.mode || null,
-            // A shared mailbox names its address in the model; a personal one
-            // is whatever account the token belongs to, which we do not open
-            // a connection to discover.
+            // Shared: the address is in the model. Personal: whatever the token is, never opened.
             address: full?.mode === 'shared' ? (full.address || null) : null,
             runAs: full?.runAs || 'owner',
             connected: await probeConnected(app, full || {}, req.session.user.id),

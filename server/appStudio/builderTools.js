@@ -56,6 +56,7 @@ const {
     applyListAutomations, applyInspectAutomation,
     automationSummaryRow, MAX_SCREENSHOTS_PER_TURN,
 } = require('./builderTools/inspectionTools');
+const { applyGetNode } = require('./builderTools/getNodeTool');
 const { boundPlanArtifact, applyProposePlan, applyMarkPhase, PLAN_LIMITS } = require('./builderTools/planTools');
 const { applyListTemplates, applyApplyTemplate, applySaveAsTemplate, isFreshDraft } = require('./builderTools/templateTools');
 const { applyFinalize, persistDraft } = require('./builderTools/persistence');
@@ -169,6 +170,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_dry_run':           return applyDryRun(draftWrap, args);
         case 'app_screenshot':        return applyAppScreenshot(draftWrap, args);
         case 'app_get_draft':         return applyGetDraft(draftWrap, args);
+        case 'app_get_node':          return applyGetNode(draftWrap, args);
         case 'app_find_nodes':        return applyFindNodes(draftWrap, args);
         case 'app_inspect_catalog':   return applyInspectCatalog(args);
         case 'app_list_automations':  return applyListAutomations(draftWrap, args);
