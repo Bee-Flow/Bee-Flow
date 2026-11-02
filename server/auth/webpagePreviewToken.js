@@ -64,13 +64,19 @@ const secret = createSigningSecret({
  * NARROWS: verifyPreviewToken then gives `viewerUserId: null` and the table routes refuse. Never
  * fall back to `userId` — that would give every reader the table rights of the author.
  *
- * @param {{ userId: string, webpageId: string, viewerUserId?: string | null, ttlMs?: number }} args
+ * `role` says what the holder may do with the page's own database: `'owner'` is the author (every
+ * write bridge), anything else is a viewer, who reads and runs the page's handlers but writes raw
+ * SQL only when the author opted the page in (bridge_grants.db.viewersMayWrite). The claim is
+ * optional on the wire and its absence NARROWS to viewer, like `v` does.
+ *
+ * @param {{ userId: string, webpageId: string, viewerUserId?: string | null, role?: 'owner' | 'viewer', ttlMs?: number }} args
  */
-function issuePreviewToken({ userId, webpageId, viewerUserId = null, ttlMs = DEFAULT_TTL_MS }) {
+function issuePreviewToken({ userId, webpageId, viewerUserId = null, role = 'viewer', ttlMs = DEFAULT_TTL_MS }) {
     if (!userId || !webpageId) throw new Error('userId and webpageId are required');
     const expiresAt = Date.now() + Math.max(60_000, ttlMs);
-    /** @type {{ u: string, w: string, e: number, v?: string }} */
+    /** @type {{ u: string, w: string, e: number, v?: string, r?: 'owner' }} */
     const payload = { u: userId, w: webpageId, e: expiresAt };
+    if (role === 'owner') payload.r = 'owner';
     // Trimmed: a claim of spaces alone is not a visitor, and would otherwise enter the scope lookup as a
     // user id.
     const viewer = typeof viewerUserId === 'string' ? viewerUserId.trim() : '';
@@ -98,13 +104,15 @@ function verifyPreviewToken(token) {
         // Only a real, non-empty string counts. Anything else (missing, a number, an object) becomes null and
         // makes the table routes refuse.
         viewerUserId: typeof payload.v === 'string' && payload.v.trim() ? payload.v.trim() : null,
+        // Only the literal owner claim opens the write bridges; anything else is a viewer.
+        role: /** @type {'owner' | 'viewer'} */ (payload.r === 'owner' ? 'owner' : 'viewer'),
         expiresAt: payload.e,
     };
 }
 
 /**
  * Express middleware that pulls a Bearer token off the Authorization header,
- * verifies it, and stashes `{ userId, webpageId, viewerUserId }` on
+ * verifies it, and stashes `{ userId, webpageId, viewerUserId, role }` on
  * `req.previewClaims`.
  * Also enforces that the token's webpageId matches the URL's `:id` so a
  * token issued for one webpage can't be used to query another.

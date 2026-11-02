@@ -224,6 +224,67 @@ function checkMailboxTrigger(trigger, at, pushE) {
     }
 }
 
+const MAX_FILTER_PATTERN_CHARS = 200;
+
+/**
+ * A trigger filter's pattern (`subjectRegex`, also inside `any` / `none`), at
+ * save time: it must compile the way the matcher runs it
+ * (core/text/userPattern.js: RE2, or the guarded fallback), so a pattern that
+ * could stall the trigger bus on a crafted subject is refused where it is
+ * written. The matcher cuts a pattern at 200 characters; a longer one is
+ * refused here rather than silently truncated.
+ * @param {{ kind?: string, appEvent?: { filter?: Record<string, unknown> | null } } | null | undefined} trigger
+ * @param {string} at - the trigger's path, e.g. "trigger" or "triggers[1]"
+ * @param {(f: any) => void} pushE
+ */
+function checkTriggerFilterPatterns(trigger, at, pushE) {
+    if (trigger?.kind !== 'app_event') return;
+    const root = trigger.appEvent?.filter;
+    if (!root || typeof root !== 'object') return;
+    for (const [path, pattern] of filterPatternsOf(root, `${at}.appEvent.filter`)) {
+        checkOneFilterPattern(pattern, `${path}.subjectRegex`, pushE);
+    }
+}
+
+/**
+ * The `subjectRegex` of a filter and of its `any` / `none` sub-filters, with their paths.
+ * @param {Record<string, unknown>} root
+ * @param {string} at
+ * @returns {Array<[string, string]>}
+ */
+function filterPatternsOf(root, at) {
+    /** @type {Array<[string, unknown]>} */
+    const places = [[at, root]];
+    for (const list of ['any', 'none']) {
+        const subs = root[list];
+        if (Array.isArray(subs)) subs.forEach((sub, i) => places.push([`${at}.${list}[${i}]`, sub]));
+    }
+    /** @type {Array<[string, string]>} */
+    const out = [];
+    for (const [path, filter] of places) {
+        const pattern = /** @type {Record<string, unknown> | null} */ (filter && typeof filter === 'object' ? filter : null)?.subjectRegex;
+        if (typeof pattern === 'string' && pattern) out.push([path, pattern]);
+    }
+    return out;
+}
+
+/**
+ * @param {string} pattern
+ * @param {string} path
+ * @param {(f: any) => void} pushE
+ */
+function checkOneFilterPattern(pattern, path, pushE) {
+    if (pattern.length > MAX_FILTER_PATTERN_CHARS) {
+        pushE({ code: 'trigger.filter_pattern_too_long', severity: 'error', path, message: `The subject pattern is longer than ${MAX_FILTER_PATTERN_CHARS} characters.`, hint: 'Shorten the pattern; the matcher reads at most 200 characters of it.' });
+        return;
+    }
+    const { compileUserPattern } = require('../../core/text/userPattern');
+    const compiled = compileUserPattern(pattern);
+    if (compiled.ok === false) {
+        pushE({ code: 'trigger.filter_pattern_invalid', severity: 'error', path, message: `The subject pattern cannot be used: ${compiled.message}`, hint: 'Write a pattern without nested repetition, such as [A-Z]{2}-\\d+, or use subjectContains for a plain text.' });
+    }
+}
+
 /**
  * The primary trigger: its id, its kind (fixed layer_input in a contract
  * scope), position, pinned sample data and deliverability.
@@ -259,6 +320,7 @@ function checkPrimaryTrigger(ctx, deliverableEvents) {
 
     checkTriggerDeliverability(ctx, deliverableEvents);
     checkMailboxTrigger(trigger, p('trigger'), pushE);
+    checkTriggerFilterPatterns(trigger, p('trigger'), pushE);
     // An app_event trigger with no provider/event can NEVER fire: the
     // subscription sync silently skips it, so the automation activated green and
     // then did nothing, with no diagnostic anywhere (C6). Completeness-listed:
@@ -270,4 +332,4 @@ function checkPrimaryTrigger(ctx, deliverableEvents) {
     }
 }
 
-module.exports = { checkPrimaryTrigger, checkScheduleTrigger, checkMailboxTrigger };
+module.exports = { checkPrimaryTrigger, checkScheduleTrigger, checkMailboxTrigger, checkTriggerFilterPatterns };

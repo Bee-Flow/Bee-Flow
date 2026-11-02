@@ -62,3 +62,8 @@ test('chat signals: the notice marker and the opt-out are typed, and a non-boole
     h.assertRefused(assert, await post({ message: 'hi', chatSignalsNotice: 'x'.repeat(121) }), 'body.chatSignalsNotice', /at most 120/);
     assert.deepStrictEqual(db.queries, []);
 });
+
+test('a turn is behind the direct-chat spend limiter (DIRECT_CHAT_RPM), after the session check', () => {
+    const router = require('./streamTurn');
+    assert.deepStrictEqual(h.limitersOn(router, 'post', '/chat/direct/stream'), ['direct-chat']);
+});

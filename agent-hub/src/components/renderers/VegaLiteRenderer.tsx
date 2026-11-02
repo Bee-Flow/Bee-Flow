@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import vegaEmbed from 'vega-embed';
+import vegaEmbed, { vega } from 'vega-embed';
 import type { EmbedOptions, Result } from 'vega-embed';
+import { isTrustedImageSource } from './remoteImages';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
 
@@ -136,6 +137,17 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
             ),
         };
 
+        // The spec is model output: an `image` mark or a `data.url` in it is a
+        // request to a host the model chose. The loader lets through what
+        // remoteImages.tsx lets through (this origin, data:, blob:) and
+        // refuses the rest, so the chart renders without that fetch.
+        const loader = vega.loader();
+        const sanitize = loader.sanitize.bind(loader);
+        loader.sanitize = async (uri, options) => {
+            if (!isTrustedImageSource(uri)) throw new Error(`remote resource not loaded: ${String(uri)}`);
+            return sanitize(uri, options);
+        };
+
         const embedOptions: EmbedOptions = {
             actions: {
                 export: true,
@@ -144,6 +156,7 @@ const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, 
                 editor: false,
             },
             renderer: 'svg',
+            loader,
         };
 
         setReady(false);

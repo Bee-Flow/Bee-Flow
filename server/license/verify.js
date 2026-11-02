@@ -32,6 +32,12 @@ const ALG = 'RS256';
 
 const BUNDLED_KEY_PATH = path.join(__dirname, 'bundled-public-key.pem');
 const JWKS_URL = process.env.LICENSE_JWKS_URL || '';
+// The JWKS is how the trust root rotates, so it travels over TLS only: a key set read over plain
+// http is whatever the network put there. Production refuses such a URL; elsewhere it is a warning.
+if (JWKS_URL && !/^https:\/\//i.test(JWKS_URL)) {
+    if (process.env.NODE_ENV === 'production') throw new Error('LICENSE_JWKS_URL must be an https:// URL (the key set is the licence trust root)');
+    log.warn(`[License Verify] LICENSE_JWKS_URL is not https (${JWKS_URL.split('/')[0]}//…): accepted outside production only`);
+}
 const JWKS_CACHE_MS = parseInt(process.env.LICENSE_JWKS_CACHE_SECONDS || '300', 10) * 1000;
 
 /** @type {string | null} */
@@ -400,6 +406,7 @@ module.exports = {
     // Additive reuse primitives (see block above):
     base64UrlDecode,
     resolvePublicKeyByKid,
+    kidForPem,
     verifyCompactRs256,
 };
 

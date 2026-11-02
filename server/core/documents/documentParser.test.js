@@ -76,3 +76,29 @@ test('a BOM at the start of a CSV does not end up in the first header', async ()
     assert.doesNotMatch(out, /\uFEFF/);
     assert.match(out, /Zoë/);
 });
+
+test('a parse that runs past the deadline comes back as a failure for that file, not a stalled server', async () => {
+    const saved = process.env.DOCUMENT_PARSE_TIMEOUT_MS;
+    process.env.DOCUMENT_PARSE_TIMEOUT_MS = '1';
+    try {
+        const buffer = await pdfWith('slow enough at a one millisecond deadline');
+        const out = await parseDocument(buffer, 'application/pdf', 'report.pdf');
+        assert.match(out, /failed to parse: parsing took longer than/);
+    } finally {
+        if (saved === undefined) delete process.env.DOCUMENT_PARSE_TIMEOUT_MS; else process.env.DOCUMENT_PARSE_TIMEOUT_MS = saved;
+    }
+});
+
+test('with the deadline off the parsers run in-process, and plain text never goes to a worker', async () => {
+    const saved = process.env.DOCUMENT_PARSE_TIMEOUT_MS;
+    process.env.DOCUMENT_PARSE_TIMEOUT_MS = '0';
+    try {
+        const buffer = await pdfWith('in-process parse');
+        assert.match(await parseDocument(buffer, 'application/pdf', 'report.pdf'), /in-process parse/);
+    } finally {
+        if (saved === undefined) delete process.env.DOCUMENT_PARSE_TIMEOUT_MS; else process.env.DOCUMENT_PARSE_TIMEOUT_MS = saved;
+    }
+    assert.strictEqual(await parseDocument(Buffer.from('just text'), 'text/plain', 'a.txt'), 'just text');
+});
+
+test.after(async () => { await require('./documentParsePool').closeDocumentParsePool(); });

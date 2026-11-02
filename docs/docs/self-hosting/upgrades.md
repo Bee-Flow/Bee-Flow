@@ -144,7 +144,7 @@ the schema is in place:
 
 ```bash
 curl -s http://127.0.0.1:3001/api/health          # {"status":"ok", ..., "appVersion":"<commit sha>"}
-curl -s http://127.0.0.1:3001/api/health/schema   # {"ok":true,"schemaReady":true,"build":"<commit sha>"}
+curl -s http://127.0.0.1:3001/api/health/schema   # {"ok":true,"schemaReady":true}
 ```
 
 - `appVersion` / `build` is the commit the running server image was built from — compare it with

@@ -461,4 +461,6 @@ module.exports = {
     'chat.renderers.tests_error': 'Error',
     'chat.renderers.tests_recommendations': 'Recommendations',
     'chat.renderers.chart_error': 'Chart Error',
+    'chat.renderers.image_not_loaded': 'Image not loaded',
+    'chat.renderers.load_image': 'Load image',
 };

@@ -12,6 +12,7 @@
 
 const configStore = require('../../../stores/configStore');
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
+const { compileUserPattern, replaceUserPattern } = require('../../../core/text/userPattern');
 const { applyTokenMapToMessages } = require('../../../core/dlp/applyTokenMapToOutbound');
 const log = require('../../../telemetry/log');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
@@ -112,10 +113,8 @@ function applyOutputRegexGuard({ fullContent, displayContent, regexConfig, send 
     }
     let redacted = displayContent;
     for (const rule of regexConfig.rulesWithNames) {
-        try {
-            const regex = new RegExp(rule.pattern, 'gi');
-            redacted = redacted.replace(regex, `[REDACTED: ${rule.name}]`);
-        } catch (e) { fallback('routes/ai/directChat/finalizeContent:applyOutputRegexGuard', e); /* skip */ }
+        const out = replaceUserPattern(compileUserPattern(rule.pattern), redacted, `[REDACTED: ${rule.name}]`);
+        if (out !== null) redacted = out;
     }
     send('content_replace', { text: redacted });
     // redaction is destructive: replace storage too

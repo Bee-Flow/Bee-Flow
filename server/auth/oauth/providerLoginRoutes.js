@@ -102,7 +102,11 @@ router.get('/login/:provider', async (req, res) => {
 
     if (!host) {
         const forwardedHost = req.get('X-Forwarded-Host');
-        const referer = req.get('Referer');
+        // The Referer is whatever page sent the browser here: a fine guess on
+        // a developer's machine, and in production a redirect target the
+        // sender chooses. There the public host is configured, or the Host
+        // header (set by our own proxy) decides.
+        const referer = process.env.NODE_ENV === 'production' ? undefined : req.get('Referer');
 
         if (forwardedHost) {
             host = forwardedHost;

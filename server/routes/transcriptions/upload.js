@@ -16,6 +16,7 @@ const { upload } = require('./audioUpload');
 const fs = require('fs');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { requireAuth } = require('../../auth/permissions');
+const { spendLimiter } = require('../../utils/perUserRateLimit');
 const {
     parseSpeakerCount,
     resolveUserOrgFromReq,
@@ -66,7 +67,12 @@ const UploadBody = bodyOf({
 
 // ── Upload & transcribe ──────────────────────────────────
 
-router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
+// Uploads per user per minute, each a transcription (minutes of audio on a
+// paid provider). TRANSCRIPTION_UPLOAD_RPM sets it (0 = no limit). Before the
+// multipart parser, so a refused request never buffers its file.
+const uploadLimiter = spendLimiter({ env: 'TRANSCRIPTION_UPLOAD_RPM', fallback: 20, name: 'transcription-upload' });
+
+router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
 

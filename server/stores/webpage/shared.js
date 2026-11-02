@@ -81,7 +81,7 @@ function mapWebpageRow(r) {
         // and write passes. If that shape grows, this line grows with it.
         bridgeGrants: parseJSON(r.bridge_grants, {
             ai: { enabled: true, groundOnPage: true },
-            automations: [], integrations: [], tables: [], agent: null,
+            automations: [], integrations: [], tables: [], agent: null, db: { viewersMayWrite: false },
         }),
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,

@@ -77,13 +77,13 @@ const MessageContentBody = ({ msg, reasoningVisible, sessionSkills }: MessageCon
         const before = errText.slice(0, errText.length - (msg.errorDetail as string).length).trim();
         return (
             <>
-                {before && <MarkdownRenderer content={before} isLoading={false} />}
+                {before && <MarkdownRenderer content={before} isLoading={false} allowRemoteImages={msg.role === 'user'} />}
                 {errorCard}
             </>
         );
     }
     return errorCard || (msg.content ? (
-        <MarkdownRenderer content={Number(msg.images?.length) > 0 ? errText.replace(/!\[[^\]]*\]\([^)]*\)/g, '').trim() : errText} isLoading={msg.isStreaming} />
+        <MarkdownRenderer content={Number(msg.images?.length) > 0 ? errText.replace(/!\[[^\]]*\]\([^)]*\)/g, '').trim() : errText} isLoading={msg.isStreaming} allowRemoteImages={msg.role === 'user'} />
     ) : msg.isStreaming && (!msg.thinking || !reasoningVisible) ? (
         // BFSF-263: keep the indicator during a reasoning-only
         // phase whenever the ThinkingPanel is NOT visible —

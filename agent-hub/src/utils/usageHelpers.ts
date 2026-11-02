@@ -5,14 +5,23 @@
 
 // ── CSV export ──────────────────────────────────────────────────────────────
 // Minimal RFC 4180 escaping — enough for ≤ a few thousand audit rows.
+//
+// A cell that starts with = + - @ or a tab or carriage return is a formula to
+// a spreadsheet that opens the file (DDE and the like), and these rows carry
+// text other people typed (feedback, agent names). Such a cell gets a leading
+// apostrophe, the same rule the server's CSV writers apply
+// (server/routes/datatables/rowTransfer.js).
+
+const FORMULA_START = /^[=+\-@\t\r]/;
 
 function csvEscape(v: unknown): string {
     if (v === null || v === undefined) return '';
-    const s = String(v);
+    let s = String(v);
+    if (FORMULA_START.test(s)) s = `'${s}`;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
+export function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
     const lines = [headers.join(',')];
     for (const r of rows) lines.push(headers.map(h => csvEscape(r[h])).join(','));
     return lines.join('\n');

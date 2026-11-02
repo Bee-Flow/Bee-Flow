@@ -38,7 +38,7 @@ const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * @typedef {{ organization_id?: string, role?: string, org_role?: string, orgRole?: string, id?: string, email?: string, invited_by?: string, groups?: string[], organizationId?: string }} InviteData
- * @typedef {{ accountType: 'organization'|'join_existing'|'consumer', channel: string, provider: string|null, invite: { token: string|null, data: InviteData }|null, newOrgName: string|null, organizationId: string|null, orgDetails: Record<string, any>, privacyShield: Record<string, any>|undefined, authMethod: string|null, email: string|null, locale: string|null, selectedPlanId: string|null }} SignupIntent
+ * @typedef {{ accountType: 'organization'|'join_existing'|'consumer', channel: string, provider: string|null, invite: { token: string|null, data: InviteData, claimed?: boolean }|null, newOrgName: string|null, organizationId: string|null, orgDetails: Record<string, any>, privacyShield: Record<string, any>|undefined, authMethod: string|null, email: string|null, locale: string|null, selectedPlanId: string|null }} SignupIntent
  * @typedef {{ organizationId: string|null, orgRole: string, groups: string[], status: string, orgCreated?: boolean, needsVerification?: boolean }} Placement
  * @typedef {import('express').Request} Request
  */
@@ -593,8 +593,7 @@ async function markInviteAccepted(intent, placement, userId) {
     const invite = intent.invite;
     if (!invite) return;
     try {
-        const invitationStore = require('../stores/invitationStore');
-        await invitationStore.markAccepted(invite.token);
+        if (!invite.claimed) await require('../stores/invitationStore').markAccepted(invite.token); // signupRoutes claims before the row exists
         log.info(`[Signup] Invitation accepted for ${log.textForLog(intent.email)} → org ${placement.organizationId}`);
         try {
             await userStore.logAccessAudit('invitation.redeem', 'user', userId, userId, null, {

@@ -43,6 +43,18 @@ class MainWiring(unittest.TestCase):
         kwargs = {k.arg for k in calls[0].keywords}
         self.assertIn("allow_open_vars", kwargs)
 
+    def test_the_body_limit_sits_in_front_of_the_routers(self) -> None:
+        adds = [
+            n
+            for n in ast.walk(self.tree)
+            if isinstance(n, ast.Call)
+            and getattr(n.func, "attr", "") == "add_middleware"
+            and getattr(n.args[0], "id", "") == "BodySizeLimitMiddleware"
+        ]
+        self.assertEqual(len(adds), 1)
+        kw = {k.arg: k.value for k in adds[0].keywords}
+        self.assertEqual(ast.unparse(kw["max_bytes"]), "settings.max_body_bytes")
+
     def test_imports_are_all_at_the_top(self) -> None:
         first_non_import = None
         for node in self.tree.body:

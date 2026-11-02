@@ -30,7 +30,7 @@ function readCookieToken(/** @type {import('express').Request} */ req, threadId)
         const eq = part.indexOf('=');
         if (eq > 0 && part.slice(0, eq).trim() === name) {
             const value = part.slice(eq + 1).trim();
-            return /^[A-Za-z0-9]{1,128}$/.test(value) ? value : null;
+            return /^[A-Za-z0-9.]{1,128}$/.test(value) ? value : null;
         }
     }
     return null;

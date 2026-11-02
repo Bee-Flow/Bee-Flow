@@ -124,7 +124,7 @@ function Start-Postgres {
         "-e", "POSTGRES_USER=$PgUser",
         "-e", "POSTGRES_PASSWORD=$PgPassword",
         "-e", "POSTGRES_DB=$PgDb",
-        "-p", "$($PgPort):5432",
+        "-p", "127.0.0.1:$($PgPort):5432",
         "-v", $InitMount,
         $PgImage
     )

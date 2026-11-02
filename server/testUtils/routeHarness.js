@@ -145,6 +145,12 @@ function serve(path, router, { user = USER, session = {} } = {}) {
     const server = http.createServer(app);
     const ready = new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
+    /**
+     * @param {string} method
+     * @param {string} url
+     * @param {{ body?: unknown, user?: Record<string, unknown> | null, headers?: Record<string, string> }} [opts]
+     *   `user: null` sends no session; a user object is the session's user.
+     */
     async function call(method, url, { body, user: as, headers = {} } = {}) {
         await ready;
         const h = { ...headers };
@@ -235,4 +241,24 @@ function dispatcher(router, { session: makeSession = () => ({ user: { id: 'u1' }
     };
 }
 
-module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, dispatcher };
+/**
+ * The `limiterName`s on the chain of `method path` in `router`
+ * (utils/perUserRateLimit sets it): a route test asserts its spend limiter
+ * is mounted without sending max+1 requests through the real handler.
+ * @param {import('express').Router} router
+ * @param {string} method  lower case
+ * @param {string} path    as registered on the router
+ * @returns {string[]}
+ */
+function limitersOn(router, method, path) {
+    const names = [];
+    /** @type {{ stack?: Array<{ route?: { path: string, methods: Record<string, boolean>, stack: Array<{ handle?: { limiterName?: string } }> } }> }} */
+    const r = /** @type {never} */ (router);
+    for (const layer of r.stack || []) {
+        if (!layer.route || layer.route.path !== path || !layer.route.methods[method]) continue;
+        for (const l of layer.route.stack) if (l.handle && l.handle.limiterName) names.push(l.handle.limiterName);
+    }
+    return names;
+}
+
+module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, dispatcher, limitersOn };

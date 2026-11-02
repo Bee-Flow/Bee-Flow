@@ -379,8 +379,8 @@ describe('the version probe (server/routes/healthSchema.js)', () => {
     // sound while the endpoint exists and keeps this shape on every newer
     // server. Renaming any of these breaks the app's ability to SAY a server
     // is too old.
-    it('still answers { ok, schemaReady, build }', () => {
-        expect(absentTokens(read('routes/healthSchema.js'), ['ok', 'schemaReady', 'build'])).toEqual([]);
+    it('still answers { ok, schemaReady }', () => {
+        expect(absentTokens(read('routes/healthSchema.js'), ['ok', 'schemaReady'])).toEqual([]);
     });
 });
 

@@ -86,3 +86,9 @@ test('generate with 0 sources but a non-empty doc does NOT 400 — it streams', 
     assert.ok(r.text.includes('GENERATED-OK'), `expected streamed content, got: ${r.text.slice(0, 200)}`);
     assert.ok(r.text.includes('event: done'));
 });
+
+test('generate and ai-fill are behind the notebook-ai spend limiter (NOTEBOOK_AI_RPM)', () => {
+    const router = require('./notebooksGenerate');
+    assert.deepStrictEqual(h.limitersOn(router, 'post', '/:id/generate/:type'), ['notebook-ai']);
+    assert.deepStrictEqual(h.limitersOn(router, 'post', '/:id/ai-fill'), ['notebook-ai']);
+});

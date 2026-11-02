@@ -12,9 +12,25 @@ const XLSX = require('@e965/xlsx');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
+const PARSED_TYPE_MARKERS = ['officedocument', 'ms-excel', 'opendocument', 'csv', 'pdf'];
+const PARSED_EXTENSIONS = ['.docx', '.pptx', '.xlsx', '.xls', '.ods', '.csv', '.pdf'];
+
+/** Does this document go through a parser (as opposed to being read as text)? */
+function needsParser(mimeType, filename) {
+    const type = (mimeType || '').toLowerCase();
+    const name = (filename || '').toLowerCase();
+    return PARSED_TYPE_MARKERS.some((m) => type.includes(m)) || PARSED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 /**
  * Parse a document buffer into plain text based on its MIME type.
- * 
+ *
+ * The parsers run in a worker thread under a deadline and a memory ceiling
+ * (./documentParsePool.js): an upload is untrusted, and a crafted file must
+ * not keep the server's thread busy or grow its heap. A parse that is cut
+ * off comes back as a parse failure for that file, in the same bracketed
+ * form the parsers use for a file they cannot read.
+ *
  * @param {Buffer} buffer - Raw file content
  * @param {string} mimeType - File MIME type
  * @param {string} filename - Original filename (for logging / headers)
@@ -22,6 +38,28 @@ const { bestEffort } = require('../../utils/bestEffort');
  * @returns {Promise<string>} Extracted text content
  */
 async function parseDocument(buffer, mimeType, filename, options = {}) {
+    const { parseTimeoutMs, parseInWorker } = require('./documentParsePool');
+    if (parseTimeoutMs() === 0 || !needsParser(mimeType, filename)) {
+        return parseInProcess(buffer, mimeType, filename, options);
+    }
+    try {
+        return await parseInWorker({ buffer, mimeType, filename, options });
+    } catch (err) {
+        log.error(`[DocumentParser] Could not parse "${log.nameForLog(filename)}":`, /** @type {Error} */ (err).message);
+        return `[Document: ${filename} — failed to parse: ${/** @type {Error} */ (err).message}]`;
+    }
+}
+
+/**
+ * The parsers themselves, on the calling thread. parseDocument runs this in a
+ * worker; the worker (./documentParseWorker.js) calls it directly.
+ * @param {Buffer} buffer
+ * @param {string} mimeType
+ * @param {string} filename
+ * @param {{ returnHtml?: boolean }} [options]
+ * @returns {Promise<string>}
+ */
+async function parseInProcess(buffer, mimeType, filename, options = {}) {
     const type = (mimeType || '').toLowerCase();
 
     // ── DOCX ──
@@ -260,5 +298,6 @@ function isSupportedDocument(mimeType, filename) {
 
 module.exports = {
     parseDocument,
-    isSupportedDocument
+    parseInProcess,
+    isSupportedDocument,
 };

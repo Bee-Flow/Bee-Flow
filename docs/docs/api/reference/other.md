@@ -499,7 +499,7 @@ No request schema.
 
 ### `POST /api/mcp-server/token`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Query:** object (no other keys)
 
@@ -523,7 +523,7 @@ No request schema.
 
 ### `POST /api/mcp-tokens`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 

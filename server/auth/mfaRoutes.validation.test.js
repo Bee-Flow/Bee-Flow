@@ -39,6 +39,7 @@ const MOCKS = {
         otpauthUrl: () => 'otpauth://x',
         qrDataUrl: async () => 'data:image/png;base64,x',
         verifyTotp: (s, code) => { touched.push({ what: 'verifyTotp', args: [code] }); return false; },
+        verifyTotpStep: (s, code) => { touched.push({ what: 'verifyTotp', args: [code] }); return { ok: false }; },
         consumeRecoveryCode: async (stored, code) => { touched.push({ what: 'consumeRecoveryCode', args: [code] }); return null; },
         decryptSecret: () => 'secret',
         encryptSecret: (v) => v,

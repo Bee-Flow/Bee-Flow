@@ -43,10 +43,9 @@
 
 import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, checkDateUnit } from './functions.mjs';
 import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
+import { ExprError, guardValue } from './limits.mjs';
 
-export class ExprError extends Error {
-    constructor(message, index) { super(message); this.name = 'ExprError'; this.index = index; }
-}
+export { ExprError }; // defined in limits.mjs so the functions can throw it
 
 // ── Tokenizer ──────────────────────────────────────────
 const TOKEN = {
@@ -397,14 +396,15 @@ function evalNode(n, ctx, host) {
         case 'call': {
             const fn = FUNCTIONS[n.name];
             if (!fn) throw new ExprError(`Unknown function: ${n.name}`);
-            return fn(...n.args.map((a) => evalNode(a, ctx, host)));
+            // Every produced text passes the cap (limits.mjs).
+            return guardValue(fn(...n.args.map((a) => evalNode(a, ctx, host))));
         }
         case 'hostcall': {
             const h = hasOwn(host, n.name) ? host[n.name] : null;
             if (!h || typeof h.fn !== 'function') {
                 throw new ExprError(h?.unanswered || `${n.name}() has no answer here`);
             }
-            return h.fn(...n.args.map((a) => evalNode(a, ctx, host)));
+            return guardValue(h.fn(...n.args.map((a) => evalNode(a, ctx, host))));
         }
         case 'unop': {
             const v = evalNode(n.a, ctx, host);
@@ -419,7 +419,7 @@ function evalNode(n, ctx, host) {
             const a = evalNode(n.a, ctx, host);
             const b = evalNode(n.b, ctx, host);
             switch (n.op) {
-                case '+': return a + b;
+                case '+': return guardValue(a + b); // a text `+` grows like concat(): same cap
                 case '-': return a - b;
                 case '*': return a * b;
                 case '/': return a / b;

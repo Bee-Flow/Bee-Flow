@@ -124,7 +124,7 @@ const uploadIcon = uploadGuard({
 // unlimited image generations. Shared between the two routes because both
 // draw from the same key and the same concern — an unbounded /generate loop
 // is exactly as costly as an unbounded /bulk-generate loop.
-const imageGenLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
+const imageGenLimiter = perUserRateLimit({ windowMs: 60_000, max: 20, name: 'icon-image-gen' });
 
 // ── Request schemas (see the header) ────────────────────────────────
 

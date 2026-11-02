@@ -11,6 +11,7 @@
 // the HMAC that proves the delivery is genuine. The narrowing that belongs
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
+const { checkWebhookSignature, rejectionMessage } = require('./webhookSignature');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -83,23 +84,28 @@ function pickWebhookHeaders(req) {
 }
 
 // Webhook trigger — signed inbound URL.
-router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json({ limit: '256kb' }), async (/** @type {import('express').Request<{ slug: string }>} */ req, res) => {
+// The parser keeps the request's own bytes for the signature check: a sender
+// signs what it sent (webhookSignature.js explains the accepted forms).
+const webhookJson = express.json({ limit: '256kb', verify: (req, _res, buf) => { /** @type {import('http').IncomingMessage & { rawBody?: string }} */ (req).rawBody = buf.toString('utf8'); } });
+
+router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson, async (/** @type {import('express').Request<{ slug: string }> & { rawBody?: string }} */ req, res) => {
     const slug = req.params.slug;
     const wh = await automationStore.getWebhook(slug);
     if (!wh) return res.status(404).json({ error: 'Unknown webhook' });
 
     const sigHeader = req.get('X-BeeFlow-Signature') || '';
     const nonce = req.get('X-BeeFlow-Nonce') || '';
-    if (!sigHeader.startsWith('sha256=') || !nonce) return res.status(401).json({ error: 'Missing signature or nonce' });
-    // The nonce must be part of the signed message, not just checked
-    // separately — otherwise a captured (nonce, signature, body) triple
-    // lets an attacker replay the same body with a NEW nonce (the
-    // signature still verifies, since it never covered the nonce) and
+    // The nonce (and the timestamp, when sent) is part of the signed message,
+    // not just checked separately — otherwise a captured (nonce, signature,
+    // body) triple lets an attacker replay the same body with a NEW nonce
+    // (the signature still verifies, since it never covered the nonce) and
     // checkAndStoreNonce sees it as fresh.
-    const expected = 'sha256=' + crypto.createHmac('sha256', wh.secret).update(`${nonce}\n${JSON.stringify(req.body || {})}`).digest('hex');
-    // Constant-time compare
-    const ok = sigHeader.length === expected.length && crypto.timingSafeEqual(Buffer.from(sigHeader), Buffer.from(expected));
-    if (!ok) return res.status(401).json({ error: 'Bad signature' });
+    const check = checkWebhookSignature({
+        secret: wh.secret, sigHeader, nonce,
+        timestamp: req.get('X-BeeFlow-Timestamp') || null,
+        rawBody: req.rawBody ?? null, body: req.body,
+    });
+    if (!check.ok) return res.status(401).json({ error: rejectionMessage(check.reason) });
 
     const fresh = await automationStore.checkAndStoreNonce(`${slug}:${nonce}`);
     if (!fresh) return res.status(401).json({ error: 'Replayed nonce' });

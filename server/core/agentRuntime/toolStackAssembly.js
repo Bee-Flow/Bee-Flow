@@ -23,6 +23,7 @@
  * "a test run never offers this", not as "the agent refused".
  */
 const { getAgentTools } = require('./agentTools');
+const { withholdOwnerToolsFrom } = require('./guestAsker');
 const agentStore = require('../../stores/agentStore');
 const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./toolPolicy');
 const log = require('../../telemetry/log');
@@ -190,6 +191,10 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         const toolName = tc.componentId.replace(/-/g, '_');
         toolParamsMap[toolName] = tc.params;
     }
+    // A component whose parameters the owner pinned runs with the owner's
+    // values (a key, an address). A visitor of a public embed is not offered
+    // those tools unless the owner opened that for this agent.
+    tools = withholdPinnedToolsFromVisitor({ tools, toolParamsMap, userId, agent, agentId });
     // The fixed values themselves can be an address or a name an admin pinned: only their keys go to the log.
     log.info('[AgentRuntime] Tool params map:', JSON.stringify(Object.fromEntries(Object.entries(toolParamsMap).map(([k, v]) => [k, Object.keys(v && typeof v === 'object' ? v : {})]))));
 
@@ -199,6 +204,26 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
     const sandboxWithheld = narrowed.sandboxWithheld;
 
     return { tools, disableExternalTools, effectiveTier, isStandardTier, activatedSkillIds, skillApps, n8nOrgId, baseIntegrationToolNames, toolParamsMap, unattended, sandboxWithheld };
+}
+
+/**
+ * Drop the tools whose fixed parameters the owner pinned when the asker is a
+ * visitor (core/agentRuntime/guestAsker.js), and forget their parameters, so
+ * neither the stack nor the dispatcher carries the owner's values for a turn
+ * the owner never opened to visitors. Returns the tools to offer.
+ * @param {{ tools: import('./chatStream/turnState').ToolDef[], toolParamsMap: Record<string, unknown>, userId: string, agent: AssemblyAgent, agentId: string }} turn
+ */
+function withholdPinnedToolsFromVisitor({ tools, toolParamsMap, userId, agent, agentId }) {
+    if (!withholdOwnerToolsFrom({ userId, agentConfig: agent.config })) return tools;
+    const pinned = Object.keys(toolParamsMap).filter((name) => {
+        const params = toolParamsMap[name];
+        return !!params && typeof params === 'object' && Object.keys(params).length > 0;
+    });
+    if (pinned.length === 0) return tools;
+    for (const name of pinned) delete toolParamsMap[name];
+    log.info(`[AgentRuntime] Withheld ${pinned.length} owner-configured tool(s) from a visitor of agent ${agentId}`);
+    const names = new Set(pinned);
+    return tools.filter((t) => !names.has(String(t.function?.name)));
 }
 
 /**

@@ -133,6 +133,10 @@ stub('../../core/meetingNotes/ingestRecordingCore', {
     emitMeetingProcessed: (payload) => { emitted.push(payload); },
 });
 
+// This file sends more uploads for one user than the per-minute spend budget
+// (TRANSCRIPTION_UPLOAD_RPM) allows; the budget itself is covered by the wiring
+// test at the end and by utils/perUserRateLimit.test.js.
+process.env.TRANSCRIPTION_UPLOAD_RPM = process.env.TRANSCRIPTION_UPLOAD_RPM || '1000';
 const router = require('./upload');
 
 function dispatch({ body = {}, file = true, user = 'owner-1' } = {}) {
@@ -502,4 +506,13 @@ test('whisper_azure: gets the file, name, language and speaker hint, and keeps i
     assert.deepStrictEqual(providerCalls.whisperAzure[0], { filePath: AUDIO_PATH, fileName: 'standup.webm', language: 'en', numSpeakers: 2 });
     assert.strictEqual(completion().fullText, 'whisperazure');
     assert.strictEqual(completion().provider, 'whisper_azure');
+});
+
+test('an upload is behind the transcription-upload spend limiter (TRANSCRIPTION_UPLOAD_RPM), before the file is read', () => {
+    const { limitersOn } = require('../../testUtils/routeHarness');
+    assert.deepStrictEqual(limitersOn(router, 'post', '/'), ['transcription-upload']);
+    const chain = router.stack.find((l) => l.route && l.route.path === '/' && l.route.methods.post).route.stack.map((l) => l.handle);
+    const limiterAt = chain.findIndex((fn) => fn.limiterName === 'transcription-upload');
+    const parserAt = chain.findIndex((fn) => /multer|upload|file/i.test(fn.name) || fn.name === '');
+    assert.ok(limiterAt >= 0 && limiterAt < parserAt, `limiter at ${limiterAt}, parser at ${parserAt}`);
 });

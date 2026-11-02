@@ -55,9 +55,20 @@
  *
  * As with ZK_ESCROW_SURFACES: honestly labelled beats silently degraded.
  *
- * If no key can be resolved, the context reports `encrypt: false` and writes
- * stay plaintext. Emitting a value nobody can open is strictly worse than
- * emitting plaintext, so we never do it.
+ * ── A read degrades, a write refuses ────────────────────────────────────────
+ *
+ * For a READ (the default `purpose`) a policy or key that cannot be produced
+ * resolves to the plaintext context: the format on the stored value decides,
+ * and a lookup must not take down a request that only wants to show data.
+ *
+ * For a WRITE (`purpose: 'write'`) the same failure is refused with
+ * ENCRYPTION_KEY_UNAVAILABLE (a 503 the client may see), the way a shared
+ * project's key already was. An org that asked for encryption and is handed a
+ * transient database error must not end up with cleartext rows and a log line
+ * nobody reads. The one case that still writes message content in the clear
+ * is structural, not a failure: `zk` with no session in scope has no content
+ * key by design (the background surfaces are still sealed), and it is loud
+ * about it.
  *
  * ── AAD binds to the conversation, NOT the reader ───────────────────────────
  *
@@ -75,6 +86,7 @@ const log = require('../../telemetry/log');
 const HKDF_SALT = Buffer.from('beeflow:msg:hkdf-salt:v1');
 
 const { SURFACES, resolvePolicy, shouldEncrypt } = require('../encryptionPolicy');
+const { PROJECT_KEY_UNAVAILABLE, ENCRYPTION_KEY_UNAVAILABLE, keyUnavailable, warnNoKey } = require('./messageCryptoErrors');
 
 /**
  * Derive the per-conversation key from a root DEK.
@@ -110,44 +122,6 @@ function _toKeyBuffer(encryptionKey) {
 }
 
 /**
- * A context that encrypts nothing — today's behaviour, and the fallback for
- * every error path.
- */
-// Throttled so a busy org cannot flood the log with one line per message —
-// the signal we need is "this is happening", not the count.
-const _warnedNoKey = new Map(); // orgId|tier -> last logged at (ms)
-const NO_KEY_WARN_INTERVAL_MS = 60_000;
-
-const _NO_KEY_HINT = {
-    // No session DEK. On zk that is the only source for message content.
-    messages: 'Message content stays PLAINTEXT. On zk the content key is derived at login: '
-        + 'the user must sign in again (sessions created before the tier change carry no DEK).',
-    // No escrow. Everything a background job touches falls back to plaintext.
-    background: 'The Privacy Shield token map and conversation meta stay PLAINTEXT. '
-        + 'These use the org escrow — check MASTER_ENCRYPTION_KEY and organizations.org_root_key.',
-    all: 'NOTHING is being encrypted. Check MASTER_ENCRYPTION_KEY, the org escrow key, '
-        + 'and that the org is entitled to the encryption feature.',
-};
-
-/**
- * @param {string | null | undefined} orgId
- * @param {string} tier
- * @param {string | null | undefined} userId
- * @param {'messages' | 'background' | 'all'} [kind]
- */
-function _warnNoKey(orgId, tier, userId, kind = 'all') {
-    const k = `${orgId}|${tier}|${kind}`;
-    const now = Date.now();
-    const last = _warnedNoKey.get(k) || 0;
-    if (now - last < NO_KEY_WARN_INTERVAL_MS) return;
-    _warnedNoKey.set(k, now);
-    log.error(
-        `[MessageCrypto] Org '${orgId}' is on encryption tier '${tier}' but no ${kind === 'all' ? '' : kind + ' '}key ` +
-        `is available (user=${userId || 'none'}). ${_NO_KEY_HINT[kind] || _NO_KEY_HINT.all}`
-    );
-}
-
-/**
  * What resolveCrypto hands a store: the keys in scope and, per surface,
  * whether to encrypt.
  * @typedef CryptoContext
@@ -163,7 +137,11 @@ function _warnNoKey(orgId, tier, userId, kind = 'all') {
  * @property {boolean} [sharedProject]
  */
 
-/** @type {Readonly<CryptoContext>} */
+/**
+ * A context that encrypts nothing — today's behaviour, and the fallback for
+ * every error path of a read.
+ * @type {Readonly<CryptoContext>}
+ */
 const PLAINTEXT_CONTEXT = Object.freeze({
     key: null,
     backgroundKey: null,
@@ -188,13 +166,6 @@ const PLAINTEXT_CONTEXT = Object.freeze({
  * Message content is deliberately NOT in this set. That is the line that makes
  * `zk` still worth choosing.
  */
-/**
- * Tag on an error thrown when a shared project's key cannot be produced.
- * Routes map it to a 503 with an operator-facing message; the outer catch in
- * resolveCrypto uses it to know this is the one failure it must not absorb.
- */
-const PROJECT_KEY_UNAVAILABLE = 'PROJECT_KEY_UNAVAILABLE';
-
 const ZK_ESCROW_SURFACES = Object.freeze([
     SURFACES.PII_TOKEN_MAP,
     SURFACES.CONVERSATION_META,
@@ -207,18 +178,22 @@ const ZK_ESCROW_SURFACES = Object.freeze([
 
 /**
  * Resolve the escrowed DEK for a user, or null if it cannot be had.
- * Never throws — a key lookup must not be able to fail a chat request.
+ * Does not throw for a read (a key lookup must not be able to fail a request
+ * that only shows data); `strict` lets the error through for a write, which
+ * resolveCrypto turns into ENCRYPTION_KEY_UNAVAILABLE.
  * @param {string | null | undefined} userId
  * @param {string | null | undefined} [orgId]
  * @param {string | Buffer | null} [seedDek]
+ * @param {{ strict?: boolean }} [opts]
  */
-async function _escrowKey(userId, orgId, seedDek = null) {
+async function _escrowKey(userId, orgId, seedDek = null, { strict = false } = {}) {
     if (!userId) return null;
     try {
         const escrow = require('../../auth/orgEscrow');
         return await escrow.getOrCreateUserDek(userId, orgId, { seedDek });
     } catch (err) {
         log.error('[MessageCrypto] escrow key unavailable:', err.message);
+        if (strict) throw err;
         return null;
     }
 }
@@ -226,21 +201,27 @@ async function _escrowKey(userId, orgId, seedDek = null) {
 /**
  * Resolve the crypto context for a conversation operation.
  *
- * Never throws: any failure resolves to PLAINTEXT_CONTEXT, because reads stay
+ * For a read any failure resolves to PLAINTEXT_CONTEXT, because reads stay
  * correct regardless (they detect the format on the value) and a policy lookup
- * must not be able to fail a chat request.
+ * must not be able to fail a request that only shows data. For a write the
+ * same failure throws ENCRYPTION_KEY_UNAVAILABLE: see "A read degrades, a
+ * write refuses" in this file's header.
  *
  * @param {{
  *   userId?: string|null, orgId?: string|null, encryptionKey?: string|Buffer|null,
  *   projectKeyFor?: {projectId: string, orgId?: string | null}|null,
+ *   purpose?: 'read'|'write',
  * }} [opts]
  *   orgId: avoids a user lookup when known; encryptionKey: session DEK, if any
  *   projectKeyFor: Set for a conversation whose `crypto_scope` is 'project'. The key then comes from the project,
  *     not the caller — see the PROJECT_SHARED_MESSAGES note in this file's header. Never inferred: a caller must
  *     say so.
+ *   purpose: 'write' when the context seals rows that are about to be stored. A policy or key that cannot be
+ *     produced then refuses the write instead of resolving plaintext. Default 'read'.
  * @returns {Promise<CryptoContext>}
  */
-async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey = null, projectKeyFor = null } = {}) {
+async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey = null, projectKeyFor = null, purpose = 'read' } = {}) {
+    const strict = purpose === 'write';
     try {
         let resolvedOrgId = orgId;
         if (resolvedOrgId === undefined && userId) {
@@ -249,7 +230,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
             resolvedOrgId = user?.organizationId || null;
         }
 
-        const policy = await resolvePolicy(resolvedOrgId);
+        const policy = await resolvePolicy(resolvedOrgId, { strict });
         if (!policy.enabled) return PLAINTEXT_CONTEXT;
 
         // ── Shared project conversation ──────────────────────────────────────
@@ -307,31 +288,37 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
             // a user adopts the key their existing rows were already written
             // under instead of minting an unrelated one. After that first write
             // the seed is ignored — the stored escrow is authoritative forever.
-            key = await _escrowKey(userId, resolvedOrgId, encryptionKey);
+            key = await _escrowKey(userId, resolvedOrgId, encryptionKey, { strict });
             backgroundKey = key;
         } else {
             key = _toKeyBuffer(encryptionKey);
-            backgroundKey = await _escrowKey(userId, resolvedOrgId);
+            backgroundKey = await _escrowKey(userId, resolvedOrgId, null, { strict });
         }
 
         if (!key && !backgroundKey) {
-            // The org asked for encryption and we are about to write plaintext.
-            // Returning silently would let an org sit on the `zk`
-            // tier writing cleartext with nothing in the logs to show for it.
-            // Falling back to plaintext is still the right call — emitting a
-            // value nobody can ever open would be worse — but it must be loud.
-            _warnNoKey(resolvedOrgId, policy.tier, userId, 'all');
+            // The org asked for encryption and there is no key at all. A read
+            // falls back to plaintext, loudly: returning silently would let an
+            // org sit on the `zk` tier reading cleartext with nothing in the
+            // logs to show for it. A write is refused: the alternative is a
+            // cleartext row on an org that asked for the opposite.
+            warnNoKey(resolvedOrgId, policy.tier, userId, 'all');
+            if (strict) throw keyUnavailable();
             return PLAINTEXT_CONTEXT;
         }
 
         // Partial resolution is the dangerous case, because the org still sees
         // "encryption: on" while one half of it silently degrades. Warn for each
         // half independently or the louder one masks the quieter.
+        //
+        // No content key on `zk` is the tier's design (no session, no key) and
+        // stays a warning on a write too. No background key with a session in
+        // scope means the escrow could not be reached: a write refuses.
         if (!key && shouldEncrypt(policy, SURFACES.MESSAGES)) {
-            _warnNoKey(resolvedOrgId, policy.tier, userId, 'messages');
+            warnNoKey(resolvedOrgId, policy.tier, userId, 'messages');
         }
         if (!backgroundKey && shouldEncrypt(policy, SURFACES.PII_TOKEN_MAP)) {
-            _warnNoKey(resolvedOrgId, policy.tier, userId, 'background');
+            warnNoKey(resolvedOrgId, policy.tier, userId, 'background');
+            if (strict) throw keyUnavailable();
         }
 
         // A surface is only encrypted when the policy asks for it AND a key that
@@ -352,12 +339,18 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
             tier: policy.tier,
         };
     } catch (err) {
-        // A shared-project key that cannot be produced is NOT a "write plaintext
-        // and carry on" situation — see the block above. Everything else is:
-        // reads stay correct regardless (the format is detected on the value),
-        // and a policy lookup must not be able to fail a chat request.
-        if (err.code === PROJECT_KEY_UNAVAILABLE) throw err;
-        log.error('[MessageCrypto] policy resolution failed, writing plaintext:', err.message);
+        // A key that cannot be produced is never a "write plaintext and carry
+        // on" situation: the shared-project path tags its own error, and a
+        // write (`strict`) turns everything else into ENCRYPTION_KEY_UNAVAILABLE.
+        // A read falls back: it stays correct regardless (the format is
+        // detected on the value), and a policy lookup must not be able to fail
+        // a request that only shows data.
+        if (err.code === PROJECT_KEY_UNAVAILABLE || err.code === ENCRYPTION_KEY_UNAVAILABLE) throw err;
+        if (strict) {
+            log.error('[MessageCrypto] crypto context unavailable, refusing the write:', err.message);
+            throw keyUnavailable(err);
+        }
+        log.error('[MessageCrypto] policy resolution failed, reading as plaintext:', err.message);
         return PLAINTEXT_CONTEXT;
     }
 }
@@ -369,6 +362,7 @@ module.exports = {
     PLAINTEXT_CONTEXT,
     ZK_ESCROW_SURFACES,
     PROJECT_KEY_UNAVAILABLE,
+    ENCRYPTION_KEY_UNAVAILABLE,
     _toKeyBuffer,
     _escrowKey,
 };

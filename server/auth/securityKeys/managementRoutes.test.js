@@ -38,6 +38,7 @@ const session = { current: null };
 const mfa = {
     decryptSecret: (sealed) => (sealed === 'sealed' ? 'SECRET' : null),
     verifyTotp: (secret, code) => !!secret && code === GOOD_CODE,
+    verifyTotpStep: (secret, code) => (!!secret && code === GOOD_CODE ? { ok: true, timeStep: 7 } : { ok: false }),
     consumeRecoveryCode: async (stored, code) => (code === RECOVERY ? [{ hash: 'h', usedAt: 'now' }] : null),
     generateRecoveryCodes: async () => ({ plain: ['cccc-dddd'], stored: [{ hash: 'fresh', usedAt: null }] }),
 };

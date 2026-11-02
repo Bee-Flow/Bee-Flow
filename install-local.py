@@ -133,7 +133,7 @@ def start_postgres() -> None:
         "-e", f"POSTGRES_USER={PG_USER}",
         "-e", f"POSTGRES_PASSWORD={PG_PASSWORD}",
         "-e", f"POSTGRES_DB={PG_DB}",
-        "-p", f"{PG_PORT}:5432",
+        "-p", f"127.0.0.1:{PG_PORT}:5432",
         "-v", f"{init_script}:/docker-entrypoint-initdb.d/init-db.sh:ro",
         PG_IMAGE,
     ])

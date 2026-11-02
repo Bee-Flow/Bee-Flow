@@ -64,7 +64,9 @@ userStore.getAllGroups = async () => {
 };
 
 const mcpTokensRouter = require('./mcpTokens');
-const api = h.serve('/api/mcp-tokens', mcpTokensRouter);
+// Signed in a moment ago: minting a token takes a recent proof (auth/recentAuth.js).
+const api = h.serve('/api/mcp-tokens', mcpTokensRouter, { session: { authenticatedAt: Date.now() } });
+const staleApi = h.serve('/api/mcp-tokens', mcpTokensRouter, { session: { authenticatedAt: Date.now() - 11 * 60 * 1000 } });
 
 /** Everything on offer, unless a test says otherwise. */
 const ALL_ELIGIBLE = () => ({
@@ -76,6 +78,7 @@ const ALL_ELIGIBLE = () => ({
 });
 test.after(async () => {
     await api.close();
+    await staleApi.close();
     configStore.getSecret = realGetSecret;
     userStore.logAccessAudit = realAudit;
     userStore.getUser = realGetUser;
@@ -93,6 +96,17 @@ test.beforeEach(() => {
 const ALICE = { id: 'alice', organizationId: 'org1', role: 'user' };
 const BOB = { id: 'bob', organizationId: 'org1', role: 'user' };
 const create = (body, user = ALICE) => api.call('POST', '/api/mcp-tokens', { body, user });
+
+test('a session signed in more than ten minutes ago is refused with 403 reauth_required and mints nothing', async () => {
+    const before = tokenStore._rows ? tokenStore._rows.length : null;
+    const res = await staleApi.call('POST', '/api/mcp-tokens', { body: { name: 'x', scopes: { studio: { level: 'read' } } } });
+    assert.equal(res.status, 403, res.text);
+    assert.equal(res.body.code, 'reauth_required');
+    assert.match(res.body.error || res.body.message, /Sign in again/);
+    if (before !== null) assert.equal(tokenStore._rows.length, before);
+    // Listing, switching off and revoking take no such proof.
+    assert.equal((await staleApi.call('GET', '/api/mcp-tokens')).status, 200);
+});
 
 test('no session is a 401', async () => {
     assert.equal((await api.call('GET', '/api/mcp-tokens', { user: null })).status, 401);

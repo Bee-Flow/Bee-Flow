@@ -377,9 +377,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         password: accessMode === 'password' ? body.password : undefined,
         allowedEmails: body.allowedEmails,
     };
-    let expiresAt;
-    try { expiresAt = parseExpiry(body.expiresAt, existing); }
-    catch (e) { throw new HttpError(400, 'bad_request', e.message); }
+    const expiresAt = parseExpiry(body.expiresAt, existing);
 
     if (existing && !audience.accessOptionsChanged(existing, requested)) {
         if (body.expiresAt !== undefined) {
@@ -448,8 +446,8 @@ function parseExpiry(input, existing) {
     if (input === undefined) return existing?.expiresAt ? new Date(existing.expiresAt) : null;
     if (input === null || input === '') return null;
     const d = new Date(input);
-    if (Number.isNaN(d.getTime())) throw new Error('Invalid expires_at');
-    if (d.getTime() < Date.now() + 60_000) throw new Error('expires_at must be in the future');
+    if (Number.isNaN(d.getTime())) throw new HttpError(400, 'bad_request', 'Invalid expires_at');
+    if (d.getTime() < Date.now() + 60_000) throw new HttpError(400, 'bad_request', 'expires_at must be in the future');
     return d;
 }
 

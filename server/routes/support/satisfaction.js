@@ -61,7 +61,7 @@ function register(router) {
             if (!Number.isInteger(numScore) || numScore < 0 || numScore > 5) {
                 return res.status(400).send(_csatHtml({ error: 'Invalid request.' }));
             }
-            if (!supportStore.verifyCsatToken(thread.id, thread.requester_email, numScore, token)) {
+            if (!supportStore.verifyCsatToken(thread.id, thread.requester_email, numScore, token, { threadCreatedAt: thread.created_at })) {
                 return res.status(403).send(_csatHtml({ error: 'This link is invalid or expired.' }));
             }
 

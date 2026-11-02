@@ -266,6 +266,12 @@ test('activate registers capability descriptors; inactive filter drops them but 
     await packageLoader.deactivate('cap_mod', { persist: false });
 });
 
+// The module host runs requireAuth in front of every module route; this file
+// is about the loader, so the gate is a header check here. The real one is
+// exercised in packageActivation.gate.test.js.
+const SESSION = { headers: { 'x-session': '1' } };
+require('../auth/permissions').requireAuth = (req, res, next) => (req.headers['x-session'] ? next() : res.status(401).json({ error: 'Not authenticated' }));
+
 test('dispatcher routes to an active module and 404-conceals unknown/removed', async () => {
     const buf = await buildPackage({ id: 'disp_mod', version: '1.0.0' }); // no caps ⇒ no cap gate
     const staged = await packageLoader.verifyAndStage('disp_mod', '1.0.0', { buffer: buf });
@@ -278,17 +284,21 @@ test('dispatcher routes to an active module and 404-conceals unknown/removed', a
     await new Promise(r => server.listen(0, '127.0.0.1', r));
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
-        const ok = await fetch(`${base}/api/mod/disp_mod/ping`);
+        const ok = await fetch(`${base}/api/mod/disp_mod/ping`, SESSION);
         assert.strictEqual(ok.status, 200);
         assert.deepStrictEqual(await ok.json(), { pong: true, module: 'disp_mod' });
 
-        const unknown = await fetch(`${base}/api/mod/nope/ping`);
+        // No session: the host answers before the module router does.
+        const anon = await fetch(`${base}/api/mod/disp_mod/ping`);
+        assert.strictEqual(anon.status, 401);
+
+        const unknown = await fetch(`${base}/api/mod/nope/ping`, SESSION);
         assert.strictEqual(unknown.status, 404);
 
         // Remove ⇒ conceal.
         await packageLoader.deactivate('disp_mod', { persist: true });
         require('./index').invalidateCache();
-        const gone = await fetch(`${base}/api/mod/disp_mod/ping`);
+        const gone = await fetch(`${base}/api/mod/disp_mod/ping`, SESSION);
         assert.strictEqual(gone.status, 404);
     } finally {
         server.close();
@@ -584,7 +594,7 @@ test('5 crashes in the window quarantine the module durably; reactivate restores
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
         for (let i = 0; i < 5; i++) {
-            await fetch(`${base}/api/mod/crash_mod/boom`).catch(() => {});
+            await fetch(`${base}/api/mod/crash_mod/boom`, SESSION).catch(() => {});
         }
         // Quarantine fires async off the 5th crash.
         await new Promise(r => setTimeout(r, 200));

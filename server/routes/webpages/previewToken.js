@@ -51,6 +51,9 @@ function register(router) {
         // lend out the author's table rights.
         const { token, expiresAt } = issuePreviewToken({
             userId: wp.userId, webpageId: wp.id, viewerUserId: userId,
+            // The author writes the page database; a reader admitted by audience does not, unless the
+            // author opted the page in (checked at the bridge, not here).
+            role: userId === wp.userId ? 'owner' : 'viewer',
         });
         res.json({ token, expiresAt, webpageId: wp.id });
     });

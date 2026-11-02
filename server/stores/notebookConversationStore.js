@@ -50,9 +50,11 @@ const log = require('../telemetry/log');
  * @returns {Promise<{ read: string[], write: string|null, ctx: object }>}
  * @param {string | Buffer<ArrayBufferLike> | null} sessionKey
  * @param {string} userId
+ * @param {'read'|'write'} [purpose] 'write' when the keys seal rows about to be stored: a key the
+ *   policy asks for and cannot produce then refuses the write (resolveCrypto).
  */
-async function _keys(userId, sessionKey) {
-    const ctx = await resolveCrypto({ userId, encryptionKey: sessionKey });
+async function _keys(userId, sessionKey, purpose = 'read') {
+    const ctx = await resolveCrypto({ userId, encryptionKey: sessionKey, purpose });
     const session = sessionKey ? String(sessionKey) : null;
     const escrow = ctx.key ? ctx.key.toString('base64') : null;
 
@@ -215,7 +217,7 @@ async function appendMessages(notebookId, userId, encryptionKey, newMessages) {
     // still-recoverable ciphertext with only the new turn and (b) re-store it
     // PLAINTEXT (encryptMessages with a null key passes through). Refuse
     // instead; an encrypted-but-genuinely-empty blob is fine.
-    const { read, write } = await _keys(userId, encryptionKey);
+    const { read, write } = await _keys(userId, encryptionKey, 'write');
     const decoded = _decodeWithKeys(row, read, userId);
     if (!decoded.ok) {
         const err = new Error('Conversation history is locked: encrypted blob cannot be opened with this session key');
@@ -253,7 +255,7 @@ async function replaceMessages(notebookId, userId, encryptionKey, messages) {
     const safe = Array.isArray(messages) ? messages : [];
     const row = await getOrCreate(notebookId, userId);
     if (!row) return null;
-    const { write } = await _keys(userId, encryptionKey);
+    const { write } = await _keys(userId, encryptionKey, 'write');
     const stored = encryptMessages(JSON.stringify(safe), write, row.id, userId);
     await run(
         'UPDATE notebook_conversations SET messages_json = $1, message_count = $2, updated_at = NOW() WHERE id = $3',

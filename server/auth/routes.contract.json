@@ -3412,7 +3412,7 @@
     },
     "GET /auth/login-pickup": {
       "gate": "open",
-      "reason": "one-time claim of the session token an OAuth popup deposited under a pickup id, for iframes that cannot see the cookie (auth/oauth/loginPickupRoutes.js); the id is minted per login"
+      "reason": "one-time claim of the session token an OAuth popup deposited under a pickup id, for iframes that cannot see the cookie: the deposit is bound to the sha256 of a client secret and the claim must present that secret in X-Pickup-Secret (auth/oauth/loginPickupRoutes.js, utils/sessionToken.js)"
     },
     "GET /auth/login/:provider": {
       "gate": "open",
@@ -6118,11 +6118,11 @@
     },
     "POST /api/webpages-preview/:id/db/batch": {
       "gate": "middleware",
-      "via": "requirePreviewToken"
+      "via": "requireDbWrite,requirePreviewToken"
     },
     "POST /api/webpages-preview/:id/db/exec": {
       "gate": "middleware",
-      "via": "requirePreviewToken"
+      "via": "requireDbWrite,requirePreviewToken"
     },
     "POST /api/webpages-preview/:id/db/query": {
       "gate": "middleware",
@@ -7148,6 +7148,9 @@
       "gate": "auth"
     },
     "PUT /api/webpages/:id/files": {
+      "gate": "auth"
+    },
+    "PUT /api/webpages/:id/grants/db": {
       "gate": "auth"
     },
     "PUT /apps/:id": {

@@ -120,6 +120,11 @@ class Settings(BaseSettings):
     # Absolute ceiling: a single request larger than this is refused outright
     # (degraded=input_too_large) — bounds just holding the string in memory.
     pii_hard_max_chars: int = 4_000_000
+    # Request BODY bound, in bytes, checked before the JSON is parsed
+    # (app/limits.py). pii_hard_max_chars bounds the text the service holds;
+    # this bounds what it reads to get there. Sized above the hard char
+    # ceiling with room for JSON escaping and custom_labels. 0 = no bound.
+    max_body_bytes: int = 32 * 1024 * 1024
     # Per-request WORK budget, as opposed to the memory budget above.
     #
     # pii_max_chars alone was not a budget the caller could survive: the Node

@@ -87,7 +87,7 @@ function refused(req, res) {
     return true;
 }
 
-const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
+const limiter = perUserRateLimit({ windowMs: 60_000, max: 10, name: 'datatables-ai' });
 const MAX_TOKENS = 4000;
 
 /** @param {import('express').Request} req */

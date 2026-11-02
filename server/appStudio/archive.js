@@ -35,10 +35,17 @@
 /** @typedef {Error & { reason?: string, format?: string }} ArchiveError */
 
 const zlib = require('zlib');
+const { openZipGuarded, readEntryCapped, ZipLimitError } = require('../core/documents/zipGuard');
 
 // A gunzipped tar is held in memory whole, so this is the real ceiling on what
-// one .tar.gz may cost us. Matches the intake's own per-archive budget.
+// one .tar.gz may cost us. Matches the intake's own per-archive budget. A zip
+// is held compressed and inflated part by part; the same ceiling applies to
+// what its parts DECLARE together, before any is inflated, and every read of
+// a part is cut off at the caller's limit.
 const MAX_INFLATED_BYTES = 100 * 1024 * 1024;
+// More entries than this is not a packing habit; refused before JSZip builds
+// an entry for each.
+const MAX_ZIP_DECLARED_ENTRIES = 10_000;
 
 // tar is 512-byte blocks all the way down.
 const TAR_BLOCK = 512;
@@ -200,9 +207,53 @@ function tarEntries(buffer) {
 }
 
 /**
+ * A zip's entries. Refused on its declarations alone when it holds too many
+ * entries or declares more than MAX_INFLATED_BYTES in total; `read(limit)`
+ * inflates one part as a stream and stops at `limit` bytes (or at the part's
+ * declared size), never in full first.
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {typeof import('jszip') | null} JSZip  a JSZip to use instead of the installed one (tests)
+ */
+async function openZip(buffer, JSZip) {
+    /** @type {Awaited<ReturnType<typeof openZipGuarded>>} */
+    let opened;
+    try {
+        if (JSZip) {
+            // A caller-supplied JSZip skips the declaration checks: it exists for
+            // tests that hand in a specific build.
+            const zip = await JSZip.loadAsync(buffer);
+            const all = /** @type {import('../core/documents/zipGuard').ZipEntry[]} */ (Object.values(zip.files));
+            opened = { zip, entries: all.filter((e) => !e.dir), dirs: all.filter((e) => e.dir), declaredTotal: 0 };
+        } else {
+            opened = await openZipGuarded(buffer, { maxEntries: MAX_ZIP_DECLARED_ENTRIES, maxTotalBytes: MAX_INFLATED_BYTES });
+        }
+    } catch (e) {
+        /** @type {ArchiveError} */
+        const err = new Error('zip refused');
+        err.format = 'zip';
+        err.reason = e instanceof ZipLimitError && e.reason === 'too_many_entries' ? 'this archive holds too many files to open here'
+            : e instanceof ZipLimitError && e.reason !== 'not_a_zip' ? 'this archive is too large to open here'
+                : 'this file is damaged or is not an archive';
+        throw err;
+    }
+    const keep = (/** @type {{ name: string }} */ e) => e && !/__MACOSX/i.test(e.name);
+    return {
+        format: /** @type {const} */ ('zip'),
+        dirs: opened.dirs.filter(keep).map((e) => e.name),
+        entries: opened.entries.filter(keep).map((e) => ({
+            path: e.name,
+            size: (e._data && e._data.uncompressedSize) || 0,
+            isDir: false,
+            /** @param {number} [limit]  the most bytes to inflate; the declared size when omitted */
+            read: (limit) => readEntryCapped(e, { maxBytes: limit && limit > 0 ? limit : 0 }),
+        })),
+    };
+}
+
+/**
  * Enumerate an archive.
  *
- *   → { format, entries: [{ path, size, isDir, read() }], dirs: [paths] }
+ *   → { format, entries: [{ path, size, isDir, read(limit?) }], dirs: [paths] }
  *
  * Throws an Error carrying `.reason` — a sentence fit to show an operator —
  * for the archives we recognise and cannot open, so a caller never has to
@@ -241,19 +292,7 @@ async function openArchive(buffer, { name = '', JSZip = null } = {}) {
             err.format = 'zip';
             throw err;
         }
-        const Z = JSZip || require('jszip');
-        const zip = await Z.loadAsync(buffer);
-        const all = Object.values(zip.files).filter((e) => e && !/__MACOSX/i.test(e.name));
-        return {
-            format,
-            dirs: all.filter((e) => e.dir).map((e) => e.name),
-            entries: all.filter((e) => !e.dir).map((/** @type {import('jszip').JSZipObject & { _data?: { uncompressedSize?: number } }} */ e) => ({
-                path: e.name,
-                size: (e._data && e._data.uncompressedSize) || 0,
-                isDir: false,
-                read: () => e.async('nodebuffer'),
-            })),
-        };
+        return openZip(buffer, JSZip);
     }
 
     // gzip: one member, and for an order package that member is a tar.

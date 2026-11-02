@@ -267,3 +267,13 @@ test('restoreAssets queues resized variants for an imported image', async () => 
     for (let i = 0; i < 200 && !storage.objects.has('cms-variants/imported.jpg.done'); i++) await new Promise((r) => setTimeout(r, 25));
     assert.ok(storage.objects.has('cms-variants/imported.jpg@640.webp'));
 });
+
+test('a zip whose assets DECLARE more than the total limit is refused before any inflates', async () => {
+    const zip = new JSZip();
+    zip.file('site.json', JSON.stringify({ version: 2, pages: [] }));
+    zip.file('assets/cms/bomb.bin', Buffer.alloc(250 * 1024 * 1024)); // declares 250 MB, compresses to kilobytes
+    const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    const t0 = Date.now();
+    await assert.rejects(() => bundleLib.parseZip(buf), /total size limit/);
+    assert.ok(Date.now() - t0 < 1000, `refused in ${Date.now() - t0} ms`);
+});

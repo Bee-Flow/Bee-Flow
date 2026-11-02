@@ -4971,9 +4971,6 @@
     "complexity": {
       "count": 1
     },
-    "max-depth": {
-      "count": 3
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -7544,7 +7541,7 @@
   },
   "routes/automation/events.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     }
   },
   "routes/automation/formPublic/page.js": {
@@ -9659,11 +9656,6 @@
     }
   },
   "stores/lib/sqliteBlobHandles.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "stores/lib/sqliteBlobStatements.js": {
     "max-lines-per-function": {
       "count": 1
     }

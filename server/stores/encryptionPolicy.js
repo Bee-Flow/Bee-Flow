@@ -199,18 +199,39 @@ function policyFromRow(row) {
 
 const DISABLED_POLICY = Object.freeze(policyFromRow(null));
 
+/** Tag on the error a strict lookup throws when the database did not answer. */
+const POLICY_UNAVAILABLE = 'ENCRYPTION_POLICY_UNAVAILABLE';
+
+/**
+ * The column or table is not there yet (mid-deploy, before initDB has run the
+ * ALTER): the feature does not exist on this install, so "off" is the truth.
+ * @param {unknown} err
+ */
+function _isMissingSchema(err) {
+    const e = /** @type {{ code?: unknown, message?: unknown }} */ (err && typeof err === 'object' ? err : {});
+    return e.code === '42703' || e.code === '42P01'
+        || /(column|relation) .* does not exist/i.test(typeof e.message === 'string' ? e.message : '');
+}
+
 /**
  * Resolve the effective policy for an organisation.
  *
- * Fails safe in every direction: an unknown org, a missing column (mid-deploy,
- * before initDB has run the ALTER), or any DB error yields the disabled
- * policy, which means "write plaintext". It never throws — an encryption
- * policy lookup must not be able to take down a chat request.
+ * An unknown org, or a missing column (mid-deploy, before initDB has run the
+ * ALTER), yields the disabled policy: the feature does not exist there, so
+ * "write plaintext" is the truth. A database that does not answer is a
+ * different case: the policy is UNKNOWN, not off. By default that still
+ * resolves to the disabled policy (a read detects the format on the value, and
+ * a lookup must not be able to take down a chat request), but the answer is
+ * never cached, so one hiccup cannot pin an encrypted org to plaintext for the
+ * TTL. A caller that is about to WRITE passes `strict: true` and gets the
+ * error instead: writing plaintext for an org that may have asked for
+ * encryption is the one thing this module exists to prevent.
  *
  * @param {string | null | undefined} orgId
+ * @param {{ strict?: boolean }} [opts]
  * @returns {Promise<{ tier: string, enabled: boolean, scope: Record<string, boolean> }>}
  */
-async function resolvePolicy(orgId) {
+async function resolvePolicy(orgId, { strict = false } = {}) {
     const key = String(orgId || '');
     const cached = _cacheGet(key);
     if (cached) return cached;
@@ -224,9 +245,16 @@ async function resolvePolicy(orgId) {
                 [key]
             );
             if (row) policy = policyFromRow(row);
-        } catch (_) {
-            // Column or table not there yet, or the DB is unreachable. Either
-            // way: behave exactly like today.
+        } catch (err) {
+            if (!_isMissingSchema(err)) {
+                if (strict) {
+                    throw Object.assign(
+                        new Error(`encryption policy unavailable: ${/** @type {Error} */ (err).message}`),
+                        { code: POLICY_UNAVAILABLE, cause: err },
+                    );
+                }
+                return DISABLED_POLICY;
+            }
             policy = DISABLED_POLICY;
         }
     }
@@ -255,4 +283,5 @@ module.exports = {
     shouldEncrypt,
     invalidatePolicyCache,
     DISABLED_POLICY,
+    POLICY_UNAVAILABLE,
 };

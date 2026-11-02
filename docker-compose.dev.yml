@@ -31,7 +31,7 @@ services:
       # colliding with a system-wide postgres install on the host (Ubuntu's
       # default postgresql package binds 5432). Inside the docker network the
       # server still reaches it at postgres:5432.
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks:
       - beeflow-network
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
     volumes:
       - rustfs-data-dev:/data
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
     networks:
       - beeflow-network
     restart: unless-stopped
@@ -246,7 +246,7 @@ services:
     # which safely clears caches before touching live sessions.
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     networks:
       - beeflow-network
     # Healthcheck so the server's depends_on can gate on `service_healthy` —

@@ -16,7 +16,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 // Heavy leaf renderers are irrelevant here — mock them out so jsdom doesn't
@@ -125,5 +126,48 @@ describe('MarkdownRenderer inline mode', () => {
         const { container } = render(<MarkdownRenderer content={'- one\n- two'} />);
         expect(container.firstElementChild!.tagName).toBe('DIV');
         expect(container.querySelectorAll('li')).toHaveLength(2);
+    });
+});
+
+// Images in model output do not load from other hosts until the reader asks
+// (remoteImages.tsx): a `![x](https://host/...)` in a reply would otherwise be
+// a request the browser makes on its own, to a host the model chose.
+describe('images from another host', () => {
+    it('renders no <img> for an external source until the reader loads it', async () => {
+        const user = userEvent.setup();
+        const { container } = render(<MarkdownRenderer content="See ![the chart](https://example.com/a.png?q=secret)" />);
+        expect(container.querySelector('img')).toBeNull();
+        const placeholder = screen.getByTestId('remote-image-deferred');
+        expect(placeholder.textContent).toContain('the chart');
+        expect(placeholder.textContent).toContain('example.com');
+        expect(placeholder.textContent).not.toContain('secret');
+
+        await user.click(screen.getByRole('button', { name: 'Load image' }));
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('src')).toBe('https://example.com/a.png?q=secret');
+        expect(img!.getAttribute('alt')).toBe('the chart');
+    });
+
+    it('renders same-origin images straight away, a protocol-relative one not', () => {
+        const { container } = render(
+            <MarkdownRenderer content={`![a](/api/files/1)\n\n![b](${window.location.origin}/uploads/b.png)\n\n![c](//example.com/c.png)`} />,
+        );
+        const sources = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+        expect(sources).toEqual(['/api/files/1', `${window.location.origin}/uploads/b.png`]);
+        expect(screen.getAllByTestId('remote-image-deferred')).toHaveLength(1);
+    });
+
+    it('keeps rendering an image whose scheme react-markdown dropped (data:) as before', () => {
+        // react-markdown's url transform leaves such an image without a source;
+        // nothing is fetched, so the guard does not step in.
+        const { container } = render(<MarkdownRenderer content="![b](data:image/png;base64,iVBORw0KGgo=)" />);
+        expect(container.querySelector('img')).not.toBeNull();
+        expect(screen.queryByTestId('remote-image-deferred')).toBeNull();
+    });
+
+    it('renders external images straight away where a view opts out (the reader\'s own text)', () => {
+        const { container } = render(<MarkdownRenderer content="![x](https://example.com/a.png)" allowRemoteImages />);
+        expect(container.querySelector('img')?.getAttribute('src')).toBe('https://example.com/a.png');
     });
 });

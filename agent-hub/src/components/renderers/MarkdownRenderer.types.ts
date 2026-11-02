@@ -18,6 +18,12 @@ export interface MarkdownRendererProps {
     inline?: boolean;
     /** Overrides merged over the built-in element renderers. */
     components?: Components;
+    /**
+     * Fetch images from other hosts without asking. Off by default: model and
+     * tool output chooses those hosts, so the reader loads them on request
+     * (remoteImages.tsx). A view that shows the reader's own text turns it on.
+     */
+    allowRemoteImages?: boolean;
 }
 
 export type CodeProps = ComponentPropsWithoutRef<'code'>;

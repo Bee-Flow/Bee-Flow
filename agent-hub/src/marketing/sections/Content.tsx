@@ -6,6 +6,7 @@ import ClipVideo from '../components/ClipVideo';
 import LazyLoopVideo from '../components/LazyLoopVideo';
 import SectionFrame from '../components/SectionFrame';
 import { migrateLegacyContent, resolveVideoEmbed } from './contentMigration';
+import { safeEmbedSrc } from './embedSrc';
 import { inlineTextStyle } from './textStyle';
 import type { ContentData } from './contentMigration';
 import type { ContentBlockData, RenderElement } from './Content.types';
@@ -316,11 +317,12 @@ function VideoElement({ el, pathBase }: ElementProps) {
 
 function IframeElement({ el }: ElementProps) {
     const heightPx = Number.isFinite(el.height) ? el.height : 480;
+    const src = safeEmbedSrc(el.src);
     return (
         <div className="content-el content-el-iframe">
-            {el.src ? (
+            {src ? (
                 <iframe
-                    src={el.src}
+                    src={src}
                     title={el.label || 'Embedded content'}
                     height={heightPx}
                     scrolling={el.scrolling ? 'yes' : 'no'}

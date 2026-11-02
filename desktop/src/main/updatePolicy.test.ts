@@ -89,6 +89,14 @@ describe('feedFromEnv', () => {
         assert.equal(feedFromEnv({ BEEFLOW_UPDATE_FEED_URL: 'not a url' }), null);
         assert.equal(feedFromEnv({ BEEFLOW_UPDATE_FEED_URL: 'file:///tmp/evil' }), null);
     });
+
+    it('takes a plain-http feed from a development build only', () => {
+        const insecure = { BEEFLOW_UPDATE_FEED_URL: 'http://updates.example.com/beeflow/' };
+        assert.equal(feedFromEnv(insecure), null);
+        assert.equal(feedFromEnv(insecure, 'nsis'), null);
+        assert.equal(feedFromEnv(insecure, 'appimage'), null);
+        assert.deepEqual(feedFromEnv(insecure, 'dev'), { provider: 'generic', url: 'http://updates.example.com/beeflow' });
+    });
 });
 
 describe('updateCapability — unsigned macOS builds', () => {

@@ -209,8 +209,11 @@ async function auditLoginFailure(/** @type {import('express').Request} */ req, {
  * these are the rows an auditor asks about by name: a lockout is the control
  * working, and a suspended account still being tried is a signal about the
  * person holding the password.
+ * @param {import('express').Request} req
+ * @param {{ userId?: string | null, identifier?: string | null, method?: string, reason?: string, organizationId?: string | null, details?: Record<string, unknown> }} [attempt]
  */
-async function auditLoginBlocked(/** @type {import('express').Request} */ req, { userId = null, identifier = null, method = 'unknown', reason = 'blocked', organizationId = null, details = {} } = {}) {
+async function auditLoginBlocked(req, attempt = {}) {
+    const { userId = null, identifier = null, method = 'unknown', reason = 'blocked', organizationId = null, details = {} } = attempt;
     await write(LOGIN_ACTIONS.BLOCKED, {
         targetType: userId ? 'user' : UNKNOWN_TARGET_TYPE,
         targetId: userId || identifierFingerprint(identifier) || 'unknown',

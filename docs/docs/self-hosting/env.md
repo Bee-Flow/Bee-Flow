@@ -45,7 +45,7 @@ Postgres instance.
 |----------|---------|---------|
 | `SERVER_PORT` | `3001` | HTTP port the server listens on (`PORT` is honoured as a fallback). |
 | `SERVER_BIND_HOST` | `127.0.0.1` | Interface that publishes `SERVER_PORT`. Loopback on purpose: the API is meant to be reached through the agent-hub nginx, where the rate limits and security headers live. Set to `0.0.0.0` only when something off-machine must talk to the API port itself. |
-| `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server. Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. |
+| `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server (a whole number; `0` means none). Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. A value that is not a number refuses to boot. |
 | `PUBLIC_BASE_URL` | (none) | Public base URL of the API (`https://api.example.com`). Used for outgoing webhooks and callback URLs — and it is the switch that decides whether MS-Graph subscriptions get provisioned at all. |
 | `SERVER_PUBLIC_HOST` / `SERVER_PROTOCOL` | `localhost:3001` / `http` | How the API is addressed externally. |
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |
@@ -109,6 +109,18 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `AUTOMATION_AI_CHECK_MAX_ERRORS` | `100` | The most problems collected while checking one AI answer. `0` = unlimited. |
 | `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
 
+## Per-user spend budgets
+
+Requests per minute one signed-in user may make on the routes that spend money or minutes on every call. Each is an integer with a generous default, counted fleet-wide when Redis is there, and `0` means no limit. A user over the budget gets a `429` with `Retry-After`.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DIRECT_CHAT_RPM` | `60` | Chat turns (each a model call). |
+| `IMAGE_GEN_RPM` | `30` | Images generated from the chat. |
+| `TRANSCRIPTION_UPLOAD_RPM` | `20` | Audio uploads for transcription. Checked before the file is read. |
+| `NOTEBOOK_AI_RPM` | `30` | Notebook generations (summary, quiz, ai-fill). |
+| `TEMPLATE_AI_RPM` | `20` | Template uploads, each of which starts the AI pipeline (context, knowledge base, parameters). |
+
 ## Redis
 
 | Variable | Default | Purpose |
@@ -123,6 +135,7 @@ Limits for automations that call a model. Each is an integer, has a generous def
 | `PII_SERVICE_URL` | (none — opt-in) | Guard-service base URL, e.g. `http://guard-service:8100`. Unset means PII detection is disabled entirely. |
 | `PII_SERVICE_API_KEY` | falls back to `SERVICES_API_KEY` | Sent as `X-API-Key` to the guard; must match the guard's own `SERVICES_API_KEY`. |
 | `GUARD_SERVICE_URL` | (none — opt-in) | Sidecar health probe for `/api/guard/health`; returns `not-configured` when unset. |
+| `GUARD_MAX_BODY_BYTES` | `33554432` (32 MiB) | On the guard-service: the largest request body it reads, checked before the JSON is parsed (a `413` above it). Sized above `GUARD_PII_HARD_MAX_CHARS` with room for JSON escaping. `0` = no bound. |
 
 ## Observability
 

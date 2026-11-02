@@ -16,7 +16,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const Docker = require('dockerode');
 const configStore = require('../stores/configStore');
 const { invalidateGuardEndpointCache } = require('../core/privacy/piiDetection');
@@ -24,10 +23,11 @@ const log = require('../telemetry/log');
 const { resolveGuardApiKey } = require('./guardApiKey');
 const { startRedis: startGuardRedis } = require('./guardRedis');
 const {
-    isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
+    isServerInContainer, ensureNetwork,
     removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { ensureImage, resolveGuardImage } = require('./guardImage');
 
 const GUARD_CONTAINER = 'beeflow-guard';
 const REDIS_CONTAINER = 'beeflow-guard-redis';
@@ -100,8 +100,23 @@ function _clearProgress() {
     _progress = null;
 }
 
+const DOCKER_SOCKET = '/var/run/docker.sock';
+/** The one stat the installer needs before it touches Docker; swapped in tests. */
+let _socketProbe = (/** @type {string} */ p) => fs.existsSync(p);
+
 function getDocker() {
-    return new Docker({ socketPath: '/var/run/docker.sock' });
+    return new Docker({ socketPath: DOCKER_SOCKET });
+}
+
+/** The default stacks no longer mount the socket: without it there is nothing to install into. */
+function dockerSocketAvailable() {
+    return _socketProbe(DOCKER_SOCKET);
+}
+
+function dockerSocketUnavailableReason() {
+    return `Docker is not available on this install: ${DOCKER_SOCKET} is not mounted into the server. `
+        + 'Run the guard as the `guard` profile of the stack instead, or opt in to the socket with '
+        + 'docker-compose.docker-socket.override.yml (DOCKER_SOCKET=1 ./selfhost.sh).';
 }
 
 function isKubernetes() {
@@ -147,6 +162,8 @@ async function getStatus() {
         lastError: null,
         containers: { guard: false, redis: false },
         progress: _progress,
+        dockerSocket: true,
+        unavailableReason: null,
     };
 
     try {
@@ -177,6 +194,15 @@ async function getStatus() {
                 result.status = STATUS.UNHEALTHY;
             }
         }
+        return result;
+    }
+
+    // No socket, no containers to probe: say so instead of logging a failed
+    // probe on every status call. The persisted status still shows (an
+    // install done while the socket was mounted stays reported).
+    if (!dockerSocketAvailable()) {
+        result.dockerSocket = false;
+        result.unavailableReason = dockerSocketUnavailableReason();
         return result;
     }
 
@@ -227,208 +253,6 @@ async function getStatus() {
  * per layer ID, then sum across layers to produce a single overall percent.
  * Extract phase contributes too (Docker reports current/total for it).
  */
-async function pullImage(docker, image, displayName) {
-    const layers = new Map(); // id → { current, total, done }
-    let lastReport = 0;
-
-    await pullImageStream(docker, image, (evt) => {
-        if (!evt) return;
-        const id = evt.id;
-        if (id && evt.progressDetail && typeof evt.progressDetail.total === 'number' && evt.progressDetail.total > 0) {
-            layers.set(id, {
-                current: evt.progressDetail.current || 0,
-                total: evt.progressDetail.total,
-                done: false,
-            });
-        }
-        // Layer completion signals — treat the layer as fully downloaded
-        // so percent reaches 100 even if the last progress event was lost.
-        if (id && /complete/i.test(evt.status || '')) {
-            const layer = layers.get(id);
-            if (layer) {
-                layers.set(id, { ...layer, current: layer.total, done: true });
-            }
-        }
-
-        // Throttle progress writes to ~3/sec so the polling
-        // endpoint doesn't see flicker and we don't spin the CPU.
-        const now = Date.now();
-        if (now - lastReport < 300) return;
-        lastReport = now;
-
-        let current = 0;
-        let total = 0;
-        for (const layer of layers.values()) {
-            current += layer.current;
-            total += layer.total;
-        }
-        const percent = total > 0 ? (current / total) * 100 : null;
-        _setProgress('pull', {
-            message: `Pulling ${displayName || image}`,
-            percent,
-        });
-    });
-
-    // Ensure a clean 100% on completion (the last event may have been a
-    // "Pull complete" without numeric detail).
-    _setProgress('pull', { message: `Pulled ${displayName || image}`, percent: 100 });
-}
-
-async function ensureImage(docker, image, displayName) {
-    if (await imageExists(docker, image)) return;
-    await pullImage(docker, image, displayName);
-}
-
-/**
- * Build the guard image from the local Dockerfile shipped with the repo.
- * Used when no prebuilt image is available locally and the registry tag
- * cannot be pulled (e.g. local dev without GHCR access).
- */
-async function buildGuardImage(docker, image) {
-    // Candidate context dirs reachable from inside the server process:
-    //   /guard-service              — bind-mount used by docker-compose.dev.yml
-    //   <repo-root>/guard-service   — when the server runs natively
-    // First match wins.
-    const candidates = [
-        '/guard-service',
-        path.resolve(__dirname, '..', '..', 'guard-service'),
-    ];
-    const contextDir = candidates.find(c => fs.existsSync(path.join(c, 'Dockerfile')));
-    if (!contextDir) {
-        throw new Error(`guard-service Dockerfile not found (looked in: ${candidates.join(', ')})`);
-    }
-    log.info(`[GuardInstaller] Building ${image} from ${contextDir} (this can take several minutes on first run)`);
-
-    // Stream `docker build` output line-by-line so we can report progress.
-    // The classic builder emits "Step N/M : <directive>"; buildkit emits
-    // "#N [stage] step" headers — we recognise both, but coarse-percent
-    // tracking is only meaningful for the classic case. With buildkit we
-    // just surface the last step header as the message.
-    //
-    // We force the classic builder (DOCKER_BUILDKIT=0) so the Step-N/M
-    // signal is reliable. Builds work fine either way for this image.
-    const { spawn } = require('child_process');
-    await new Promise((resolve, reject) => {
-        const proc = spawn('docker', ['build', '-t', image, contextDir], {
-            env: { ...process.env, DOCKER_BUILDKIT: '0' },
-        });
-
-        let stderrTail = '';
-        let lastReport = 0;
-        const STEP_RE = /^Step (\d+)\/(\d+)\s*:\s*(.*)$/;
-
-        const handleLine = (line) => {
-            const trimmed = line.trim();
-            if (!trimmed) return;
-            const m = STEP_RE.exec(trimmed);
-            if (m) {
-                const step = Number(m[1]);
-                const total = Number(m[2]);
-                const directive = m[3].slice(0, 80);
-                const now = Date.now();
-                if (now - lastReport >= 300) {
-                    lastReport = now;
-                    _setProgress('build', {
-                        message: `Building (${step}/${total}): ${directive}`,
-                        percent: (step / total) * 100,
-                    });
-                }
-            }
-        };
-
-        let stdoutBuf = '';
-        proc.stdout.on('data', (chunk) => {
-            stdoutBuf += chunk.toString();
-            let idx;
-            while ((idx = stdoutBuf.indexOf('\n')) !== -1) {
-                handleLine(stdoutBuf.slice(0, idx));
-                stdoutBuf = stdoutBuf.slice(idx + 1);
-            }
-        });
-
-        proc.stderr.on('data', (chunk) => {
-            const s = chunk.toString();
-            stderrTail = (stderrTail + s).slice(-4000); // keep last 4 KB for error reporting
-            // buildkit headers (when DOCKER_BUILDKIT couldn't be turned off) land on stderr
-            for (const line of s.split('\n')) handleLine(line);
-        });
-
-        proc.on('error', reject);
-        proc.on('close', (code) => {
-            if (code === 0) {
-                _setProgress('build', { message: `Built ${image}`, percent: 100 });
-                resolve();
-            } else {
-                reject(new Error(`docker build exited with code ${code}\n${stderrTail}`));
-            }
-        });
-    });
-}
-
-/**
- * Resolve which guard image to use. Tries, in order:
- *   1. process.env.GUARD_IMAGE (explicit override)
- *   2. locally present images matching common dev/compose tags
- *   3. ghcr.io registry pull (production default)
- *   4. local build from ./guard-service/Dockerfile
- * Returns the image reference that was successfully made available locally.
- */
-async function resolveGuardImage(docker) {
-    if (process.env.GUARD_IMAGE) {
-        await ensureImage(docker, process.env.GUARD_IMAGE);
-        return process.env.GUARD_IMAGE;
-    }
-
-    // Candidates a local developer or CI might have already built.
-    const localCandidates = [
-        'beeflow-guard:latest',
-        'bee-flow-ai-guard-service:latest',
-        'bee-flow-ai_guard-service:latest',
-    ];
-    for (const tag of localCandidates) {
-        if (await imageExists(docker, tag)) return tag;
-    }
-
-    // Try the registry. :dev is published by the CI workflow on every push to
-    // main that touches guard-service/; :latest is the explicit prod release
-    // tag. Honour an explicit GUARD_IMAGE_TAG when set.
-    const tagChain = process.env.GUARD_IMAGE_TAG
-        ? [process.env.GUARD_IMAGE_TAG]
-        : ['dev', 'latest'];
-    let lastPullErr = null;
-    for (const tag of tagChain) {
-        const registryImage = `ghcr.io/bee-flow/guard:${tag}`;
-        try {
-            await ensureImage(docker, registryImage);
-            return registryImage;
-        } catch (pullErr) {
-            lastPullErr = pullErr;
-            log.warn(`[GuardInstaller] Registry pull ${registryImage} failed: ${pullErr.message}`);
-        }
-    }
-
-    // Last resort: build from the Dockerfile shipped with the repo. This works
-    // when ./guard-service is reachable from inside the server process — either
-    // because the server runs natively, or because docker-compose.dev.yml
-    // bind-mounts ./guard-service into the container.
-    const buildContextExists = fs.existsSync('/guard-service/Dockerfile')
-        || fs.existsSync(path.resolve(__dirname, '..', '..', 'guard-service', 'Dockerfile'));
-    if (!buildContextExists) {
-        throw new Error(
-            'Could not pull ghcr.io/bee-flow/guard (:dev or :latest) and the '
-            + 'guard-service build context is not reachable. '
-            + 'In dev compose, ensure ./guard-service is bind-mounted into the '
-            + 'server container (see docker-compose.dev.yml) and restart with '
-            + '`docker compose -f docker-compose.dev.yml up -d`. '
-            + 'Otherwise set GUARD_IMAGE to a reachable image. '
-            + (lastPullErr ? `(last pull error: ${lastPullErr.message})` : '')
-        );
-    }
-    const buildTag = 'beeflow-guard:local';
-    await buildGuardImage(docker, buildTag);
-    return buildTag;
-}
-
 function removeContainerIfExists(docker, name) {
     return removeContainer(docker, name, 10);
 }
@@ -541,14 +365,14 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
             : `http://127.0.0.1:${GUARD_HOST_PORT}`;
 
         stage = 'redis';
-        await ensureImage(docker, 'redis:7-alpine', 'redis:7-alpine');
+        await ensureImage(docker, 'redis:7-alpine', 'redis:7-alpine', _setProgress);
         _setProgress('starting', { message: 'Starting Redis cache…', percent: null });
         await removeContainerIfExists(docker, REDIS_CONTAINER);
         await startGuardRedis(docker, { container: REDIS_CONTAINER, network: GUARD_NETWORK });
 
         // resolveGuardImage emits its own pull/build progress events.
         stage = 'guard-image';
-        const guardImage = await resolveGuardImage(docker);
+        const guardImage = await resolveGuardImage(docker, _setProgress);
         _setProgress('starting', { message: 'Starting guard container…', percent: null });
         await removeContainerIfExists(docker, GUARD_CONTAINER);
         stage = 'guard-start';
@@ -648,6 +472,9 @@ function install({ apiKey, model } = {}) {
     if (isKubernetes()) {
         throw Object.assign(new Error('Install is not supported on Kubernetes deployments'), { code: 'UNSUPPORTED_ENV' });
     }
+    if (!dockerSocketAvailable()) {
+        throw Object.assign(new Error(dockerSocketUnavailableReason()), { code: 'UNSUPPORTED_ENV' });
+    }
     if (_inFlight) {
         throw Object.assign(new Error('Another guard operation is already in progress'), { code: 'IN_PROGRESS' });
     }
@@ -662,6 +489,9 @@ function install({ apiKey, model } = {}) {
 function uninstall({ removeVolume = false } = {}) {
     if (isKubernetes()) {
         throw Object.assign(new Error('Uninstall is not supported on Kubernetes deployments'), { code: 'UNSUPPORTED_ENV' });
+    }
+    if (!dockerSocketAvailable()) {
+        throw Object.assign(new Error(dockerSocketUnavailableReason()), { code: 'UNSUPPORTED_ENV' });
     }
     if (_inFlight) {
         throw Object.assign(new Error('Another guard operation is already in progress'), { code: 'IN_PROGRESS' });
@@ -678,6 +508,10 @@ module.exports = {
     probeGuardHealth,
     isKubernetes,
     isServerInContainer,
+    dockerSocketAvailable,
+    dockerSocketUnavailableReason,
+    /** @param {((p: string) => boolean) | null} probe */
+    _setSocketProbeForTests(probe) { _socketProbe = probe || ((p) => fs.existsSync(p)); },
     STATUS,
 };
 

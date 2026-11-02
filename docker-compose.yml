@@ -117,6 +117,12 @@ services:
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.beeflow.nl}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-none}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
+      # Self-registration and password login. The server reads both, so they
+      # have to reach the container: a value in .env that stops here would
+      # leave the server on its own default (signups open). The self-host
+      # template keeps signups off; admins create the accounts.
+      - ALLOW_SIGNUPS=${ALLOW_SIGNUPS:-false}
+      - ALLOW_PASSWORD_LOGIN=${ALLOW_PASSWORD_LOGIN:-true}
       # Nextcloud integration (optional)
       - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
       - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
@@ -181,9 +187,10 @@ services:
       # Persist components - mount to /components to match code expectation (path.resolve(__dirname, '../components'))
       # In Docker, server is in /app, so ../components is /components
       - ./components:/components
-      # Docker socket — lets the server spawn terminal-agent and Tests Studio
-      # runner containers. The shared browser is the `browser` sidecar, not this.
-      - /var/run/docker.sock:/var/run/docker.sock
+      # No Docker socket by default: the server is the internet-facing process,
+      # and the socket is the host. The guard installer, the browser-runner
+      # fallback and Docker-backed modules say "not available on this install"
+      # without it; opt in with docker-compose.docker-socket.override.yml.
     networks:
       - beeflow-network
       - beeflow-browser-network
@@ -280,11 +287,12 @@ services:
       - GUARD_PII_CACHE_TTL_SECONDS=${GUARD_PII_CACHE_TTL_SECONDS:-600}
       - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
       - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
-      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
-      # The sidecar fails closed: no SERVICES_API_KEY and it refuses to start. This
-      # developer stack binds 127.0.0.1 only, so it may run open when no key is set
-      # (set SERVICES_API_KEY in .env to require one; it then applies either way).
-      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-1}
+      # The sidecar fails closed: it requires the same SERVICES_API_KEY the
+      # server sends (the server service above already refuses to start without
+      # one). SERVICES_ALLOW_OPEN=1 in .env lets it run open on purpose, for a
+      # stack that only ever binds 127.0.0.1.
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?SERVICES_API_KEY is required - generate one with openssl rand -hex 24}
+      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-0}
     depends_on:
       guard-redis:
         condition: service_healthy
@@ -366,10 +374,11 @@ services:
       - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
       - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-INFO}
       - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
-      # Fails closed without a key; this developer stack binds 127.0.0.1 only (see guard-service).
-      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-1}
+      # Fails closed without a key, like guard-service above; SERVICES_ALLOW_OPEN=1
+      # in .env opens it on purpose.
+      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-0}
       - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
-      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?SERVICES_API_KEY is required - generate one with openssl rand -hex 24}
     cpus: ${CLASSIFY_CPUS:-3}
     mem_limit: ${CLASSIFY_MEM:-3g}
     read_only: true

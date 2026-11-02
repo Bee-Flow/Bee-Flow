@@ -37,6 +37,7 @@ const mfaStub = {
     MFA_LOGIN_MAX_ATTEMPTS: 5,
     decryptSecret: (enc) => (enc === 'UNREADABLE' ? null : 'SECRET'),
     verifyTotp: (_secret, code) => code === GOOD_CODE,
+    verifyTotpStep: (_secret, code) => (code === GOOD_CODE ? { ok: true, timeStep: 7 } : { ok: false }),
     consumeRecoveryCode: async (_codes, code) => (code === 'recovery-1' ? ['left'] : null),
 };
 const metricsStub = { recordAuthEvent: () => {} };

@@ -80,7 +80,7 @@ test('issuePreviewToken/verifyPreviewToken round-trip with a valid secret', () =
         const claims = mod.verifyPreviewToken(token);
         // `viewerUserId` is ALWAYS present, even if it was not passed — null, never a fallback to `userId`.
     // See the W3 tests below.
-        assert.deepStrictEqual(claims, { userId: 'u1', webpageId: 'w1', viewerUserId: null, expiresAt });
+        assert.deepStrictEqual(claims, { userId: 'u1', webpageId: 'w1', viewerUserId: null, role: 'viewer', expiresAt });
     });
 });
 
@@ -134,5 +134,22 @@ test('verifyPreviewToken rejects a tampered signature', () => {
         const [payload] = token.split('.');
         const tampered = `${payload}.not-a-real-signature`;
         assert.strictEqual(mod.verifyPreviewToken(tampered), null);
+    });
+});
+
+test('the owner role round-trips; its absence, or any other value, is a viewer', () => {
+    withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: 'x'.repeat(32) }, () => {
+        const mod = freshModule();
+        const owner = mod.verifyPreviewToken(mod.issuePreviewToken({ userId: 'u-author', webpageId: 'w1', viewerUserId: 'u-author', role: 'owner' }).token);
+        assert.strictEqual(owner.role, 'owner');
+        const viewer = mod.verifyPreviewToken(mod.issuePreviewToken({ userId: 'u-author', webpageId: 'w1', viewerUserId: 'u-reader', role: 'viewer' }).token);
+        assert.strictEqual(viewer.role, 'viewer');
+        // A token from before the claim existed narrows to viewer: it never opens the write bridges.
+        const legacy = mod.verifyPreviewToken(mod.issuePreviewToken({ userId: 'u-author', webpageId: 'w1' }).token);
+        assert.strictEqual(legacy.role, 'viewer');
+        for (const bad of ['admin', 'OWNER', 1, true]) {
+            const claims = mod.verifyPreviewToken(mod.issuePreviewToken({ userId: 'u-author', webpageId: 'w1', role: bad }).token);
+            assert.strictEqual(claims.role, 'viewer', `${JSON.stringify(bad)} is not the owner`);
+        }
     });
 });

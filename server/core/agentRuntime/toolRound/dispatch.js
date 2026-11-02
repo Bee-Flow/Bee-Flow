@@ -17,6 +17,7 @@ const { resolveIntegration } = require('../../integrations/integrationToolMap');
 const { runWithProbe, markLocal } = require('../../http/outboundProbe');
 const { checkRegexPatterns } = require('../../privacy/guardrails');
 const testChatMod = require('../testChat');
+const { isGuestAsker } = require('../guestAsker');
 const log = require('../../../telemetry/log');
 const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
@@ -181,8 +182,12 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
         agentId: agent.id,
         // This path holds a call on 'ask' until the
         // person approved it, so the dispatcher may
-        // run an automation granted on 'ask'.
-        confirmLayer: true,
+        // run an automation granted on 'ask' — when
+        // the person is somebody signed in. A visitor
+        // of a public embed approving the owner's
+        // automation is nobody's approval, so for a
+        // guest the layer is not vouched for.
+        confirmLayer: !isGuestAsker({ userId }),
         conversationId: conversation.id,
         send: onEvent,
         req: messageMetadata.req || null,

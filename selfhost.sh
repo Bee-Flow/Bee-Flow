@@ -28,6 +28,11 @@
 # .env; an explicit PROFILES="…" on the command line wins and is re-saved):
 #   PROFILES="core guard" ./selfhost.sh
 #
+# Docker socket — OFF by default (whoever holds the socket holds the host).
+# Only the guard installer, the browser-runner fallback and Docker-backed Hub
+# modules need it. Opt in once; it is saved as DOCKER_SOCKET= in .env:
+#   DOCKER_SOCKET=1 ./selfhost.sh
+#
 # Run models on your own hardware (no API keys, no per-token cost):
 #   PROFILES="core local-llm" ./selfhost.sh
 # then set OLLAMA_URL=http://ollama:11434 in .env, restart, and download a
@@ -85,6 +90,16 @@ if [ "$PROFILES_EXPLICIT" = false ]; then
 fi
 PROFILES="${PROFILES:-core}"
 
+# Docker socket opt-in: same precedence as PROFILES (command line wins, else
+# the DOCKER_SOCKET= saved in .env, else off).
+DOCKER_SOCKET_EXPLICIT=false
+[ -n "${DOCKER_SOCKET+x}" ] && DOCKER_SOCKET_EXPLICIT=true
+if [ "$DOCKER_SOCKET_EXPLICIT" = false ]; then
+    DOCKER_SOCKET="$(env_get DOCKER_SOCKET)"
+fi
+DOCKER_SOCKET="${DOCKER_SOCKET:-0}"
+SOCKET_OVERRIDE="$SCRIPT_DIR/docker-compose.docker-socket.override.yml"
+
 # Every profile declared in docker-compose.from-registry.yml — keep in sync
 # when a profile is added there. Used where the whole install must be covered
 # no matter which subset was started (--stop / --down / --uninstall).
@@ -98,6 +113,11 @@ compose() {
         docker-compose "$@"
     fi
 }
+
+# The -f arguments of every compose call: the registry stack, plus the Docker
+# socket override when the operator opted in (an array: paths may hold spaces).
+COMPOSE_FILES=(-f "$COMPOSE_FILE")
+[ "$DOCKER_SOCKET" = "1" ] && COMPOSE_FILES+=(-f "$SOCKET_OVERRIDE")
 
 profile_args() {
     local args=()
@@ -241,7 +261,9 @@ ensure_env() {
     fi
     [ -f "$ENV_TEMPLATE" ] || err "Missing $ENV_TEMPLATE next to this script."
     log "Creating .env from template and generating secrets"
-    cp "$ENV_TEMPLATE" "$ENV_FILE"
+    # Owner-only from the first byte: the file holds every secret of the stack.
+    (umask 077 && cp "$ENV_TEMPLATE" "$ENV_FILE")
+    chmod 600 "$ENV_FILE"
 
     set_env SESSION_SECRET        "$(gen_hex 32)"
     set_env MASTER_ENCRYPTION_KEY "$(gen_hex 32)"
@@ -267,6 +289,11 @@ persist_profiles() {
     if [ "$saved" != "$PROFILES" ]; then
         set_env PROFILES "$PROFILES"
         log "Saved PROFILES=\"$PROFILES\" to .env — later runs reuse it (an explicit PROFILES=\"…\" still wins)"
+    fi
+    local saved_socket; saved_socket="$(env_get DOCKER_SOCKET)"
+    if [ "$DOCKER_SOCKET_EXPLICIT" = true ] && [ "$saved_socket" != "$DOCKER_SOCKET" ]; then
+        set_env DOCKER_SOCKET "$DOCKER_SOCKET"
+        log "Saved DOCKER_SOCKET=$DOCKER_SOCKET to .env — later runs reuse it"
     fi
 }
 
@@ -340,8 +367,8 @@ wait_for_health() { # returns 1 on timeout — caller decides how loud to be
     return 1
 }
 
-# /api/health/schema → {"ok":…,"schemaReady":…,"build":"<commit>"}. The result
-# is cached ~30s server-side, so poll rather than trusting a single read.
+# /api/health/schema → {"ok":…,"schemaReady":…}. The result is cached ~30s
+# server-side, so poll rather than trusting a single read.
 wait_for_schema() {
     local port; port="$(env_get SERVER_PORT)"; port="${port:-3001}"
     local url="http://localhost:${port}/api/health/schema"
@@ -350,8 +377,7 @@ wait_for_schema() {
     for _ in $(seq 1 24); do
         body="$(curl -fsS "$url" 2>/dev/null || true)"
         if printf '%s' "$body" | grep -Eq '"schemaReady"[[:space:]]*:[[:space:]]*true'; then
-            local build; build="$(printf '%s' "$body" | sed -n 's/.*"build"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
-            ok "Schema is ready${build:+ (build ${build})}"
+            ok "Schema is ready"
             return 0
         fi
         sleep 5
@@ -413,10 +439,10 @@ install() {
     wire_classify
     log "Pulling images from ghcr.io/bee-flow (public, no login needed)…"
     # shellcheck disable=SC2046
-    compose -f "$COMPOSE_FILE" $(profile_args) pull || warn "Some images failed to pull; continuing"
+    compose "${COMPOSE_FILES[@]}" $(profile_args) pull || warn "Some images failed to pull; continuing"
     log "Starting profiles: $PROFILES"
     # shellcheck disable=SC2046
-    compose -f "$COMPOSE_FILE" $(profile_args) up -d
+    compose "${COMPOSE_FILES[@]}" $(profile_args) up -d
     wait_for_health || warn "Server did not report healthy within ~3 min. Check: ./selfhost.sh --logs"
     print_done
 }
@@ -457,7 +483,7 @@ upgrade() {
     # install path, where a partial pull is tolerated to get a first boot up.)
     log "Pulling images (TAG=${tag})…"
     # shellcheck disable=SC2046
-    if ! compose -f "$COMPOSE_FILE" $(profile_args) pull; then
+    if ! compose "${COMPOSE_FILES[@]}" $(profile_args) pull; then
         err "Pull failed — the running stack was NOT touched. Fix TAG/network in .env and re-run.
         ('manifest unknown' on a sha-… tag: that service was not rebuilt in that release —
         pin differently, see ${DOCS_UPGRADES})"
@@ -465,7 +491,7 @@ upgrade() {
 
     log "Recreating containers (profiles: $PROFILES)…"
     # shellcheck disable=SC2046
-    compose -f "$COMPOSE_FILE" $(profile_args) up -d
+    compose "${COMPOSE_FILES[@]}" $(profile_args) up -d
 
     if ! wait_for_health; then
         warn "Server did not report healthy within ~3 min after the upgrade."
@@ -532,7 +558,7 @@ uninstall() {
         || { echo "Aborted — nothing was removed."; exit 1; }
     [ "$c" = "beeflow" ] || { echo "Aborted — nothing was removed."; exit 1; }
     # shellcheck disable=SC2046
-    compose -f "$COMPOSE_FILE" $(all_profile_args) down --volumes
+    compose "${COMPOSE_FILES[@]}" $(all_profile_args) down --volumes
     # guard-redis no longer persists; older versions left this volume behind.
     docker volume rm guard-redis-data >/dev/null 2>&1 || true
     ok "Bee Flow uninstalled — containers and data volumes removed"
@@ -546,17 +572,17 @@ case "${1:-}" in
     --status)
         docker ps --filter "name=beeflow" --format "  {{.Names}}\t{{.Status}}\t{{.Ports}}" ;;
     --logs)
-        compose -f "$COMPOSE_FILE" logs -f server ;;
+        compose "${COMPOSE_FILES[@]}" logs -f server ;;
     --stop)
         # All profiles on purpose: stop the whole install, not just the
         # currently selected subset.
         # shellcheck disable=SC2046
-        compose -f "$COMPOSE_FILE" $(all_profile_args) stop ;;
+        compose "${COMPOSE_FILES[@]}" $(all_profile_args) stop ;;
     --down)
         # The mild teardown: removes containers across ALL profiles, keeps
         # every data volume. This is the safe alternative to --uninstall.
         # shellcheck disable=SC2046
-        compose -f "$COMPOSE_FILE" $(all_profile_args) down ;;
+        compose "${COMPOSE_FILES[@]}" $(all_profile_args) down ;;
     --uninstall)
         uninstall ;;
     --help|-h)

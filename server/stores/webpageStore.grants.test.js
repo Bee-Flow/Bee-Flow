@@ -42,13 +42,14 @@ test('spend cap is clamped to the platform max and rejects junk', () => {
 // normaliser does not know simply does not exist. These tests guard that set AND the
 // direction: unknown narrows.
 
-test('the rebuilt column has exactly the five known kinds', () => {
+test('the rebuilt column has exactly the six known kinds', () => {
     assert.deepStrictEqual(
         Object.keys(normalizeBridgeGrants(null)).sort(),
-        ['agent', 'ai', 'automations', 'integrations', 'tables'],
+        ['agent', 'ai', 'automations', 'db', 'integrations', 'tables'],
     );
-    // Een zesde soort bestaat pas als de normalizer hem kent.
-    assert.strictEqual(normalizeBridgeGrants({ webhooks: [{ url: 'x' }] }).webhooks, undefined);
+    // A seventh kind exists only once the normalizer knows it.
+    const rebuilt = /** @type {Record<string, unknown>} */ (normalizeBridgeGrants({ webhooks: [{ url: 'x' }] }));
+    assert.strictEqual(rebuilt.webhooks, undefined);
 });
 
 test('tables and agent start at nothing, not at everything', () => {

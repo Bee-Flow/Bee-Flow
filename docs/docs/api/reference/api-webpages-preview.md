@@ -69,13 +69,13 @@ No request schema.
 
 ### `POST /api/webpages-preview/:id/db/batch`
 
-**Access:** middleware `requirePreviewToken`
+**Access:** middleware `requirePreviewToken`, `requireDbWrite`
 
 No request schema.
 
 ### `POST /api/webpages-preview/:id/db/exec`
 
-**Access:** middleware `requirePreviewToken`
+**Access:** middleware `requirePreviewToken`, `requireDbWrite`
 
 No request schema.
 

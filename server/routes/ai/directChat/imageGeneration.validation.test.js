@@ -96,3 +96,8 @@ test('a ratio the model may support is passed through for Google to decide', asy
     assert.deepStrictEqual(calls[0].options, { aspectRatio: '21:9' });
     assert.strictEqual(res.body.conversationId, 'c1');
 });
+
+test('image generation is behind the chat-image-gen spend limiter (IMAGE_GEN_RPM)', () => {
+    const { limitersOn } = require('../../../testUtils/routeHarness');
+    assert.deepStrictEqual(limitersOn(router, 'post', '/chat/generate-image'), ['chat-image-gen']);
+});

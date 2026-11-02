@@ -90,6 +90,22 @@ async function burnPasswordCompare(password) {
 }
 
 // Admin/User login with username/password
+/**
+ * The refusal for an account whose lock was found only after the identifier
+ * was resolved (another spelling of the same name filled the counter). Padded
+ * to the failure floor, so the lookup that found the account is not readable
+ * from the clock.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ username: string, startedAt: number, retryAfterSec?: number }} attempt
+ */
+async function refuseLockedAccount(req, res, { username, startedAt, retryAfterSec }) {
+    recordAuthEvent({ kind: 'login', status: 'blocked' });
+    await auditLoginBlocked(req, { identifier: username, method: 'password', reason: 'throttled' });
+    await loginThrottle.padFailureResponse(startedAt);
+    return loginThrottle.denyLogin(res, retryAfterSec);
+}
+
 router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // Taken before any work, so every failure exit can be padded to the same
     // floor regardless of which branch produced it — see padFailureResponse.
@@ -156,6 +172,12 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
         if (!storedUser && username.includes('@')) {
             storedUser = await userStore.getUserByEmail(username);
         }
+        // The account is known now, so its own counter can be asked: the one
+        // every spelling of its name feeds (loginThrottle.accountKeys).
+        if (storedUser) {
+            const accountGate = await loginThrottle.checkLoginAllowed(req, username, { accountId: storedUser.id });
+            if (!accountGate.allowed) return refuseLockedAccount(req, res, { username, startedAt, retryAfterSec: accountGate.retryAfterSec });
+        }
         if (storedUser && storedUser.passwordHash) {
             // If user has migrated to OPAQUE, reject legacy login
             if (storedUser.kdfMode === 'opaque_v1') {
@@ -208,7 +230,6 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
         // failure count for this identifier, which an attacker created
         // themselves and which behaves identically for real and imaginary
         // accounts — so it costs them time without telling them anything.
-        const outcome = await loginThrottle.recordLoginFailure(req, username);
         // `storedUser` is what the lookup above found — null for a name that
         // matches nothing, which is how the row tells an attempt on a real
         // account from one on an imaginary one without the audit module ever
@@ -218,6 +239,10 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
         // failures matter most — from filing under "unknown identifier".
         const failedAccountId = storedUser ? storedUser.id
             : (config.admin.passwordHash && username === config.admin.username ? 'admin' : null);
+        // The failure counts against the identifier as typed AND against the
+        // account it named, so the account cannot be guessed at three times
+        // over under its id, its name and its address.
+        const outcome = await loginThrottle.recordLoginFailure(req, username, { accountId: failedAccountId });
         // Between the failure record and the floor, so the write is absorbed by
         // the wait that is already owed and cannot become a timing signal.
         await auditLoginFailure(req, {
@@ -241,7 +266,7 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     // here rather than after MFA so a user who fumbles their TOTP code doesn't
     // accumulate password failures they never made; the MFA step has its own
     // attempt cap (MFA_LOGIN_MAX_ATTEMPTS below).
-    await loginThrottle.recordLoginSuccess(req, username);
+    await loginThrottle.recordLoginSuccess(req, username, { accountId: user.id });
 
     // ── MFA gate ──
     // If the account has TOTP enabled, hold off on establishing the

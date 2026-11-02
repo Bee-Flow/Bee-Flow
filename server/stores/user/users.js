@@ -264,6 +264,7 @@ async function updateUser(userId, updates) {
         // MFA (TOTP) + self-service password reset
         mfaEnabled: 'mfa_enabled', mfaSecret: 'mfa_secret', mfaEnrolledAt: 'mfa_enrolled_at',
         mfaRecoveryCodes: 'mfa_recovery_codes', mfaRecoveryCodesGeneratedAt: 'mfa_recovery_codes_generated_at',
+        mfaLastStep: 'mfa_last_step',
         passwordResetTokenHash: 'password_reset_token_hash', passwordResetExpiresAt: 'password_reset_expires_at',
         // Email verification + locale
         emailVerificationTokenHash: 'email_verification_token_hash', emailVerificationExpiresAt: 'email_verification_expires_at',

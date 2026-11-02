@@ -93,6 +93,7 @@ function register(router) {
 
         const { token, expiresAt } = issuePreviewToken({
             userId: webpage.userId, webpageId: webpage.id, viewerUserId: userId,
+            role: userId === webpage.userId ? 'owner' : 'viewer',
         });
         const headScripts = buildBridgeHeadScripts({
             dbToken: token, dbApiBase: requestOrigin(req), dbWebpageId: webpage.id,

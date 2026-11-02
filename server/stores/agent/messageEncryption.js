@@ -7,6 +7,10 @@
 const crypto = require('crypto');
 const { trackDecrypt } = require('../../auth/decryptAudit');
 const log = require('../../telemetry/log');
+const { storeError } = require('../lib/storeError');
+
+/** Code on the error thrown when a key was given and the cipher still failed. */
+const MESSAGE_ENCRYPTION_FAILED = 'MESSAGE_ENCRYPTION_FAILED';
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 const ENCRYPTION_IV_LENGTH = 12; // NIST recommended for GCM
@@ -34,6 +38,11 @@ function buildAAD(conversationId, userId) {
 
 /**
  * Encrypt messages JSON using per-conversation derived key + AAD.
+ *
+ * Without a key the value passes through: that is the caller's decision
+ * (the policy said plaintext). With a key the result is ciphertext or an
+ * error, never the plaintext: a cipher that fails on a key the policy asked
+ * for must not quietly store what it was asked to hide.
  * @param {string} messagesJson
  * @param {string | null} encryptionKeyBase64
  * @param {string | null} [userId]
@@ -84,7 +93,10 @@ function encryptMessages(messagesJson, encryptionKeyBase64, conversationId = nul
         });
     } catch (err) {
         log.error('[MessageEncryption] Encryption failed:', /** @type {Error} */ (err).message);
-        return messagesJson;
+        const failed = storeError(503, MESSAGE_ENCRYPTION_FAILED,
+            'Message encryption failed; nothing was saved. Please try again shortly.');
+        failed.cause = err;
+        throw failed;
     }
 }
 

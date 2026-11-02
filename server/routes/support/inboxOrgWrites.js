@@ -22,9 +22,9 @@ async function _firstWritableOrg(req) {
     return scope[0] || null;
 }
 
-// These writes used to answer every failure with a 400 carrying err.message:
-// a dropped database connection read as the caller's mistake, and a unique
-// violation handed the client the index name. The refusals a caller can cause
+// These writes answer 400 only for a refusal the caller can cause. Mapping every
+// failure to 400 with err.message would read a dropped database connection as
+// the caller's mistake and hand the client an index name. The refusals a caller can cause
 // keep their 400 and their sentence; anything else goes to the terminal error
 // handler, which logs it and answers a generic 500 with a correlationId.
 const STORE_REFUSALS = new Set(['tag name required', 'title required', 'body required', 'invalid priority']);

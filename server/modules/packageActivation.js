@@ -112,10 +112,15 @@ function _startTick(moduleId, tickFn, intervalMs) {
  * per-request deadline (503 module_timeout; counts as a crash AND as request
  * completion for draining) and router-throw crash accounting. Routes matching
  * a manifest server.streamingRoutes[] prefix opt out of the deadline (SSE etc.).
+ * Every route needs a session (the host's requireAuth, read per request so a
+ * test may swap it) unless a manifest server.publicRoutes[] prefix covers it:
+ * nothing else stands between /api/mod and a module router. The capability
+ * gate, when there is one, runs after the session check.
  */
 function _composeHandler(entry) {
     const gate = entry.gateCapability ? hostApiFactory().requireCapability(entry.gateCapability) : null;
     const streaming = Array.isArray(entry.streamingRoutes) ? entry.streamingRoutes : [];
+    const publicRoutes = Array.isArray(entry.publicRoutes) ? entry.publicRoutes : [];
     return function moduleHandle(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         const url = req.url || '/';
         // In-flight accounting drives the hot-swap drain: a request completes
@@ -152,10 +157,12 @@ function _composeHandler(entry) {
                 throw e; // dispatchRouter's catch 404-conceals
             }
         };
-        if (!gate) return run();
         // The gate calls next() on success and next(err) on an entitlement outage;
         // a bare `run` would ignore the error and serve the module anyway.
-        return gate(req, res, (err) => (err ? next(err) : run()));
+        const gated = () => (gate ? gate(req, res, (err) => (err ? next(err) : run())) : run());
+        if (publicRoutes.some(p => p && url.startsWith(p))) return gated();
+        const { requireAuth } = require('../auth/permissions');
+        return requireAuth(req, res, (err) => (err ? next(err) : gated()));
     };
 }
 
@@ -306,6 +313,7 @@ async function activate(moduleId, version, {
         inflight: 0, draining: false,
         streamingRoutes: (manifest.server && Array.isArray(manifest.server.streamingRoutes))
             ? manifest.server.streamingRoutes : [],
+        publicRoutes: Array.isArray(manifest.server?.publicRoutes) ? manifest.server.publicRoutes : [],
     };
     entry.handle = _composeHandler(entry);
     // Hot-swap: the Map.set below atomically routes NEW requests to the new

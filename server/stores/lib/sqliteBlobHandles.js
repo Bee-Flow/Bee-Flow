@@ -9,8 +9,8 @@
 
 const fsp = require('fs/promises');
 const path = require('path');
-const Database = require('better-sqlite3');
 const log = require('../../telemetry/log');
+const { openPageDatabase } = require('./sqliteOpen');
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
@@ -135,13 +135,10 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
             persistedSha = String(res?.rows?.[0]?.db_sha256 || '');
         } catch (_) { log.warn('persisted sha lookup failed, treating it as unknown', _); }
 
-        const db = new Database(localPath);
-        // DELETE journaling keeps everything in a single .db file at rest — no
-        // sidecar files to track between request lifetimes. This is strictly
-        // single-process per entity (the handle Map enforces it), so we don't
-        // need WAL's concurrent-reader benefit.
-        try { db.pragma('journal_mode = DELETE'); } catch (_) { log.warn('could not set journal_mode', _); }
-        try { db.pragma('foreign_keys = ON'); } catch (_) { log.warn('could not enable foreign_keys', _); }
+        // One file at rest (DELETE journaling), constraints on, a ceiling on
+        // the file: ./sqliteOpen.js, shared with the statement process. This
+        // handle is the flusher's; statements run through the runner.
+        const db = openPageDatabase(localPath);
 
         const entry = {
             db,

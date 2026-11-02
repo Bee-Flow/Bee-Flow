@@ -26,7 +26,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'beeflow-route-guard-'));
 const target = path.join(dir, 'x.db');
 let server;
 let base;
-const { token } = issuePreviewToken({ userId: 'author-1', webpageId: 'wp-guard' });
+// The author's own token: the write bridges open for the owner without a grant lookup.
+const { token } = issuePreviewToken({ userId: 'author-1', webpageId: 'wp-guard', viewerUserId: 'author-1', role: 'owner' });
 
 test.before(async () => {
     const app = express();

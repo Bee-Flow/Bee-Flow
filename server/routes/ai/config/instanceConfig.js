@@ -10,6 +10,7 @@ const router = express.Router();
 const { getAIConfig, saveAIConfig } = require('../../../core/aiAgent');
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
+const { RegexGuardrailsBody } = require('../../../core/privacy/regexGuardrailsBody');
 const { memberConfigView } = require('./memberConfigView');
 const { safeFetch } = require('../../../utils/ssrfGuard');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
@@ -50,9 +51,8 @@ const ConfigBody = bodyOf({
     useAzureDocProcessing: cfgFlag, notebooksEnabled: cfgFlag, projectsEnabled: cfgFlag,
     askAiEnabled: cfgFlag, exportEnabled: cfgFlag, openInNotebookEnabled: cfgFlag,
     notebooksMenuEnabled: cfgFlag, stripeEnabled: cfgFlag, stripeTaxEnabled: cfgFlag,
-    cpuRerankerEnabled: cfgFlag, voiceprintMatchingEnabled: cfgFlag, localWhisperEnabled: cfgFlag,
-    piiDetectionEnabled: cfgFlag,
-    azureModels: z.unknown().optional(), regexGuardrails: z.unknown().optional(), piiDetectionCategories: z.unknown().optional(),
+    cpuRerankerEnabled: cfgFlag, voiceprintMatchingEnabled: cfgFlag, localWhisperEnabled: cfgFlag, piiDetectionEnabled: cfgFlag,
+    azureModels: z.unknown().optional(), regexGuardrails: RegexGuardrailsBody, piiDetectionCategories: z.unknown().optional(),
     piiDetectionConfidenceThreshold: z.unknown().optional(), piiDetectionScope: z.unknown().optional(),
     allowedModelsByAgentType: z.unknown().optional(), directChatRegexGuardrails: z.unknown().optional(),
     maxToolRoundsChat: z.unknown().optional(), pyannoteIdentifyThreshold: z.unknown().optional(),

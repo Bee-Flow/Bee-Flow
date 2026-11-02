@@ -56,6 +56,9 @@ opaque.ready.then(() => {
 // account. Answered here rather than thrown as an HttpError: the terminal
 // handler logs every 5xx at error level, and this one is already reported once
 // at boot — per request it would give anonymous callers a log-write lever.
+/** The account a submitted identifier names: by id, then by e-mail address. @param {string} username */
+const findAccount = async (username) => (await userStore.getUser(username)) || (username.includes('@') ? userStore.getUserByEmail(username) : null);
+
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -236,12 +239,17 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
     // supposed to be able to tell apart.
     let resolvedUserId = null;
     try {
-        let user = await userStore.getUser(username);
-        // Fallback: if not found by ID and input looks like an email, try email lookup
-        if (!user && username.includes('@')) {
-            user = await userStore.getUserByEmail(username);
-        }
+        const user = await findAccount(username);
         resolvedUserId = user ? user.id : null;
+        // The account is known now: ask the counter every spelling of its name
+        // feeds (loginThrottle.accountKeys); padded, so the lookup stays off the clock.
+        const accountGate = await loginThrottle.checkLoginAllowed(req, username, { accountId: resolvedUserId });
+        if (!accountGate.allowed) {
+            recordAuthEvent({ kind: 'opaque_login', status: 'blocked' });
+            await auditLoginBlocked(req, { identifier: username, method: 'opaque', reason: 'throttled' });
+            await loginThrottle.padFailureResponse(startedAt);
+            return loginThrottle.denyLogin(res, accountGate.retryAfterSec);
+        }
 
         // No account, no OPAQUE record, or still on the legacy KDF — all three
         // get a well-formed response computed from a credential nobody holds.
@@ -300,7 +308,7 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
         // failure and then answering immediately took the slot and threw the
         // wait away, which left this path faster than every other failure on
         // the route and silently exempt from the spray brake.
-        const outcome = await loginThrottle.recordLoginFailure(req, username);
+        const outcome = await loginThrottle.recordLoginFailure(req, username, { accountId: resolvedUserId });
         await auditLoginFailure(req, {
             userId: resolvedUserId, identifier: username, method: 'opaque', reason: 'protocol_error',
         });
@@ -342,7 +350,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
     const fail = async (logLine) => {
         if (logLine) log.warn(`[OPAQUE] ${logLine}`);
         recordAuthEvent({ kind: 'opaque_login', status: 'fail' });
-        const outcome = await loginThrottle.recordLoginFailure(req, pending.username);
+        const outcome = await loginThrottle.recordLoginFailure(req, pending.username, { accountId: pending.userId || null });
         await auditLoginFailure(req, {
             userId: pending.userId || null, identifier: pending.username, method: 'opaque',
             reason: 'invalid_credentials',
@@ -382,7 +390,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
         }
 
         recordAuthEvent({ kind: 'opaque_login', status: 'ok' });
-        await loginThrottle.recordLoginSuccess(req, pending.username);
+        await loginThrottle.recordLoginSuccess(req, pending.username, { accountId: pending.userId || null });
 
         // If client sent encrypted DEK for server-side use (Option B from plan):
         // The DEK is encrypted with the OPAQUE sessionKey — decrypt it for session storage

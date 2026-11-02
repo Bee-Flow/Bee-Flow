@@ -100,7 +100,7 @@ test('validate: relation must resolve to a table in the model', () => {
 test('validate: computed needs a descriptor and a safe expr', () => {
     assert.ok(dm.validateDataModel(model([table({ fields: [field({ type: 'computed', key: 'c' })] })])).errors.some(e => /requires a computed descriptor/.test(e)));
     const inj = model([table({ fields: [field({ type: 'computed', key: 'c', computed: { expr: 'a); DROP TABLE x;--' } })] })]);
-    assert.ok(dm.validateDataModel(inj).errors.some(e => /computed\.expr may not contain/.test(e)));
+    assert.ok(dm.validateDataModel(inj).errors.some(e => /computed\.expr is not an expression/.test(e)));
     const ok = model([table({ fields: [field({ type: 'computed', key: 'c', computed: { expr: 'price * qty' } })] })]);
     assert.strictEqual(dm.validateDataModel(ok).errors.length, 0);
 });

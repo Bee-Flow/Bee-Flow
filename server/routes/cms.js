@@ -189,7 +189,7 @@ const duplicateLimiter   = perUserRateLimit({ windowMs: 60_000, max: 20 });
 const publishLimiter     = perUserRateLimit({ windowMs: 60_000, max: 30 });
 // AI translation hits the LLM (one or more batched calls), so it's costlier
 // than an ordinary save — keep its window tighter.
-const aiTranslateLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
+const aiTranslateLimiter = perUserRateLimit({ windowMs: 60_000, max: 20, name: 'cms-ai-translate' });
 
 // ── Live-site selection ──────────────────────────────────────────
 //

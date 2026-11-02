@@ -19,7 +19,7 @@ process.env.CLIENT_PROTOCOL = 'https';
 process.env.CLIENT_PUBLIC_HOST = 'app.example';
 
 const events = [];
-const thread = { id: 'th-1', subject: 'S', status: 'open', requester_email: 'a@example.org', requester_user_id: null };
+const thread = { id: 'th-1', subject: 'S', status: 'open', requester_email: 'a@example.org', requester_user_id: null, created_at: new Date().toISOString() };
 const tokens = require('../../stores/supportStore/requesterTokens');
 // The routes call the real store through its exports object, so the few
 // methods they reach are swapped in place (and put back after the run).
@@ -119,4 +119,24 @@ test('a CSAT dispute redirects tokenless too; a bad token is refused without red
     assert.ok(!res.headers.get('location').includes('token'));
     const bad = await get('/api/support/csat/th-1?score=4&token=bad');
     assert.equal(bad.status, 403);
+});
+
+test('an expired access token is the same 404 as a wrong one, in the query and in the cookie', async () => {
+    const expired = tokens.buildAccessToken('th-1', 'a@example.org', { now: Date.now() - 31 * 24 * 60 * 60 * 1000 });
+    assert.equal((await get(`/api/support/threads/th-1?token=${expired}`)).status, 404);
+    assert.equal((await get(`/api/support/t/th-1/open?token=${expired}`)).status, 404);
+    assert.equal((await get('/api/support/threads/th-1', { cookie: `${cookieName('th-1')}=${expired}` })).status, 404);
+    const expiredVote = tokens.buildCsatToken('th-1', 'a@example.org', 4, { now: Date.now() - 31 * 24 * 60 * 60 * 1000 });
+    assert.equal((await get(`/api/support/csat/th-1?score=4&token=${expiredVote}`)).status, 403);
+});
+
+test('a link mailed before tokens carried a date still opens a young thread, and not an old one', async () => {
+    const crypto = require('node:crypto');
+    const bare = crypto.createHmac('sha256', process.env.SESSION_SECRET).update('th-1:a@example.org').digest('hex').slice(0, 32);
+    assert.equal((await get(`/api/support/threads/th-1?token=${bare}`)).status, 200);
+    const was = thread.created_at;
+    thread.created_at = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+        assert.equal((await get(`/api/support/threads/th-1?token=${bare}`)).status, 404);
+    } finally { thread.created_at = was; }
 });

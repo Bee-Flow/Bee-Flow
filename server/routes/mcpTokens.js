@@ -34,6 +34,7 @@ const configStore = require('../stores/configStore');
 const { SECRET_KEY } = require('../auth/mcpToken');
 const userStore = require('../stores/userStore');
 const { resolveMcpOrgId } = require('../auth/mcpAccess/orgResolve');
+const { hasRecentAuth, REAUTH_REQUIRED } = require('../auth/recentAuth');
 
 const router = express.Router();
 
@@ -110,6 +111,9 @@ router.get('/', validate({ query: NO_QUERY }), async (/** @type {import('express
 
 router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const user = callerOf(req);
+    // A token outlives the session by years: minting one takes a recent proof
+    // of who is asking, the same as replacing a credential (auth/recentAuth.js).
+    if (!hasRecentAuth(req.session)) throw forbidden(REAUTH_REQUIRED.body.code, 'Sign in again before creating a token.');
     // The org the token is minted for: the home org, else the org a group grants
     // (a member can have no home org). Read fresh: the session copy has no groups.
     // A failed read is a 500, not a token without an org.

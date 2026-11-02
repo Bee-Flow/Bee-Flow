@@ -92,7 +92,7 @@ module.exports = {
     "agent_wizard.channel.teams": "Reply to messages in Teams",
     "agent_wizard.channels": "Channels",
     "agent_wizard.embed.bubble_color": "Bubble color",
-    "agent_wizard.embed.confirm_body": "Anyone who knows the URL will be able to chat with this agent without an account. The agent will run with its full configuration: system prompt, attached skills, and knowledge bases.",
+    "agent_wizard.embed.confirm_body": "Anyone who knows the URL will be able to chat with this agent without an account. The agent will run with its full configuration: system prompt, attached skills, and knowledge bases. Automations bound to this agent and tools configured with your own settings stay off for visitors unless you open them explicitly.",
     "agent_wizard.embed.confirm_cancel": "Cancel",
     "agent_wizard.embed.confirm_enable": "Enable public access",
     "agent_wizard.embed.confirm_title": "Make this agent public?",

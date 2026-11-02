@@ -94,7 +94,7 @@ async function _resolveWriteContext(id, callerUserId, { encryptionKey = /** @typ
         if (!await hasProjectRole(callerUserId, row.project_id, 'editor')) return null;
     }
 
-    const ctx = await _rowCrypto(row, encryptionKey);
+    const ctx = await _rowCrypto(row, encryptionKey, 'write');
 
     return { ownerId: row.user_id, ctx, isShared, projectId: row.project_id || null };
 }
@@ -121,11 +121,12 @@ async function _resolveWriteContext(id, callerUserId, { encryptionKey = /** @typ
  *
  * Note this decides the KEY only. It grants nobody access — the callers keep
  * their own `user_id = $n` / hasProjectRole predicates.
+ * @param {'read'|'write'} [purpose] 'write' seals a row about to be stored: a missing key then refuses the write
  */
-function _rowCrypto(row, encryptionKey = null) {
+function _rowCrypto(row, encryptionKey = null, purpose = 'read') {
     return row.crypto_scope === 'project' && row.project_id
-        ? resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id } })
-        : resolveCrypto({ userId: row.user_id, encryptionKey });
+        ? resolveCrypto({ userId: row.user_id, projectKeyFor: { projectId: row.project_id }, purpose })
+        : resolveCrypto({ userId: row.user_id, encryptionKey, purpose });
 }
 
 /**
@@ -269,7 +270,7 @@ function _missingKbColumn(err) {
 async function createDirectConversation(userId, modelTier = 'fast', knowledgeBaseIds = []) {
     await initDB();
     const id = randomUUID();
-    const ctx = await resolveCrypto({ userId });
+    const ctx = await resolveCrypto({ userId, purpose: 'write' });
     const title = sealTitle('New Chat', id, 'direct', ctx);
     const kbIds = normaliseKbIds(knowledgeBaseIds);
     try {
@@ -431,7 +432,7 @@ async function updateDirectConversationMeta(id, userId, partial, options = {}) {
     await initDB();
     const existing = await _getMetaRow(id, userId);
     if (!existing) return false;
-    const ctx = await _rowCrypto(existing, options.encryptionKey || null);
+    const ctx = await _rowCrypto(existing, options.encryptionKey || null, 'write');
     const merged = { ..._parseDirectMeta(existing.meta_json, id, ctx), ...partial };
     const { rowCount } = await run('UPDATE direct_conversations SET meta_json = $1 WHERE id = $2 AND user_id = $3',
         [_serialiseDirectMeta(merged, id, ctx), id, userId]);
@@ -577,7 +578,7 @@ async function _isMigrated(id, userId) {
 
 async function updateDirectConversationTitle(id, title, userId) {
     await initDB();
-    const ctx = await resolveCrypto({ userId });
+    const ctx = await resolveCrypto({ userId, purpose: 'write' });
     const { rowCount } = await run('UPDATE direct_conversations SET title = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3',
         [sealTitle(title, id, 'direct', ctx), id, userId]);
     return rowCount > 0;

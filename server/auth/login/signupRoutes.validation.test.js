@@ -38,7 +38,15 @@ const MOCKS = {
         createUserWithSeatCheck: async (u) => { touched.push({ what: 'createUserWithSeatCheck', args: [u] }); return { ok: true }; },
         SeatCapExceededError: class SeatCapExceededError extends Error {},
     },
-    '../../stores/invitationStore': { getInvitationByToken: async () => null },
+    '../../stores/invitationStore': {
+        SESSION_INVITE_MARKER: 'session',
+        // The invitation a token resolves to (null = none), and what the route
+        // did with it: set per test, read back in the assertions.
+        invite: /** @type {any} */ (null), accepted: /** @type {string[]} */ ([]), released: /** @type {string[]} */ ([]),
+        async getInvitationByToken(token) { return this.invite && this.invite.token === token ? this.invite : null; },
+        async markAccepted(token) { this.accepted.push(token); return this.invite ? this.invite.pending !== false : false; },
+        async releaseClaim(id) { this.released.push(id); return true; },
+    },
     '../accountProvisioning': {
         SignupError: class SignupError extends Error {},
         normalizeSignupIntent: (src) => { touched.push({ what: 'normalizeSignupIntent', args: [src] }); return { accountType: 'consumer' }; },
@@ -122,4 +130,68 @@ test('the wizard body the SPA actually sends is still accepted whole', async () 
     });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(touched.some((t) => t.what === 'createUserWithSeatCheck'));
+});
+
+// ── Invitations: one address, one account ───────────────────────────────
+const invites = MOCKS['../../stores/invitationStore'];
+const users = MOCKS['../../stores/userStore'];
+const invited = (over = {}) => ({ id: 'inv-1', token: 'tok-1', email: 'ann@example.test', organization_id: 'acme', role: 'user', pending: true, ...over });
+const signupWith = (body, session) => dispatch({
+    method: 'POST', url: '/signup', session,
+    body: { username: 'ann', password: 'pw', displayName: 'Ann', ...body },
+});
+test.beforeEach(() => { invites.invite = null; invites.accepted.length = 0; invites.released.length = 0; });
+
+test('an invitation makes an account only for the address it was sent to', async () => {
+    invites.invite = invited();
+    const res = await signupWith({ email: 'someone-else@example.test', inviteToken: 'tok-1' });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invite_email_mismatch');
+    assert.deepStrictEqual(invites.accepted, [], 'nothing is claimed for the wrong address');
+    assert.ok(!touched.some((t) => t.what === 'createUserWithSeatCheck'));
+});
+
+test('the address comparison ignores case and surrounding space', async () => {
+    invites.invite = invited();
+    const res = await signupWith({ email: '  Ann@Example.test ', inviteToken: 'tok-1' });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(invites.accepted, ['tok-1']);
+    assert.ok(touched.some((t) => t.what === 'createUserWithSeatCheck'));
+});
+
+test('an invitation that was already used makes no second account', async () => {
+    invites.invite = invited({ pending: false });
+    const res = await signupWith({ email: 'ann@example.test', inviteToken: 'tok-1' });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invite_used');
+    assert.ok(!touched.some((t) => t.what === 'createUserWithSeatCheck'));
+});
+
+test('the session marker resolves the invitation the redeem link parked on this session', async () => {
+    invites.invite = invited();
+    const res = await signupWith({ email: 'ann@example.test', inviteToken: 'session' },
+        { pendingInviteToken: 'tok-1', save(cb) { cb(); } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(invites.accepted, ['tok-1']);
+    const intent = touched.find((t) => t.what === 'normalizeSignupIntent');
+    assert.ok(intent, 'the intent is built from the resolved token');
+});
+
+test('the session marker with nothing parked is an invalid invitation, not a crash', async () => {
+    invites.invite = invited();
+    const res = await signupWith({ email: 'ann@example.test', inviteToken: 'session' });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(invites.accepted, []);
+});
+
+test('a claim is handed back when the account is not created after all', async () => {
+    invites.invite = invited();
+    const real = users.createUserWithSeatCheck;
+    users.createUserWithSeatCheck = async () => { throw new users.SeatCapExceededError('full'); };
+    try {
+        const res = await signupWith({ email: 'ann@example.test', inviteToken: 'tok-1' });
+        assert.strictEqual(res.statusCode, 403, JSON.stringify(res.body));
+    } finally { users.createUserWithSeatCheck = real; }
+    assert.deepStrictEqual(invites.accepted, ['tok-1']);
+    assert.deepStrictEqual(invites.released, ['inv-1']);
 });

@@ -26,6 +26,7 @@ const ENGINE_FILES = [
     'flatten.mjs',
     'functions.mjs',
     'index.mjs',
+    'limits.mjs',
     'nested.mjs',
     'path.mjs',
     'pathLabel.mjs',

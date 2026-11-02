@@ -29,6 +29,8 @@ const SERVER = path.join(HERE, '..', '..');
 
 const orgs = new Map();   // orgId -> { id, encryption_tier, encryption_scope, org_root_key }
 const users = new Map();  // userId -> row
+let dbDown = false;        // every organizations read fails like an unreachable database
+let schemaMissing = false; // every organizations read fails like a pre-migration install
 
 function mockModule(absPath, exports) {
     require.cache[require.resolve(absPath)] = {
@@ -39,6 +41,8 @@ function mockModule(absPath, exports) {
 mockModule(path.join(SERVER, 'db'), {
     async getOne(sql, params) {
         if (/FROM organizations/i.test(sql)) {
+            if (dbDown) throw new Error('connection terminated');
+            if (schemaMissing) throw Object.assign(new Error('column "encryption_tier" does not exist'), { code: '42703' });
             const o = orgs.get(params[0]);
             return o ? { ...o } : null;
         }
@@ -74,7 +78,7 @@ mockModule(path.join(SERVER, 'stores', 'userStore'), {
     },
 });
 
-const { resolveCrypto, PLAINTEXT_CONTEXT } = require('./messageCrypto');
+const { resolveCrypto, PLAINTEXT_CONTEXT, ENCRYPTION_KEY_UNAVAILABLE } = require('./messageCrypto');
 const { invalidatePolicyCache } = require('../encryptionPolicy');
 const { invalidateOrgKeyCache } = require('../../auth/orgEscrow');
 
@@ -198,4 +202,82 @@ test('a disabled surface stays plaintext even though a key resolved', async () =
     assert.ok(ctx.key, 'the key still resolves');
     assert.strictEqual(ctx.encryptMessages, false, 'but the surface is off');
     assert.strictEqual(ctx.encryptMeta, true, 'and the others are unaffected');
+});
+
+// ── A read degrades, a write refuses ────────────────────────────────────────
+// Without this rule the policy layer answers every failure with the plaintext context, so
+// a transient database error on an encrypted org wrote cleartext rows with one
+// log line to show for it. A caller that is about to store rows now says so
+// (`purpose: 'write'`) and gets a 503 instead; reads keep today's fallback.
+
+const UNOPENABLE_ESCROW = JSON.stringify({ v: 1, iv: '00', tag: '00', data: '00' });
+
+test('a policy lookup that fails: a read resolves plaintext, a write is refused, nothing is cached', async () => {
+    reset('managed');
+    dbDown = true;
+    try {
+        const read = await resolveCrypto({ userId: 'u-1' });
+        assert.strictEqual(read.encryptMessages, false, 'a read falls back: the format on the value decides');
+        await assert.rejects(
+            resolveCrypto({ userId: 'u-1', purpose: 'write' }),
+            { status: 503, code: ENCRYPTION_KEY_UNAVAILABLE, expose: true },
+        );
+    } finally {
+        dbDown = false;
+    }
+    // The database is back: the failed lookup must not have been cached as "off".
+    const after = await resolveCrypto({ userId: 'u-1', purpose: 'write' });
+    assert.strictEqual(after.encryptMessages, true);
+    assert.ok(after.key, 'the managed tier resolves its escrow once the policy is readable again');
+});
+
+test('managed: an escrow that cannot be opened refuses a write and resolves plaintext for a read', async () => {
+    reset('managed');
+    users.get('u-1').orgWrappedDEK = UNOPENABLE_ESCROW;
+    const read = await resolveCrypto({ userId: 'u-1' });
+    assert.strictEqual(read.key, null);
+    assert.strictEqual(read.encryptMessages, false);
+    await assert.rejects(
+        resolveCrypto({ userId: 'u-1', purpose: 'write' }),
+        { status: 503, code: ENCRYPTION_KEY_UNAVAILABLE },
+    );
+});
+
+test('zk: a write with a session key but no reachable escrow is refused too', async () => {
+    reset('zk');
+    users.get('u-1').orgWrappedDEK = UNOPENABLE_ESCROW;
+    // The content key is there; the title, meta and token map would have gone plaintext.
+    await assert.rejects(
+        resolveCrypto({ userId: 'u-1', encryptionKey: SESSION_DEK, purpose: 'write' }),
+        { status: 503, code: ENCRYPTION_KEY_UNAVAILABLE },
+    );
+});
+
+test('zk without a session still has no content key on a write: the tier\'s design, not a failure', async () => {
+    reset('zk');
+    const ctx = await resolveCrypto({ userId: 'u-1', purpose: 'write' });
+    assert.strictEqual(ctx.encryptMessages, false);
+    assert.ok(ctx.backgroundKey, 'the background surfaces are still sealed');
+    assert.strictEqual(ctx.encryptConversationMeta, true);
+});
+
+test('tier none and an unknown org: a write resolves plaintext whatever the escrow does', async () => {
+    reset('none');
+    users.get('u-1').orgWrappedDEK = UNOPENABLE_ESCROW;
+    const none = await resolveCrypto({ userId: 'u-1', purpose: 'write' });
+    assert.strictEqual(none.tier, 'none');
+    const unknown = await resolveCrypto({ userId: 'u-1', orgId: 'org-nope', purpose: 'write' });
+    assert.strictEqual(unknown.tier, 'none');
+});
+
+test('a column that is not there yet means "feature off", on a write too', async () => {
+    reset('managed');
+    schemaMissing = true;
+    try {
+        const ctx = await resolveCrypto({ userId: 'u-1', purpose: 'write' });
+        assert.strictEqual(ctx.tier, 'none');
+    } finally {
+        schemaMissing = false;
+        invalidatePolicyCache();
+    }
 });

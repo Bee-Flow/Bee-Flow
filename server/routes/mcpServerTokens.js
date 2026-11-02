@@ -28,6 +28,7 @@
 const express = require('express');
 const configStore = require('../stores/configStore');
 const { mintToken, SECRET_KEY } = require('../auth/mcpToken');
+const { hasRecentAuth, REAUTH_REQUIRED } = require('../auth/recentAuth');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
 
@@ -91,6 +92,11 @@ router.get('/token', validate({ query: NO_QUERY }), async (/** @type {import('ex
 router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    // The token outlives the session: minting one takes a recent proof of who
+    // is asking, like replacing a credential (auth/recentAuth.js).
+    if (!hasRecentAuth(req.session)) {
+        return res.status(REAUTH_REQUIRED.status).json({ ...REAUTH_REQUIRED.body, error: 'Sign in again before creating a token.' });
+    }
     const { token, random } = mintToken(userId);
     await configStore.setSecret(SECRET_KEY(userId), random);
     await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '0');
