@@ -18,6 +18,9 @@
 # of 16 merges did, although the ruleset does not require it), and re-running
 # every suite on it only repeated a verdict. One that merged behind main finds
 # no match, so the call runs as before and checks the tree the PR never saw.
+# A prod release takes no PR verdict (path-filtered): only a green manual,
+# unfiltered run of this workflow on main for the same tree, which
+# build-push-ghcr.yml starts in the background after every push to main.
 name: CI
 
 on:
@@ -110,8 +113,15 @@ jobs:
       # passed run for the exact tree it is about to build with one API call
       # and skip running this workflow a second time. Only a run that ends
       # green counts there; the artifact itself proves nothing.
+      # A manual run of THIS workflow (not the call from build-push-ghcr.yml,
+      # whose run also holds the image jobs) tests everything, no path filter:
+      # ci-full-tree-<tree> marks it. A prod release accepts only that one,
+      # because a path-filtered PR verdict never ran what its filter missed.
+      # build-push-ghcr.yml starts such a run after every push to main.
       - id: tree
-        if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
+        if: >-
+          (github.event_name == 'pull_request' && github.event.pull_request.draft != true)
+          || (github.event_name == 'workflow_dispatch' && github.workflow == 'CI')
         run: git rev-parse 'HEAD^{tree}' | tee tested-tree.txt | sed 's/^/tree=/' >> "$GITHUB_OUTPUT"
       # Never on a draft: its run is green without the long suites.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -120,6 +130,12 @@ jobs:
           name: ci-tested-tree-${{ steps.tree.outputs.tree }}
           path: tested-tree.txt
           retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: github.event_name == 'workflow_dispatch' && github.workflow == 'CI'
+        with:
+          name: ci-full-tree-${{ steps.tree.outputs.tree }}
+          path: tested-tree.txt
+          retention-days: 8
       # The server half of the mobile filter: only what mobile reads from
       # server/, i.e. the files two lockstep tests require() with everything
       # those require in turn, and the files mobile tests read as text. It
@@ -1078,13 +1094,31 @@ jobs:
           BEEFLOW_VERSION_CODE: ${{ github.run_number }}
           BEEFLOW_BUILD_PROFILE: ci
           BEEFLOW_COMMIT_SHA: ${{ github.sha }}
-      # Metro bundling, which jest never exercises: an import that resolves in
-      # tests but not in Metro (a path alias, a package export) otherwise first
-      # fails in the APK build on main, after the merge.
-      # Skipped on a PR that touches nothing Metro reads (see mobile_bundle in
-      # the changes job); always runs off a PR, so main and release still bundle.
+
+  # Metro bundling, which jest never exercises: an import that resolves in
+  # tests but not in Metro (a path alias, a package export) otherwise first
+  # fails in the APK build on main, after the merge.
+  # Skipped on a PR that touches nothing Metro reads (see mobile_bundle in
+  # the changes job); always runs off a PR, so main and release still bundle.
+  # Its own job, beside `mobile`: as the last step there it added ~2 min to the
+  # longest job of the run (measured 1:52 of 11:03).
+  mobile-bundle:
+    name: Mobile bundle
+    needs: changes
+    if: >-
+      needs.changes.outputs.mobile == 'true'
+      && (github.event_name != 'pull_request' || needs.changes.outputs.mobile-bundle == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: mobile
       - name: Verify the Android bundle builds
-        if: github.event_name != 'pull_request' || needs.changes.outputs.mobile-bundle == 'true'
         run: npx expo export --platform android --output-dir .verify-bundle
 
   # ── Python services ────────────────────────────────────────────────────
@@ -1242,12 +1276,23 @@ jobs:
   # loudly while there is no baseline, so "no baseline" never reads as green.
   # --subset ci on calibrate, never held-out: that split is spent once.
   # Fires on guard-service/** only (the `guard` filter), not on this file.
-  guard-model-eval:
-    name: Guard model eval
+  #
+  # SHARDED: one job spent 9 of its 11 min on ~840 ONNX passes on 4 vCPU.
+  # Three shards each predict a third of the records (eval/shards.py,
+  # `--shard i/3 --preds-out`), and guard-model-eval below merges them and runs
+  # the one, unchanged evaluate + baseline gate (`--preds-in`). The merge
+  # refuses a missing or duplicate record and shards that disagree on the model
+  # or the measurement, so a lost shard fails instead of gating part of the set.
+  guard-model-eval-shard:
+    name: Guard model eval (shard ${{ matrix.shard }}/3)
     needs: changes
     if: needs.changes.outputs.guard == 'true' && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Is there a model baseline to gate against?
@@ -1257,18 +1302,74 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No metrics_model_baseline.json yet — the shipped (model-only) path is NOT gated by CI. Generate it with: python -m eval.run_eval --tier off --split held-out"
           fi
       - name: Build the guard image (bakes the ONNX graph)
         if: steps.baseline.outputs.present == 'true'
         run: docker build -t guard-ci:pr guard-service
+      - name: Model-only predictions — the shipped path (shard ${{ matrix.shard }}/3)
+        if: steps.baseline.outputs.present == 'true'
+        run: |
+          mkdir -p preds && chmod 777 preds
+          docker run --rm -e GUARD_PII_REGEX_TIER=off -v "$PWD/preds:/preds" guard-ci:pr \
+            python -m eval.run_eval --tier off --subset ci --split calibrate \
+              --shard ${{ matrix.shard }}/3 --preds-out /preds/preds.${{ matrix.shard }}.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.baseline.outputs.present == 'true'
+        with:
+          name: guard-eval-preds-${{ matrix.shard }}
+          path: preds/preds.${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+  # The required context. always(): a failed shard must fail THIS job, not
+  # skip it (checks-passed accepts a skipped job).
+  guard-model-eval:
+    name: Guard model eval
+    needs: [changes, guard-model-eval-shard]
+    if: always() && needs.changes.outputs.guard == 'true' && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: guard-service
+    steps:
+      - name: Every shard succeeded
+        working-directory: .
+        env:
+          SHARDS: ${{ needs.guard-model-eval-shard.result }}
+        run: |
+          test "$SHARDS" = success || { echo "::error::guard-model-eval-shard: $SHARDS"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Is there a model baseline to gate against?
+        id: baseline
+        run: |
+          if [ -f eval/baseline/metrics_model_baseline.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No metrics_model_baseline.json yet — the shipped (model-only) path is NOT gated by CI. Generate it with: python -m eval.run_eval --tier off --split held-out"
+          fi
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.baseline.outputs.present == 'true'
+        with:
+          python-version: '3.12'
+      # Evaluating and gating needs no model: the predictions come from the shards.
+      - name: Eval dependencies (no model, no torch)
+        if: steps.baseline.outputs.present == 'true'
+        run: pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.baseline.outputs.present == 'true'
+        with:
+          pattern: guard-eval-preds-*
+          path: guard-service/preds
+          merge-multiple: true
       - name: Model-only eval gate — the shipped path
         if: steps.baseline.outputs.present == 'true'
         run: |
-          docker run --rm -e GUARD_PII_REGEX_TIER=off guard-ci:pr \
-            python -m eval.run_eval --tier off --subset ci --split calibrate \
-              --baseline eval/baseline/metrics_model_baseline.json \
-              --out /tmp/metrics.model.json
+          python -m eval.run_eval --tier off --subset ci --split calibrate \
+            --preds-in preds/preds.1.json preds/preds.2.json preds/preds.3.json \
+            --baseline eval/baseline/metrics_model_baseline.json \
+            --out "$RUNNER_TEMP/metrics.model.json"
 
   # ── Duplication ────────────────────────────────────────────────────────
   # Copy-pasted lines across the whole tree may only fall (phase 6.6):
@@ -1598,7 +1699,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, mobile-bundle, python-lint, python-tests, guard, guard-model-eval-shard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
