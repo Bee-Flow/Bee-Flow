@@ -82,6 +82,10 @@ const MAILBOX_ATTACHMENT_TABLE_TEMPLATE = Object.freeze({
         { key: 'mime_type', name: 'Type', type: 'text' },
         { key: 'size', name: 'Size', type: 'number' },
         { key: 'is_inline', name: 'Inline', type: 'bool' },
+        // The Content-ID a `cid:` image in the HTML body points at. An app whose
+        // attachment table predates this column keeps syncing without it; add the
+        // text column `content_id` to get inline images shown in message_thread.
+        { key: 'content_id', name: 'Content-ID', type: 'text' },
         // A PENDING descriptor (see mailboxAttachments.js). The bytes are not
         // downloaded here; the first viewer or AI step redeems this in place and
         // it becomes an ordinary studio_attachment.

@@ -117,12 +117,15 @@ const UploadFields = partOf({
 const ATTACHMENT_TEXT = 'attachmentId is the id of the mail attachment to open.';
 const TABLE_NARROW_TEXT = 'tableId narrows the search to one table: its id, as text.';
 const RECORD_NARROW_TEXT = 'recordId narrows the search to one record: its id, as text.';
+const INLINE_TEXT = 'inline is true or false: true also opens an inline image (a png, jpeg, gif or webp shown inside the mail).';
 const MaterializeBody = partOf({
     // A mail provider's id; Gmail's run to several hundred characters.
     attachmentId: worded(ATTACHMENT_TEXT).min(1, ATTACHMENT_TEXT).max(4096, ATTACHMENT_TEXT),
     // Both only narrow the probe; the row is found under the viewer's own access.
     tableId: worded(TABLE_NARROW_TEXT).max(200, TABLE_NARROW_TEXT).nullish(),
     recordId: worded(RECORD_NARROW_TEXT).max(200, RECORD_NARROW_TEXT).nullish(),
+    // Off by default: an inline image stays refused unless the caller asks for it.
+    inline: z.boolean({ error: INLINE_TEXT }).optional(),
 });
 
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
@@ -509,7 +512,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
         // found server-side under the viewer's own read access (a pending
         // descriptor is written before its row has an id, so the client cannot
         // name it — and trusting a client-named record would be worse anyway).
-        const { attachmentId, tableId, recordId } = req.body;
+        const { attachmentId, tableId, recordId, inline } = req.body;
 
         const { model, role } = await viewerRoleFor(req, app);
         if (!model) return res.status(404).json({ error: 'Not found' });
@@ -518,6 +521,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
             attachmentId,
             tableId: tableId ?? undefined,
             recordId: recordId ?? undefined,
+            inline: inline === true,
             viewer: {
                 id: req.session.user.id,
                 // The owner writes as the owner; anyone else keeps their role so

@@ -39,3 +39,8 @@ test('the editor catalog serves the same frozen shapes', () => {
     assert.strictEqual(mailboxTables.attachment, templates.MAILBOX_ATTACHMENT_TABLE_TEMPLATE);
     for (const shape of [mailboxTables, ...Object.values(mailboxTables)]) assert.ok(Object.isFrozen(shape));
 });
+
+test('the attachment template has the Content-ID column next to is_inline', () => {
+    const keys = templates.MAILBOX_ATTACHMENT_TABLE_TEMPLATE.fields.map((f) => f.key);
+    assert.strictEqual(keys.indexOf('content_id'), keys.indexOf('is_inline') + 1);
+});

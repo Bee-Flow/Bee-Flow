@@ -231,6 +231,7 @@ No request schema.
 | `attachmentId` | string | yes | min length 1; max length 4096 |
 | `tableId` | string or null |  |  |
 | `recordId` | string or null |  |  |
+| `inline` | boolean |  |  |
 
 ### `POST /api/studio-apps/:id/data/batch`
 

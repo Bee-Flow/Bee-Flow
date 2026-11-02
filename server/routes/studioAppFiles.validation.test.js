@@ -217,4 +217,13 @@ test('the body the client sends still redeems the attachment', async () => {
     assert.strictEqual(opts.attachmentId, 'a1');
     assert.strictEqual(opts.tableId, undefined);
     assert.strictEqual(opts.recordId, undefined);
+    assert.strictEqual(opts.inline, false, 'an inline image stays refused unless asked for');
+});
+
+test('inline: true is passed on, anything but a boolean is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/app1/data/attachments/materialize', body: { attachmentId: 'a1', inline: true } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(touched.filter((t) => t.what === 'materializeAttachment').at(-1).args[2].inline, true);
+    const bad = await refuses({ method: 'POST', url: '/app1/data/attachments/materialize', body: { attachmentId: 'a1', inline: 'yes' } }, 'body.inline');
+    assert.match(bad.body.error, /^inline is true or false/);
 });

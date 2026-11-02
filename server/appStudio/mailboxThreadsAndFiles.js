@@ -137,7 +137,7 @@ async function listAttachmentRows(messages, identity, connector, emailFetch) {
 /**
  * One attachment's row: its metadata, the keys that relate it to its message
  * and conversation, and the pending file descriptor.
- * @param {{ provider_attachment_id?: string, filename?: string, size?: number, mime_type?: string, is_inline?: boolean, [k: string]: unknown }} meta
+ * @param {{ provider_attachment_id?: string, filename?: string, size?: number, mime_type?: string, is_inline?: boolean, content_id?: string | null, [k: string]: unknown }} meta
  * @param {MailMessage} message
  * @param {number} index  the message's position in the batch
  * @param {MailboxConnectorConfig} connector
@@ -154,6 +154,9 @@ function attachmentRow(meta, message, index, connector) {
         // refreshed on every sync so redemption always has a usable one.
         provider_attachment_id: `${message.provider_message_id}:${meta.filename || ''}:${meta.size ?? ''}`,
         provider_message_id: message.provider_message_id,
+        // Always present, null when the provider gave none, so a table that has the
+        // column never keeps a stale id.
+        content_id: meta.content_id ?? null,
         // Denormalised on purpose: an app filters attachments by the
         // conversation it is showing, and walking the relation from a binding
         // filter is not expressible, so without it the filter matches nothing.
@@ -173,6 +176,9 @@ function attachmentRow(meta, message, index, connector) {
             mime: meta.mime_type,
             size: meta.size,
             isInline: meta.is_inline,
+            // What a cid: URL in the HTML body names; the message_thread
+            // reading pane maps it onto this file.
+            contentId: meta.content_id ?? null,
         },
         _parentIndex: index,
     };

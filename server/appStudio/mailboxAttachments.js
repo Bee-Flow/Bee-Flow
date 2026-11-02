@@ -89,6 +89,9 @@ const ARCHIVE_MIME_BY_EXT = Object.freeze({
 });
 const ARCHIVE_MIMES = new Set(Object.values(ARCHIVE_MIME_BY_EXT));
 
+/** The inline images that may be redeemed on request: raster only, so svg (script) stays out. */
+const INLINE_IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+
 /** Provider spellings for the archives, folded before ALLOWED_MIME is consulted. */
 const ARCHIVE_ALIAS_MIMES = Object.freeze({
     'application/x-7z-compressed': 'application/x-7z-compressed',
@@ -237,14 +240,14 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  *
  * @param {{ userId: unknown; id: unknown; }} app    - studio app row (userId = owner)
  * @param {MailboxModel} model  - the canonical data model
- * @param {{ attachmentId: string, tableId?: string, recordId?: string, viewer: { id: string, role?: string, organizationId?: string | null },
+ * @param {{ attachmentId: string, tableId?: string, recordId?: string, inline?: boolean, viewer: { id: string, role?: string, organizationId?: string | null },
  *   deps?: { getAttachmentBytes?: typeof emailFetch.getAttachmentBytes, resolveMailboxIdentity?: typeof resolveMailboxIdentity,
  *   scanBuffer?: typeof scanBuffer } }} [opts]  `attachmentId` is the provider attachment id (or a fileId); `tableId`
  *   and `recordId` narrow the probe when the caller knows them; `deps` is the injection seam for tests
  * @returns {Promise<object>} a studio_attachment descriptor
  */
 async function materializeAttachment(app, model, {
-    attachmentId, tableId, recordId, viewer, deps = {},
+    attachmentId, tableId, recordId, viewer, inline = false, deps = {},
 } = {}) {
     const fetchBytes = deps.getAttachmentBytes || emailFetch.getAttachmentBytes;
     const identityFor = deps.resolveMailboxIdentity || resolveMailboxIdentity;
@@ -292,7 +295,12 @@ async function materializeAttachment(app, model, {
     }
     if (REFUSED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
     if (!ALLOWED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
-    if (descriptor.isInline) throw httpError(415, 'That is an inline image, not an attachment');
+    // An inline image (a logo in a signature) is no attachment, unless the caller
+    // asks for it as one: the reading pane shows it inside the mail. Only a raster
+    // image qualifies, and step 6 still has to sniff the bytes as that image.
+    if (descriptor.isInline && !(inline && INLINE_IMAGE_MIMES.has(mime))) {
+        throw httpError(415, 'That is an inline image, not an attachment');
+    }
     const declared = Number(descriptor.size) || 0;
     const ceiling = ceilingFor(mime);
     if (declared > ceiling) throw httpError(413, 'That attachment is too large to open here');
@@ -314,7 +322,7 @@ async function materializeAttachment(app, model, {
         onRefresh: identity.onRefresh,
         mailbox: identity.mailbox,
         messageId: descriptor.messageId, attachmentId: descriptor.attachmentId,
-        relocate: { threadKey: descriptor.threadKey || row.thread_key, name: descriptor.name, size: descriptor.size },
+        relocate: { threadKey: descriptor.threadKey || row.thread_key, name: descriptor.name, size: descriptor.size, inline: Boolean(descriptor.isInline) },
         maxBytes: ceiling,
     }).catch((err) => { throw providerFailure(err, identity.provider); });
     if (!buffer || !buffer.length) throw httpError(422, 'That attachment came back empty');
