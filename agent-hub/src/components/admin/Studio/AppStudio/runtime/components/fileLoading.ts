@@ -60,9 +60,9 @@ export function friendlyError(status: number | undefined, message: string | unde
 }
 
 /** A pending mailbox pointer has no bytes of its own yet: redeem it into a stored file. */
-export async function materializeEntry(entry: FileEntry, appId: string): Promise<FileEntry> {
+export async function materializeEntry(entry: FileEntry, appId: string, opts?: { inline?: boolean }): Promise<FileEntry> {
     if (entry && typeof entry === 'object' && entry.kind === 'mailbox_attachment') {
-        const res = await studioFilesApi.materialize(appId, entry.attachmentId);
+        const res = await studioFilesApi.materialize(appId, entry.attachmentId, opts?.inline);
         const body = await res.json().catch(() => null);
         if (!res.ok) throw Object.assign(new Error(body?.error || ''), { status: res.status });
         return body?.attachment;
@@ -73,8 +73,8 @@ export async function materializeEntry(entry: FileEntry, appId: string): Promise
 export interface LoadedFile { blob: Blob; name: string; mime: string }
 
 /** Resolve a descriptor to its bytes. Throws an Error carrying `.status` on failure. */
-export async function fetchFileBlob(descriptor: FileEntry, appId: string): Promise<LoadedFile> {
-    const entry = await materializeEntry(descriptor, appId);
+export async function fetchFileBlob(descriptor: FileEntry, appId: string, opts?: { inline?: boolean }): Promise<LoadedFile> {
+    const entry = await materializeEntry(descriptor, appId, opts);
     const href = entryHref(entry, appId);
     if (!href) throw Object.assign(new Error('That file cannot be opened.'), { status: 415 });
     const res = await studioFilesApi.fetchHref(href);

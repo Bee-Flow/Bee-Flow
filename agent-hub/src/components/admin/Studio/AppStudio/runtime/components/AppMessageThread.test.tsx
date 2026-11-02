@@ -1,6 +1,9 @@
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { waitFor } from '@testing-library/react';
+import { DataProvider } from '../DataContext';
+import { studioFilesApi } from '@/api/studioFilesApi';
 import AppMessageThread from './AppMessageThread';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 import type { ComponentProps } from 'react';
@@ -210,6 +213,20 @@ describe('an e-mail is a sheet of paper', () => {
         const { container } = renderThread(stub<Parameters<typeof renderThread>[0]>(mail('<p>hoi</p>')));
         const card = container.querySelector('[data-app-thread-html="true"]');
         expect((card! as HTMLElement).style.maxWidth).toBe('100%');
+    });
+
+    it('asks for the full column: an auto-width flex item would shrink to the 300px iframe default', () => {
+        const { container } = renderThread(stub<Parameters<typeof renderThread>[0]>(mail('<p>hoi</p>')));
+        const card = container.querySelector('[data-app-thread-html="true"]');
+        expect((card! as HTMLElement).style.width).toBe('100%');
+    });
+
+    it('gives the clickable-row button the full width too, for an HTML mail only', () => {
+        const html = mail('<p>hoi</p>');
+        const { container } = renderThread(stub<Parameters<typeof renderThread>[0]>({ ...html, onRowClick: 'act_open' }));
+        expect(container.querySelector('button')!.className.split(' ')).toContain('w-full');
+        const plain = renderThread(stub<Parameters<typeof renderThread>[0]>({ ...node(), onRowClick: 'act_open' }));
+        expect(plain.container.querySelector('button')!.className.split(' ')).not.toContain('w-full');
     });
 
     it('leaves a plain-text row exactly as it was', () => {
@@ -442,5 +459,103 @@ describe('AppMessageThread — where the mail header sits', () => {
         const head = container.querySelector('[data-app-thread-mailhead="true"]');
         expect(head).toBeTruthy();
         expect(card!.contains(head)).toBe(false);
+    });
+});
+
+
+/**
+ * Attachments with a file: clickable chips, and inline cid: pictures.
+ */
+describe('AppMessageThread — attachment files', () => {
+    const ATT = [
+        { message_id: 'm1', filename: 'offerte.pdf', file: { kind: 'file', fileId: 'f1', name: 'offerte.pdf', mime: 'application/pdf' } },
+        { message_id: 'm1', filename: 'zonder.txt', file: null },
+    ];
+    const attNode = (props = {}, extra = {}) => node({
+        source: { kind: 'static', value: [{ message_id: 'm1', kind: 'agent', body: 'Hoi', at: '2026-03-01T09:00:00Z' }] },
+        attachmentsField: null, attachmentsSource: { kind: 'static', value: ATT },
+        attachmentMatchKey: 'message_id', attachmentLabelKey: 'filename', ...props,
+    }, extra);
+
+    function renderWithApp(n: unknown, runtime = {}) {
+        return render(
+            <DataProvider appId="app_1">
+                <RuntimeProvider value={{ ...DEFAULT_RUNTIME, mode: 'run', ...runtime }}>
+                    <AppMessageThread node={stub<ComponentProps<typeof AppMessageThread>['node']>(n)} />
+                </RuntimeProvider>
+            </DataProvider>,
+        );
+    }
+
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    const blobResponse = (text: string, type: string) => ({ ok: true, status: 200, blob: async () => new Blob([text], { type }) }) as Response;
+
+    it('keeps chips plain until attachmentFileKey is set', () => {
+        const { container } = renderWithApp(attNode());
+        expect(container.querySelector('[data-app-thread-chip-open]')).toBeNull();
+    });
+
+    it('opens the file of a chip in a new tab, and only for rows that have a file', async () => {
+        const fetchHref = vi.spyOn(studioFilesApi, 'fetchHref').mockResolvedValue(blobResponse('%PDF', 'application/pdf'));
+        URL.createObjectURL = vi.fn(() => 'blob:x');
+        URL.revokeObjectURL = vi.fn();
+        const open = vi.spyOn(window, 'open').mockReturnValue(null);
+        const n = attNode({ attachmentFileKey: 'file' });
+        const r = renderWithApp(n);
+        const chips = r.container.querySelectorAll('[data-app-thread-chip-open]');
+        expect(chips.length).toBe(1);
+        await userEvent.click(chips[0]);
+        await waitFor(() => expect(open).toHaveBeenCalledWith('blob:x', '_blank', 'noopener,noreferrer'));
+        expect(fetchHref.mock.calls[0][0]).toContain('/data/attachments/f1');
+    });
+
+    it('fires onAttachmentClick with the attachment row instead of opening a tab', async () => {
+        const open = vi.spyOn(window, 'open').mockReturnValue(null);
+        const runAction = vi.fn();
+        const n = attNode({ attachmentFileKey: 'file' }, { onAttachmentClick: 'act_show' });
+        const r = renderWithApp(n, { runAction });
+        await userEvent.click(r.container.querySelector('[data-app-thread-chip-open]')!);
+        expect(runAction).toHaveBeenCalledWith('act_show', expect.objectContaining({ item: ATT[0] }));
+        expect(open).not.toHaveBeenCalled();
+    });
+
+    it('shows the friendly error when the file cannot be opened', async () => {
+        vi.spyOn(studioFilesApi, 'fetchHref').mockResolvedValue(new Response('', { status: 404 }));
+        const n = attNode({ attachmentFileKey: 'file' });
+        const r = renderWithApp(n);
+        await userEvent.click(r.container.querySelector('[data-app-thread-chip-open]')!);
+        expect((await r.findByRole('alert')).textContent).toContain('do not have access');
+    });
+
+    it('loads a cid: picture lazily (inline: true) and hides its chip', async () => {
+        const mat = vi.spyOn(studioFilesApi, 'materialize').mockResolvedValue(new Response(JSON.stringify({ attachment: { kind: 'file', fileId: 'f9', mime: 'image/png', name: 'logo.png' } })));
+        vi.spyOn(studioFilesApi, 'fetchHref').mockResolvedValue(blobResponse('x', 'image/png'));
+        URL.createObjectURL = vi.fn(() => 'blob:logo');
+        URL.revokeObjectURL = vi.fn();
+        const atts = [
+            { message_id: 'm1', filename: 'logo.png', content_id: '<Logo@x>', file: { kind: 'mailbox_attachment', attachmentId: 'prov1' } },
+            { message_id: 'm1', filename: 'offerte.pdf', content_id: null, file: { kind: 'file', fileId: 'f1' } },
+        ];
+        const n = node({
+            htmlField: 'html', bodyField: 'body',
+            source: { kind: 'static', value: [
+                { message_id: 'm1', kind: 'agent', html: '<p>Hoi</p><img src="cid:logo@x">', body: '' },
+                { message_id: 'm2', kind: 'agent', html: '<p>Zonder</p>', body: '' },
+            ] },
+            attachmentsField: null, attachmentsSource: { kind: 'static', value: atts },
+            attachmentMatchKey: 'message_id', attachmentLabelKey: 'filename',
+            attachmentFileKey: 'file', inlineContentIdKey: 'content_id',
+        });
+        const r = renderWithApp(n);
+        await waitFor(() => {
+            const frames = r.container.querySelectorAll('iframe');
+            expect(frames[0].getAttribute('srcdoc')).toContain('src="blob:logo"');
+        });
+        expect(mat).toHaveBeenCalledTimes(1);
+        expect(mat).toHaveBeenCalledWith('app_1', 'prov1', true);
+        // only the pdf is left as a chip
+        const labels = [...r.container.querySelectorAll('[data-app-thread-chips="attachments"] button')].map((b) => b.textContent);
+        expect(labels).toEqual(['offerte.pdf']);
     });
 });

@@ -52,6 +52,7 @@ export interface AppNode<P = CommonNodeProps> {
     onSubmit?: string;
     onRowClick?: string;
     onRowSelect?: string;
+    onAttachmentClick?: string;
     onCardMove?: string;
     onChange?: string;
     onDecided?: string;

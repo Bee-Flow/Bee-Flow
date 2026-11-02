@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
 import { sanitizeEmailHtml } from './emailHtmlSanitize';
+import { collapseQuotedHistory, isQuoteToggle, type QuoteController } from './emailQuoteCollapse';
 
 /**
  * Renders an untrusted email HTML body the way Gmail/Outlook would — inside a
@@ -51,8 +52,8 @@ const HEAD_INJECT = '<base target="_blank"><style>img{max-width:100%;height:auto
  * <base> + the image cap into its existing <head>; bare fragments get wrapped
  * in our minimal readable shell.
  */
-function buildSrcDoc(html?: string | null): string {
-    const raw = sanitizeEmailHtml(html || '');
+function buildSrcDoc(html?: string | null, inlineImages?: Record<string, string>): string {
+    const raw = sanitizeEmailHtml(resolveCidImages(html || '', inlineImages));
     if (/<html[\s>]/i.test(raw)) {
         if (/<head[\s>]/i.test(raw)) {
             return raw.replace(/<head([^>]*)>/i, `<head$1>${HEAD_INJECT}`);
@@ -60,6 +61,39 @@ function buildSrcDoc(html?: string | null): string {
         return raw.replace(/<html([^>]*)>/i, `<html$1><head>${HEAD_INJECT}</head>`);
     }
     return `<!DOCTYPE html><html><head><meta charset="utf-8">${HEAD_INJECT}${WRAPPER_STYLE}</head><body>${raw}</body></html>`;
+}
+
+/** A content id as the mail writes it (`cid:<abc@x>`, maybe percent-encoded) and as the attachment row stores it. */
+export function normalizeContentId(id: string): string {
+    let v = id.trim();
+    try { v = decodeURIComponent(v); } catch (err) { logger.debug('content id is not percent-encoded', err); }
+    return v.replace(/^<|>$/g, '').trim().toLowerCase();
+}
+
+/**
+ * Only the app's own data may stand in for a cid: image — a blob: URL made from
+ * app data, or a same-origin URL. Anything else (an external address) is never
+ * put into the mail, so a resolver cannot turn a mail into a tracking pixel.
+ */
+function isOwnUrl(url: string): boolean {
+    if (/^blob:/i.test(url)) return true;
+    try { return new URL(url, window.location.href).origin === window.location.origin; } catch { return false; }
+}
+
+const CID_SRC = /(\bsrc\s*=\s*)(["'])\s*cid:([^"']*)\2/gi;
+
+/** Swap `src="cid:…"` for the resolved URL, before the sanitizer runs. Unknown ids stay as they are. */
+export function resolveCidImages(html: string, inlineImages?: Record<string, string>): string {
+    if (!inlineImages || !html) return html;
+    const byId = new Map<string, string>();
+    for (const [id, url] of Object.entries(inlineImages)) {
+        if (typeof url === 'string' && isOwnUrl(url)) byId.set(normalizeContentId(id), url);
+    }
+    if (byId.size === 0) return html;
+    return html.replace(CID_SRC, (whole, pre: string, quote: string, id: string) => {
+        const url = byId.get(normalizeContentId(id));
+        return url ? `${pre}${quote}${url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}${quote}` : whole;
+    });
 }
 
 const OPENABLE_LINK = /^(https?:|mailto:)/i;
@@ -74,10 +108,17 @@ function openLinkFromEmail(event: MouseEvent): void {
     if (OPENABLE_LINK.test(href)) window.open(href, '_blank', 'noopener,noreferrer');
 }
 
-export default function EmailHtmlBody({ html }: { html?: string | null }) {
+interface EmailHtmlBodyProps {
+    html?: string | null;
+    /** Content id → URL of the app's own file, for `cid:` images in the body. */
+    inlineImages?: Record<string, string>;
+}
+
+export default function EmailHtmlBody({ html, inlineImages }: EmailHtmlBodyProps) {
     const { t } = useTranslation();
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const observerRef = useRef<ResizeObserver | null>(null);
+    const quoteRef = useRef<QuoteController | null>(null);
     const [height, setHeight] = useState<number>(120);
 
     const measure = useCallback(() => {
@@ -101,6 +142,13 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
         try {
             const doc = iframeRef.current?.contentDocument;
             doc?.addEventListener('click', openLinkFromEmail);
+            doc?.addEventListener('click', (event) => { if (isQuoteToggle(event.target)) quoteRef.current?.toggle(); });
+            quoteRef.current = doc
+                ? collapseQuotedHistory(doc, {
+                    show: t('support.email_quote_show', 'Show earlier messages'),
+                    hide: t('support.email_quote_hide', 'Hide earlier messages'),
+                })
+                : null;
             if (doc?.body && typeof ResizeObserver !== 'undefined') {
                 observerRef.current?.disconnect();
                 const ro = new ResizeObserver(() => measure());
@@ -108,15 +156,17 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
                 observerRef.current = ro;
             }
         } catch (err) { logger.debug('ignore', err); }
-    }, [measure]);
+    }, [measure, t]);
 
     useEffect(() => () => observerRef.current?.disconnect(), []);
+
+    const srcDoc = useMemo(() => buildSrcDoc(html, inlineImages), [html, inlineImages]);
 
     return (
         <iframe
             ref={iframeRef}
             title={t('support.email_html_body_email_message', 'Email message')}
-            srcDoc={buildSrcDoc(html)}
+            srcDoc={srcDoc}
             sandbox="allow-same-origin allow-popups"
             onLoad={handleLoad}
             className="w-full block"

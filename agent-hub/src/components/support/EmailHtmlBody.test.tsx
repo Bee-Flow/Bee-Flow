@@ -8,7 +8,7 @@ import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 
 
-import EmailHtmlBody from './EmailHtmlBody';
+import EmailHtmlBody, { resolveCidImages } from './EmailHtmlBody';
 import { sanitizeEmailHtml } from './emailHtmlSanitize';
 
 describe('sanitizeEmailHtml', () => {
@@ -54,5 +54,24 @@ describe('EmailHtmlBody', () => {
         const srcdoc = frame?.getAttribute('srcdoc') || '';
         expect(srcdoc).toContain('<p>Hi</p>');
         expect(srcdoc).not.toMatch(/javascript:|http-equiv/i);
+    });
+});
+
+describe('inline cid: images', () => {
+    it('swaps cid: for the own file URL, case-insensitive and without <>', () => {
+        const out = resolveCidImages('<img src="cid:Logo@X"><img src=\'cid:other\'>', { '<logo@x>': 'blob:abc' });
+        expect(out).toContain('<img src="blob:abc">');
+        expect(out).toContain("src='cid:other'");
+    });
+
+    it('never puts an external URL into the mail', () => {
+        const html = '<img src="cid:a">';
+        expect(resolveCidImages(html, { a: 'https://evil.example/pixel.gif' })).toBe(html);
+        expect(resolveCidImages(html, { a: '/api/studio-apps/x/data/attachments/f' })).toContain('/api/studio-apps/x');
+    });
+
+    it('survives the sanitizer inside the frame', () => {
+        const { container } = render(<EmailHtmlBody html={'<p>Hi</p><img src="cid:a">'} inlineImages={{ a: 'blob:abc' }} />);
+        expect(container.querySelector('iframe')?.getAttribute('srcdoc')).toContain('src="blob:abc"');
     });
 });

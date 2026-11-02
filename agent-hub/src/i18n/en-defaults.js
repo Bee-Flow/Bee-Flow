@@ -31547,6 +31547,8 @@ const EN_DEFAULTS = {
     "support.attach_issue_the_customer_s_name_address_and": "The customer's name, address and organisation never reach YouTrack. The issue carries ticket",
     "support.attach_issue_and_a_link_only_bee_flow_staff_can": "and a link only Bee Flow staff can open.",
     "support.email_html_body_email_message": "Email message",
+    "support.email_quote_hide": "Hide earlier messages",
+    "support.email_quote_show": "Show earlier messages",
     "support.linked_issues_youtrack_is_not_connected_yet_an_admin": "YouTrack is not connected yet. An admin can set it up in the Connections tab.",
     "support.linked_issues_can_t_reach_youtrack_host": "Can't reach YouTrack ({host}):",
     "support.linked_issues_detach_from_this_ticket": "Detach from this ticket",
