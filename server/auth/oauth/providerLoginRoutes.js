@@ -39,8 +39,48 @@ const { loadConfig, OAUTH_PROVIDERS } = require('../permissions');
 const { microsoftCredentialsFor, PRIMARY_CONNECTION_ID } = require('./microsoftConnections.mts');
 const { getReturnUrl, popupRedirect, resolveNativeAppRedirect } = require('./shared');
 const { isPickupTokenShaped } = require('../../utils/sessionToken');
+const { startLink, LINK_INTENT, LINK_RETURN_PATH } = require('./ssoLinkFlow.mts');
 
 // === Multi-Provider OAuth Routes ===
+
+/**
+ * The client mode of an ordinary sign-in, from this request's query: popup,
+ * pickup or a native app redirect. A link attempt (?intent=link) has none.
+ * @param {import('express').Request} req
+ */
+function stashClientMode(req) {
+    // When ?popup=1 is set (embedded iframe mode), remember so the callback
+    // can render a postMessage page instead of a redirect.
+    if (req.query.popup === '1') {
+        req.session.oauthPopup = true;
+    }
+    // When ?pickup=<id> is set (storage-partitioned iframe), the iframe is
+    // polling /auth/login-pickup?id=<id> for a session token to bridge the
+    // cookie gap. Stash the id so the callback can deposit a token.
+    // The client keeps the secret and sends only its hash; the claim on
+    // /auth/login-pickup has to present the secret (utils/sessionToken.js).
+    // Without a well-formed challenge no pickup is set up at all: the
+    // callback then deposits nothing and the client falls back to its cookie.
+    if (req.query.pickup && isPickupTokenShaped(req.query.pickup_challenge)) {
+        req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
+        req.session.oauthPickupChallenge = req.query.pickup_challenge;
+    }
+    // When ?app=<key> names a known native client, the callback 302s to that
+    // app's own scheme instead of rendering the close page — which is the only
+    // way an Android Custom Tab can be made to close itself. What gets stashed
+    // is the RESOLVED literal from shared.js, never anything from the query, so
+    // nothing downstream has to re-validate it.
+    if (req.query.app) {
+        const appRedirect = resolveNativeAppRedirect(String(req.query.app));
+        if (appRedirect) {
+            req.session.oauthAppRedirect = appRedirect;
+        } else {
+            // Sanitised before logging: a raw CR/LF in a query value forges a
+            // log line. Length alone is enough to debug a typo'd key.
+            log.warn(`[OAuth] Ignoring unknown ?app= key (${String(req.query.app).length} chars)`);
+        }
+    }
+}
 
 // Provider-specific login - redirects to OAuth provider
 router.get('/login/:provider', async (req, res) => {
@@ -61,39 +101,23 @@ router.get('/login/:provider', async (req, res) => {
     delete req.session.oauthNonce;
     delete req.session.oauthConnectionId;
 
-    // When ?popup=1 is set (embedded iframe mode), remember so the callback
-    // can render a postMessage page instead of a redirect.
-    if (req.query.popup === '1') {
-        req.session.oauthPopup = true;
+    // ?intent=link: the signed-in account links this provider instead of
+    // signing in (ssoLinkFlow.mts). Same browser, plain redirect: no popup,
+    // pickup or native handoff.
+    const linking = req.query.intent === LINK_INTENT;
+    if (linking) {
+        // The start and the callback both answer on the settings page that
+        // holds the link action, not on the site root.
+        const linkReturnTo = `${returnTo}${LINK_RETURN_PATH}`;
+        req.session.returnTo = linkReturnTo;
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is the configured client base plus a fixed path; the error is one of ssoLinkFlow's fixed codes
+        const linkError = startLink(req.session, provider);
+        if (linkError) return res.redirect(`${linkReturnTo}?error=${linkError}`);
+    } else {
+        delete req.session.oauthLinkUserId;
     }
-    // When ?pickup=<id> is set (storage-partitioned iframe), the iframe is
-    // polling /auth/login-pickup?id=<id> for a session token to bridge the
-    // cookie gap. Stash the id so the callback can deposit a token.
-    if (req.query.pickup) {
-        req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
-        // The client keeps the secret and sends only its hash; the claim on
-        // /auth/login-pickup has to present the secret (utils/sessionToken.js).
-        // A malformed value is dropped rather than stored: a deposit filed
-        // under a challenge nobody can answer is a sign-in that never lands.
-        if (isPickupTokenShaped(req.query.pickup_challenge)) {
-            req.session.oauthPickupChallenge = req.query.pickup_challenge;
-        }
-    }
-    // When ?app=<key> names a known native client, the callback 302s to that
-    // app's own scheme instead of rendering the close page — which is the only
-    // way an Android Custom Tab can be made to close itself. What gets stashed
-    // is the RESOLVED literal from shared.js, never anything from the query, so
-    // nothing downstream has to re-validate it.
-    if (req.query.app) {
-        const appRedirect = resolveNativeAppRedirect(String(req.query.app));
-        if (appRedirect) {
-            req.session.oauthAppRedirect = appRedirect;
-        } else {
-            // Sanitised before logging: a raw CR/LF in a query value forges a
-            // log line. Length alone is enough to debug a typo'd key.
-            log.warn(`[OAuth] Ignoring unknown ?app= key (${String(req.query.app).length} chars)`);
-        }
-    }
+
+    if (!linking) stashClientMode(req);
 
     log.info(`[OAuth] Login start (${provider}) — session present: ${!!req.sessionID}`);
 
@@ -101,12 +125,13 @@ router.get('/login/:provider', async (req, res) => {
     let protocol = process.env.SERVER_PROTOCOL || 'https';
 
     if (!host) {
-        const forwardedHost = req.get('X-Forwarded-Host');
-        // The Referer is whatever page sent the browser here: a fine guess on
-        // a developer's machine, and in production a redirect target the
-        // sender chooses. There the public host is configured, or the Host
-        // header (set by our own proxy) decides.
-        const referer = process.env.NODE_ENV === 'production' ? undefined : req.get('Referer');
+        // X-Forwarded-Host and the Referer are what the sender wrote: a fine
+        // guess on a developer's machine, and in production a redirect target
+        // the sender chooses. There the public host is configured, or the Host
+        // header (set by our own proxy) decides — the callback does the same.
+        const production = process.env.NODE_ENV === 'production';
+        const forwardedHost = production ? undefined : req.get('X-Forwarded-Host');
+        const referer = production ? undefined : req.get('Referer');
 
         if (forwardedHost) {
             host = forwardedHost;

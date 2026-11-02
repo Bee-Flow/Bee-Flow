@@ -195,7 +195,19 @@ async function validateOutputForPii(content) {
 
     try {
         const result = await detectPii(content, _outCats, _outThreshold);
-        if (!result) return;
+        // No guard installed: the feature is off, unless an operator set
+        // fail_closed, which asks for every reply to be screened (as the input path).
+        if (!result || (result.guardAbsent && !result.hasPii)) {
+            if (aiConfig.piiFailureMode === 'fail_closed') {
+                log.warn('[PiiDetection] Output detection: guard not installed — fail_closed: suppressing response');
+                const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: PII detection is temporarily unavailable.'));
+                err.privacyUnavailable = true;
+                err.privacyUnavailableKind = 'unavailable';
+                err.degradedReason = 'guard_not_installed';
+                throw err;
+            }
+            return;
+        }
 
         // Detection couldn't fully run. The input path has handled this since
         // BFSF-269; the output path ignored `degraded` entirely, on the one

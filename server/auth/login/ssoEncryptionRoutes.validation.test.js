@@ -29,6 +29,7 @@ const Module = require('module');
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
+let hasPin = false; // whether the account already holds an SSO PIN
 
 const MOCKS = {
     '../encryption': {
@@ -36,6 +37,7 @@ const MOCKS = {
         unlockSSOUserDEK: async (userId, p) => { touched.push({ what: 'unlockSSOUserDEK', args: [userId, p] }); return { dek: Buffer.alloc(32) }; },
         unlockWithRecoveryKey: async (userId, k) => { touched.push({ what: 'unlockWithRecoveryKey', args: [userId, k] }); return Buffer.alloc(32); },
         secureClear() {},
+        hasSSOUserPin: async () => hasPin,
     },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
 };
@@ -62,7 +64,7 @@ const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ isAuthenticated: true, user: { id: 'u1' }, save(cb) { cb(); } }) });
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; hasPin = false; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -112,4 +114,34 @@ test('a PIN change with a weak new PIN is refused by name', async () => {
 
 test('a recovery with a misspelled key is refused rather than read as absent', async () => {
     await refuses({ method: 'POST', url: '/sso-recovery', body: { recoveryKey: 'RK', newPINN: 'abcdef' } }, 'body');
+});
+
+// ═══ Replacing an existing PIN takes a recent sign-in ═══════════════
+
+const KEY = Buffer.alloc(32).toString('base64');
+/** @param {number} signedInAgo ms since the sign-in */
+const unlockedSession = (signedInAgo) => ({
+    isAuthenticated: true, user: { id: 'u1' }, encryptionKey: KEY,
+    authenticatedAt: Date.now() - signedInAgo, save(/** @type {Function} */ cb) { cb(); },
+});
+
+test('replacing an existing PIN without a recent sign-in is refused and re-wraps nothing', async () => {
+    hasPin = true;
+    const res = await dispatch({ method: 'POST', url: '/sso-encryption-setup', body: { pin: 'abcdef12' }, session: unlockedSession(11 * 60 * 1000) });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'reauth_required');
+    assert.deepStrictEqual(touched, []);
+});
+
+test('replacing an existing PIN right after a sign-in goes through', async () => {
+    hasPin = true;
+    const res = await dispatch({ method: 'POST', url: '/sso-encryption-setup', body: { pin: 'abcdef12' }, session: unlockedSession(60 * 1000) });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(touched.some((t) => t.what === 'setupSSOUserDEK'));
+});
+
+test('a first-time setup (legacy key in the session, no PIN yet) needs no recent sign-in', async () => {
+    const res = await dispatch({ method: 'POST', url: '/sso-encryption-setup', body: { pin: 'abcdef12' }, session: unlockedSession(60 * 60 * 1000) });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(touched.some((t) => t.what === 'setupSSOUserDEK'));
 });

@@ -90,6 +90,8 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
 const { bestEffort, fallback } = require('../utils/bestEffort');
+const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+const uploadDelete = require('./studioAppUploadDeleteToken.mts');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -565,15 +567,10 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
 
     return res.json({
         success: true,
-        attachment: {
-            id: attachment.id,
-            recordId: null,
-            fieldKey: attachment.fieldKey,
-            mime: attachment.mimeType,
-            size: attachment.size,
-            sha: attachment.sha256,
-            scanned: true,
-        },
+        attachment: { id: attachment.id, recordId: null, fieldKey: attachment.fieldKey,
+            mime: attachment.mimeType, size: attachment.size, sha: attachment.sha256, scanned: true },
+        // Only this answer carries it: discarding the upload requires it.
+        deleteToken: uploadDelete.uploadDeleteToken(found.app.id, attachment.id),
     });
 });
 
@@ -611,15 +608,15 @@ router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireV
     const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
     res.setHeader('Content-Type', mime);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    const inline = /^image\//.test(mime) || mime === 'application/pdf';
-    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    for (const [name, value] of Object.entries(attachmentResponseHeaders(mime))) res.setHeader(name, value);
     if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
     return sendStream(obj.stream, res, next);
 });
 
 // Re-picking a file three times must not leave three dead blobs charging
 // against the owner's quota. Refuses anything already linked to a record, so
-// this can only ever discard an upload that never landed anywhere.
+// this can only ever discard an upload that never landed anywhere, and only
+// with the delete token the upload answer handed to the uploader.
 router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requireVisitor, async (/** @type {import('express').Request<{ token: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
@@ -629,7 +626,7 @@ router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requ
     if (!roleMayUpload(ctx.model, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
     const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
-    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    if (!attachment || !uploadDelete.presentedFor(req, found.app.id, attachment.id)) return res.status(404).json({ error: 'Attachment not found' });
     if (attachment.recordId) {
         return res.status(409).json({ error: 'This file is attached to a record.', code: 'attachment_linked' });
     }

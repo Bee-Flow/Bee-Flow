@@ -157,6 +157,12 @@ function hexToBuf(hex: string) {
 // OPAQUE FLOWS
 // ============================================================
 
+/** The server's refusal as an Error carrying its `code` (e.g. reauth_required). */
+async function refusal(res: Response, fallback: string): Promise<Error & { code?: string }> {
+    const body = await res.json().catch(() => ({})) as { error?: string; code?: string };
+    return Object.assign(new Error(body.error || fallback), { code: body.code });
+}
+
 /**
  * Register a new user with OPAQUE.
  * Client generates DEK, wraps it with KEK derived from exportKey.
@@ -177,7 +183,7 @@ async function opaqueRegister(username: string, password: string) {
         credentials: 'include',
         body: JSON.stringify({ username, registrationRequest })
     });
-    if (!startRes.ok) throw new Error((await startRes.json()).error || 'Registration start failed');
+    if (!startRes.ok) throw await refusal(startRes, 'Registration start failed');
     const { registrationResponse } = await startRes.json();
 
     // Step 2: Finish registration — get exportKey
@@ -211,7 +217,7 @@ async function opaqueRegister(username: string, password: string) {
             recoveryWrappedDEK
         })
     });
-    if (!finishRes.ok) throw new Error((await finishRes.json()).error || 'Registration finish failed');
+    if (!finishRes.ok) throw await refusal(finishRes, 'Registration finish failed');
     const result = await finishRes.json();
 
     return { ...result, recoveryKey, dek: btoa(String.fromCharCode(...dek)) };
@@ -299,7 +305,7 @@ export async function opaquePinRegister(pin: string, existingDEK = null) {
         credentials: 'include',
         body: JSON.stringify({ registrationRequest })
     });
-    if (!startRes.ok) throw new Error((await startRes.json()).error || 'PIN registration start failed');
+    if (!startRes.ok) throw await refusal(startRes, 'PIN registration start failed');
     const { registrationResponse } = await startRes.json();
 
     const { exportKey, registrationRecord } = opaque.client.finishRegistration({
@@ -322,7 +328,7 @@ export async function opaquePinRegister(pin: string, existingDEK = null) {
         credentials: 'include',
         body: JSON.stringify({ registrationRecord, wrappedDEK, recoveryWrappedDEK })
     });
-    if (!finishRes.ok) throw new Error((await finishRes.json()).error || 'PIN registration finish failed');
+    if (!finishRes.ok) throw await refusal(finishRes, 'PIN registration finish failed');
 
     return { success: true, recoveryKey, dek: btoa(String.fromCharCode(...dek)) };
 }

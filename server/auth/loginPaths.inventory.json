@@ -14,7 +14,7 @@
       "mfa": "enforced",
       "note": "Same gate as above; the session is flagged pendingApproval for a waitlisted or unapproved account."
     },
-    "auth/login/finalizeOpaqueLogin.js#opaque{...,...,opaqueMode}": {
+    "auth/login/finalizeOpaqueLogin.js#opaque{...,...,...,opaqueMode}": {
       "mfa": "enforced",
       "note": "The OPAQUE proof parks the login in mfaPending when the account has a second factor; finalizeOpaqueLogin runs only after /auth/mfa/verify-login (or at once for an account without one)."
     },

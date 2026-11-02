@@ -71,3 +71,18 @@ test('a manifest publicRoutes prefix answers without a session; its siblings sti
     const priv = await api.call('GET', '/private', { user: null });
     assert.equal(priv.status, 401);
 });
+
+test('a publicRoutes prefix matches on a path boundary only', async () => {
+    const router = express.Router();
+    router.get('/hook', (_req, res) => res.json({ hook: true }));
+    router.get('/hookadmin', (_req, res) => res.json({ admin: true }));
+    const handle = _composeHandler({ moduleId: 'm4', router, gateCapability: null, publicRoutes: ['/hook'] });
+    const outer = express.Router();
+    outer.use(handle);
+    const api = h.serve('/', outer);
+    after(() => api.close());
+    const hook = await api.call('GET', '/hook?x=1', { user: null });
+    assert.equal(hook.status, 200);
+    const sibling = await api.call('GET', '/hookadmin', { user: null });
+    assert.equal(sibling.status, 401);
+});

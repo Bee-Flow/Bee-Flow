@@ -305,7 +305,32 @@ test('deleting the account erases its content and detaches it from the organisat
     await q(`INSERT INTO projects (id, name, owner_id, organization_id) VALUES ('p1', 'Project', $1, $2)`, [HEIR, ORG]);
     await q(`INSERT INTO project_tasks (id, project_id, title, created_by) VALUES ('task1', 'p1', 'Task', $1)`, [LEAVER]);
 
+    // A personal knowledge base with a document, a pre-delete snapshot and a
+    // local chunk; a base the leaver made for the organisation; a support
+    // thread they opened; an integration secret in the config table.
+    await require('./core/kb/kbChunksSchema').ensureKBChunksTable();
+    await q(`INSERT INTO knowledge_bases (id, tenant_id, name) VALUES ('00000000-0000-4000-8000-0000000000a1', $1, 'Mine')`, [LEAVER]);
+    await q(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id) VALUES ('00000000-0000-4000-8000-0000000000a2', $1, 'Team', $2)`, [LEAVER, ORG]);
+    await q(`INSERT INTO documents (id, tenant_id, knowledge_base_id, title) VALUES ('00000000-0000-4000-8000-0000000000d1', $1, '00000000-0000-4000-8000-0000000000a1', 'Doc')`, [LEAVER]);
+    await q(`INSERT INTO kb_document_versions (document_id, knowledge_base_id, tenant_id, payload) VALUES ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000a1', $1, '{}'::jsonb)`, [LEAVER]);
+    await q(`INSERT INTO kb_chunks (tenant_id, knowledge_base_id, document_id, chunk_id, content) VALUES
+             ($1, '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000d1', 0, 'personal text'),
+             ($1, '00000000-0000-4000-8000-0000000000a2', 'doc-team', 0, 'team text')`, [LEAVER]);
+    await q(`INSERT INTO support_threads (organization_id, requester_user_id, requester_email, requester_name, source, subject, requester_ip, requester_ua)
+             VALUES ($1, $2, 'leaver@example.test', 'Lea Ver', 'in_app', 'Help', '192.0.2.1', 'UA')`, [ORG, LEAVER]);
+    await q(`INSERT INTO config (key, value) VALUES ($1, '"x"'), ($2, '"y"')`, [`afas_token_user_${LEAVER}`, `github_token_user_${LEAVER}`]);
+
     assert.strictEqual(await users.deleteUser(LEAVER), true);
+
+    // Personal knowledge base, its documents, snapshots and chunks.
+    assert.strictEqual(await count('knowledge_bases', 'id', '00000000-0000-4000-8000-0000000000a1'), 0);
+    assert.strictEqual(await count('kb_document_versions', 'tenant_id'), 0);
+    assert.strictEqual(await count('kb_chunks', 'knowledge_base_id', '00000000-0000-4000-8000-0000000000a1'), 0);
+    assert.strictEqual(await count('knowledge_bases', 'id', '00000000-0000-4000-8000-0000000000a2'), 1, 'the organisation\'s base stays');
+    // The support thread stays without the requester's details.
+    const thread = (await q(`SELECT requester_user_id, requester_email, requester_name, requester_ip, requester_ua FROM support_threads WHERE organization_id = $1`, [ORG])).rows[0];
+    assert.deepStrictEqual({ ...thread }, { requester_user_id: null, requester_email: '', requester_name: null, requester_ip: null, requester_ua: null });
+    assert.strictEqual((await q(`SELECT COUNT(*)::int AS n FROM config WHERE key LIKE $1`, [`%_user_${LEAVER}`])).rows[0].n, 0, 'per-user integration secrets');
 
     // Gone with the account.
     assert.strictEqual(await count('users', 'id'), 0);
@@ -348,8 +373,16 @@ test('deleting the organisation afterwards leaves no row keyed by it', async () 
     await q(`INSERT INTO transcriptions (id, user_id, organization_id) VALUES ('t-orphan', 'gone-member', $1)`, [ORG]);
     await q(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('auto-orphan', 'gone-member', $1, 'Routine', '{}'::jsonb)`, [ORG]);
 
+    // An organisation agent with a conversation that is not a member's.
+    await q(`INSERT INTO agents (id, name, owner_id, organization_id) VALUES ('ag-org', 'Org agent', 'gone-member', $1)`, [ORG]);
+    await q(`INSERT INTO agent_conversations (id, agent_id, user_id) VALUES ('c-org', 'ag-org', 'gone-member')`);
+    await q(`INSERT INTO conversation_messages (id, conversation_id, role, content, seq) VALUES ('m-org', 'c-org', 'user', 'text', 1)`);
+
     const { deleteOrganization } = require('./stores/user/organizations');
     assert.strictEqual(await deleteOrganization(ORG), true);
+    assert.strictEqual(await count('conversation_messages', 'conversation_id', 'c-org'), 0, 'the messages of the org agent\'s conversations');
+    assert.strictEqual(await count('knowledge_bases', 'organization_id', ORG), 0);
+    assert.strictEqual(await count('kb_chunks', 'knowledge_base_id', '00000000-0000-4000-8000-0000000000a2'), 0, 'the chunks of the organisation\'s base');
     for (const table of ['iso_risks', 'guardrail_events', 'transcriptions', 'automations', 'studio_apps', 'playbooks']) {
         assert.strictEqual(await count(table, 'organization_id', ORG), 0, table);
     }

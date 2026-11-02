@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from 'react';
 import type { PageElement, PageElementRenderer, PageRenderContext } from './pageElementTypes';
+import { SafeImage } from './remoteImages';
 
 function renderChildren(element: PageElement, ctx: PageRenderContext): ReactNode {
     const { children } = element;
@@ -167,7 +168,7 @@ export const renderText: PageElementRenderer = (element, key) => (
 );
 
 export const renderImage: PageElementRenderer = (element, key) => (
-    <img
+    <SafeImage
         key={key}
         src={element.src}
         alt={element.alt || ''}

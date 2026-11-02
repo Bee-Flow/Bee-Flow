@@ -143,6 +143,31 @@ test('hydrateProject: containment refuses escapes but writes normal files', asyn
     }
 });
 
+test('hydrateProject: a symlink left in the workdir is never written through (file or directory)', async () => {
+    const workdir = await fs.mkdtemp(path.join(os.tmpdir(), 'bf-hydrate-test-'));
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'bf-hydrate-outside-'));
+    try {
+        const outsideFile = path.join(outside, 'target.txt');
+        await fs.writeFile(outsideFile, 'original');
+        await fs.symlink(outsideFile, path.join(workdir, 'index.html'));
+        await fs.symlink(outside, path.join(workdir, 'src'));
+        mockBehavior.readAllSlots = async () => ({ html: '<p>new</p>', css: 'p{}' });
+        mockBehavior.listExtraFiles = async () => [{ path: 'src/target.txt', isText: true }, { path: 'src/new.txt', isText: true }];
+        mockBehavior.readExtraFile = async () => ({ meta: { isText: true }, text: 'overwritten' });
+        const count = await runtimeManager.hydrateProject('wp1', 'user1', workdir);
+        assert.strictEqual(count, 1, 'only style.css is written');
+        assert.strictEqual(await fs.readFile(outsideFile, 'utf8'), 'original');
+        await assert.rejects(fs.access(path.join(outside, 'new.txt')));
+        assert.strictEqual(await fs.readFile(path.join(workdir, 'style.css'), 'utf8'), 'p{}');
+    } finally {
+        mockBehavior.readAllSlots = async () => ({});
+        mockBehavior.listExtraFiles = async () => [];
+        mockBehavior.readExtraFile = async () => null;
+        await fs.rm(workdir, { recursive: true, force: true }).catch(() => {});
+        await fs.rm(outside, { recursive: true, force: true }).catch(() => {});
+    }
+});
+
 // ── withOrgLock ───────────────────────────────────────────────────
 
 test('_withOrgLock serializes calls for the same org', async () => {

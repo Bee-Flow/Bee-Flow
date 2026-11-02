@@ -36,6 +36,12 @@ require('../../integrations/toolFamilies'); // the integration tools the dispatc
     await executeTool('memory_remember', { type: 'fact', content: 'x y z' }, { userId: 'u1' });
     assert.equal(seen[0].context.conversationId, null, 'absent conversation arrives as null');
 
+    // An acting integration identity (a support inbox operator) never selects
+    // whose memories are read: the asker's are.
+    seen.length = 0;
+    await executeTool('memory_search', { query: 'x' }, { userId: 'operator-1', askerUserId: 'asker-1' });
+    assert.equal(seen[0].context.userId, 'asker-1', 'memories are keyed on the asker');
+
     console.log('toolDispatcher.memoryConversation: ok');
     process.exit(0);
 })().catch((e) => {

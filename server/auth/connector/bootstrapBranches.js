@@ -173,11 +173,9 @@ async function redeemPairingCode(ctx) {
 }
 
 // 1. Returning bind — instance id already mapped → idempotent return, once
-//    the caller has proved the existing binding (rebindProof.js). The NC
-//    admin is created or promoted here only when the proof is the tenant
-//    key, or when the address already belongs to a member of this org;
-//    otherwise the admin's first signed connector request provisions them
-//    (connectorJwtProvision's nc_admin carve-out), with the same result.
+//    the caller has proved the existing binding with the current tenant key
+//    (rebindProof.js). Without that proof: 403, no key, no admin and no
+//    callback change; the connector re-pairs with a pairing code.
 /**
  * @param {BootstrapContext} ctx
  * @param {OrgRow} org
@@ -185,20 +183,14 @@ async function redeemPairingCode(ctx) {
 async function returningBind(ctx, org) {
     const { req, res, nc, ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl } = ctx;
     const proof = await provesExistingBinding(ctx, org);
-    if (!proof) return refuseRebind(ctx, org);
-    const existingAdmin = await userStore.getUserByEmail(ncAdminEmail);
-    const adminIsMember = !!(existingAdmin && existingAdmin.organizationId === org.id);
-    if (proof === 'tenant_key' || adminIsMember) {
-        try {
-            await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-        } catch (e) {
-            return adminEmailConflict(ctx, org, e, 'returning_bind_branch',
-                'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.');
-        }
-        await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
-    } else {
-        log.info(`[ConnectorBootstrap] returning_bind org=${org.id}: the NC admin is not a member yet; provisioned on their first connector request`);
+    if (proof !== 'tenant_key') return refuseRebind(ctx, org);
+    try {
+        await ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
+    } catch (e) {
+        return adminEmailConflict(ctx, org, e, 'returning_bind_branch',
+            'The Nextcloud admin email is already used by a user in a different Bee Flow organization. Either use a different admin user on Nextcloud, or contact support to merge the accounts.');
     }
+    await ensureAdditionalOrgAdmins(org, req.body?.ncAdmins, ncAdminUid);
     const tenantKey = await getOrMintTenantKey(org.id);
     if (connectorCallbackUrl && org.connector_callback_url !== connectorCallbackUrl) {
         await userStore.updateOrganization(org.id, { connectorCallbackUrl });
@@ -348,32 +340,10 @@ async function createFreshOrg(ctx) {
         // A concurrent bootstrap for the same NC instance may have just won the
         // race: the org id is deterministic, so the loser's INSERT collides on
         // the primary key and createOrganization returns false. Re-fetch — if
-        // the org now exists, fall through to returning-bind semantics instead
-        // of a misleading HTTP 500 (which would also leave the connector retrying).
+        // the org now exists, answer as a returning bind (same proof required)
+        // instead of a misleading HTTP 500.
         const raced = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
-        if (raced) {
-            try {
-                await ensureOrgAdminUser(raced, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
-            } catch (e) {
-                return adminEmailConflict(ctx, raced, e, 'fresh_org_race_branch');
-            }
-            await ensureAdditionalOrgAdmins(raced, req.body?.ncAdmins, ncAdminUid);
-            const tenantKey = await getOrMintTenantKey(raced.id);
-            log.info(`[ConnectorBootstrap] fresh_org_race_resolved org=${raced.id} ncInstance=${ncInstanceId}`);
-            orgHealth.event('bootstrap.returning_bind', {
-                orgId: raced.id, actorKind: 'connector', req, meta: { ncInstanceId, reason: 'fresh_org_race_resolved' },
-            });
-            orgHealth.touchLiveness(raced.id, 'bootstrap');
-            orgHealth.resolve(`nc:${ncInstanceId}`, NC_SUBJECT_PROBLEM_CODES);
-            return res.json({
-                tenantKey,
-                organizationId: raced.id,
-                organizationName: raced.name,
-                isNew: false,
-                ncVersion: nc.ncVersion,
-                code: 'returning_bind',
-            });
-        }
+        if (raced) return returningBind(ctx, raced);
         orgHealth.problem('bootstrap.org_create_failed', {
             ncInstanceId, source: 'connectorBootstrap', req,
             meta: { ncBaseUrl, reason: 'create_organization_returned_false' },

@@ -3,7 +3,16 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
-    'login.sso_link_required': 'Your Microsoft identity needs to be linked by a platform administrator. Contact your administrator, then sign in again.',
+    'login.sso_link_required': 'This sign-in is not linked to an account yet. Sign in another way and link it under Account settings, or ask your administrator to link it.',
+    'login.sso_email_unverified': 'Your sign-in provider has not verified your e-mail address. Verify it there, then sign in again.',
+    'login.sso_identity_taken': 'This sign-in is already linked to another account.',
+    'login.sso_link_failed': 'The sign-in could not be linked. Please try again.',
+    'login.sso_linked': '{provider} sign-in is now linked to your account.',
+    'login.sso_link_button': 'Link {provider} sign-in',
+    'login.reauth_required': 'For your security, sign in again before making this change.',
+    'login.invite_invalid': 'This invitation is invalid or has expired. Please request a new one.',
+    'login.invite_email_mismatch': 'This invitation was sent to a different e-mail address.',
+    'login.invite_used': 'This invitation has already been used. Please request a new one.',
     'login.sso_seat_cap_exceeded': 'Your organisation has reached its user limit, so your account could not be created. Contact your administrator.',
     'login.sso_signup_failed': 'Your account could not be created. Please try again or contact your administrator.',
 

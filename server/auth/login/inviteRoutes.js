@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
+const { maskEmail } = require('../connector/verificationCode');
 
 // ═══════════════════════════════════════════════════════════
 // ── Invitation Token Validation (public route) ────────────
@@ -27,9 +28,13 @@ router.get('/invite/:token', async (req, res) => {
         return res.status(410).json({ valid: false, error: 'Invitation expired or invalid' });
     }
     const org = await userStore.getOrganization(invitation.organization_id);
+    // This open route answers whoever holds the token, so it names the
+    // invited address only masked; the signup still has to give that address
+    // exactly (signupRoutes.js). The full address is on /pending-invite, which
+    // is bound to the session the redeem link started.
     res.json({
         valid: true,
-        email: invitation.email,
+        emailHint: maskEmail(invitation.email),
         organizationId: invitation.organization_id,
         orgName: org?.name || '',
         orgLogo: org?.logo || null,

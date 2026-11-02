@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Shield, Key, Copy, Check, Eye, EyeOff, AlertTriangle, Lock, ArrowLeft } from 'lucide-react';
 import { API_BASE, authFetch } from '../utils/helpers';
-import { opaquePinRegister, opaquePinLogin } from '../lib/opaque';
+import { opaquePinLogin } from '../lib/opaque';
 import { useTranslation } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
+import ReauthNotice from '../components/mfa/ReauthNotice';
+import { setupPinWithOpaque } from './encryptionPinSetup';
 
 /**
  * EncryptionSetup — Intercepts SSO login when encryption PIN is needed.
@@ -21,6 +23,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     const [showPin, setShowPin] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [reauth, setReauth] = useState(false); // replacing a PIN needs a recent sign-in
     const [recoveryKey, setRecoveryKey] = useState<string | null>(recoveryKeyProp || null);
     const [copied, setCopied] = useState(false);
     const [showRecovery, setShowRecovery] = useState(false);
@@ -30,7 +33,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     const isSetup = mode === 'setup';
 
     const handleSetup = async () => {
-        setError('');
+        setError(''); setReauth(false);
         if (pin.length < 6) {
             setError('PIN must be at least 6 characters');
             return;
@@ -41,16 +44,9 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
         }
 
         setIsLoading(true);
-        try {
-            // Try OPAQUE PIN registration first (PIN never sent to server)
-            const result = await opaquePinRegister(pin);
-            if (result.success && result.recoveryKey) {
-                setRecoveryKey(result.recoveryKey);
-                return;
-            }
-        } catch (opaqueErr) {
-            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', errorMessage(opaqueErr));
-        }
+        const outcome = await setupPinWithOpaque(pin);
+        if (outcome.kind === 'done') { setRecoveryKey(outcome.recoveryKey); return; }
+        if (outcome.kind === 'reauth') { setReauth(true); setIsLoading(false); return; }
 
         // Legacy fallback — PIN sent to server (for users without OPAQUE support)
         try {
@@ -330,6 +326,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
                         </p>
                     </div>
 
+                    {reauth && <div className="mb-4"><ReauthNotice /></div>}
                     {/* Error */}
                     {error && (
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-500 text-sm">

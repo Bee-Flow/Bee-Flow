@@ -555,8 +555,8 @@
       "via": "superAdmin"
     },
     "DELETE /auth/organizations/:id/logo": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "DELETE /auth/roles/:id": {
       "gate": "platform",
@@ -1812,7 +1812,7 @@
     },
     "GET /api/dsr/requests/:id/public": {
       "gate": "open",
-      "reason": "status-URL uit de ontvangstbevestiging van POST /api/dsr/requests — het request-id is de (onraadbare) credential van de indiener"
+      "reason": "status-URL uit de ontvangstbevestiging van POST /api/dsr/requests. Het request-id is een oplopend getal en dus geen geheim: een rij komt alleen terug bij id ÉN het e-mailadres van de indiener (WHERE id = $1 AND subject_email = $2), het antwoord bevat alleen status en termijnen, en per IP begrenst publicReadLimiter het aantal pogingen."
     },
     "GET /api/dsr/requests/:id/timeline": {
       "gate": "permission",
@@ -1889,12 +1889,10 @@
       "gate": "auth"
     },
     "GET /api/integrations/gdrive/export/:fileId": {
-      "gate": "open",
-      "reason": "als GET /api/integrations/gdrive/files — sessie-token-gescoped"
+      "gate": "auth"
     },
     "GET /api/integrations/gdrive/files": {
-      "gate": "open",
-      "reason": "als gmail/messages: Drive-client komt uit req.session-tokens, anoniem → 401 NOT_CONNECTED (routes/integrations/googleDrive.js)"
+      "gate": "auth"
     },
     "GET /api/integrations/gdrive/status": {
       "gate": "auth"
@@ -1918,12 +1916,10 @@
       "via": "handler"
     },
     "GET /api/integrations/gmail/messages": {
-      "gate": "open",
-      "reason": "leest uitsluitend via de OAuth-tokens ín de sessie (createGoogleApiClient(req.session)) — zonder sessie is het antwoord 401 NOT_CONNECTED; er is niets om van een ander te lezen."
+      "gate": "auth"
     },
     "GET /api/integrations/gmail/messages/:messageId": {
-      "gate": "open",
-      "reason": "als GET /api/integrations/gmail/messages — sessie-token-gescoped"
+      "gate": "auth"
     },
     "GET /api/integrations/gmail/status": {
       "gate": "auth"
@@ -3466,8 +3462,8 @@
       "gate": "auth"
     },
     "GET /auth/organizations/:id": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /auth/organizations/:id/encryption": {
       "gate": "handler",
@@ -3478,19 +3474,20 @@
       "via": "registry:handler"
     },
     "GET /auth/organizations/:orgId/active-beta-features": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /auth/organizations/:orgId/active-integrations": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /auth/organizations/:orgId/group-access": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /auth/organizations/:orgId/org-availability": {
-      "gate": "untriaged"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /auth/organizations/public": {
       "gate": "open",
@@ -4940,8 +4937,7 @@
       "gate": "auth"
     },
     "POST /api/integrations/calendar/execute": {
-      "gate": "middleware",
-      "via": "requireOAuthSession"
+      "gate": "auth"
     },
     "POST /api/integrations/connections": {
       "gate": "auth"
@@ -4950,8 +4946,7 @@
       "gate": "auth"
     },
     "POST /api/integrations/contacts/execute": {
-      "gate": "middleware",
-      "via": "requireOAuthSession"
+      "gate": "auth"
     },
     "POST /api/integrations/github-sync/configure": {
       "gate": "permission",
@@ -4983,19 +4978,16 @@
       "via": "handler"
     },
     "POST /api/integrations/gmail/draft": {
-      "gate": "handler",
-      "via": "handler"
+      "gate": "auth"
     },
     "POST /api/integrations/gmail/send": {
-      "gate": "handler",
-      "via": "handler"
+      "gate": "auth"
     },
     "POST /api/integrations/google/disconnect": {
       "gate": "auth"
     },
     "POST /api/integrations/keep/execute": {
-      "gate": "middleware",
-      "via": "requireOAuthSession"
+      "gate": "auth"
     },
     "POST /api/integrations/linkedin/disconnect": {
       "gate": "handler",
@@ -6368,8 +6360,8 @@
       "via": "registry:handler"
     },
     "POST /auth/organizations/:id/logo": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "POST /auth/pending-invite/clear": {
       "gate": "open",
@@ -7216,30 +7208,32 @@
       "via": "orgAdminOfOwnOrg"
     },
     "PUT /auth/organizations/:id": {
-      "gate": "untriaged"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/organizations/:id/encryption": {
       "gate": "handler",
       "via": "registry:handler"
     },
     "PUT /auth/organizations/:orgId/active-beta-features": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/organizations/:orgId/active-integrations": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/organizations/:orgId/beta-features": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/organizations/:orgId/org-access": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/organizations/:orgId/org-availability": {
-      "gate": "untriaged"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /auth/providers/:provider": {
       "gate": "platform",

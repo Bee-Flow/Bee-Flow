@@ -381,12 +381,12 @@ router.get('/sessions/:id', requireCloud, requireAuth, /** @param {import('expre
             const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id || null;
             const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id || null;
             const normalized = { ...session, subscription: subId, customer: customerId };
-            if (sessOrg) {
-                const local = await userStore.getOrgSubscription(sessOrg);
-                if (subId && local?.stripe_subscription_id !== subId) await handleCheckoutCompleted(normalized);
-            } else if (sessUser) {
-                const local = await userStore.getConsumerSubscription(sessUser);
-                if (subId && local?.stripe_subscription_id !== subId) await handleCheckoutCompleted(normalized);
+            // Only a live (active/trialing) subscription that is not older than
+            // the one the local row holds; handleCheckoutCompleted checks both.
+            const local = sessOrg ? await userStore.getOrgSubscription(sessOrg)
+                : sessUser ? await userStore.getConsumerSubscription(sessUser) : null;
+            if ((sessOrg || sessUser) && subId && local?.stripe_subscription_id !== subId) {
+                await handleCheckoutCompleted(normalized, { requireLive: true, notBefore: local?.billing_cycle_start || null });
             }
         }
     } catch (e) {

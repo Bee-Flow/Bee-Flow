@@ -388,6 +388,19 @@ describe('SecuritySection — how server errors reach the user', () => {
         expect(await screen.findByText('Too many attempts — wait a few minutes and try again.')).toBeInTheDocument();
     });
 
+    it('reauth_required on enable offers signing in again instead of the raw refusal', async () => {
+        const user = userEvent.setup();
+        await mount({ status: jsonRes(DISABLED), enable: jsonRes({ error: 'Sign in again before changing this.', code: 'reauth_required' }, 403) });
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
+        await screen.findByAltText('MFA QR code');
+        await user.type(screen.getByPlaceholderText('000000'), '123456');
+        await user.click(screen.getByRole<HTMLButtonElement>('button', { name: 'Enable' }));
+
+        expect(await screen.findByText('For your security, sign in again before making this change.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Sign in again' })).toBeInTheDocument();
+        expect(screen.queryByText('Sign in again before changing this.')).toBeNull();
+    });
+
     it('mfa_secret_unreadable points at a recovery code or an administrator', async () => {
         const user = userEvent.setup();
         const input = await openRegenerate();

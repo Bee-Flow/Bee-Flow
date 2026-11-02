@@ -90,7 +90,23 @@ function resetState() {
     state.updateCalls = [];
     state.linkRequests = []; state.sessions = []; state.graphOid = null; state.verifyError = null; state.msTenant = 'common';
     state.identity = { azureTenantId: '11111111-1111-1111-1111-111111111111', azureUserId: '22222222-2222-2222-2222-222222222222' };
+    state.googleEmailVerified = true;
+    state.resolvedBranch = null;
+    state.ssoIdentities = new Map();
 }
+
+// The sso_identities store: (provider, subject) -> user id, in memory.
+const identityStub = {
+    findUserId: async (provider, subject) => state.ssoIdentities.get(`${provider}|${subject}`) || null,
+    hasOtherSubject: async (userId, provider, subject) => [...state.ssoIdentities].some(([k, v]) => v === userId && k.startsWith(`${provider}|`) && k !== `${provider}|${subject}`),
+    listForUser: async (userId) => [...state.ssoIdentities].filter(([, v]) => v === userId).map(([k]) => ({ provider: k.split('|')[0] })),
+    link: async (userId, provider, subject) => {
+        const key = `${provider}|${subject}`;
+        const owner = state.ssoIdentities.get(key);
+        if (!owner) { state.ssoIdentities.set(key, userId); return 'linked'; }
+        return owner === userId ? 'already' : 'taken';
+    },
+};
 
 const realPermissions = require('./permissions');
 const realResolver = require('./ssoUserResolver');
@@ -118,7 +134,9 @@ const restore = installResolveStub(bothDepths({
         ...realResolver,
         // The router's own resolution is not under test here; hand back the
         // fixture row directly so each test controls the stored shape.
-        resolveExistingSSOUser: async identity => identity.azureUserId ? realResolver.resolveExistingSSOUser(identity, userStoreStub) : ({ user: state.users.get(identity.localId) || null, branch: 'id' }),
+        resolveExistingSSOUser: async identity => identity.azureUserId ? realResolver.resolveExistingSSOUser(identity, userStoreStub)
+            : state.resolvedBranch ? ({ user: null, branch: state.resolvedBranch })
+            : ({ user: state.users.get(identity.localId) || null, branch: 'id' }),
     },
     '../stores/userStore': userStoreStub,
     './encryption': {
@@ -141,6 +159,7 @@ const restore = installResolveStub(bothDepths({
     '../utils/freeEmailDomains': { getEffectiveFreeEmailDomains: async () => ['gmail.com'] },
     './signupGuards': { checkWebSignupAllowed: async () => ({ ok: true }), resolveSignupLocale: async () => 'en' },
     '../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false, isSsoPinRequiredForUser: async () => false },
+    '../ssoIdentityStore.mts': { SSO_IDENTITY_PROVIDERS: ['google', 'nextcloud'], ssoIdentities: () => identityStub },
 }));
 
 for (const p of realPaths) if (p) delete require.cache[p];
@@ -162,7 +181,7 @@ global.fetch = async (url) => {
     // userinfo
     return {
         ok: true, status: 200, statusText: 'OK', text: async () => '',
-        json: async () => ({ sub: 'group-only@acme.example', email: 'group-only@acme.example', name: 'Group Only' }),
+        json: async () => ({ sub: 'group-only@acme.example', email: 'group-only@acme.example', name: 'Group Only', email_verified: state.googleEmailVerified }),
     };
 };
 
@@ -241,6 +260,27 @@ test('a matching state still passes — the guard must not lock legitimate login
     );
 });
 
+test('a Google sign-in whose e-mail Google did not verify is refused before any account lookup', async () => {
+    resetState();
+    state.googleEmailVerified = false;
+    const session = { oauthProvider: 'google', oauthState: 's' };
+    nextSession = session;
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_email_unverified/);
+    assert.deepStrictEqual(state.sessions, []);
+    assert.deepStrictEqual(state.updateCalls, []);
+});
+
+test('an existing account the identity may not link by e-mail: refused, no session, no second account', async () => {
+    resetState();
+    state.resolvedBranch = 'emailRefused';
+    nextSession = { oauthProvider: 'google', oauthState: 's' };
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_link_required/);
+    assert.deepStrictEqual(state.sessions, []);
+    assert.deepStrictEqual(state.updateCalls, []);
+});
+
 // ── 2. Group-only org membership ──────────────────────────────────
 
 test('a member whose only org link is a group is NOT re-bound by email domain', async () => {
@@ -285,6 +325,27 @@ test('a group with no org still counts as org-less (domain match may proceed)', 
     assert.strictEqual(rebinds[0].updates.organizationId, 'org-other');
 });
 
+
+test('a new SSO user placed by domain gets only the org\'s own and plain global default groups', async () => {
+    resetState();
+    state.groups = [
+        { id: 'grp-acme', organizationId: 'org-acme' },
+        { id: 'grp-beta', organizationId: 'org-beta' },
+        { id: 'admins', organizationId: null, permissions: ['all'] },
+        { id: 'users', organizationId: null, permissions: ['read', 'chat'] },
+    ];
+    state.orgs = [{ id: 'org-acme', name: 'Acme', allowedDomains: ['acme.example'], autoApproveSSO: true, defaultGroups: ['grp-acme', 'grp-beta', 'admins', 'users'] }];
+    const created = [];
+    const original = userStoreStub.createUserWithSeatCheck;
+    userStoreStub.createUserWithSeatCheck = async (row) => { created.push(row); return { created: false, reason: 'not used in these tests' }; };
+    try {
+        nextSession = { oauthProvider: 'google', oauthState: 's' };
+        await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s`, { redirect: 'manual' });
+    } finally { userStoreStub.createUserWithSeatCheck = original; }
+    assert.strictEqual(created.length, 1);
+    assert.strictEqual(created[0].organizationId, 'org-acme');
+    assert.deepStrictEqual(created[0].groups, ['grp-acme', 'users']);
+});
 
 // Token claim/signature validation is covered with actual signed tokens in
 // microsoftIdentity.test.js; these cases pin the account/session decisions.
@@ -344,4 +405,66 @@ test('an exact Microsoft identity retains its local account without domain-based
     assert.deepStrictEqual(nextSession.microsoftLoginIdentity, { ...state.identity, revision: '0' });
     assert.deepStrictEqual(state.updateCalls.filter(call => call.updates.organizationId !== undefined), []);
     assert.deepStrictEqual(state.linkRequests, []);
+});
+
+// ── Linking a provider sign-in from a signed-in session ───────────
+
+const linkSession = (extra = {}) => ({
+    oauthProvider: 'google', oauthState: 'link-state', isAuthenticated: true,
+    user: { id: 'alice' }, authenticatedAt: Date.now(), oauthLinkUserId: 'alice', ...extra,
+});
+
+test('a link callback records the subject for the signed-in account and does not sign in', async () => {
+    resetState();
+    state.users.set('alice', { id: 'alice', email: 'other@acme.example', passwordHash: 'x', status: 'active' });
+    const session = linkSession();
+    nextSession = session;
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=link-state`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /\?linked=google$/);
+    assert.strictEqual(state.ssoIdentities.get('google|group-only@acme.example'), 'alice');
+    assert.deepStrictEqual(state.sessions, [], 'no new session is established');
+    assert.strictEqual(session.oauthLinkUserId, undefined, 'the link intent is one-shot');
+});
+
+test('a link callback refuses a subject that belongs to another account', async () => {
+    resetState();
+    state.ssoIdentities.set('google|group-only@acme.example', 'bob');
+    nextSession = linkSession();
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=link-state`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_identity_taken/);
+    assert.strictEqual(state.ssoIdentities.get('google|group-only@acme.example'), 'bob', 'never moved');
+});
+
+test('a link callback is refused when the session now belongs to someone else', async () => {
+    resetState();
+    nextSession = linkSession({ user: { id: 'mallory' } });
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=link-state`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_link_failed/);
+    assert.strictEqual(state.ssoIdentities.size, 0);
+});
+
+test('a matched sign-in records its subject for the account', async () => {
+    resetState();
+    state.users.set('group-only@acme.example', { id: 'group-only@acme.example', email: 'group-only@acme.example', organizationId: 'acme', orgRole: 'member', status: 'active', groups: [] });
+    nextSession = { oauthProvider: 'google', oauthState: 's1' };
+    await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s1`, { redirect: 'manual' });
+    assert.strictEqual(state.ssoIdentities.get('google|group-only@acme.example'), 'group-only@acme.example');
+});
+
+test('a matched sign-in whose subject belongs to another account is refused', async () => {
+    resetState();
+    state.users.set('group-only@acme.example', { id: 'group-only@acme.example', email: 'group-only@acme.example', organizationId: 'acme', orgRole: 'member', status: 'active', groups: [] });
+    state.ssoIdentities.set('google|group-only@acme.example', 'someone-else');
+    nextSession = { oauthProvider: 'google', oauthState: 's3' };
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s3`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_link_required/);
+    assert.deepStrictEqual(state.sessions, []);
+});
+
+test('sso_link_required carries the hint that linking from settings is possible', async () => {
+    resetState();
+    state.resolvedBranch = 'emailRefused';
+    nextSession = { oauthProvider: 'google', oauthState: 's2' };
+    const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s2`, { redirect: 'manual' });
+    assert.match(res.headers.get('location'), /error=sso_link_required&hint=link_from_settings/);
 });

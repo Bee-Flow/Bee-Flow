@@ -232,6 +232,33 @@ test('oversized file -> too_large', async () => {
     assert.deepStrictEqual(res, { ok: false, error: 'too_large' });
 });
 
+test('an entry that declares less than it inflates to is cut off at the declaration (bad_zip, never inflated in full)', async () => {
+    const buf = await buildPackage({
+        mutateZip: (zf) => { zf['assets/huge.bin'] = Buffer.alloc(60 * 1024 * 1024); },
+    });
+    // Rewrite the declared uncompressed size of every entry (local header and
+    // central directory) to 1 KiB.
+    const patched = Buffer.from(buf);
+    for (let i = 0; i < patched.length - 4; i += 1) {
+        const sig = patched.readUInt32LE(i);
+        if (sig === 0x04034b50) patched.writeUInt32LE(1024, i + 22);
+        if (sig === 0x02014b50) patched.writeUInt32LE(1024, i + 24);
+    }
+    // No entry may be inflated whole (JSZip's async() builds the full buffer
+    // before any size check could run); the verifier reads capped streams.
+    const proto = Object.getPrototypeOf(new JSZip().file('a', 'b').file('a'));
+    const original = proto.async;
+    let wholeReads = 0;
+    proto.async = function (...args) { wholeReads += 1; return original.apply(this, args); };
+    try {
+        const res = await verifyPackage(patched, { publicKeyResolver: resolver });
+        assert.deepStrictEqual(res, { ok: false, error: 'bad_zip' });
+    } finally {
+        proto.async = original;
+    }
+    assert.strictEqual(wholeReads, 0);
+});
+
 test('missing manifest.json -> missing_manifest', async () => {
     const buf = await buildPackage({
         mutateZip: (zf) => { delete zf['manifest.json']; },

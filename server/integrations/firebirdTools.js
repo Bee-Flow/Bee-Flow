@@ -9,9 +9,10 @@
  * (firebirdQuery.guardSql). The tool set has no write operation by design
  * (firebirdTools.test.js asserts that).
  *
- * The host is user-supplied, but private and LAN addresses are allowed on
- * purpose: the Bee Flow server runs inside the customer's network next to the
- * database. FIREBIRD_ALLOWED_HOSTS (comma list, empty = any) restricts it.
+ * The host is user-supplied; firebirdHost.mts decides where a connection may
+ * go (private addresses only self-hosted or when the operator allows them,
+ * link-local and metadata never). FIREBIRD_ALLOWED_HOSTS (comma list, empty =
+ * any) also restricts the host.
  * The password never appears in a result, an error or a log line.
  */
 const configStore = require('../stores/configStore');
@@ -19,6 +20,7 @@ const log = require('../telemetry/log');
 const { FIREBIRD_TOOLS, FIREBIRD_TOOL_NAMES, DEFAULT_LIMIT, getMaxRows, getStatementTimeoutMs } = require('./firebirdToolDefs');
 const query = require('./firebirdQuery');
 const { runQuery } = require('./firebirdClient');
+const { allowedHosts, assertReachableHost, _setHostLookupForTests } = require('./firebirdHost.mts');
 
 const HOST_RE = /^[A-Za-z0-9.-]{1,253}$|^\[[0-9A-Fa-f:]{2,45}\]$/;
 const PORT_RE = /^([1-9]\d{0,4})$/;
@@ -31,6 +33,7 @@ const DEFAULT_PORT = 3050;
 const DEFAULT_CHARSET = 'UTF8';
 const MAX_PARAMS = 100;
 const NOT_CONFIGURED = 'Firebird database not configured. Add the server, database and account in Settings → Connections.';
+const CONNECT_FAILED = 'Could not connect to the Firebird database. Check the server, port, database path and account.';
 
 /** @typedef {import('./firebirdClient').FirebirdCreds} FirebirdCreds */
 
@@ -66,20 +69,23 @@ async function getFirebirdCredentials(userId) {
 }
 
 /**
- * Hosts the operator allows (FIREBIRD_ALLOWED_HOSTS), lower-cased; empty means any.
- * @returns {string[]}
- */
-function allowedHosts() {
-    return (process.env.FIREBIRD_ALLOWED_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
-}
-
-/**
  * @param {string} host
  */
 function assertAllowedHost(host) {
     if (!HOST_RE.test(host)) throw new Error('The Firebird server name has an invalid format (host name or IP address only, no scheme or path).');
     const allowed = allowedHosts();
     if (allowed.length && !allowed.includes(host.toLowerCase())) throw new Error('This Firebird server is not in the list of allowed hosts.');
+}
+
+/**
+ * Validate the values and check the host; the connection to use.
+ * @param {Parameters<typeof assertValidCredentials>[0]} raw
+ * @returns {Promise<FirebirdCreds>}
+ */
+async function connectableCredentials(raw) {
+    const creds = assertValidCredentials(raw);
+    const address = await assertReachableHost(creds.host);
+    return { ...creds, address };
 }
 
 /**
@@ -301,7 +307,7 @@ async function executeFirebirdTool(toolName, args, userId) {
     if (!stored) return { error: NOT_CONFIGURED };
 
     try {
-        const creds = assertValidCredentials(stored);
+        const creds = await connectableCredentials(stored);
         log.info(`[Firebird] ${toolName}`);
         return await runFirebirdTool(toolName, args || {}, creds);
     } catch (err) {
@@ -317,12 +323,21 @@ async function executeFirebirdTool(toolName, args, userId) {
  * @returns {Promise<{ ok: boolean, server_version?: string | null, table_count?: number, error?: string }>}
  */
 async function testFirebirdConnection(rawCreds) {
+    /** @type {FirebirdCreds} */
+    let creds;
     try {
-        const creds = assertValidCredentials(rawCreds || {});
+        creds = await connectableCredentials(rawCreds || {});
+    } catch (err) {
+        // Our own wording about the values or the host: safe to show.
+        return { ok: false, error: /** @type {Error} */ (err).message };
+    }
+    try {
         const info = await whoami(creds);
         return { ok: true, server_version: info.server_version, table_count: info.table_count };
     } catch (err) {
-        return { ok: false, error: /** @type {Error} */ (err).message };
+        // The driver's text stays in the log; the answer is one sentence.
+        log.warn(`[Firebird] connection test failed: ${String(/** @type {Error} */ (err).message).split(creds.password).join('***').slice(0, 300)}`);
+        return { ok: false, error: CONNECT_FAILED };
     }
 }
 
@@ -341,6 +356,8 @@ module.exports = {
     CHARSET_RE,
     // Pure helpers exported for unit tests.
     assertValidCredentials,
+    _setHostLookupForTests,
+    CONNECT_FAILED,
     guardSql: query.guardSql,
     parseIdentifier: query.parseIdentifier,
     quoteIdentifier: query.quoteIdentifier,

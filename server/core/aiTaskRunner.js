@@ -211,7 +211,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         });
     }
     const startTime = Date.now();
-    log.info(`[AITaskRunner] Executing task "${task.title}" (${task.id})`);
+    log.info(`[AITaskRunner] Executing task ${task.id}`);
 
     // Spend state for this run — outside the try so the error path can still
     // account for tokens burned before the failure: a run that dies on
@@ -279,7 +279,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
 
         await advanceAfterTaskRun(task, { manual, store, startTime });
     } catch (err) {
-        log.error(`[AITaskRunner] Task "${task.title}" failed:`, /** @type {Error} */ (err).message);
+        log.error(`[AITaskRunner] Task ${task.id} failed:`, /** @type {Error} */ (err).message);
         // The tokens spent before the failure are still spent — account for
         // them (no-op when the run never reached the model, or already logged).
         logRunUsage(task, run, startTime);
@@ -483,7 +483,7 @@ async function dispatchTaskTool(task, run, session, toolName, toolArgs) {
 /** The result text of a plain-prompt run: never empty, at most 50,000 chars. */
 function promptRunOutcome(task, { finalResponse, lastAssistantContent, hitIterationCap }, { messages, tools }) {
     if (!finalResponse || !finalResponse.trim()) {
-        log.warn(`[AITaskRunner] Schedule "${task.title}" (${task.id}) produced no outcome text. ` +
+        log.warn(`[AITaskRunner] Schedule ${task.id} produced no outcome text. ` +
             `hitIterationCap=${hitIterationCap}, ` +
             `messages=${messages.length}, ` +
             `tools=${tools.length}, ` +
@@ -505,13 +505,13 @@ function promptRunOutcome(task, { finalResponse, lastAssistantContent, hitIterat
 async function advanceAfterTaskRun(task, { manual, store, startTime }) {
     if (isRepeating(task) && !manual) {
         const next = await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
-        log.info(`[AITaskRunner] Task "${task.title}" completed (${Date.now() - startTime}ms), next run: ${next}`);
+        log.info(`[AITaskRunner] Task ${task.id} completed (${Date.now() - startTime}ms), next run: ${next}`);
     } else if (isRepeating(task) && manual) {
-        log.info(`[AITaskRunner] Task "${task.title}" completed manually (${Date.now() - startTime}ms), next scheduled run unchanged: ${task.nextRunAt}`);
+        log.info(`[AITaskRunner] Task ${task.id} completed manually (${Date.now() - startTime}ms), next scheduled run unchanged: ${task.nextRunAt}`);
     } else {
         // One-time task → deactivate
         await store.updateTask(task.id, { isActive: false });
-        log.info(`[AITaskRunner] Task "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
+        log.info(`[AITaskRunner] Task ${task.id} completed (one-time, ${Date.now() - startTime}ms)`);
     }
 }
 

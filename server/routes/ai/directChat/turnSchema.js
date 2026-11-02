@@ -42,13 +42,21 @@ const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ inv
  */
 const onOff = (name) => flag(`${name} is true or false.`);
 
+/**
+ * One attachment: an object. A server-side file `path` is never taken from a
+ * client: the key is dropped, so no tool can read a file named by the caller.
+ */
+const attachment = z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'Each attachment is an object.' }) })
+    .transform(({ path: _ignored, ...rest }) => rest);
+const attachmentList = z.array(attachment, { error: typeError({ invalid: 'attachments is a list.' }) });
+
 /** The keys every chat-engine turn shares, typed. */
 const TURN_SHAPE = {
     message: text('message', 1_000_000).nullish(),
     conversationId: text('conversationId', 200).nullish(),
     modelTier: text('modelTier', 100).nullish(),
     history: list('history').nullish(),
-    attachments: list('attachments').nullish(),
+    attachments: attachmentList.nullish(),
     timezone: text('timezone', 100).nullish(),
     reasoningEffort: text('reasoningEffort', 40).nullish(),
     webSearchEnabled: onOff('webSearchEnabled').nullish(),

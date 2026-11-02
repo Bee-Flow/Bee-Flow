@@ -83,13 +83,46 @@ async function deleteWebhook(webhookId, automationId) {
     return rowCount > 0;
 }
 
-/** @param {string} nonce */
-async function checkAndStoreNonce(nonce) {
+// Nonces under this prefix outlive the 24 h sweep (see checkAndStoreNonce).
+const RETAINED_PREFIX = 'keep:';
+
+/**
+ * Days a retained nonce is kept (WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS); 0 or
+ * unset keeps it for good.
+ */
+function retainedNonceDays() {
+    const n = Number(process.env.WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/**
+ * Record a nonce; false when it was seen before.
+ *
+ * Ordinary nonces are swept after 24 h. `retain` is for a delivery whose
+ * signature carries no timestamp: such a request stays valid indefinitely,
+ * so its nonce is kept as long as the request could be sent again (until
+ * WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS, when the operator sets one).
+ * @param {string} nonce
+ * @param {{ retain?: boolean }} [options]
+ */
+async function checkAndStoreNonce(nonce, { retain = false } = {}) {
     await initDB();
-    // Garbage-collect old nonces (> 24h) opportunistically.
-    await run(`DELETE FROM automation_webhook_seen_nonces WHERE seen_at < NOW() - INTERVAL '24 hours'`).catch((e) => bestEffort('automationStore/webhooks:nonceGc', e));
+    // Garbage-collect old nonces opportunistically.
+    await run(`DELETE FROM automation_webhook_seen_nonces WHERE seen_at < NOW() - INTERVAL '24 hours' AND nonce NOT LIKE '${RETAINED_PREFIX}%'`).catch((e) => bestEffort('automationStore/webhooks:nonceGc', e));
+    const days = retainedNonceDays();
+    if (days > 0) {
+        await run(
+            `DELETE FROM automation_webhook_seen_nonces WHERE nonce LIKE '${RETAINED_PREFIX}%' AND seen_at < NOW() - ($1::int * INTERVAL '1 day')`,
+            [days],
+        ).catch((e) => bestEffort('automationStore/webhooks:retainedNonceGc', e));
+    }
+    if (retain) {
+        // The same nonce stored before it was kept under the prefix.
+        const earlier = await getOne(`SELECT 1 AS hit FROM automation_webhook_seen_nonces WHERE nonce = $1`, [nonce]);
+        if (earlier) return false;
+    }
     try {
-        await run(`INSERT INTO automation_webhook_seen_nonces (nonce) VALUES ($1)`, [nonce]);
+        await run(`INSERT INTO automation_webhook_seen_nonces (nonce) VALUES ($1)`, [retain ? RETAINED_PREFIX + nonce : nonce]);
         return true;
     } catch {
         return false; // duplicate

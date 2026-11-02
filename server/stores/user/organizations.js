@@ -486,10 +486,11 @@ async function deleteOrganization(orgId) {
 
         step = 'agents';
         const orgAgents = await getAll('SELECT id FROM agents WHERE organization_id = $1', [orgId]);
-        for (const agent of orgAgents) await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]);
+        for (const agent of orgAgents) await require('../agent/agentConversationsDelete.mts').deleteAgentConversations(run, agent.id);
         await run('DELETE FROM agents WHERE organization_id = $1', [orgId]);
 
-        step = 'knowledge_bases';
+        step = 'knowledge_bases'; // through the content port: each base's chunks (search service, local table) go before the row
+        await require('./erasurePorts').erasurePort('content').eraseOrgKnowledgeBases(orgId);
         await run('DELETE FROM knowledge_bases WHERE organization_id = $1', [orgId]);
         // Projects cascade shares and activity via FK; group shares went with the
         // groups above, user shares with the users.

@@ -234,22 +234,11 @@ test('a bound deposit answers the right secret, once', async () => {
     assert.strictEqual(await claimPickup(pickupId, SECRET), null);
 });
 
-test('a deposit without a challenge is claimable by id alone while the switch is off', async () => {
-    delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
-    const { pickupId, sessionToken } = await deposit(null);
-    const got = await claimPickup(pickupId);
-    assert.strictEqual(got && got.sessionToken, sessionToken);
-});
-
-test('a deposit without a challenge is refused once every client is expected to send one', async () => {
-    process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE = '1';
-    try {
-        const { pickupId } = await deposit(null);
-        assert.strictEqual(await claimPickup(pickupId), null);
-        assert.strictEqual(await claimPickup(pickupId, SECRET), null, 'nor with a secret nobody filed');
-    } finally {
-        delete process.env.OAUTH_PICKUP_REQUIRE_CHALLENGE;
-    }
+test('a deposit without a challenge is never claimable, by id alone or with a secret', async () => {
+    const { pickupId } = await deposit(null);
+    assert.strictEqual(await claimPickup(pickupId), null);
+    const second = await deposit(null);
+    assert.strictEqual(await claimPickup(second.pickupId, SECRET), null, 'nor with a secret nobody filed');
 });
 
 test('the challenge is base64url SHA-256 of the secret text, as the clients compute it', () => {
@@ -316,4 +305,25 @@ test('a bridge payload rests sealed under its token, and reads back plain', asyn
         if (previous === undefined) delete process.env.MASTER_ENCRYPTION_KEY; else process.env.MASTER_ENCRYPTION_KEY = previous;
         _resetDefaultSealerForTests();
     }
+});
+
+// ── What /api/session-token may mint ──────────────────────────────────
+// A bridge token does not mint its own successor, except a native-app token
+// (marked at the sign-in that deposited it); the client header grants nothing.
+test('sessionTokenGrant: a cookie session gets the bridge hour, whatever client it claims to be', () => {
+    const { sessionTokenGrant, SESSION_TOKEN_TTL_SECONDS } = require('./sessionToken');
+    const grant = sessionTokenGrant({ headers: { 'x-beeflow-client': 'android' }, session: { user: { id: 'u1' } } });
+    assert.deepStrictEqual(grant, { ttlSeconds: SESSION_TOKEN_TTL_SECONDS, nativeClient: false });
+});
+
+test('sessionTokenGrant: a bridged request without the native marker is refused', () => {
+    const { sessionTokenGrant } = require('./sessionToken');
+    assert.strictEqual(sessionTokenGrant({ headers: { 'x-session-token': 't', 'x-beeflow-client': 'android' }, session: { user: { id: 'u1' } } }), null);
+    assert.strictEqual(sessionTokenGrant({ headers: { 'x-session-token': 't' }, session: { user: { id: 'u1' }, nativeClient: 'true' } }), null);
+});
+
+test('sessionTokenGrant: a native-app bridge token rolls into another native one', () => {
+    const { sessionTokenGrant, NATIVE_SESSION_TOKEN_TTL_SECONDS } = require('./sessionToken');
+    const grant = sessionTokenGrant({ headers: { 'x-session-token': 't' }, session: { user: { id: 'u1' }, nativeClient: true } });
+    assert.deepStrictEqual(grant, { ttlSeconds: NATIVE_SESSION_TOKEN_TTL_SECONDS, nativeClient: true });
 });

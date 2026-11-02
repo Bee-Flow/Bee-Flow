@@ -121,22 +121,11 @@ async function executeKbFetchTool(args, context = {}) {
         }
     }
 
-    // Fallback: hit the DB directly for IDs not in the cache (e.g. server restart
-    // dropped the cache between kb_search and kb_fetch, or chunk_ids came from
-    // a previous conversation).
+    // Only chunks a kb_search in THIS conversation returned are served: that
+    // search already applied the asker's knowledge-base visibility. An id the
+    // cache does not hold is answered with "run kb_search again".
     if (misses.length > 0) {
-        try {
-            const { getAll } = require('../db');
-            const rows = await getAll(
-                'SELECT id::text AS chunk_id, title, content FROM kb_chunks WHERE id::text = ANY($1::text[])',
-                [misses]
-            );
-            for (const r of rows) {
-                hits.push({ chunk_id: r.chunk_id, title: r.title || '', section: '', content: r.content || '' });
-            }
-        } catch (err) {
-            log.warn('[KBFetch] DB fallback failed:', /** @type {Error} */ (err).message);
-        }
+        log.info(`[KBFetch] ${misses.length} chunk id(s) not in this conversation's search results`);
     }
 
     if (hits.length === 0) {
@@ -410,7 +399,8 @@ async function executeKbSearchTool(toolName, args, context = {}) {
  * @param {string} toolName
  */
 function isKbSearchTool(toolName) {
-    return toolName === 'kb_search' || toolName === 'kb_fetch';
+    // kb_fetch is only offered in preview mode, so only claimed there.
+    return toolName === 'kb_search' || (toolName === 'kb_fetch' && process.env.KB_PREVIEW_MODE === 'true');
 }
 
 module.exports = {

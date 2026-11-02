@@ -10,6 +10,7 @@
  */
 
 const webpageStore = require('../../stores/webpageStore');
+const { ownerShareBaseUrl } = require('../../utils/appPaths');
 const publicShareStore = require('../../stores/webpagePublicShareStore');
 const publicAddress = require('../../stores/webpage/publicAddress');
 const webpageSnapshot = require('../../services/webpageSnapshot');
@@ -92,17 +93,14 @@ function reSnapshotWebpageShares(webpageId, ownerId) {
 // with its own access mode, expiry, and audit trail. Recipients are NOT Bee
 // Flow users; the public viewer route at /share/:token handles them.
 
-const PUBLIC_SHARE_BASE_URL = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_APP_URL || '';
 /**
  * @param {import('express').Request} req
  * @param {string} rawToken
  */
 function buildShareUrl(req, rawToken) {
-    // Prefer an explicit env override (e.g. https://beeflow.nl) so that
-    // links emailed from server-side environments don't end up pointing at
-    // localhost. Fall back to the request's own origin so dev works.
-    const base = PUBLIC_SHARE_BASE_URL
-        || `${req.protocol}://${req.get('host') || ''}`;
+    // The configured public base; the owner's own request origin only when
+    // nothing is configured (the URL goes back to that owner alone).
+    const base = ownerShareBaseUrl(req);
     return `${base.replace(/\/+$/, '')}/share/${rawToken}`;
 }
 

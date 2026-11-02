@@ -20,6 +20,7 @@ const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const { isPlatformOperator } = require('./platformOperator');
 const { HttpError } = require('../core/http/errors');
+const { requireRecentAuth } = require('./recentAuth');
 
 const router = express.Router();
 
@@ -192,6 +193,10 @@ router.post('/enable', requireAuth, mfaCodeLimiter, validate({ body: EnableBody 
     if (row.mfa_enabled) {
         const proven = await proof.verify(req.session, row, req.body.proof || {});
         if (!proven.ok) return refuseProof(res, proven.code, userId);
+    } else if (!requireRecentAuth(req, res, `the second factor of ${userId}`)) {
+        // Turning a second factor on binds the account to a device: the
+        // session must hold a recent sign-in (auth/recentAuth.js).
+        return;
     }
 
     const { plain, stored } = await mfa.generateRecoveryCodes();

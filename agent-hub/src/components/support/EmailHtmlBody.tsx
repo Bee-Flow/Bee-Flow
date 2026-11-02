@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
+import { sanitizeEmailHtml } from './emailHtmlSanitize';
 
 /**
  * Renders an untrusted email HTML body the way Gmail/Outlook would — inside a
@@ -11,8 +12,9 @@ import { logger } from '../../utils/logger';
  * PARENT measure the rendered height (the srcDoc iframe stays same-origin); it
  * does NOT enable scripting inside the email. Never add `allow-scripts` here —
  * `allow-scripts` + `allow-same-origin` together would let the email strip its
- * own sandbox. Remote images load (matches the real email); links open in a new
- * tab via the injected <base target="_blank">.
+ * own sandbox. The body is cleaned first (emailHtmlSanitize.ts). Remote images
+ * load (matches the real email); a click on an http(s) or mailto link is opened
+ * by the app in a new tab with noopener, so the sandbox needs no popup escape.
  */
 
 const WRAPPER_STYLE = `
@@ -50,7 +52,7 @@ const HEAD_INJECT = '<base target="_blank"><style>img{max-width:100%;height:auto
  * in our minimal readable shell.
  */
 function buildSrcDoc(html?: string | null): string {
-    const raw = html || '';
+    const raw = sanitizeEmailHtml(html || '');
     if (/<html[\s>]/i.test(raw)) {
         if (/<head[\s>]/i.test(raw)) {
             return raw.replace(/<head([^>]*)>/i, `<head$1>${HEAD_INJECT}`);
@@ -58,6 +60,18 @@ function buildSrcDoc(html?: string | null): string {
         return raw.replace(/<html([^>]*)>/i, `<html$1><head>${HEAD_INJECT}</head>`);
     }
     return `<!DOCTYPE html><html><head><meta charset="utf-8">${HEAD_INJECT}${WRAPPER_STYLE}</head><body>${raw}</body></html>`;
+}
+
+const OPENABLE_LINK = /^(https?:|mailto:)/i;
+
+/** Opens a clicked link from the e-mail in a new tab, outside the sandbox. */
+function openLinkFromEmail(event: MouseEvent): void {
+    const target = event.target as Element | null;
+    const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor) return;
+    event.preventDefault();
+    const href = anchor.href;
+    if (OPENABLE_LINK.test(href)) window.open(href, '_blank', 'noopener,noreferrer');
 }
 
 export default function EmailHtmlBody({ html }: { html?: string | null }) {
@@ -86,6 +100,7 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
         // keep re-measuring while the email's body resizes.
         try {
             const doc = iframeRef.current?.contentDocument;
+            doc?.addEventListener('click', openLinkFromEmail);
             if (doc?.body && typeof ResizeObserver !== 'undefined') {
                 observerRef.current?.disconnect();
                 const ro = new ResizeObserver(() => measure());
@@ -102,7 +117,7 @@ export default function EmailHtmlBody({ html }: { html?: string | null }) {
             ref={iframeRef}
             title={t('support.email_html_body_email_message', 'Email message')}
             srcDoc={buildSrcDoc(html)}
-            sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            sandbox="allow-same-origin allow-popups"
             onLoad={handleLoad}
             className="w-full block"
             style={{ height, border: 'none', background: '#fff' }}

@@ -110,6 +110,7 @@ function resetFx() {
 function makeSession() {
     return {
         user: { id: 'u1', displayName: 'User One' },
+        authenticatedAt: Date.now(),
         save(cb) { if (cb) cb(); },
     };
 }
@@ -282,6 +283,19 @@ test('/enable on an account without 2FA needs no proof: the forced first setup',
     session.mfaSetupSecret = { secret: 'FIRST', mintedAt: Date.now() };
     const res = await dispatch({ url: '/enable', body: { code: '123456' }, session });
     assert.strictEqual(res.statusCode, 200);
+});
+
+test('/enable on an account without 2FA needs a recent sign-in', async () => {
+    resetFx();
+    fx.user = { mfa_enabled: false, mfa_secret: null, mfa_recovery_codes: null };
+    fx.totpOk = true;
+    const session = makeSession();
+    session.authenticatedAt = Date.now() - 60 * 60_000;
+    session.mfaSetupSecret = { secret: 'FIRST', mintedAt: Date.now() };
+    const res = await dispatch({ url: '/enable', body: { code: '123456' }, session });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'reauth_required');
+    assert.ok(!fx.updates.some(u => u.updates.mfaSecret), 'nothing stored');
 });
 
 test('a key-only account that types a wrong code hears "invalid", not "unreadable"', async () => {

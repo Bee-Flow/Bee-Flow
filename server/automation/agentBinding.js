@@ -450,9 +450,11 @@ function curationOf(config, deps = {}) {
  * An agent nobody curated is untouched: the binding alone is the grant. A
  * config that cannot be read is a no, like every other lookup in this file.
  *
- * @returns {Promise<{ ok: true } | { ok: false, reason: 'agent_unreadable'|'not_granted'|'needs_confirmation' }>}
+ * `guest`: the asker is a public-embed visitor (core/agentRuntime/guestAsker).
+ *
+ * @returns {Promise<{ ok: true } | { ok: false, reason: 'agent_unreadable'|'not_granted'|'needs_confirmation'|'visitor_not_allowed' }>}
  */
-async function agentGrantVerdict({ automation, agentId, confirmed = false, deps = {} }) {
+async function agentGrantVerdict({ automation, agentId, confirmed = false, guest = false, deps = {} }) {
     if (!agentId) return { ok: false, reason: 'agent_unreadable' };
     let curated;
     let grants;
@@ -460,6 +462,7 @@ async function agentGrantVerdict({ automation, agentId, confirmed = false, deps 
         const agentStore = deps.agentStore || require('../stores/agentStore');
         const agent = await agentStore.getForRuntime(agentId);
         if (!agent) return { ok: false, reason: 'agent_unreadable' };
+        if (require('../core/agentRuntime/guestAsker').visitorRefused(guest, agent.config)) return { ok: false, reason: 'visitor_not_allowed' };
         ({ curated, grants } = curationOf(agent.config, deps));
     } catch (e) {
         log.warn(`[automation agent binding] grant lookup failed for agent ${agentId}: ${e.message}`);

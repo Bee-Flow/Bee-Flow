@@ -53,6 +53,34 @@ test('clientHost: the exact legacy idiom, defaults included', () => {
     }
 });
 
+test('share link bases: configuration only, never the Host header in production', () => {
+    const keys = ['PUBLIC_SHARE_BASE_URL', 'PUBLIC_APP_URL', 'PUBLIC_BASE_URL', 'CLIENT_PROTOCOL', 'CLIENT_PUBLIC_HOST', 'NODE_ENV'];
+    const saved = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+    const req = /** @type {any} */ ({ protocol: 'http', get: () => 'other.example.net' });
+    try {
+        for (const k of keys) delete process.env[k];
+        assert.equal(p.configuredShareBaseUrl(), null);
+        process.env.NODE_ENV = 'production';
+        assert.equal(p.mailedShareBaseUrl(req), null, 'nothing configured in production: no mailed link');
+        assert.equal(p.ownerShareBaseUrl(req), 'http://other.example.net', 'owner view falls back to the owner\'s own origin');
+        process.env.NODE_ENV = 'development';
+        assert.equal(p.mailedShareBaseUrl(req), 'http://other.example.net', 'local dev keeps the request origin');
+        process.env.NODE_ENV = 'production';
+        process.env.CLIENT_PUBLIC_HOST = 'app.example.org';
+        assert.equal(p.mailedShareBaseUrl(req), 'https://app.example.org');
+        process.env.PUBLIC_BASE_URL = 'https://base.example.org/';
+        assert.equal(p.mailedShareBaseUrl(req), 'https://base.example.org');
+        process.env.PUBLIC_SHARE_BASE_URL = 'https://share.example.org';
+        assert.equal(p.mailedShareBaseUrl(req), 'https://share.example.org');
+        assert.equal(p.ownerShareBaseUrl(req), 'https://share.example.org');
+    } finally {
+        for (const k of keys) {
+            if (saved[k] === undefined) delete process.env[k];
+            else process.env[k] = saved[k];
+        }
+    }
+});
+
 test('publicBaseUrl: org override → PUBLIC_SHARE_BASE_URL → PUBLIC_APP_URL → clientHost(), origin only', () => {
     const keys = ['PUBLIC_SHARE_BASE_URL', 'PUBLIC_APP_URL', 'CLIENT_PROTOCOL', 'CLIENT_PUBLIC_HOST'];
     const saved = Object.fromEntries(keys.map(k => [k, process.env[k]]));

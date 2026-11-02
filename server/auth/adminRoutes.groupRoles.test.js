@@ -576,3 +576,36 @@ test('POST with an empty roles array, and POST with no roles at all, both still 
     assert.strictEqual(omitted.statusCode, 200);
     assert.deepStrictEqual(fx.createdGroups[0].roles, [], 'an omitted roles field still defaults to []');
 });
+
+// ═══ Z-N4: the group's orgRole follows the same rule ═════════════════
+
+test('Z-N4: a caller cannot set a group orgRole that grants permissions they lack', async () => {
+    resetFx();
+    // manage_users + page_chat only: org_admin grants more than that.
+    fx.callerPerms = ['manage_users', 'page_chat'];
+    const res = await dispatch({ method: 'PUT', url: '/groups/finance', session: JAN, body: { orgRole: 'org_admin' } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.match(res.body.error, /organisation role/);
+    assert.deepStrictEqual(fx.groupUpdates, []);
+    const legacy = await dispatch({ method: 'PUT', url: '/groups/finance', session: JAN, body: { orgRole: 'admin' } });
+    assert.strictEqual(legacy.statusCode, 403, 'the legacy admin value is the same role');
+});
+
+test('Z-N4: an orgRole within the caller\'s grant, an unchanged one and clearing it are allowed', async () => {
+    resetFx();
+    fx.callerPerms = ['org_admin', 'manage_users', 'use_approvals', 'use_notebooks', 'page_chat'];
+    const res = await dispatch({ method: 'PUT', url: '/groups/finance', session: JAN, body: { orgRole: 'org_admin' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    // A narrower caller re-saving the group unchanged is not refused.
+    fx.callerPerms = ['manage_users', 'page_chat'];
+    const echo = await dispatch({ method: 'PUT', url: '/groups/finance', session: JAN, body: { orgRole: 'org_admin', description: 'y' } });
+    assert.strictEqual(echo.statusCode, 200, JSON.stringify(echo.body));
+    const clear = await dispatch({ method: 'PUT', url: '/groups/finance', session: JAN, body: { orgRole: null } });
+    assert.strictEqual(clear.statusCode, 200, JSON.stringify(clear.body));
+});
+
+test('Z-N4: a super admin may set any orgRole', async () => {
+    resetFx();
+    const res = await dispatch({ method: 'PUT', url: '/groups/finance', session: { isAuthenticated: true, isAdmin: true, user: { id: 'root', role: 'admin' } }, body: { orgRole: 'org_admin' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+});

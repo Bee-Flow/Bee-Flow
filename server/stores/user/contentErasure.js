@@ -132,6 +132,22 @@ async function reassignRecordRefs(userId, step, oldestOrgAdmin) {
 }
 
 /**
+ * Support threads the person opened stay with the support desk; the account
+ * reference and the requester's contact details (name, e-mail, IP, user agent)
+ * are cleared. requester_email is NOT NULL, so it becomes empty.
+ * @param {string} userId
+ * @param {Step} step
+ */
+async function anonymiseSupportThreads(userId, step) {
+    await step('support_threads', () => run(
+        `UPDATE support_threads
+            SET requester_user_id = NULL, requester_email = '', requester_name = NULL,
+                requester_ip = NULL, requester_ua = NULL, updated_at = now()
+          WHERE requester_user_id = $1`,
+        [userId]));
+}
+
+/**
  * Everything erasureCoverage.js names, in order: the content stores (bytes
  * outside Postgres first, while the rows that locate them exist), the
  * person's own rows, the references on records that stay, and finally
@@ -145,10 +161,12 @@ async function eraseContent(userId, step, { content, oldestOrgAdmin }) {
     await step('webpages', () => content.eraseWebpages(userId));
     await step('studio apps', () => content.eraseStudioApps(userId));
     await step('skills', () => content.eraseSkills(userId));
+    await step('knowledge_bases', () => content.erasePersonalKnowledgeBases(userId));
     await eraseOwnedRows(userId, step);
+    await anonymiseSupportThreads(userId, step);
     await detachRecordRefs(userId, step);
     await reassignRecordRefs(userId, step, oldestOrgAdmin);
     await step('object storage', () => content.eraseStoragePrefix(userId));
 }
 
-module.exports = { eraseConversations, eraseOwnedRows, detachRecordRefs, reassignRecordRefs, eraseContent };
+module.exports = { eraseConversations, eraseOwnedRows, detachRecordRefs, reassignRecordRefs, anonymiseSupportThreads, eraseContent };

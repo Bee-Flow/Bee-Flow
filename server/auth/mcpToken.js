@@ -17,18 +17,78 @@
  * sight that had to require a ROUTER to reach the signer, which is the upward
  * edge layering.test.js counts. It lives beside certificateToken.js and
  * connectorJwt.js because signed credentials are what auth/ is for.
+ *
+ * Lifetime: a token stops verifying LEGACY_MCP_TOKEN_MAX_AGE_DAYS after it was
+ * issued (default 365, 0 = unlimited). The issue time is kept next to the
+ * secret as `<key>_issued` = { fp, at }, where `fp` is a short hash of the
+ * stored half, so a re-mint (a new stored half) starts a new lifetime. The
+ * mint route records it through `recordIssued`; a token from before that
+ * record existed is stamped the first time it verifies.
  */
 
 'use strict';
 
 const crypto = require('crypto');
 const configStore = require('../stores/configStore');
+const issuedStore = require('../stores/user/mcpTokenIssued.mts');
 
 const TOKEN_PREFIX = 'bfmcp';
 /**
  * @param {string | null} userId
  */
 const SECRET_KEY = (userId) => `mcp_server_token_user_${userId}`;
+/** @param {string | null} userId */
+const ISSUED_KEY = (userId) => `${SECRET_KEY(userId)}_issued`;
+const DEFAULT_MAX_AGE_DAYS = 365;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The lifetime in ms; 0 = unlimited. An unreadable value falls back to the default. */
+function maxAgeMs(env = process.env) {
+    const raw = env.LEGACY_MCP_TOKEN_MAX_AGE_DAYS;
+    const days = raw === undefined || raw === '' ? DEFAULT_MAX_AGE_DAYS : Number(raw);
+    if (!Number.isFinite(days) || days < 0) return DEFAULT_MAX_AGE_DAYS * DAY_MS;
+    return days * DAY_MS;
+}
+
+/** @param {string} random */
+const fingerprint = (random) => crypto.createHash('sha256').update(String(random)).digest('hex').slice(0, 16);
+
+/**
+ * Record when the stored half `random` was issued.
+ * @param {string | null} userId
+ * @param {string} random
+ * @param {number} [now]
+ */
+async function recordIssued(userId, random, now = Date.now()) {
+    await issuedStore.writeIssued(ISSUED_KEY(userId), { fp: fingerprint(random), at: now });
+}
+
+/**
+ * Drop the issue record, for a revoked token: nobody holds the stored half
+ * left behind, so it has no lifetime to keep.
+ * @param {string | null} userId
+ */
+async function clearIssued(userId) {
+    await issuedStore.deleteIssued(ISSUED_KEY(userId));
+}
+
+/**
+ * Whether the token with stored half `stored` is past its lifetime. A token
+ * without a matching issue record is stamped now and counts as fresh.
+ * @param {string} userId
+ * @param {string} stored
+ * @param {number} [now]
+ */
+async function isExpired(userId, stored, now = Date.now()) {
+    const limit = maxAgeMs();
+    if (limit === 0) return false;
+    const issued = await issuedStore.readIssued(ISSUED_KEY(userId));
+    if (!issued || issued.fp !== fingerprint(stored) || typeof issued.at !== 'number') {
+        await recordIssued(userId, stored, now);
+        return false;
+    }
+    return now - issued.at > limit;
+}
 
 /**
  * @param {string | null} userId
@@ -75,7 +135,11 @@ async function authenticateToken(/** @type {unknown} */ authorization) {
         stored = await configStore.getSecret(SECRET_KEY(parsed.userId));
     } catch (_) { return null; }
     if (!stored) return null;
-    return safeEqual(stored, parsed.random) ? parsed.userId : null;
+    if (!safeEqual(stored, parsed.random)) return null;
+    try {
+        if (await isExpired(parsed.userId, stored)) return null;
+    } catch (_) { return null; }
+    return parsed.userId;
 }
 
-module.exports = { TOKEN_PREFIX, SECRET_KEY, mintToken, parseToken, safeEqual, authenticateToken };
+module.exports = { TOKEN_PREFIX, SECRET_KEY, ISSUED_KEY, mintToken, parseToken, safeEqual, authenticateToken, recordIssued, clearIssued, maxAgeMs };

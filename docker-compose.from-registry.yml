@@ -305,7 +305,16 @@ services:
       # Shared headless browser: the `browser` sidecar below (PDF export,
       # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
       # external Playwright server.
-      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}}
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:?Set BROWSER_WS_PATH in .env (openssl rand -hex 24)}}
+      # Operator limits (documented in .env.example; empty = the server default).
+      - WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS=${WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS:-}
+      - AUTOMATION_ALLOW_PRIVATE_TARGETS=${AUTOMATION_ALLOW_PRIVATE_TARGETS:-}
+      - FIREBIRD_ALLOW_PRIVATE_HOSTS=${FIREBIRD_ALLOW_PRIVATE_HOSTS:-}
+      - FIREBIRD_ALLOWED_HOSTS=${FIREBIRD_ALLOWED_HOSTS:-}
+      - OFFICE_PACKAGE_MAX_ENTRIES=${OFFICE_PACKAGE_MAX_ENTRIES:-}
+      - OFFICE_PACKAGE_MAX_INFLATED_BYTES=${OFFICE_PACKAGE_MAX_INFLATED_BYTES:-}
+      - OFFICE_PACKAGE_MAX_PART_BYTES=${OFFICE_PACKAGE_MAX_PART_BYTES:-}
+      - LEGACY_MCP_TOKEN_MAX_AGE_DAYS=${LEGACY_MCP_TOKEN_MAX_AGE_DAYS:-365}
     volumes:
       - beeflow-data:/app/data
       - ./components:/components
@@ -344,8 +353,8 @@ services:
   # Playwright's launchServer has no authentication, so the sidecar sits on its
   # OWN network shared only with the server (never beeflow-network, where the
   # database, object storage and the guard live), publishes no port, and serves
-  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
-  # own when you deploy this file by hand). The network is not `internal`:
+  # at the path in BROWSER_WS_PATH (required; selfhost.sh generates a random
+  # one, set your own when you deploy this file by hand). The network is not `internal`:
   # browse_web and SPA ingestion load public pages. The runner's Playwright must
   # match the server's (scripts/check-playwright-lockstep.mjs): the runner image
   # therefore follows the server's TAG (CI pushes a runner tag beside every
@@ -359,7 +368,7 @@ services:
     environment:
       - PWT_SERVE_HOST=0.0.0.0
       - PWT_SERVE_PORT=9222
-      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:-beeflow-browser}
+      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:?Set BROWSER_WS_PATH in .env (openssl rand -hex 24)}
     shm_size: 256m
     mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
     pids_limit: 512

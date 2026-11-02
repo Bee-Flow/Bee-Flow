@@ -30,6 +30,8 @@ let renderFailure = null;
 // When set, SignRequest throws this instead of sending.
 let signFailure = null;
 const pass = (req, res, next) => next();
+// The routes and socket handlers the last render installed on its context.
+const lastRender = { routes: [], sockets: [], routesBeforePage: 0 };
 
 const MOCKS = {
     '../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
@@ -57,10 +59,22 @@ const MOCKS = {
     },
     '../services/browserProvider': {
         isBackendUnavailable: (err) => !!err && err.code === 'browser_backend_unavailable',
-        withContext: async () => {
+        withContext: async (_opts, fn) => {
             touched.push({ what: 'render' });
             if (renderFailure) throw renderFailure;
-            return Buffer.from('%PDF-1.7');
+            const context = {
+                route: async (_m, h) => { lastRender.routes.push(h); },
+                routeWebSocket: async (_m, h) => { lastRender.sockets.push(h); },
+                newPage: async () => {
+                    lastRender.routesBeforePage = lastRender.routes.length;
+                    return {
+                        setContent: async () => {},
+                        evaluate: async () => {},
+                        pdf: async () => Buffer.from('%PDF-1.7'),
+                    };
+                },
+            };
+            return fn(context);
         },
     },
     '../auth/permissions': { requireAuth: pass },
@@ -119,7 +133,29 @@ function dispatch({ url, body }) {
 const refusedAt = (res, path) => res.statusCode === 400 && res.body.details.some((d) => d.path === path);
 const calls = (what) => touched.filter((t) => t.what === what);
 
-test.beforeEach(() => { touched.length = 0; renderFailure = null; signFailure = null; });
+test.beforeEach(() => {
+    touched.length = 0; renderFailure = null; signFailure = null;
+    lastRender.routes = []; lastRender.sockets = []; lastRender.routesBeforePage = 0;
+});
+
+test('the PDF render has no network: every http(s) request is aborted before the page opens', async () => {
+    const res = await dispatch({ url: '/nb-1/export/pdf', body: { content: '<p>Hoi</p>', title: 'Plan' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(lastRender.routesBeforePage, 1, 'the route is installed before newPage');
+    const verdict = async (url) => {
+        let out = null;
+        await lastRender.routes[0]({
+            request: () => ({ url: () => url }),
+            continue: async () => { out = 'continue'; },
+            abort: async () => { out = 'abort'; },
+        });
+        return out;
+    };
+    assert.strictEqual(await verdict('http://169.254.169.254/latest/meta-data/'), 'abort');
+    assert.strictEqual(await verdict('https://cdn.example.com/x.png'), 'abort');
+    assert.strictEqual(await verdict('data:image/png;base64,AAAA'), 'continue');
+    assert.strictEqual(lastRender.sockets.length, 1, 'WebSockets are refused too');
+});
 
 // ── title and content ───────────────────────────────────────────────
 

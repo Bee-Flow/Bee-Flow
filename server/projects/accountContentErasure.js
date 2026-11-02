@@ -14,6 +14,7 @@
 'use strict';
 
 const { getAll } = require('../db');
+const { isMissingTable } = require('../utils/isMissingTable');
 
 /**
  * Meeting notes: through the store, which also removes the recording (the
@@ -98,4 +99,45 @@ async function eraseStoragePrefix(userId) {
     return storageStore.deletePrefix(`users/${userId}/`);
 }
 
-module.exports = { eraseTranscriptions, eraseOrgTranscriptions, eraseWebpages, eraseStudioApps, eraseSkills, eraseStoragePrefix };
+/**
+ * Knowledge bases: the chunks in the search service and the local table go
+ * first (strict, so a failure leaves the base for a retry), then the base;
+ * documents cascade on the FK and deleteKB clears the derived tables. Raw
+ * rows rather than the route's guard: an erasure is not a stage deploy.
+ * @param {Array<{ id: string, tenant_id: string }>} rows
+ */
+async function eraseKnowledgeBaseRows(rows) {
+    const { purgeKbChunks } = require('../core/kb/kbPurge.mts');
+    const { run } = require('../db');
+    for (const kb of rows) {
+        await purgeKbChunks(kb, { strict: true });
+        await run('DELETE FROM kb_document_versions WHERE knowledge_base_id = $1', [kb.id])
+            .catch((/** @type {unknown} */ e) => { if (!isMissingTable(e)) throw e; });
+        await run('DELETE FROM knowledge_bases WHERE id = $1', [kb.id]);
+    }
+    return rows.length;
+}
+
+/**
+ * The person's personal knowledge bases (no organisation; keyed by the
+ * creator). An organisation's bases stay with the organisation.
+ * @param {string} userId
+ */
+async function erasePersonalKnowledgeBases(userId) {
+    const rows = await getAll('SELECT id, tenant_id FROM knowledge_bases WHERE tenant_id = $1 AND organization_id IS NULL', [userId]);
+    return eraseKnowledgeBaseRows(rows);
+}
+
+/**
+ * Every knowledge base of an organisation, for the organisation cascade.
+ * @param {string} orgId
+ */
+async function eraseOrgKnowledgeBases(orgId) {
+    const rows = await getAll('SELECT id, tenant_id FROM knowledge_bases WHERE organization_id = $1', [orgId]);
+    return eraseKnowledgeBaseRows(rows);
+}
+
+module.exports = {
+    eraseTranscriptions, eraseOrgTranscriptions, eraseWebpages, eraseStudioApps, eraseSkills, eraseStoragePrefix,
+    erasePersonalKnowledgeBases, eraseOrgKnowledgeBases,
+};

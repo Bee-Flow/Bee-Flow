@@ -401,3 +401,25 @@ test('handoff 5: runPolicy.retry — the default retry count, then continue past
     assert.strictEqual(stopped.status, 'error');
     assert.strictEqual(stepOutput(stopped.id, 'after'), undefined);
 });
+
+test('a suspended owner\'s automation is refused for every trigger kind, before a run row exists', async () => {
+    const users = require('../../stores/userStore');
+    const original = users.getUser;
+    const automation = { id: 'auto-owner', version: 1, userId: 'user-1', organizationId: 'org-a', title: 'Owner', triggerType: 'manual',
+        definition: { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [] } };
+    AUTOMATION = automation;
+    try {
+        users.getUser = async () => ({ id: 'user-1', status: 'suspended' });
+        for (const triggerKind of ['webhook', 'app_event', 'form', 'manual', 'agent_call']) {
+            await assert.rejects(() => runner.executeAutomation(automation, { triggerKind }),
+                (e) => e.status === 409 && e.code === 'automation_owner_inactive', triggerKind);
+        }
+        assert.strictEqual(runs.size, 0, 'no run row');
+        // An active owner runs as before.
+        users.getUser = async () => ({ id: 'user-1', status: 'active' });
+        const run = await runner.executeAutomation(automation, { triggerKind: 'webhook' });
+        assert.strictEqual(run.status, 'success', `${run.status}: ${run.error}`);
+    } finally {
+        users.getUser = original;
+    }
+});

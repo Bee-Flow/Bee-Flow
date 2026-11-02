@@ -96,4 +96,6 @@ module.exports = {
     'mfa.confirm_with_key': 'Confirm with security key',
     // Hardcoded literals converted (2026-10)
     'mfa.authenticator_qr_alt': 'MFA QR code',
+    'mfa.reauth_sign_in': 'Sign in again',
+    'mfa.link_providers_title': 'Sign-in providers',
 };

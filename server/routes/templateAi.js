@@ -7,9 +7,31 @@ const storageStore = require('../stores/storageStore');
 const configStore = require('../stores/configStore');
 const { getProviderForModel } = require('../core/aiAgent');
 const { getAdapter } = require('../core/providers');
-const { badRequest } = require('../core/http/errors');
+const { badRequest, HttpError } = require('../core/http/errors');
 const { autoCreateTemplateKB } = require('./templateKb');
 const { generateTemplateContext } = require('./templateContext');
+
+/**
+ * The raw text of a .docx, with the package checked against the office caps
+ * (core/documents/zipGuard.js officePackageLimits) before mammoth inflates it
+ * in full. A package past a cap is a 422; a file that is no zip at all is left
+ * to mammoth, which refuses it as before.
+ * @param {Buffer} buffer
+ * @returns {Promise<string>}
+ */
+async function extractDocxText(buffer) {
+    const { scanPackage, officePackageLimits, ZipLimitError } = require('../core/documents/zipGuard');
+    try {
+        await scanPackage(buffer, officePackageLimits());
+    } catch (err) {
+        if (err instanceof ZipLimitError && err.reason !== 'not_a_zip') {
+            throw new HttpError(422, 'document_rejected', `This document was not opened: ${err.message}`);
+        }
+        if (!(err instanceof ZipLimitError)) throw err;
+    }
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value || '';
+}
 
 /**
  * The file behind a `local:` storage key, and only if it lies under
@@ -333,12 +355,11 @@ Respond with ONLY a valid JSON array, no other text:
     }
 
     // Re-extract parameters from the modified text
-    const newResult = await mammoth.extractRawText({ buffer: modifiedBuffer });
-    const newText = newResult.value || '';
+    const newText = await extractDocxText(modifiedBuffer);
     const newParams = extractParameters(newText);
 
     await templateStore.updateTemplate(templateId, userId, { parameters: newParams });
     log.info(`[Templates] Template ${templateId} now has ${newParams.length} parameters after auto-parameterization`);
 }
 
-module.exports = { localTemplateFile, extractParameters, generateTemplateContext, autoCreateTemplateKB, autoParameterizeTemplate };
+module.exports = { localTemplateFile, extractDocxText, extractParameters, generateTemplateContext, autoCreateTemplateKB, autoParameterizeTemplate };

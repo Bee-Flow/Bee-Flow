@@ -188,3 +188,23 @@ test('een run die vóór de eerste model-call strandt logt géén lege regel', a
 });
 
 test.after(() => restore());
+
+test('the run log lines name the task by id, never by its title (user content)', async () => {
+    resetScenario();
+    script = [{ content: 'Klaar.', usage: { prompt_tokens: 1, completion_tokens: 1 } }];
+    const lines = [];
+    const orig = { log: console.log, info: console.info, warn: console.warn };
+    console.log = console.info = console.warn = (...a) => { lines.push(a.map(String).join(' ')); };
+    try {
+        await executeTask(
+            { id: 'cw-title', userId: 'u1', modelTier: 'fast', title: 'Salaris Jan Dekker', prompt: 'Doe iets.' },
+            { store: fakeStore },
+        );
+        await flush();
+    } finally {
+        Object.assign(console, orig);
+    }
+    const runner = lines.filter((l) => l.includes('[AITaskRunner]'));
+    assert.ok(runner.some((l) => l.includes('cw-title')), 'the id is logged');
+    assert.ok(!runner.some((l) => l.includes('Jan Dekker')), 'the title is not');
+});

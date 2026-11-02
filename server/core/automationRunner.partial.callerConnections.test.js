@@ -25,6 +25,9 @@ installRunnerIdentityStubs();
 const { installPartialRunHarness } = require('./automationRunner.partial.testkit');
 const { runner, storeStub, makeRun, runs, reset } = installPartialRunHarness();
 require('../stores/userStore').getUser = async (id) => USERS[id] || null;
+// The owner gate (automationRunner/ownerGate.mts) asks for the automations capability;
+// these runs are about identity, not licensing.
+require('./entitlements/entitlements').hasCapability = async () => true;
 after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
 storeStub.getCallerNoticeAck = async () => [];

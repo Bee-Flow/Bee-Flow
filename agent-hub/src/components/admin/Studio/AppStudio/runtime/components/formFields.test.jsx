@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { authFetch } from '@/utils/helpers';
 import AppForm from './AppForm';
@@ -381,6 +382,19 @@ describe('AppInputFile', () => {
         });
         await findByText(/file storage is full/i);
         expect(getByText('first.pdf')).toBeTruthy();
+    });
+
+    it('sends the delete token from the upload answer when the file is removed', async () => {
+        authFetch.mockImplementation(async () => ({ ok: true, json: async () => ({ success: true, attachment: { id: 'att-1', mime: 'application/pdf', size: 4 }, deleteToken: 'tok-1' }) }));
+        const user = userEvent.setup();
+        const { container, findByText, getByLabelText } = renderFileForm();
+        await user.upload(container.querySelector('input[type="file"]'), new File(['data'], 'report.pdf', { type: 'application/pdf' }));
+        await findByText('report.pdf');
+        await user.click(getByLabelText(/remove/i));
+        await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
+            '/api/studio-apps/app-1/data/attachments/att-1',
+            expect.objectContaining({ method: 'DELETE', headers: { 'X-Upload-Delete-Token': 'tok-1' } }),
+        ));
     });
 
     // Regression: the control kept its previous value, so picking the SAME file

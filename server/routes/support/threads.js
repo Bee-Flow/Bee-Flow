@@ -46,7 +46,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 // The handler bodies: the steps of creating a ticket, and the staff routes.
-const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = require('./threadCreate');
+const { _isLikelySpam, loggedInRequester, openTicket } = require('./threadCreate');
 const H = require('./threadHandlers');
 const log = require('../../telemetry/log');
 const requesterSession = require('./requesterSession');
@@ -167,7 +167,6 @@ async function createThread(/** @type {import('express').Request} */ req, /** @t
         if (!r.email) {
             return res.status(400).json({ error: 'email is required for anonymous submissions' });
         }
-        await anonymousRequester(r);
     }
 
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email)) {
@@ -228,7 +227,21 @@ async function getThread(/** @type {import('express').Request} */ req, /** @type
     const { staff, allowed } = await checkThreadAccess(req, res, thread);
     if (!allowed) return NOT_FOUND();
     const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
-    res.json({ thread, messages, viewerIsStaff: !!staff });
+    res.json({ thread: staff ? thread : requesterThreadView(thread), messages, viewerIsStaff: !!staff });
+}
+
+/** The thread fields a requester (owner or token holder) sees; the rest is staff-only. */
+const REQUESTER_THREAD_FIELDS = [
+    'id', 'subject', 'status', 'priority', 'source', 'category', 'ticket_ref',
+    'created_at', 'updated_at', 'last_message_at', 'first_response_at', 'resolved_at', 'ai_handled',
+    'csat_score', 'csat_comment', 'csat_at', 'resolution_confirmed_at', 'resolution_disputed_at',
+];
+/** @param {Record<string, unknown>} thread */
+function requesterThreadView(thread) {
+    /** @type {Record<string, unknown>} */
+    const out = {};
+    for (const key of REQUESTER_THREAD_FIELDS) if (key in thread) out[key] = thread[key];
+    return out;
 }
 
 /** GET /t/:id/open — see registerThreadRoutes. Same 404 for every miss. */

@@ -32,6 +32,7 @@ Module._load = function (request, parent, isMain) {
             return {
                 getAllOrganizations: async () => stubs.orgs,
                 getOrganization: async (id) => stubs.orgs.find(o => o.id === id) || null,
+                getAllGroups: async () => [],
                 createOrganization: async () => stubs.createOrganizationResult,
                 updateUser: async (id, u) => { stubs.updatedUsers.push({ id, updates: u }); return true; },
                 claimNotification: async (...a) => { stubs.welcomeClaims.push(a); return false; },
@@ -186,5 +187,24 @@ describe('welcome email gating', () => {
         const p = await finalizeAndFlush({ email: 'u@x.com' });
         assert.equal(p.needsVerification, true);
         assert.deepEqual(stubs.welcomeClaims, []);
+    });
+});
+
+describe('OAuth invited signup (ssoUserProvisioning with a claimed invitation)', () => {
+    test('with ALLOW_SIGNUPS=false an invited OAuth signup joins the inviting organisation', async () => {
+        process.env.ALLOW_SIGNUPS = 'false';
+        stubs.orgs = [{ id: 'acme', name: 'Acme', defaultGroups: [] }];
+        const inviteData = { id: 'inv-1', email: 'ann@acme.example', organization_id: 'acme', role: 'member' };
+        const intent = ap.normalizeSignupIntent({ invite: true, email: 'ann@acme.example' }, { provider: 'google', channel: 'oauth', inviteData, inviteToken: 'tok-1' });
+        assert.equal(intent.accountType, 'join_existing');
+        const p = await ap.prepareAccountPlacement(intent, { req: REQ });
+        assert.equal(p.organizationId, 'acme');
+        assert.equal(p.status, 'active');
+    });
+
+    test('without the invitation the same signup stays refused', async () => {
+        process.env.ALLOW_SIGNUPS = 'false';
+        const e = await ap.prepareAccountPlacement(oauthIntent({ invite: true }, 'ann@acme.example'), { req: REQ }).catch(x => x);
+        assert.ok(e instanceof ap.SignupError);
     });
 });

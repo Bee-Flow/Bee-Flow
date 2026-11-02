@@ -461,3 +461,13 @@ test('an automation called from inside a caller-mode run records that run\'s sta
     // Inside a run on the caller's connections the starter travels with the call.
     assert.strictEqual(runnerTraceOptions(trace, { userId: 'caller-1', connectionsCallerUserId: 'caller-1' }).startedByUserId, 'caller-1');
 });
+
+test('a public-embed visitor cannot start a bound automation by name unless the owner opened owner tools to visitors', async () => {
+    reset(agentAutomation());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    await assert.rejects(
+        () => dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'guest_abc', agentId: 'agt_1' }, bindingDeps),
+        (e) => /not allowed/.test(e.message),
+    );
+    assert.strictEqual(lastRun, null, 'nothing ran');
+});

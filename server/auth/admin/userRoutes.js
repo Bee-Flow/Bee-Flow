@@ -36,6 +36,7 @@ const {
     refuseLastOrgAdmin,
     normaliseOrgId,
     requireOrgAdminForUser,
+    defaultGroupsRefused,
 } = require('./orgAdminGuards');
 
 // The org-role model, read from the same file permissions.js resolves against.
@@ -168,21 +169,25 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
         }
     }
 
-    // Merge default groups from all organizations
-    let finalGroups = groups || [];
-    try {
-        const orgs = await userStore.getAllOrganizations();
-        for (const org of orgs) {
-            if (org.defaultGroups && Array.isArray(org.defaultGroups)) {
-                for (const gid of org.defaultGroups) {
-                    if (!finalGroups.includes(gid)) {
-                        finalGroups.push(gid);
-                    }
-                }
+    // Merge the default groups of the TARGET organisation only, each through
+    // the same check as the `groups` the caller sent.
+    let finalGroups = Array.isArray(groups) ? [...groups] : [];
+    if (targetOrgId) {
+        try {
+            const orgs = await userStore.getAllOrganizations();
+            const org = orgs.find(o => o.id === targetOrgId);
+            /** @type {string[]} */
+            const defaults = Array.isArray(org?.defaultGroups) ? org.defaultGroups.map(String) : [];
+            const refused = defaults.length ? new Set(await defaultGroupsRefused(req, targetOrgId, defaults)) : new Set();
+            if (refused.size > 0) {
+                log.warn(`[Auth] Skipped ${refused.size} default group(s) of org '${targetOrgId}' the caller may not assign`);
             }
+            for (const gid of defaults) {
+                if (!refused.has(gid) && !finalGroups.includes(gid)) finalGroups.push(gid);
+            }
+        } catch (e) {
+            log.warn('[Auth] Failed to merge default groups:', /** @type {Error} */ (e).message);
         }
-    } catch (e) {
-        log.warn('[Auth] Failed to merge default groups:', /** @type {Error} */ (e).message);
     }
 
     const passwordHash = await passwords.hash(password);

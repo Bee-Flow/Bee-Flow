@@ -81,8 +81,14 @@ export function parseDeepLink(raw: string): DeepLinkAction {
         case 'tasks':
             return navigateTo(rest ? `/app/tasks/${rest}` : '/app/tasks');
         case 'go': {
-            // The general escape hatch: beeflow://go/app/whatever
-            return navigateTo(`/${rest}`);
+            // The general escape hatch: beeflow://go/app/whatever. Only the
+            // app's own screens; public pages, files and API paths are not
+            // something a link from outside opens in the signed-in window.
+            const action = navigateTo(`/${rest}`);
+            if (action.kind === 'navigate' && !isAppScreen(action.path)) {
+                return { kind: 'unknown', reason: 'That link does not point to a screen in the app.', needsConfirmation: false };
+            }
+            return action;
         }
         case 'ask': {
             const text = params.get('text') ?? decodeSafely(rest);
@@ -132,6 +138,11 @@ function navigateTo(path: string): DeepLinkAction {
         return { kind: 'unknown', reason: 'That link contains characters a path cannot have.', needsConfirmation: false };
     }
     return { kind: 'navigate', path: cleaned, needsConfirmation: false };
+}
+
+/** `/`, `/app` or a path under `/app/`: the screens of the SPA. */
+function isAppScreen(path: string): boolean {
+    return path === '/' || path === '/app' || path.startsWith('/app/');
 }
 
 function decodeSafely(value: string): string {

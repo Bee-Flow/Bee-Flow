@@ -87,6 +87,9 @@ const { installPartialRunHarness } = require('./automationRunner.partial.testkit
 const { runner, storeStub, runs, reset } = installPartialRunHarness();
 const userStore = require('../stores/userStore');
 userStore.getUser = async (id) => USERS[id] || null;
+// The owner gate (automationRunner/ownerGate.mts) asks for the automations capability;
+// these runs are about identity, not licensing.
+require('./entitlements/entitlements').hasCapability = async () => true;
 
 const { registerRunnerPorts } = require('./automationRunner/featurePorts');
 let sandboxCalls = [];

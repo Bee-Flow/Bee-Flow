@@ -90,4 +90,59 @@ async function requestAllowed(rawUrl, screen) {
     return screen(u.hostname);
 }
 
-module.exports = { makeResolvedHostScreen, requestAllowed, DEFAULT_TTL_MS };
+/**
+ * Route every request of `context` through `screen`: http(s) to a public
+ * host continues, anything else is aborted. Page-level routes (a fake preview
+ * origin fulfilled in-process) take precedence over this one.
+ * @param {import('playwright').BrowserContext} context
+ * @param {HostScreen} [screen]
+ * @returns {Promise<HostScreen>}
+ */
+async function guardContextRequests(context, screen = makeResolvedHostScreen()) {
+    await context.route('**/*', async (route) => (
+        await requestAllowed(route.request().url(), screen) ? route.continue() : route.abort('blockedbyclient')
+    ));
+    return screen;
+}
+
+/**
+ * WebSockets are not seen by `context.route`; screen them on their own. A
+ * socket to a host `screen` accepts connects, any other is closed.
+ * The verdict comes from a server-side resolution of the name; the browser
+ * resolves it again when it dials, so a name whose answer changes between the
+ * two lookups is not covered here (the sidecar's network isolation is).
+ * @param {import('playwright').BrowserContext} context
+ * @param {HostScreen} screen
+ */
+async function guardContextWebSockets(context, screen) {
+    await context.routeWebSocket(/.*/, async (ws) => {
+        const httpUrl = ws.url().replace(/^ws(s?):/i, 'http$1:');
+        if (await requestAllowed(httpUrl, screen)) {
+            ws.connectToServer();
+            return;
+        }
+        await ws.close();
+    });
+}
+
+const OFFLINE_SCHEMES = new Set(['data:', 'about:', 'blob:']);
+
+/**
+ * For a render that needs no network at all (PDF of already-inlined HTML):
+ * only data:, about: and blob: continue; every other request and every
+ * WebSocket is refused.
+ * @param {import('playwright').BrowserContext} context
+ */
+async function blockContextNetwork(context) {
+    await context.route('**/*', (route) => {
+        const url = route.request().url();
+        const protocol = URL.canParse(url) ? new URL(url).protocol : '';
+        return OFFLINE_SCHEMES.has(protocol) ? route.continue() : route.abort('blockedbyclient');
+    });
+    await context.routeWebSocket(/.*/, (ws) => ws.close());
+}
+
+module.exports = {
+    makeResolvedHostScreen, requestAllowed, guardContextRequests, guardContextWebSockets, blockContextNetwork,
+    DEFAULT_TTL_MS,
+};

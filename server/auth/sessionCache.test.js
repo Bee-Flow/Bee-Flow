@@ -247,6 +247,24 @@ test('bustSessionsForUser revokes the user\'s bridge tokens as well', async () =
     assert.deepEqual(revoked, ['u1']);
 });
 
+test('endSessionsForOrg ends members\' sessions and bridge tokens, not only sessions that name the org', async () => {
+    const { endSessionsForOrg } = require('./sessionCache');
+    const queries = [];
+    const pool = {
+        query: async (/** @type {string} */ sql, /** @type {any[]} */ params) => {
+            queries.push({ sql, params });
+            if (/FROM users/.test(sql)) return { rows: [{ id: 'm1' }, { id: 'm2' }] };
+            if (/'organizationId'/.test(sql)) return { rows: [] };
+            return { rows: [{ sid: `s-${params[0]}` }] };
+        },
+    };
+    const revoked = [];
+    const sessionTokens = /** @type {any} */ ({ revokeSessionTokensForUser: async (/** @type {string} */ id) => { revoked.push(id); return 1; } });
+    const total = await endSessionsForOrg('org-a', { db: /** @type {any} */ ({ pool, getRedis: () => null }), sessionTokens });
+    assert.equal(total, 2, 'one session per member, though none of them named the org');
+    assert.deepEqual(revoked, ['m1', 'm2']);
+});
+
 test('with a sealer the cache holds sealed rows: on write, and on the write-back of a miss', async () => {
     const { createSessionSealer, isSealed } = require('./sessionSeal');
     const sealer = createSessionSealer('a-master-key-of-at-least-thirty-two-characters');

@@ -103,6 +103,9 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     const toolName = streamed ? toolCall.function?.name : (toolCall.function?.name || toolCall.name); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
     let toolArgs = {};
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
+    // Only a name offered this turn is dispatched, ahead of the DLP restore (./offeredToolGate.mts).
+    const unoffered = require('./offeredToolGate.mts').refuseUnofferedTool(toolCall, toolName, ctx);
+    if (unoffered) return unoffered;
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the
     // [email_1] placeholder. Search queries keep their
@@ -123,11 +126,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         log.info(`[DirectChat] ${toolName} rejected by notebook-write gate`);
         ctx.send('tool_start', { name: toolName, args: toolArgs });
         ctx.send('tool_end', { name: toolName, result: '[Notebook write skipped — not requested]' });
-        return {
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: JSON.stringify({ error: _nbGate.reason }),
-        };
+        return { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: _nbGate.reason }) };
     }
 
     log.info(`[DirectChat] Executing ${streamed ? 'streamed ' : ''}tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);

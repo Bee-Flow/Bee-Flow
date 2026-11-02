@@ -27,7 +27,7 @@ const Module = require('module');
 const opaque = require('@serenity-kit/opaque');
 
 // ── Fixtures ─────────────────────────────────────────────────────────
-const fx = { users: [], failures: [], successes: [] };
+const fx = { users: [], failures: [], successes: [], updates: [], busts: [] };
 
 const mw = (req, res, next) => next();
 
@@ -41,8 +41,10 @@ const MOCKS = {
             const u = fx.users.find((x) => x.email === email);
             return u ? { ...u } : null;
         },
+        updateUser: async (id, patch) => { fx.updates.push([id, patch]); return true; },
     },
-    './permissions': { requireAuth: mw },
+    './permissions': { requireAuth: mw, loadConfig: async () => ({ admin: { username: 'admin' } }) },
+    './sessionCache': { bustSessionsForUser: async (id, opts) => { fx.busts.push([id, opts]); return 0; } },
     '../db': { getRedis: () => null },
     '../telemetry/metrics': { recordAuthEvent: () => { } },
     './establishSession': { establishSession: async () => { } },
@@ -69,7 +71,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /auth[\\/]opaqueRoutes\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
+    if (parent && /auth[\\/]opaque(Routes|CredentialGuards)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
     return originalResolve.call(this, request, parent, ...rest);
@@ -85,10 +87,10 @@ try {
 }
 Module._resolveFilename = originalResolve;
 
-function dispatch({ method, url, body = {}, session }) {
+function dispatch({ method, url, body = {}, session, headers = {} }) {
     return new Promise((resolve, reject) => {
         const request = {
-            method, url, body, query: {}, params: {}, headers: {},
+            method, url, body, query: {}, params: {}, headers, sessionID: 'sid-1',
             ip: '203.0.113.9',
             socket: { remoteAddress: '203.0.113.9' },
             session: { save: (cb) => cb && cb(null), ...session },
@@ -314,6 +316,69 @@ test('the SSO PIN login start also survives an already-parsed envelope', async (
     });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body.wrappedDEK, { iv: '11'.repeat(12), authTag: '22'.repeat(16), data: '33'.repeat(32) });
+});
+
+// ═══ ALLOW_PASSWORD_LOGIN=false ══════════════════════════════════════
+
+test('with password sign-in switched off, the real password no longer completes an OPAQUE login', async () => {
+    process.env.ALLOW_PASSWORD_LOGIN = 'false';
+    try {
+        const { clientLoginState, startLoginRequest } = startLoginRequestFor(REAL_PASSWORD);
+        const start = await dispatch({ method: 'POST', url: '/login/start', body: { username: 'opaque_user', startLoginRequest } });
+        assert.strictEqual(start.statusCode, 200, 'the same answer shape as any account');
+        assert.notStrictEqual(start.body.wrappedDEK.data, 'cc'.repeat(32), 'not the account\'s own blob');
+        const finished = opaque.client.finishLogin({ clientLoginState, loginResponse: start.body.loginResponse, password: REAL_PASSWORD });
+        const res = await dispatch({
+            method: 'POST', url: '/login/finish',
+            body: { loginId: start.body.loginId, finishLoginRequest: finished ? finished.finishLoginRequest : 'x' },
+        });
+        assert.strictEqual(res.statusCode, 401);
+    } finally {
+        delete process.env.ALLOW_PASSWORD_LOGIN;
+    }
+});
+
+// ═══ /register/finish: an interactive, recent sign-in only ═══════════
+
+const REGISTER_BODY = {
+    registrationRecord: 'rec', kekSalt: 'salt',
+    wrappedDEK: { iv: 'aa'.repeat(12), authTag: 'bb'.repeat(16), data: 'cc'.repeat(32) },
+    confirmReplace: true,
+};
+
+test('register/finish without a recent proof is refused, even for an account with no OPAQUE record', async () => {
+    fx.updates.length = 0;
+    const res = await dispatch({
+        method: 'POST', url: '/register/finish', body: REGISTER_BODY,
+        session: { user: { id: 'legacy_user' }, authenticatedAt: Date.now() - 60 * 60 * 1000 },
+    });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'reauth_required');
+    assert.deepStrictEqual(fx.updates, []);
+});
+
+test('register/finish over a connector session or a bridge token is refused', async () => {
+    fx.updates.length = 0;
+    const fresh = { user: { id: 'legacy_user' }, authenticatedAt: Date.now() };
+    const viaConnector = await dispatch({ method: 'POST', url: '/register/finish', body: REGISTER_BODY, session: { ...fresh, connectorOrgId: 'org-a' } });
+    const viaBridge = await dispatch({ method: 'POST', url: '/register/finish', body: REGISTER_BODY, session: fresh, headers: { 'x-session-token': 't' } });
+    for (const res of [viaConnector, viaBridge]) {
+        assert.strictEqual(res.statusCode, 403);
+        assert.strictEqual(res.body.code, 'interactive_session_required');
+    }
+    assert.deepStrictEqual(fx.updates, []);
+});
+
+test('register/finish right after a sign-in replaces the credential and ends the other sessions', async () => {
+    fx.updates.length = 0;
+    fx.busts.length = 0;
+    const res = await dispatch({
+        method: 'POST', url: '/register/finish', body: REGISTER_BODY,
+        session: { user: { id: 'legacy_user' }, authenticatedAt: Date.now() },
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(fx.updates.length, 1);
+    assert.deepStrictEqual(fx.busts, [['legacy_user', { keepSid: 'sid-1' }]]);
 });
 
 // ═══ An unreadable OPAQUE_SERVER_SETUP ═══════════════════════════════

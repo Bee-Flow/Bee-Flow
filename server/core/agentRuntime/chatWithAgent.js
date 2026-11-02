@@ -80,6 +80,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
                 const results = await Promise.all(assistantMessage.tool_calls.map((toolCall) => executeChatToolCall(toolCall, {
                     agent, agentId, userId, userAuth, conversation, modelToUse,
                     toolParamsMap: run.toolParamsMap, orgShield: run.orgShield, logShieldEvent: run.logShieldEvent, d: TOOL_DEPS,
+                    offeredNames: offeredToolNames(run.tools),
                 })));
 
                 // Add results to history and toolCalls array in order
@@ -201,6 +202,14 @@ async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
 }
 
 /** One model round through adapter.chat(), with its usage logged. Resolves to the assistant message. */
+/**
+ * The names offered to the model this turn: only these are dispatched.
+ * @param {Array<{ name?: string, function?: { name?: string } }>} [tools]
+ */
+function offeredToolNames(tools) {
+    return new Set((tools || []).map((t) => t?.function?.name || t?.name).filter(Boolean));
+}
+
 async function callModel(run, { agent, agentId, userId }) {
     const { adapter, apiKey, apiUrl, modelToUse, generationSettings, tools, conversation, messages, systemPrompt } = run;
     // Outbound-prompt guard — last-stop substitution of any real values that

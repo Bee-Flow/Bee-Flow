@@ -243,9 +243,11 @@ ${shield.units[0]}${shield.addendum}`;
         res.end();
 
     } catch (err) {
-        log.error(`[Notebooks] Generate ${req.params.type} failed:`, err);
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- a JSON event on a text/event-stream response, built from a classified message and a correlation id
+        const payload = require('../core/http/sseError.mts').sseErrorPayload(err, { tag: `[Notebooks] Generate ${req.params.type}`, req });
         try {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
+            // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- JSON on a text/event-stream response
+            res.write(`event: error\ndata: ${JSON.stringify(payload)}\n\n`);
             res.end();
         } catch { throw new HttpError(500, 'generation_failed', 'Generation failed'); }
     }
@@ -373,7 +375,7 @@ ${shieldedSources}${shield.addendum}`;
         if (!res.headersSent) {
             throw new HttpError(500, 'ai_fill_failed', 'AI Fill failed');
         } else {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (err).message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify(require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[Notebooks] AI Fill', req }))}\n\n`);
             res.end();
         }
     }

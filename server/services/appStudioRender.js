@@ -333,8 +333,7 @@ try {
  * Default browser edge (injectable): serve the doc + bundle to the shared
  * bf-browser via route fulfilment and screenshot the mounted root. The browser
  * deliberately has no route to this server, so EVERY url under the fake origin
- * is answered in-process; anything else gets an empty 204 (mount() performs no
- * network requests by contract — this is belt and braces).
+ * is answered in-process; any other request goes through the host screen.
  */
 async function captureDocument({ doc, assets, viewport }) {
     const browserProvider = require('./browserProvider');
@@ -344,6 +343,7 @@ async function captureDocument({ doc, assets, viewport }) {
     return browserProvider.withContext(
         { viewport, deviceScaleFactor: 1, javaScriptEnabled: true },
         async (context) => {
+            await require('../core/http/browserRouteGuard').guardContextRequests(context);
             const page = await context.newPage();
             page.setDefaultTimeout(NAV_TIMEOUT_MS);
             page.on('console', (m) => {
@@ -571,7 +571,7 @@ module.exports = {
     VIEWPORTS,
     // exposed for tests
     _test: {
-        buildDataState,
+        captureDocument, buildDataState,
         composeRenderDocument,
         dataCacheKey,
         stableStringify,

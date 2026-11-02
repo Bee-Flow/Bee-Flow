@@ -52,7 +52,9 @@ const restore = installResolveStub({
     '../../core/voice/voxtralStt': { transcribe: async () => ({ text: 'zoek het op', language: 'nl', duration: 1 }) },
     '../../core/voice/voxtralTts': { synthesize: async () => ({ audioBase64: null }) },
     '../../core/integrations/integrationTools': {
-        getIntegrationTools: async () => ({ tools: [{ type: 'function', function: { name: 'tool', parameters: {} } }] }),
+        getIntegrationTools: async () => ({
+            tools: ['notebook_read', 'kb_search', 'gmail_send'].map(name => ({ type: 'function', function: { name, parameters: {} } })),
+        }),
         buildToolHint: async () => '',
     },
     '../../core/tools/toolDispatcher': {
@@ -137,4 +139,12 @@ test('an outside tool is not held to the own-server list, and no shield changes 
     await turn({ shield: null, toolCall: { name: 'notebook_read', args: { note: SYNTH_EMAIL } }, dispatchResult: { text: SYNTH_EMAIL } });
     assert.strictEqual(fx.dispatched.length, 1);
     assert.ok(fx.toolMessages[0].content.includes(SYNTH_EMAIL));
+});
+
+test('a tool name not offered this turn is never dispatched', async () => {
+    const res = await turn({ shield: null, toolCall: { name: 'admin_delete_everything', args: {} } });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(fx.dispatched.length, 0, 'an unoffered name must not reach the dispatcher');
+    assert.strictEqual(fx.toolMessages.length, 1);
+    assert.match(fx.toolMessages[0].content, /is not available and was not called/);
 });

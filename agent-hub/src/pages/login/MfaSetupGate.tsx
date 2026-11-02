@@ -5,6 +5,7 @@ import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import AuthenticatorAppSetup from '../../components/mfa/AuthenticatorAppSetup';
 import MfaHelpAssistant from '../../components/mfa/MfaHelpAssistant';
 import RecoveryCodes from '../../components/mfa/RecoveryCodes';
+import ReauthNotice, { isReauthRequired } from '../../components/mfa/ReauthNotice';
 import SecurityKeyEnrolment from '../../components/mfa/SecurityKeyEnrolment';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';
@@ -48,6 +49,8 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     const [newCodes, setNewCodes] = useState<string[] | null>(null);   // recovery codes shown once
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | undefined>('');
+    // The enable was refused for want of a recent sign-in: offer the sign-in.
+    const [reauth, setReauth] = useState(false);
     // A security key instead of the app: either one satisfies the duty.
     const [withKey, setWithKey] = useState(false);
 
@@ -61,7 +64,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};
-            throw new Error(data.error || 'Request failed');
+            throw Object.assign(new Error(data.error || 'Request failed'), { code: data.code });
         }
         const data = await res.json().catch(() => ({}));
         return data;
@@ -88,12 +91,15 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     }, []);
 
     const confirmEnable = async () => {
-        setError(''); setBusy(true);
+        setError(''); setReauth(false); setBusy(true);
         try {
             const data = await post('enable', { code: code.trim() });
             setNewCodes(data.recoveryCodes || []);
             setCode('');
-        } catch (e) { setError(errorMessage(e)); }
+        } catch (e) {
+            if (isReauthRequired(e)) setReauth(true);
+            else setError(errorMessage(e));
+        }
         finally { setBusy(false); }
     };
 
@@ -126,6 +132,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
                         </p>
                     </div>
 
+                    {reauth && <div className="mb-4"><ReauthNotice /></div>}
                     {error && (
                         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-sm flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 shrink-0" /> {error}

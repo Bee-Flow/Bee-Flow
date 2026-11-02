@@ -47,7 +47,8 @@ stub('../core/voice/pyannoteClient', {
     async transcribeWithPyannote() { if (!pyOut) throw new Error('Pyannote API key not configured'); return pyOut; },
 });
 stub('../stores/userStore', { getUser: async () => ({ organizationId: 'o1' }) });
-stub('../core/meetingNotes/summaryHelpers', { transcribeWithScaleway: async () => scwOut });
+const scwPaths = [];
+stub('../core/meetingNotes/summaryHelpers', { transcribeWithScaleway: async (p) => { scwPaths.push(p); return scwOut; } });
 stub('../core/voice/localWhisper', { transcribeLocally: async () => localOut });
 
 const { formatAzureBatchFailure, computeWhisperBatchTimeouts, executeTranscriptionTool, azureDiarizationSpeakers } = require('./transcriptionTools');
@@ -265,4 +266,49 @@ test('local: one speaker skips the LLM and durationSec wins; two speakers ask it
     const duo = await runProvider('local');
     assert.strictEqual(llmCalls.length, 1);
     assert.deepStrictEqual(duo, expectedResult({ duration: '01:01:40', durationSeconds: 3700, names: { S1: 'Tom' } }));
+});
+
+// ── Chat attachments: only inline data, own storage keys, guarded URLs ──────
+
+test('an attachment path from the request body is never read', async () => {
+    const file = path.join(os.tmpdir(), `bf-transcribe-path-${process.pid}.mp3`);
+    fs.writeFileSync(file, 'secret');
+    try {
+        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+            { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', path: file }] });
+        assert.ok(res.error, 'no audio is read from a client-supplied path');
+        assert.match(res.error, /Could not read audio data/);
+    } finally { fs.rmSync(file, { force: true }); }
+});
+
+test('an attachment url to a private or metadata address is refused without a bare fetch', async (t) => {
+    const original = globalThis.fetch;
+    let fetched = 0;
+    globalThis.fetch = async () => { fetched += 1; return new Response('x'); };
+    t.after(() => { globalThis.fetch = original; });
+    for (const url of ['http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:3101/api/health', 'https://10.0.0.5/a.mp3']) {
+        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+            { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', url }] });
+        assert.match(String(res.error), /Could not download the audio file/, url);
+    }
+    assert.strictEqual(fetched, 0);
+});
+
+test('a storage key outside the caller\'s own prefix is refused', async () => {
+    for (const storageKey of ['users/u2/audio/x.mp3', 'users/u1/../u2/audio/x.mp3', 'shared/avatars/x.mp3']) {
+        const res = await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+            { userId: 'u1', attachments: [{ name: 'a.mp3', type: 'audio/mpeg', storageKey }] });
+        assert.match(String(res.error), /Could not read the audio file/, storageKey);
+    }
+});
+
+test('an attachment name with directory parts stays inside the temp directory', async (t) => {
+    t.after(() => { scwOut = null; });
+    scwOut = { segments: [] };
+    scwPaths.length = 0;
+    await executeTranscriptionTool('transcribe_audio', { provider: 'scaleway' },
+        { userId: 'u1', attachments: [{ name: '../../../../tmp/evil/x.mp3', type: 'audio/mpeg', data: Buffer.from('abc').toString('base64') }] });
+    assert.strictEqual(scwPaths.length, 1);
+    assert.strictEqual(path.dirname(scwPaths[0]), os.tmpdir());
+    assert.ok(!scwPaths[0].includes('..'));
 });

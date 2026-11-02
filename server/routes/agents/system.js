@@ -185,7 +185,7 @@ router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, 
     } catch (error) {
         log.error('[PromptDesigner] Error:', error);
         if (res.headersSent) {
-            res.write(`event: error\ndata: ${JSON.stringify({ error: /** @type {Error} */ (error).message })}\n\n`);
+            res.write(`event: error\ndata: ${JSON.stringify(require('../../core/http/sseError.mts').sseErrorPayload(error, { tag: '[PromptDesigner]', req }))}\n\n`);
             res.end();
         } else {
             next(error);

@@ -6,6 +6,7 @@ const { syncSeatQuantity } = require('./seatSyncPort');
 const { isMissingTable } = require('../../utils/isMissingTable');
 const { bestEffort } = require('../../utils/bestEffort');
 const { storeError } = require('../lib/storeError');
+const { perUserConfigStems } = require('./userSecretKeys.mts');
 
 /**
  * Who inherits a departing owner's SHARED datatables: the organisation's oldest
@@ -186,17 +187,14 @@ async function deleteUser(userId) {
         } catch (e) { fail('certificate lookups', e); }
 
         const configKeys = [
-            `fireflies_api_key_user_${userId}`, `youtrack_url_user_${userId}`, `youtrack_token_user_${userId}`,
-            `signrequest_subdomain_user_${userId}`, `signrequest_token_user_${userId}`,
-            `gamma_api_key_user_${userId}`, `gads_developer_token_user_${userId}`, `gads_manager_id_user_${userId}`,
-            `gads_customer_id_user_${userId}`, `enabled_apps_user_${userId}`,
+            ...perUserConfigStems().map((stem) => `${stem}_user_${userId}`),
             // Learning Center (progress blob, exercise ledger, certificates,
             // intro-tour flags) — contains the user's name on cert records.
             `learning_progress_user_${userId}`, `learning_exercises_user_${userId}`,
             `learning_certificate_user_${userId}`, `learning_intro_migrated_user_${userId}`,
             `has_seen_intro_tour_user_${userId}`,
-            // Legacy MCP server token and its revocation marker.
-            `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`,
+            // Legacy MCP server token, its revocation marker and its issue record.
+            `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`, `mcp_server_token_user_${userId}_issued`,
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { fail('config keys', e); }

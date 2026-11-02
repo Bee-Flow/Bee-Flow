@@ -25,6 +25,7 @@ const { recordAuthEvent } = require('../telemetry/metrics');
 const { establishSession } = require('./establishSession');
 const { settleOpaqueFirstFactor } = require('./login/pendingMfa');
 const { requireRecentAuth } = require('./recentAuth');
+const { requireCredentialProof, endOtherSessions, passwordLoginAllowed } = require('./opaqueCredentialGuards');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const loginThrottle = require('./loginThrottle');
@@ -136,6 +137,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     // username, plus destruction of their key wrapping. /pin/register/
     // finish below always did this correctly; this one did not.
     const userId = req.session.user.id;
+    if (!requireCredentialProof(req, res, userId)) return;
     // Migration path: the account exists (created by /auth/signup, which
     // establishes the session this route now requires).
     const user = await userStore.getUser(userId);
@@ -155,12 +157,6 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
             code: 'dek_already_exists',
         });
     }
-    // Replacing the credential itself asks for a recent proof (a sign-in, a
-    // second factor, an OPAQUE exchange — auth/recentAuth.js). A first
-    // registration (the migration from a legacy password, right after that
-    // password was verified) has no record yet and is not held to this.
-    if (user.opaqueRecord && !requireRecentAuth(req, res, `the credential of ${userId}`)) return;
-
     // Store OPAQUE record and wrapped keys
     //
     // password_changed_at is set by hand here. The store stamps it whenever
@@ -180,6 +176,8 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     });
 
     log.info(`[OPAQUE] Registration complete for user ${userId} (mode: opaque_v1)`);
+
+    await endOtherSessions(req, userId);
 
     // Set session — H11: rotate the session id on establishment
     // (session fixation). Note: NO encryptionKey in session — client
@@ -256,7 +254,7 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
         // The SPA only reaches this route after /auth/admin-login answered
         // useOpaque, so the old `useLegacy` hint had no live caller; what it did
         // have was a distinct status code for "this name exists but is legacy".
-        const usable = !!(user && user.opaqueRecord && user.kdfMode === 'opaque_v1');
+        const usable = !!(user && user.opaqueRecord && user.kdfMode === 'opaque_v1') && await passwordLoginAllowed(username, user);
         const registrationRecord = usable ? user.opaqueRecord : await fakeRecordFor(username);
 
         const serverSetup = getServerSetup();

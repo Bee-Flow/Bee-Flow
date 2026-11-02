@@ -30,7 +30,7 @@ function mock(relPath, exports) {
 }
 
 // The fake browser: records the HTML it was given, returns a minimal real PDF.
-const browser = { html: null, fail: null, calls: 0 };
+const browser = { html: null, fail: null, calls: 0, routes: [], routesBeforePage: 0 };
 mock(path.join(__dirname, '../../../services/browserProvider.js'), {
     withContext: async (_opts, fn) => {
         browser.calls += 1;
@@ -40,13 +40,47 @@ mock(path.join(__dirname, '../../../services/browserProvider.js'), {
             async setContent(html) { browser.html = html; },
             async pdf() { return Buffer.from('%PDF-1.7\n% fake\n%%EOF\n'); },
         };
-        return fn({ newPage: async () => page });
+        const context = {
+            route: async (_m, h) => { browser.routes.push(h); },
+            routeWebSocket: async () => {},
+            newPage: async () => { browser.routesBeforePage = browser.routes.length; return page; },
+        };
+        return fn(context);
     },
 });
 
 const { renderDocument, _test } = require('./documentRenderer');
 
-const reset = () => { browser.html = null; browser.fail = null; browser.calls = 0; };
+const reset = () => { browser.html = null; browser.fail = null; browser.calls = 0; browser.routes = []; browser.routesBeforePage = 0; };
+
+/** Run the installed route handler for one url; answers 'continue' | 'abort'. */
+async function routeVerdict(url) {
+    let out = null;
+    await browser.routes[0]({
+        request: () => ({ url: () => url }),
+        continue: async () => { out = 'continue'; },
+        abort: async () => { out = 'abort'; },
+    });
+    return out;
+}
+
+test('the PDF render gets no network: only data:/about:/blob: pass, installed before the page opens', async () => {
+    reset();
+    await renderDocument({ content: MD, title: 'Rapport', format: 'pdf' });
+    assert.strictEqual(browser.routesBeforePage, 1);
+    assert.strictEqual(await routeVerdict('http://169.254.169.254/latest/meta-data/'), 'abort');
+    assert.strictEqual(await routeVerdict('https://example.test/x.png'), 'abort');
+    assert.strictEqual(await routeVerdict('data:image/png;base64,AAAA'), 'continue');
+});
+
+test('the styled-document PDF render gets no network either', async () => {
+    reset();
+    const { renderStyledHtmlToPdf } = require('./documentPdf');
+    const out = await renderStyledHtmlToPdf({ html: '<!DOCTYPE html><html><body><p>x</p></body></html>', allowFallback: false });
+    assert.strictEqual(out.degraded, false);
+    assert.strictEqual(browser.routesBeforePage, 1);
+    assert.strictEqual(await routeVerdict('http://10.0.0.5/'), 'abort');
+});
 
 const MD = '# Kwartaalrapport\n\nEen **vette** zin met een [link](https://example.test/x).\n\n- eerste\n- tweede\n';
 

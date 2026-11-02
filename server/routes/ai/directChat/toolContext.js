@@ -33,6 +33,10 @@ function createToolContextFactory(turn) {
         documentScope: turn.documentScope,
         notebookWriteGate: turn.notebookWriteGate,
         getModelId: () => turn.modelId,
+        // The names on the live tool list sent to the model (load_tools and
+        // skills extend it mid-turn): only these are dispatched.
+        getOfferedToolNames: () => new Set(/** @type {Array<{ name?: string, function?: { name?: string } }>} */ (turn.directChatTools || [])
+            .map((t) => t?.function?.name || t?.name).filter(Boolean)),
         getActivatedSessionSkillIds: () => turn.activatedSessionSkillIds,
         setActivatedSessionSkillIds: /** @param {string[]} ids */ (ids) => { turn.activatedSessionSkillIds = ids; },
         getCompletedSessionSkillIds: () => turn.completedSessionSkillIds,

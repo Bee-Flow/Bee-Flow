@@ -14,6 +14,7 @@ const Module = require('node:module');
 const stubs = {
     config: new Map(),
     orgs: [],
+    groups: [{ id: 'g1', organizationId: 'acme' }],
     createdOrgs: [],
     createOrganizationResult: true,
     webSignupGate: { ok: true },
@@ -37,6 +38,7 @@ Module._load = function (request, parent, isMain) {
         case '../stores/userStore':
             return {
                 getAllOrganizations: async () => stubs.orgs,
+                getAllGroups: async () => stubs.groups,
                 getOrganization: async (id) => stubs.orgs.find(o => o.id === id) || null,
                 createOrganization: async (org, opts) => {
                     stubs.createdOrgs.push({ org, opts });
@@ -343,6 +345,24 @@ describe('prepareAccountPlacement — join existing', () => {
         assert.deepEqual(p.groups, ['g1']);
     });
 
+    test('stored default groups apply only as the org\'s own or plain global groups', async () => {
+        stubs.orgs = [{ id: 'acme', allowSignup: true, defaultGroups: ['g1', 'other', 'admins', 'roled', 'oa', 'users', 'gone'] }];
+        const saved = stubs.groups;
+        stubs.groups = [
+            { id: 'g1', organizationId: 'acme' },
+            { id: 'other', organizationId: 'beta' },
+            { id: 'admins', organizationId: null, permissions: ['all'] },
+            { id: 'roled', organizationId: null, roles: ['admin'] },
+            { id: 'oa', organizationId: null, orgRole: 'org_admin' },
+            { id: 'users', organizationId: null, permissions: ['read', 'chat'] },
+        ];
+        try {
+            const p = await ap.prepareAccountPlacement(ap.normalizeSignupIntent({ organizationId: 'acme' }), { req: REQ });
+            assert.equal(p.status, 'active');
+            assert.deepEqual(p.groups, ['g1', 'users']);
+        } finally { stubs.groups = saved; }
+    });
+
     test('invited users bypass the waitlist', async () => {
         stubs.config.set('signup_waitlist_enabled', true);
         const i = ap.normalizeSignupIntent({}, { inviteData: { organization_id: 'acme' }, inviteToken: 't' });
@@ -357,6 +377,21 @@ describe('shared guards', () => {
             await assert.rejects(() => ap.prepareAccountPlacement(ap.normalizeSignupIntent(source), { req: REQ }),
                 (e) => e.code === 'SIGNUPS_DISABLED' && e.status === 403);
         }
+    });
+
+    test('ALLOW_SIGNUPS=false still lets an invitation join its organisation', async () => {
+        process.env.ALLOW_SIGNUPS = 'false';
+        stubs.orgs = [{ id: 'acme', allowSignup: true, defaultGroups: [] }];
+        const i = ap.normalizeSignupIntent({}, { inviteData: { organization_id: 'acme' }, inviteToken: 't' });
+        const p = await ap.prepareAccountPlacement(i, { req: REQ });
+        assert.equal(p.organizationId, 'acme');
+        assert.equal(p.status, 'active');
+    });
+
+    test('ALLOW_SIGNUPS=false refuses an invitation that asks for a new organisation', async () => {
+        process.env.ALLOW_SIGNUPS = 'false';
+        const i = ap.normalizeSignupIntent({ newOrgName: 'Other' }, { inviteData: { organization_id: 'acme' }, inviteToken: 't' });
+        await assert.rejects(() => ap.prepareAccountPlacement(i, { req: REQ }), (e) => e.code === 'SIGNUPS_DISABLED');
     });
 
     test('the connector-only gate propagates its status and code', async () => {

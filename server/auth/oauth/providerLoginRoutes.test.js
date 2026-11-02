@@ -102,7 +102,7 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
     const session = newSession();
     // The Custom Tab (or embedded popup) is opened, and then closed without
     // finishing: the callback never runs, so nothing clears what it stashed.
-    await navigate('/login/google?popup=1&pickup=abandoned-pickup&app=beeflow', session);
+    await navigate('/login/google?popup=1&pickup=abandoned-pickup&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw&app=beeflow', session);
 
     // Later, in the same browser, a plain sign-in.
     const res = await navigate('/login/google', session);
@@ -116,7 +116,7 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
 
 test('a popup attempt still records its own mode, pickup and app handoff', async () => {
     const session = newSession();
-    const res = await navigate('/login/google?popup=1&pickup=p-123&app=beeflow', session);
+    const res = await navigate('/login/google?popup=1&pickup=p-123&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw&app=beeflow', session);
     assert.strictEqual(session.oauthPopup, true);
     assert.strictEqual(session.oauthPickupId, 'p-123');
     assert.strictEqual(session.oauthAppRedirect, 'beeflow://oauth');
@@ -125,8 +125,8 @@ test('a popup attempt still records its own mode, pickup and app handoff', async
 
 test('a second popup attempt replaces the first one\'s pickup rather than keeping it', async () => {
     const session = newSession();
-    await navigate('/login/google?popup=1&pickup=first&app=beeflow', session);
-    await navigate('/login/google?popup=1&pickup=second', session);
+    await navigate('/login/google?popup=1&pickup=first&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw&app=beeflow', session);
+    await navigate('/login/google?popup=1&pickup=second&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw', session);
     assert.strictEqual(session.oauthPickupId, 'second');
     assert.strictEqual(session.oauthAppRedirect, undefined, 'this attempt named no app');
 });
@@ -171,21 +171,22 @@ test('a popup attempt records the pickup challenge next to the id, for the callb
     assert.strictEqual(session.oauthPickupChallenge, challenge);
 });
 
-test('a malformed challenge is dropped rather than stored, so the deposit stays claimable', async () => {
-    for (const bad of ['short', 'not%20base64url', 'x'.repeat(129)]) {
+test('a missing or malformed challenge sets up no pickup at all', async () => {
+    for (const q of ['', '&pickup_challenge=short', '&pickup_challenge=not%20base64url', `&pickup_challenge=${'x'.repeat(129)}`]) {
         const session = newSession();
-        await navigate(`/login/google?popup=1&pickup=p-123&pickup_challenge=${bad}`, session);
-        assert.strictEqual(session.oauthPickupId, 'p-123', bad);
-        assert.strictEqual(session.oauthPickupChallenge, undefined, bad);
+        await navigate(`/login/google?popup=1&pickup=p-123${q}`, session);
+        assert.strictEqual(session.oauthPopup, true, q);
+        assert.strictEqual(session.oauthPickupId, undefined, q);
+        assert.strictEqual(session.oauthPickupChallenge, undefined, q);
     }
 });
 
-test('the next attempt starts from no challenge, like the other handoff keys', async () => {
+test('the next attempt starts from no pickup, like the other handoff keys', async () => {
     const session = newSession();
     await navigate('/login/google?popup=1&pickup=first&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw', session);
     await navigate('/login/google?popup=1&pickup=second', session);
-    assert.strictEqual(session.oauthPickupId, 'second');
-    assert.strictEqual(session.oauthPickupChallenge, undefined, 'this attempt sent no challenge');
+    assert.strictEqual(session.oauthPickupId, undefined, 'this attempt sent no challenge');
+    assert.strictEqual(session.oauthPickupChallenge, undefined);
 });
 
 // ── Where the provider sends the browser back ──────────────────────────
@@ -209,10 +210,54 @@ test('in production the Referer is ignored: the redirect_uri is this server\'s o
     } finally { process.env.NODE_ENV = 'test'; }
 });
 
+test('in production X-Forwarded-Host is ignored as well: the redirect_uri is this server\'s own host', async () => {
+    delete process.env.SERVER_PUBLIC_HOST;
+    process.env.NODE_ENV = 'production';
+    try {
+        const res = await navigate('/login/google', newSession(), { 'x-forwarded-host': 'attacker.example' });
+        assert.strictEqual(redirectUriOf(res), 'https://bee.example/auth/callback/google');
+    } finally { process.env.NODE_ENV = 'test'; }
+});
+
 test('a configured public host wins everywhere', async () => {
     process.env.SERVER_PUBLIC_HOST = 'hub.example';
     try {
         const res = await navigate('/login/google', newSession(), { referer: 'https://attacker.example/x' });
         assert.strictEqual(redirectUriOf(res), 'https://hub.example/auth/callback/google');
     } finally { delete process.env.SERVER_PUBLIC_HOST; }
+});
+
+// ── ?intent=link: the signed-in account links a provider ─────────────────
+const signedIn = (extra = {}) => ({ ...newSession(), isAuthenticated: true, user: { id: 'alice' }, authenticatedAt: Date.now(), ...extra });
+
+test('a link start remembers the signed-in account and goes to the provider without popup or pickup', async () => {
+    const session = signedIn();
+    const res = await navigate('/login/google?intent=link&popup=1&pickup=p-1&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw&app=beeflow', session);
+    assert.strictEqual(session.oauthLinkUserId, 'alice');
+    assert.strictEqual(session.oauthPopup, undefined);
+    assert.strictEqual(session.oauthPickupId, undefined);
+    assert.strictEqual(session.oauthAppRedirect, undefined);
+    assert.ok(res.location.startsWith('https://accounts.example/auth?'));
+    assert.strictEqual(session.returnTo, 'https://app.example/app/settings/security',
+        'the callback of a link returns to the settings page that holds the link action');
+});
+
+test('a link start needs a signed-in session with a recent sign-in', async () => {
+    let res = await navigate('/login/google?intent=link', newSession());
+    assert.strictEqual(res.location, 'https://app.example/app/settings/security?error=reauth_required');
+    const stale = signedIn({ authenticatedAt: Date.now() - 60 * 60 * 1000 });
+    res = await navigate('/login/google?intent=link', stale);
+    assert.strictEqual(res.location, 'https://app.example/app/settings/security?error=reauth_required');
+    assert.strictEqual(stale.oauthLinkUserId, undefined);
+});
+
+test('Microsoft is not linked this way, and an ordinary sign-in clears a pending link', async () => {
+    const session = signedIn();
+    const res = await navigate('/login/microsoft?intent=link', session);
+    assert.strictEqual(res.location, 'https://app.example/app/settings/security?error=sso_link_unsupported');
+    await navigate('/login/google?intent=link', session);
+    assert.strictEqual(session.oauthLinkUserId, 'alice');
+    await navigate('/login/google', session);
+    assert.strictEqual(session.oauthLinkUserId, undefined);
+    assert.strictEqual(session.returnTo, 'https://app.example', 'an ordinary sign-in returns to the site root');
 });

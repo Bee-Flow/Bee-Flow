@@ -42,8 +42,9 @@ async function runServe() {
     const launchOpts = {
         headless: true,
         port: SERVE_PORT,
-        // The container is itself the sandbox boundary; Chromium's own sandbox
-        // does not work without extra capabilities, so disable it here. shm is
+        // The container (unprivileged user, no-new-privileges) is the sandbox
+        // boundary; Chromium's own sandbox needs user namespaces that Docker's
+        // default seccomp profile does not grant, so it stays off. shm is
         // small by default — point Chromium away from it.
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     };

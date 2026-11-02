@@ -247,7 +247,7 @@ router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ bo
         invalidateModelCache(provider.id);
         send('done', { model });
     } catch (e) {
-        send('error', { error: /** @type {Error} */ (e).message });
+        send('error', require('../../core/http/sseError.mts').sseErrorPayload(e, { tag: '[LocalRuntimes/pull]', req }));
     } finally {
         end();
     }

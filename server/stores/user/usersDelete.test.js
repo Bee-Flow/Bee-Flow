@@ -38,6 +38,8 @@ before(async () => {
     // The session store's table (connect-pg-simple creates it at boot), with a
     // session for the leaver and one for somebody else.
     await db.run('CREATE TABLE IF NOT EXISTS user_sessions (sid varchar PRIMARY KEY, sess json NOT NULL, expire timestamp NOT NULL)');
+    // The issue record of the leaver's legacy MCP token.
+    await require('../configStore').setConfig('mcp_server_token_user_leaver_issued', { fp: 'x', at: 1 });
     await db.run(`INSERT INTO user_sessions (sid, sess, expire) VALUES ('s-leaver', '{"user":{"id":"leaver"}}', NOW() + interval '1 day'), ('s-other', '{"user":{"id":"other"}}', NOW() + interval '1 day') ON CONFLICT (sid) DO NOTHING`);
     resetErasurePortsForTests();
     registerErasurePorts({
@@ -51,6 +53,7 @@ before(async () => {
         content: {
             eraseTranscriptions: async () => 0, eraseOrgTranscriptions: async () => 0, eraseWebpages: async () => 0,
             eraseStudioApps: async () => 0, eraseSkills: async () => 0, eraseStoragePrefix: async () => 0,
+            erasePersonalKnowledgeBases: async () => 0, eraseOrgKnowledgeBases: async () => 0,
         },
     });
 });
@@ -81,6 +84,8 @@ test('the retry erases the rest and removes the account; missing optional tables
     // The sessions went with the account; another user's stayed.
     const sids = (await db.getAll('SELECT sid FROM user_sessions ORDER BY sid')).map((r) => r.sid);
     assert.deepStrictEqual(sids, ['s-other']);
+    assert.strictEqual(await require('../configStore').getConfigFresh('mcp_server_token_user_leaver_issued'), null,
+        'the issue record of the legacy MCP token goes with the account');
 });
 
 test('an unknown account is false, nothing is erased', async () => {

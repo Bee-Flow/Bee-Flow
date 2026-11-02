@@ -210,4 +210,55 @@ function checkDeclaredSizes(entries, { maxTotalBytes, maxRatio, ratioFloorBytes 
     return declaredTotal;
 }
 
-module.exports = { ZipLimitError, declaredEntryCount, declaredSizes, inflateStreaming, createByteBudget, readEntryCapped, openZipGuarded, MIB };
+/**
+ * The caps for an office package (a .docx) that a parser such as mammoth will
+ * open in full on the event loop. Environment variables, read on every call,
+ * 0 = unlimited:
+ *   OFFICE_PACKAGE_MAX_ENTRIES          10000
+ *   OFFICE_PACKAGE_MAX_INFLATED_BYTES   256 MiB  all parts together
+ *   OFFICE_PACKAGE_MAX_PART_BYTES       64 MiB   one part
+ * @param {Record<string, string | undefined>} [env]
+ */
+function officePackageLimits(env = process.env) {
+    /** @param {string} name @param {number} fallback */
+    const cap = (name, fallback) => {
+        const raw = env[name];
+        if (raw == null || raw === '') return fallback;
+        const n = Number(raw);
+        return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+    };
+    return {
+        maxEntries: cap('OFFICE_PACKAGE_MAX_ENTRIES', 10_000),
+        maxTotalBytes: cap('OFFICE_PACKAGE_MAX_INFLATED_BYTES', 256 * MIB),
+        maxPartBytes: cap('OFFICE_PACKAGE_MAX_PART_BYTES', 64 * MIB),
+    };
+}
+
+/**
+ * Check a whole package before a parser that inflates it in full sees it:
+ * the declarations first (openZipGuarded), then every part inflated as a
+ * stream and discarded, counted against its declared size, the part cap and
+ * the running total. Throws ZipLimitError; resolves when the package is within
+ * the caps.
+ * @param {Buffer} buffer
+ * @param {{ maxEntries: number, maxTotalBytes: number, maxPartBytes?: number }} limits  0 = unlimited
+ * @returns {Promise<void>}
+ */
+async function scanPackage(buffer, { maxEntries, maxTotalBytes, maxPartBytes = 0 }) {
+    const { entries } = await openZipGuarded(buffer, { maxEntries, maxTotalBytes });
+    const budget = createByteBudget(maxTotalBytes);
+    const partTooLarge = () => new ZipLimitError(`A part unpacks to more than the ${Math.round(maxPartBytes / MIB)} MB a part may hold.`, 'part_too_large');
+    for (const entry of entries) {
+        const { uncompressed } = declaredSizes(entry);
+        if (maxPartBytes > 0 && uncompressed > maxPartBytes) throw partTooLarge();
+        let seen = 0;
+        await inflateStreaming(entry, (chunk) => {
+            seen += chunk.length;
+            if (seen > uncompressed) throw DEFAULT_ERRORS.broken();
+            if (maxPartBytes > 0 && seen > maxPartBytes) throw partTooLarge();
+            budget.take(chunk.length);
+        }, DEFAULT_ERRORS);
+    }
+}
+
+module.exports = { ZipLimitError, declaredEntryCount, declaredSizes, inflateStreaming, createByteBudget, readEntryCapped, openZipGuarded, scanPackage, officePackageLimits, MIB };

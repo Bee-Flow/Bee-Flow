@@ -34,21 +34,22 @@ function resolveIntakeSource(model, step, ctx, { resolveBinding, scope, connecto
     return { threadKey, attTable, fileField };
 }
 
-/** The purchase-order filename pattern, guarded against catastrophic backtracking. */
+/**
+ * The purchase-order filename pattern, compiled through core/text/userPattern
+ * (RE2, or the native engine off the event loop with a time budget). A
+ * pattern that does not compile, nests quantifiers, or was saved before the
+ * save-time check falls back to the default. classify() calls `.test(name)`;
+ * an undecidable answer counts as "not a purchase order".
+ * @param {{ poPattern?: unknown }} step
+ * @returns {{ test(name: string): boolean }}
+ */
 function compilePoPattern(step) {
-    /** @type {RegExp} */
-    let poRe;
-    try {
-        const src = step.poPattern && typeof step.poPattern === 'string' ? step.poPattern : DEFAULT_PO_PATTERN;
-        // Same guard as validate.js, re-checked here because definitions saved
-        // before the guard existed still execute: a nested-quantifier pattern
-        // against a sender-controlled filename hangs the shared event loop.
-        const { hasNestedQuantifier } = require('../safePattern');
-        poRe = new RegExp(hasNestedQuantifier(src) ? DEFAULT_PO_PATTERN : src, 'i');
-    } catch {
-        poRe = new RegExp(DEFAULT_PO_PATTERN, 'i');
-    }
-    return poRe;
+    const { compileUserPattern, testUserPattern } = require('../../core/text/userPattern');
+    const src = step.poPattern && typeof step.poPattern === 'string' ? step.poPattern : DEFAULT_PO_PATTERN;
+    let compiled = compileUserPattern(src, { caseInsensitive: true });
+    if (!compiled.ok) compiled = compileUserPattern(DEFAULT_PO_PATTERN, { caseInsensitive: true });
+    const pattern = compiled;
+    return { test: (name) => testUserPattern(pattern, String(name)) === true };
 }
 
 /** The attachment rows of the conversation, read as the viewer; null when unreadable. */

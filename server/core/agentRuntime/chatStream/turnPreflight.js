@@ -101,7 +101,12 @@ async function runTurnPreflight({
             _recordSignal();
             throw err;
         }
-        if (dlp.redactedText != null) processedUserMessage = dlp.redactedText;
+        if (dlp.redactedText != null) {
+            processedUserMessage = dlp.redactedText;
+            // Tool rounds persist the turn before it ends: the stored copy is
+            // the tokenised one from the first write on.
+            if (userSave) userSave.content = processedUserMessage;
+        }
         if (dlp.userPrivacyMeta) _userPrivacyMeta = dlp.userPrivacyMeta;
         if (dlp.assistantTokenisationInfo) _assistantTokenisationInfo = dlp.assistantTokenisationInfo;
     }

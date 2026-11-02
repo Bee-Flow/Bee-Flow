@@ -21,10 +21,11 @@ const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 const SECRET = 'shh'.repeat(12);
 let executions = [];
+const nonceCalls = [];
 
 mock(path.join(SERVER, 'stores/automationStore'), {
     getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret: SECRET, triggerStepId: 'trg2' } : null),
-    checkAndStoreNonce: async () => true,
+    checkAndStoreNonce: async (nonce, options) => { nonceCalls.push({ nonce, options }); return true; },
     touchWebhook: async () => {},
     getAutomation: async () => ({ id: 'auto1', isActive: true, isDraft: false, definition: { trigger: { id: 'trg1', kind: 'manual' } } }),
 });
@@ -112,4 +113,20 @@ test('a bad signature still 401s (guard unchanged)', async () => {
     await flushAsync();
     assert.strictEqual(res.statusCode, 401);
     assert.strictEqual(executions.length, 0);
+});
+
+test('a delivery without a timestamp keeps its nonce past the 24 h sweep; a timestamped one does not', async () => {
+    nonceCalls.length = 0;
+    await handler(signedReq({ a: 1 }), makeRes());
+    assert.deepStrictEqual(nonceCalls[0], { nonce: 'hook1:nonce-1', options: { retain: true } });
+
+    const ts = String(Math.floor(Date.now() / 1000));
+    const body = { a: 2 };
+    const req = signedReq(body, { 'x-beeflow-timestamp': ts });
+    req.headers['x-beeflow-signature'] = 'sha256=' + crypto.createHmac('sha256', SECRET).update(`nonce-1\n${ts}\n${JSON.stringify(body)}`).digest('hex');
+    const res = makeRes();
+    await handler(req, res);
+    await flushAsync();
+    assert.strictEqual(res.statusCode, 202);
+    assert.deepStrictEqual(nonceCalls[1], { nonce: 'hook1:nonce-1', options: { retain: false } });
 });

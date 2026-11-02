@@ -103,30 +103,38 @@ function _ownerCacheSet(id, val) {
     _ownerCache.set(id, val);
 }
 
-/** Find which table owns this id and who the owner is. Cached. */
+/**
+ * Find which table owns this id and who the owner is. Cached, but only a
+ * definite answer: a failed lookup throws and is asked again next time.
+ */
 async function _resolveOwner(conversationId) {
     if (_ownerCache.has(conversationId)) return _ownerCache.get(conversationId);
     let found = null;
-    try {
-        const { getOne } = _db();
-        for (const table of ['agent_conversations', 'direct_conversations', 'notebooks']) {
-            const row = await getOne(`SELECT user_id FROM ${table} WHERE id = $1`, [conversationId]);
-            if (row) { found = { userId: row.user_id, table }; break; }
-        }
-    } catch (_) {
-        found = null;
+    const { getOne } = _db();
+    for (const table of ['agent_conversations', 'direct_conversations', 'notebooks']) {
+        const row = await getOne(`SELECT user_id FROM ${table} WHERE id = $1`, [conversationId]);
+        if (row) { found = { userId: row.user_id, table }; break; }
     }
     _ownerCacheSet(conversationId, found);
     return found;
 }
+
+/**
+ * _tokenMapCrypto's answer when the map must not be written: encryption is
+ * required or unknown, and no key.
+ * @type {{ key?: undefined, refused: true }}
+ */
+const WRITE_REFUSED = Object.freeze({ refused: /** @type {true} */ (true) });
 
 function _piiAad(conversationId) {
     return `bfpii:v1:${conversationId}`;
 }
 
 /**
- * Crypto context for this conversation's token map, or null to store plaintext.
- * Never throws — the shield must not be able to fail a chat turn.
+ * Crypto context for this conversation's token map: `{ key }`, null to store
+ * plaintext (the policy does not encrypt this surface), or WRITE_REFUSED when
+ * the policy or the key cannot be resolved. Never throws: the shield must not
+ * be able to fail a chat turn.
  */
 async function _tokenMapCrypto(conversationId) {
     try {
@@ -135,7 +143,7 @@ async function _tokenMapCrypto(conversationId) {
         const { SURFACES, resolvePolicy, shouldEncrypt } = require('../../stores/encryptionPolicy');
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(owner.userId);
-        const policy = await resolvePolicy(user?.organizationId || null);
+        const policy = await resolvePolicy(user?.organizationId || null, { strict: true });
         if (!shouldEncrypt(policy, SURFACES.PII_TOKEN_MAP)) return null;
 
         // backgroundKey, never `key`. This runs from the DLP path with no
@@ -145,11 +153,11 @@ async function _tokenMapCrypto(conversationId) {
         // advertises the strongest protection. backgroundKey resolves through
         // the org escrow on both encrypting tiers.
         const { resolveCrypto } = require('../../stores/agent/messageCrypto');
-        const ctx = await resolveCrypto({ userId: owner.userId, orgId: user?.organizationId || null });
-        return ctx.backgroundKey ? { key: ctx.backgroundKey } : null;
+        const ctx = await resolveCrypto({ userId: owner.userId, orgId: user?.organizationId || null, purpose: 'write' });
+        return ctx.backgroundKey ? { key: ctx.backgroundKey } : WRITE_REFUSED;
     } catch (err) {
         log.warn(`[DlpRunner] token-map crypto unavailable for ${conversationId}: ${err.message}`);
-        return null;
+        return WRITE_REFUSED;
     }
 }
 
@@ -165,6 +173,7 @@ async function _writeMapToDb(conversationId) {
     let payload = JSON.stringify(obj);
     try {
         const crypt = await _tokenMapCrypto(conversationId);
+        if (crypt === WRITE_REFUSED) throw new Error('no key for an encrypted token map');
         if (crypt) {
             const { encryptField } = require('../../stores/lib/fieldEnvelope');
             // asObject keeps the stored value a JSON object so the
@@ -177,7 +186,11 @@ async function _writeMapToDb(conversationId) {
             }));
         }
     } catch (err) {
-        log.warn(`[DlpRunner] token-map encryption failed for ${conversationId}, storing plaintext: ${err.message}`);
+        // The map stays in-process and dirty, so the next write retries; it is
+        // never stored in clear when it should have been sealed.
+        log.warn(`[DlpRunner] token-map encryption failed for ${conversationId}, not persisted: ${err.message}`);
+        emitTokenMapEvent(conversationId, 'persist_failed', { reason: 'encryption_unavailable' });
+        return;
     }
     try {
         const { run } = _db();

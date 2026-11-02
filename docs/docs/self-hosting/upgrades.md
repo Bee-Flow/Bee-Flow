@@ -63,6 +63,10 @@ Two rules follow from how releases are cut:
    Uploaded documents and meeting recordings live in object storage (the `rustfs-data` volume),
    not in Postgres — include that volume if you want a complete point-in-time copy.
 
+4. **Check `BROWSER_WS_PATH` in `.env`.** The compose files require it (every `docker compose`
+   command fails without it). `./selfhost.sh --upgrade` adds a random one when it is missing; with
+   plain `docker compose`, add it yourself: `BROWSER_WS_PATH=$(openssl rand -hex 24)`.
+
 ## Upgrade a Docker Compose install
 
 **1. Pick the version** and set it in `.env`:

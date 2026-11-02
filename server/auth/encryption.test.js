@@ -63,7 +63,7 @@ async function runTests() {
     await test('exports exactly the same keys in the same order (deriveKEK under NODE_ENV=test)', async () => {
         assert.deepStrictEqual(Object.keys(encryption), [
             'createUserDEK', 'unlockUserDEK', 'unlockWithRecoveryKey', 'rewrapUserDEK', 'rotateRecoveryKey',
-            'adminResetUser', 'setupSSOUserDEK', 'unlockSSOUserDEK', 'getOrCreateUserDEKCompat',
+            'adminResetUser', 'setupSSOUserDEK', 'unlockSSOUserDEK', 'hasSSOUserPin', 'getOrCreateUserDEKCompat',
             'getOrCreateSSOUserDEKCompat', 'rewrapUserDEKCompat', 'getFallbackEncryptionKey', 'secureClear',
             'formatRecoveryKey', 'parseRecoveryKey', 'dekFingerprint', 'validateEncryptionPin',
             'MIN_ENCRYPTION_PIN_LENGTH', 'wrapDEK', 'unwrapDEK', 'envelopeEncoding', 'deriveKEK',

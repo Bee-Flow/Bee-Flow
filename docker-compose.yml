@@ -98,11 +98,11 @@ services:
       - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - PORT=${SERVER_PORT:-3001}
       - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -hex 32)}
-      - CORS_ORIGIN=${CLIENT_PROTOCOL:-https}://${CLIENT_PUBLIC_HOST:-beeflow.nl},${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+      - CORS_ORIGIN=${CLIENT_PROTOCOL:-https}://${CLIENT_PUBLIC_HOST:-localhost:${CLIENT_PORT:-8080}},${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-localhost:${SERVER_PORT:-3001}}
       # OAuth: server must know its own public URL and the client URL for redirects
-      - SERVER_PUBLIC_HOST=${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+      - SERVER_PUBLIC_HOST=${SERVER_PUBLIC_HOST:-localhost:${SERVER_PORT:-3001}}
       - SERVER_PROTOCOL=${SERVER_PROTOCOL:-https}
-      - CLIENT_PUBLIC_HOST=${CLIENT_PUBLIC_HOST:-beeflow.nl}
+      - CLIENT_PUBLIC_HOST=${CLIENT_PUBLIC_HOST:-localhost:${CLIENT_PORT:-8080}}
       # Security keys (YubiKey / FIDO2): optional parent domain for the WebAuthn
       # relying-party ID. Empty = the page's host, or CLIENT_PUBLIC_HOST when the
       # page is on a subdomain of it. See auth/securityKeys/relyingParty.js.
@@ -114,7 +114,7 @@ services:
       - SECURITY_TXT_CONTACT=${SECURITY_TXT_CONTACT:-}
       # Cookie settings for cross-domain (frontend ↔ backend)
       - COOKIE_SECURE=${COOKIE_SECURE:-true}
-      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.beeflow.nl}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
       - COOKIE_SAMESITE=${COOKIE_SAMESITE:-none}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
       # Self-registration and password login. The server reads both, so they
@@ -180,7 +180,16 @@ services:
       # Shared headless browser: the `browser` sidecar below (PDF export,
       # thumbnails, SPA ingestion, browse_web). Point it elsewhere to use an
       # external Playwright server.
-      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:-beeflow-browser}}
+      - BROWSER_WS_ENDPOINT=${BROWSER_WS_ENDPOINT:-ws://browser:9222/${BROWSER_WS_PATH:?Set BROWSER_WS_PATH in .env (openssl rand -hex 24)}}
+      # Operator limits (documented in .env.example; empty = the server default).
+      - WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS=${WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS:-}
+      - AUTOMATION_ALLOW_PRIVATE_TARGETS=${AUTOMATION_ALLOW_PRIVATE_TARGETS:-}
+      - FIREBIRD_ALLOW_PRIVATE_HOSTS=${FIREBIRD_ALLOW_PRIVATE_HOSTS:-}
+      - FIREBIRD_ALLOWED_HOSTS=${FIREBIRD_ALLOWED_HOSTS:-}
+      - OFFICE_PACKAGE_MAX_ENTRIES=${OFFICE_PACKAGE_MAX_ENTRIES:-}
+      - OFFICE_PACKAGE_MAX_INFLATED_BYTES=${OFFICE_PACKAGE_MAX_INFLATED_BYTES:-}
+      - OFFICE_PACKAGE_MAX_PART_BYTES=${OFFICE_PACKAGE_MAX_PART_BYTES:-}
+      - LEGACY_MCP_TOKEN_MAX_AGE_DAYS=${LEGACY_MCP_TOKEN_MAX_AGE_DAYS:-365}
     volumes:
       # Persist uploaded files and generated content
       - beeflow-data:/app/data
@@ -213,8 +222,8 @@ services:
   # Playwright's launchServer has no authentication, so the sidecar sits on its
   # OWN network shared only with the server (never beeflow-network, where the
   # database, object storage and the guard live), publishes no port, and serves
-  # at the path in BROWSER_WS_PATH (selfhost.sh generates a random one; set your
-  # own when you deploy this file by hand). The network is not `internal`:
+  # at the path in BROWSER_WS_PATH (required; selfhost.sh generates a random
+  # one, set your own when you deploy this file by hand). The network is not `internal`:
   # browse_web and SPA ingestion load public pages. The runner's Playwright must
   # match the server's (scripts/check-playwright-lockstep.mjs).
   browser:
@@ -228,7 +237,7 @@ services:
     environment:
       - PWT_SERVE_HOST=0.0.0.0
       - PWT_SERVE_PORT=9222
-      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:-beeflow-browser}
+      - PWT_SERVE_WS_PATH=${BROWSER_WS_PATH:?Set BROWSER_WS_PATH in .env (openssl rand -hex 24)}
     shm_size: 256m
     mem_limit: ${BROWSER_MEMORY_LIMIT:-1g}
     pids_limit: 512
@@ -244,7 +253,7 @@ services:
       context: ./agent-hub
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-server.beeflow.nl}
+        - VITE_API_URL=${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-localhost:${SERVER_PORT:-3001}}
     container_name: chat2
     ports:
       - "${CLIENT_PORT:-8080}:80"

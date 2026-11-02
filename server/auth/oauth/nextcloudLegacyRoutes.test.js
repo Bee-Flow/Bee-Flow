@@ -43,7 +43,19 @@ const MOCKS = {
     '../../stores/userStore': { getUser: async () => null, getAppPassword: async () => null },
     '../../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false },
     '../../stores/automationCredentialStore': { upsertCredential: async () => {} },
+    './ssoUserProvisioning': {
+        resolveSsoUser: async ({ user }) => { resolveCalls.push(user.id); resolvedUsers.push({ ...user }); return resolveAnswer; },
+    },
+    './ssoSessionSetup': {
+        resolveOrgStanding: async () => ({ freshUser: { id: 'x', role: 'user' }, userHasOrg: true, pendingApproval: false, isPersonalAccount: false }),
+        writeOAuthSession: async ({ req, user }) => { req.session.user = user; req.session.isAuthenticated = true; },
+    },
 };
+/** @type {string[]} */
+const resolveCalls = [];
+const resolvedUsers = [];
+/** @type {{ error?: string }} */
+let resolveAnswer = {};
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -106,7 +118,7 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
     const session = newSession();
     // Opened in the embedded popup, then closed without finishing: the
     // callback never runs, so nothing clears what /login stashed.
-    await navigate('/login?popup=1&pickup=abandoned-pickup', session);
+    await navigate('/login?popup=1&pickup=abandoned-pickup&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw', session);
     session.oauthAppRedirect = 'beeflow://oauth'; // and one left by a Custom Tab attempt
 
     const res = await navigate('/login', session);
@@ -119,11 +131,19 @@ test('an abandoned popup attempt does not turn the next ordinary sign-in into on
 
 test('a popup attempt still records its own mode and pickup', async () => {
     const session = newSession();
-    const res = await navigate('/login?popup=1&pickup=p-123', session);
+    const res = await navigate('/login?popup=1&pickup=p-123&pickup_challenge=Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw', session);
     assert.strictEqual(session.oauthPopup, true);
     assert.strictEqual(session.oauthPickupId, 'p-123');
+    assert.strictEqual(session.oauthPickupChallenge, 'Q2hhbGxlbmdlLWNoYWxsZW5nZS1jaGFsbGVuZ2UtY2hhbGw');
     assert.strictEqual(res.statusCode, 200, 'the popup gets the referrer-cleaning intermediate page');
     assert.match(res.body, /cloud\.example\/apps\/oauth2\/authorize/);
+});
+
+test('a pickup without a challenge is not set up', async () => {
+    const session = newSession();
+    await navigate('/login?popup=1&pickup=p-123', session);
+    assert.strictEqual(session.oauthPopup, true);
+    assert.strictEqual(session.oauthPickupId, undefined);
 });
 
 test('a configured client host is where the person returns, not the site that linked here', async () => {
@@ -144,4 +164,48 @@ test('without a configured client host the Referer still decides, as before', as
     const session = newSession();
     await navigate('/login', session, { referer: 'https://nc.customer.example/apps/beeflow' });
     assert.strictEqual(session.returnTo, 'https://nc.customer.example');
+});
+
+// ── The callback resolves the account like /callback/nextcloud ──────────
+async function legacyCallback(ocsId) {
+    const realFetch = global.fetch;
+    global.fetch = async (url) => (String(url).includes('/token')
+        ? { ok: true, json: async () => ({ access_token: 'at', refresh_token: 'rt' }) }
+        : { ok: true, json: async () => ({ ocs: { data: { id: ocsId, 'display-name': 'Admin', email: 'admin@cloud.example' } } }) });
+    try {
+        const session = { ...newSession(), legacyOAuthState: 'st', returnTo: 'https://app.example' };
+        const res = await navigate('/callback?code=c&state=st', session);
+        return { res, session };
+    } finally {
+        global.fetch = realFetch;
+    }
+}
+
+test('the legacy callback resolves the Nextcloud uid through the prefixed SSO id, never the raw uid', async () => {
+    resolveCalls.length = 0;
+    resolveAnswer = {};
+    const { session } = await legacyCallback('admin');
+    assert.deepStrictEqual(resolveCalls, ['nextcloud-admin']);
+    assert.strictEqual(session.user.id, 'nextcloud-admin');
+    assert.strictEqual(session.nextcloudUid, 'admin', 'the raw uid stays only for WebDAV paths');
+});
+
+test('a refusal from the account resolution ends the legacy callback without a session', async () => {
+    resolveCalls.length = 0;
+    resolveAnswer = { error: 'sso_link_required' };
+    const { res, session } = await legacyCallback('alice');
+    assert.strictEqual(res.statusCode, 302);
+    assert.match(res.location, /error=sso_link_required&hint=link_from_settings/);
+    assert.strictEqual(session.user, undefined);
+    assert.notStrictEqual(session.isAuthenticated, true);
+});
+
+test('the legacy callback hands the uid on as subject and legacy raw uid, with an unverified e-mail', async () => {
+    resolvedUsers.length = 0;
+    resolveAnswer = {};
+    await legacyCallback('carol');
+    const [user] = resolvedUsers;
+    assert.strictEqual(user.subject, 'carol');
+    assert.strictEqual(user.legacyRawUid, 'carol');
+    assert.strictEqual(user.emailVerified, false);
 });

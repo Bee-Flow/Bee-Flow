@@ -63,3 +63,16 @@ test('without the automation tables the agent is still deleted', async () => {
     const lone = (await agents.createAgent('Lone', '', 'p', OWNER)).id;
     assert.strictEqual(await agents.forceDeleteAgent(lone), true);
 });
+
+test('deleting an agent removes its conversations and their messages, and only those', async () => {
+    await require('./conversationMessages').initMessagesTable();
+    const gone = (await agents.createAgent('Chatted', '', 'p', OWNER)).id;
+    const stays = (await agents.createAgent('Other', '', 'p', OWNER)).id;
+    await pg.query(`INSERT INTO agent_conversations (id, agent_id, user_id) VALUES ('cv-gone', $1, 'bob'), ('cv-stays', $2, 'bob')`, [gone, stays]);
+    await pg.query(`INSERT INTO conversation_messages (id, conversation_id, role, content, seq) VALUES ('mg', 'cv-gone', 'user', 'x', 1), ('ms', 'cv-stays', 'user', 'y', 1)`);
+
+    assert.strictEqual(await agents.forceDeleteAgent(gone), true);
+    const left = (await pg.query('SELECT conversation_id FROM conversation_messages ORDER BY conversation_id')).rows.map((r) => r.conversation_id);
+    assert.deepStrictEqual(left, ['cv-stays']);
+    assert.strictEqual((await pg.query(`SELECT COUNT(*)::int AS n FROM agent_conversations WHERE agent_id = $1`, [gone])).rows[0].n, 0);
+});

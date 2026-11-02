@@ -91,6 +91,7 @@ const ERASURE_COVERAGE = Object.freeze({
     // Personal templates go; an organisation template the person wrote stays and loses its author.
     summary_templates: { mode: 'deleted', column: 'user_id', detach: 'created_by' },
     user_security_keys: { mode: 'deleted', column: 'user_id' },
+    sso_identities: { mode: 'deleted', column: 'user_id' },
     user_notification_prefs: { mode: 'deleted', column: 'user_id' },
     consent_acceptances: { mode: 'deleted', column: 'user_id' },
     consumer_subscriptions: { mode: 'deleted', column: 'user_id' },
@@ -119,6 +120,7 @@ const ERASURE_COVERAGE = Object.freeze({
     automation_evolutions: { mode: 'deleted', column: 'user_id' },
     automation_alert_rules: { mode: 'deleted', column: 'user_id' },
     automation_usage: { mode: 'deleted', column: 'owner_user_id' },
+    automation_notification_events: { mode: 'deleted', column: 'recipient_user_id' },
     automation_schedules: { mode: 'cascade', parent: 'automations' },
     webpage_public_shares: { mode: 'deleted', column: 'created_by' },
     studio_app_members: { mode: 'deleted', column: 'user_id' },
@@ -136,6 +138,12 @@ const ERASURE_COVERAGE = Object.freeze({
     studio_app_public_pages: { mode: 'cascade', parent: 'studio_apps' },
     skills: { mode: 'step', step: 'skills' },
     conversation_messages: { mode: 'step', step: 'conversations' },
+    // Personal bases (no organisation) with their chunks; an organisation's stay.
+    knowledge_bases: { mode: 'step', step: 'knowledge_bases' },
+    kb_chunks: { mode: 'cascade', parent: 'knowledge_bases' },
+    kb_document_versions: { mode: 'cascade', parent: 'knowledge_bases' },
+    // The thread stays with the support desk; requester id and contact details are cleared.
+    support_threads: { mode: 'step', step: 'support_threads' },
 
     // ── Records of the organisation or a project that name the person ───
     guardrail_events: { mode: 'detached', column: 'user_id' },
@@ -160,6 +168,7 @@ const ERASURE_COVERAGE = Object.freeze({
     iso_risk_treatments: { mode: 'detached', column: 'owner_user_id' },
     iso_soa_entries: { mode: 'detached', column: 'owner_user_id' },
     automation_agent_bindings: { mode: 'detached', column: 'created_by' },
+    studio_app_email_log: { mode: 'detached', column: 'viewer_user_id' },
     automation_form_scenarios: { mode: 'detached', column: 'created_by' },
     automation_golden_runs: { mode: 'detached', column: 'created_by' },
     automation_shares: { mode: 'detached', column: 'created_by' },

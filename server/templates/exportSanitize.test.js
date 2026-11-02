@@ -77,6 +77,25 @@ test('url() and expression() are stripped from surviving style attributes', () =
     assert.ok(out.includes('width:10px'), 'harmless declarations are kept');
 });
 
+test('nested, unquoted and srcset forms reach nothing remote and run nothing', () => {
+    for (const frag of [
+        '<scr<script>x</script>ipt>fetch("http://169.254.169.254/")</script>',
+        '<img src=http://169.254.169.254/latest/meta-data/>',
+        '<img srcset="http://169.254.169.254/a 1x">',
+        '<svg><image href="http://169.254.169.254/x"/></svg>',
+        '<svg><image xlink:href=http://169.254.169.254/x /></svg>',
+        '<div style=background:url(http://169.254.169.254/x)>t</div>',
+        '<video poster=http://169.254.169.254/x></video>',
+        '<a href=javascript:alert(1)>x</a>',
+    ]) {
+        const out = cleanContentForExport(frag);
+        assert.ok(!/<script/i.test(out), `script survived in: ${frag} -> ${out}`);
+        assert.ok(!/javascript:/i.test(out), `javascript: survived in: ${frag} -> ${out}`);
+        assert.ok(!/(src|srcset|href|poster)\s*=\s*["']?\s*https?:\/\/169/i.test(out), `remote load survived in: ${frag} -> ${out}`);
+        assert.ok(!/url\(\s*["']?http/i.test(out), `css fetch survived in: ${frag} -> ${out}`);
+    }
+});
+
 // ── 3. Mermaid + content data attributes survive (C5) ─────────────
 test('mermaid data-code reaches the diagram renderer instead of being stripped first', () => {
     const b64 = Buffer.from('graph TD; A-->B').toString('base64');

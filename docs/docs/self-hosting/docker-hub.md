@@ -48,7 +48,8 @@ TAG=2026.08.19-918
 ```
 
 Everything else — secrets, first-run admin password, profiles — works exactly as described in
-[Docker Compose](./docker-compose.md).
+[Docker Compose](./docker-compose.md). `BROWSER_WS_PATH` must be set in `.env`
+(`openssl rand -hex 24`); the compose file refuses to start without it.
 
 Because `guard` lives in its own profile, add it explicitly:
 

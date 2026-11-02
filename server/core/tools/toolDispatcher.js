@@ -43,6 +43,7 @@ registerBuiltinToolFamilies();
  * @param {Object} toolArgs - Arguments for the tool
  * @param {Object} [context]  - Execution context, handed to the tool family as is:
  *   @param {string}  [context.userId]       - Current user ID
+ *   @param {string}  [context.askerUserId]  - The person who asked (not an acting integration identity)
  *   @param {Object}  [context.session]      - Express session (for OAuth tokens)
  *   @param {Object}  [context.userAuth]     - User auth info (encryptionKey, etc.)
  *   @param {Object}  [context.fixedParams]  - Pre-configured params for this tool (tier overrides etc)
@@ -77,14 +78,18 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     const automationCallCtx = automationCallContext(context);
     const called = await dispatchAgentCallable(toolName, toolArgs, context.userId, automationCallCtx);
     if (called.handled) return called.result;
-    const stepped = await dispatchStepTool(toolName, toolArgs, context.userId, automationCallCtx);
+    // A Step is the asker's own (owner-only), never an acting integration identity's.
+    const stepUserId = context.askerUserId || context.userId;
+    const stepped = await dispatchStepTool(toolName, toolArgs, stepUserId, { ...automationCallCtx, userId: stepUserId });
     if (stepped.handled) return stepped.result;
 
     const hint = unloadedGroupHint(toolName);
     if (hint) return hint;
 
     // ─── Fallback: Component Tools ──────────────────────────────
-    return await executeComponentTool(toolName, toolArgs, context.userAuth, context.fixedParams, context.agentId);
+    // The caller a subworkflow runs for: the asker, not an acting integration identity.
+    const caller = context.askerUserId || context.userId || null;
+    return await executeComponentTool(toolName, toolArgs, caller ? { ...(context.userAuth || {}), askerUserId: caller } : context.userAuth, context.fixedParams, context.agentId);
 }
 
 // ─── Agent-Callable Automations (trigger.kind === 'agent_call') ─

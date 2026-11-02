@@ -31,3 +31,30 @@ test('kb_search results carry the chunk id kb_fetch resolves, and the source uri
     const kbQueryCache = require('../core/agentRuntime/kbQueryCache');
     assert.strictEqual(kbQueryCache.getChunk(ctx.conversationId, CHUNK.id).source_uri, 'handbook.pdf');
 });
+
+test('Z-N3: kb_fetch never reads a chunk id outside this conversation\'s search results', async () => {
+    /** @type {unknown[][]} */
+    const queries = [];
+    preloadStubs(require, {
+        '../db': { getAll: async (/** @type {unknown[]} */ ...a) => { queries.push(a); return [{ chunk_id: '42', title: 'Other tenant', content: 'secret' }]; } },
+    });
+    const tool = require('./kbSearchTools');
+    const res = await tool.executeKbSearchTool('kb_fetch', { chunk_ids: ['42'] }, { userId: 'u2', agentId: 'a2', conversationId: 'conv-other' });
+    assert.ok(res.error, 'an unknown id is an error, not content');
+    assert.strictEqual(JSON.stringify(res).includes('secret'), false);
+    assert.deepStrictEqual(queries, [], 'no database read for an id the conversation never saw');
+});
+
+test('Z-N3: kb_fetch is only claimed when preview mode offers it', () => {
+    const tool = require('./kbSearchTools');
+    const prev = process.env.KB_PREVIEW_MODE;
+    try {
+        delete process.env.KB_PREVIEW_MODE;
+        assert.strictEqual(tool.isKbSearchTool('kb_fetch'), false);
+        assert.strictEqual(tool.isKbSearchTool('kb_search'), true);
+        process.env.KB_PREVIEW_MODE = 'true';
+        assert.strictEqual(tool.isKbSearchTool('kb_fetch'), true);
+    } finally {
+        if (prev === undefined) delete process.env.KB_PREVIEW_MODE; else process.env.KB_PREVIEW_MODE = prev;
+    }
+});

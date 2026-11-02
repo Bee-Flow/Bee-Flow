@@ -27,7 +27,7 @@
 
 const express = require('express');
 const configStore = require('../stores/configStore');
-const { mintToken, SECRET_KEY } = require('../auth/mcpToken');
+const { mintToken, SECRET_KEY, recordIssued, clearIssued } = require('../auth/mcpToken');
 const { hasRecentAuth, REAUTH_REQUIRED } = require('../auth/recentAuth');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
@@ -100,6 +100,8 @@ router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (/** @
     const { token, random } = mintToken(userId);
     await configStore.setSecret(SECRET_KEY(userId), random);
     await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '0');
+    // The lifetime of the token starts now, not at its first use.
+    await recordIssued(userId, random);
     const base = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
     res.json({
         token,
@@ -121,6 +123,7 @@ router.delete('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (/**
     const { random } = mintToken(userId);
     await configStore.setSecret(SECRET_KEY(userId), random);
     await configStore.setSecret(`${SECRET_KEY(userId)}_revoked`, '1');
+    await clearIssued(userId);
     res.json({ success: true });
 });
 

@@ -17,6 +17,7 @@ const mcpStore = require('../stores/mcpStore');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { urlWithoutQuery } = require('../utils/logUrl.mts');
 
 /** Repo root of this service — `/app` in the Docker image. */
 const SERVER_ROOT = path.resolve(__dirname, '..');
@@ -121,7 +122,7 @@ async function getConnection(serverId, userId) {
         if (!_StreamableHTTPClientTransport) {
             throw new Error('StreamableHTTP transport not available — update @modelcontextprotocol/sdk');
         }
-        log.info(`[MCP] Connecting to HTTP server "${server.name}" for user ${userId}: ${server.url}`);
+        log.info(`[MCP] Connecting to HTTP server "${server.name}" for user ${userId}: ${urlWithoutQuery(server.url)}`);
         /** @type {{ Authorization?: string }} */
         const httpHeaders = {};
         // If user has an auth credential, pass it as Authorization header

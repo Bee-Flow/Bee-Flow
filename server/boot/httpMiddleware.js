@@ -198,15 +198,30 @@ function applyCors(app, { log = defaultLog } = {}) {
 }
 
 /**
+ * The automation webhook and event routes (routes/automation/events.js) parse
+ * their own body: each has its own size limit and keeps the raw bytes its
+ * signature check needs. The global JSON parser leaves them alone, so those
+ * limits and that raw capture are what applies. Lower-cased: Express matches
+ * routes case-insensitively.
+ * @param {import('http').IncomingMessage & { originalUrl?: string }} req
+ */
+function parsesOwnBody(req) {
+    const path = String(req.originalUrl || req.url || '').split('?')[0].toLowerCase();
+    return path.startsWith('/api/automation/events/') || path.startsWith('/api/automation/webhook/');
+}
+
+/**
  * Whether a request can need `req.rawBody`. Keeping a string copy of every JSON
- * body doubles the memory of large payloads; only two readers exist:
+ * body doubles the memory of large payloads; the readers are:
  *   - auth/connectorSig.js verifies the HMAC of a request carrying X-Beeflow-Sig
  *   - routes/cmsForms.js sizeGuard measures the public website-form body
- * (the GitHub / Nextcloud webhook routes capture their own, route-level.)
+ *   - the automation webhook/event routes (parsesOwnBody; they capture their
+ *     own, route-level, and are listed here so a copy exists either way)
  * @param {import('http').IncomingMessage & { originalUrl?: string }} req
  */
 function needsRawBody(req) {
     if (req.headers && req.headers['x-beeflow-sig']) return true;
+    if (parsesOwnBody(req)) return true;
     const url = String(req.originalUrl || req.url || '');
     return url.includes('/forms/');
 }
@@ -225,7 +240,8 @@ function applyBodyParsers(app) {
     // stream first, so the signature was checked against an empty body and every
     // connector→SaaS call 401'd. Storing the raw string here (a no-op for parsing)
     // makes `req.rawBody` available to those verifiers.
-    app.use(express.json({ limit: '20mb', verify: (req, _res, buf) => { if (needsRawBody(req)) req.rawBody = buf.toString('utf8'); } }));
+    const json = express.json({ limit: '20mb', verify: (req, _res, buf) => { if (needsRawBody(req)) req.rawBody = buf.toString('utf8'); } });
+    app.use((req, res, next) => (parsesOwnBody(req) ? next() : json(req, res, next)));
 }
 
-module.exports = { applyRequestIdAndSecurityHeaders, applyCors, applyBodyParsers, needsRawBody };
+module.exports = { applyRequestIdAndSecurityHeaders, applyCors, applyBodyParsers, needsRawBody, parsesOwnBody };

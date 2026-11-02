@@ -40,14 +40,12 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const { loadConfig } = require('../permissions');
-const { getOrCreateSSOUserDEKCompat } = require('../encryption');
 const { establishSession } = require('../establishSession');
 const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
 const userStore = require('../../stores/userStore');
-// Plan- AND licence-aware entitlement check — see the note on the same import
-// in oauth/providerCallbackRoutes.js and stores/encryptionAvailability.js.
-const { isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
-const { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
+const { resolveSsoUser } = require('./ssoUserProvisioning');
+const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
+const { getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
 const { isPickupTokenShaped } = require('../../utils/sessionToken');
 
 // Legacy Nextcloud login redirect
@@ -73,12 +71,11 @@ router.get('/login', async (req, res) => {
     // installs whose Nextcloud OAuth client still points at the legacy
     // /auth/callback URI keep working in embedded mode.
     if (req.query.popup === '1') req.session.oauthPopup = true;
-    if (req.query.pickup) {
+    // A pickup needs a well-formed challenge; the claim must answer it with
+    // the secret (utils/sessionToken.js).
+    if (req.query.pickup && isPickupTokenShaped(req.query.pickup_challenge)) {
         req.session.oauthPickupId = String(req.query.pickup).slice(0, 128);
-        // The claim must answer this with the secret (utils/sessionToken.js).
-        if (isPickupTokenShaped(req.query.pickup_challenge)) {
-            req.session.oauthPickupChallenge = req.query.pickup_challenge;
-        }
+        req.session.oauthPickupChallenge = req.query.pickup_challenge;
     }
 
     const host = req.get('host');
@@ -171,56 +168,51 @@ router.get('/callback', async (req, res) => {
             }
         });
 
-        let user = null;
+        /** @type {{ id: string, [key: string]: any } | null} */
+        let ncUser = null;
         if (userResponse.ok) {
             const userData = /** @type {{ ocs?: { data?: { id: string, [key: string]: any } } }} */ (await userResponse.json());
-            user = userData.ocs?.data || null;
+            ncUser = userData.ocs?.data || null;
             // Persist the raw Nextcloud uid for WebDAV path construction.
-            if (user?.id) req.session.nextcloudUid = user.id;
+            if (ncUser?.id) req.session.nextcloudUid = ncUser.id;
         }
-
-        req.session.accessToken = tokenData.access_token;
-        req.session.refreshToken = tokenData.refresh_token;
-        req.session.oauthProvider = 'nextcloud';
+        if (!ncUser?.id) return res.redirect(`${returnTo}?error=failed_to_get_user_info`);
         if (tokenData.expires_in) {
             req.session.nextcloudTokenExpiresAt = Date.now() + Number(tokenData.expires_in) * 1000;
         }
-        // Check stored user role — SSO users can also be admins
-        const freshUserLegacy = await userStore.getUser(user?.id || 'oauth-user');
+
+        // The same account resolution, status gate and session fields as
+        // /callback/nextcloud: the account is found by (nextcloud, uid), the
+        // provider-prefixed id and the e-mail rules of resolveSsoUser. An
+        // account this callback created under the raw uid is found only with
+        // the same e-mail and no SSO identity recorded yet, never by the raw
+        // uid alone (ssoUserResolver.js); the uid is then recorded.
+        /** @type {import('./providerCallbackRoutes').OAuthUser} */
+        const user = ({
+            id: `nextcloud-${ncUser.id}`,
+            displayName: ncUser['display-name'] || ncUser.id,
+            email: ncUser.email || '',
+            provider: 'nextcloud',
+            subject: String(ncUser.id),
+            emailVerified: false,
+            ncBaseUrl: nextcloudUrl || null,
+            legacyRawUid: String(ncUser.id),
+        });
+        const resolved = await resolveSsoUser({ req, provider: 'nextcloud', user, config });
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- resolved.error is one of resolveSsoUser's fixed codes; returnTo comes from the session
+        if (resolved.error) return res.redirect(`${returnTo}?error=${resolved.error}${resolved.error === 'sso_link_required' ? '&hint=link_from_settings' : ''}`);
+        const { freshUser, userHasOrg, pendingApproval, isPersonalAccount } = await resolveOrgStanding({
+            provider: 'nextcloud', user, signupIntent: resolved.signupIntent,
+        });
 
         // The account-status gate — read BEFORE the session fields are written,
         // for the same reason as the other three paths. See
         // auth/accountStatusGate.js.
-        if (isLoginBlockedAccount(freshUserLegacy)) {
+        if (isLoginBlockedAccount(freshUser)) {
             log.warn('[OAuth/nextcloud-legacy] Refused sign-in for a blocked account');
             return res.status(REFUSAL.status).json(REFUSAL.body);
         }
-
-        req.session.user = user ?? undefined;
-        req.session.isAuthenticated = true;
-        req.session.isAdmin = freshUserLegacy?.role === 'admin';
-
-        // Long-lived encrypted vault copy for unattended automations.
-        if (freshUserLegacy?.organizationId && user?.id) {
-            await _vaultUpsertSafe({
-                userId: user.id,
-                orgId: freshUserLegacy.organizationId,
-                provider: 'nextcloud',
-                tokenData,
-            });
-        }
-        // Handle SSO encryption with backward compatibility
-        const encryptionEnabled = await isSsoPinRequiredForUser(user?.id || 'oauth-user');
-        const ssoResult = await getOrCreateSSOUserDEKCompat(user?.id || 'oauth-user', encryptionEnabled);
-        if (ssoResult.encryptionKey) {
-            req.session.encryptionKey = ssoResult.encryptionKey;
-        }
-        if (ssoResult.needsEncryptionSetup) {
-            req.session.needsEncryptionSetup = true;
-        }
-        if (ssoResult.needsEncryptionPin) {
-            req.session.needsEncryptionPin = true;
-        }
+        await writeOAuthSession({ req, provider: 'nextcloud', user, freshUser, tokenData: /** @type {import('./providerCallbackRoutes').OAuthTokenResponse} */ (tokenData), pendingApproval, userHasOrg, isPersonalAccount });
 
         // H11: rotate the session id at the moment of authentication. The
         // pre-auth token material (nextcloudUid / accessToken / refreshToken /
@@ -237,6 +229,7 @@ router.get('/callback', async (req, res) => {
                         'accessToken', 'refreshToken', 'oauthProvider',
                         'nextcloudUid', 'nextcloudTokenExpiresAt',
                         'encryptionKey', 'needsEncryptionSetup', 'needsEncryptionPin',
+                        'pendingApproval', 'noOrganization',
                     ],
                     audit: { method: 'nextcloud_legacy' },
                 });

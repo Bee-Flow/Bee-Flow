@@ -139,6 +139,7 @@ function cellValueFor(value) {
 async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
     const ExcelJS = loadExcelJs();
     const h = Math.max(1, Number(headerRow) || 1);
+    await require('./sheetjs').assertSafeWorkbookPackage(buffer);
     const wb = new ExcelJS.Workbook();
     try {
         await wb.xlsx.load(buffer);
@@ -208,6 +209,7 @@ async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
 /** The header span and last data row of a sheet, for a writer that must verify before it edits. */
 async function inspect(buffer, { sheet, headerRow = 1 }) {
     const ExcelJS = loadExcelJs();
+    await require('./sheetjs').assertSafeWorkbookPackage(buffer);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
     const ws = pickWorksheet(wb, sheet);

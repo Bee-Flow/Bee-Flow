@@ -16,6 +16,8 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
+// The INIT_ADMIN_PASSWORD case sets it itself; the other cases run without it.
+delete process.env.INIT_ADMIN_PASSWORD;
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -101,4 +103,16 @@ test('a well-formed password still claims the installation', async () => {
     const res = await dispatch({ method: 'POST', url: '/setup', body: { password: 'Password1' } });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(touched.some((t) => t.what === 'saveConfig'));
+});
+
+test('while INIT_ADMIN_PASSWORD is set, /setup stays closed and writes nothing', async () => {
+    process.env.INIT_ADMIN_PASSWORD = 'short';
+    try {
+        const res = await dispatch({ method: 'POST', url: '/setup', body: { password: 'Password1' } });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'setup_managed_by_env');
+        assert.deepStrictEqual(touched, []);
+    } finally {
+        delete process.env.INIT_ADMIN_PASSWORD;
+    }
 });

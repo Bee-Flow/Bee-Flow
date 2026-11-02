@@ -15,7 +15,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const provider = require('./browserProvider');
 
-const backend = { endpointError: null, connectError: null };
+const backend = { endpointError: null, connectError: null, contexts: [], wsHandlers: [] };
 const DEPS = {
     pwtRunner: {
         getBrowserEndpoint: async () => {
@@ -29,7 +29,10 @@ const DEPS = {
             return {
                 on() {},
                 isConnected: () => true,
-                newContext: async () => ({ close: async () => {} }),
+                newContext: async (opts) => {
+                    backend.contexts.push(opts);
+                    return { close: async () => {}, routeWebSocket: async (m, h) => { backend.wsHandlers.push(h); } };
+                },
             };
         },
     }),
@@ -41,7 +44,7 @@ function freshProvider() {
     return provider;
 }
 
-test.beforeEach(() => { backend.endpointError = null; backend.connectError = null; });
+test.beforeEach(() => { backend.endpointError = null; backend.connectError = null; backend.contexts = []; backend.wsHandlers = []; });
 
 test('no Docker and no BROWSER_WS_ENDPOINT is a backend-unavailable error that names the sidecar', async () => {
     const provider = freshProvider();
@@ -73,4 +76,23 @@ test('a failure in the caller\'s own work is not mistaken for a missing backend'
 test('a working backend renders', async () => {
     const provider = freshProvider();
     assert.strictEqual(await provider.withContext({}, async () => 'pdf'), 'pdf');
+});
+
+test('every context blocks service workers and screens WebSockets by host', async () => {
+    const provider = freshProvider();
+    await provider.withContext({ serviceWorkers: 'allow', viewport: { width: 10, height: 10 } }, async () => 'ok');
+    assert.strictEqual(backend.contexts[0].serviceWorkers, 'block', 'a caller cannot switch service workers back on');
+    assert.deepStrictEqual(backend.contexts[0].viewport, { width: 10, height: 10 }, 'caller options are kept');
+    assert.strictEqual(backend.wsHandlers.length, 1);
+    let verdict = null;
+    await backend.wsHandlers[0]({
+        url: () => 'ws://127.0.0.1:9222/beeflow-browser',
+        connectToServer: () => { verdict = 'connect'; },
+        close: async () => { verdict = 'close'; },
+    });
+    assert.strictEqual(verdict, 'close', 'a socket to the loopback address is closed');
+
+    await provider.newSharedContext({});
+    assert.strictEqual(backend.contexts[1].serviceWorkers, 'block');
+    assert.strictEqual(backend.wsHandlers.length, 2);
 });

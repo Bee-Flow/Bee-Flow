@@ -24,6 +24,7 @@
  */
 
 const { bestEffort } = require('../utils/bestEffort');
+const { makeResolvedHostScreen, guardContextWebSockets } = require('../core/http/browserRouteGuard');
 
 const DEFAULT_DEPS = {
     pwtRunner: require('./pwtRunner'),
@@ -123,14 +124,28 @@ async function getConnection() {
  * @param {import('playwright').BrowserContextOptions} [contextOptions]
  */
 async function newContextWithRetry(contextOptions) {
+    // Service workers are blocked on every context: a worker registered by a
+    // page could answer requests without passing the context's route screen.
+    const options = { ...(contextOptions || {}), serviceWorkers: /** @type {'block'} */ ('block') };
+    /** @type {import('playwright').BrowserContext} */
+    let context;
     try {
         const browser = await getConnection();
-        return await browser.newContext(contextOptions || {});
+        context = await browser.newContext(options);
     } catch (err) {
         _conn = null; // assume the connection is gone; force a clean reconnect
         const browser = await getConnection();
-        return await browser.newContext(contextOptions || {});
+        context = await browser.newContext(options);
     }
+    try {
+        // context.route does not see WebSockets: every context screens them
+        // by host, the same rule its callers apply to http(s) requests.
+        await guardContextWebSockets(context, makeResolvedHostScreen());
+    } catch (err) {
+        try { await context.close(); } catch (closeErr) { bestEffort('services/browserProvider:newContextWithRetry', closeErr); }
+        throw err;
+    }
+    return context;
 }
 
 /**

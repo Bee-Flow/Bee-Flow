@@ -25,7 +25,7 @@ const browserProvider = {
             async setContent(html) { browser.lastHtml = html; },
             async pdf(options) { browser.lastPdfOptions = options; return renderer._test.renderPdfViaPdfkit('browser body', { title: 'From browser' }); },
         };
-        return fn({ newPage: async () => page });
+        return fn({ route: async () => {}, routeWebSocket: async () => {}, newPage: async () => page });
     },
 };
 const restore = installResolveStub({ '../../../services/browserProvider': browserProvider });

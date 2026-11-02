@@ -392,5 +392,8 @@ jobs:
               echo '```'
               echo "REGISTRY=docker.io/${NAMESPACE} TAG=${VERSION} docker compose -f docker-compose.from-registry.yml up -d"
               echo '```'
+              echo ""
+              echo "BROWSER_WS_PATH must be set in .env (\`openssl rand -hex 24\`); the compose file refuses to start without it. \`./selfhost.sh\` generates it, also on \`--upgrade\`."
+              echo "Embedded sign-in from Nextcloud needs Nextcloud served over HTTPS (the sign-in check uses the browser's Web Crypto, which plain HTTP does not offer)."
             } >> "$GITHUB_STEP_SUMMARY"
           fi

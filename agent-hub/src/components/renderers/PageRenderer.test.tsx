@@ -22,7 +22,7 @@ const PAGE: Record<string, unknown> = {
         { type: 'card', title: 'Card', children: [{ type: 'divider' }] },
         { type: 'heading', level: 3, text: 'H3' },
         { type: 'heading', text: 'H2 default' },
-        { type: 'image', src: 'https://example.test/a.png', alt: 'pic', height: 100, fit: 'contain' },
+        { type: 'image', src: '/files/a.png', alt: 'pic', height: 100, fit: 'contain' },
         { type: 'list', ordered: true, items: ['one', { type: 'text', text: 'two' }] },
         { type: 'list', items: ['bullet'] },
         { type: 'button', text: 'Go', variant: 'secondary', action: 'run', overlay: 'Overlay body', url: 'https://example.test/x' },

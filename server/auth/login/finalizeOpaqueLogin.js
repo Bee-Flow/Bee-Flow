@@ -11,8 +11,9 @@
  */
 
 const log = require('../../telemetry/log');
-const { establishSession } = require('../establishSession');
-const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
+// Called through the module object, so a test can swap it (testUtils/swaps).
+const sessionEstablishment = require('../establishSession');
+const { isLoginBlockedAccount, isHeldForApproval, REFUSAL } = require('../accountStatusGate');
 
 /**
  * @param {import('express').Request} req
@@ -33,22 +34,26 @@ async function finalizeOpaqueLogin(req, res, { user, encryptionKey = null, sessi
         avatar: user.avatar || null,
         avatarType: user.avatarType || null,
     };
+    // An account awaiting approval gets the flag the client's waiting screen
+    // reads, as on the password path (requireAuth holds it either way).
+    const held = isHeldForApproval(user);
     try {
         // H11: rotate the session id on establishment (session fixation).
-        await establishSession(req, {
+        await sessionEstablishment.establishSession(req, {
             user: sessionUser,
             isAdmin: user.role === 'admin',
             extra: {
                 opaqueMode: true,
                 ...(encryptionKey !== null ? { encryptionKey } : {}),
                 ...sessionExtra,
+                ...(held ? { pendingApproval: true } : {}),
             },
             audit: { method: 'opaque', organizationId: user.organizationId || null },
         });
     } catch (err) {
         log.error('Session save error:', err);
     }
-    return res.json({ success: true, user: sessionUser, ...response });
+    return res.json({ success: true, user: sessionUser, ...response, ...(held ? { pendingApproval: true } : {}) });
 }
 
 module.exports = { finalizeOpaqueLogin };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { ExternalLink, ChevronDown, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
+import { SafeImage } from './remoteImages';
 import type { ResearchItem, ResearchBlock, ResearchData } from './ResearchRenderer.types';
 
 const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
@@ -38,7 +39,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                     <div key={key} className={`[position:relative] [border-radius:1rem] [overflow:hidden] [margin-bottom:1.5rem] ${block.image ? '[min-height:200px] [background:transparent]' : '[min-height:auto] [background:linear-gradient(135deg,_#1a1a2e_0%,_#16213e_50%,_#0f3460_100%)]'}`}>
                         {block.image && (
                             <>
-                                <img
+                                <SafeImage
                                     src={block.image}
                                     alt=""
                                     className="[width:100%] [height:240px] [object-fit:cover] [display:block]"
@@ -77,7 +78,7 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
             case 'image':
                 return (
                     <figure key={key} className="[margin:1.5rem_0]">
-                        <img
+                        <SafeImage
                             src={block.src || block.url}
                             alt={block.alt || block.caption || ''}
                             style={{

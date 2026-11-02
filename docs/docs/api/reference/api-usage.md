@@ -15,7 +15,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/agents`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -42,7 +42,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/by-type`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -67,7 +67,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/by-user`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -92,7 +92,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/rates`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -117,7 +117,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/recent`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -142,7 +142,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/summary`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -167,7 +167,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/azure-services/timeline`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -194,7 +194,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/by-agent`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -221,7 +221,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/by-conversation`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -248,7 +248,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/by-model`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -275,7 +275,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/by-swarm-run`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -302,7 +302,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/by-user`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -329,7 +329,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/cost-timeline`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -356,7 +356,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/filters/models`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -381,7 +381,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/filters/sources`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -408,7 +408,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/by-action`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -433,7 +433,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/by-category`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -458,7 +458,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/by-user`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -483,7 +483,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/overview`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope` · the handler also checks who the caller is
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows` · the handler also checks who the caller is
 
 **Query**
 
@@ -508,7 +508,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/recent`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -533,7 +533,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/summary`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -558,7 +558,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/guardrails/timeline`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -585,7 +585,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations-health`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`, `requireMonitoringScope`
 
 **Query**
 
@@ -612,7 +612,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/by-tool`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -637,7 +637,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/by-type`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -662,7 +662,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/egress`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -687,7 +687,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/operator-summary`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -712,7 +712,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/overview`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope` · the handler also checks who the caller is
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows` · the handler also checks who the caller is
 
 **Query**
 
@@ -737,7 +737,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/pii-summary`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -762,7 +762,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/recent`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -787,7 +787,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/servers`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -812,7 +812,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/sovereignty`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -837,7 +837,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/summary`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -862,7 +862,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/integrations/timeline`
 
-**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`
+**Access:** middleware `_advUsagePrefixGate`, `requireMonitoringScope`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -889,7 +889,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/models`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -916,7 +916,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/models-by-agent`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -943,7 +943,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/models-by-user`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -970,7 +970,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/organizations`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -997,7 +997,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/prompt-cache`
 
-**Access:** middleware `_advUsagePrefixGate` · the handler also checks who the caller is
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows` · the handler also checks who the caller is
 
 **Query**
 
@@ -1024,7 +1024,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/recent`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -1051,7 +1051,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/sources`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -1078,7 +1078,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/summary`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -1105,7 +1105,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/timeline`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -1132,7 +1132,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/tools`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 
@@ -1159,7 +1159,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/usage/users`
 
-**Access:** middleware `_advUsagePrefixGate`
+**Access:** middleware `_advUsagePrefixGate`, `narrowMembersToOwnRows`
 
 **Query**
 

@@ -27,7 +27,7 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const pass = (req, res, next) => next();
 // The model call parks here until the test releases it.
-const fx = { started: null, release: null, signal: null };
+const fx = { started: null, release: null, fail: null, signal: null };
 
 const restore = installResolveStub({
     '../../core/aiAgent': {
@@ -41,6 +41,7 @@ const restore = installResolveStub({
                 fx.signal = opts.signal;
                 await new Promise((resolve, reject) => {
                     fx.release = resolve;
+                    fx.fail = reject;
                     opts.signal.addEventListener('abort', () => {
                         const e = new Error('aborted'); e.name = 'AbortError'; reject(e);
                     });
@@ -136,4 +137,14 @@ test('the client closing the stream aborts the model request and ends quietly', 
     assert.strictEqual(fx.signal.aborted, true, 'the model request ran on after the client left');
     assert.ok(!res.chunks.join('').includes('event: error'), 'a cancel is not reported as an error');
     assert.ok(res.writableEnded);
+});
+
+test('a failed turn reports a classified message, never the raw error text', async () => {
+    const { res, finished } = await startTurn();
+    fx.fail(new Error('relation "word_templates" at /srv/app/stores/templateStore.js:12 10.0.0.5:5432'));
+    await finished;
+    const joined = res.chunks.join('');
+    assert.ok(joined.includes('event: error'));
+    assert.ok(joined.includes('An unexpected error occurred'));
+    assert.ok(!/word_templates|\/srv\/app|10\.0\.0\.5/.test(joined), 'raw error text reached the client');
 });

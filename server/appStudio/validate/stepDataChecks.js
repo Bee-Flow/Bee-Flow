@@ -59,13 +59,13 @@ function checkFileIntake(step, path, ctx) {
         }
     }
     if (step.poPattern !== undefined && typeof step.poPattern === 'string' && step.poPattern) {
-        // The pattern runs server-side against attacker-supplied filenames;
-        // refuse one that does not even compile rather than failing at run
-        // time. (Bounded input: maxLen 200 is enforced by the field spec —
-        // but that bounds the PATTERN, not the filenames it scans, so an
-        // exponential-backtracking shape is refused too: `(a+)+` against a
-        // crafted filename blocks the event loop for every tenant.)
-        try { new RegExp(step.poPattern, 'i'); } catch {
+        // The pattern runs server-side against sender-supplied filenames and
+        // compiles through core/text/userPattern at run time; refuse here what
+        // that compiler refuses (does not compile), and a nested quantifier
+        // such as `(a+)+` as before.
+        const { compileUserPattern } = require('../../core/text/userPattern');
+        const compiled = compileUserPattern(step.poPattern, { caseInsensitive: true });
+        if (compiled.ok === false && 'reason' in compiled && compiled.reason === 'does_not_compile') {
             pushE({ code: 'action.file_intake_pattern_invalid', severity: 'error', path: `${path}.poPattern`, message: 'poPattern is not a valid regular expression.', hint: 'Fix the pattern or remove it to use the default.' });
         }
         const { hasNestedQuantifier } = require('../safePattern');

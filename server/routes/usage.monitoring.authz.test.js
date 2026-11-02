@@ -37,6 +37,7 @@ let governsOrgs = true;                  // serverLicenseGovernsOrgs(): self-hos
 let planLookupFails = false;             // getOrgSubscription throws
 let planMarkup = null;                   // markup_percent of the org's plan
 let orgLookupFails = false;              // resolveUserOrgIds throws (strict: the store stumbled)
+let memberPerms = [];                    // what hasPermission grants
 
 // ── Stubs ──────────────────────────────────────────────────────────────
 const authStub = {
@@ -45,6 +46,7 @@ const authStub = {
         return orgIdsResult;
     },
     isOrgAdminRole: (role) => role === 'org_admin' || role === 'org_owner',
+    async hasPermission(_id, perm) { return memberPerms.includes(perm); },
 };
 const userStoreStub = {
     async getUser(id) { return { id, orgRole: userOrgRole, organizationId: userRecordOrgId }; },
@@ -100,6 +102,11 @@ const usageStoreStub = {
     async getUsageSummary(filters) { captured.usageSummary = filters; return { total_calls: 5, estimated_cost: 1 }; },
     async getUsageByModel() { return []; },
     async getRecentCalls(limit, filters) { captured.recent = { limit, filters }; return []; },
+    async getUsageByUser(filters) { captured.byUser = filters; return []; },
+    async getUsageByConversation(filters) { captured.byConv = filters; return []; },
+    async getUsageByModelAndUser(filters) { captured.modelsByUser = filters; return []; },
+    async getUsageSources(filters) { captured.filterSources = filters; return []; },
+    async getUsageModels(filters) { captured.filterModels = filters; return []; },
 };
 
 const ROUTES_DIR = path.sep + 'routes' + path.sep;
@@ -297,6 +304,47 @@ test('consumption endpoints stay member-readable (only the monitoring prefix is 
     asOrgUser('member');
     const r = await get('/api/usage/summary');
     assert.strictEqual(r.status, 200, 'the Usage overview must not require org admin');
+});
+
+test('Z-N5: a plain member sees only their own rows on the per-person views', async () => {
+    asOrgUser('member');
+    memberPerms = [];
+    for (const [p, key] of [['/api/usage/by-user', 'byUser'], ['/api/usage/users', 'byUser'],
+        ['/api/usage/by-conversation', 'byConv'], ['/api/usage/models-by-user', 'modelsByUser']]) {
+        captured[key] = undefined;
+        const r = await get(p);
+        assert.strictEqual(r.status, 200, p);
+        assert.strictEqual(captured[key].userId, 'u1', `${p} must be narrowed to the caller`);
+        assert.strictEqual(captured[key].organizationId, 'org_a');
+    }
+    const recent = await get('/api/usage/recent?user=u2');
+    assert.strictEqual(recent.status, 200);
+    assert.strictEqual(captured.recent.filters.userId, 'u1', '?user= cannot name a colleague');
+    await get('/api/usage/summary?user=u2');
+    assert.strictEqual(captured.usageSummary.userId, 'u1');
+    await get('/api/usage/summary');
+    assert.strictEqual(captured.usageSummary.userId, undefined, 'organisation totals stay readable');
+});
+
+test('Z-N5: org admins and admin_monitoring holders keep the per-person view', async () => {
+    asOrgUser('org_admin');
+    await get('/api/usage/recent?user=u2');
+    assert.strictEqual(captured.recent.filters.userId, 'u2');
+    await get('/api/usage/by-user');
+    assert.strictEqual(captured.byUser.userId, undefined);
+    asOrgUser('member');
+    memberPerms = ['admin_monitoring'];
+    await get('/api/usage/by-user');
+    assert.strictEqual(captured.byUser.userId, undefined);
+    memberPerms = [];
+});
+
+test('Z-N5: filter value lists are scoped to the caller\'s organisation', async () => {
+    asOrgUser('org_admin');
+    await get('/api/usage/filters/sources');
+    await get('/api/usage/filters/models');
+    assert.strictEqual(captured.filterSources.organizationId, 'org_a');
+    assert.strictEqual(captured.filterModels.organizationId, 'org_a');
 });
 
 test('unauthenticated gets 401 before any scope logic', async () => {
