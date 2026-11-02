@@ -202,8 +202,8 @@ const RECORD_DISPLAY_SPECS = {
     },
     message_thread: {
         label: 'Message thread', category: 'Data',
-        description: 'A chat-style conversation over message rows. sideMap maps a row value (who wrote it) to a side + colour: right for your team, left for the customer, center for system events. htmlField renders e-mail HTML in a sandboxed frame; otherwise bodyField is plain text.',
-        events: ['onRowClick'],
+        description: 'A chat-style conversation over message rows. sideMap maps a row value (who wrote it) to a side + colour: right for your team, left for the customer, center for system events. htmlField renders e-mail HTML in a sandboxed frame; otherwise bodyField is plain text. Mail attachments: attachmentsSource = the attachments table; a chip opens its file, or fires onAttachmentClick { item }. attachmentFileKey + inlineContentIdKey show cid: images.',
+        events: ['onRowClick', 'onAttachmentClick'],
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
             bodyField: { type: 'string', maxLen: 120, default: 'body' },
@@ -232,6 +232,13 @@ const RECORD_DISPLAY_SPECS = {
             // the id both rows carry; the rows are grouped once, not per row.
             attachmentsSource: { type: 'binding', default: null },
             attachmentMatchKey: { type: 'string', maxLen: 120, default: null },
+            // The file column of an attachment row (a mailbox attachment table: 'file').
+            // Set, a chip with a file opens it in a new tab and the row can be
+            // redeemed (a mail attachment is fetched from the mailbox on first open).
+            attachmentFileKey: { type: 'string', maxLen: 120, default: null },
+            // The column holding the Content-ID ('content_id'). With attachmentFileKey
+            // set, a cid: image in the HTML mail is shown from the app's own files.
+            inlineContentIdKey: { type: 'string', maxLen: 120, default: null },
             citationsField: { type: 'string', maxLen: 120, default: null },
             citationLabelKey: { type: 'string', maxLen: 120, default: 'title' },
             // Mail-header meta. Any of these (or showAvatar) turns the line above

@@ -66,6 +66,7 @@ module.exports = {
     'app_studio.inspector.what_happens': 'What happens',
     'app_studio.inspector.whats_returned': 'What comes back',
     'app_studio.inspector.whats_sent': 'What gets sent',
+    'app_studio.inspector.when_attachment_clicked': 'When an attachment is clicked',
     'app_studio.inspector.when_card_moved': 'When a card is moved',
     'app_studio.inspector.when_changed': 'When it changes',
     'app_studio.inspector.when_clicked': 'When clicked',

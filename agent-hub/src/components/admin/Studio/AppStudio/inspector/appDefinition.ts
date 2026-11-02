@@ -55,6 +55,7 @@ export interface AppNode<P = CommonNodeProps> {
     onCardMove?: string;
     onChange?: string;
     onDecided?: string;
+    onAttachmentClick?: string;
     /** Role keys gating the node (absent or empty = everyone). */
     visibleToRoles?: string[];
     readOnly?: BoolOrFormula;

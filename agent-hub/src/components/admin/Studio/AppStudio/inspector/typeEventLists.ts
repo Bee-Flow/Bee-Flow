@@ -21,7 +21,8 @@ export const TYPE_EVENT_LISTS: Record<string, string[]> = {
     input_dataset: ['onChange'],
     // Fires when a Studio document is picked (or cleared).
     input_document: ['onChange'],
-    message_thread: ['onRowClick'],
+    // onAttachmentClick fires with { item: <the attachment row> }.
+    message_thread: ['onRowClick', 'onAttachmentClick'],
     kanban: ['onRowClick', 'onCardMove'],
     calendar: ['onRowClick'],
     // Fires with the clicked point's row (the synthetic time column stripped),

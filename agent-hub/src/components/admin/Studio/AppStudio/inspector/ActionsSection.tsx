@@ -75,6 +75,7 @@ const EVENT_LABELS: Record<string, { key: string; en: string; }> = {
     onRowSelect: { key: 'app_studio.inspector.when_row_selected', en: 'When a row is selected' },
     onCardMove: { key: 'app_studio.inspector.when_card_moved', en: 'When a card is moved' },
     onDecided: { key: 'app_studio.inspector.when_decided', en: 'When a decision is made' },
+    onAttachmentClick: { key: 'app_studio.inspector.when_attachment_clicked', en: 'When an attachment is clicked' },
 };
 
 /**
