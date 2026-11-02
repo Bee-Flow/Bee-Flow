@@ -265,7 +265,7 @@ module.exports = {
         modelVersion: 1,
         tables: [
             {
-                // Grain 0 of the mailbox connector. The first nine columns are
+                // Grain 0 of the mailbox connector. The first ten columns are
                 // written by the mailbox; everything from `status` on belongs
                 // to the team and is never touched by a sync.
                 id: 'tbl_qithr', key: 'aanvragen', name: 'Requests', icon: 'Inbox',
@@ -279,6 +279,8 @@ module.exports = {
                     { id: 'fld_qitun', key: 'has_unread', name: 'Unread', type: 'bool' },
                     { id: 'fld_qitma', key: 'mailbox_address', name: 'Mailbox', type: 'text' },
                     { id: 'fld_qitpv', key: 'provider', name: 'Provider', type: 'text' },
+                    // Outlook categories of the conversation, comma-separated.
+                    { id: 'fld_qitlb', key: 'labels', name: 'Labels', type: 'text' },
                     // ── team-owned from here ──
                     // Column DEFAULTs, not an action: the connector INSERTs the
                     // request and nothing of ours runs at that moment. Without
@@ -347,6 +349,7 @@ module.exports = {
                     { id: 'fld_qimab', key: 'is_auto_or_bulk', name: 'Auto/bulk', type: 'bool' },
                     { id: 'fld_qimma', key: 'mailbox_address', name: 'Mailbox', type: 'text' },
                     { id: 'fld_qimpr', key: 'provider', name: 'Provider', type: 'text' },
+                    { id: 'fld_qimlb', key: 'labels', name: 'Labels', type: 'text' },
                 ],
                 access: ACCESS_BERICHTEN,
             },
@@ -766,6 +769,8 @@ module.exports = {
                                             timestampKey: 'last_message_at',
                                             badgeKey: 'stoplicht',
                                             badgeToneMap: STOPLICHT_TONES,
+                                            // Outlook categories as chips under the row.
+                                            tagsKey: 'labels',
                                             unreadKey: 'has_unread',
                                             selectedWhen: 'item.thread_key == vars.thread',
                                             icon: null,
@@ -788,6 +793,7 @@ module.exports = {
                                             icon: 'Mail', showDivider: true,
                                             titleFrom: { kind: 'formula', expr: 'vars.subject' },
                                             subtitleFrom: { kind: 'formula', expr: 'vars.company ? vars.company : vars.requester' },
+                                            tagsFrom: { kind: 'formula', expr: 'vars.labels' },
                                         },
                                         style: { span: 12, gap: 2, padding: 0 },
                                         children: [
@@ -926,6 +932,7 @@ module.exports = {
                                     title: 'Request', subtitle: null, icon: 'FileText', showDivider: true,
                                     titleFrom: { kind: 'formula', expr: 'vars.subject' },
                                     subtitleFrom: { kind: 'formula', expr: 'vars.company ? vars.company : vars.requester' },
+                                    tagsFrom: { kind: 'formula', expr: 'vars.labels' },
                                 },
                                 style: { span: 12, gap: 2, padding: 0 },
                                 children: [
@@ -2143,6 +2150,7 @@ module.exports = {
                     { kind: 'set_variable', name: 'thread', value: { kind: 'formula', expr: 'form.thread_key' } },
                     { kind: 'set_variable', name: 'aanvraagId', value: { kind: 'formula', expr: 'form.id' } },
                     { kind: 'set_variable', name: 'subject', value: { kind: 'formula', expr: 'form.subject' } },
+                    { kind: 'set_variable', name: 'labels', value: { kind: 'formula', expr: 'form.labels' } },
                     { kind: 'set_variable', name: 'requester', value: { kind: 'formula', expr: 'form.requester_email' } },
                     { kind: 'set_variable', name: 'company', value: { kind: 'formula', expr: 'form.company' } },
                     { kind: 'set_variable', name: 'status', value: { kind: 'formula', expr: 'form.status' } },
@@ -2175,6 +2183,7 @@ module.exports = {
                     { kind: 'set_variable', name: 'thread', value: { kind: 'formula', expr: 'form.thread_key' } },
                     { kind: 'set_variable', name: 'aanvraagId', value: { kind: 'formula', expr: 'form.id' } },
                     { kind: 'set_variable', name: 'subject', value: { kind: 'formula', expr: 'form.subject' } },
+                    { kind: 'set_variable', name: 'labels', value: { kind: 'formula', expr: 'form.labels' } },
                     { kind: 'set_variable', name: 'requester', value: { kind: 'formula', expr: 'form.requester_email' } },
                     { kind: 'set_variable', name: 'company', value: { kind: 'formula', expr: 'form.company' } },
                     { kind: 'set_variable', name: 'status', value: { kind: 'formula', expr: 'form.status' } },

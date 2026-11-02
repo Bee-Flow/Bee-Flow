@@ -119,6 +119,10 @@ const LAYOUT_SPECS = {
             // a form instead of like a conversation.
             titleFrom: { type: 'binding', default: { kind: 'static', value: null } },
             subtitleFrom: { type: 'binding', default: { kind: 'static', value: null } },
+            // Small chips right after the title, e.g. the mail categories of the
+            // open message or any tag-like field. Accepts an array, a JSON-array
+            // string or comma-separated text ("Daniel,Urgent"); empty shows nothing.
+            tagsFrom: { type: 'binding', default: { kind: 'static', value: null } },
             icon: { type: 'icon', default: null },
             showDivider: { type: 'boolean', default: true },
             // Look pass. The header is the first thing a screen says about

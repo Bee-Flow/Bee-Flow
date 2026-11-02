@@ -94,7 +94,7 @@ function pillStyle(tone: string | null | undefined) {
     };
 }
 
-function Pill({ children, tone, dot = false }: PillProps) {
+export function Pill({ children, tone, dot = false }: PillProps) {
     return (
         <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium${dot ? ' gap-1' : ''}`}
@@ -212,7 +212,7 @@ function relativeFrom(value: unknown, now: number, t: (key: string | undefined, 
  * content. Parse it first, and fall through to the comma split when it is not
  * JSON after all.
  */
-function asTags(value: unknown) {
+export function asTags(value: unknown) {
     if (Array.isArray(value)) return value.filter((v) => v != null && v !== '');
     const str = String(value).trim();
     if (str.startsWith('[')) {

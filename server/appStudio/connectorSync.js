@@ -42,6 +42,7 @@
 
 const connectors = require('./connectors');
 const connectorSchema = require('./connectorSchema');
+const { renderWatermark, highWatermark } = require('./connectorWatermark.mts');
 const dataModel = require('./dataModel');
 const { planRetention } = require('./dataModel/retentionPlan');
 const log = require('../telemetry/log');
@@ -137,29 +138,6 @@ function isStale(state, sync, now = Date.now(), kind = null) {
     if (!state || !state.lastRunAt) return true;              // never synced
     if (state.status === 'running') return false;             // already in flight
     return (now - new Date(state.lastRunAt).getTime()) >= stalenessMs(sync, kind);
-}
-
-// ── watermark rendering ─────────────────────────────────────────────
-
-/** Render the stored watermark into the shape the action's since-param wants. */
-function renderWatermark(iso, format) {
-    if (!iso) return null;
-    const t = Date.parse(iso);
-    if (Number.isNaN(t)) return null;
-    if (format === 'unix') return Math.floor(t / 1000);
-    if (format === 'date') return new Date(t).toISOString().slice(0, 10);
-    return new Date(t).toISOString();
-}
-
-/** The highest watermark value across a set of rows, as a comparable ISO string. */
-function highWatermark(rows, field, current = null) {
-    if (!field) return current;
-    let best = current;
-    for (const row of rows) {
-        const iso = connectorSchema.toIsoStamp(connectorSchema.readPath(row, field));
-        if (iso && (!best || iso > best)) best = iso;
-    }
-    return best;
 }
 
 // ── row → column mapping ────────────────────────────────────────────
@@ -259,6 +237,7 @@ function defaultDeps() {
         buildAttachmentKey: (/** @type {Parameters<typeof import('../stores/storageStore').buildStudioAppAttachmentKey>} */ ...a) => require('../stores/storageStore').buildStudioAppAttachmentKey(...a),
         runNewRecordHook: (/** @type {Parameters<typeof import('./mailboxNewRecordHook.mts').runNewRecordHook>} */ ...a) => require('./mailboxNewRecordHook.mts').runNewRecordHook(...a),
         adoptRecordedReplies: (/** @type {Parameters<typeof import('./mailboxRecordedReplies.mts').adoptRecordedReplies>} */ ...a) => require('./mailboxRecordedReplies.mts').adoptRecordedReplies(...a),
+        ensureLabelColumns: (/** @type {Parameters<typeof import('./mailboxLabelColumn.mts').ensureLabelColumns>} */ ...a) => require('./mailboxLabelColumn.mts').ensureLabelColumns(...a),
     };
 }
 
@@ -509,6 +488,7 @@ async function purgePastRetention(app, model, connector, deps) {
  */
 async function syncConnector(app, model, connector, { reason = 'manual', force = false, _deps } = {}) {
     const deps = { ...defaultDeps(), ...(_deps || {}) };
+    model = await deps.ensureLabelColumns(app, model, connector, deps);   // Outlook categories need a column; never throws
     const sync = isPlainObject(connector?.sync) ? connector.sync : null;
     if (!sync) throw syncError(400, 'this connector does not fill a table', 'not_synced');
 

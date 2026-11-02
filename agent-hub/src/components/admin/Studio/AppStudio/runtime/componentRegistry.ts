@@ -193,7 +193,7 @@ export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
         defaultProps: {
             source: { kind: 'static', value: [] }, titleKey: 'title', subtitleKey: null,
             metaKey: null, timestampKey: null, badgeKey: null, badgeToneMap: [], unreadKey: null,
-            badgePlacement: 'meta', selectedWhen: null, selectedDetailKey: null,
+            tagsKey: null, badgePlacement: 'meta', selectedWhen: null, selectedDetailKey: null,
             groupKey: null, groupOrder: [], groupLabelMap: [],
             icon: null, emptyText: 'Nothing to show yet.', look: 'rows',
             peekSource: null, peekMatchKey: null, peekRowKey: null,
@@ -320,7 +320,7 @@ export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
     },
     page_header: {
         Component: AppPageHeader, label: 'Page header', icon: LayoutTemplate, category: 'Content', container: true,
-        defaultProps: { title: 'Page title', subtitle: null, titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null }, icon: null, showDivider: true, look: 'plain' },
+        defaultProps: { title: 'Page title', subtitle: null, titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null }, tagsFrom: { kind: 'static', value: null }, icon: null, showDivider: true, look: 'plain' },
         defaultStyle: { span: 12, gap: 3, padding: 0 },
     },
     markdown: {

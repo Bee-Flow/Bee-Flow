@@ -65,6 +65,8 @@ const MAILBOX_THREAD_TABLE_TEMPLATE = Object.freeze({
         { key: 'last_message_at', name: 'Last message', type: 'datetime' },
         { key: 'message_count', name: 'Messages', type: 'number' },
         { key: 'has_unread', name: 'Unread', type: 'bool' },
+        // Outlook categories of the conversation's messages, comma-separated.
+        { key: 'labels', name: 'Labels', type: 'text' },
         { key: 'mailbox_address', name: 'Mailbox', type: 'text' },
         { key: 'provider', name: 'Provider', type: 'text' },
     ],
