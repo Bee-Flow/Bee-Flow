@@ -161,13 +161,14 @@ function dispatch({ method = 'GET', url, body = {}, session, query = {} }) {
 
 // ═══ scopes ═════════════════════════════════════════════════════════
 
-test('the connect scope set adds shared-mailbox access but NOT Mail.ReadWrite', () => {
-    // Least privilege: the send layer uses Graph's single-call `reply`, which
-    // needs only Mail.Send(.Shared). Asking for mailbox write access to send one
-    // message is what gets an app blocked by tenant policy.
+test('the connect scope set adds shared-mailbox access and the draft (write) scopes, keeping Send', () => {
+    // Sending uses Graph's single-call `reply` (Mail.Send); saving a draft
+    // (send_email mode "draft") needs Mail.ReadWrite / Mail.ReadWrite.Shared.
+    assert.ok(router.MS_CONNECT_SCOPES.includes('Mail.Send'));
+    assert.ok(router.MS_CONNECT_SCOPES.includes('Mail.ReadWrite.Shared'));
     assert.ok(router.MS_CONNECT_SCOPES.includes('Mail.Read.Shared'));
     assert.ok(router.MS_CONNECT_SCOPES.includes('Mail.Send.Shared'));
-    assert.ok(!router.MS_CONNECT_SCOPES.includes('Mail.ReadWrite'));
+    assert.ok(router.MS_CONNECT_SCOPES.includes('Mail.ReadWrite'));
     assert.ok(router.MS_CONNECT_SCOPES.includes('offline_access'));
 });
 
