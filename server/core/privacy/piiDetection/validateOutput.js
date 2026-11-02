@@ -159,13 +159,11 @@ function _report(report, status, entities, decision) {
 function _warnLikelyPii(inputText, confidenceThreshold) {
     if (confidenceThreshold < 0.85) return;
     // A log hint only: the first 4 KiB are enough, and the cap bounds the scan.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the patterns below read a 4 KiB sample; log hint only
     const sample = String(inputText).slice(0, 4096);
     const hints = [
-        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
         /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(sample) && 'email',
-        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
         /(?:\+?\d[\s-]?){8,}/.test(sample) && 'phone',
-        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- input capped at 4 KiB above; log hint only
         /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/.test(sample) && 'IBAN',
     ].filter(Boolean);
     if (!hints.length) return;
