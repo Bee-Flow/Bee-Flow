@@ -971,3 +971,58 @@ test('a mailbox lets recorded replies be adopted before the write; a failure the
     await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }), { _deps: h._deps });
     assert.ok(!order.includes('adopt'), 'other kinds never ask');
 });
+
+// ── The new-record hook ─────────────────────────────────────────────
+// After a mailbox sync, the rows it INSERTED (not the ones it updated) go to the hook
+// (mailboxNewRecordHook.mts), once the claim is released; its failure never fails the sync.
+
+const HOOK = { actionId: 'act_hook', target: 'inbound_message' };
+function threadedMailbox(extra = {}) {
+    return connector({
+        tableId: TABLE.id, mode: 'upsert', keyField: 'id',
+        children: [{ tableId: CHILD_TABLE.id, level: 1, parentLevel: 0, relationField: 'emails_ref', mode: 'upsert', keyField: 'id' }],
+    }, { kind: 'mailbox', groupIntoThreads: true, ...extra });
+}
+const TWO_GRAINS = { rows: [], grains: [
+    { level: 0, rows: [{ id: 't1', subject: 'A' }, { id: 't2', subject: 'B' }] },
+    { level: 1, parentLevel: 0, rows: [{ id: 'm1', name: 'in', _parentIndex: 0 }, { id: 'm2', name: 'out', _parentIndex: 1 }] },
+] };
+
+test('hook: the inserted conversations and messages are handed over, and only after finishSync', async () => {
+    const h = harness({ runs: [TWO_GRAINS], existing: new Map([['t2', 'rec_old']]) });
+    const order = [];
+    const finish = h._deps.finishSync;
+    h._deps.finishSync = async (...a) => { order.push('finish'); return finish(...a); };
+    let seen;
+    h._deps.runNewRecordHook = async (appArg, _model, conn, news) => { order.push('hook'); seen = { appArg, conn, news }; return { ran: 1, failed: 0, refused: 0, skippedLimit: 0 }; };
+
+    const res = await connectorSync.syncConnector(app, MODEL_WITH_CHILD, threadedMailbox({ onNewRecord: HOOK }), { _deps: h._deps });
+
+    assert.deepStrictEqual(order, ['finish', 'hook']);
+    assert.strictEqual(seen.appArg, app);
+    assert.deepStrictEqual(seen.news.thread.map((r) => [r.id, r.values.ext_id]), [['rec_0', 't1']], 't2 existed: an update, not new');
+    assert.deepStrictEqual(seen.news.message.map((r) => r.values.ext_id), ['m1', 'm2']);
+    assert.deepStrictEqual(res.hook, { ran: 1, failed: 0, refused: 0, skippedLimit: 0 });
+});
+
+test('hook: a flat mailbox hands over its messages; other kinds and unset hooks never ask', async () => {
+    const h = harness({ runs: [{ rows: [{ id: 'm1', subject: 'Hi' }] }] });
+    const calls = [];
+    h._deps.runNewRecordHook = async (_a, _m, _c, news) => { calls.push(news); return null; };
+    await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }, { kind: 'mailbox', onNewRecord: HOOK }), { _deps: h._deps });
+    assert.deepStrictEqual(calls[0].thread, []);
+    assert.deepStrictEqual(calls[0].message.map((r) => r.values.ext_id), ['m1']);
+
+    calls.length = 0;
+    await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }, { kind: 'mailbox' }), { _deps: h._deps });
+    await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }, { onNewRecord: HOOK }), { _deps: h._deps });
+    assert.strictEqual(calls.length, 0);
+});
+
+test('hook: a hook that rejects does not fail the sync', async () => {
+    const h = harness({ runs: [{ rows: [{ id: 'm1' }] }] });
+    h._deps.runNewRecordHook = async () => { throw new Error('hook down'); };
+    const res = await connectorSync.syncConnector(app, MODEL, connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }, { kind: 'mailbox', onNewRecord: HOOK }), { _deps: h._deps });
+    assert.strictEqual(res.inserted, 1);
+    assert.strictEqual(h.log.finish.status, 'ok');
+});

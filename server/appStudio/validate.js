@@ -63,6 +63,7 @@ const {
     collectReferencedActions,
 } = require('./validate/nodes');
 const { checkDesignAndNav, checkPublicAccess } = require('./validate/designChecks');
+const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
@@ -587,6 +588,7 @@ function validateAppDefinition(def, opts = {}) {
     walkScreens(screens, ctx);
 
     checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx);
+    checkMailboxHooks(opts.dataModel, actionsObj, pushE);
 
     if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
 
