@@ -2,8 +2,7 @@
 description: Spin up the self-host stack locally and wait for it to become healthy
 ---
 
-Smoke-test the customer self-host path from the repo root (`Bee-Flow-AI/` in the Windows wrapper
-layout; in a cloud session the repo is already the working directory):
+Smoke-test the customer self-host path from the repo root:
 
 1. Run `./selfhost.sh` (pulls public `ghcr.io/bee-flow/*` images via
    `docker-compose.from-registry.yml --profile core`, auto-generates secrets into a
