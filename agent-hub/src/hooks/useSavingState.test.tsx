@@ -44,4 +44,15 @@ describe('useSavingState', () => {
         expect(captured.state).toBe('idle');
         expect(captured.error).toBeNull();
     });
+
+    it('a save that lands after unmount leaves no timer behind', () => {
+        // The save promise can settle after the component is gone. A flash
+        // timer armed then outlives every cleanup and fires into a torn-down
+        // document (in tests: "window is not defined" after the file ended).
+        let captured!: ReturnType<typeof useSavingState>;
+        const { unmount } = render(<Harness onReady={(r) => { captured = r; }} />);
+        unmount();
+        act(() => { captured.setSaved(); });
+        expect(vi.getTimerCount()).toBe(0);
+    });
 });
