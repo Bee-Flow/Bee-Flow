@@ -166,6 +166,7 @@ const SEND_EMAIL_FIELDS = {
     replyToRecordId: { type: 'binding' },          // the message being answered
     replyToThreadKey: { type: 'binding' },         // …or the conversation to answer
     attachments: { type: 'binding' },              // studio attachment descriptors only
+    mode: { type: 'enum', values: ['send', 'draft'], default: 'send' },  // 'draft': saved in the mailbox, never sent
     recordOutbound: { type: 'boolean', default: true },
     resultVar: { type: 'string', maxLen: 60 },
 };

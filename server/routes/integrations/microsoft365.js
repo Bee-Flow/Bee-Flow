@@ -50,15 +50,19 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 /**
  * The login scopes plus delegated shared-mailbox access.
  *
- * Mail.ReadWrite is deliberately NOT requested: the shared send layer defaults
- * to Graph's single-call `reply`, which only needs Mail.Send(.Shared). Asking
- * for write access to the whole mailbox to send one reply is the kind of
- * over-broad consent that gets an app blocked by tenant policy.
+ * Sending itself needs no write access: the shared send layer defaults to
+ * Graph's single-call `reply`, which only needs Mail.Send(.Shared). Mail.ReadWrite
+ * and Mail.ReadWrite.Shared are requested here, on the connect flow only (not on
+ * login), because saving a reply as a DRAFT (App Studio send_email mode "draft")
+ * writes to the mailbox. The administrator must add them to the app
+ * registration; an existing connection has to be reconnected to carry them.
  */
 const MS_CONNECT_SCOPES = Object.freeze([
     ...MICROSOFT_SCOPES,
     'Mail.Read.Shared',
     'Mail.Send.Shared',
+    'Mail.ReadWrite',
+    'Mail.ReadWrite.Shared',
 ]);
 
 // Which scopes a shared mailbox needs, and whether a grant has them, is one

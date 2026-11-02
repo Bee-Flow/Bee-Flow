@@ -26,7 +26,7 @@ const MAILBOX_TABLE_TEMPLATE = Object.freeze({
         { key: 'rfc822_message_id', name: 'RFC822 message id', type: 'text' },
         { key: 'in_reply_to', name: 'In reply to', type: 'text' },
         { key: 'references', name: 'References', type: 'text' },
-        { key: 'direction', name: 'Direction', type: 'select', options: ['inbound', 'outbound'] },
+        { key: 'direction', name: 'Direction', type: 'select', options: ['inbound', 'outbound', 'draft'] },
         { key: 'from_email', name: 'From', type: 'text' },
         { key: 'from_name', name: 'From name', type: 'text' },
         { key: 'to_emails', name: 'To', type: 'text' },
