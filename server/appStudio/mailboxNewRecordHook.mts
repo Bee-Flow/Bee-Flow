@@ -23,9 +23,20 @@
  */
 
 import { createRequire } from 'node:module';
-import { hookActionProblems, hookLimits, readOnNewRecord, type HookLimits, type HookTarget } from './mailboxHookPolicy.mts';
 
 const nodeRequire = createRequire(import.meta.url);
+
+// Required, not imported: agent-hub's typecheck follows connectorSync.js into this file, and it does
+// not run with the option a '.mts' import path needs (the same reason mailboxRecordedReplies.mts
+// imports nothing local).
+type HookTarget = 'thread' | 'inbound_message';
+type HookLimits = { perSync: number; perMinute: number };
+const policy = nodeRequire('./mailboxHookPolicy.mts') as {
+    hookActionProblems: (action: unknown, actionId?: string) => string[];
+    hookLimits: () => HookLimits;
+    readOnNewRecord: (raw: unknown) => { actionId: string; target: HookTarget } | null;
+};
+const { hookActionProblems, hookLimits, readOnNewRecord } = policy;
 
 type Values = Record<string, unknown>;
 export type NewRecord = { id: string; values: Values };

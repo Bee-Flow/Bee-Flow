@@ -48,8 +48,7 @@ const { viewerMayReadAttachment } = require('./attachmentAccess');
 const { bestEffort } = require('../utils/bestEffort');
 const { providerFailure, materializeErrorBody } = require('./mailboxProviderFailure.mts');
 
-// The formats an LLM or a browser can
-// actually do something with. Everything else is refused rather than stored.
+// The formats an LLM or a browser can actually do something with. Everything else is refused rather than stored.
 // CAD (STEP/DXF/DWG/IGES) is included because the mailbox is THE ingestion
 // route that matters for it — customers mail .step/.dxf to a quoting inbox.
 // Canonical mimes only; aliases are folded before this set is consulted.
@@ -89,9 +88,8 @@ const ARCHIVE_MIME_BY_EXT = Object.freeze({
 });
 const ARCHIVE_MIMES = new Set(Object.values(ARCHIVE_MIME_BY_EXT));
 
-/** The inline images that may be redeemed on request: raster only, so svg (script) stays out. */
+// Inline images that may be redeemed on request: raster only, so svg (script) stays out.
 const INLINE_IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
-
 /** Provider spellings for the archives, folded before ALLOWED_MIME is consulted. */
 const ARCHIVE_ALIAS_MIMES = Object.freeze({
     'application/x-7z-compressed': 'application/x-7z-compressed',
@@ -109,15 +107,13 @@ const ZIP_ALIAS_MIMES = new Set([
     'application/zip', 'application/x-zip-compressed', 'application/x-zip', 'multipart/x-zip',
 ]);
 
-// Never rendered or parsed, whatever the provider claims. uploadGuard sanitises
-// SVG on the upload path, but sanitising a stranger's inbound mail is not a
-// promise worth making — an app that renders attacker-authored markup is one
-// bug away from being a phishing host.
+// Never rendered or parsed, whatever the provider claims. uploadGuard sanitises SVG on the upload path,
+// but sanitising a stranger's inbound mail is not a promise worth making — an app that renders
+// attacker-authored markup is one bug away from being a phishing host.
 const REFUSED_MIME = new Set(['image/svg+xml', 'text/html', 'application/xml', 'text/xml', 'application/xhtml+xml']);
 
-// One mailed DOCUMENT: deliberately well under the platform ceiling. These
-// bytes are a stranger's, fetched over someone else's credentials, and a
-// drawing or a purchase order that needs more than this is not a drawing.
+// One mailed DOCUMENT: deliberately well under the platform ceiling. These bytes are a stranger's,
+// fetched over someone else's credentials, and a drawing or a purchase order that needs more is not a drawing.
 const MAX_ATTACHMENT_BYTES = Math.min(10 * 1024 * 1024, DATA_LIMITS.MAX_ATTACHMENT_BYTES);
 
 // An ARCHIVE is a container, and the same ten megabytes mean something else
@@ -295,12 +291,8 @@ async function materializeAttachment(app, model, {
     }
     if (REFUSED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
     if (!ALLOWED_MIME.has(mime)) throw httpError(415, 'That file type is not supported');
-    // An inline image (a logo in a signature) is no attachment, unless the caller
-    // asks for it as one: the reading pane shows it inside the mail. Only a raster
-    // image qualifies, and step 6 still has to sniff the bytes as that image.
-    if (descriptor.isInline && !(inline && INLINE_IMAGE_MIMES.has(mime))) {
-        throw httpError(415, 'That is an inline image, not an attachment');
-    }
+    // An inline image (a signature logo) is no attachment unless asked for, and then only a raster one.
+    if (descriptor.isInline && !(inline && INLINE_IMAGE_MIMES.has(mime))) throw httpError(415, 'That is an inline image, not an attachment');
     const declared = Number(descriptor.size) || 0;
     const ceiling = ceilingFor(mime);
     if (declared > ceiling) throw httpError(413, 'That attachment is too large to open here');

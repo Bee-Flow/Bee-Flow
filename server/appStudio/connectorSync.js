@@ -445,6 +445,59 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
     return { inserted, updated, recordIdByRowIndex, newRecords };
 }
 
+/** The retention purge of one sync. Returns how many rows it deleted. */
+async function purgePastRetention(app, model, connector, deps) {
+    // Retention purge. Runs AFTER a successful write so a failed pull can
+    // never be the thing that deletes history. `retentionDays` is required
+    // on a mailbox connector precisely because this exists — a retention
+    // setting that deleted nothing would be a compliance claim we don't keep.
+    let purged = 0;
+    const plan = planRetention(model, connector);
+    if (plan.days) {
+        const cutoff = new Date(Date.now() - plan.days * 24 * 60 * 60 * 1000).toISOString();
+        // A table the plan cannot reach is a compliance gap, not a detail.
+        // Saving the connector is supposed to refuse this outright — if one
+        // slips through (a table edited after the connector was saved) it
+        // gets said out loud rather than warned about once per run.
+        if (plan.unreachable.length) {
+            log.error(`[ConnectorSync] RETENTION GAP on ${app.id}/${connector.id}: ${plan.unreachable.join(', ')} keep data past ${plan.days} days`);
+        }
+
+        // Parent-first: `steps` is ordered by grain, so a cascade child runs
+        // after the parent rows it inherits its age from are already gone.
+        for (const step of plan.steps) {
+            try {
+                const del = step.mode === 'cascade'
+                    ? deps.compileDeleteOrphans(step.table, OWNER_FILTER, {
+                        relationField: step.relationField,
+                        parentTableMeta: step.parentTable,
+                        sweepNull: step.sweepNull,
+                    })
+                    : deps.compileDeleteOlderThan(step.table, OWNER_FILTER, { field: step.column, cutoffIso: cutoff });
+
+                // Collect the FILES those rows point at before the rows go —
+                // afterwards there is nothing left to find them by. Deleting
+                // the row but keeping the blob and the ledger entry would
+                // leave the actual document (an invoice, an ID scan) in
+                // storage forever while the app reports a 90-day policy.
+                const doomedFiles = await collectExpiredFiles(app, step.table, del.where, del.whereParams, deps);
+
+                const res = await deps.exec(app.userId, app.id, del.sql, del.params);
+                purged += res?.changes || 0;
+
+                if (doomedFiles.length) await purgeAttachments(app, doomedFiles, deps);
+            } catch (e) {
+                // Retention is a background hygiene pass; failing it must not
+                // fail the sync that just succeeded.
+                log.warn(`[ConnectorSync] retention purge failed on ${app.id}/${connector.id} (${step.table.key}): ${e.message}`);
+            }
+        }
+        if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${app.id}/${connector.id}`);
+    }
+
+    return purged;
+}
+
 /**
  * Run one connector and write its rows into its table.
  *
@@ -530,8 +583,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         });
         let inserted = primary.inserted;
         let updated = primary.updated;
-        // What this run inserted, for the mailbox hook (mailboxNewRecordHook.mts): the
-        // conversations in thread mode, and the messages (level 1 there, level 0 otherwise).
+        // What this run inserted, for the mailbox hook (mailboxNewRecordHook.mts): conversations, messages.
         const news = { thread: connector.groupIntoThreads ? primary.newRecords : [], message: connector.groupIntoThreads ? [] : primary.newRecords };
 
         // Child tables: one per chain step that expanded. Written AFTER the
@@ -572,54 +624,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             childResults.push({ tableId: child.tableId, table: childTable.key, inserted: res.inserted, updated: res.updated });
         }
 
-        // Retention purge. Runs AFTER a successful write so a failed pull can
-        // never be the thing that deletes history. `retentionDays` is required
-        // on a mailbox connector precisely because this exists — a retention
-        // setting that deleted nothing would be a compliance claim we don't keep.
-        let purged = 0;
-        const plan = planRetention(model, connector);
-        if (plan.days) {
-            const cutoff = new Date(Date.now() - plan.days * 24 * 60 * 60 * 1000).toISOString();
-            // A table the plan cannot reach is a compliance gap, not a detail.
-            // Saving the connector is supposed to refuse this outright — if one
-            // slips through (a table edited after the connector was saved) it
-            // gets said out loud rather than warned about once per run.
-            if (plan.unreachable.length) {
-                log.error(`[ConnectorSync] RETENTION GAP on ${app.id}/${connector.id}: ${plan.unreachable.join(', ')} keep data past ${plan.days} days`);
-            }
-
-            // Parent-first: `steps` is ordered by grain, so a cascade child runs
-            // after the parent rows it inherits its age from are already gone.
-            for (const step of plan.steps) {
-                try {
-                    const del = step.mode === 'cascade'
-                        ? deps.compileDeleteOrphans(step.table, OWNER_FILTER, {
-                            relationField: step.relationField,
-                            parentTableMeta: step.parentTable,
-                            sweepNull: step.sweepNull,
-                        })
-                        : deps.compileDeleteOlderThan(step.table, OWNER_FILTER, { field: step.column, cutoffIso: cutoff });
-
-                    // Collect the FILES those rows point at before the rows go —
-                    // afterwards there is nothing left to find them by. Deleting
-                    // the row but keeping the blob and the ledger entry would
-                    // leave the actual document (an invoice, an ID scan) in
-                    // storage forever while the app reports a 90-day policy.
-                    const doomedFiles = await collectExpiredFiles(app, step.table, del.where, del.whereParams, deps);
-
-                    const res = await deps.exec(app.userId, app.id, del.sql, del.params);
-                    purged += res?.changes || 0;
-
-                    if (doomedFiles.length) await purgeAttachments(app, doomedFiles, deps);
-                } catch (e) {
-                    // Retention is a background hygiene pass; failing it must not
-                    // fail the sync that just succeeded.
-                    log.warn(`[ConnectorSync] retention purge failed on ${app.id}/${connector.id} (${step.table.key}): ${e.message}`);
-                }
-            }
-            if (purged) log.info(`[ConnectorSync] purged ${purged} row(s) past retention on ${app.id}/${connector.id}`);
-        }
-
+        const purged = await purgePastRetention(app, model, connector, deps);
         const watermark = incremental?.field ? highWatermark(rows, incremental.field, priorWatermark) : null;
         // A successful run clears the error streak, so the cadence returns to
         // normal immediately rather than staying backed off.
@@ -628,8 +633,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             status: 'ok', watermark, rowsWritten: inserted + updated, nextRunAt, error: null, consecutiveErrors: 0,
         });
 
-        // After the claim is released, so a slow model call never holds the connector. It
-        // never throws: the sync has succeeded whatever the hook does.
+        // After the claim is released (a slow model call must not hold the connector); the sync succeeded whatever it does.
         const hook = connector.kind === 'mailbox' && connector.onNewRecord
             ? await deps.runNewRecordHook(app, model, connector, news).catch((e) => fallback('appStudio/connectorSync:runNewRecordHook', e, null))
             : null;

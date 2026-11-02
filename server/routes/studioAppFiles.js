@@ -107,8 +107,7 @@ const FileParams = z.object({ id: appIdParam, fileId: fileIdParam }).strict();
 
 const RECORD_TEXT = 'recordId is the id of the record the file belongs to: text of at most 200 characters, sent once.';
 const FIELD_TEXT = 'fieldKey is the key of the file field: text of at most 100 characters, sent once.';
-// The text fields beside the file. The one client (AppInputFile) sends
-// neither; the ledger's record link and field key are both optional.
+// The text fields beside the file; the one client (AppInputFile) sends neither, both are optional.
 const UploadFields = partOf({
     recordId: worded(RECORD_TEXT).max(200, RECORD_TEXT).optional(),
     fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).optional(),
@@ -117,15 +116,13 @@ const UploadFields = partOf({
 const ATTACHMENT_TEXT = 'attachmentId is the id of the mail attachment to open.';
 const TABLE_NARROW_TEXT = 'tableId narrows the search to one table: its id, as text.';
 const RECORD_NARROW_TEXT = 'recordId narrows the search to one record: its id, as text.';
-const INLINE_TEXT = 'inline is true or false: true also opens an inline image (a png, jpeg, gif or webp shown inside the mail).';
 const MaterializeBody = partOf({
     // A mail provider's id; Gmail's run to several hundred characters.
     attachmentId: worded(ATTACHMENT_TEXT).min(1, ATTACHMENT_TEXT).max(4096, ATTACHMENT_TEXT),
     // Both only narrow the probe; the row is found under the viewer's own access.
     tableId: worded(TABLE_NARROW_TEXT).max(200, TABLE_NARROW_TEXT).nullish(),
     recordId: worded(RECORD_NARROW_TEXT).max(200, RECORD_NARROW_TEXT).nullish(),
-    // Off by default: an inline image stays refused unless the caller asks for it.
-    inline: z.boolean({ error: INLINE_TEXT }).optional(),
+    inline: z.boolean({ error: 'inline is true or false: true also opens an inline image (a png, jpeg, gif or webp shown inside the mail).' }).optional(),
 });
 
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
@@ -520,8 +517,7 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
         const descriptor = await mailboxAttachments.materializeAttachment(app, model, {
             attachmentId,
             tableId: tableId ?? undefined,
-            recordId: recordId ?? undefined,
-            inline: inline === true,
+            recordId: recordId ?? undefined, inline: inline === true,
             viewer: {
                 id: req.session.user.id,
                 // The owner writes as the owner; anyone else keeps their role so

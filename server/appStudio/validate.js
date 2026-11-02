@@ -189,9 +189,8 @@ function buildTableSources(dataModel) {
     return map;
 }
 
-// opts.dataModel.connectors → a Set of connector ids (data-model mode only;
-// null when opts.dataModel was not supplied, so connector refs are warned not
-// errored). A null/malformed model yields an EMPTY set — every ref is unknown.
+// opts.dataModel.connectors → a Set of connector ids (data-model mode only; null when opts.dataModel was not
+// supplied, so connector refs are warned not errored). A null/malformed model yields an EMPTY set — every ref is unknown.
 function buildConnectorIds(dataModel) {
     if (dataModel === undefined) return null;
     const set = new Set();
@@ -202,9 +201,8 @@ function buildConnectorIds(dataModel) {
     return set;
 }
 
-// The subset that can actually send mail. A send_email step pointed at a REST
-// connector would validate against dataConnectors and then fail at runtime with
-// nothing an author could act on.
+// The subset that can actually send mail. A send_email step pointed at a REST connector would validate
+// against dataConnectors and then fail at runtime with nothing an author could act on.
 function buildMailboxConnectorIds(dataModel) {
     if (dataModel === undefined) return null;
     const set = new Set();
