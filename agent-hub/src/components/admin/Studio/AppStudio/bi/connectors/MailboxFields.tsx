@@ -166,7 +166,7 @@ export default function MailboxFields({ connector, setOpt, patch, disabled, appI
                 />
             </div>
             <p className="-mt-1 text-xs text-[var(--text-tertiary)]">
-                {t('studio_apps_bi.connectors.mail_matching_hint', 'A search keeps the table to the mail you actually want. Leave it empty to take everything in the folder.')}
+                {t('studio_apps_bi.connectors.mail_matching_hint', 'A search keeps the table to the mail you actually want. label:a label:b takes mail with both labels, label:a OR label:b mail with either (in Outlook a label is a category). Leave it empty to take everything in the folder.')}
             </p>
 
             {saved ? <VerifyAccess connector={connector} disabled={disabled} state={verifyState} /> : null}

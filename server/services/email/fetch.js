@@ -28,6 +28,7 @@ const {
 } = require('./parse');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
 const { fetchOutlookAttachment } = require('./outlookAttachment.mts');
+const { outlookListQuery, matchesLabelGroups } = require('./outlookQuery.mts');
 const crypto = require('crypto');
 
 /**
@@ -274,34 +275,15 @@ async function listMessages({
     }
 
     if (provider === 'outlook') {
-        const base = graphBase(mailbox);
-        let path;
-        if (pageToken) {
-            path = pageToken; // Graph hands back an absolute @odata.nextLink
-        } else {
-            const params = new URLSearchParams();
-            params.set('$select', GRAPH_SELECT);
-            params.set('$top', String(Math.min(max, 100)));
-            if (query) {
-                // $search and $filter are mutually exclusive in Graph, and
-                // $search cannot be ordered. Filtering by date is the more
-                // valuable of the two for a sync, so a query costs us that.
-                params.set('$search', `"${String(query).replace(/"/g, '')}"`);
-            } else {
-                params.set('$orderby', 'receivedDateTime desc');
-                if (since) {
-                    const from = new Date(new Date(since).getTime() - MAILBOX_OVERLAP_MS).toISOString();
-                    params.set('$filter', `receivedDateTime ge ${from}`);
-                }
-            }
-            // URLSearchParams encodes spaces as '+', which OData reads
-            // literally — `receivedDateTime+ge+...` is not a valid filter.
-            const qs = params.toString().replace(/\+/g, '%20');
-            path = `${base}/mailFolders/${encodeURIComponent(folder)}/messages?${qs}`;
-        }
-
+        // `label:` terms become a categories filter (outlookQuery.mts); the
+        // labels come back only when free text forced a $search instead.
+        const sinceIso = since ? new Date(new Date(since).getTime() - MAILBOX_OVERLAP_MS).toISOString() : null;
+        const { qs, labelGroups } = outlookListQuery({ query, sinceIso, select: GRAPH_SELECT, top: Math.min(max, 100) });
+        // Graph hands back an absolute @odata.nextLink for the next page.
+        const path = pageToken || `${graphBase(mailbox)}/mailFolders/${encodeURIComponent(folder)}/messages?${qs}`;
         const res = await graphFetchFromTokens(tokens, onRefresh, path);
-        const messages = (res.value || []).map((m) => normalizeGraph(m, { mailbox, includeBody }));
+        const messages = (res.value || []).map((m) => normalizeGraph(m, { mailbox, includeBody }))
+            .filter((m) => matchesLabelGroups(m.labels, labelGroups));
         return { messages, nextPageToken: res['@odata.nextLink'] || null };
     }
 
