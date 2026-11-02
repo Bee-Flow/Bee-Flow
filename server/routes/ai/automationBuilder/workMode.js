@@ -5,6 +5,7 @@ const { lookupTable, normaliseKey } = require('../../../automation/builderTools/
 const { normaliseFieldArgs } = require('../../../automation/builderTools/datatableCreate');
 const { boundDatatableIds } = require('../../../automation/builderTools/pendingDatatables');
 const { parseAnswersText } = require('../../../automation/builderTools/questionAnswers');
+const { QUESTIONS_RULE, TABLE_CONSENT_RULE, EVIDENCE_RULE } = require('./modeRules.mts');
 // @typecheck
 // These tools only inspect the draft, a schema or the document library. Unknown
 // tools fail closed.
@@ -141,20 +142,11 @@ function previewRefusal(name, mode) {
     if (CHECKLIST_TOOLS.has(name) && (mode === 'plan' || mode === 'discuss')) {
         return 'In Plan first the plan is builder_write_plan; the checklist is only for building. Do not track progress in this turn.';
     }
+    if (mode === 'discuss') {
+        return 'Nothing was changed: discuss mode cannot change or test the flow. Describe the change as a suggestion and tell the user to switch to "Approve each change" to have it staged.';
+    }
     return `This tool is not permitted in ${mode} mode. Read, explain or propose a plan instead. Removing a step needs a human-approved proposal.`;
 }
-
-// builder_ask_questions draws a card in the chat. A model that also writes the
-// questions in its message shows them twice, once as a list and once as the
-// card, and the user answers on the card. The rule sits in the work-mode
-// instruction and in the tool description, because a small model reads one of
-// the two at best.
-const QUESTIONS_RULE = 'When you call builder_ask_questions, do NOT write the questions or their options in your message: the chat shows them as a card. '
-    + 'Say at most one short sentence before the call. Keep each question to one short sentence and each option to a few words; no lists or headings inside them, inline markdown (bold, code) only. '
-    + 'Before calling builder_ask_questions, collect EVERY open question and ask them in that one call. Do not ask what you can read from the draft, the catalog or the documents.';
-
-// Binding a step to somebody's real table is the user's call (datatableApproval).
-const TABLE_CONSENT_RULE = 'Bind a step to an EXISTING table only when the user named or picked it, or the flow already uses it. Otherwise call builder_ask_questions with datatableIds (the fitting tables) and createLabel, then wait.';
 
 function modeInstruction(mode, plan = null) {
     return withTableRule(modeBody(mode, plan));
@@ -163,8 +155,9 @@ function modeInstruction(mode, plan = null) {
 const withTableRule = (text) => `${text} ${TABLE_CONSENT_RULE}`;
 
 function modeBody(mode, plan = null) {
-    const common = '\nASSISTANT WORK MODE (overrides build-first instructions and examples above): ';
-    if (mode === 'discuss') return common + 'DISCUSS ONLY. Explain and advise. Read the draft and schemas. Never change anything. Ask only questions you cannot infer from the available context. ' + QUESTIONS_RULE;
+    const common = `\nASSISTANT WORK MODE (overrides build-first instructions and examples above): ${EVIDENCE_RULE} `;
+    if (mode === 'discuss') return common + 'DISCUSS ONLY. Explain and advise. Read the draft and schemas. Never change anything. '
+        + 'You cannot stage, apply or test changes in this mode. When a change is needed, describe it as a suggestion, say clearly that nothing was changed, and tell the user to switch to "Approve each change" (or "Build directly") to have it staged. Never say a fix is ready, done or applied. Ask only questions you cannot infer from the available context. ' + QUESTIONS_RULE;
     if (mode === 'plan') return common + 'PLAN FIRST. Explore the draft and schemas without changing anything. You may read the document library (builder_search_documents, builder_read_document) and run builder_request_dry_run on the current draft (side effects are simulated) when the plan depends on what they return. '
         + 'If something essential is unclear, ask ALL your questions in ONE builder_ask_questions call; you get one question round for this plan. Otherwise go straight to builder_write_plan. ' + QUESTIONS_RULE + ' '
         + 'Do not call builder_set_plan and do not track progress: nothing is built in this turn. End this turn with exactly one of: builder_ask_questions or builder_write_plan. Only answer in prose when the user merely asked a question. '

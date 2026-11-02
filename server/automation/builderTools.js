@@ -38,6 +38,7 @@ const {
     applyCreateLayer, applySetLayerContract, applyAddCallLayer,
 } = require('./builderTools/layers');
 const { applyInlineLayer } = require('./builderTools/inlineLayer');
+const { resolveStoredOutput } = require('./builderTools/storedOutput.mts');
 const { applyAddApproval } = require('./builderTools/approval');
 const { applyCreateDatatable } = require('./builderTools/datatableCreate');
 const { applyAddTrigger, applyUpdateTrigger } = require('./builderTools/triggers');
@@ -507,30 +508,9 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
  * is a reason to refuse, or even to doubt, a binding.
  */
 async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
-    let out = s.output;
-    /** @type {string | null} */
-    let note = null;
-    let partial = false;
-    const { isTruncatedOutput, fullOutputRefOf } = require('./payloadTruncation');
-    if (isTruncatedOutput(out)) {
-        const ref = fullOutputRefOf(out);
-        let full = null;
-        if (ref) {
-            const read = readFullOutput || require('../stores/automationStore/runFullOutputs').getRunFullOutput;
-            try { full = await read(ref.runId, ref.stepId, ref.attempts); }
-            catch { full = null; }
-        }
-        note = 'output over 256 KB: the shape is read from the full copy';
-        if (full === null || full === undefined) {
-            out = out.preview !== undefined ? out.preview : undefined;
-            partial = true;
-            note = out === undefined
-                ? 'output over 256 KB and not kept: its shape is unknown here — inspect the step\'s tool instead'
-                : 'output over 256 KB: the shape is read from a shortened preview (lists cut, keys kept)';
-        } else {
-            out = full;
-        }
-    }
+    const stored = await resolveStoredOutput(s.output, { readFullOutput });
+    const { out, note: storedNote, partial } = stored;
+    let note = storedNote;
     const isObj = out && typeof out === 'object' && !Array.isArray(out);
     const shapeCache = require('./shapeCache');
     const shape = out !== undefined && out !== null && typeof out === 'object' ? shapeCache.shapeHintOf(out) : null;
@@ -644,6 +624,7 @@ module.exports = {
     TRIGGER_FIELDS_BY_EVENT, TRIGGER_OUTPUT_SAMPLES, buildTriggerOutputsCatalog,
     _test_validateAndFixBindings: validateAndFixBindings,
     _test_dryRunHint: dryRunHint,
+    resolveStoredOutput,
     // §A in-place-edit internals (exported for tests)
     findStepAnywhere, PATCHABLE_FIELDS,
     // The repeat ladder's signature (exported for tests)

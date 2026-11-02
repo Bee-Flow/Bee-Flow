@@ -275,3 +275,28 @@ test('a code step: a field of what the code returned is read under output.result
     // A list is what the code returned, not its envelope.
     assert.equal(check('steps.raw.output', dw, { wantList: true }).path, 'steps.raw.output.result');
 });
+
+// BFSF-487: `results[0]` of a forEach step reads only the first iteration.
+test('a numeric index into a forEach step\'s results is said to read only the first iteration, and kept', () => {
+    const r = check('steps.fan.output.results[0].output.content');
+    assert.equal(r.path, 'steps.fan.output.results[0].output.content');
+    assert.match(r.notes, /only the first iteration/);
+    assert.match(r.notes, /steps\.fan\.output\.results\[\*\]\.output\.content/);
+    // The same index on a step that does not run once per item is plain.
+    const dw = seenWrap();
+    assert.equal(check('steps.c.output.results[0].subject', dw).notes, '');
+});
+
+test('a key read straight off a forEach step\'s results is never repaired to results[0] on its own', () => {
+    const dw = seenWrap();
+    const r = check('steps.fan.output.results.output', dw);
+    assert.notEqual(r.path, 'steps.fan.output.results[0].output');
+    assert.match(`${r.error || ''}${r.notes}`, /results\[\*\]/);
+    assert.match(`${r.error || ''}${r.notes}`, /first iteration/);
+});
+
+test('where a list is wanted a forEach step\'s results still become [*]', () => {
+    const g = seenWrap();
+    const a = sanitizeForEach({ overRef: 'steps.fan.output.results.output', itemVar: 'a' }, g.def, g);
+    assert.match(a.forEach.overRef, /^steps\.fan\.output\.results\[\*\]\.output/);
+});

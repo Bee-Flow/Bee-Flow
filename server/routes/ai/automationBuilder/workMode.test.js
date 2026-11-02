@@ -154,7 +154,7 @@ test('the plan instruction names the read tools and the dry run it now has', () 
 
 test('previewRefusal: a table in Plan first points at the plan\'s datatables list, anything else the generic one', () => {
     assert.match(previewRefusal('builder_create_datatable', 'plan'), /Put it in builder_write_plan's "datatables" list/);
-    assert.match(previewRefusal('builder_create_datatable', 'discuss'), /not permitted in discuss mode/);
+    assert.match(previewRefusal('builder_create_datatable', 'discuss'), /Nothing was changed/);
     assert.match(previewRefusal('builder_finalize', 'plan'), /not permitted in plan mode/);
 });
 
@@ -429,4 +429,30 @@ test('reviewStatusNote: a plan that waits is built by the button only', () => {
     assert.match(note, /answer in one sentence asking them to press Build this plan/);
     assert.equal(reviewStatusNote({ plan: { id: 'p1', version: 3, status: 'review' }, planCurrent: false }), '');
     assert.equal(reviewStatusNote({ plan: { id: 'p1', version: 3, status: 'built' }, planCurrent: true }), '');
+});
+
+// BFSF-487: discuss mode must say what it cannot do, and every mode separates
+// checked facts from assumptions.
+test('discuss mode says it cannot stage, names the mode switch and forbids "the fix is ready"', () => {
+    const text = modeInstruction('discuss');
+    assert.match(text, /cannot stage/i);
+    assert.match(text, /Approve each change/);
+    assert.match(text, /never say a fix is (ready|done|applied)/i);
+});
+
+test('a refused tool in discuss mode says nothing changed and points to no plan tool', () => {
+    const text = previewRefusal('builder_update_step', 'discuss');
+    assert.match(text, /Nothing was changed/);
+    assert.match(text, /Approve each change/);
+    assert.doesNotMatch(text, /plan/i);
+    assert.match(previewRefusal('builder_update_step', 'plan'), /plan/, 'plan mode keeps its pointer to the plan');
+});
+
+test('every mode asks to read real output first and to mark paths as checked or assumed', () => {
+    for (const mode of MODES) {
+        const text = modeInstruction(mode);
+        assert.match(text, /builder_inspect_run/, mode);
+        assert.match(text, /checked/i, mode);
+        assert.match(text, /assumed/i, mode);
+    }
 });

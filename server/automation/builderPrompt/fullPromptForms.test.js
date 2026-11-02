@@ -62,3 +62,10 @@ test('the concurrency hint uses the wording of the settings screen', () => {
     assert.match(FULL_PROMPT_FORMS, /"Run at the same time" set to "Allowed at the same time"/);
     assert.ok(!FULL_PROMPT_FORMS.includes('Run several at once'));
 });
+
+// BFSF-487: a fixed index into a forEach's results reads one iteration only.
+test('the full prompt says results[0] reads only the first iteration and shows the [*] filter', () => {
+    assert.match(full, /`results\[0\]` reads ONLY the first iteration/);
+    assert.ok(full.includes('steps.sheets.output.results[*].output.items'));
+    assert.ok(full.includes('contains(item.title, "september")'));
+});
